@@ -2,6 +2,7 @@ import { GS_PLAYING, GS_QUIT, GS_ESCAPED, GS_DEAD, PARTY_CAP, type GameState } f
 import { tryMove } from "./map";
 import { decodeArea } from "./decode";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT } from "./data/areaCards";
+import { viperCrossing, deepPoolCrossing } from "./special";
 import { enterChamber } from "./chamber";
 import { applyHazards } from "./hazards";
 import { takeTreasure } from "./pickup";
@@ -45,7 +46,20 @@ function resolveArea(state: GameState): GameEvent[] {
 
   for (;;) {
     const dec = decodeArea(state.areas[state.partyArea]!.card);
-    if (dec.special === SPECIAL_DEEP_POOL || dec.special === SPECIAL_VIPER_PIT) {
+    if (dec.special === SPECIAL_DEEP_POOL) {
+      const area = state.areas[state.partyArea]!;
+      if (area.dropped && area.dropped.length > 0) {
+        state.treasures = area.dropped;
+        area.dropped = [];
+        events.push({ type: "treasureReclaimed", count: state.treasures.length });
+        state.phase = "pickup"; // reclaim dropped heavy treasure (weight-limited)
+        return events;
+      }
+      events.push({ type: "enteredSpecial", special: dec.special });
+      state.phase = "explore";
+      return events;
+    }
+    if (dec.special === SPECIAL_VIPER_PIT) {
       events.push({ type: "enteredSpecial", special: dec.special });
       state.phase = "explore";
       return events;
@@ -107,12 +121,33 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
 
     case "move": {
       if (state.phase !== "explore") return { state, events: [{ type: "blocked" }] };
+      const fromSpecial = decodeArea(state.areas[state.partyArea]!.card).special;
+      const fromIdx = state.partyArea;
+      const oldPrev = state.prev;
       const res = tryMove(state, action.dir);
       if (!res.moved) {
         return { state: res.state, events: [res.deadEnd ? { type: "deadEnd", dir: action.dir } : { type: "blocked" }] };
       }
       const next = { ...res.state, turn: res.state.turn + 1 };
-      return { state: next, events: resolveArea(next) };
+      const events: GameEvent[] = [];
+      const crossing = next.partyArea !== oldPrev; // not simply going back the way we came
+
+      if (crossing && fromSpecial === SPECIAL_VIPER_PIT) {
+        events.push({ type: "crossedSpecial", special: SPECIAL_VIPER_PIT });
+        events.push(...viperCrossing(next));
+        if (!next.party.some((m) => m.status === 0 || m.status === 1)) {
+          next.gs = GS_DEAD;
+          next.phase = "gameOver";
+          events.push({ type: "gameOver", gs: GS_DEAD });
+          return { state: next, events };
+        }
+      } else if (crossing && fromSpecial === SPECIAL_DEEP_POOL) {
+        events.push({ type: "crossedSpecial", special: SPECIAL_DEEP_POOL });
+        events.push(...deepPoolCrossing(next, fromIdx));
+      }
+
+      events.push(...resolveArea(next));
+      return { state: next, events };
     }
 
     case "withdraw": {

@@ -4,6 +4,7 @@ import { GS_QUIT, GS_ESCAPED } from "./state";
 import { DIR_S, packCoord } from "./coords";
 import { makeState } from "./testkit";
 import { legalActions } from "./selectors";
+import { SPECIAL_VIPER_PIT, SPECIAL_DEEP_POOL } from "./data/areaCards";
 
 describe("reduce (spec §4 turn dispatch)", () => {
   it("quit ends the game and emits gameOver(QUIT)", () => {
@@ -171,5 +172,70 @@ describe("reduce — fight dispatch (C-2 §9.5)", () => {
     expect(r.phase).toBe("explore");
     expect(r.fight).toBeNull();
     expect(r.areas[0]!.contents).toEqual(expect.arrayContaining([103, 110]));
+  });
+});
+
+describe("reduce — special-area crossings (C-3 §10)", () => {
+  // A Deep Pool (287 = NSEWC + special 2) at the start, the Gateway to its north.
+  function poolStart(party: object[], over: object = {}) {
+    return makeState({
+      areas: [
+        { card: 175, coord: packCoord(1, 50, 49), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }, // north neighbour
+        { card: 287, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }, // Deep Pool
+      ],
+      partyArea: 1,
+      prev: 0, // we arrived from the north area (index 0)
+      party: party as any,
+      ...over,
+    });
+  }
+
+  it("crossing a Deep Pool without a Giant drops heavy treasure into the pool", () => {
+    // Leave the pool SOUTH (a fresh draw), i.e. NOT back north to where we came from.
+    const s = poolStart([{ creatureId: 5, status: 0, dragonKills: 0, treasure: [1] }], { largePack: [31], largeIdx: 0 });
+    const { state, events } = reduce(s, { type: "move", dir: 3 }); // DIR_S
+    expect(state.party[0]!.treasure).toEqual([]); // Gold dropped
+    expect(state.areas[1]!.dropped).toEqual([1]);
+    expect(events).toContainEqual({ type: "crossedSpecial", special: SPECIAL_DEEP_POOL });
+  });
+
+  it("going back the way you came does NOT trigger the crossing", () => {
+    const s = poolStart([{ creatureId: 5, status: 0, dragonKills: 0, treasure: [1] }]);
+    const { state, events } = reduce(s, { type: "move", dir: 1 }); // DIR_N -> back to index 0
+    expect(state.party[0]!.treasure).toEqual([1]); // kept — no crossing
+    expect(events).not.toContainEqual({ type: "crossedSpecial", special: SPECIAL_DEEP_POOL });
+  });
+
+  it("re-entering a Deep Pool with dropped treasure enters the pickup phase to reclaim it", () => {
+    const s = makeState({
+      areas: [
+        { card: 175, coord: packCoord(1, 50, 49), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+        { card: 287, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0, dropped: [1, 2] },
+      ],
+      partyArea: 0, // start north of the pool
+      prev: 0,
+      party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [] }],
+    });
+    const { state, events } = reduce(s, { type: "move", dir: 3 }); // DIR_S into the pool (175 has a south door; 287 has a north door)
+    expect(state.partyArea).toBe(1);
+    expect(state.phase).toBe("pickup");
+    expect(state.treasures).toEqual([1, 2]);
+    expect(state.areas[1]!.dropped).toEqual([]);
+    expect(events).toContainEqual({ type: "treasureReclaimed", count: 2 });
+  });
+
+  it("crossing a Viper Pit with the Charmed Flute is always safe", () => {
+    const s = makeState({
+      areas: [
+        { card: 175, coord: packCoord(1, 50, 49), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+        { card: 415, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }, // Viper Pit (415 = special 3)
+      ],
+      partyArea: 1, prev: 0,
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [12] }], // Hero with Charmed Flute
+      largePack: [31], largeIdx: 0,
+    });
+    const { state } = reduce(s, { type: "move", dir: 3 }); // cross south
+    expect(state.party[0]!.status).toBe(0); // alive
+    expect(state.gs).toBe(0); // still playing
   });
 });
