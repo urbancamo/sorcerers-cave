@@ -26,7 +26,8 @@ export interface AssetItem {
   exits?: string; // edges reached by the main structure, e.g. "NES" (stubs excluded)
   tileType?: TileType;
   special?: TileSpecial | null;
-  stairs?: "up" | "down" | "both" | null; // finalized separately
+  hasStairs?: boolean; // a staircase is present on the tile
+  stairsDir?: "up" | "down" | "both" | null; // direction; null = present but unconfirmed
 }
 
 export interface AssetCategory {
