@@ -8,7 +8,7 @@ export type GameAction =
   | { type: "leaveTreasure" };
 
 // What happened — the reducer is the only producer; the UI never infers game facts.
-// Chamber draws / encounters / fights / hazards are emitted in Milestone C.
+// Encounter-resolution and fight events arrive with combat (Milestone C-2).
 export type GameEvent =
   | { type: "moved"; area: number; level: number }
   | { type: "deadEnd"; dir: number }
