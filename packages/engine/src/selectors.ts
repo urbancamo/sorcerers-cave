@@ -16,6 +16,12 @@ export function legalActions(state: GameState): GameAction[] {
     actions.push({ type: "quit" });
     return actions;
   }
+  if (state.phase === "fight") {
+    const actions: GameAction[] = [{ type: "fightOn" }, { type: "retreat" }];
+    for (let i = 0; i < state.strangers.length; i++) actions.push({ type: "focusTarget", idx: i });
+    actions.push({ type: "quit" });
+    return actions;
+  }
   if (state.phase === "pickup") {
     const actions: GameAction[] = [];
     for (let ti = 0; ti < state.treasures.length; ti++) {

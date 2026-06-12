@@ -128,3 +128,48 @@ describe("reduce — stranger encounters (C-2 §8)", () => {
     expect(reduce(s, { type: "test" }).events).toContainEqual({ type: "blocked" });
   });
 });
+
+describe("reduce — fight dispatch (C-2 §9.5)", () => {
+  const arena = (over: object) => makeState({
+    phase: "fight",
+    fight: { surprise: 1, round: 1, focus: 0 },
+    areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+    ...over,
+  });
+
+  it("fightOn that wipes the strangers wins the fight and exits combat", () => {
+    const s = arena({ party: [{ creatureId: 12, status: 0, dragonKills: 0, treasure: [] }], strangers: [7], seed: 5 });
+    const { state, events } = reduce(s, { type: "fightOn" });
+    expect(state.strangers).toEqual([]);
+    expect(state.fight).toBeNull();
+    expect(state.phase).toBe("explore");
+    expect(events).toContainEqual({ type: "fightWon" });
+  });
+
+  it("fightOn that wipes the party ends the game as DEAD", () => {
+    // A lone Dwarf (FS 1) vs a Dragon (FS 6) with surprise to the strangers — the Dwarf dies.
+    const s = arena({
+      party: [{ creatureId: 7, status: 0, dragonKills: 0, treasure: [] }],
+      strangers: [10],
+      fight: { surprise: -1, round: 1, focus: 0 },
+      seed: 5,
+    });
+    const { state } = reduce(s, { type: "fightOn" });
+    expect(state.party.every((m) => m.status === 3)).toBe(true);
+    expect(state.gs).toBe(2); // GS_DEAD
+    expect(state.phase).toBe("gameOver");
+  });
+
+  it("focusTarget sets the focus; retreat leaves combat with strangers persisted", () => {
+    const s = arena({
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }],
+      strangers: [3, 10],
+      prev: 0,
+    });
+    expect(reduce(s, { type: "focusTarget", idx: 1 }).state.fight!.focus).toBe(1);
+    const r = reduce(s, { type: "retreat" }).state;
+    expect(r.phase).toBe("explore");
+    expect(r.fight).toBeNull();
+    expect(r.areas[0]!.contents).toEqual(expect.arrayContaining([103, 110]));
+  });
+});

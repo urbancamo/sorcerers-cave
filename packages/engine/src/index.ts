@@ -17,3 +17,5 @@ export * from "./chamber";
 export * from "./hazards";
 export * from "./pickup";
 export * from "./score";
+export * from "./reaction";
+export * from "./combat";

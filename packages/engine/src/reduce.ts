@@ -1,4 +1,4 @@
-import { GS_PLAYING, GS_QUIT, GS_ESCAPED, PARTY_CAP, type GameState } from "./state";
+import { GS_PLAYING, GS_QUIT, GS_ESCAPED, GS_DEAD, PARTY_CAP, type GameState } from "./state";
 import { tryMove } from "./map";
 import { decodeArea } from "./decode";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT } from "./data/areaCards";
@@ -8,6 +8,7 @@ import { takeTreasure } from "./pickup";
 import { unpackCoord, packCoord } from "./coords";
 import type { GameAction, GameEvent } from "./actions";
 import { reactionRoll } from "./reaction";
+import { resolveRound } from "./combat";
 import { CREATURES } from "./data/creatures";
 
 /** Persist the chamber working set back into the area, then return to exploring. */
@@ -172,6 +173,49 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       if (state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
       return { state: next, events: startFight(next, 1) }; // party gains surprise
+    }
+
+    case "focusTarget": {
+      if (state.phase !== "fight") return { state, events: [{ type: "blocked" }] };
+      if (action.idx < 0 || action.idx >= state.strangers.length) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      next.fight!.focus = action.idx;
+      return { state: next, events: [] };
+    }
+
+    case "fightOn": {
+      if (state.phase !== "fight") return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      const events = resolveRound(next);
+      const partyAlive = next.party.some((m) => m.status === 0 || m.status === 1);
+      if (!partyAlive) {
+        next.gs = GS_DEAD;
+        next.phase = "gameOver";
+        next.fight = null;
+        events.push({ type: "gameOver", gs: GS_DEAD });
+      } else if (next.strangers.length === 0) {
+        next.fight = null;
+        events.push({ type: "fightWon" });
+        if (next.treasures.length > 0) next.phase = "pickup";
+        else persistAndExplore(next);
+      }
+      // else: still fighting; resolveRound already advanced the round
+      return { state: next, events };
+    }
+
+    case "retreat": {
+      if (state.phase !== "fight") return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      next.areas[next.partyArea]!.contents = [
+        ...next.strangers.map((id) => 100 + id),
+        ...next.treasures.map((id) => 200 + id),
+      ];
+      next.strangers = []; next.treasures = []; next.hazards = [];
+      next.fight = null;
+      next.partyArea = next.prev;
+      next.level = unpackCoord(next.areas[next.partyArea]!.coord).level;
+      next.phase = "explore";
+      return { state: next, events: [{ type: "moved", area: next.partyArea, level: next.level }] };
     }
   }
 }

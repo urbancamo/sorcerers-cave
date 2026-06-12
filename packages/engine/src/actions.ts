@@ -7,7 +7,10 @@ export type GameAction =
   | { type: "takeTreasure"; ti: number; mi: number }
   | { type: "leaveTreasure" }
   | { type: "test" }
-  | { type: "attack" };
+  | { type: "attack" }
+  | { type: "focusTarget"; idx: number }
+  | { type: "fightOn" }
+  | { type: "retreat" };
 
 // What happened — the reducer is the only producer; the UI never infers game facts.
 // Encounter-resolution and fight events arrive with combat (Milestone C-2).
@@ -24,4 +27,5 @@ export type GameEvent =
   | { type: "spectreSlew"; creatureId: number }
   | { type: "reaction"; outcome: "hostile" | "indifferent" | "friendly" }
   | { type: "strangersJoined"; count: number }
-  | { type: "fightStarted"; surprise: number };
+  | { type: "fightStarted"; surprise: number }
+  | { type: "fightWon" };
