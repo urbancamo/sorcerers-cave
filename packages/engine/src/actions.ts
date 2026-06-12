@@ -12,4 +12,5 @@ export type GameEvent =
   | { type: "blocked" }
   | { type: "drewChamber"; strangers: number[]; treasures: number[]; hazards: number[] }
   | { type: "enteredSpecial"; special: number }
-  | { type: "gameOver"; gs: number };
+  | { type: "gameOver"; gs: number }
+  | { type: "hazardFired"; hazard: number };
