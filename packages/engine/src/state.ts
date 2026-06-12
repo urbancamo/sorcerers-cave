@@ -31,6 +31,13 @@ export interface PlacedArea {
   indiffCount: number; // AI permanent-indifference counter (Milestone C)
 }
 
+// surprise: +1 party, -1 strangers, 0 none (applies to round 1 only). focus indexes `strangers`.
+export interface FightState {
+  surprise: number;
+  round: number;
+  focus: number;
+}
+
 export interface GameState {
   gs: number; // GS_*
   phase: GamePhase; // interactive mode (UI controls + valid actions)
@@ -52,4 +59,5 @@ export interface GameState {
   treasures: number[];
   hazards: number[];
   seed: number; // LCG state (spec §5)
+  fight: FightState | null;
 }

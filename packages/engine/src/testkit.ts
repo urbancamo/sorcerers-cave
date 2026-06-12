@@ -33,6 +33,7 @@ export function makeState(overrides: Partial<GameState> = {}): GameState {
     treasures: [],
     hazards: [],
     seed: 1,
+    fight: null,
     ...overrides,
   };
 }

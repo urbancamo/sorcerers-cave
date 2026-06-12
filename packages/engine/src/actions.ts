@@ -16,4 +16,7 @@ export type GameEvent =
   | { type: "drewChamber"; strangers: number[]; treasures: number[]; hazards: number[] }
   | { type: "enteredSpecial"; special: number }
   | { type: "gameOver"; gs: number }
-  | { type: "hazardFired"; hazard: number };
+  | { type: "hazardFired"; hazard: number }
+  | { type: "memberDied"; creatureId: number }
+  | { type: "strangerKilled"; creatureId: number }
+  | { type: "spectreSlew"; creatureId: number };

@@ -73,5 +73,6 @@ export function newGame(seed: number, picks: readonly number[]): GameState {
     treasures: [],
     hazards: [],
     seed: small.seed,
+    fight: null,
   };
 }
