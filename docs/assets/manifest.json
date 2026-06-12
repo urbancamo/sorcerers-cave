@@ -814,8 +814,8 @@
           "exits": "SW",
           "tileType": "tunnel",
           "special": null,
-          "stairUp": true,
-          "stairDown": false
+          "stairUp": false,
+          "stairDown": true
         },
         {
           "file": "area-tile-s14-1.png",
