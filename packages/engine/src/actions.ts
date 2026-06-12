@@ -28,4 +28,7 @@ export type GameEvent =
   | { type: "reaction"; outcome: "hostile" | "indifferent" | "friendly" }
   | { type: "strangersJoined"; count: number }
   | { type: "fightStarted"; surprise: number }
-  | { type: "fightWon" };
+  | { type: "fightWon" }
+  | { type: "crossedSpecial"; special: number }
+  | { type: "treasureDropped"; count: number }
+  | { type: "treasureReclaimed"; count: number };

@@ -29,6 +29,7 @@ export interface PlacedArea {
   contents: number[]; // leftover 100+cid / 200+tid (Milestone C)
   flags: number; // AF bits (Milestone C)
   indiffCount: number; // AI permanent-indifference counter (Milestone C)
+  dropped?: number[]; // heavy treasure ids left in a Deep Pool, reclaimable on return (§10.2)
 }
 
 // surprise: +1 party, -1 strangers, 0 none (applies to round 1 only). focus indexes `strangers`.
