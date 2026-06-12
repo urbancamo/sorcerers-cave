@@ -17,3 +17,26 @@ export function rollDie(seed: number): { seed: number; value: number } {
   const value = Math.min(5, Math.floor(bits / 10923)) + 1; // 65536/6 ≈ 10923
   return { seed: s, value };
 }
+
+/** Uniform integer in [0, n). Returns the advanced seed (unchanged if n <= 0). */
+export function randBelow(seed: number, n: number): { seed: number; value: number } {
+  if (n <= 0) return { seed, value: 0 };
+  const s = nextSeed(seed);
+  const bits = Math.floor(s / 32768) % 65536; // upper bits 15..30
+  return { seed: s, value: bits % n };
+}
+
+/** Fisher–Yates shuffle. Pure: returns a new array and the advanced seed. */
+export function shuffle<T>(seed: number, arr: readonly T[]): { seed: number; result: T[] } {
+  const result = arr.slice();
+  let s = seed;
+  for (let i = result.length - 1; i >= 1; i--) {
+    const r = randBelow(s, i + 1);
+    s = r.seed;
+    const j = r.value;
+    const tmp = result[i]!;
+    result[i] = result[j]!;
+    result[j] = tmp;
+  }
+  return { seed: s, result };
+}
