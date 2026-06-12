@@ -2,6 +2,9 @@
 // Engine entities reference assets by stable integer id; this package maps ids -> sprites.
 // The id->sprite mapping is populated in Milestone B/E; here we own only the shape.
 
+/** The kind of game entity a small card depicts (its printed name-banner type). */
+export type CardCategory = "creature" | "treasure" | "hazard";
+
 export interface AssetItem {
   file: string;
   w: number;
@@ -11,6 +14,10 @@ export interface AssetItem {
   index: number | null;
   sourcePage: number;
   rotationApplied: number;
+  // Present on small cards (identified from the yellow name banner):
+  name?: string; // e.g. "Dragon", "Charmed Flute", "Earthquake"
+  category?: CardCategory; // the card type
+  entityId?: number | null; // engine id (CREATURES/TREASURES/hazard); null for the Sybil variant
 }
 
 export interface AssetCategory {

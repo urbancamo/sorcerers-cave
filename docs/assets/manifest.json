@@ -642,7 +642,7 @@
     "cards": {
       "dir": "cards",
       "source": "base",
-      "description": "Small cards: creatures, treasures, artifacts, hazards (63x88mm), upright portrait. 9 sheets x 8 (incl. pack duplicates).",
+      "description": "Small cards: creatures, treasures, artifacts, hazards (63x88mm), upright portrait. Each card identified by its yellow name banner: name + category (creature/treasure/hazard) + engine entityId (null for the optional Sybil variant). 38 creatures + 27 treasures + 7 hazards.",
       "rotationApplied": -90,
       "count": 72,
       "items": [
@@ -654,7 +654,10 @@
           "sheet": 1,
           "index": 1,
           "sourcePage": 18,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Charmed Flute",
+          "category": "treasure",
+          "entityId": 12
         },
         {
           "file": "small-card-s01-2.png",
@@ -664,7 +667,10 @@
           "sheet": 1,
           "index": 2,
           "sourcePage": 18,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Dragon",
+          "category": "creature",
+          "entityId": 10
         },
         {
           "file": "small-card-s01-3.png",
@@ -674,7 +680,10 @@
           "sheet": 1,
           "index": 3,
           "sourcePage": 18,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Dragon",
+          "category": "creature",
+          "entityId": 10
         },
         {
           "file": "small-card-s01-4.png",
@@ -684,7 +693,10 @@
           "sheet": 1,
           "index": 4,
           "sourcePage": 18,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Dragon",
+          "category": "creature",
+          "entityId": 10
         },
         {
           "file": "small-card-s01-5.png",
@@ -694,7 +706,10 @@
           "sheet": 1,
           "index": 5,
           "sourcePage": 18,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Dwarf",
+          "category": "creature",
+          "entityId": 7
         },
         {
           "file": "small-card-s01-6.png",
@@ -704,7 +719,10 @@
           "sheet": 1,
           "index": 6,
           "sourcePage": 18,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Dwarf",
+          "category": "creature",
+          "entityId": 7
         },
         {
           "file": "small-card-s01-7.png",
@@ -714,7 +732,10 @@
           "sheet": 1,
           "index": 7,
           "sourcePage": 18,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Dwarf",
+          "category": "creature",
+          "entityId": 7
         },
         {
           "file": "small-card-s01-8.png",
@@ -724,7 +745,10 @@
           "sheet": 1,
           "index": 8,
           "sourcePage": 18,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Earthquake",
+          "category": "hazard",
+          "entityId": 2
         },
         {
           "file": "small-card-s02-1.png",
@@ -734,7 +758,10 @@
           "sheet": 2,
           "index": 1,
           "sourcePage": 19,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Earthquake",
+          "category": "hazard",
+          "entityId": 2
         },
         {
           "file": "small-card-s02-2.png",
@@ -744,7 +771,10 @@
           "sheet": 2,
           "index": 2,
           "sourcePage": 19,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Eye of God",
+          "category": "treasure",
+          "entityId": 13
         },
         {
           "file": "small-card-s02-3.png",
@@ -754,7 +784,10 @@
           "sheet": 2,
           "index": 3,
           "sourcePage": 19,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Ghouls",
+          "category": "hazard",
+          "entityId": 4
         },
         {
           "file": "small-card-s02-4.png",
@@ -764,7 +797,10 @@
           "sheet": 2,
           "index": 4,
           "sourcePage": 19,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Giant",
+          "category": "creature",
+          "entityId": 12
         },
         {
           "file": "small-card-s02-5.png",
@@ -774,7 +810,10 @@
           "sheet": 2,
           "index": 5,
           "sourcePage": 19,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Giant",
+          "category": "creature",
+          "entityId": 12
         },
         {
           "file": "small-card-s02-6.png",
@@ -784,7 +823,10 @@
           "sheet": 2,
           "index": 6,
           "sourcePage": 19,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Gems",
+          "category": "treasure",
+          "entityId": 2
         },
         {
           "file": "small-card-s02-7.png",
@@ -794,7 +836,10 @@
           "sheet": 2,
           "index": 7,
           "sourcePage": 19,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Gems",
+          "category": "treasure",
+          "entityId": 2
         },
         {
           "file": "small-card-s02-8.png",
@@ -804,7 +849,10 @@
           "sheet": 2,
           "index": 8,
           "sourcePage": 19,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Gems",
+          "category": "treasure",
+          "entityId": 2
         },
         {
           "file": "small-card-s03-1.png",
@@ -814,7 +862,10 @@
           "sheet": 3,
           "index": 1,
           "sourcePage": 20,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Giant",
+          "category": "creature",
+          "entityId": 12
         },
         {
           "file": "small-card-s03-2.png",
@@ -824,7 +875,10 @@
           "sheet": 3,
           "index": 2,
           "sourcePage": 20,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Gold",
+          "category": "treasure",
+          "entityId": 1
         },
         {
           "file": "small-card-s03-3.png",
@@ -834,7 +888,10 @@
           "sheet": 3,
           "index": 3,
           "sourcePage": 20,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Gold",
+          "category": "treasure",
+          "entityId": 1
         },
         {
           "file": "small-card-s03-4.png",
@@ -844,7 +901,10 @@
           "sheet": 3,
           "index": 4,
           "sourcePage": 20,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Gold",
+          "category": "treasure",
+          "entityId": 1
         },
         {
           "file": "small-card-s03-5.png",
@@ -854,7 +914,10 @@
           "sheet": 3,
           "index": 5,
           "sourcePage": 20,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Gold",
+          "category": "treasure",
+          "entityId": 1
         },
         {
           "file": "small-card-s03-6.png",
@@ -864,7 +927,10 @@
           "sheet": 3,
           "index": 6,
           "sourcePage": 20,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Gold",
+          "category": "treasure",
+          "entityId": 1
         },
         {
           "file": "small-card-s03-7.png",
@@ -874,7 +940,10 @@
           "sheet": 3,
           "index": 7,
           "sourcePage": 20,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Gold",
+          "category": "treasure",
+          "entityId": 1
         },
         {
           "file": "small-card-s03-8.png",
@@ -884,7 +953,10 @@
           "sheet": 3,
           "index": 8,
           "sourcePage": 20,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Healing Balm",
+          "category": "treasure",
+          "entityId": 6
         },
         {
           "file": "small-card-s04-1.png",
@@ -894,7 +966,10 @@
           "sheet": 4,
           "index": 1,
           "sourcePage": 21,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Hero",
+          "category": "creature",
+          "entityId": 0
         },
         {
           "file": "small-card-s04-2.png",
@@ -904,7 +979,10 @@
           "sheet": 4,
           "index": 2,
           "sourcePage": 21,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Lost Ruby",
+          "category": "treasure",
+          "entityId": 11
         },
         {
           "file": "small-card-s04-3.png",
@@ -914,7 +992,10 @@
           "sheet": 4,
           "index": 3,
           "sourcePage": 21,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Magic Carpet",
+          "category": "treasure",
+          "entityId": 4
         },
         {
           "file": "small-card-s04-4.png",
@@ -924,7 +1005,10 @@
           "sheet": 4,
           "index": 4,
           "sourcePage": 21,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Magic Staff",
+          "category": "treasure",
+          "entityId": 9
         },
         {
           "file": "small-card-s04-5.png",
@@ -934,7 +1018,10 @@
           "sheet": 4,
           "index": 5,
           "sourcePage": 21,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Magic Sword",
+          "category": "treasure",
+          "entityId": 3
         },
         {
           "file": "small-card-s04-6.png",
@@ -944,7 +1031,10 @@
           "sheet": 4,
           "index": 6,
           "sourcePage": 21,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Man",
+          "category": "creature",
+          "entityId": 5
         },
         {
           "file": "small-card-s04-7.png",
@@ -954,7 +1044,10 @@
           "sheet": 4,
           "index": 7,
           "sourcePage": 21,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Man",
+          "category": "creature",
+          "entityId": 5
         },
         {
           "file": "small-card-s04-8.png",
@@ -964,7 +1057,10 @@
           "sheet": 4,
           "index": 8,
           "sourcePage": 21,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Lotus Dust",
+          "category": "treasure",
+          "entityId": 5
         },
         {
           "file": "small-card-s05-1.png",
@@ -974,7 +1070,10 @@
           "sheet": 5,
           "index": 1,
           "sourcePage": 22,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Man",
+          "category": "creature",
+          "entityId": 5
         },
         {
           "file": "small-card-s05-2.png",
@@ -984,7 +1083,10 @@
           "sheet": 5,
           "index": 2,
           "sourcePage": 22,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Man",
+          "category": "creature",
+          "entityId": 5
         },
         {
           "file": "small-card-s05-3.png",
@@ -994,7 +1096,10 @@
           "sheet": 5,
           "index": 3,
           "sourcePage": 22,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Man",
+          "category": "creature",
+          "entityId": 5
         },
         {
           "file": "small-card-s05-4.png",
@@ -1004,7 +1109,10 @@
           "sheet": 5,
           "index": 4,
           "sourcePage": 22,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Man",
+          "category": "creature",
+          "entityId": 5
         },
         {
           "file": "small-card-s05-5.png",
@@ -1014,7 +1122,10 @@
           "sheet": 5,
           "index": 5,
           "sourcePage": 22,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Medusa",
+          "category": "hazard",
+          "entityId": 3
         },
         {
           "file": "small-card-s05-6.png",
@@ -1024,7 +1135,10 @@
           "sheet": 5,
           "index": 6,
           "sourcePage": 22,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Mutiny",
+          "category": "hazard",
+          "entityId": 0
         },
         {
           "file": "small-card-s05-7.png",
@@ -1034,7 +1148,10 @@
           "sheet": 5,
           "index": 7,
           "sourcePage": 22,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Ogre",
+          "category": "creature",
+          "entityId": 2
         },
         {
           "file": "small-card-s05-8.png",
@@ -1044,7 +1161,10 @@
           "sheet": 5,
           "index": 8,
           "sourcePage": 22,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Ogre",
+          "category": "creature",
+          "entityId": 2
         },
         {
           "file": "small-card-s06-1.png",
@@ -1054,7 +1174,10 @@
           "sheet": 6,
           "index": 1,
           "sourcePage": 23,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Ogre",
+          "category": "creature",
+          "entityId": 2
         },
         {
           "file": "small-card-s06-2.png",
@@ -1064,7 +1187,10 @@
           "sheet": 6,
           "index": 2,
           "sourcePage": 23,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Priest",
+          "category": "creature",
+          "entityId": 4
         },
         {
           "file": "small-card-s06-3.png",
@@ -1074,7 +1200,10 @@
           "sheet": 6,
           "index": 3,
           "sourcePage": 23,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Priest",
+          "category": "creature",
+          "entityId": 4
         },
         {
           "file": "small-card-s06-4.png",
@@ -1084,7 +1213,10 @@
           "sheet": 6,
           "index": 4,
           "sourcePage": 23,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Priest",
+          "category": "creature",
+          "entityId": 4
         },
         {
           "file": "small-card-s06-5.png",
@@ -1094,7 +1226,10 @@
           "sheet": 6,
           "index": 5,
           "sourcePage": 23,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Silver",
+          "category": "treasure",
+          "entityId": 0
         },
         {
           "file": "small-card-s06-6.png",
@@ -1104,7 +1239,10 @@
           "sheet": 6,
           "index": 6,
           "sourcePage": 23,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Silver",
+          "category": "treasure",
+          "entityId": 0
         },
         {
           "file": "small-card-s06-7.png",
@@ -1114,7 +1252,10 @@
           "sheet": 6,
           "index": 7,
           "sourcePage": 23,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Silver",
+          "category": "treasure",
+          "entityId": 0
         },
         {
           "file": "small-card-s06-8.png",
@@ -1124,7 +1265,10 @@
           "sheet": 6,
           "index": 8,
           "sourcePage": 23,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Silver",
+          "category": "treasure",
+          "entityId": 0
         },
         {
           "file": "small-card-s07-1.png",
@@ -1134,7 +1278,10 @@
           "sheet": 7,
           "index": 1,
           "sourcePage": 24,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Silver",
+          "category": "treasure",
+          "entityId": 0
         },
         {
           "file": "small-card-s07-2.png",
@@ -1144,7 +1291,10 @@
           "sheet": 7,
           "index": 2,
           "sourcePage": 24,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Silver",
+          "category": "treasure",
+          "entityId": 0
         },
         {
           "file": "small-card-s07-3.png",
@@ -1154,7 +1304,10 @@
           "sheet": 7,
           "index": 3,
           "sourcePage": 24,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Spectre",
+          "category": "creature",
+          "entityId": 9
         },
         {
           "file": "small-card-s07-4.png",
@@ -1164,7 +1317,10 @@
           "sheet": 7,
           "index": 4,
           "sourcePage": 24,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Spectre",
+          "category": "creature",
+          "entityId": 9
         },
         {
           "file": "small-card-s07-5.png",
@@ -1174,7 +1330,10 @@
           "sheet": 7,
           "index": 5,
           "sourcePage": 24,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Spectre",
+          "category": "creature",
+          "entityId": 9
         },
         {
           "file": "small-card-s07-6.png",
@@ -1184,7 +1343,10 @@
           "sheet": 7,
           "index": 6,
           "sourcePage": 24,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Strength Potion",
+          "category": "treasure",
+          "entityId": 8
         },
         {
           "file": "small-card-s07-7.png",
@@ -1194,7 +1356,10 @@
           "sheet": 7,
           "index": 7,
           "sourcePage": 24,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Sybil",
+          "category": "creature",
+          "entityId": null
         },
         {
           "file": "small-card-s07-8.png",
@@ -1204,7 +1369,10 @@
           "sheet": 7,
           "index": 8,
           "sourcePage": 24,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Talisman",
+          "category": "treasure",
+          "entityId": 7
         },
         {
           "file": "small-card-s08-1.png",
@@ -1214,7 +1382,10 @@
           "sheet": 8,
           "index": 1,
           "sourcePage": 25,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "The Ring",
+          "category": "treasure",
+          "entityId": 10
         },
         {
           "file": "small-card-s08-2.png",
@@ -1224,7 +1395,10 @@
           "sheet": 8,
           "index": 2,
           "sourcePage": 25,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "The Sorcerer",
+          "category": "creature",
+          "entityId": 11
         },
         {
           "file": "small-card-s08-3.png",
@@ -1234,7 +1408,10 @@
           "sheet": 8,
           "index": 3,
           "sourcePage": 25,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Trap",
+          "category": "hazard",
+          "entityId": 1
         },
         {
           "file": "small-card-s08-4.png",
@@ -1244,7 +1421,10 @@
           "sheet": 8,
           "index": 4,
           "sourcePage": 25,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Trap",
+          "category": "hazard",
+          "entityId": 1
         },
         {
           "file": "small-card-s08-5.png",
@@ -1254,7 +1434,10 @@
           "sheet": 8,
           "index": 5,
           "sourcePage": 25,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Troll",
+          "category": "creature",
+          "entityId": 3
         },
         {
           "file": "small-card-s08-6.png",
@@ -1264,7 +1447,10 @@
           "sheet": 8,
           "index": 6,
           "sourcePage": 25,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Troll",
+          "category": "creature",
+          "entityId": 3
         },
         {
           "file": "small-card-s08-7.png",
@@ -1274,7 +1460,10 @@
           "sheet": 8,
           "index": 7,
           "sourcePage": 25,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Troll",
+          "category": "creature",
+          "entityId": 3
         },
         {
           "file": "small-card-s08-8.png",
@@ -1284,7 +1473,10 @@
           "sheet": 8,
           "index": 8,
           "sourcePage": 25,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Treasure Chest",
+          "category": "treasure",
+          "entityId": 14
         },
         {
           "file": "small-card-s09-1.png",
@@ -1294,7 +1486,10 @@
           "sheet": 9,
           "index": 1,
           "sourcePage": 26,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Unicorn",
+          "category": "creature",
+          "entityId": 13
         },
         {
           "file": "small-card-s09-2.png",
@@ -1304,7 +1499,10 @@
           "sheet": 9,
           "index": 2,
           "sourcePage": 26,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Wizard",
+          "category": "creature",
+          "entityId": 8
         },
         {
           "file": "small-card-s09-3.png",
@@ -1314,7 +1512,10 @@
           "sheet": 9,
           "index": 3,
           "sourcePage": 26,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Wizard",
+          "category": "creature",
+          "entityId": 8
         },
         {
           "file": "small-card-s09-4.png",
@@ -1324,7 +1525,10 @@
           "sheet": 9,
           "index": 4,
           "sourcePage": 26,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Wizard",
+          "category": "creature",
+          "entityId": 8
         },
         {
           "file": "small-card-s09-5.png",
@@ -1334,7 +1538,10 @@
           "sheet": 9,
           "index": 5,
           "sourcePage": 26,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Woman",
+          "category": "creature",
+          "entityId": 6
         },
         {
           "file": "small-card-s09-6.png",
@@ -1344,7 +1551,10 @@
           "sheet": 9,
           "index": 6,
           "sourcePage": 26,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Woman",
+          "category": "creature",
+          "entityId": 6
         },
         {
           "file": "small-card-s09-7.png",
@@ -1354,7 +1564,10 @@
           "sheet": 9,
           "index": 7,
           "sourcePage": 26,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Woman",
+          "category": "creature",
+          "entityId": 6
         },
         {
           "file": "small-card-s09-8.png",
@@ -1364,7 +1577,10 @@
           "sheet": 9,
           "index": 8,
           "sourcePage": 26,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "name": "Woman Hero",
+          "category": "creature",
+          "entityId": 1
         }
       ]
     },
