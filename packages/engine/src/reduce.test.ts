@@ -25,14 +25,14 @@ describe("reduce (spec §4 turn dispatch)", () => {
     expect(events).toContainEqual({ type: "blocked" });
   });
 
-  it("a successful move increments the turn and emits moved + enteredChamber", () => {
+  it("a successful move increments the turn and emits moved + drewChamber", () => {
     // Draw 31 (NSEWC, a chamber) moving South from the Gateway.
     const s = makeState({ largePack: [31], largeIdx: 0, turn: 1 });
     const { state, events } = reduce(s, { type: "move", dir: DIR_S });
     expect(state.turn).toBe(2);
     expect(state.partyArea).toBe(1);
     expect(events).toContainEqual({ type: "moved", area: 1, level: 1 });
-    expect(events).toContainEqual({ type: "enteredChamber", area: 1 });
+    expect(events).toContainEqual({ type: "drewChamber", strangers: [], treasures: [], hazards: [] });
   });
 
   it("a dead-end move does not advance the turn and emits deadEnd", () => {

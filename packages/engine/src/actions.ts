@@ -9,7 +9,7 @@ export type GameAction =
 export type GameEvent =
   | { type: "moved"; area: number; level: number }
   | { type: "deadEnd"; dir: number }
-  | { type: "blocked" } // no exit on the card, or the large pack is exhausted
-  | { type: "enteredChamber"; area: number } // skeleton: the actual draw happens in Milestone C
-  | { type: "enteredSpecial"; special: number } // Deep Pool / Viper Pit (Milestone C)
+  | { type: "blocked" }
+  | { type: "drewChamber"; strangers: number[]; treasures: number[]; hazards: number[] }
+  | { type: "enteredSpecial"; special: number }
   | { type: "gameOver"; gs: number };

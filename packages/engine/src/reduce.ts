@@ -12,7 +12,7 @@ function resolveArea(state: GameState): { state: GameState; events: GameEvent[] 
   if (dec.special === SPECIAL_DEEP_POOL || dec.special === SPECIAL_VIPER_PIT) {
     events.push({ type: "enteredSpecial", special: dec.special });
   } else if (dec.chamber) {
-    events.push({ type: "enteredChamber", area: state.partyArea });
+    events.push({ type: "drewChamber", strangers: [], treasures: [], hazards: [] });
   }
   return { state, events };
 }
