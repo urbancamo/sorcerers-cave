@@ -45,7 +45,6 @@ export function partyRollBonus(state: GameState): number {
 
 const C_SPECTRE = 9;
 const C_DRAGON = 10;
-const T_MAGIC_SWORD_BEARER = 3; // same id as T_MAGIC_SWORD; named for the spectre check
 
 function livingParty(state: GameState): PartyMember[] {
   return state.party.filter((m) => m.status === 0 || m.status === 1);
@@ -60,7 +59,7 @@ export function resolveRound(state: GameState): GameEvent[] {
   const hasSpectre = state.strangers.includes(C_SPECTRE);
   const party = livingParty(state);
   const partyHasMP = party.some((m) => casterMP(m) > 0);
-  const partyHasSword = party.some((m) => m.treasure.includes(T_MAGIC_SWORD_BEARER));
+  const partyHasSword = party.some((m) => m.treasure.includes(T_MAGIC_SWORD));
   const spectreUnfightable = hasSpectre && !partyHasMP && !partyHasSword;
   if (spectreUnfightable) {
     let strongest: PartyMember | undefined;
