@@ -13,3 +13,7 @@ export * from "./data/treasures";
 export * from "./data/hazards";
 export * from "./data/areaCards";
 export * from "./data/smallPack";
+export * from "./chamber";
+export * from "./hazards";
+export * from "./pickup";
+export * from "./score";

@@ -2,22 +2,72 @@ import { GS_PLAYING, GS_QUIT, GS_ESCAPED, type GameState } from "./state";
 import { tryMove } from "./map";
 import { decodeArea } from "./decode";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT } from "./data/areaCards";
+import { enterChamber } from "./chamber";
+import { applyHazards } from "./hazards";
+import { takeTreasure } from "./pickup";
+import { unpackCoord, packCoord } from "./coords";
 import type { GameAction, GameEvent } from "./actions";
 
-/** Resolve the area the party just entered. Milestone B emits skeleton events only;
- *  chamber draws, special-area crossings and hazards arrive in Milestone C. */
-function resolveArea(state: GameState): { state: GameState; events: GameEvent[] } {
-  const events: GameEvent[] = [{ type: "moved", area: state.partyArea, level: state.level }];
-  const dec = decodeArea(state.areas[state.partyArea]!.card);
-  if (dec.special === SPECIAL_DEEP_POOL || dec.special === SPECIAL_VIPER_PIT) {
-    events.push({ type: "enteredSpecial", special: dec.special });
-  } else if (dec.chamber) {
-    events.push({ type: "drewChamber", strangers: [], treasures: [], hazards: [] });
-  }
-  return { state, events };
+/** Persist the chamber working set back into the area, then return to exploring. */
+function persistAndExplore(state: GameState): void {
+  const area = state.areas[state.partyArea]!;
+  area.contents = [
+    ...state.strangers.map((id) => 100 + id),
+    ...state.treasures.map((id) => 200 + id),
+  ];
+  state.phase = "explore";
 }
 
-/** Top-level turn dispatcher (spec §4). Pure: returns a new state and the events it produced. */
+/** Resolve the area just entered: special markers, then chamber draw + hazards + phase (spec §4/§7). */
+function resolveArea(state: GameState): GameEvent[] {
+  const events: GameEvent[] = [{ type: "moved", area: state.partyArea, level: state.level }];
+
+  for (;;) {
+    const dec = decodeArea(state.areas[state.partyArea]!.card);
+    if (dec.special === SPECIAL_DEEP_POOL || dec.special === SPECIAL_VIPER_PIT) {
+      events.push({ type: "enteredSpecial", special: dec.special });
+      state.phase = "explore";
+      return events;
+    }
+    if (!dec.chamber) {
+      state.phase = "explore";
+      return events;
+    }
+    events.push(...enterChamber(state));
+    const { events: hzEvents, fell } = applyHazards(state);
+    events.push(...hzEvents);
+    if (fell) {
+      relocateDown(state);
+      events.push({ type: "moved", area: state.partyArea, level: state.level });
+      continue;
+    }
+    if (state.strangers.length > 0) {
+      state.phase = "encounter";
+    } else if (state.treasures.length > 0) {
+      state.phase = "pickup";
+    } else {
+      persistAndExplore(state);
+    }
+    return events;
+  }
+}
+
+/** Move the whole party to the area directly below (same x,y), creating it if needed. */
+function relocateDown(state: GameState): void {
+  const { x, y, level } = unpackCoord(state.areas[state.partyArea]!.coord);
+  const target = packCoord(level + 1, x, y);
+  let idx = state.areas.findIndex((a) => a.coord === target);
+  if (idx < 0) {
+    const card = state.largeIdx < state.largePack.length ? state.largePack[state.largeIdx++]! | 32 : 31 | 32;
+    state.areas.push({ card, coord: target, faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 });
+    idx = state.areas.length - 1;
+  }
+  state.prev2 = state.prev;
+  state.prev = state.partyArea;
+  state.partyArea = idx;
+  state.level = level + 1;
+}
+
 export function reduce(state: GameState, action: GameAction): { state: GameState; events: GameEvent[] } {
   if (state.gs !== GS_PLAYING) return { state, events: [] };
 
@@ -26,6 +76,7 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       return { state: { ...state, gs: GS_QUIT, phase: "gameOver" }, events: [{ type: "gameOver", gs: GS_QUIT }] };
 
     case "exitCave": {
+      if (state.phase !== "explore") return { state, events: [{ type: "blocked" }] };
       const dec = decodeArea(state.areas[state.partyArea]!.card);
       if (state.level === 1 && dec.stairUp) {
         return { state: { ...state, gs: GS_ESCAPED, phase: "gameOver" }, events: [{ type: "gameOver", gs: GS_ESCAPED }] };
@@ -34,12 +85,42 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
     }
 
     case "move": {
+      if (state.phase !== "explore") return { state, events: [{ type: "blocked" }] };
       const res = tryMove(state, action.dir);
       if (!res.moved) {
         return { state: res.state, events: [res.deadEnd ? { type: "deadEnd", dir: action.dir } : { type: "blocked" }] };
       }
-      const moved = { ...res.state, turn: res.state.turn + 1 };
-      return resolveArea(moved);
+      const next = { ...res.state, turn: res.state.turn + 1 };
+      return { state: next, events: resolveArea(next) };
+    }
+
+    case "withdraw": {
+      if (state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      next.areas[next.partyArea]!.contents = [
+        ...next.strangers.map((id) => 100 + id),
+        ...next.treasures.map((id) => 200 + id),
+      ];
+      next.strangers = []; next.treasures = []; next.hazards = [];
+      next.partyArea = next.prev;
+      next.level = unpackCoord(next.areas[next.partyArea]!.coord).level;
+      next.phase = "explore";
+      return { state: next, events: [{ type: "moved", area: next.partyArea, level: next.level }] };
+    }
+
+    case "takeTreasure": {
+      if (state.phase !== "pickup") return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      takeTreasure(next, action.ti, action.mi);
+      if (next.treasures.length === 0) persistAndExplore(next);
+      return { state: next, events: [] };
+    }
+
+    case "leaveTreasure": {
+      if (state.phase !== "pickup") return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      persistAndExplore(next);
+      return { state: next, events: [] };
     }
   }
 }

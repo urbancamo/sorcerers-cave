@@ -2,7 +2,10 @@
 export type GameAction =
   | { type: "move"; dir: number }
   | { type: "quit" }
-  | { type: "exitCave" };
+  | { type: "exitCave" }
+  | { type: "withdraw" }
+  | { type: "takeTreasure"; ti: number; mi: number }
+  | { type: "leaveTreasure" };
 
 // What happened — the reducer is the only producer; the UI never infers game facts.
 // Chamber draws / encounters / fights / hazards are emitted in Milestone C.

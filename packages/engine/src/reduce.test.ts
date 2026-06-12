@@ -3,6 +3,7 @@ import { reduce } from "./reduce";
 import { GS_QUIT, GS_ESCAPED } from "./state";
 import { DIR_S, packCoord } from "./coords";
 import { makeState } from "./testkit";
+import { legalActions } from "./selectors";
 
 describe("reduce (spec §4 turn dispatch)", () => {
   it("quit ends the game and emits gameOver(QUIT)", () => {
@@ -48,5 +49,42 @@ describe("reduce (spec §4 turn dispatch)", () => {
     const { state, events } = reduce(over, { type: "move", dir: DIR_S });
     expect(state).toBe(over);
     expect(events).toEqual([]);
+  });
+});
+
+describe("reduce — chamber resolution (C-1)", () => {
+  it("moving into a chamber with only treasure enters the pickup phase", () => {
+    const s = makeState({ largePack: [31], largeIdx: 0, smallPack: [201], smallIdx: 0 });
+    const { state, events } = reduce(s, { type: "move", dir: DIR_S });
+    expect(state.phase).toBe("pickup");
+    expect(state.treasures).toEqual([1]);
+    expect(events).toContainEqual({ type: "drewChamber", strangers: [], treasures: [1], hazards: [] });
+    expect(legalActions(state)).toContainEqual({ type: "takeTreasure", ti: 0, mi: 0 });
+  });
+
+  it("taking the last treasure returns to the explore phase and persists nothing", () => {
+    const s = makeState({ largePack: [31], largeIdx: 0, smallPack: [201], smallIdx: 0 });
+    const afterMove = reduce(s, { type: "move", dir: DIR_S }).state;
+    const { state } = reduce(afterMove, { type: "takeTreasure", ti: 0, mi: 0 });
+    expect(state.phase).toBe("explore");
+    expect(state.party[0]!.treasure).toEqual([1]);
+    expect(state.treasures).toEqual([]);
+  });
+
+  it("moving into a chamber with a stranger enters the encounter phase (withdraw only)", () => {
+    const s = makeState({ largePack: [31], largeIdx: 0, smallPack: [110], smallIdx: 0 });
+    const { state } = reduce(s, { type: "move", dir: DIR_S });
+    expect(state.phase).toBe("encounter");
+    expect(state.strangers).toEqual([10]);
+    expect(legalActions(state)).toEqual([{ type: "withdraw" }, { type: "quit" }]);
+  });
+
+  it("withdraw steps back to the previous area and leaves the strangers behind", () => {
+    const s = makeState({ largePack: [31], largeIdx: 0, smallPack: [110], smallIdx: 0 });
+    const afterMove = reduce(s, { type: "move", dir: DIR_S }).state;
+    const { state } = reduce(afterMove, { type: "withdraw" });
+    expect(state.phase).toBe("explore");
+    expect(state.partyArea).toBe(0);
+    expect(state.areas[1]!.contents).toContain(110);
   });
 });
