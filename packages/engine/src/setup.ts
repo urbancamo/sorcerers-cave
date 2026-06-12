@@ -54,6 +54,7 @@ export function newGame(seed: number, picks: readonly number[]): GameState {
 
   return {
     gs: GS_PLAYING,
+    phase: "explore",
     turn: 1,
     score: 0,
     curses: 0,

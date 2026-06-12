@@ -7,6 +7,10 @@ export const PARTY_CAP = 12;
 export const PARTY_BUDGET = 6;
 export const GATEWAY_START_COORD = 15050; // level 1, x=50, y=50
 
+// Interactive mode: which controls the UI shows and which actions reduce accepts.
+// Milestone B uses only "explore" and "gameOver"; "encounter"/"fight"/"pickup" arrive in C.
+export type GamePhase = "explore" | "encounter" | "fight" | "pickup" | "gameOver";
+
 // Member status: 0 original, 1 ally, 2 stone, 3 dead.
 export type MemberStatus = 0 | 1 | 2 | 3;
 
@@ -29,6 +33,7 @@ export interface PlacedArea {
 
 export interface GameState {
   gs: number; // GS_*
+  phase: GamePhase; // interactive mode (UI controls + valid actions)
   turn: number;
   score: number;
   curses: number;

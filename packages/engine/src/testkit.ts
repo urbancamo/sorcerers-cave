@@ -14,6 +14,7 @@ export function makeState(overrides: Partial<GameState> = {}): GameState {
   };
   return {
     gs: 0,
+    phase: "explore",
     turn: 1,
     score: 0,
     curses: 0,

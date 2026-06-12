@@ -23,12 +23,12 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
 
   switch (action.type) {
     case "quit":
-      return { state: { ...state, gs: GS_QUIT }, events: [{ type: "gameOver", gs: GS_QUIT }] };
+      return { state: { ...state, gs: GS_QUIT, phase: "gameOver" }, events: [{ type: "gameOver", gs: GS_QUIT }] };
 
     case "exitCave": {
       const dec = decodeArea(state.areas[state.partyArea]!.card);
       if (state.level === 1 && dec.stairUp) {
-        return { state: { ...state, gs: GS_ESCAPED }, events: [{ type: "gameOver", gs: GS_ESCAPED }] };
+        return { state: { ...state, gs: GS_ESCAPED, phase: "gameOver" }, events: [{ type: "gameOver", gs: GS_ESCAPED }] };
       }
       return { state, events: [{ type: "blocked" }] };
     }

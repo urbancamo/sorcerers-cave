@@ -6,6 +6,7 @@ export * from "./setup";
 export * from "./map";
 export * from "./actions";
 export * from "./reduce";
+export * from "./selectors";
 export * from "./decks";
 export * from "./data/creatures";
 export * from "./data/treasures";
