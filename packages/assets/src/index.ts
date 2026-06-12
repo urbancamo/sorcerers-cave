@@ -5,6 +5,10 @@
 /** The kind of game entity a small card depicts (its printed name-banner type). */
 export type CardCategory = "creature" | "treasure" | "hazard";
 
+/** Area-tile classification. */
+export type TileType = "chamber" | "tunnel" | "gateway";
+export type TileSpecial = "deep-pool" | "viper-pit" | "tomb-of-kings" | "great-hall" | "gateway";
+
 export interface AssetItem {
   file: string;
   w: number;
@@ -18,6 +22,11 @@ export interface AssetItem {
   name?: string; // e.g. "Dragon", "Charmed Flute", "Earthquake"
   category?: CardCategory; // the card type
   entityId?: number | null; // engine id (CREATURES/TREASURES/hazard); null for the Sybil variant
+  // Present on area tiles (classified from the art via connected-component analysis):
+  exits?: string; // edges reached by the main structure, e.g. "NES" (stubs excluded)
+  tileType?: TileType;
+  special?: TileSpecial | null;
+  stairs?: "up" | "down" | "both" | null; // finalized separately
 }
 
 export interface AssetCategory {

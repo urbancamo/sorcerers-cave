@@ -33,7 +33,7 @@
     "tiles": {
       "dir": "tiles",
       "source": "base",
-      "description": "Area tiles (large cards, 88x126mm), LANDSCAPE with NW direction arrow up. 15 sheets x 4.",
+      "description": "Area tiles (large cards, 88x126mm), LANDSCAPE with NW direction arrow up. Categorized by connected-component analysis of the art: exits (N/E/S/W edges reached by the main tunnel/chamber; disconnected edge stubs are NOT exits), tileType (chamber/tunnel/gateway), and special (5 named tiles). 22 chambers + 1 gateway + 37 tunnels. Stair up/down pending.",
       "rotationApplied": -90,
       "count": 60,
       "items": [
@@ -45,7 +45,10 @@
           "sheet": 1,
           "index": 1,
           "sourcePage": 3,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NE",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s01-2.png",
@@ -55,7 +58,10 @@
           "sheet": 1,
           "index": 2,
           "sourcePage": 3,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NE",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s01-3.png",
@@ -65,7 +71,10 @@
           "sheet": 1,
           "index": 3,
           "sourcePage": 3,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NE",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s01-4.png",
@@ -75,7 +84,10 @@
           "sheet": 1,
           "index": 4,
           "sourcePage": 3,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NES",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s02-1.png",
@@ -85,7 +97,10 @@
           "sheet": 2,
           "index": 1,
           "sourcePage": 4,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NES",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s02-2.png",
@@ -95,7 +110,10 @@
           "sheet": 2,
           "index": 2,
           "sourcePage": 4,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NES",
+          "tileType": "chamber",
+          "special": null
         },
         {
           "file": "area-tile-s02-3.png",
@@ -105,7 +123,10 @@
           "sheet": 2,
           "index": 3,
           "sourcePage": 4,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NES",
+          "tileType": "chamber",
+          "special": null
         },
         {
           "file": "area-tile-s02-4.png",
@@ -115,7 +136,10 @@
           "sheet": 2,
           "index": 4,
           "sourcePage": 4,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NES",
+          "tileType": "chamber",
+          "special": null
         },
         {
           "file": "area-tile-s03-1.png",
@@ -125,7 +149,10 @@
           "sheet": 3,
           "index": 1,
           "sourcePage": 5,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NES",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s03-2.png",
@@ -135,7 +162,10 @@
           "sheet": 3,
           "index": 2,
           "sourcePage": 5,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NES",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s03-3.png",
@@ -145,7 +175,10 @@
           "sheet": 3,
           "index": 3,
           "sourcePage": 5,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NEW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s03-4.png",
@@ -155,7 +188,10 @@
           "sheet": 3,
           "index": 4,
           "sourcePage": 5,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NEW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s04-1.png",
@@ -165,7 +201,10 @@
           "sheet": 4,
           "index": 1,
           "sourcePage": 6,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NEW",
+          "tileType": "chamber",
+          "special": null
         },
         {
           "file": "area-tile-s04-2.png",
@@ -175,7 +214,10 @@
           "sheet": 4,
           "index": 2,
           "sourcePage": 6,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NEW",
+          "tileType": "chamber",
+          "special": null
         },
         {
           "file": "area-tile-s04-3.png",
@@ -185,7 +227,10 @@
           "sheet": 4,
           "index": 3,
           "sourcePage": 6,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NEW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s04-4.png",
@@ -195,7 +240,10 @@
           "sheet": 4,
           "index": 4,
           "sourcePage": 6,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NESW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s05-1.png",
@@ -205,7 +253,10 @@
           "sheet": 5,
           "index": 1,
           "sourcePage": 7,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NESW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s05-2.png",
@@ -215,7 +266,10 @@
           "sheet": 5,
           "index": 2,
           "sourcePage": 7,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": null
         },
         {
           "file": "area-tile-s05-3.png",
@@ -225,7 +279,10 @@
           "sheet": 5,
           "index": 3,
           "sourcePage": 7,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": null
         },
         {
           "file": "area-tile-s05-4.png",
@@ -235,7 +292,10 @@
           "sheet": 5,
           "index": 4,
           "sourcePage": 7,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": null
         },
         {
           "file": "area-tile-s06-1.png",
@@ -245,7 +305,10 @@
           "sheet": 6,
           "index": 1,
           "sourcePage": 8,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": null
         },
         {
           "file": "area-tile-s06-2.png",
@@ -255,7 +318,10 @@
           "sheet": 6,
           "index": 2,
           "sourcePage": 8,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": null
         },
         {
           "file": "area-tile-s06-3.png",
@@ -265,7 +331,10 @@
           "sheet": 6,
           "index": 3,
           "sourcePage": 8,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": null
         },
         {
           "file": "area-tile-s06-4.png",
@@ -275,7 +344,10 @@
           "sheet": 6,
           "index": 4,
           "sourcePage": 8,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NESW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s07-1.png",
@@ -285,7 +357,10 @@
           "sheet": 7,
           "index": 1,
           "sourcePage": 9,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NESW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s07-2.png",
@@ -295,7 +370,10 @@
           "sheet": 7,
           "index": 2,
           "sourcePage": 9,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NESW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s07-3.png",
@@ -305,7 +383,10 @@
           "sheet": 7,
           "index": 3,
           "sourcePage": 9,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NEW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s07-4.png",
@@ -315,7 +396,10 @@
           "sheet": 7,
           "index": 4,
           "sourcePage": 9,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NS",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s08-1.png",
@@ -325,7 +409,10 @@
           "sheet": 8,
           "index": 1,
           "sourcePage": 10,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NS",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s08-2.png",
@@ -335,7 +422,10 @@
           "sheet": 8,
           "index": 2,
           "sourcePage": 10,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NS",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s08-3.png",
@@ -345,7 +435,10 @@
           "sheet": 8,
           "index": 3,
           "sourcePage": 10,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s08-4.png",
@@ -355,7 +448,10 @@
           "sheet": 8,
           "index": 4,
           "sourcePage": 10,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s09-1.png",
@@ -365,7 +461,10 @@
           "sheet": 9,
           "index": 1,
           "sourcePage": 11,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s09-2.png",
@@ -375,7 +474,10 @@
           "sheet": 9,
           "index": 2,
           "sourcePage": 11,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s09-3.png",
@@ -385,7 +487,10 @@
           "sheet": 9,
           "index": 3,
           "sourcePage": 11,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NSW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s09-4.png",
@@ -395,7 +500,10 @@
           "sheet": 9,
           "index": 4,
           "sourcePage": 11,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NSW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s10-1.png",
@@ -405,7 +513,10 @@
           "sheet": 10,
           "index": 1,
           "sourcePage": 12,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NSW",
+          "tileType": "chamber",
+          "special": null
         },
         {
           "file": "area-tile-s10-2.png",
@@ -415,7 +526,10 @@
           "sheet": 10,
           "index": 2,
           "sourcePage": 12,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NSW",
+          "tileType": "chamber",
+          "special": null
         },
         {
           "file": "area-tile-s10-3.png",
@@ -425,7 +539,10 @@
           "sheet": 10,
           "index": 3,
           "sourcePage": 12,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NSW",
+          "tileType": "chamber",
+          "special": null
         },
         {
           "file": "area-tile-s10-4.png",
@@ -435,7 +552,10 @@
           "sheet": 10,
           "index": 4,
           "sourcePage": 12,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NSW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s11-1.png",
@@ -445,7 +565,10 @@
           "sheet": 11,
           "index": 1,
           "sourcePage": 13,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NSW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s11-2.png",
@@ -455,7 +578,10 @@
           "sheet": 11,
           "index": 2,
           "sourcePage": 13,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "ESW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s11-3.png",
@@ -465,7 +591,10 @@
           "sheet": 11,
           "index": 3,
           "sourcePage": 13,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "ESW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s11-4.png",
@@ -475,7 +604,10 @@
           "sheet": 11,
           "index": 4,
           "sourcePage": 13,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "ESW",
+          "tileType": "chamber",
+          "special": null
         },
         {
           "file": "area-tile-s12-1.png",
@@ -485,7 +617,10 @@
           "sheet": 12,
           "index": 1,
           "sourcePage": 14,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "ESW",
+          "tileType": "chamber",
+          "special": null
         },
         {
           "file": "area-tile-s12-2.png",
@@ -495,7 +630,10 @@
           "sheet": 12,
           "index": 2,
           "sourcePage": 14,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "ESW",
+          "tileType": "chamber",
+          "special": null
         },
         {
           "file": "area-tile-s12-3.png",
@@ -505,7 +643,10 @@
           "sheet": 12,
           "index": 3,
           "sourcePage": 14,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "ESW",
+          "tileType": "chamber",
+          "special": null
         },
         {
           "file": "area-tile-s12-4.png",
@@ -515,7 +656,10 @@
           "sheet": 12,
           "index": 4,
           "sourcePage": 14,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "ESW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s13-1.png",
@@ -525,7 +669,10 @@
           "sheet": 13,
           "index": 1,
           "sourcePage": 15,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "ESW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s13-2.png",
@@ -535,7 +682,10 @@
           "sheet": 13,
           "index": 2,
           "sourcePage": 15,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "SW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s13-3.png",
@@ -545,7 +695,10 @@
           "sheet": 13,
           "index": 3,
           "sourcePage": 15,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "SW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s13-4.png",
@@ -555,7 +708,10 @@
           "sheet": 13,
           "index": 4,
           "sourcePage": 15,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "SW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s14-1.png",
@@ -565,7 +721,10 @@
           "sheet": 14,
           "index": 1,
           "sourcePage": 16,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": "deep-pool"
         },
         {
           "file": "area-tile-s14-2.png",
@@ -575,7 +734,10 @@
           "sheet": 14,
           "index": 2,
           "sourcePage": 16,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NESW",
+          "tileType": "gateway",
+          "special": "gateway"
         },
         {
           "file": "area-tile-s14-3.png",
@@ -585,7 +747,10 @@
           "sheet": 14,
           "index": 3,
           "sourcePage": 16,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": "great-hall"
         },
         {
           "file": "area-tile-s14-4.png",
@@ -595,7 +760,10 @@
           "sheet": 14,
           "index": 4,
           "sourcePage": 16,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": "viper-pit"
         },
         {
           "file": "area-tile-s15-1.png",
@@ -605,7 +773,10 @@
           "sheet": 15,
           "index": 1,
           "sourcePage": 17,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": "tomb-of-kings"
         },
         {
           "file": "area-tile-s15-2.png",
@@ -615,7 +786,10 @@
           "sheet": 15,
           "index": 2,
           "sourcePage": 17,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "EW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s15-3.png",
@@ -625,7 +799,10 @@
           "sheet": 15,
           "index": 3,
           "sourcePage": 17,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "EW",
+          "tileType": "tunnel",
+          "special": null
         },
         {
           "file": "area-tile-s15-4.png",
@@ -635,7 +812,10 @@
           "sheet": 15,
           "index": 4,
           "sourcePage": 17,
-          "rotationApplied": -90
+          "rotationApplied": -90,
+          "exits": "EW",
+          "tileType": "tunnel",
+          "special": null
         }
       ]
     },
