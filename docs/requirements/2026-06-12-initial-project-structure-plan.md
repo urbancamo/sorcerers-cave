@@ -13,7 +13,7 @@
 ### Goals
 1. A faithful, **solitaire** implementation of the game exactly as specified in `design-spec.html`.
 2. A clean **Convex + Vercel** deployment, modelled on the `lambda` and `humanrisq` reference projects.
-3. A **TypeScript Vue** frontend.
+3. A **TypeScript React** frontend (revised from the original Vue requirement — see D2).
 4. An architecture where **multiplayer is an additive change**, not a rewrite — explicitly required by the brief.
 
 ### Non-Goals (this phase)
@@ -27,8 +27,8 @@
 
 | # | Decision | Choice | Rationale |
 |---|----------|--------|-----------|
-| D1 | Repo layout | **pnpm + Turborepo monorepo** | Lets the game-rules engine be a first-class, isolated package importable by both the Vue client and Convex functions. Mirrors `humanrisq`'s workspace tooling. |
-| D2 | Frontend stack | **Vue 3 + Vite SPA** | The game is a client-heavy SPA with no SSR/SEO need. Simpler than Nuxt; matches `humanrisq`'s Vite/Vitest tooling (swap React→Vue). |
+| D1 | Repo layout | **pnpm + Turborepo monorepo** | Lets the game-rules engine be a first-class, isolated package importable by both the React client and Convex functions. Mirrors `humanrisq`'s workspace tooling. |
+| D2 | Frontend stack | **React 19 + Vite SPA** | The game is a client-heavy SPA with no SSR/SEO need. Convex's first-party client (`convex/react`), auth (`@convex-dev/auth/react`), and test (`convex-test` + `@testing-library/react`) bindings are React-first, and `humanrisq` is a working React+Vite+Convex reference to mirror ~1:1. (Revised from the original Vue requirement — Vue has only community Convex bindings and no first-party `@convex-dev/auth` client.) |
 | D3 | State authority | **Server-authoritative in Convex** from day one | The engine runs inside Convex mutations even for solitaire. Multiplayer reuses the same code with zero rewrite. |
 | D4 | Identity | **Anonymous `@convex-dev/auth`** | Games persist per device with no signup friction; upgrade to real accounts cleanly for multiplayer. |
 
@@ -52,7 +52,7 @@ This is the seam that satisfies the multiplayer-readiness requirement.
 ```
 sorcerers-cave/
 ├── apps/
-│   └── web/                        # Vue 3 + Vite SPA (the only app for now)
+│   └── web/                        # React 19 + Vite SPA (the only app for now)
 │       ├── convex/                 # Convex backend (co-located, humanrisq-style)
 │       │   ├── schema.ts           # tables: games, gameEvents (+ auth tables)
 │       │   ├── auth.ts             # @convex-dev/auth setup
@@ -63,26 +63,26 @@ sorcerers-cave/
 │       │   ├── game.test.ts        # convex-test coverage
 │       │   └── _generated/         # committed, per humanrisq convention
 │       ├── src/
-│       │   ├── main.ts             # mounts app, installs ConvexVue + auth provider
-│       │   ├── App.vue
-│       │   ├── convex.ts           # ConvexClient (VITE_CONVEX_URL)
-│       │   ├── router.ts           # vue-router (title / game / help)
-│       │   ├── stores/             # Pinia — LOCAL ui state only (cursors, modals)
-│       │   ├── composables/        # useGame(), useKeyboard(), useAssets()
+│       │   ├── main.tsx            # mounts app: ConvexAuthProvider + ConvexProvider
+│       │   ├── App.tsx
+│       │   ├── convex.ts           # ConvexReactClient (VITE_CONVEX_URL)
+│       │   ├── router.tsx          # react-router (title / game / help)
+│       │   ├── stores/             # Zustand — LOCAL ui state only (cursors, modals)
+│       │   ├── hooks/              # useGame(), useKeyboard(), useAssets()
 │       │   ├── components/
-│       │   │   ├── TurnScreen.vue      # §13.1 frame
-│       │   │   ├── AreaView.vue        # §13.2 area visualization
-│       │   │   ├── PartyRoster.vue     # §13.1 roster region
-│       │   │   ├── PromptLine.vue      # §13.1 message/prompt
-│       │   │   ├── MapBrowser.vue      # §13.3 full-screen map
-│       │   │   ├── EncounterPanel.vue  # §8 stranger options
-│       │   │   ├── FightPanel.vue      # §9 focus-fire UI
-│       │   │   ├── PartySelect.vue     # setup: 6-point budget
-│       │   │   ├── ScoreScreen.vue     # §12 end screens
-│       │   │   └── HelpManual.vue      # §14
+│       │   │   ├── TurnScreen.tsx      # §13.1 frame
+│       │   │   ├── AreaView.tsx        # §13.2 area visualization
+│       │   │   ├── PartyRoster.tsx     # §13.1 roster region
+│       │   │   ├── PromptLine.tsx      # §13.1 message/prompt
+│       │   │   ├── MapBrowser.tsx      # §13.3 full-screen map
+│       │   │   ├── EncounterPanel.tsx  # §8 stranger options
+│       │   │   ├── FightPanel.tsx      # §9 focus-fire UI
+│       │   │   ├── PartySelect.tsx     # setup: 6-point budget
+│       │   │   ├── ScoreScreen.tsx     # §12 end screens
+│       │   │   └── HelpManual.tsx      # §14
 │       │   └── assets.ts           # typed re-export of packages/assets manifest
 │       ├── index.html
-│       ├── vite.config.ts          # @vitejs/plugin-vue + @tailwindcss/vite
+│       ├── vite.config.ts          # @vitejs/plugin-react + @tailwindcss/vite
 │       ├── vitest.config.ts
 │       ├── tsconfig*.json
 │       └── vercel.json             # buildCommand wires convex deploy (see §8)
@@ -195,13 +195,13 @@ The mutation is the **only** place rules execute on the server; the client canno
 
 ---
 
-## 6. Vue Client (`apps/web/src`)
+## 6. React Client (`apps/web/src`)
 
-- **Transport**: Vue bindings for Convex (`convex-vue` / `@convex-vue/core`, community-maintained — confirm the package at Milestone A4) — `ConvexClient` from `VITE_CONVEX_URL`, installed as a plugin with the auth provider. Fallback if the binding is unsatisfactory: wrap Convex's `ConvexClient` subscriptions in a thin `useQuery` composable ourselves. Game truth flows through `useQuery(api.game.getGame)`; actions through `useMutation(api.game.applyAction)`. The UI is a pure function of server state.
-- **Local state (Pinia)**: cursors, modal focus, which stranger is highlighted, help pager position — **never** game truth.
-- **Input model (spec §13.4)**: a `useKeyboard()` composable maps single keystrokes to `GameAction`s in the active modal context (turn / encounter / fight / pickup / map / help), dispatched via the mutation. No invalid-key echo.
+- **Transport**: first-party `convex/react` — `ConvexReactClient` from `VITE_CONVEX_URL`, wrapped in `ConvexAuthProvider` (`@convex-dev/auth/react`) + `ConvexProvider`. Game truth flows through `useQuery(api.game.getGame)`; actions through `useMutation(api.game.applyAction)`. The UI is a pure function of server state. Mirrors `humanrisq`'s `main.tsx` exactly.
+- **Local state (Zustand)**: cursors, modal focus, which stranger is highlighted, help pager position — **never** game truth. (Zustand over Context for ergonomic selective subscriptions; either is fine.)
+- **Input model (spec §13.4)**: a `useKeyboard()` hook maps single keystrokes to `GameAction`s in the active modal context (turn / encounter / fight / pickup / map / help), dispatched via the mutation. No invalid-key echo.
 - **Components**: map 1:1 to spec §13 logical regions (see tree in §3). `AreaView` renders the §13.2 vocabulary; for MVP it can use letter glyphs, swapping to sprites from `packages/assets` as they land (the component contract doesn't change).
-- **Styling**: Tailwind v4 via `@tailwindcss/vite` (framework-agnostic, identical to both reference projects).
+- **Styling**: Tailwind v4 via `@tailwindcss/vite` (framework-agnostic, identical to both reference projects). Optional shadcn/ui later (React-first), as in `humanrisq`.
 
 ---
 
@@ -251,8 +251,8 @@ Each milestone is independently demoable. TDD throughout: engine tests are writt
 ### Milestone A — Scaffold & toolchain
 - A1. Init pnpm workspace, `turbo.json`, root `tsconfig`, shared lint/format.
 - A2. Create `packages/engine` and `packages/assets` package skeletons.
-- A3. Create `apps/web` (Vue 3 + Vite + Tailwind v4 + vue-router + Pinia).
-- A4. Init Convex in `apps/web/convex`; wire `@convex-dev/auth` (anonymous); `convex-vue` provider; verify `getGame` round-trips a stub.
+- A3. Create `apps/web` (React 19 + Vite + Tailwind v4 + react-router + Zustand).
+- A4. Init Convex in `apps/web/convex`; wire `@convex-dev/auth/react` (anonymous) + `convex/react` provider; verify `getGame` round-trips a stub.
 - A5. `vercel.json` + first preview deploy of an empty shell.
 
 ### Milestone B — Engine: exploration core
@@ -290,7 +290,7 @@ Each milestone is independently demoable. TDD throughout: engine tests are writt
 |-------|------|------|
 | Engine | Vitest | Unit per system + **seeded golden-replay** scenarios (primary safety net) |
 | Convex | `convex-test` | mutations, auth scoping, ownership guard, event-log append |
-| Client | Vitest + `@vue/test-utils` | component smoke + keyboard→action mapping |
+| Client | Vitest + `@testing-library/react` | component smoke + keyboard→action mapping |
 | E2E (optional, later) | Playwright | one full happy-path game |
 
 ---
