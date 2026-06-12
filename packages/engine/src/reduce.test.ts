@@ -71,12 +71,15 @@ describe("reduce — chamber resolution (C-1)", () => {
     expect(state.treasures).toEqual([]);
   });
 
-  it("moving into a chamber with a stranger enters the encounter phase (withdraw only)", () => {
+  it("moving into a chamber with a stranger enters the encounter phase", () => {
     const s = makeState({ largePack: [31], largeIdx: 0, smallPack: [110], smallIdx: 0 });
     const { state } = reduce(s, { type: "move", dir: DIR_S });
     expect(state.phase).toBe("encounter");
     expect(state.strangers).toEqual([10]);
-    expect(legalActions(state)).toEqual([{ type: "withdraw" }, { type: "quit" }]);
+    expect(legalActions(state)).toContainEqual({ type: "withdraw" });
+    expect(legalActions(state)).toContainEqual({ type: "attack" });
+    expect(legalActions(state)).toContainEqual({ type: "test" });
+    expect(legalActions(state)).toContainEqual({ type: "quit" });
   });
 
   it("withdraw steps back to the previous area and leaves the strangers behind", () => {
@@ -86,5 +89,42 @@ describe("reduce — chamber resolution (C-1)", () => {
     expect(state.phase).toBe("explore");
     expect(state.partyArea).toBe(0);
     expect(state.areas[1]!.contents).toContain(110);
+  });
+});
+
+describe("reduce — stranger encounters (C-2 §8)", () => {
+  it("attack starts a fight with surprise to the party", () => {
+    const s = makeState({ phase: "encounter", strangers: [10], areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }] });
+    const { state, events } = reduce(s, { type: "attack" });
+    expect(state.phase).toBe("fight");
+    expect(state.fight).toMatchObject({ surprise: 1, round: 1 });
+    expect(events).toContainEqual({ type: "fightStarted", surprise: 1 });
+  });
+
+  it("testing a Dragon (always hostile) starts a fight with surprise to the strangers", () => {
+    const s = makeState({ phase: "encounter", strangers: [10], areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }] });
+    const { state, events } = reduce(s, { type: "test" });
+    expect(state.phase).toBe("fight");
+    expect(state.fight!.surprise).toBe(-1);
+    expect(events).toContainEqual({ type: "reaction", outcome: "hostile" });
+  });
+
+  it("a friendly result recruits the strangers as allies", () => {
+    // Unicorn (id 13) is always friendly.
+    const s = makeState({ phase: "encounter", strangers: [13], treasures: [], areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }] });
+    const { state, events } = reduce(s, { type: "test" });
+    expect(state.party.some((m) => m.creatureId === 13 && m.status === 1)).toBe(true);
+    expect(state.strangers).toEqual([]);
+    expect(state.phase).toBe("explore");
+    expect(events).toContainEqual({ type: "reaction", outcome: "friendly" });
+  });
+
+  it("three indifferent results make the area permanently indifferent (no more test)", () => {
+    // Man-stranger (id 5) is always indifferent.
+    let s = makeState({ phase: "encounter", strangers: [5], areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }] });
+    for (let i = 0; i < 3; i++) s = reduce(s, { type: "test" }).state;
+    expect(s.areas[0]!.indiffCount).toBe(3);
+    expect(legalActions(s)).not.toContainEqual({ type: "test" });
+    expect(reduce(s, { type: "test" }).events).toContainEqual({ type: "blocked" });
   });
 });

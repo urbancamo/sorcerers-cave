@@ -1,4 +1,4 @@
-import { GS_PLAYING, GS_QUIT, GS_ESCAPED, type GameState } from "./state";
+import { GS_PLAYING, GS_QUIT, GS_ESCAPED, PARTY_CAP, type GameState } from "./state";
 import { tryMove } from "./map";
 import { decodeArea } from "./decode";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT } from "./data/areaCards";
@@ -7,6 +7,8 @@ import { applyHazards } from "./hazards";
 import { takeTreasure } from "./pickup";
 import { unpackCoord, packCoord } from "./coords";
 import type { GameAction, GameEvent } from "./actions";
+import { reactionRoll } from "./reaction";
+import { CREATURES } from "./data/creatures";
 
 /** Persist the chamber working set back into the area, then return to exploring. */
 function persistAndExplore(state: GameState): void {
@@ -16,6 +18,24 @@ function persistAndExplore(state: GameState): void {
     ...state.treasures.map((id) => 200 + id),
   ];
   state.phase = "explore";
+}
+
+/** Index of the strongest current stranger (default focus target). */
+function strongestStranger(state: GameState): number {
+  let best = 0;
+  for (let i = 1; i < state.strangers.length; i++) {
+    const a = CREATURES[state.strangers[i]!]!;
+    const b = CREATURES[state.strangers[best]!]!;
+    if (a.fs + a.mp > b.fs + b.mp) best = i;
+  }
+  return best;
+}
+
+/** Begin a fight with the given surprise (+1 party, -1 strangers). */
+function startFight(state: GameState, surprise: number): GameEvent[] {
+  state.fight = { surprise, round: 1, focus: strongestStranger(state) };
+  state.phase = "fight";
+  return [{ type: "fightStarted", surprise }];
 }
 
 /** Resolve the area just entered: special markers, then chamber draw + hazards + phase (spec §4/§7). */
@@ -121,6 +141,37 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       const next = structuredClone(state);
       persistAndExplore(next);
       return { state: next, events: [] };
+    }
+
+    case "test": {
+      if (state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
+      const area = state.areas[state.partyArea]!;
+      if (area.indiffCount >= 3) return { state, events: [{ type: "blocked" }] }; // permanently indifferent
+      const next = structuredClone(state);
+      const roll = reactionRoll(next);
+      next.seed = roll.seed;
+      const events: GameEvent[] = [{ type: "reaction", outcome: roll.outcome }];
+      if (roll.outcome === "friendly") {
+        const room = PARTY_CAP - next.party.length;
+        const joining = next.strangers.slice(0, Math.max(0, room));
+        for (const id of joining) next.party.push({ creatureId: id, status: 1, dragonKills: 0, treasure: [] });
+        next.strangers = [];
+        events.push({ type: "strangersJoined", count: joining.length });
+        if (next.treasures.length > 0) next.phase = "pickup";
+        else persistAndExplore(next);
+      } else if (roll.outcome === "indifferent") {
+        next.areas[next.partyArea]!.indiffCount += 1;
+        // stays in the encounter phase
+      } else {
+        events.push(...startFight(next, -1)); // strangers gain surprise
+      }
+      return { state: next, events };
+    }
+
+    case "attack": {
+      if (state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      return { state: next, events: startFight(next, 1) }; // party gains surprise
     }
   }
 }

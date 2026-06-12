@@ -10,7 +10,12 @@ import type { GameAction } from "./actions";
 export function legalActions(state: GameState): GameAction[] {
   if (state.gs !== GS_PLAYING) return [];
 
-  if (state.phase === "encounter") return [{ type: "withdraw" }, { type: "quit" }];
+  if (state.phase === "encounter") {
+    const actions: GameAction[] = [{ type: "withdraw" }, { type: "attack" }];
+    if (state.areas[state.partyArea]!.indiffCount < 3) actions.push({ type: "test" });
+    actions.push({ type: "quit" });
+    return actions;
+  }
   if (state.phase === "pickup") {
     const actions: GameAction[] = [];
     for (let ti = 0; ti < state.treasures.length; ti++) {
