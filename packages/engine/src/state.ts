@@ -1,0 +1,50 @@
+export const GS_PLAYING = 0;
+export const GS_ESCAPED = 1;
+export const GS_DEAD = 2;
+export const GS_QUIT = 3;
+
+export const PARTY_CAP = 12;
+export const PARTY_BUDGET = 6;
+export const GATEWAY_START_COORD = 15050; // level 1, x=50, y=50
+
+// Member status: 0 original, 1 ally, 2 stone, 3 dead.
+export type MemberStatus = 0 | 1 | 2 | 3;
+
+export interface PartyMember {
+  creatureId: number;
+  status: MemberStatus;
+  dragonKills: number;
+  treasure: number[]; // treasure ids carried
+}
+
+export interface PlacedArea {
+  card: number; // area-card value
+  coord: number; // packed level*10000 + y*100 + x
+  faceUp: boolean; // entered (true) vs dead-end face-down (false)
+  visited: boolean; // chamber already drawn
+  contents: number[]; // leftover 100+cid / 200+tid (Milestone C)
+  flags: number; // AF bits (Milestone C)
+  indiffCount: number; // AI permanent-indifference counter (Milestone C)
+}
+
+export interface GameState {
+  gs: number; // GS_*
+  turn: number;
+  score: number;
+  curses: number;
+  sorcererKilled: boolean;
+  areas: PlacedArea[];
+  partyArea: number; // index into areas
+  level: number;
+  prev: number; // previous area index
+  prev2: number; // area two moves back (earthquake)
+  party: PartyMember[];
+  largePack: number[];
+  largeIdx: number;
+  smallPack: number[];
+  smallIdx: number;
+  strangers: number[]; // chamber working set (Milestone C)
+  treasures: number[];
+  hazards: number[];
+  seed: number; // LCG state (spec §5)
+}
