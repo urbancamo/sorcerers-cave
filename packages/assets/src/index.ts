@@ -26,8 +26,10 @@ export interface AssetItem {
   exits?: string; // edges reached by the main structure, e.g. "NES" (stubs excluded)
   tileType?: TileType;
   special?: TileSpecial | null;
-  hasStairs?: boolean; // a staircase is present on the tile
-  stairsDir?: "up" | "down" | "both" | null; // direction; null = present but unconfirmed
+  // Staircases are independent (a tile may have both), mirroring the engine decoder:
+  // up = doorway-topped staircase; down = light-to-dark fade. NSEWUD-style tiles have both.
+  stairUp?: boolean;
+  stairDown?: boolean;
 }
 
 export interface AssetCategory {
