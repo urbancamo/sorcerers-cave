@@ -10,6 +10,7 @@ import { unpackCoord, packCoord } from "./coords";
 import type { GameAction, GameEvent } from "./actions";
 import { reactionRoll } from "./reaction";
 import { resolveRound, frontStrength } from "./combat";
+import { wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman } from "./effects";
 import { rollDie } from "./rng";
 import { CREATURES } from "./data/creatures";
 
@@ -102,6 +103,8 @@ function resolveArea(state: GameState): GameEvent[] {
       return events;
     }
     events.push(...enterChamber(state));
+    events.push(...annihilateWithEye(state)); // the Eye destroys Spectres on sight (§ Eye of God)
+    events.push(...wardOffSpectres(state)); // the Talisman drives off Spectres on level >= 4 (§ Talisman)
     const { events: hzEvents, fell } = applyHazards(state);
     events.push(...hzEvents);
     if (fell) {
