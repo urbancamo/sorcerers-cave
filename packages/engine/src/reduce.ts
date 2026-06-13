@@ -429,6 +429,22 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
           events.push(...resolveArea(next));
           return { state: next, events };
         }
+        case 12: { // Charmed Flute — lull Dragons (encounter/fight). Secret-door branch (with dir) added in Task 3.
+          if (next.phase !== "encounter" && next.phase !== "fight") return { state, events: [{ type: "blocked" }] };
+          if (!next.strangers.includes(10)) return { state, events: [{ type: "blocked" }] };
+          let count = 0;
+          for (let i = next.strangers.length - 1; i >= 0; i--) {
+            if (next.strangers[i] === 10) { next.areas[next.partyArea]!.contents.push(110); next.strangers.splice(i, 1); count += 1; }
+          }
+          const events: GameEvent[] = [{ type: "artifactUsed", artifact: 12 }, { type: "dragonsLulled", count }];
+          if (next.strangers.length === 0) { // nothing left to face
+            next.fight = null;
+            next.party.forEach((m) => { m.potionActive = false; });
+            if (next.treasures.length > 0) next.phase = "pickup";
+            else persistAndExplore(next);
+          }
+          return { state: next, events };
+        }
         default:
           return { state, events: [{ type: "blocked" }] };
       }

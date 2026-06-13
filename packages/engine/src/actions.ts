@@ -45,4 +45,5 @@ export type GameEvent =
   | { type: "deathPrevented"; creatureId: number }
   | { type: "unicornGuards"; creatureId: number }
   | { type: "unicornDeparted"; creatureId: number }
-  | { type: "carpetUsed"; dir: number };
+  | { type: "carpetUsed"; dir: number }
+  | { type: "dragonsLulled"; count: number };
