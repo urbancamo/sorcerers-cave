@@ -3,6 +3,7 @@ import { legalActions } from "./selectors";
 import { reduce } from "./reduce";
 import { newGame } from "./setup";
 import { DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP } from "./coords";
+import { packCoord } from "./coords";
 import { GS_QUIT } from "./state";
 import { makeState } from "./testkit";
 
@@ -21,6 +22,35 @@ describe("legalActions (interactive contract)", () => {
 
   it("returns no actions once the game is over", () => {
     expect(legalActions(makeState({ gs: GS_QUIT, phase: "gameOver" }))).toEqual([]);
+  });
+});
+
+describe("legalActions — usable artifacts (E-1)", () => {
+  const M = (creatureId: number, treasure: number[] = [], status = 0) => ({ creatureId, status: status as 0 | 1 | 2 | 3, dragonKills: 0, treasure });
+  const A = { card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [] as number[], flags: 0, indiffCount: 0 };
+
+  it("offers Strength Potion on a boostable member during a fight", () => {
+    const s = makeState({ phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, strangers: [10], party: [M(0, [8])] });
+    expect(legalActions(s)).toContainEqual({ type: "useArtifact", artifact: 8, target: 0 });
+  });
+
+  it("offers Lotus Dust per stranger in an encounter", () => {
+    const s = makeState({ phase: "encounter", areas: [A], strangers: [10, 3], party: [M(5, [5])] });
+    const acts = legalActions(s);
+    expect(acts).toContainEqual({ type: "useArtifact", artifact: 5, target: 0 });
+    expect(acts).toContainEqual({ type: "useArtifact", artifact: 5, target: 1 });
+  });
+
+  it("offers Healing Balm (Priest) and Magic Staff (Wizard) on downed members while exploring", () => {
+    const s = makeState({ phase: "explore", areas: [A], party: [M(4, [6]), M(8, [9]), M(5, [], 3), M(2, [], 2)] });
+    const acts = legalActions(s);
+    expect(acts).toContainEqual({ type: "useArtifact", artifact: 6, target: 2 }); // revive the dead Man
+    expect(acts).toContainEqual({ type: "useArtifact", artifact: 9, target: 3 }); // un-stone the Ogre
+  });
+
+  it("does not offer artifacts that no living bearer holds", () => {
+    const s = makeState({ phase: "explore", areas: [A], party: [M(0)] });
+    expect(legalActions(s).some((a) => a.type === "useArtifact")).toBe(false);
   });
 });
 
