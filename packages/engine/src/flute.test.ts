@@ -1,6 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
 import { makeState } from "./testkit";
+import { decodeArea } from "./decode";
+import { packCoord, DIR_DOWN } from "./coords";
 
 const heroWithFlute = () => ({ creatureId: 0, status: 0 as const, dragonKills: 0, treasure: [12] });
 const area1 = () => ({ card: 31, coord: makeState().areas[0]!.coord, faceUp: true, visited: true, contents: [] as number[], flags: 0, indiffCount: 0 });
@@ -77,6 +79,58 @@ describe("Charmed Flute — lull Dragons (§ Charmed Flute)", () => {
   it("is blocked for a creature that cannot play it", () => {
     const s = makeState({ phase: "encounter", party: [{ creatureId: 2, status: 0, dragonKills: 0, treasure: [12] }], strangers: [10] }); // Ogre
     const { events } = reduce(s, { type: "useArtifact", artifact: 12 });
+    expect(events).toEqual([{ type: "blocked" }]);
+  });
+});
+
+const priestWithFlute = () => ({ creatureId: 4, status: 0 as const, dragonKills: 0, treasure: [12] });
+const PLAIN = 15; // N+E+S+W, no stairs
+const STAIR_UP_CARD = 15 | 32; // a card showing a stair UP (bit 32)
+
+describe("Charmed Flute — reveal secret doors (§ Secret Doors)", () => {
+  it("reveals a concealed stair DOWN when the area below shows a matching stair up", () => {
+    const s = makeState({
+      phase: "explore",
+      party: [priestWithFlute()],
+      level: 1,
+      partyArea: 0,
+      areas: [
+        { card: PLAIN, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+        { card: STAIR_UP_CARD, coord: packCoord(2, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+      ],
+    });
+    const { state, events } = reduce(s, { type: "useArtifact", artifact: 12, dir: DIR_DOWN });
+    expect(decodeArea(state.areas[0]!.card).stairDown).toBe(true); // secret door revealed
+    expect(state.party[0]!.treasure).toEqual([12]); // NOT consumed
+    expect(events).toContainEqual({ type: "secretDoorRevealed", dir: DIR_DOWN });
+  });
+
+  it("is blocked when no played area below has a matching stair", () => {
+    const s = makeState({
+      phase: "explore",
+      party: [priestWithFlute()],
+      level: 1,
+      partyArea: 0,
+      areas: [{ card: PLAIN, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+    });
+    const { events } = reduce(s, { type: "useArtifact", artifact: 12, dir: DIR_DOWN });
+    expect(events).toEqual([{ type: "blocked" }]);
+  });
+
+  it("cannot reveal a secret door during a fight", () => {
+    const s = makeState({
+      phase: "fight",
+      fight: { surprise: 0, round: 1, focus: 0 },
+      party: [priestWithFlute()],
+      level: 1,
+      partyArea: 0,
+      strangers: [5],
+      areas: [
+        { card: PLAIN, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+        { card: STAIR_UP_CARD, coord: packCoord(2, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+      ],
+    });
+    const { events } = reduce(s, { type: "useArtifact", artifact: 12, dir: DIR_DOWN });
     expect(events).toEqual([{ type: "blocked" }]);
   });
 });

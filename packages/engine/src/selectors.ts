@@ -1,5 +1,5 @@
 import { decodeArea } from "./decode";
-import { DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN } from "./coords";
+import { DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, unpackCoord, packCoord } from "./coords";
 import { GS_PLAYING, type GameState } from "./state";
 import type { GameAction } from "./actions";
 
@@ -38,6 +38,15 @@ function artifactActions(state: GameState): GameAction[] {
     if (has(4, (id) => id === 4 || id === 8)) { // Magic Carpet -> teleport in each available direction
       for (const dir of [DIR_N, DIR_E, DIR_S, DIR_W, DIR_DOWN]) actions.push({ type: "useArtifact", artifact: 4, dir });
       if (state.level > 1) actions.push({ type: "useArtifact", artifact: 4, dir: DIR_UP });
+    }
+    if (has(12, (id) => id === 0 || id === 4 || id === 5 || id === 6 || id === 8)) { // Charmed Flute -> reveal a secret door
+      const cur = state.areas[state.partyArea]!;
+      const { level, x, y } = unpackCoord(cur.coord);
+      const dec = decodeArea(cur.card);
+      const below = state.areas.find((a) => a.coord === packCoord(level + 1, x, y));
+      if (!dec.stairDown && below && decodeArea(below.card).stairUp) actions.push({ type: "useArtifact", artifact: 12, dir: DIR_DOWN });
+      const above = state.areas.find((a) => a.coord === packCoord(level - 1, x, y));
+      if (!dec.stairUp && above && decodeArea(above.card).stairDown) actions.push({ type: "useArtifact", artifact: 12, dir: DIR_UP });
     }
   }
   return actions;

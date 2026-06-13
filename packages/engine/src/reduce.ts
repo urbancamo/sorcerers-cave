@@ -432,7 +432,26 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
           events.push(...resolveArea(next));
           return { state: next, events };
         }
-        case 12: { // Charmed Flute — lull Dragons (encounter/fight). Secret-door branch (with dir) added in Task 3.
+        case 12: { // Charmed Flute — secret door (explore, with dir) or lull Dragons (encounter/fight)
+          if (action.dir !== undefined) { // reveal a concealed stairway (not while fighting)
+            if (next.phase !== "explore" || (action.dir !== DIR_UP && action.dir !== DIR_DOWN)) return { state, events: [{ type: "blocked" }] };
+            const cur = next.areas[next.partyArea]!;
+            const { level, x, y } = unpackCoord(cur.coord);
+            const dec = decodeArea(cur.card);
+            if (action.dir === DIR_DOWN) {
+              if (dec.stairDown) return { state, events: [{ type: "blocked" }] }; // already a visible stair
+              const below = next.areas.find((a) => a.coord === packCoord(level + 1, x, y));
+              if (!below || !decodeArea(below.card).stairUp) return { state, events: [{ type: "blocked" }] };
+              cur.card |= 64; // reveal stair DOWN
+            } else {
+              if (dec.stairUp) return { state, events: [{ type: "blocked" }] };
+              const above = next.areas.find((a) => a.coord === packCoord(level - 1, x, y));
+              if (!above || !decodeArea(above.card).stairDown) return { state, events: [{ type: "blocked" }] };
+              cur.card |= 32; // reveal stair UP
+            }
+            return { state: next, events: [{ type: "artifactUsed", artifact: 12 }, { type: "secretDoorRevealed", dir: action.dir }] };
+          }
+          // Lull Dragons (encounter/fight) — not consumed
           if (next.phase !== "encounter" && next.phase !== "fight") return { state, events: [{ type: "blocked" }] };
           if (!next.strangers.includes(10)) return { state, events: [{ type: "blocked" }] };
           let count = 0;
