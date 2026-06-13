@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { AssetManifest } from "@sorcerers-cave/assets";
-import { rotateExits, normExits, parseManifest, resolveTile, resolveCard, type Topology } from "./manifest";
+import { rotateExits, normExits, parseManifest, resolveTile, resolveCard, type Topology, type Category } from "./manifest";
 
 const FIXTURE: AssetManifest = {
   generated: "test",
