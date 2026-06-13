@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
 import { makeState } from "./testkit";
 import { packCoord } from "./coords";
+import { frontStrength, casterMP, partyRollBonus } from "./combat";
 
 const member = (creatureId: number, treasure: number[] = [], status = 0) =>
   ({ creatureId, status: status as 0 | 1 | 2 | 3, dragonKills: 0, treasure });
@@ -134,5 +135,26 @@ describe("Talisman ward (Spectres, level >= 4)", () => {
     expect(state.strangers).toContain(9);
     expect(events).not.toContainEqual({ type: "wardedOff", creatureId: 9 });
     expect(state.phase).toBe("encounter");
+  });
+});
+
+describe("Eye of God nullifies magic & artefacts (§ Eye of God)", () => {
+  it("zeroes caster MP for every member while the Eye is held", () => {
+    const s = makeState({ party: [member(8, [13])] }); // Wizard (MP 5) holding the Eye
+    expect(casterMP(s.party[0]!)).toBe(5); // no state -> unaffected
+    expect(casterMP(s.party[0]!, s)).toBe(0); // Eye active -> magic powerless
+  });
+
+  it("suppresses the Magic Sword bonus while the Eye is held", () => {
+    const s = makeState({ party: [member(0, [3, 13])] }); // Hero with Magic Sword + Eye
+    expect(frontStrength(s.party[0]!)).toBe(7); // FS 5 + sword 2 (no state)
+    expect(frontStrength(s.party[0]!, s)).toBe(5); // sword powerless under the Eye
+  });
+
+  it("disables The Ring's roll bonus while the Eye is held", () => {
+    const ring = makeState({ party: [member(0, [10])] });
+    expect(partyRollBonus(ring)).toBe(1); // Ring +1
+    const ringAndEye = makeState({ party: [member(0, [10, 13])] });
+    expect(partyRollBonus(ringAndEye)).toBe(0); // Ring powerless under the Eye
   });
 });

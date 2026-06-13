@@ -2,6 +2,7 @@ import { rollDie } from "./rng";
 import { CREATURES } from "./data/creatures";
 import type { GameState, PartyMember } from "./state";
 import type { GameEvent } from "./actions";
+import { eyeActive, ringInvincible } from "./effects";
 
 const T_MAGIC_SWORD = 3;
 const T_MAGIC_STAFF = 9;
@@ -15,20 +16,22 @@ function holds(member: PartyMember, treasureId: number): boolean {
   return member.treasure.includes(treasureId);
 }
 
-/** Front-line fighting strength: FS + dragon-kills + Magic Sword bonus (spec §9.3). */
-export function frontStrength(member: PartyMember): number {
+/** Front-line fighting strength: FS + dragon-kills + Magic Sword bonus (spec §9.3). The Eye nullifies artefacts. */
+export function frontStrength(member: PartyMember, state?: GameState): number {
   const c = CREATURES[member.creatureId]!;
   let s = c.fs + member.dragonKills;
-  if (holds(member, T_MAGIC_SWORD)) {
+  const artefactsPowerless = state ? eyeActive(state) : false;
+  if (!artefactsPowerless && holds(member, T_MAGIC_SWORD)) {
     if (member.creatureId === 0 || member.creatureId === 1) s += 2; // Hero / W-Hero
     else if (member.creatureId === 5 || member.creatureId === 6) s += 1; // Man / Woman
   }
-  if (member.potionActive) s += 2; // Strength Potion, for the duration of the fight (§9.3/§16)
+  if (member.potionActive) s += 2; // Strength Potion (consumable; not nullified by the Eye)
   return s;
 }
 
-/** Background magical power a caster contributes: MP + Magic Staff bonus (spec §9.3). */
-export function casterMP(member: PartyMember): number {
+/** Background magical power a caster contributes: MP + Magic Staff bonus (spec §9.3). The Eye zeroes all magic. */
+export function casterMP(member: PartyMember, state?: GameState): number {
+  if (state && eyeActive(state)) return 0; // the Eye renders all magic powerless (§ Eye of God)
   const c = CREATURES[member.creatureId]!;
   let mp = c.mp;
   if (holds(member, T_MAGIC_STAFF)) {
@@ -38,9 +41,9 @@ export function casterMP(member: PartyMember): number {
   return mp;
 }
 
-/** Bonus added to every PARTY die roll this fight: +1 if any living member holds The Ring, minus curses. */
+/** Bonus added to every PARTY die roll this fight: +1 if any living member holds The Ring (Eye negates it), minus curses. */
 export function partyRollBonus(state: GameState): number {
-  const ring = state.party.some((m) => (m.status === 0 || m.status === 1) && holds(m, T_THE_RING));
+  const ring = !eyeActive(state) && state.party.some((m) => (m.status === 0 || m.status === 1) && holds(m, T_THE_RING));
   return (ring ? 1 : 0) - state.curses;
 }
 
@@ -55,16 +58,17 @@ function livingParty(state: GameState): PartyMember[] {
 export function resolveRound(state: GameState): GameEvent[] {
   const fight = state.fight!;
   const events: GameEvent[] = [];
+  const enemyMP = (sid: number): number => (eyeActive(state) ? 0 : CREATURES[sid]!.mp);
 
   // --- Spectre auto-slay: a Spectre the party can't engage kills the strongest member each round.
   const hasSpectre = state.strangers.includes(C_SPECTRE);
   const party = livingParty(state);
-  const partyHasMP = party.some((m) => casterMP(m) > 0);
+  const partyHasMP = party.some((m) => casterMP(m, state) > 0);
   const partyHasSword = party.some((m) => m.treasure.includes(T_MAGIC_SWORD));
   const spectreUnfightable = hasSpectre && !partyHasMP && !partyHasSword;
   if (spectreUnfightable) {
     let strongest: PartyMember | undefined;
-    for (const m of party) if (!strongest || frontStrength(m) > frontStrength(strongest)) strongest = m;
+    for (const m of party) if (!strongest || frontStrength(m, state) > frontStrength(strongest, state)) strongest = m;
     if (strongest) {
       strongest.status = 3;
       events.push({ type: "spectreSlew", creatureId: strongest.creatureId });
@@ -87,7 +91,7 @@ export function resolveRound(state: GameState): GameEvent[] {
     ? nonCasters
     : fighters; // if no non-casters, casters fight hand-to-hand
   const casters = fighters.filter((m) => isCaster(m) && !frontFighters.includes(m));
-  const casterMPTotal = casters.reduce((sum, m) => sum + casterMP(m), 0);
+  const casterMPTotal = casters.reduce((sum, m) => sum + casterMP(m, state), 0);
 
   const focusIdx = eligible.includes(fight.focus) ? fight.focus : eligible[0]!;
   const order = [focusIdx, ...eligible.filter((i) => i !== focusIdx)];
@@ -104,15 +108,15 @@ export function resolveRound(state: GameState): GameEvent[] {
   // Unmatched eligible strangers fold their strength into the focus enemy.
   const unmatchedStrength = eligible
     .filter((i) => !matches.has(i))
-    .reduce((sum, i) => sum + CREATURES[state.strangers[i]!]!.fs + CREATURES[state.strangers[i]!]!.mp, 0);
+    .reduce((sum, i) => sum + CREATURES[state.strangers[i]!]!.fs + enemyMP(state.strangers[i]!), 0);
 
   // --- Resolve each match. Collect outcomes, then apply (so indices stay valid during rolls).
   const killedStrangerIdx: number[] = [];
   const rollBonus = partyRollBonus(state);
   for (const [sIdx, group] of matches) {
     const sid = state.strangers[sIdx]!;
-    let enemyStr = CREATURES[sid]!.fs + CREATURES[sid]!.mp;
-    let partyStr = group.reduce((sum, m) => sum + frontStrength(m), 0);
+    let enemyStr = CREATURES[sid]!.fs + enemyMP(sid);
+    let partyStr = group.reduce((sum, m) => sum + frontStrength(m, state), 0);
     if (sIdx === focusIdx) {
       enemyStr += unmatchedStrength;
       partyStr += casterMPTotal;
@@ -128,7 +132,7 @@ export function resolveRound(state: GameState): GameEvent[] {
       events.push({ type: "strangerKilled", creatureId: sid });
     } else if (enemyTotal > partyTotal) {
       let weakest: PartyMember | undefined;
-      for (const m of group) if (!weakest || frontStrength(m) < frontStrength(weakest)) weakest = m;
+      for (const m of group) if (!weakest || frontStrength(m, state) < frontStrength(weakest, state)) weakest = m;
       if (weakest) { weakest.status = 3; events.push({ type: "memberDied", creatureId: weakest.creatureId }); }
     }
     // tie: no death
