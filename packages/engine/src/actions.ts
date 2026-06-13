@@ -38,4 +38,10 @@ export type GameEvent =
   | { type: "chestOpened"; result: number }
   | { type: "rubyTaken" }
   | { type: "statueAroused" }
-  | { type: "statueAttacked" };
+  | { type: "statueAttacked" }
+  | { type: "wardedOff"; creatureId: number }
+  | { type: "annihilated"; creatureId: number }
+  | { type: "statuePowerless" }
+  | { type: "deathPrevented"; creatureId: number }
+  | { type: "unicornGuards"; creatureId: number }
+  | { type: "unicornDeparted"; creatureId: number };
