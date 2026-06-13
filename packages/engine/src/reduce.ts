@@ -60,23 +60,27 @@ function resolveArea(state: GameState): GameEvent[] {
     const dec = decodeArea(state.areas[state.partyArea]!.card);
     const here = state.areas[state.partyArea]!;
     if ((here.flags & 32) !== 0) { // an aroused Lost-Ruby statue strikes the strongest member (§16)
-      let strongest: typeof state.party[number] | undefined;
-      for (const m of state.party) {
-        if ((m.status === 0 || m.status === 1) && (!strongest || frontStrength(m) > frontStrength(strongest))) strongest = m;
-      }
-      if (strongest) {
-        const pr = rollDie(state.seed); state.seed = pr.seed;
-        const sr = rollDie(state.seed); state.seed = sr.seed;
-        if (8 + sr.value > frontStrength(strongest) + pr.value) {
-          strongest.status = 3;
-          events.push({ type: "memberDied", creatureId: strongest.creatureId });
+      if (eyeActive(state)) {
+        events.push({ type: "statuePowerless" }); // the Eye renders the statue powerless to attack
+      } else {
+        let strongest: typeof state.party[number] | undefined;
+        for (const m of state.party) {
+          if ((m.status === 0 || m.status === 1) && (!strongest || frontStrength(m) > frontStrength(strongest))) strongest = m;
         }
-        events.push({ type: "statueAttacked" });
-        if (!state.party.some((m) => m.status === 0 || m.status === 1)) {
-          state.gs = GS_DEAD;
-          state.phase = "gameOver";
-          events.push({ type: "gameOver", gs: GS_DEAD });
-          return events;
+        if (strongest) {
+          const pr = rollDie(state.seed); state.seed = pr.seed;
+          const sr = rollDie(state.seed); state.seed = sr.seed;
+          if (8 + sr.value > frontStrength(strongest) + pr.value) {
+            strongest.status = 3;
+            events.push({ type: "memberDied", creatureId: strongest.creatureId });
+          }
+          events.push({ type: "statueAttacked" });
+          if (!state.party.some((m) => m.status === 0 || m.status === 1)) {
+            state.gs = GS_DEAD;
+            state.phase = "gameOver";
+            events.push({ type: "gameOver", gs: GS_DEAD });
+            return events;
+          }
         }
       }
     }
@@ -207,6 +211,13 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
         const fighter = next.party[action.mi];
         if (!fighter || !(fighter.status === 0 || fighter.status === 1)) return { state, events: [{ type: "blocked" }] };
         const events: GameEvent[] = [];
+        if (eyeActive(next)) { // the Eye stills the statue: take the Ruby with no fight
+          fighter.treasure.push(11);
+          next.treasures.splice(action.ti, 1);
+          events.push({ type: "rubyTaken" }, { type: "statuePowerless" });
+          if (next.treasures.length === 0) persistAndExplore(next);
+          return { state: next, events };
+        }
         const pr = rollDie(next.seed); next.seed = pr.seed;
         const sr = rollDie(next.seed); next.seed = sr.seed;
         if (frontStrength(fighter) + pr.value >= 8 + sr.value) {
