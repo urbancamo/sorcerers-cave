@@ -82,6 +82,7 @@ export function legalActions(state: GameState): GameAction[] {
     if (state.level === 1) actions.push({ type: "exitCave" });
     else actions.push({ type: "move", dir: DIR_UP });
   }
+  if (state.party.some((m) => (m.status === 0 || m.status === 1) && m.treasure.includes(14))) actions.push({ type: "openChest" });
   actions.push(...artifactActions(state));
   actions.push({ type: "quit" });
   return actions;

@@ -14,6 +14,7 @@ export function scoreGame(state: GameState): number {
     for (const tid of m.treasure) score += TREASURES[tid]!.points;
   }
   if (state.sorcererKilled) score += 30;
+  score += state.bonusScore;
   score -= 30 * state.curses;
   return Math.max(0, score);
 }

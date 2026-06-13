@@ -58,6 +58,7 @@ export function newGame(seed: number, picks: readonly number[]): GameState {
     turn: 1,
     score: 0,
     curses: 0,
+    bonusScore: 0,
     sorcererKilled: false,
     areas: [gateway],
     partyArea: 0,

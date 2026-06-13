@@ -18,6 +18,7 @@ export function makeState(overrides: Partial<GameState> = {}): GameState {
     turn: 1,
     score: 0,
     curses: 0,
+    bonusScore: 0,
     sorcererKilled: false,
     areas: [gateway],
     partyArea: 0,

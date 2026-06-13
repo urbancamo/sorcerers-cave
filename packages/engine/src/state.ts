@@ -46,6 +46,7 @@ export interface GameState {
   turn: number;
   score: number;
   curses: number;
+  bonusScore: number; // banked points (e.g. Treasure Chest loot) added at scoring
   sorcererKilled: boolean;
   areas: PlacedArea[];
   partyArea: number; // index into areas

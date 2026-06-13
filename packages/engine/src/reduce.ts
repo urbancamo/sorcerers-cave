@@ -10,6 +10,7 @@ import { unpackCoord, packCoord } from "./coords";
 import type { GameAction, GameEvent } from "./actions";
 import { reactionRoll } from "./reaction";
 import { resolveRound } from "./combat";
+import { rollDie } from "./rng";
 import { CREATURES } from "./data/creatures";
 
 /** First living member who may bear+use `artifact` now (some artifacts need a specific creature). */
@@ -320,6 +321,32 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
         default:
           return { state, events: [{ type: "blocked" }] };
       }
+    }
+
+    case "openChest": {
+      if (state.phase !== "explore") return { state, events: [{ type: "blocked" }] };
+      const bearerIdx = state.party.findIndex((m) => (m.status === 0 || m.status === 1) && m.treasure.includes(14));
+      if (bearerIdx < 0) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      const bearer = next.party[bearerIdx]!;
+      bearer.treasure.splice(bearer.treasure.indexOf(14), 1); // the chest is opened (consumed)
+      const r = rollDie(next.seed);
+      next.seed = r.seed;
+      const events: GameEvent[] = [{ type: "chestOpened", result: r.value }];
+      switch (r.value) {
+        case 1: next.curses += 1; break; // a Curse
+        case 2: // a Spectre appears and attacks (one round)
+          next.strangers.push(9);
+          next.fight = { surprise: -1, round: 1, focus: next.strangers.length - 1 };
+          next.phase = "fight";
+          events.push({ type: "fightStarted", surprise: -1 });
+          break;
+        case 3: break; // Sand
+        case 4: next.bonusScore += 20; break; // Silver
+        case 5: next.bonusScore += 40; break; // Gold
+        case 6: next.bonusScore += 80; break; // Gems
+      }
+      return { state: next, events };
     }
   }
 }
