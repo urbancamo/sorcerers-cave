@@ -19,7 +19,7 @@
 - **Name collision:** the Convex mutation is also called `newGame`. Import the engine factory aliased: `import { newGame as createGameState, ... }`.
 - **Seed advances:** `createGameState(seed, picks)` advances the seed through deck-shuffling, so `state.seed !== inputSeed`. Tests must assert engine fields (phase/areas/party/turn), not `state.seed === seed`.
 - **Authority via the reducer:** `reduce` returns the *original* state + `[{blocked}]` for illegal actions (wrong phase etc.) and a pruned state + `[{deadEnd}]` for a dead-end attempt. `applyAction` always persists `reduce`'s returned state (the engine's truth) and appends a `gameEvents` row **unless** the only event is a pure `blocked` no-op (keeps the log clean). `status` becomes `"finished"` when `state.gs !== GS_PLAYING`.
-- **Auth is best-effort (solitaire):** `getAuthUserId(ctx)` returns the user id when signed in (browser anonymous auth) or `null` under `convex-test`. Store `ownerId` when present; never block on it. `listMine` returns `[]` when unauthenticated.
+- **Auth + ownership (IDOR fix):** every game is owned by the (anonymous) caller. `newGame` requires auth and sets `ownerId = getAuthUserId(ctx)`. `applyAction` requires auth and rejects (`Forbidden`) when `game.ownerId !== caller`. `get` returns `null` for non-owners. `listMine` returns `[]` when unauthenticated. Under `convex-test` there is no JWT, so tests authenticate with a helper that inserts a `users` row and wraps the client via `t.withIdentity({ subject: \`${userId}|session\` })` — `getAuthUserId` parses the user id from the `subject`'s first `|`-segment.
 - **Action validator:** the engine `GameAction` is a union; validate its shape permissively (`type` + the optional numeric fields) rather than enumerating every member, then cast to `GameAction` and let `reduce` enforce semantics.
 - **Client testing convention (this repo):** Convex-bound React is verified in the browser, not jsdom (see `App.test.tsx`'s comment). Task 3 ships the hook + wiring **typecheck-verified + browser-verified**; automated coverage stays on the server (convex-test) and a pure presentational unit.
 
@@ -70,14 +70,15 @@ const actionValidator = v.object({
   target: v.optional(v.number()),
 });
 
-/** Start a new authoritative game: validate the party, build the engine state, persist it. */
+/** Start a new authoritative game: validate the party, build the engine state, persist it (owned by the caller). */
 export const newGame = mutation({
   args: { seed: v.number(), picks: v.array(v.number()) },
   handler: async (ctx, { seed, picks }) => {
+    const ownerId = await getAuthUserId(ctx);
+    if (!ownerId) throw new Error("Unauthenticated");
     if (!validatePicks(picks)) throw new Error("Invalid party selection");
     const state = createGameState(seed, picks);
     const now = Date.now();
-    const ownerId = (await getAuthUserId(ctx)) ?? undefined;
     return await ctx.db.insert("games", { ownerId, state, status: "active", createdAt: now, updatedAt: now });
   },
 });
@@ -86,8 +87,11 @@ export const newGame = mutation({
 export const applyAction = mutation({
   args: { id: v.id("games"), action: actionValidator },
   handler: async (ctx, { id, action }) => {
+    const callerId = await getAuthUserId(ctx);
+    if (!callerId) throw new Error("Unauthenticated");
     const game = await ctx.db.get(id);
     if (!game) throw new Error("Game not found");
+    if (game.ownerId !== callerId) throw new Error("Forbidden"); // IDOR guard
     if (game.status !== "active") return { state: game.state as GameState, events: [] };
 
     const { state, events } = reduce(game.state as GameState, action as GameAction);
@@ -109,7 +113,12 @@ export const applyAction = mutation({
 
 export const get = query({
   args: { id: v.id("games") },
-  handler: async (ctx, { id }) => ctx.db.get(id),
+  handler: async (ctx, { id }) => {
+    const callerId = await getAuthUserId(ctx);
+    const game = await ctx.db.get(id);
+    if (!game || game.ownerId !== callerId) return null; // owner-scoped (IDOR guard)
+    return game;
+  },
 });
 
 /** The signed-in player's games (newest first); empty when unauthenticated. */
@@ -136,10 +145,18 @@ import { newGame as createGameState } from "@sorcerers-cave/engine";
 
 const modules = import.meta.glob("./**/*.*s");
 
+// Authenticate the convex-test client as a fresh anonymous user (no JWT available in tests).
+// getAuthUserId parses the user id from the subject's first `|`-segment.
+export async function asUser(t: ReturnType<typeof convexTest>) {
+  const userId = await t.run((ctx) => ctx.db.insert("users", {}));
+  return { as: t.withIdentity({ subject: `${userId}|session` }), userId };
+}
+
 test("newGame builds and persists a real engine GameState", async () => {
   const t = convexTest(schema, modules);
-  const id = await t.mutation(api.game.newGame, { seed: 123, picks: [0] }); // Hero, cost 6
-  const game = await t.query(api.game.get, { id });
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 123, picks: [0] }); // Hero, cost 6
+  const game = await as.query(api.game.get, { id });
   expect(game?.status).toBe("active");
   // The engine advances the seed through deck shuffles, so assert engine structure, not the input seed.
   expect(game?.state.phase).toBe("explore");
@@ -150,10 +167,16 @@ test("newGame builds and persists a real engine GameState", async () => {
   expect(game?.state).toEqual(createGameState(123, [0]));
 });
 
+test("newGame requires authentication", async () => {
+  const t = convexTest(schema, modules);
+  await expect(t.mutation(api.game.newGame, { seed: 1, picks: [0] })).rejects.toThrow();
+});
+
 test("newGame rejects an illegal party selection", async () => {
   const t = convexTest(schema, modules);
-  await expect(t.mutation(api.game.newGame, { seed: 1, picks: [] })).rejects.toThrow();
-  await expect(t.mutation(api.game.newGame, { seed: 1, picks: [8] })).rejects.toThrow(); // Wizard not selectable (cost null)
+  const { as } = await asUser(t);
+  await expect(as.mutation(api.game.newGame, { seed: 1, picks: [] })).rejects.toThrow();
+  await expect(as.mutation(api.game.newGame, { seed: 1, picks: [8] })).rejects.toThrow(); // Wizard not selectable (cost null)
 });
 ```
 
@@ -192,15 +215,17 @@ Append to `apps/web/convex/game.test.ts`:
 
 ```typescript
 import { reduce } from "@sorcerers-cave/engine";
+// `asUser` is defined in this file (Task 1).
 
 test("applyAction matches the local engine and logs the event", async () => {
   const t = convexTest(schema, modules);
-  const id = await t.mutation(api.game.newGame, { seed: 7, picks: [0] });
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 7, picks: [0] });
   // The authoritative result must equal a local deterministic reduce of the same state.
   const expected = reduce(createGameState(7, [0]), { type: "move", dir: 1 }); // move North from the gateway
-  const res = await t.mutation(api.game.applyAction, { id, action: { type: "move", dir: 1 } });
+  const res = await as.mutation(api.game.applyAction, { id, action: { type: "move", dir: 1 } });
   expect(res.state).toEqual(expected.state);
-  const game = await t.query(api.game.get, { id });
+  const game = await as.query(api.game.get, { id });
   expect(game?.state).toEqual(expected.state);
   // A non-blocked action is logged.
   const logged = await t.run((ctx) =>
@@ -212,11 +237,12 @@ test("applyAction matches the local engine and logs the event", async () => {
 
 test("an illegal action is a no-op and is not logged", async () => {
   const t = convexTest(schema, modules);
-  const id = await t.mutation(api.game.newGame, { seed: 7, picks: [0] });
-  const before = await t.query(api.game.get, { id });
-  const res = await t.mutation(api.game.applyAction, { id, action: { type: "attack" } }); // illegal in explore
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 7, picks: [0] });
+  const before = await as.query(api.game.get, { id });
+  const res = await as.mutation(api.game.applyAction, { id, action: { type: "attack" } }); // illegal in explore
   expect(res.events).toEqual([{ type: "blocked" }]);
-  const after = await t.query(api.game.get, { id });
+  const after = await as.query(api.game.get, { id });
   expect(after?.state).toEqual(before?.state); // unchanged
   const logged = await t.run((ctx) =>
     ctx.db.query("gameEvents").withIndex("by_game", (q) => q.eq("gameId", id)).collect(),
@@ -224,25 +250,36 @@ test("an illegal action is a no-op and is not logged", async () => {
   expect(logged.length).toBe(0); // blocked no-op not logged
 });
 
+test("a non-owner cannot read or mutate another player's game (IDOR guard)", async () => {
+  const t = convexTest(schema, modules);
+  const owner = await asUser(t);
+  const id = await owner.as.mutation(api.game.newGame, { seed: 7, picks: [0] });
+  const attacker = await asUser(t);
+  expect(await attacker.as.query(api.game.get, { id })).toBeNull();               // can't read
+  await expect(attacker.as.mutation(api.game.applyAction, { id, action: { type: "move", dir: 1 } }))
+    .rejects.toThrow(/Forbidden/);                                                // can't mutate
+});
+
 test("quitting finishes the game", async () => {
   const t = convexTest(schema, modules);
-  const id = await t.mutation(api.game.newGame, { seed: 7, picks: [0] });
-  await t.mutation(api.game.applyAction, { id, action: { type: "quit" } });
-  const game = await t.query(api.game.get, { id });
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 7, picks: [0] });
+  await as.mutation(api.game.applyAction, { id, action: { type: "quit" } });
+  const game = await as.query(api.game.get, { id });
   expect(game?.status).toBe("finished");
 });
 
-test("applyAction on a missing game throws", async () => {
+test("a finished game accepts no more changes", async () => {
   const t = convexTest(schema, modules);
-  const id = await t.mutation(api.game.newGame, { seed: 7, picks: [0] });
-  await t.mutation(api.game.applyAction, { id, action: { type: "quit" } });
-  // a finished game accepts no more changes
-  const res = await t.mutation(api.game.applyAction, { id, action: { type: "move", dir: 1 } });
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 7, picks: [0] });
+  await as.mutation(api.game.applyAction, { id, action: { type: "quit" } });
+  const res = await as.mutation(api.game.applyAction, { id, action: { type: "move", dir: 1 } });
   expect(res.events).toEqual([]);
 });
 ```
 
-NOTE TO IMPLEMENTER: `move North` from the gateway draws a shuffled tile, so the *outcome* (moved vs dead-end) is seed-dependent — but the test asserts the server equals a **local `reduce` of the same seed/state**, which is deterministic regardless of what that outcome is. Do not pin the outcome; pin server==local. If `t.run` query-builder usage differs in this convex-test version, adapt to the working form (the assertions are what matter).
+NOTE TO IMPLEMENTER: `move North` from the gateway draws a shuffled tile, so the *outcome* (moved vs dead-end) is seed-dependent — but the test asserts the server equals a **local `reduce` of the same seed/state**, which is deterministic regardless of what that outcome is. Do not pin the outcome; pin server==local. If `t.run`/`t.withIdentity` usage differs in this convex-test version, adapt to the working form (the assertions are what matter).
 
 - [ ] **Step 2: Run the tests**
 
