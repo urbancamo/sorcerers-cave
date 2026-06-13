@@ -52,4 +52,16 @@ describe("useArtifact — Lotus Dust (§16)", () => {
     expect(state.areas[0]!.contents).toContain(110); // Dragon asleep in the area
     expect(state.party[0]!.treasure).toEqual([]); // consumed
   });
+  it("clears potionActive on all party members when Lotus Dust ends the last fight-phase stranger", () => {
+    const s = makeState({
+      phase: "fight",
+      fight: { surprise: 0, round: 1, focus: 0 },
+      areas: [{ card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+      strangers: [10],
+      party: [{ creatureId: 5, status: 0 as const, dragonKills: 0, treasure: [5], potionActive: true }],
+    });
+    const { state } = reduce(s, { type: "useArtifact", artifact: 5, target: 0 });
+    expect(state.fight).toBeNull(); // fight ended
+    expect(state.party[0]!.potionActive).toBeFalsy(); // potion bonus cleared
+  });
 });

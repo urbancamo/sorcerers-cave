@@ -311,6 +311,7 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
           consume();
           if (next.strangers.length === 0) { // no one left to face
             next.fight = null;
+            next.party.forEach((m) => { m.potionActive = false; });
             if (next.treasures.length > 0) next.phase = "pickup";
             else persistAndExplore(next);
           }
