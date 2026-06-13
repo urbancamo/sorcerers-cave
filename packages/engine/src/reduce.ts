@@ -260,13 +260,24 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       next.seed = roll.seed;
       const events: GameEvent[] = [{ type: "reaction", outcome: roll.outcome }];
       if (roll.outcome === "friendly") {
+        const womanPresent = hasWoman(next);
         const room = PARTY_CAP - next.party.length;
-        const joining = next.strangers.slice(0, Math.max(0, room));
+        // A Womanless Unicorn (id 13) will not join — it stays behind guarding the area.
+        const joinPool = next.strangers.filter((id) => !(id === 13 && !womanPresent));
+        const guardPool = next.strangers.filter((id) => id === 13 && !womanPresent);
+        const joining = joinPool.slice(0, Math.max(0, room));
         for (const id of joining) next.party.push({ creatureId: id, status: 1, dragonKills: 0, treasure: [] });
-        next.strangers = [];
         events.push({ type: "strangersJoined", count: joining.length });
-        if (next.treasures.length > 0) next.phase = "pickup";
-        else persistAndExplore(next);
+        if (guardPool.length > 0) {
+          next.strangers = guardPool;
+          for (const id of guardPool) events.push({ type: "unicornGuards", creatureId: id });
+          next.areas[next.partyArea]!.indiffCount = 3; // cannot be approached further; it guards any treasure
+          persistAndExplore(next); // the party moves on, leaving the Unicorn (and guarded treasure) behind
+        } else {
+          next.strangers = [];
+          if (next.treasures.length > 0) next.phase = "pickup";
+          else persistAndExplore(next);
+        }
       } else if (roll.outcome === "indifferent") {
         next.areas[next.partyArea]!.indiffCount += 1;
         // stays in the encounter phase
@@ -294,6 +305,7 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       if (state.phase !== "fight") return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
       const events = resolveRound(next);
+      events.push(...reconcileUnicorns(next)); // a Unicorn departs if the last Woman fell this round (§ Unicorn)
       const partyAlive = next.party.some((m) => m.status === 0 || m.status === 1);
       if (!partyAlive) {
         next.gs = GS_DEAD;

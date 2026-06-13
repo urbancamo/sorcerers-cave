@@ -159,6 +159,72 @@ describe("Eye of God nullifies magic & artefacts (§ Eye of God)", () => {
   });
 });
 
+describe("Unicorn loyalty to a Woman (§ Unicorn)", () => {
+  // The Unicorn (id 13) has hostileMax=0/indiffMax=0, so it ALWAYS leads with a friendly reaction.
+  // area.indiffCount must be < 3 to allow `test`; use a fresh area with indiffCount: 0.
+  function unicornEncounter(party: ReturnType<typeof member>[]) {
+    return makeState({
+      phase: "encounter",
+      party,
+      strangers: [13], // lone Unicorn leading the encounter
+      treasures: [1],  // Gold it may guard (present so guardPool path also has treasure)
+      seed: 2,
+      areas: [{
+        card: 175,
+        coord: makeState().areas[0]!.coord,
+        faceUp: true,
+        visited: true,
+        contents: [],
+        flags: 0,
+        indiffCount: 0,
+      }],
+    });
+  }
+
+  it("a Unicorn joins the party when a Woman is present", () => {
+    // Woman (id 6) in party → hasWoman() true → Unicorn joins normally.
+    const { state, events } = reduce(unicornEncounter([member(6)]), { type: "test" });
+    expect(events).toContainEqual({ type: "reaction", outcome: "friendly" });
+    expect(state.party.map((m) => m.creatureId)).toContain(13); // Unicorn joined
+    expect(state.strangers).toEqual([]);
+  });
+
+  it("a Womanless party leaves the Unicorn guarding the area", () => {
+    // Hero (id 0) only — no Woman → Unicorn stays behind guarding.
+    const { state, events } = reduce(unicornEncounter([member(0)]), { type: "test" });
+    expect(events).toContainEqual({ type: "reaction", outcome: "friendly" });
+    expect(events).toContainEqual({ type: "unicornGuards", creatureId: 13 });
+    expect(state.party.map((m) => m.creatureId)).not.toContain(13); // did NOT join
+    expect(state.phase).toBe("explore"); // party moves on
+    expect(state.areas[state.partyArea]!.indiffCount).toBe(3); // permanently indifferent
+  });
+
+  it("a Unicorn ally departs after combat once the last Woman is gone", () => {
+    // Setup: Woman (FS 2) + Unicorn ally (MP 4) vs Dragon (FS 6).
+    // With seed 2: partyRoll=1, enemyRoll=5 → partyTotal=7, enemyTotal=11 → Dragon wins.
+    // The Woman (weakest in group) dies. Then reconcileUnicorns fires and removes the Unicorn.
+    // Verified deterministic: at seed 2 the Woman ALWAYS dies (enemyTotal 11 > partyTotal 7).
+    const s = makeState({
+      phase: "fight",
+      fight: { surprise: 0, round: 1, focus: 0 },
+      level: 1,
+      party: [
+        { creatureId: 6, status: 0 as const, dragonKills: 0, treasure: [] }, // Woman
+        { creatureId: 13, status: 1 as const, dragonKills: 0, treasure: [] }, // Unicorn ally
+      ],
+      strangers: [10], // Dragon
+      seed: 2,
+    });
+    const { state: result, events } = reduce(s, { type: "fightOn" });
+    // The Woman dies deterministically at seed 2.
+    expect(events).toContainEqual({ type: "memberDied", creatureId: 6 });
+    // Once the last Woman is gone, the Unicorn must depart.
+    expect(events).toContainEqual({ type: "unicornDeparted", creatureId: 13 });
+    // The Unicorn is no longer in the party.
+    expect(result.party.map((m) => m.creatureId)).not.toContain(13);
+  });
+});
+
 describe("The Ring — level-4 invincibility (§ The Ring)", () => {
   // Seed 3: Dwarf party roll = 4 + 1 (Ring bonus) = 6, Dragon enemy roll = 2 + 6 = 8.
   // enemyTotal (8) > partyTotal (6) — the Dragon always wins, exercising the death site.

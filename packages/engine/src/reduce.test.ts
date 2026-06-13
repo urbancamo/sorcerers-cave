@@ -111,8 +111,14 @@ describe("reduce — stranger encounters (C-2 §8)", () => {
   });
 
   it("a friendly result recruits the strangers as allies", () => {
-    // Unicorn (id 13) is always friendly.
-    const s = makeState({ phase: "encounter", strangers: [13], treasures: [], areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }] });
+    // Unicorn (id 13) is always friendly, and joins when a Woman is present (§ Unicorn).
+    const s = makeState({
+      phase: "encounter",
+      party: [{ creatureId: 6, status: 0, dragonKills: 0, treasure: [] }], // Woman — required for Unicorn loyalty
+      strangers: [13],
+      treasures: [],
+      areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+    });
     const { state, events } = reduce(s, { type: "test" });
     expect(state.party.some((m) => m.creatureId === 13 && m.status === 1)).toBe(true);
     expect(state.strangers).toEqual([]);
