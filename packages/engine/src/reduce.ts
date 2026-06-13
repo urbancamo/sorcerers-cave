@@ -1,4 +1,4 @@
-import { GS_PLAYING, GS_QUIT, GS_ESCAPED, GS_DEAD, PARTY_CAP, type GameState } from "./state";
+import { GS_PLAYING, GS_QUIT, GS_ESCAPED, GS_DEAD, PARTY_CAP, type GameState, type PartyMember } from "./state";
 import { tryMove } from "./map";
 import { decodeArea } from "./decode";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT } from "./data/areaCards";
@@ -11,6 +11,16 @@ import type { GameAction, GameEvent } from "./actions";
 import { reactionRoll } from "./reaction";
 import { resolveRound } from "./combat";
 import { CREATURES } from "./data/creatures";
+
+/** First living member who may bear+use `artifact` now (some artifacts need a specific creature). */
+function findBearer(state: GameState, artifact: number): number {
+  return state.party.findIndex((m: PartyMember) => {
+    if (!(m.status === 0 || m.status === 1) || !m.treasure.includes(artifact)) return false;
+    if (artifact === 6) return m.creatureId === 6 || m.creatureId === 4 || m.creatureId === 8; // Balm: Woman/Priest/Wizard
+    if (artifact === 9) return m.creatureId === 8; // Staff reanimation: Wizard
+    return true;
+  });
+}
 
 /** Persist the chamber working set back into the area, then return to exploring. */
 function persistAndExplore(state: GameState): void {
@@ -227,9 +237,11 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
         next.gs = GS_DEAD;
         next.phase = "gameOver";
         next.fight = null;
+        next.party.forEach((m) => { m.potionActive = false; });
         events.push({ type: "gameOver", gs: GS_DEAD });
       } else if (next.strangers.length === 0) {
         next.fight = null;
+        next.party.forEach((m) => { m.potionActive = false; });
         events.push({ type: "fightWon" });
         if (next.treasures.length > 0) next.phase = "pickup";
         else persistAndExplore(next);
@@ -247,10 +259,66 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       ];
       next.strangers = []; next.treasures = []; next.hazards = [];
       next.fight = null;
+      next.party.forEach((m) => { m.potionActive = false; });
       next.partyArea = next.prev;
       next.level = unpackCoord(next.areas[next.partyArea]!.coord).level;
       next.phase = "explore";
       return { state: next, events: [{ type: "moved", area: next.partyArea, level: next.level }] };
+    }
+
+    case "useArtifact": {
+      const bearerIdx = findBearer(state, action.artifact);
+      if (bearerIdx < 0) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      const bearer = next.party[bearerIdx]!;
+      const consume = () => {
+        const i = bearer.treasure.indexOf(action.artifact);
+        if (i >= 0) bearer.treasure.splice(i, 1);
+      };
+      const ok: { state: GameState; events: GameEvent[] } = { state: next, events: [{ type: "artifactUsed", artifact: action.artifact }] };
+
+      switch (action.artifact) {
+        case 8: { // Strength Potion — fight only, target a living Man/Woman/Hero
+          if (next.phase !== "fight" || action.target === undefined) return { state, events: [{ type: "blocked" }] };
+          const tm = next.party[action.target];
+          const boostable = tm && (tm.status === 0 || tm.status === 1) && [0, 1, 5, 6].includes(tm.creatureId);
+          if (!boostable) return { state, events: [{ type: "blocked" }] };
+          tm.potionActive = true;
+          consume();
+          return ok;
+        }
+        case 6: { // Healing Balm — explore only, target a dead member
+          if (next.phase !== "explore" || action.target === undefined) return { state, events: [{ type: "blocked" }] };
+          const dm = next.party[action.target];
+          if (!dm || dm.status !== 3) return { state, events: [{ type: "blocked" }] };
+          dm.status = 0;
+          consume();
+          return ok;
+        }
+        case 9: { // Magic Staff reanimation — explore only, target a stoned member; NOT consumed
+          if (next.phase !== "explore" || action.target === undefined) return { state, events: [{ type: "blocked" }] };
+          const sm = next.party[action.target];
+          if (!sm || sm.status !== 2) return { state, events: [{ type: "blocked" }] };
+          sm.status = 0;
+          return ok;
+        }
+        case 5: { // Lotus Dust — encounter or fight, target a stranger (put to sleep)
+          if ((next.phase !== "encounter" && next.phase !== "fight") || action.target === undefined) return { state, events: [{ type: "blocked" }] };
+          if (action.target < 0 || action.target >= next.strangers.length) return { state, events: [{ type: "blocked" }] };
+          const sid = next.strangers[action.target]!;
+          next.areas[next.partyArea]!.contents.push(100 + sid);
+          next.strangers.splice(action.target, 1);
+          consume();
+          if (next.strangers.length === 0) { // no one left to face
+            next.fight = null;
+            if (next.treasures.length > 0) next.phase = "pickup";
+            else persistAndExplore(next);
+          }
+          return ok;
+        }
+        default:
+          return { state, events: [{ type: "blocked" }] };
+      }
     }
   }
 }

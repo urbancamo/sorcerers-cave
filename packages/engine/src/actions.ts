@@ -10,7 +10,8 @@ export type GameAction =
   | { type: "attack" }
   | { type: "focusTarget"; idx: number }
   | { type: "fightOn" }
-  | { type: "retreat" };
+  | { type: "retreat" }
+  | { type: "useArtifact"; artifact: number; target?: number };
 
 // What happened — the reducer is the only producer; the UI never infers game facts.
 // Encounter-resolution and fight events arrive with combat (Milestone C-2).
@@ -31,4 +32,5 @@ export type GameEvent =
   | { type: "fightWon" }
   | { type: "crossedSpecial"; special: number }
   | { type: "treasureDropped"; count: number }
-  | { type: "treasureReclaimed"; count: number };
+  | { type: "treasureReclaimed"; count: number }
+  | { type: "artifactUsed"; artifact: number };

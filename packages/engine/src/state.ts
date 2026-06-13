@@ -19,6 +19,7 @@ export interface PartyMember {
   status: MemberStatus;
   dragonKills: number;
   treasure: number[]; // treasure ids carried
+  potionActive?: boolean; // Strength Potion drunk this fight (+2 frontStrength until it ends)
 }
 
 export interface PlacedArea {

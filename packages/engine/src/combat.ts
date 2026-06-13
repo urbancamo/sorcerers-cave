@@ -23,6 +23,7 @@ export function frontStrength(member: PartyMember): number {
     if (member.creatureId === 0 || member.creatureId === 1) s += 2; // Hero / W-Hero
     else if (member.creatureId === 5 || member.creatureId === 6) s += 1; // Man / Woman
   }
+  if (member.potionActive) s += 2; // Strength Potion, for the duration of the fight (§9.3/§16)
   return s;
 }
 
