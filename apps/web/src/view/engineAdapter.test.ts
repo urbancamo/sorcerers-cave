@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { AssetManifest } from "@sorcerers-cave/assets";
-import { newGame } from "@sorcerers-cave/engine";
+import { newGame, packCoord as pc, type GameState, type PlacedArea } from "@sorcerers-cave/engine";
 import { parseManifest } from "../data/manifest";
 import { createCaveAdapter } from "./engineAdapter";
 import type { ArtTables } from "./projection";
@@ -39,5 +39,75 @@ describe("createCaveAdapter — read surface", () => {
     expect(moves.map((m) => m.dir).sort()).toEqual(["E", "N", "S", "W"]); // gateway 175: NESW, stairUp=escape (excluded), no down
     expect(moves.every((m) => m.kind === "undrawn")).toBe(true);
     expect(moves.find((m) => m.dir === "N")?.target).toEqual({ level: 1, col: 50, row: 49 });
+  });
+});
+
+// Minimal explore-phase GameState for deterministic move tests.
+function mkState(areas: PlacedArea[], partyArea: number, over: Partial<GameState> = {}): GameState {
+  return {
+    gs: 0, phase: "explore", turn: 1, score: 0, curses: 0, bonusScore: 0, sorcererKilled: false,
+    areas, partyArea, level: 1, prev: partyArea, prev2: partyArea,
+    party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }],
+    largePack: [], largeIdx: 0, smallPack: [], smallIdx: 0,
+    strangers: [], treasures: [], hazards: [], seed: 1, fight: null, ...over,
+  };
+}
+const mkArea = (card: number, level: number, col: number, row: number, over: Partial<PlacedArea> = {}): PlacedArea =>
+  ({ card, coord: pc(level, col, row), faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0, ...over });
+
+describe("tryMove + MoveEvent", () => {
+  it("moves into a known adjacent area (no tile drawn)", () => {
+    // A: E-exit corridor at (50,50); B: W-exit corridor at (51,50). Moving E lands on B.
+    const A = mkArea(2, 1, 50, 50);       // exits "E"
+    const B = mkArea(8, 1, 51, 50, { visited: true }); // exits "W"
+    const eng = createCaveAdapter(mkState([A, B], 0), art);
+    const ev = eng.tryMove("E");
+    expect(ev.moved).toBe(true);
+    if (ev.moved) {
+      expect(ev.dir).toBe("E");
+      expect(ev.area.col).toBe(51);
+      expect(ev.placed).toBeNull();        // B already existed
+      expect(ev.chamber).toBeUndefined();  // B is a tunnel, no cards
+    }
+    expect(eng.current.col).toBe(51);      // mirror advanced
+  });
+
+  it("reports a dead end when the current card has no exit that way", () => {
+    const A = mkArea(2, 1, 50, 50);        // only "E"
+    const eng = createCaveAdapter(mkState([A], 0), art);
+    const ev = eng.tryMove("N");
+    expect(ev.moved).toBe(false);
+  });
+
+  it("draws a chamber tile on an undrawn frontier and reveals its cards (firstVisit)", () => {
+    const A = mkArea(2, 1, 50, 50);        // exits "E", frontier to the east is undrawn
+    // pack a chamber tile with a W reverse-door (8 | 16 = 24); small pack yields a Dragon (id 10)
+    const eng = createCaveAdapter(mkState([A], 0, { largePack: [8 | 16], smallPack: [100 + 10] }), art);
+    const ev = eng.tryMove("E");
+    expect(ev.moved).toBe(true);
+    if (ev.moved) {
+      expect(ev.placed).not.toBeNull();    // a new tile was drawn
+      expect(ev.area.type).toBe("chamber");
+      expect(ev.chamber?.firstVisit).toBe(true);
+      expect(ev.chamber?.draws.some((c) => c.name === "Dragon")).toBe(true);
+    }
+  });
+
+  it("forwards the accepted action via opts.onAction", () => {
+    const A = mkArea(2, 1, 50, 50);
+    const B = mkArea(8, 1, 51, 50, { visited: true });
+    const seen: number[] = [];
+    const eng = createCaveAdapter(mkState([A, B], 0), art, { onAction: (a) => { if (a.type === "move") seen.push(a.dir); } });
+    eng.tryMove("E");
+    expect(seen).toEqual([2]); // DIR_E
+  });
+
+  it("tags stair descents and never offers moves outside explore", () => {
+    // down-stair tile (card 64 = stairDown) at level 1; an undrawn frontier below.
+    const A = mkArea(64, 1, 50, 50);
+    const eng = createCaveAdapter(mkState([A], 0, { largePack: [0], smallPack: [] }), art);
+    const ev = eng.tryMove("D");
+    expect(ev.moved).toBe(true);
+    if (ev.moved) { expect(ev.descended).toBe("D"); expect(ev.area.level).toBe(2); }
   });
 });

@@ -68,10 +68,30 @@ export function createCaveAdapter(initial: GameState, art: ArtTables, opts: Adap
       }
       return moves;
     },
-    tryMove(_dir: Dir): MoveEvent { return { moved: false }; }, // implemented in Task 3
+    tryMove(dir: Dir): MoveEvent {
+      const before = state;
+      const num = DIR_TO_NUM[dir];
+      const action: GameAction = { type: "move", dir: num };
+      const { state: next, events } = reduce(before, action);
+      const blocked = events.some((e) => e.type === "blocked");
+      const deadEnd = events.some((e) => e.type === "deadEnd");
+      if (blocked || deadEnd) return deadEnd ? { moved: false, deadEnd: true } : { moved: false };
+      state = next;
+      opts.onAction?.(action);
+      const idx = next.partyArea;
+      const arrived = next.areas[idx]!;
+      const grew = next.areas.length > before.areas.length;
+      const area = projectArea(arrived, idx, next, art, liveForCurrent());
+      const ev: MoveEvent = { moved: true, dir, area, placed: grew ? area : null };
+      if (dir === "D") ev.descended = "D";
+      if (dir === "U") ev.ascended = "U";
+      if (events.some((e) => e.type === "drewChamber")) {
+        const wasVisited = before.areas.find((a) => a.coord === arrived.coord)?.visited ?? false;
+        ev.chamber = { draws: [...area.strangers, ...area.treasure, ...area.hazards], firstVisit: !wasVisited };
+      }
+      return ev;
+    },
     sync(next: GameState) { state = next; },
   };
-  // expose DIR maps + opts to Task 3 via closure (tryMove replaces the stub there)
-  void DIR_TO_NUM; void opts;
   return adapter;
 }
