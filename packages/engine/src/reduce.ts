@@ -451,7 +451,9 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
             }
             return { state: next, events: [{ type: "artifactUsed", artifact: 12 }, { type: "secretDoorRevealed", dir: action.dir }] };
           }
-          // Lull Dragons (encounter/fight) — not consumed
+          // Lull Dragons (encounter/fight) — not consumed.
+          // Deferred: Vipers are a special-area crossing (viperCrossing in special.ts), not creatures
+          // in `strangers`, so flute-lulling of Vipers is not implemented.
           if (next.phase !== "encounter" && next.phase !== "fight") return { state, events: [{ type: "blocked" }] };
           if (!next.strangers.includes(10)) return { state, events: [{ type: "blocked" }] };
           let count = 0;
