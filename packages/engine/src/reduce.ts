@@ -6,7 +6,7 @@ import { viperCrossing, deepPoolCrossing } from "./special";
 import { enterChamber } from "./chamber";
 import { applyHazards } from "./hazards";
 import { takeTreasure } from "./pickup";
-import { unpackCoord, packCoord } from "./coords";
+import { unpackCoord, packCoord, targetCoord, DIR_UP, DIR_DOWN } from "./coords";
 import type { GameAction, GameEvent } from "./actions";
 import { reactionRoll } from "./reaction";
 import { resolveRound, frontStrength } from "./combat";
@@ -20,6 +20,8 @@ function findBearer(state: GameState, artifact: number): number {
     if (!(m.status === 0 || m.status === 1) || !m.treasure.includes(artifact)) return false;
     if (artifact === 6) return m.creatureId === 6 || m.creatureId === 4 || m.creatureId === 8; // Balm: Woman/Priest/Wizard
     if (artifact === 9) return m.creatureId === 8; // Staff reanimation: Wizard
+    if (artifact === 4) return m.creatureId === 4 || m.creatureId === 8; // Magic Carpet: Priest/Wizard
+    if (artifact === 12) return m.creatureId === 0 || m.creatureId === 4 || m.creatureId === 5 || m.creatureId === 6 || m.creatureId === 8; // Charmed Flute: Hero/Priest/Man/Woman/Wizard
     return true;
   });
 }
@@ -141,6 +143,29 @@ function relocateDown(state: GameState): void {
   state.prev = state.partyArea;
   state.partyArea = idx;
   state.level = level + 1;
+}
+
+/** Teleport the party one step in `dir`, ignoring doors; place a new face-up card if the target is unexplored. */
+function carpetMove(state: GameState, dir: number): void {
+  const current = state.areas[state.partyArea]!;
+  const { level, x, y } = unpackCoord(current.coord);
+  const target = targetCoord(dir, level, x, y);
+  const targetLevel = unpackCoord(target).level;
+  let idx = state.areas.findIndex((a) => a.coord === target);
+  if (idx < 0) {
+    let drawn = state.largeIdx < state.largePack.length ? state.largePack[state.largeIdx++]! : 31;
+    if (dir === DIR_DOWN) drawn |= 32; // mirror a stair-up so the party can climb back
+    if (dir === DIR_UP) drawn |= 64; // mirror a stair-down so the party can descend back
+    if (targetLevel === 1) drawn &= ~32; // only the Gateway exits level 1
+    state.areas.push({ card: drawn, coord: target, faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 });
+    idx = state.areas.length - 1;
+  } else {
+    state.areas[idx]!.faceUp = true;
+  }
+  state.prev2 = state.prev;
+  state.prev = state.partyArea;
+  state.partyArea = idx;
+  state.level = targetLevel;
 }
 
 export function reduce(state: GameState, action: GameAction): { state: GameState; events: GameEvent[] } {
@@ -390,6 +415,19 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
             else persistAndExplore(next);
           }
           return ok;
+        }
+        case 4: { // Magic Carpet — explore only; teleport ignoring doors, then resolve the new area
+          // Deferred: "if the party encounters strangers it may not withdraw" after a carpet landing
+          // is NOT enforced (would need a transient no-withdraw flag); the player may still withdraw.
+          if (next.phase !== "explore" || action.dir === undefined) return { state, events: [{ type: "blocked" }] };
+          const d = action.dir;
+          const valid = d === 1 || d === 2 || d === 3 || d === 4 || d === DIR_DOWN || (d === DIR_UP && next.level > 1);
+          if (!valid) return { state, events: [{ type: "blocked" }] }; // won't take you out of the cave
+          consume();
+          const events: GameEvent[] = [{ type: "artifactUsed", artifact: 4 }, { type: "carpetUsed", dir: d }];
+          carpetMove(next, d);
+          events.push(...resolveArea(next));
+          return { state: next, events };
         }
         default:
           return { state, events: [{ type: "blocked" }] };

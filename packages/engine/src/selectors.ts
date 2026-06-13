@@ -32,6 +32,10 @@ function artifactActions(state: GameState): GameAction[] {
     if (has(9, (id) => id === 8)) { // Magic Staff -> each stoned member
       state.party.forEach((m, idx) => { if (m.status === 2) actions.push({ type: "useArtifact", artifact: 9, target: idx }); });
     }
+    if (has(4, (id) => id === 4 || id === 8)) { // Magic Carpet -> teleport in each available direction
+      for (const dir of [DIR_N, DIR_E, DIR_S, DIR_W, DIR_DOWN]) actions.push({ type: "useArtifact", artifact: 4, dir });
+      if (state.level > 1) actions.push({ type: "useArtifact", artifact: 4, dir: DIR_UP });
+    }
   }
   return actions;
 }

@@ -11,7 +11,7 @@ export type GameAction =
   | { type: "focusTarget"; idx: number }
   | { type: "fightOn" }
   | { type: "retreat" }
-  | { type: "useArtifact"; artifact: number; target?: number }
+  | { type: "useArtifact"; artifact: number; target?: number; dir?: number }
   | { type: "openChest" };
 
 // What happened — the reducer is the only producer; the UI never infers game facts.
@@ -44,4 +44,5 @@ export type GameEvent =
   | { type: "statuePowerless" }
   | { type: "deathPrevented"; creatureId: number }
   | { type: "unicornGuards"; creatureId: number }
-  | { type: "unicornDeparted"; creatureId: number };
+  | { type: "unicornDeparted"; creatureId: number }
+  | { type: "carpetUsed"; dir: number };
