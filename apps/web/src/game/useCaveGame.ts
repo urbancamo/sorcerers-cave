@@ -38,5 +38,6 @@ export function useCaveGame(id: Id<"games"> | null) {
     bump((n) => n + 1); // re-render consumers when the mirror changes
   }, [art, game, id, apply]);
 
-  return { engine: adapterRef.current, loading: !art || game === undefined, version };
+  const state = (game as { state?: GameState } | null | undefined)?.state ?? null;
+  return { engine: adapterRef.current, loading: !art || game === undefined, version, state };
 }

@@ -4,14 +4,14 @@ import { useAuthActions } from "@convex-dev/auth/react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { api } from "../../convex/_generated/api";
 import { useCaveGame } from "./useCaveGame";
-import { MoveList } from "./MoveList";
+import { CaveCanvas } from "../view/CaveCanvas";
 
 export default function GameScreen() {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const { signIn } = useAuthActions();
   const newGame = useMutation(api.game.newGame);
   const [gameId, setGameId] = useState<Id<"games"> | null>(null);
-  const { engine, loading } = useCaveGame(gameId);
+  const { engine, loading, state } = useCaveGame(gameId);
 
   useEffect(() => { if (!isLoading && !isAuthenticated) void signIn("anonymous"); }, [isLoading, isAuthenticated, signIn]);
 
@@ -28,13 +28,7 @@ export default function GameScreen() {
       </button>
     );
   }
-  if (loading || !engine) return <p>Loading cave…</p>;
+  if (loading || !engine || !state) return <p>Loading cave…</p>;
 
-  const s = engine.state();
-  return (
-    <div className="flex flex-col items-center gap-3" data-testid="game-screen">
-      <p>Turn {s.turn} · Level {s.level} · {engine.current.name} · {s.placed} placed · {s.deckLeft} in deck</p>
-      <MoveList moves={engine.openMoves()} onMove={(dir) => engine.tryMove(dir)} />
-    </div>
-  );
+  return <CaveCanvas key={gameId} engine={engine} state={state} />;
 }
