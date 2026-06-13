@@ -17,6 +17,7 @@ export function useCaveGame(id: Id<"games"> | null) {
   const apply = useMutation(api.game.applyAction);
   const [art, setArt] = useState<ArtTables | null>(null);
   const adapterRef = useRef<CaveAdapter | null>(null);
+  const adapterIdRef = useRef<Id<"games"> | null>(null);
   const [version, bump] = useState(0);
 
   useEffect(() => { void loadManifest().then(setArt); }, []);
@@ -24,7 +25,10 @@ export function useCaveGame(id: Id<"games"> | null) {
   useEffect(() => {
     const state = (game as { state?: GameState } | null | undefined)?.state;
     if (!art || !state || !id) return;
-    if (!adapterRef.current) {
+    // Rebuild the adapter on first state OR when the bound game id changes (so a
+    // switched/resumed game never keeps dispatching to the previous game's id).
+    if (!adapterRef.current || adapterIdRef.current !== id) {
+      adapterIdRef.current = id;
       adapterRef.current = createCaveAdapter(state, art, {
         onAction: (action: GameAction) => { void apply({ id, action }); },
       });
