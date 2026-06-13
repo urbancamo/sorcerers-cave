@@ -76,3 +76,52 @@ describe("resolveCard", () => {
     expect(resolveCard("hazard", 0, cards)).toBeNull();
   });
 });
+
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { decodeArea, AREA_CARDS, smallPackTemplate } from "@sorcerers-cave/engine";
+
+// engine special int -> manifest special string|null (SPECIAL_* in data/areaCards)
+const ENGINE_SPECIAL: (string | null)[] = [null, "gateway", "deep-pool", "viper-pit", "tomb-of-kings", "great-hall"];
+
+function topologyOf(value: number): Topology {
+  const d = decodeArea(value);
+  const exits = (d.n ? "N" : "") + (d.e ? "E" : "") + (d.s ? "S" : "") + (d.w ? "W" : "");
+  return { exits, stairUp: d.stairUp, stairDown: d.stairDown, special: ENGINE_SPECIAL[d.special] ?? null, isChamber: d.chamber };
+}
+
+describe("real manifest ↔ engine coverage (D-1 de-risk)", () => {
+  // The canonical, shared manifest — loaded inside the describe so import.meta.url
+  // is resolved at test-execution time (file: scheme) rather than at jsdom module-load time.
+  let real: ReturnType<typeof parseManifest>;
+  beforeAll(() => {
+    // process.cwd() = apps/web under vitest; manifest lives at ../../docs/assets/manifest.json
+    const REAL: AssetManifest = JSON.parse(
+      readFileSync(resolve(process.cwd(), "../../docs/assets/manifest.json"), "utf8"),
+    ) as AssetManifest;
+    real = parseManifest(REAL);
+  });
+
+  it("parses 60 tiles and 72 cards from the real manifest", () => {
+    expect(real.tiles.length).toBe(60);
+    expect(real.cards.length).toBe(72);
+  });
+
+  it("every engine area-card topology resolves to a tile + rotation", () => {
+    const unresolved = AREA_CARDS
+      .map((value, i) => ({ i, value, topo: topologyOf(value) }))
+      .filter((e) => resolveTile(e.topo, real.tiles) === null);
+    // If this fails, the list names every engine topology lacking matching art — a real finding.
+    expect(unresolved, JSON.stringify(unresolved, null, 2)).toEqual([]);
+  });
+
+  it("every small-pack entity resolves to a card", () => {
+    const unresolved = new Set<string>();
+    for (const code of smallPackTemplate()) {
+      const category: Category = code >= 300 ? "hazard" : code >= 200 ? "treasure" : "creature";
+      const entityId = code >= 300 ? code - 300 : code >= 200 ? code - 200 : code - 100;
+      if (resolveCard(category, entityId, real.cards) === null) unresolved.add(`${category}:${entityId}`);
+    }
+    expect([...unresolved], JSON.stringify([...unresolved])).toEqual([]);
+  });
+});
