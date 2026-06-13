@@ -42,6 +42,9 @@ export function enterChamber(state: GameState): GameEvent[] {
       classify(state, state.smallPack[state.smallIdx++]!);
     }
   }
+  // Clear the parked snapshot: during an active session the working set IS the truth.
+  // Persist sites will write back (prepending any newly parked entries) when the party leaves.
+  area.contents = [];
 
   return [{
     type: "drewChamber",

@@ -30,6 +30,7 @@ function findBearer(state: GameState, artifact: number): number {
 function persistAndExplore(state: GameState): void {
   const area = state.areas[state.partyArea]!;
   area.contents = [
+    ...area.contents,
     ...state.strangers.map((id) => 100 + id),
     ...state.treasures.map((id) => 200 + id),
   ];
@@ -219,6 +220,7 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       if (state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
       next.areas[next.partyArea]!.contents = [
+        ...next.areas[next.partyArea]!.contents,
         ...next.strangers.map((id) => 100 + id),
         ...next.treasures.map((id) => 200 + id),
       ];
@@ -353,6 +355,7 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       if (state.phase !== "fight") return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
       next.areas[next.partyArea]!.contents = [
+        ...next.areas[next.partyArea]!.contents,
         ...next.strangers.map((id) => 100 + id),
         ...next.treasures.map((id) => 200 + id),
       ];
