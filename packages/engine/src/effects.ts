@@ -16,7 +16,10 @@ function partyHolds(state: GameState, treasureId: number): boolean {
   return state.party.some((m) => living(m) && m.treasure.includes(treasureId));
 }
 
-/** The Eye of God is held by a living member: nullifies magic & artefacts, annihilates Spectres, stills the statue. */
+/**
+ * The Eye of God is held by a living member: nullifies magic & artefacts, annihilates Spectres, stills the statue.
+ * NOTE: the Eye's "keep it or be cursed" rule is deferred (single-party game, no party-splitting; bearer-death edge).
+ */
 export function eyeActive(state: GameState): boolean {
   return partyHolds(state, T_EYE_OF_GOD);
 }
