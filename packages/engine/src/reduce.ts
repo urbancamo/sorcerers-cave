@@ -9,7 +9,7 @@ import { takeTreasure } from "./pickup";
 import { unpackCoord, packCoord } from "./coords";
 import type { GameAction, GameEvent } from "./actions";
 import { reactionRoll } from "./reaction";
-import { resolveRound } from "./combat";
+import { resolveRound, frontStrength } from "./combat";
 import { rollDie } from "./rng";
 import { CREATURES } from "./data/creatures";
 
@@ -57,6 +57,28 @@ function resolveArea(state: GameState): GameEvent[] {
 
   for (;;) {
     const dec = decodeArea(state.areas[state.partyArea]!.card);
+    const here = state.areas[state.partyArea]!;
+    if ((here.flags & 32) !== 0) { // an aroused Lost-Ruby statue strikes the strongest member (§16)
+      let strongest: typeof state.party[number] | undefined;
+      for (const m of state.party) {
+        if ((m.status === 0 || m.status === 1) && (!strongest || frontStrength(m) > frontStrength(strongest))) strongest = m;
+      }
+      if (strongest) {
+        const pr = rollDie(state.seed); state.seed = pr.seed;
+        const sr = rollDie(state.seed); state.seed = sr.seed;
+        if (8 + sr.value > frontStrength(strongest) + pr.value) {
+          strongest.status = 3;
+          events.push({ type: "memberDied", creatureId: strongest.creatureId });
+        }
+        events.push({ type: "statueAttacked" });
+        if (!state.party.some((m) => m.status === 0 || m.status === 1)) {
+          state.gs = GS_DEAD;
+          state.phase = "gameOver";
+          events.push({ type: "gameOver", gs: GS_DEAD });
+          return events;
+        }
+      }
+    }
     if (dec.special === SPECIAL_DEEP_POOL) {
       const area = state.areas[state.partyArea]!;
       if (area.dropped && area.dropped.length > 0) {
@@ -178,6 +200,31 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
     case "takeTreasure": {
       if (state.phase !== "pickup") return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
+      if (next.treasures[action.ti] === 11) { // Lost Ruby — guarded by a strength-8 statue (§16)
+        const fighter = next.party[action.mi];
+        if (!fighter || !(fighter.status === 0 || fighter.status === 1)) return { state, events: [{ type: "blocked" }] };
+        const events: GameEvent[] = [];
+        const pr = rollDie(next.seed); next.seed = pr.seed;
+        const sr = rollDie(next.seed); next.seed = sr.seed;
+        if (frontStrength(fighter) + pr.value >= 8 + sr.value) {
+          fighter.treasure.push(11);
+          next.treasures.splice(action.ti, 1);
+          events.push({ type: "rubyTaken" });
+        } else {
+          fighter.status = 3;
+          next.areas[next.partyArea]!.flags |= 32; // statue aroused
+          events.push({ type: "memberDied", creatureId: fighter.creatureId });
+          events.push({ type: "statueAroused" });
+          if (!next.party.some((m) => m.status === 0 || m.status === 1)) {
+            next.gs = GS_DEAD;
+            next.phase = "gameOver";
+            events.push({ type: "gameOver", gs: GS_DEAD });
+            return { state: next, events };
+          }
+        }
+        if (next.treasures.length === 0) persistAndExplore(next);
+        return { state: next, events };
+      }
       takeTreasure(next, action.ti, action.mi);
       if (next.treasures.length === 0) persistAndExplore(next);
       return { state: next, events: [] };
