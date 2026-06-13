@@ -1,2 +1,5 @@
 
 .env.local
+
+# Synced asset copy (regenerate with `pnpm --filter web sync-assets`)
+public/assets/
