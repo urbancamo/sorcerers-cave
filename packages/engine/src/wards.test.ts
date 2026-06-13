@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
 import { makeState } from "./testkit";
 import { packCoord } from "./coords";
-import { frontStrength, casterMP, partyRollBonus } from "./combat";
+import { frontStrength, casterMP, partyRollBonus, resolveRound } from "./combat";
 
 const member = (creatureId: number, treasure: number[] = [], status = 0) =>
   ({ creatureId, status: status as 0 | 1 | 2 | 3, dragonKills: 0, treasure });
@@ -156,5 +156,43 @@ describe("Eye of God nullifies magic & artefacts (§ Eye of God)", () => {
     expect(partyRollBonus(ring)).toBe(1); // Ring +1
     const ringAndEye = makeState({ party: [member(0, [10, 13])] });
     expect(partyRollBonus(ringAndEye)).toBe(0); // Ring powerless under the Eye
+  });
+});
+
+describe("The Ring — level-4 invincibility (§ The Ring)", () => {
+  // Seed 3: Dwarf party roll = 4 + 1 (Ring bonus) = 6, Dragon enemy roll = 2 + 6 = 8.
+  // enemyTotal (8) > partyTotal (6) — the Dragon always wins, exercising the death site.
+  // Verified: seeds 1-20 all result in DWARF DIES (Dragon FS 6 too strong for Dwarf FS 1 + Ring +1).
+
+  it("ignores a killing combat roll for the Ring bearer at level >= 4", () => {
+    // A lone Dwarf (FS 1) carrying the Ring faces a Dragon (FS 6): normally the Dwarf dies.
+    // At level 4 the killing roll is ignored and deathPrevented fires instead.
+    const s = makeState({
+      phase: "fight",
+      fight: { surprise: 0, round: 1, focus: 0 },
+      level: 4,
+      party: [{ creatureId: 7, status: 0, dragonKills: 0, treasure: [10] }], // Dwarf + Ring
+      strangers: [10], // Dragon
+      seed: 3,
+    });
+    const events = resolveRound(s);
+    expect(s.party[0]!.status).not.toBe(3); // Ring bearer survives
+    expect(events).toContainEqual({ type: "deathPrevented", creatureId: 7 });
+    expect(events).not.toContainEqual({ type: "memberDied", creatureId: 7 });
+  });
+
+  it("does NOT protect the Ring bearer below level 4", () => {
+    // Same setup but level 3 — Ring invincibility only activates on level >= 4.
+    // At seed 3: partyTotal=6 (FS1 + roll4 + Ring+1), enemyTotal=8 (FS6 + roll2) — Dwarf dies.
+    const s = makeState({
+      phase: "fight",
+      fight: { surprise: 0, round: 1, focus: 0 },
+      level: 3,
+      party: [{ creatureId: 7, status: 0, dragonKills: 0, treasure: [10] }],
+      strangers: [10],
+      seed: 3,
+    });
+    resolveRound(s);
+    expect(s.party[0]!.status).toBe(3); // dies normally at level 3 (no invincibility)
   });
 });

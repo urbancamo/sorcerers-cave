@@ -70,8 +70,12 @@ export function resolveRound(state: GameState): GameEvent[] {
     let strongest: PartyMember | undefined;
     for (const m of party) if (!strongest || frontStrength(m, state) > frontStrength(strongest, state)) strongest = m;
     if (strongest) {
-      strongest.status = 3;
-      events.push({ type: "spectreSlew", creatureId: strongest.creatureId });
+      if (ringInvincible(strongest, state)) {
+        events.push({ type: "deathPrevented", creatureId: strongest.creatureId });
+      } else {
+        strongest.status = 3;
+        events.push({ type: "spectreSlew", creatureId: strongest.creatureId });
+      }
     }
   }
 
@@ -133,7 +137,14 @@ export function resolveRound(state: GameState): GameEvent[] {
     } else if (enemyTotal > partyTotal) {
       let weakest: PartyMember | undefined;
       for (const m of group) if (!weakest || frontStrength(m, state) < frontStrength(weakest, state)) weakest = m;
-      if (weakest) { weakest.status = 3; events.push({ type: "memberDied", creatureId: weakest.creatureId }); }
+      if (weakest) {
+        if (ringInvincible(weakest, state)) {
+          events.push({ type: "deathPrevented", creatureId: weakest.creatureId });
+        } else {
+          weakest.status = 3;
+          events.push({ type: "memberDied", creatureId: weakest.creatureId });
+        }
+      }
     }
     // tie: no death
   }
