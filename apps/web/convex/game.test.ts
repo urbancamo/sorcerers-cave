@@ -6,10 +6,18 @@ import { newGame as createGameState } from "@sorcerers-cave/engine";
 
 const modules = import.meta.glob("./**/*.*s");
 
+// Authenticate the convex-test client as a fresh anonymous user (no JWT available in tests).
+// getAuthUserId parses the user id from the subject's first `|`-segment.
+export async function asUser(t: ReturnType<typeof convexTest>) {
+  const userId = await t.run((ctx) => ctx.db.insert("users", {}));
+  return { as: t.withIdentity({ subject: `${userId}|session` }), userId };
+}
+
 test("newGame builds and persists a real engine GameState", async () => {
   const t = convexTest(schema, modules);
-  const id = await t.mutation(api.game.newGame, { seed: 123, picks: [0] }); // Hero, cost 6
-  const game = await t.query(api.game.get, { id });
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 123, picks: [0] }); // Hero, cost 6
+  const game = await as.query(api.game.get, { id });
   expect(game?.status).toBe("active");
   // The engine advances the seed through deck shuffles, so assert engine structure, not the input seed.
   expect(game?.state.phase).toBe("explore");
@@ -20,8 +28,14 @@ test("newGame builds and persists a real engine GameState", async () => {
   expect(game?.state).toEqual(createGameState(123, [0]));
 });
 
+test("newGame requires authentication", async () => {
+  const t = convexTest(schema, modules);
+  await expect(t.mutation(api.game.newGame, { seed: 1, picks: [0] })).rejects.toThrow();
+});
+
 test("newGame rejects an illegal party selection", async () => {
   const t = convexTest(schema, modules);
-  await expect(t.mutation(api.game.newGame, { seed: 1, picks: [] })).rejects.toThrow();
-  await expect(t.mutation(api.game.newGame, { seed: 1, picks: [8] })).rejects.toThrow(); // Wizard not selectable (cost null)
+  const { as } = await asUser(t);
+  await expect(as.mutation(api.game.newGame, { seed: 1, picks: [] })).rejects.toThrow();
+  await expect(as.mutation(api.game.newGame, { seed: 1, picks: [8] })).rejects.toThrow(); // Wizard not selectable (cost null)
 });

@@ -21,14 +21,15 @@ const actionValidator = v.object({
   target: v.optional(v.number()),
 });
 
-/** Start a new authoritative game: validate the party, build the engine state, persist it. */
+/** Start a new authoritative game: validate the party, build the engine state, persist it (owned by the caller). */
 export const newGame = mutation({
   args: { seed: v.number(), picks: v.array(v.number()) },
   handler: async (ctx, { seed, picks }) => {
+    const ownerId = await getAuthUserId(ctx);
+    if (!ownerId) throw new Error("Unauthenticated");
     if (!validatePicks(picks)) throw new Error("Invalid party selection");
     const state = createGameState(seed, picks);
     const now = Date.now();
-    const ownerId = (await getAuthUserId(ctx)) ?? undefined;
     return await ctx.db.insert("games", { ownerId, state, status: "active", createdAt: now, updatedAt: now });
   },
 });
@@ -37,8 +38,11 @@ export const newGame = mutation({
 export const applyAction = mutation({
   args: { id: v.id("games"), action: actionValidator },
   handler: async (ctx, { id, action }) => {
+    const callerId = await getAuthUserId(ctx);
+    if (!callerId) throw new Error("Unauthenticated");
     const game = await ctx.db.get(id);
     if (!game) throw new Error("Game not found");
+    if (game.ownerId !== callerId) throw new Error("Forbidden"); // IDOR guard
     if (game.status !== "active") return { state: game.state as GameState, events: [] };
 
     const { state, events } = reduce(game.state as GameState, action as GameAction);
@@ -60,7 +64,12 @@ export const applyAction = mutation({
 
 export const get = query({
   args: { id: v.id("games") },
-  handler: async (ctx, { id }) => ctx.db.get(id),
+  handler: async (ctx, { id }) => {
+    const callerId = await getAuthUserId(ctx);
+    const game = await ctx.db.get(id);
+    if (!game || game.ownerId !== callerId) return null; // owner-scoped (IDOR guard)
+    return game;
+  },
 });
 
 /** The signed-in player's games (newest first); empty when unauthenticated. */
