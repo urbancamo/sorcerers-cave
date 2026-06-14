@@ -405,7 +405,7 @@ const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();let downXY=null;
 const clock=new THREE.Clock();
 let rafId;
 function animate(){
-  rafId=requestAnimationFrame(animate);const tt=clock.elapsedTime;
+  rafId=requestAnimationFrame(animate);const tt=clock.getElapsedTime();
   if(goal.active){camera.position.lerp(goal.pos,0.085);controls.target.lerp(goal.target,0.085);
     camera.fov+=(goal.fov-camera.fov)*0.085;camera.updateProjectionMatrix();
     if(camera.position.distanceTo(goal.pos)<0.1&&controls.target.distanceTo(goal.target)<0.1){goal.active=false;controls.enabled=true;}}
