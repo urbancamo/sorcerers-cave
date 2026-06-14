@@ -44,4 +44,12 @@ describe("viewParty", () => {
     const man = viewParty(state)[0]!;
     expect(man.items[0]).toMatchObject({ name: "Silver", file: null });
   });
+
+  it("omits fallen/dead members from the on-screen roster", () => {
+    const state = newGame(1, [5, 6]); // Man + Woman
+    state.party[0]!.status = 3; // the Man has fallen
+    const p = viewParty(state);
+    expect(p.map((m) => m.name)).toEqual(["Woman"]);
+    expect(p[0]!.lead).toBe(true); // the surviving member leads the roster
+  });
 });
