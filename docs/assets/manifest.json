@@ -1,0 +1,1578 @@
+{
+  "generated": "2026-06-12",
+  "description": "High-resolution PNGs extracted from the fan-made Sorcerer's Cave conversion kit PDFs. Naming is positional (sheet + slot); semantic mapping to game-engine entity ids is a follow-up step.",
+  "sources": {
+    "base": {
+      "pdf": "sorcerers-cave-conversion-kit-base.pdf",
+      "pages": 26,
+      "author": "Peter Vodden",
+      "version": "3.1"
+    },
+    "tokens": {
+      "pdf": "sorcerers-cave-conversion-kit-tokens.pdf",
+      "pages": 6,
+      "author": "Peter Vodden",
+      "version": "03"
+    }
+  },
+  "printCardSizeMm": {
+    "small": [
+      63,
+      88
+    ],
+    "large": [
+      88,
+      126
+    ]
+  },
+  "extraction": {
+    "method": "pdfimages (native embedded JPEGs); soft-masks composited to RGBA for tokens",
+    "notes": "Area tiles are LANDSCAPE: rotated -90 (CCW) so the double-headed direction arrow points up in the NW (top-left) corner. Small cards & STONE/CURSE markers were stored sideways and rotated -90 to upright portrait. Token print-duplicates de-duplicated by md5."
+  },
+  "categories": {
+    "tiles": {
+      "dir": "tiles",
+      "source": "base",
+      "description": "Area tiles (large cards, 88x126mm), LANDSCAPE with NW direction arrow up. Categorized from the art: exits (N/E/S/W edges reached by the main tunnel/chamber via connected-component analysis; disconnected edge stubs excluded), tileType (chamber/tunnel/gateway), special (5 named tiles), and independent stairUp/stairDown (doorway-topped staircase = up; light-to-dark fade = down; a tile may have both). 22 chambers + 1 gateway + 37 tunnels; stairs: 10 up, 7 down (s07-2 has both).",
+      "count": 60,
+      "items": [
+        {
+          "file": "area-tile-s01-1.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NE",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s01-2.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NE",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s01-3.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NE",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": true
+        },
+        {
+          "file": "area-tile-s01-4.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NES",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s02-1.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NES",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s02-2.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NES",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s02-3.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NES",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s02-4.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NES",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s03-1.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NES",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": true
+        },
+        {
+          "file": "area-tile-s03-2.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NES",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": true,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s03-3.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NEW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s03-4.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NEW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s04-1.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NEW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s04-2.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NEW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s04-3.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NEW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": true
+        },
+        {
+          "file": "area-tile-s04-4.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s05-1.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s05-2.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s05-3.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s05-4.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s06-1.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s06-2.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s06-3.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s06-4.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": true
+        },
+        {
+          "file": "area-tile-s07-1.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": true,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s07-2.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": true,
+          "stairDown": true
+        },
+        {
+          "file": "area-tile-s07-3.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NEW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": true,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s07-4.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NS",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s08-1.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NS",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s08-2.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NS",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": true
+        },
+        {
+          "file": "area-tile-s08-3.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s08-4.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s09-1.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s09-2.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s09-3.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NSW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s09-4.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NSW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s10-1.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NSW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s10-2.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NSW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s10-3.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NSW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s10-4.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NSW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": true
+        },
+        {
+          "file": "area-tile-s11-1.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NSW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": true,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s11-2.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "ESW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s11-3.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "ESW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s11-4.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "ESW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s12-1.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "ESW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s12-2.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "ESW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s12-3.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "ESW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s12-4.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "ESW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": true
+        },
+        {
+          "file": "area-tile-s13-1.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "ESW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": true,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s13-2.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "SW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s13-3.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "SW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s13-4.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "SW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": true
+        },
+        {
+          "file": "area-tile-s14-1.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": "deep-pool",
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s14-2.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "gateway",
+          "special": "gateway",
+          "stairUp": true,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s14-3.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": "great-hall",
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s14-4.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": "viper-pit",
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s15-1.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": "tomb-of-kings",
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s15-2.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "EW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s15-3.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "EW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-s15-4.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "EW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": true,
+          "stairDown": false
+        }
+      ]
+    },
+    "cards": {
+      "dir": "cards",
+      "source": "base",
+      "description": "Small cards: creatures, treasures, artifacts, hazards (63x88mm), upright portrait. Each card identified by its yellow name banner: name + category (creature/treasure/hazard) + engine entityId (null for the optional Sybil variant). 38 creatures + 27 treasures + 7 hazards.",
+      "count": 72,
+      "items": [
+        {
+          "file": "small-card-s01-1.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Charmed Flute",
+          "category": "treasure",
+          "entityId": 12
+        },
+        {
+          "file": "small-card-s01-2.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Dragon",
+          "category": "creature",
+          "entityId": 10
+        },
+        {
+          "file": "small-card-s01-3.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Dragon",
+          "category": "creature",
+          "entityId": 10
+        },
+        {
+          "file": "small-card-s01-4.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Dragon",
+          "category": "creature",
+          "entityId": 10
+        },
+        {
+          "file": "small-card-s01-5.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Dwarf",
+          "category": "creature",
+          "entityId": 7
+        },
+        {
+          "file": "small-card-s01-6.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Dwarf",
+          "category": "creature",
+          "entityId": 7
+        },
+        {
+          "file": "small-card-s01-7.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Dwarf",
+          "category": "creature",
+          "entityId": 7
+        },
+        {
+          "file": "small-card-s01-8.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Earthquake",
+          "category": "hazard",
+          "entityId": 2
+        },
+        {
+          "file": "small-card-s02-1.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Earthquake",
+          "category": "hazard",
+          "entityId": 2
+        },
+        {
+          "file": "small-card-s02-2.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Eye of God",
+          "category": "treasure",
+          "entityId": 13
+        },
+        {
+          "file": "small-card-s02-3.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Ghouls",
+          "category": "hazard",
+          "entityId": 4
+        },
+        {
+          "file": "small-card-s02-4.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Giant",
+          "category": "creature",
+          "entityId": 12
+        },
+        {
+          "file": "small-card-s02-5.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Giant",
+          "category": "creature",
+          "entityId": 12
+        },
+        {
+          "file": "small-card-s02-6.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Gems",
+          "category": "treasure",
+          "entityId": 2
+        },
+        {
+          "file": "small-card-s02-7.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Gems",
+          "category": "treasure",
+          "entityId": 2
+        },
+        {
+          "file": "small-card-s02-8.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Gems",
+          "category": "treasure",
+          "entityId": 2
+        },
+        {
+          "file": "small-card-s03-1.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Giant",
+          "category": "creature",
+          "entityId": 12
+        },
+        {
+          "file": "small-card-s03-2.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Gold",
+          "category": "treasure",
+          "entityId": 1
+        },
+        {
+          "file": "small-card-s03-3.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Gold",
+          "category": "treasure",
+          "entityId": 1
+        },
+        {
+          "file": "small-card-s03-4.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Gold",
+          "category": "treasure",
+          "entityId": 1
+        },
+        {
+          "file": "small-card-s03-5.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Gold",
+          "category": "treasure",
+          "entityId": 1
+        },
+        {
+          "file": "small-card-s03-6.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Gold",
+          "category": "treasure",
+          "entityId": 1
+        },
+        {
+          "file": "small-card-s03-7.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Gold",
+          "category": "treasure",
+          "entityId": 1
+        },
+        {
+          "file": "small-card-s03-8.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Healing Balm",
+          "category": "treasure",
+          "entityId": 6
+        },
+        {
+          "file": "small-card-s04-1.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Hero",
+          "category": "creature",
+          "entityId": 0
+        },
+        {
+          "file": "small-card-s04-2.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Lost Ruby",
+          "category": "treasure",
+          "entityId": 11
+        },
+        {
+          "file": "small-card-s04-3.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Magic Carpet",
+          "category": "treasure",
+          "entityId": 4
+        },
+        {
+          "file": "small-card-s04-4.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Magic Staff",
+          "category": "treasure",
+          "entityId": 9
+        },
+        {
+          "file": "small-card-s04-5.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Magic Sword",
+          "category": "treasure",
+          "entityId": 3
+        },
+        {
+          "file": "small-card-s04-6.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Man",
+          "category": "creature",
+          "entityId": 5
+        },
+        {
+          "file": "small-card-s04-7.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Man",
+          "category": "creature",
+          "entityId": 5
+        },
+        {
+          "file": "small-card-s04-8.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Lotus Dust",
+          "category": "treasure",
+          "entityId": 5
+        },
+        {
+          "file": "small-card-s05-1.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Man",
+          "category": "creature",
+          "entityId": 5
+        },
+        {
+          "file": "small-card-s05-2.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Man",
+          "category": "creature",
+          "entityId": 5
+        },
+        {
+          "file": "small-card-s05-3.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Man",
+          "category": "creature",
+          "entityId": 5
+        },
+        {
+          "file": "small-card-s05-4.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Man",
+          "category": "creature",
+          "entityId": 5
+        },
+        {
+          "file": "small-card-s05-5.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Medusa",
+          "category": "hazard",
+          "entityId": 3
+        },
+        {
+          "file": "small-card-s05-6.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Mutiny",
+          "category": "hazard",
+          "entityId": 0
+        },
+        {
+          "file": "small-card-s05-7.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Ogre",
+          "category": "creature",
+          "entityId": 2
+        },
+        {
+          "file": "small-card-s05-8.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Ogre",
+          "category": "creature",
+          "entityId": 2
+        },
+        {
+          "file": "small-card-s06-1.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Ogre",
+          "category": "creature",
+          "entityId": 2
+        },
+        {
+          "file": "small-card-s06-2.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Priest",
+          "category": "creature",
+          "entityId": 4
+        },
+        {
+          "file": "small-card-s06-3.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Priest",
+          "category": "creature",
+          "entityId": 4
+        },
+        {
+          "file": "small-card-s06-4.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Priest",
+          "category": "creature",
+          "entityId": 4
+        },
+        {
+          "file": "small-card-s06-5.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Silver",
+          "category": "treasure",
+          "entityId": 0
+        },
+        {
+          "file": "small-card-s06-6.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Silver",
+          "category": "treasure",
+          "entityId": 0
+        },
+        {
+          "file": "small-card-s06-7.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Silver",
+          "category": "treasure",
+          "entityId": 0
+        },
+        {
+          "file": "small-card-s06-8.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Silver",
+          "category": "treasure",
+          "entityId": 0
+        },
+        {
+          "file": "small-card-s07-1.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Silver",
+          "category": "treasure",
+          "entityId": 0
+        },
+        {
+          "file": "small-card-s07-2.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Silver",
+          "category": "treasure",
+          "entityId": 0
+        },
+        {
+          "file": "small-card-s07-3.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Spectre",
+          "category": "creature",
+          "entityId": 9
+        },
+        {
+          "file": "small-card-s07-4.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Spectre",
+          "category": "creature",
+          "entityId": 9
+        },
+        {
+          "file": "small-card-s07-5.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Spectre",
+          "category": "creature",
+          "entityId": 9
+        },
+        {
+          "file": "small-card-s07-6.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Strength Potion",
+          "category": "treasure",
+          "entityId": 8
+        },
+        {
+          "file": "small-card-s07-7.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Sybil",
+          "category": "creature",
+          "entityId": null
+        },
+        {
+          "file": "small-card-s07-8.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Talisman",
+          "category": "treasure",
+          "entityId": 7
+        },
+        {
+          "file": "small-card-s08-1.png",
+          "w": 700,
+          "h": 1000,
+          "name": "The Ring",
+          "category": "treasure",
+          "entityId": 10
+        },
+        {
+          "file": "small-card-s08-2.png",
+          "w": 700,
+          "h": 1000,
+          "name": "The Sorcerer",
+          "category": "creature",
+          "entityId": 11
+        },
+        {
+          "file": "small-card-s08-3.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Trap",
+          "category": "hazard",
+          "entityId": 1
+        },
+        {
+          "file": "small-card-s08-4.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Trap",
+          "category": "hazard",
+          "entityId": 1
+        },
+        {
+          "file": "small-card-s08-5.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Troll",
+          "category": "creature",
+          "entityId": 3
+        },
+        {
+          "file": "small-card-s08-6.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Troll",
+          "category": "creature",
+          "entityId": 3
+        },
+        {
+          "file": "small-card-s08-7.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Troll",
+          "category": "creature",
+          "entityId": 3
+        },
+        {
+          "file": "small-card-s08-8.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Treasure Chest",
+          "category": "treasure",
+          "entityId": 14
+        },
+        {
+          "file": "small-card-s09-1.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Unicorn",
+          "category": "creature",
+          "entityId": 13
+        },
+        {
+          "file": "small-card-s09-2.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Wizard",
+          "category": "creature",
+          "entityId": 8
+        },
+        {
+          "file": "small-card-s09-3.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Wizard",
+          "category": "creature",
+          "entityId": 8
+        },
+        {
+          "file": "small-card-s09-4.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Wizard",
+          "category": "creature",
+          "entityId": 8
+        },
+        {
+          "file": "small-card-s09-5.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Woman",
+          "category": "creature",
+          "entityId": 6
+        },
+        {
+          "file": "small-card-s09-6.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Woman",
+          "category": "creature",
+          "entityId": 6
+        },
+        {
+          "file": "small-card-s09-7.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Woman",
+          "category": "creature",
+          "entityId": 6
+        },
+        {
+          "file": "small-card-s09-8.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Woman Hero",
+          "category": "creature",
+          "entityId": 1
+        }
+      ]
+    },
+    "markers": {
+      "dir": "tokens/markers",
+      "source": "tokens",
+      "description": "STONE and CURSE status markers (large).",
+      "count": 2,
+      "items": [
+        {
+          "file": "marker-01.png",
+          "w": 700,
+          "h": 1000
+        },
+        {
+          "file": "marker-02.png",
+          "w": 700,
+          "h": 1000
+        }
+      ]
+    },
+    "secretDoorsLarge": {
+      "dir": "tokens/secret-doors-large",
+      "source": "tokens",
+      "description": "Lettered secret-door markers A-Z, large (RGBA). Not modelled in the solitaire engine.",
+      "count": 27,
+      "items": [
+        {
+          "file": "door-01.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-02.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-03.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-04.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-05.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-06.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-07.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-08.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-09.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-10.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-11.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-12.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-13.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-14.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-15.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-16.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-17.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-18.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-19.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-20.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-21.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-22.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-23.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-24.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-25.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-26.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-27.png",
+          "w": 157,
+          "h": 195
+        }
+      ]
+    },
+    "secretDoorsSmall": {
+      "dir": "tokens/secret-doors-small",
+      "source": "tokens",
+      "description": "Lettered secret-door markers A-Z, small (RGBA).",
+      "count": 26,
+      "items": [
+        {
+          "file": "door-01.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-02.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-03.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-04.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-05.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-06.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-07.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-08.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-09.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-10.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-11.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-12.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-13.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-14.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-15.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-16.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-17.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-18.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-19.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-20.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-21.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-22.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-23.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-24.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-25.png",
+          "w": 157,
+          "h": 195
+        },
+        {
+          "file": "door-26.png",
+          "w": 157,
+          "h": 195
+        }
+      ]
+    },
+    "levels": {
+      "dir": "tokens/levels",
+      "source": "tokens",
+      "description": "Level number markers 1-9.",
+      "count": 9,
+      "items": [
+        {
+          "file": "level-01.png",
+          "w": 375,
+          "h": 375
+        },
+        {
+          "file": "level-02.png",
+          "w": 375,
+          "h": 375
+        },
+        {
+          "file": "level-03.png",
+          "w": 375,
+          "h": 375
+        },
+        {
+          "file": "level-04.png",
+          "w": 375,
+          "h": 375
+        },
+        {
+          "file": "level-05.png",
+          "w": 375,
+          "h": 375
+        },
+        {
+          "file": "level-06.png",
+          "w": 375,
+          "h": 375
+        },
+        {
+          "file": "level-07.png",
+          "w": 375,
+          "h": 375
+        },
+        {
+          "file": "level-08.png",
+          "w": 375,
+          "h": 375
+        },
+        {
+          "file": "level-09.png",
+          "w": 375,
+          "h": 375
+        }
+      ]
+    }
+  }
+}

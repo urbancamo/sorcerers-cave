@@ -1,0 +1,1263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Sorcerer's Cave &mdash; Design &amp; Requirements Specification</title>
+<style>
+  :root{
+    --ink:#1c1a17; --paper:#fbf8f2; --muted:#6b6258; --rule:#d9cfbe;
+    --accent:#7a4b25; --accent2:#2f5d50; --warn:#9a2f2f; --ok:#2f6d3a;
+    --code-bg:#f1ece1; --box:#fff9ee; --hdr:#efe7d6;
+  }
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0; background:var(--paper); color:var(--ink);
+    font:16px/1.6 "Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+  }
+  .wrap{max-width:980px; margin:0 auto; padding:0 28px 120px}
+  header.title{
+    padding:54px 28px 30px; text-align:center; border-bottom:3px double var(--rule);
+    margin-bottom:8px;
+  }
+  header.title h1{font-size:2.5rem; margin:.2em 0 .1em; letter-spacing:.5px}
+  header.title .sub{color:var(--muted); font-style:italic; font-size:1.15rem}
+  header.title .meta{margin-top:14px; font-size:.85rem; color:var(--muted)}
+  h2{
+    font-size:1.7rem; margin:2.4em 0 .5em; padding-bottom:.18em;
+    border-bottom:2px solid var(--accent); color:var(--accent);
+  }
+  h3{font-size:1.28rem; margin:1.6em 0 .4em; color:var(--accent2)}
+  h4{font-size:1.05rem; margin:1.2em 0 .3em; letter-spacing:.3px; text-transform:uppercase; color:var(--muted)}
+  code,kbd{font-family:"SF Mono",Menlo,Consolas,monospace; font-size:.86em}
+  code{background:var(--code-bg); padding:.08em .35em; border-radius:3px}
+  kbd{background:#2c2620; color:#f3ead8; padding:.05em .45em; border-radius:4px; border:1px solid #000; font-size:.8em}
+  pre{
+    background:var(--code-bg); border:1px solid var(--rule); border-left:4px solid var(--accent2);
+    padding:14px 16px; overflow:auto; border-radius:5px; font-size:.82rem; line-height:1.45;
+    font-family:"SF Mono",Menlo,Consolas,monospace;
+  }
+  table{border-collapse:collapse; width:100%; margin:1em 0; font-size:.86rem}
+  th,td{border:1px solid var(--rule); padding:6px 9px; text-align:left; vertical-align:top}
+  th{background:var(--hdr); font-weight:600}
+  tbody tr:nth-child(even){background:#f5efe3}
+  caption{caption-side:bottom; font-size:.8rem; color:var(--muted); padding-top:6px; font-style:italic}
+  blockquote{
+    margin:1em 0; padding:.4em 1.1em; border-left:4px solid var(--accent);
+    background:var(--box); color:#48413a; font-style:italic;
+  }
+  blockquote.rule{border-left-color:var(--accent2)}
+  blockquote.rule::before{content:"FROM THE 1978 RULEBOOK"; display:block; font-style:normal;
+    font-size:.7rem; letter-spacing:1.5px; color:var(--accent2); margin-bottom:.3em; font-weight:700}
+  .clar{background:#eef4ef; border:1px solid #bcd3c4; border-left:4px solid var(--ok); padding:.5em 1em; border-radius:5px; margin:1em 0}
+  .clar::before{content:"CLARIFICATION"; display:block; font-size:.7rem; letter-spacing:1.5px; color:var(--ok); font-weight:700; margin-bottom:.3em}
+  .gap{background:#f7eeee; border:1px solid #e0c2c2; border-left:4px solid var(--warn); padding:.5em 1em; border-radius:5px; margin:1em 0}
+  .gap::before{content:"GAP \2014 NOT IN MACRO-32 BUILD"; display:block; font-size:.7rem; letter-spacing:1.2px; color:var(--warn); font-weight:700; margin-bottom:.3em}
+  .note{background:#fdf6e3; border:1px dashed #cbb98a; padding:.5em 1em; border-radius:5px; margin:1em 0; font-size:.92rem}
+  .pill{display:inline-block; font-size:.7rem; font-weight:700; letter-spacing:.5px; padding:.12em .6em; border-radius:10px; vertical-align:middle}
+  .p-done{background:#d8ecdc; color:#235c31}
+  .p-part{background:#f6e7c8; color:#7c5a14}
+  .p-no{background:#f0d4d4; color:#8a2020}
+  nav.toc{background:var(--box); border:1px solid var(--rule); border-radius:8px; padding:18px 26px; margin:24px 0; columns:2; column-gap:38px}
+  nav.toc a{color:var(--accent2); text-decoration:none}
+  nav.toc a:hover{text-decoration:underline}
+  nav.toc ol{margin:0; padding-left:1.3em}
+  nav.toc>ol>li{margin:.25em 0; font-weight:600; break-inside:avoid}
+  nav.toc ol ol{font-weight:400; font-size:.9em}
+  figure{margin:1.4em 0; text-align:center}
+  figure svg{max-width:100%; height:auto}
+  figcaption{font-size:.8rem; color:var(--muted); margin-top:.5em; font-style:italic}
+  .twocol{display:grid; grid-template-columns:1fr 1fr; gap:18px}
+  @media(max-width:760px){nav.toc{columns:1} .twocol{grid-template-columns:1fr}}
+  .legend-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(150px,1fr)); gap:4px 18px; font-size:.85rem; margin:1em 0}
+  hr.sec{border:0; border-top:1px solid var(--rule); margin:3em 0 0}
+  .small{font-size:.82rem; color:var(--muted)}
+  a.up{font-size:.7rem; color:var(--muted); text-decoration:none; float:right; margin-top:.7em}
+</style>
+</head>
+<body>
+<header class="title">
+  <h1>The Sorcerer's Cave</h1>
+  <div class="sub">Design &amp; Requirements Specification &mdash; a language-agnostic blueprint for re-implementation</div>
+  <div class="meta">
+    Solitaire adaptation of Terence Donnelly's 1978 board game &middot; reverse-engineered from the VAX&nbsp;MACRO-32 reference build<br>
+    Version 1.0 &middot; 2026-06-12 &middot; Primary audience: an AI agent (Claude&nbsp;Code) re-implementing the game in another language and/or a web browser
+  </div>
+</header>
+
+<div class="wrap">
+
+<p>This document is a complete, self-contained specification of <em>The Sorcerer's Cave</em> as realised in the
+VAX&nbsp;MACRO-32 reference implementation under <code>src/macro32/sorcerer/</code>. It is written so that a competent
+engineer &mdash; or an AI coding agent &mdash; can re-implement the game faithfully <strong>without reading the
+MACRO-32 source</strong>, in any language, for a terminal or a browser.</p>
+
+<p>It does three things at once:</p>
+<ol>
+  <li><strong>Weaves in the original 1978 rules</strong> (quoted in tan boxes) so the design rationale is visible.</li>
+  <li><strong>Specifies the implemented behaviour precisely</strong> &mdash; data schemas, algorithms, constants, and edge cases &mdash; resolving the solitaire ambiguities the rulebook leaves open (green boxes).</li>
+  <li><strong>Catalogues the gaps</strong> between the original manual and the current build (red boxes), each specified in enough detail to be implemented from scratch.</li>
+</ol>
+
+<div class="note"><strong>Display philosophy.</strong> All layout is described in <em>logical units</em> &mdash; panels, regions, and a glyph
+vocabulary &mdash; never in fixed terminal rows/columns. The reference build targets an 80&times;24 VT terminal via DEC's SMG$
+screen library, but nothing here depends on that. A browser re-implementation should map each logical region to a DOM
+container and each glyph to a styled cell or sprite.</div>
+
+<nav class="toc" aria-label="Table of contents">
+<ol>
+  <li><a href="#overview">Game Overview &amp; Objective</a></li>
+  <li><a href="#architecture">High-Level Architecture</a>
+    <ol>
+      <li><a href="#modules">Module / responsibility map</a></li>
+      <li><a href="#statemachine">Top-level state machine</a></li>
+    </ol></li>
+  <li><a href="#datamodel">Core Data Model</a>
+    <ol>
+      <li><a href="#area-cards">Area cards (the large pack)</a></li>
+      <li><a href="#creatures">Creatures</a></li>
+      <li><a href="#treasures">Treasures &amp; artifacts</a></li>
+      <li><a href="#hazards">Hazards</a></li>
+      <li><a href="#smallpack">The small pack</a></li>
+      <li><a href="#runtime">Runtime / mutable state</a></li>
+    </ol></li>
+  <li><a href="#turn">The Turn Lifecycle</a></li>
+  <li><a href="#rng">Randomness &amp; Shuffling</a></li>
+  <li><a href="#map">Map, Movement &amp; Levels</a></li>
+  <li><a href="#chamber">Chambers, Draws &amp; Hazards</a></li>
+  <li><a href="#strangers">Stranger Encounters</a></li>
+  <li><a href="#fight">Fights</a></li>
+  <li><a href="#special">Special Areas: Viper Pit &amp; Deep Pool</a></li>
+  <li><a href="#artifacts">Artifacts &amp; Treasure Effects</a></li>
+  <li><a href="#scoring">Scoring &amp; Game Over</a></li>
+  <li><a href="#display">Display &amp; Interaction (Logical UX)</a></li>
+  <li><a href="#help">In-Game Manual / Help</a></li>
+  <li><a href="#gaps">Gap Analysis: Manual vs. Implementation</a></li>
+  <li><a href="#appendix">Appendices (full tables &amp; constants)</a></li>
+</ol>
+</nav>
+
+<!-- ============================================================ -->
+<h2 id="overview">1. Game Overview &amp; Objective</h2>
+
+<blockquote class="rule">In the heart of a forest in a faraway land is the entrance to a vast underground labyrinth, the
+treasure-house of an evil Sorcerer&hellip; To protect his hoard, the Sorcerer has made by his magic arts an ever-changing
+Cave of many tunnels and chambers, and filled it with all manner of pitfalls and fearsome creatures.</blockquote>
+
+<p>You lead a small <strong>party</strong> of creatures down into a procedurally-revealed cave of many levels. Each turn
+you explore one area. You fight monsters, befriend strangers, gather treasure, and survive hazards, then try to climb
+back out alive through the Gateway with as high a <strong>score</strong> as possible.</p>
+
+<p>The board game supports 2&ndash;4 players plus solitaire. <strong>This implementation is solitaire only.</strong> All
+player-interaction rules (trading, party-vs-party fights, unions, division of a party, zombies) are out of scope by
+design. The one solitaire-specific rule that matters is quoted here and specified in &sect;8:</p>
+
+<blockquote class="rule">In solitaire play there is only one exploring party, and all rules governing turns and player
+interaction are ignored. Strangers which remain indifferent after three rolls of the die stay indifferent for the rest
+of the game.</blockquote>
+
+<h4>Win / lose conditions</h4>
+<ul>
+  <li><strong>Escape</strong> &mdash; climb the Gateway stair on level&nbsp;1 to leave the cave. You keep all points you carry.</li>
+  <li><strong>Death</strong> &mdash; the entire party is killed (combat or hazard). Score is zero.</li>
+  <li><strong>Quit</strong> &mdash; abandon the cave voluntarily. Scored on what you carry (but see &sect;13: the reference build zeroes the breakdown on quit).</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="architecture">2. High-Level Architecture</h2>
+<a class="up" href="#overview">&uarr; top</a>
+
+<p>The game is a single-threaded, turn-based, blocking-input state machine over a body of shared mutable state. There is
+no real-time loop, no animation, and no concurrency. Each turn is driven entirely by one keystroke. This makes the
+design trivially portable: a browser version is an event loop where each key event advances the same state machine.</p>
+
+<h3 id="modules">2.1 Module / responsibility map</h3>
+<p>The reference build is split into 15 modules sharing one global state block. You need not preserve this split, but it
+is a clean separation of concerns and the responsibilities below define the system's seams.</p>
+
+<table>
+<thead><tr><th>Concern</th><th>Responsibility</th></tr></thead>
+<tbody>
+<tr><td>Entry / turn loop</td><td>Top-level state machine; reads the per-turn key; dispatches movement, map, help, quit, exit; detects game-over; re-dispatches after a trap fall.</td></tr>
+<tr><td>Setup</td><td>Title splash; party selection (6-point budget); shuffle both decks; place the Gateway; zero the map.</td></tr>
+<tr><td>Map</td><td>Decode an area card into exits/stairs/chamber/special; validate &amp; execute a move; draw &amp; place new cards; dead-end detection; level transitions; trap-fall relocation.</td></tr>
+<tr><td>Chamber</td><td>First-visit vs. revisit; draw N small cards by depth; classify into strangers/treasure/hazards; resolve hazards in priority order; treasure pickup with carry limits.</td></tr>
+<tr><td>Strangers</td><td>Withdraw / attack / test menu; leader determination; reaction roll with modifiers; friendly/indifferent/hostile outcomes; permanent-indifference tracking.</td></tr>
+<tr><td>Fight</td><td>Focus-fire pairing; surprise; per-match die resolution with all strength bonuses; Spectre rule; dragon-slayer credit; retreat; casualty selection; win/loss.</td></tr>
+<tr><td>Special areas</td><td>Viper Pit crossing (per-creature peril); Deep Pool crossing (heavy-treasure drop &amp; reclaim, Giant carry).</td></tr>
+<tr><td>Artifacts</td><td>Passive query &ldquo;does any living member carry treasure&nbsp;<em>k</em>?&rdquo; (active artifact menu is a gap).</td></tr>
+<tr><td>Score</td><td>End-game scoring formula; escaped / perished / quit screens.</td></tr>
+<tr><td>UI</td><td>Screen/pasteboard lifecycle; paint-at, paint-centered, erase, batched repaint; blocking single-key read.</td></tr>
+<tr><td>View</td><td>Area visualization (tunnel/chamber/special line-art with content glyphs); whole-cave scrollable map browser.</td></tr>
+<tr><td>RNG</td><td>Seeded LCG; <code>roll_die()</code>&nbsp;&isin;&nbsp;[1,6]; <code>rand_below(n)</code>; Fisher&ndash;Yates shuffle.</td></tr>
+<tr><td>Data</td><td>Static tables: 61 area cards, 14 creatures, 15 treasures, 5 hazards, reaction tables, leader-priority, small-pack template, name strings.</td></tr>
+<tr><td>State</td><td>One authoritative block of mutable runtime state (see &sect;3.6).</td></tr>
+<tr><td>Help</td><td>In-game manual: prose topics from a text file + live-rendered data tables.</td></tr>
+</tbody>
+</table>
+
+<h3 id="statemachine">2.2 Top-level state machine</h3>
+
+<figure>
+<svg viewBox="0 0 760 430" xmlns="http://www.w3.org/2000/svg" font-family="SF Mono,Menlo,monospace" font-size="13">
+  <defs><marker id="arr" markerWidth="9" markerHeight="9" refX="7" refY="3" orient="auto">
+    <path d="M0,0 L7,3 L0,6 Z" fill="#2f5d50"/></marker></defs>
+  <style>
+    .box{fill:#fff9ee;stroke:#7a4b25;stroke-width:1.6;rx:7}
+    .lbl{fill:#1c1a17}
+    .e{stroke:#2f5d50;stroke-width:1.4;fill:none;marker-end:url(#arr)}
+    .et{fill:#6b6258;font-size:11px}
+    .term{fill:#efe7d6;stroke:#2f5d50;stroke-width:1.6}
+  </style>
+  <rect class="box" x="300" y="14" width="160" height="34" rx="7"/><text class="lbl" x="380" y="36" text-anchor="middle">TITLE splash</text>
+  <rect class="box" x="290" y="70" width="180" height="34" rx="7"/><text class="lbl" x="380" y="92" text-anchor="middle">PARTY SELECT</text>
+  <rect class="box" x="295" y="126" width="170" height="34" rx="7"/><text class="lbl" x="380" y="148" text-anchor="middle">INIT decks + map</text>
+  <rect class="box" x="300" y="196" width="160" height="40" rx="7" fill="#eef4ef" stroke="#2f6d3a"/><text class="lbl" x="380" y="221" text-anchor="middle" font-weight="bold">TURN DISPATCH</text>
+
+  <rect class="box" x="40" y="285" width="120" height="34" rx="7"/><text class="lbl" x="100" y="307" text-anchor="middle">MOVE</text>
+  <rect class="box" x="180" y="285" width="150" height="34" rx="7"/><text class="lbl" x="255" y="307" text-anchor="middle">resolve area</text>
+  <rect class="box" x="350" y="285" width="120" height="34" rx="7"/><text class="lbl" x="410" y="307" text-anchor="middle">MAP / HELP</text>
+  <rect class="box" x="490" y="285" width="110" height="34" rx="7"/><text class="lbl" x="545" y="307" text-anchor="middle">QUIT</text>
+  <rect class="box" x="620" y="285" width="110" height="34" rx="7"/><text class="lbl" x="675" y="307" text-anchor="middle">EXIT cave</text>
+
+  <rect class="box" x="150" y="350" width="200" height="34" rx="7"/><text class="lbl" x="250" y="372" text-anchor="middle">chamber / special</text>
+  <rect class="box" x="380" y="350" width="160" height="34" rx="7"/><text class="lbl" x="460" y="372" text-anchor="middle">FIGHT loop</text>
+
+  <rect class="term" x="300" y="196" width="160" height="40" rx="7" fill="none"/>
+  <rect class="box" x="560" y="180" width="170" height="40" rx="7" fill="#f7eeee" stroke="#9a2f2f"/><text class="lbl" x="645" y="205" text-anchor="middle" font-weight="bold">GAME OVER &rarr; SCORE</text>
+
+  <line class="e" x1="380" y1="48" x2="380" y2="68"/>
+  <line class="e" x1="380" y1="104" x2="380" y2="124"/>
+  <line class="e" x1="380" y1="160" x2="380" y2="194"/>
+  <line class="e" x1="320" y1="236" x2="120" y2="283"/>
+  <line class="e" x1="410" y1="236" x2="410" y2="283"/>
+  <line class="e" x1="430" y1="236" x2="545" y2="283"/>
+  <line class="e" x1="445" y1="236" x2="675" y2="283"/>
+  <line class="e" x1="160" y1="302" x2="178" y2="302"/>
+  <line class="e" x1="255" y1="319" x2="250" y2="348"/>
+  <line class="e" x1="350" y1="367" x2="378" y2="367"/>
+  <path class="e" d="M250,384 C250,410 460,415 460,236"/>
+  <path class="e" d="M540,367 C610,360 645,300 645,222"/>
+  <line class="e" x1="460" y1="222" x2="460" y2="200"/>
+  <path class="e" d="M410,283 C410,250 405,245 400,238"/>
+  <text class="et" x="335" y="255">N/E/S/W/U/D</text>
+  <text class="et" x="470" y="265">G S = 0?</text>
+</svg>
+<figcaption>State flow. Every transition is one synchronous call. <code>GAME&nbsp;STATE (GS)</code> &ne; 0 from any point exits the
+turn loop to the score screen. A trap inside <em>resolve area</em> re-enters <em>resolve area</em> one level down (same turn).</figcaption>
+</figure>
+
+<p><strong>Game-state variable (<code>GS</code>)</strong> drives termination: <code>0=PLAYING, 1=ESCAPED, 2=DEAD, 3=QUIT</code>.
+The turn loop checks <code>GS</code> at the top of every iteration and exits to scoring when non-zero.</p>
+
+<!-- ============================================================ -->
+<h2 id="datamodel">3. Core Data Model</h2>
+<a class="up" href="#overview">&uarr; top</a>
+
+<p>All entities are small integer records in parallel arrays indexed by a stable integer id. Re-implementations may use
+objects/structs instead; the ids and field values below are normative.</p>
+
+<h3 id="area-cards">3.1 Area cards (the large pack)</h3>
+<p>There are <strong>61 area cards</strong>. Each is a tunnel, a chamber, or a special area, with 2&ndash;4 doorways and
+optionally a stair up and/or down. Each card is encoded as a single integer (bit-field):</p>
+
+<pre>bit 0  (1)    North exit
+bit 1  (2)    East  exit
+bit 2  (4)    South exit
+bit 3  (8)    West  exit
+bit 4  (16)   Chamber flag      (if clear &rarr; tunnel/corridor)
+bit 5  (32)   Stair up
+bit 6  (64)   Stair down
+bits 7-9      Special type &times; 128:
+                0 none   1 Gateway   2 Deep Pool   3 Viper Pit
+                4 Tomb of Kings   5 Great Hall
+
+Worked example - the Gateway card (value 175):
+   NSEWU = N(1)+E(2)+S(4)+W(8)+stairUp(32) = 47
+   special type 1 (Gateway) = 1 &times; 128 = 128
+   47 + 128 = 175</pre>
+
+<p>The full 61-card table (string, special, encoded value, index) is in <a href="#app-cards">Appendix&nbsp;A</a>. Card
+<strong>index&nbsp;21 is the Gateway</strong>; it is removed from the pack and placed as the starting area, leaving
+<strong>60 shuffled cards</strong> in the large pack.</p>
+
+<div class="clar">Several special areas appear exactly once in the deck (Gateway, Deep Pool, Viper Pit, Tomb of Kings,
+Great Hall). They are distinguished on cards by the special-type bits, not by a separate list. The Tomb and Great Hall
+are ordinary chambers whose <em>only</em> distinction is that they cause extra small-card draws (&sect;7).</div>
+
+<h3 id="creatures">3.2 Creatures</h3>
+<p>14 creature types, ids 0&ndash;13. Fields: fighting strength (FS), magical power (MP), carry capacity (kg),
+selection cost (party-pick budget), point value, behaviour flags, and &mdash; for creatures that appear as cave
+strangers &mdash; a reaction table (hostile-max / indifferent-max) and a leader-priority rank.</p>
+
+<table>
+<thead><tr><th>id</th><th>Name</th><th>FS</th><th>MP</th><th>Carry</th><th>Cost</th><th>Pts</th><th>Flags</th><th>Hostile&le;</th><th>Indiff&le;</th><th>Leader-pri</th></tr></thead>
+<tbody>
+<tr><td>0</td><td>Hero</td><td>5</td><td>0</td><td>75</td><td>6</td><td>10</td><td>human, charisma</td><td>&mdash;</td><td>&mdash;</td><td>7</td></tr>
+<tr><td>1</td><td>W-Hero</td><td>4</td><td>0</td><td>50</td><td>5</td><td>10</td><td>human, charisma, befriends-unicorn</td><td>3</td><td>3</td><td>7</td></tr>
+<tr><td>2</td><td>Ogre</td><td>5</td><td>0</td><td>100</td><td>5</td><td>5</td><td>inhuman</td><td>4</td><td>5</td><td>3</td></tr>
+<tr><td>3</td><td>Troll</td><td>4</td><td>0</td><td>75</td><td>4</td><td>4</td><td>inhuman</td><td>3</td><td>4</td><td>2</td></tr>
+<tr><td>4</td><td>Priest</td><td>2</td><td>2</td><td>25</td><td>4</td><td>8</td><td>human</td><td>&mdash;</td><td>&mdash;</td><td>6</td></tr>
+<tr><td>5</td><td>Man</td><td>3</td><td>0</td><td>50</td><td>3</td><td>5</td><td>human</td><td>&mdash;</td><td>&mdash;</td><td>5</td></tr>
+<tr><td>6</td><td>Woman</td><td>2</td><td>0</td><td>25</td><td>2</td><td>5</td><td>human, befriends-unicorn</td><td>&mdash;</td><td>&mdash;</td><td>5</td></tr>
+<tr><td>7</td><td>Dwarf</td><td>1</td><td>0</td><td>25</td><td>1</td><td>2</td><td>inhuman, guides-past-trap</td><td>&mdash;</td><td>&mdash;</td><td>1</td></tr>
+<tr><td>8</td><td>Wizard</td><td>2</td><td>5</td><td>0</td><td>&mdash;</td><td>15</td><td>human</td><td>1</td><td>5</td><td>8</td></tr>
+<tr><td>9</td><td>Spectre</td><td>0</td><td>5</td><td>0</td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>5</td><td>6</td><td>10</td></tr>
+<tr><td>10</td><td>Dragon</td><td>6</td><td>0</td><td>0</td><td>&mdash;</td><td>0</td><td>inhuman</td><td>6</td><td>6</td><td>9</td></tr>
+<tr><td>11</td><td>Sorcerer</td><td>4</td><td>9</td><td>0</td><td>&mdash;</td><td>0</td><td>&mdash;</td><td>6</td><td>6</td><td>11</td></tr>
+<tr><td>12</td><td>Giant</td><td>7</td><td>0</td><td>150</td><td>&mdash;</td><td>7</td><td>inhuman</td><td>3</td><td>5</td><td>4</td></tr>
+<tr><td>13</td><td>Unicorn</td><td>0</td><td>4</td><td>0</td><td>&mdash;</td><td>4</td><td>befriends-unicorn flag carrier</td><td>0</td><td>0</td><td>0</td></tr>
+</tbody>
+<caption>Reaction columns apply when the creature is a cave stranger. &ldquo;Hostile&le; / Indiff&le;&rdquo; are the
+inclusive die thresholds (see &sect;8). Cost is the party-selection budget cost; only ids 0&ndash;7 are selectable starters.</caption>
+</table>
+
+<p><strong>Creature flags</strong> (bitmask): <code>human=1, charisma=2, befriends-unicorn=4, guides-past-trap=8,
+inhuman=16</code>. Charisma grants +1 on stranger reaction rolls (Hero, W-Hero). Guides-past-trap lets a Dwarf negate a
+single trap. <em>befriends-unicorn</em> is defined but, in the current build, the Unicorn's reaction table makes it
+always-friendly regardless (see the gap in &sect;8).</p>
+
+<h4>Starting-creature availability (party selection)</h4>
+<p>During party selection only ids 0&ndash;7 are offered, with these stock counts: Hero&times;1, W-Hero&times;1,
+Ogre&times;3, Troll&times;3, Priest&times;3, Man&times;6, Woman&times;3, Dwarf&times;3.</p>
+
+<h3 id="treasures">3.3 Treasures &amp; artifacts</h3>
+<p>15 treasure types, ids 0&ndash;14. Heavy treasure (Silver/Gold/Gems, 25&nbsp;kg each; Chest 100&nbsp;kg) counts
+against carry capacity; the 12 artifacts are weightless.</p>
+
+<table>
+<thead><tr><th>id</th><th>Name</th><th>Pts</th><th>Wt&nbsp;kg</th><th>Kind</th><th>Effect (see &sect;11 for status)</th></tr></thead>
+<tbody>
+<tr><td>0</td><td>Silver</td><td>5</td><td>25</td><td>heavy</td><td>Points only.</td></tr>
+<tr><td>1</td><td>Gold</td><td>10</td><td>25</td><td>heavy</td><td>Points only.</td></tr>
+<tr><td>2</td><td>Gems</td><td>20</td><td>25</td><td>heavy</td><td>Points only.</td></tr>
+<tr><td>3</td><td>Magic Sword</td><td>15</td><td>0</td><td>artifact</td><td>+2 strength for Hero/W-Hero, +1 for Man/Woman; lets bearer fight Spectres.</td></tr>
+<tr><td>4</td><td>Magic Carpet</td><td>5</td><td>0</td><td>artifact</td><td>Teleport to an adjacent area; one use; cannot exit cave.</td></tr>
+<tr><td>5</td><td>Lotus Dust</td><td>5</td><td>0</td><td>artifact</td><td>Sleep one creature for 2 turns; one use.</td></tr>
+<tr><td>6</td><td>Healing Balm</td><td>5</td><td>0</td><td>artifact</td><td>Revive a just-killed creature; one use.</td></tr>
+<tr><td>7</td><td>Talisman</td><td>10</td><td>0</td><td>artifact</td><td>Wards off Ghouls/Zombies; level&nbsp;4+ wards Spectres.</td></tr>
+<tr><td>8</td><td>Strength Potion</td><td>5</td><td>0</td><td>artifact</td><td>+2 to a Man/Woman/Hero for a fight; one draught.</td></tr>
+<tr><td>9</td><td>Magic Staff</td><td>15</td><td>0</td><td>artifact</td><td>+1 Priest / +2 Wizard magical power; wards Medusa from a Wizard; reanimates the stoned.</td></tr>
+<tr><td>10</td><td>The Ring</td><td>30</td><td>0</td><td>artifact</td><td>+1 to all party die rolls; level&nbsp;4+ makes bearer invincible.</td></tr>
+<tr><td>11</td><td>Lost Ruby</td><td>20</td><td>0</td><td>artifact</td><td>Guarded by a strength-8 statue you must defeat to claim it.</td></tr>
+<tr><td>12</td><td>Charmed Flute</td><td>10</td><td>0</td><td>artifact</td><td>Lulls Dragons &amp; Vipers asleep; opens secret doors.</td></tr>
+<tr><td>13</td><td>Eye of God</td><td>0</td><td>0</td><td>artifact</td><td>Nullifies area magic; annihilates Spectres; curse if dropped after taking it.</td></tr>
+<tr><td>14</td><td>Treasure Chest</td><td>0</td><td>100</td><td>heavy</td><td>Open via die roll for varied loot (or a curse/spectre).</td></tr>
+</tbody>
+</table>
+
+<h3 id="hazards">3.4 Hazards</h3>
+<p>5 hazard types, ids 0&ndash;4: <code>0 Mutiny, 1 Trap, 2 Earthquake, 3 Medusa, 4 Ghouls</code>. Behaviour and
+resolution order are in &sect;7.2.</p>
+
+<h3 id="smallpack">3.5 The small pack</h3>
+<p>The chamber deck (&ldquo;small pack&rdquo;) has <strong>52 cards</strong>. Each card is encoded as one integer:
+<code>100+creatureId</code>, <code>200+treasureId</code>, or <code>300+hazardId</code>. Composition:</p>
+<div class="twocol">
+<div>
+<strong>Creatures (19)</strong>
+<ul class="small">
+<li>1&times; W-Hero</li><li>3&times; Ogre</li><li>2&times; Troll</li><li>3&times; Wizard</li>
+<li>3&times; Spectre</li><li>3&times; Dragon</li><li>1&times; Sorcerer</li><li>2&times; Giant</li><li>1&times; Unicorn</li>
+</ul>
+</div>
+<div>
+<strong>Treasures (27)</strong>
+<ul class="small"><li>6&times; Silver, 6&times; Gold, 3&times; Gems</li><li>1&times; each of the 12 artifacts (ids 3&ndash;14)</li></ul>
+<strong>Hazards (6)</strong>
+<ul class="small"><li>1&times; Mutiny, 2&times; Trap, 1&times; Earthquake, 1&times; Medusa, 1&times; Ghouls</li></ul>
+</div>
+</div>
+<div class="clar">The original physical pack contains blank cards and a Sibyl that are removed before play, and (in some
+print runs) 3 cave Priests bringing the count to 55. This implementation uses the canonical 52-card pack with
+<strong>no cave Priests</strong>. Because there is only one Earthquake and one of each artifact, several &ldquo;two of
+the same&rdquo; rules (double earthquake, etc.) cannot occur with the standard deck &mdash; but the code still handles
+them for variant decks.</div>
+
+<h3 id="runtime">3.6 Runtime / mutable state</h3>
+<p>One authoritative state block. Field names are the reference build's; types are logical.</p>
+
+<table>
+<thead><tr><th>Group</th><th>Field</th><th>Meaning</th></tr></thead>
+<tbody>
+<tr><td rowspan="5">Top-level</td><td>GS</td><td>game state 0=playing,1=escaped,2=dead,3=quit</td></tr>
+<tr><td>TN</td><td>turn counter (starts at 1; increments only on a successful move)</td></tr>
+<tr><td>SC</td><td>current / final score</td></tr>
+<tr><td>NC</td><td>curse count</td></tr>
+<tr><td>SK</td><td>sorcerer-killed flag</td></tr>
+<tr><td rowspan="7">Map</td><td>NM</td><td>number of areas placed so far</td></tr>
+<tr><td>PA</td><td>current party area index (1-based into the placed-area arrays)</td></tr>
+<tr><td>PL</td><td>current level (1 = top)</td></tr>
+<tr><td>PP, PP2</td><td>previous area, and area two moves back (for earthquake)</td></tr>
+<tr><td>MP[]</td><td>area-card value at each placed slot</td></tr>
+<tr><td>ML[]</td><td>packed coordinates of each placed slot: <code>level&times;10000 + y&times;100 + x</code></td></tr>
+<tr><td>MV[]</td><td>visited flag per placed area (chamber drawn already?)</td></tr>
+<tr><td rowspan="4">Per-area persistent</td><td>AC[area][8]</td><td>leftover contents: <code>100+creatureId</code> or <code>200+treasureId</code></td></tr>
+<tr><td>AF[area]</td><td>flags: trap-armed=1, medusa=2, destroyed=4, hostile=8, perm-indiff=16, statue-aroused=32</td></tr>
+<tr><td>AI[area]</td><td>indifferent-test count (3 &rArr; permanent indifference)</td></tr>
+<tr><td>DROP_SIDE[area], DROP_PT[area][4]</td><td>Deep-Pool dropped heavy treasure: doorway side &amp; up to 4 item ids</td></tr>
+<tr><td rowspan="5">Party</td><td>NP</td><td>living party size (originals + allies)</td></tr>
+<tr><td>PC[slot]</td><td>creature id of party member</td></tr>
+<tr><td>PS[slot]</td><td>status: 0=original,1=ally,2=stone,3=dead (4=&ldquo;gone&rdquo;, a transient mutiny sentinel)</td></tr>
+<tr><td>PK[slot]</td><td>dragon-kill count (adds to strength)</td></tr>
+<tr><td>PT[slot][20]</td><td>treasure ids carried (&minus;1 = empty); 20 backing slots, bounded only by weight</td></tr>
+<tr><td rowspan="2">Chamber working set</td><td>NS, NT, NH</td><td>counts of strangers / treasures / hazards in the current chamber</td></tr>
+<tr><td>CS[8], CT[8], CH[4]</td><td>the stranger / treasure / hazard ids</td></tr>
+<tr><td rowspan="2">Decks</td><td>LP[60], LI</td><td>large-pack shuffled card indices and draw position</td></tr>
+<tr><td>SP[52], SI</td><td>small-pack shuffled card values and draw position</td></tr>
+<tr><td rowspan="2">Fight working set</td><td>FA[8],FD[8],FB[8]</td><td>front fighters / defenders / background casters</td></tr>
+<tr><td>NF, FS, RD, POTION</td><td>match count; surprise(+1 us,&minus;1 them,0 none); round number; potion-bearer slot</td></tr>
+<tr><td>Decoded scratch</td><td>AN,AE,AS,AW,AU,AD,AH,AT</td><td>last decoded card: N/E/S/W exits, stair up/down, chamber flag, special type</td></tr>
+<tr><td>RNG</td><td>SEED</td><td>31-bit LCG state</td></tr>
+</tbody>
+</table>
+
+<div class="note"><strong>Coordinate scheme.</strong> Areas live on an integer grid. A move N/E/S/W changes
+<code>(x,y)</code> by a unit vector; a stair U/D changes <code>level</code> by &minus;1/+1 keeping <code>(x,y)</code>.
+The Gateway starts at <code>level&nbsp;1, x=50, y=50</code> (packed <code>15050</code>). North decreases <code>y</code>;
+South increases <code>y</code>; East increases <code>x</code>; West decreases <code>x</code>.</div>
+
+<!-- ============================================================ -->
+<h2 id="turn">4. The Turn Lifecycle</h2>
+<a class="up" href="#overview">&uarr; top</a>
+
+<p>One iteration of the turn loop:</p>
+<pre>loop:
+  if GS != PLAYING: break to scoring
+  paint the turn screen (&sect;12)
+  k = read_key()                      # blocking single keystroke
+  switch k:
+    Q            -&gt; confirm; if yes GS=QUIT
+    X            -&gt; if level==1 and stair-up present: confirm; if yes GS=ESCAPED
+    M            -&gt; open map browser; redraw; continue
+    ?            -&gt; open help; redraw; continue
+    U            -&gt; if level==1 and stair-up present: offer "leave cave" (== X);
+                    else treat as move-up
+    N/E/S/W/D/U  -&gt; movement (arrows map to N/E/S/W)
+    else         -&gt; ignored
+  if movement key:
+    pool_pre_move(dir)                # Deep-Pool bookkeeping hook
+    moved = try_move(dir)             # &sect;6
+    if moved:
+      TN += 1
+      pool_after_move()              # drop / reclaim heavy treasure
+      resolve_area:                  # &sect;4.1
+        decode current card
+        if special is DeepPool/ViperPit: enter_special()  (&sect;10)
+        elif chamber flag set:        enter_chamber()      (&sect;7)
+          if a trap dropped the party (FELL):
+            relocate one level down (same x,y); goto resolve_area
+    else if dead_end:
+      show "that way is a dead end"; wait for a key
+  # back to loop</pre>
+
+<h4 id="turn-resolve">4.1 Important sequencing facts</h4>
+<ul>
+  <li><strong>The turn counter advances only on a successful move.</strong> Failed moves (no exit, dead end, empty pack) do not consume a turn; neither does opening the map or help.</li>
+  <li><strong>A trap fall is part of the same turn.</strong> Falling re-enters area resolution one level down and can chain (two traps stacked &rArr; two falls) without incrementing <code>TN</code>.</li>
+  <li><strong>Death is detected lazily during the repaint:</strong> if a repaint finds zero living members, it sets <code>GS=DEAD</code>. Combat also sets <code>GS=DEAD</code> directly on a wipe.</li>
+</ul>
+
+<!-- ============================================================ -->
+<h2 id="rng">5. Randomness &amp; Shuffling</h2>
+<a class="up" href="#overview">&uarr; top</a>
+
+<p>A single linear-congruential generator (glibc constants) backs every random decision. Reproduce it exactly if you
+want identical sequences from a given seed.</p>
+
+<pre>seed &larr; (seed &times; 1103515245 + 12345) mod 2^31      # 31-bit; clear the sign bit each step
+
+init_rng():       seed &larr; low 32 bits of system clock, forced ODD (set bit 0)   # avoid seed 0
+next_rand():      advance seed; return it
+roll_die():       advance; take bits 15..30 (a 16-bit value 0..65535);
+                  v / 10923 (== 65536/6) clamped to 0..5; return v+1     # uniform 1..6
+rand_below(n):    if n&le;0 return 0; advance; return (bits 15..30) mod n
+shuffle(arr,n):   Fisher-Yates: for i=n-1 down to 1: j=rand_below(i+1); swap arr[i],arr[j]</pre>
+
+<div class="clar">The generator extracts the <em>upper</em> bits (15..30), not the low bits, because LCG low bits have
+short periods. A browser port may substitute any decent PRNG; only a deterministic-replay/testing mode needs the exact
+constants above. Die rolls must be uniform on 1..6.</div>
+
+<!-- ============================================================ -->
+<h2 id="map">6. Map, Movement &amp; Levels</h2>
+<a class="up" href="#overview">&uarr; top</a>
+
+<p>Exploration reveals the cave one card at a time. The party announces a direction; if the destination matches, the
+party moves; if it is a dead end, the card is placed face-down and the party stays put.</p>
+
+<blockquote class="rule">To explore an area, a player announces through which doorway his party intends to leave&hellip; If
+his chosen doorway leads to a dead end on the new card, he places the card face down and leaves his party where it
+is&hellip; But if his chosen doorway matches a doorway in the new area, the player leaves the card face up and moves his
+token onto it.</blockquote>
+
+<h3>6.1 The move algorithm <code>try_move(dir)</code></h3>
+<p>Directions: <code>1=N, 2=E, 3=S, 4=W, 5=Up, 6=Down</code>. Returns <em>moved?</em> (boolean) and may set a
+<code>dead_end</code> flag.</p>
+
+<pre>try_move(dir):
+  clear dead_end
+  decode current card (PA)
+  if the chosen direction has no exit/stair on this card: return false
+
+  compute target coords from current ML[PA] using the unit vector:
+     N: y-1   E: x+1   S: y+1   W: x-1   Up: level-1   Down: level+1
+
+  search placed areas for one whose ML == target coords:
+  ---- EXISTING area found ----
+    if dir is a stair (Up/Down):
+        # stairs always connect (see secret-door note)
+        move there; PA&larr;found; PL&larr;new level; return true
+    else:                            # lateral move needs a matching reverse doorway
+        if destination has the opposite exit (N&harr;S, E&harr;W):
+            move there; return true
+        else:
+            set dead_end; prune this direction's exit bit on the CURRENT card; return false
+  ---- NO existing area ----
+    if large pack exhausted (LI &ge; 60): return false
+    draw next card index from LP[LI++]; value = AREA_CARDS[index]
+    if target level == 1: clear the stair-up bit on the drawn card   # only the Gateway exits level 1
+    if dir is a stair OR destination has the matching reverse doorway:
+        place card at NM++ with target coords; if descending, mirror a stair-up onto it;
+        PA&larr;new slot; PL&larr;new level; return true
+    else:
+        place card FACE-DOWN at NM++ (still recorded, reusable later);
+        prune this direction's exit bit on the CURRENT card; set dead_end; return false</pre>
+
+<div class="clar"><strong>Dead-end pruning.</strong> When a direction proves a dead end, the implementation
+<em>permanently clears that exit bit on the current card</em>, so the player is never offered the same doomed direction
+twice. The placed face-down card stays in the map and may be entered later from a different direction (rules: &ldquo;later a
+party may be able to enter this area from another direction&rdquo;).</div>
+
+<div class="clar"><strong>Secret doors / stairs.</strong> The rulebook says a stair often connects to an area with no
+matching stair pictured (one end hidden by a secret door). The implementation simplifies this for solitaire:
+<strong>stairs always connect in the direction travelled</strong>, and descending mirrors a stair-up onto the
+destination so you can climb back. Conditional secret-door knowledge across parties is irrelevant in solitaire and is
+not modelled.</div>
+
+<div class="clar"><strong>Level-1 ceiling.</strong> Any stair-up drawn onto a level-1 card is suppressed, so the
+<em>only</em> way off level 1 (and out of the cave) is the Gateway's own stair-up. Descending always creates/returns the
+area directly below at the same <code>(x,y)</code>.</div>
+
+<h3>6.2 Leaving the cave</h3>
+<blockquote class="rule">Any stairway leading up from the first level is an exit from the Cave. Once a party leaves the
+Cave by one of these stairways, it may not return.</blockquote>
+<p>Pressing <kbd>X</kbd> (or <kbd>U</kbd>) when on level 1 with a stair-up present prompts a confirmation and, if
+accepted, sets <code>GS=ESCAPED</code>. In practice this means returning to the Gateway and climbing out.</p>
+
+<h3>6.3 Dead-end deadlock (forced redraw)</h3>
+<blockquote class="rule">If all available doorways and stairways have been tried, the last area card played to make a
+dead end may&hellip; be put back into the middle of the pack, and another one drawn, until a way is found. This course
+cannot be followed when there is any other means of continuing the exploration.</blockquote>
+<div class="gap">The reference build does <strong>not</strong> implement the &ldquo;return the dead-end card to the
+middle of the pack and redraw&rdquo; rule. Because dead-end exits are pruned, a fully boxed-in tunnel can become a soft
+lock (no legal move). <em>To implement:</em> after a move fails, test whether <em>every</em> remaining exit/stair of the
+current card leads to a known dead end; if so, return the most-recently-placed face-down card to a random middle
+position in <code>LP</code> and allow the player to retry the same direction with a fresh draw. Guard it so it fires only
+when no other progress is possible.</div>
+
+<!-- ============================================================ -->
+<h2 id="chamber">7. Chambers, Draws &amp; Hazards</h2>
+<a class="up" href="#overview">&uarr; top</a>
+
+<blockquote class="rule">If the chamber is on the first level he draws one card; if on the second level two; third
+level three; fourth or deeper four&hellip; The Great Hall: draw 2 extra small cards. Tomb of Kings: draw 1 extra.</blockquote>
+
+<h3>7.1 Entering a chamber</h3>
+<pre>enter_chamber():
+  if this area already visited (MV[PA]):       # revisit
+     reload its persisted contents (AC) into the chamber working set (NS/NT/NH, CS/CT/CH)
+     if empty: return silently
+     re-fire any persisted hazards (Medusa/Ghouls re-roll; Trap re-checks;
+        Earthquake &amp; Mutiny are one-shot and never persist)
+  else:                                          # first visit
+     mark visited
+     draw_count = min(level, 4)
+     if special == Tomb:       draw_count += 1
+     if special == Great Hall: draw_count += 2
+     draw_count = min(draw_count, 8)
+     draw draw_count cards from the small pack (stop early if pack empty);
+       classify each: 100+ &rarr; stranger (max 8), 200+ &rarr; treasure (max 8), 300+ &rarr; hazard (max 4)
+  apply_hazards()      # &sect;7.2, in fixed priority order
+  resolve_traps()      # may set FELL and end the turn here
+  if party fell: return
+  if strangers present: run the stranger encounter (&sect;8)
+  if no strangers remain (all defeated or joined): pick up treasure (&sect;7.3)
+  persist remaining contents back to AC; wait for a key</pre>
+
+<h3>7.2 Hazard resolution</h3>
+<blockquote class="rule">When two or more different hazard cards are drawn in the same chamber, they are dealt with in
+the order&hellip; Earthquake, Medusa, Ghouls, Mutiny, Trap&hellip; and before any other cards in the chamber are dealt
+with.</blockquote>
+<p>The implementation resolves in exactly that order. Each hazard:</p>
+
+<table>
+<thead><tr><th>Hazard</th><th>Implemented behaviour</th></tr></thead>
+<tbody>
+<tr><td><strong>Earthquake</strong></td><td>Collapses the <em>previous</em> area <code>PP</code>: wipe its card, flags,
+and persisted contents (it becomes impassable). If two earthquake cards are drawn (variant decks), also collapse
+<code>PP2</code> (two moves back). <span class="pill p-done">implemented</span></td></tr>
+<tr><td><strong>Medusa</strong></td><td>For each living member roll 1d6; <strong>1&ndash;2 turns that member to
+STONE</strong> (status 2) and drops their carried treasure into the chamber. A <strong>Wizard carrying the Magic
+Staff</strong> is immune (no roll). Strangers are unaffected. <span class="pill p-done">implemented</span></td></tr>
+<tr><td><strong>Ghouls</strong></td><td>Each living member fights ghouls of strength 2: member rolls
+<code>1d6 + fighting-strength</code> vs <code>1d6 + 2</code>; on a loss the member is killed (and drops treasure). No
+surprise either side. <span class="pill p-part">Talisman ward &amp; real heavy-treasure-drop not implemented (flavour
+text only)</span></td></tr>
+<tr><td><strong>Mutiny</strong></td><td>All <em>allies</em> desert and join the chamber's stranger pool (re-testable
+later); their treasure is dropped. If the party is <em>entirely</em> allies, one ally (the first encountered) stays
+loyal. The party array is then compacted. <span class="pill p-done">implemented</span></td></tr>
+<tr><td><strong>Trap</strong></td><td>The whole party falls one level (same <code>x,y</code>), <em>ignoring</em> this
+chamber's other cards, and resolves the area below. A living <strong>Dwarf negates a single trap</strong>; two traps in
+one chamber fall regardless. If a guiding Dwarf is later killed in a fight in this chamber, the party falls on leaving.
+<span class="pill p-done">implemented</span></td></tr>
+</tbody>
+</table>
+
+<h3>7.3 Treasure pickup &amp; carrying</h3>
+<blockquote class="rule">If he has drawn unguarded treasure cards, he may pick them up and distribute them among members
+of his exploring party, taking care that no creature is given more heavy treasure than it will carry.</blockquote>
+<p>Carrying is bounded <strong>by weight only</strong>: a member may hold heavy treasure up to its kg capacity;
+weightless artifacts are effectively unlimited (a generous 20-slot backing array per member never binds in practice).</p>
+<ul>
+  <li>Treasure is offered <strong>only when no stranger remains</strong> in the chamber &mdash; every stranger must be
+  defeated or have joined. If any stayed indifferent, the treasure stays put (rules: strangers guard treasure).</li>
+  <li>Pickup is a manual per-item assignment: the player picks a recipient from a roster cursor; the engine validates a
+  free slot and the weight limit. If an item is too heavy for the chosen member, the player may drop carried items back
+  to the chamber to make room, or leave the item.</li>
+</ul>
+<div class="clar">There is no auto-distribution; assignment is always an explicit choice. Items left behind persist in
+the area's <code>AC</code> and can be collected on a later visit.</div>
+
+<div class="gap"><strong>Treasure Chest opening, Lost Ruby statue, and Eye-of-God curse are not triggered during pickup.</strong>
+The Chest is treated as a plain 100&nbsp;kg heavy item (only a Giant or Ogre can carry it); opening it for the die-roll
+loot table is not implemented. The Lost Ruby is picked up as ordinary points with no statue fight. Dropping the Eye of
+God imposes no curse. Each is specified individually in &sect;11/&sect;16.</div>
+
+<!-- ============================================================ -->
+<h2 id="strangers">8. Stranger Encounters</h2>
+<a class="up" href="#overview">&uarr; top</a>
+
+<blockquote class="rule">When a party has entered a chamber containing strangers, it must in the same turn adopt one of
+the following three courses of action: withdraw&hellip; attack&hellip; or approach the strangers to test their reaction.</blockquote>
+
+<h3>8.1 The three options</h3>
+<table>
+<thead><tr><th>Key</th><th>Option</th><th>Effect</th></tr></thead>
+<tbody>
+<tr><td><kbd>W</kbd></td><td>Withdraw</td><td>Move back to the previous area (<code>PP</code>). Strangers and their treasure stay. Turn ends. Always available.</td></tr>
+<tr><td><kbd>A</kbd></td><td>Attack</td><td>Begin combat <em>with surprise to the party</em> (<code>FS=+1</code>). Always available.</td></tr>
+<tr><td><kbd>T</kbd></td><td>Test</td><td>Roll the reaction (below). Unavailable once the area is flagged permanently indifferent.</td></tr>
+</tbody>
+</table>
+
+<h3>8.2 Leader determination</h3>
+<blockquote class="rule">Determine which of the strangers is the leader of the group according to priority&hellip;
+Spectre, Dragon, Wizard, Hero/Woman-Hero, Priest, Man/Woman, Giant, Ogre, Troll, Dwarf. The other strangers will react in
+the same way as the leader.</blockquote>
+<p>The implementation picks the stranger with the highest <em>leader-priority</em> value (column in &sect;3.2;
+Sorcerer&nbsp;11 is highest, Unicorn&nbsp;0 lowest). Ties resolve to the first such stranger in draw order.</p>
+
+<h3>8.3 The reaction roll</h3>
+<pre>roll = roll_die()                 # raw 1..6
+natural1 = (roll == 1)
+if any living party member has the CHARISMA flag (Hero/W-Hero): roll += 1
+roll -= NC                        # curses
+clamp roll to [1..6]
+if natural1: roll = 1             # a natural 1 is ALWAYS 1, ignoring all bonuses
+
+look up the LEADER's thresholds:
+   roll &le; hostile_max     -&gt; HOSTILE
+   roll &le; indifferent_max -&gt; INDIFFERENT
+   else                    -&gt; FRIENDLY</pre>
+
+<blockquote class="rule">A bonus on this die roll (through having a hero or the ring) does not apply to a score of 1, which
+will always cause potentially unfriendly strangers to attack.</blockquote>
+
+<div class="clar"><strong>The Ring does NOT modify the reaction roll in this build</strong> &mdash; only Hero/W-Hero
+charisma (+1) and curses (&minus;1 each) apply. The rulebook arguably grants the Ring's +1 here too; treat the
+charisma-and-curses-only behaviour as the normative implemented rule, and the Ring's reaction bonus as an optional
+extension.</div>
+
+<h3>8.4 Outcomes</h3>
+<table>
+<thead><tr><th>Outcome</th><th>Effect</th></tr></thead>
+<tbody>
+<tr><td><strong>Hostile</strong></td><td>Combat begins immediately with <strong>surprise to the strangers</strong>
+(<code>FS=&minus;1</code>).</td></tr>
+<tr><td><strong>Indifferent</strong></td><td>Increment this area's indifferent-count <code>AI</code>. On the
+<strong>3rd</strong> indifferent result the area is flagged <em>permanently indifferent</em> &mdash; the strangers can
+never be tested again and forever guard their treasure. Turn ends.</td></tr>
+<tr><td><strong>Friendly</strong></td><td>All strangers join the party as <em>allies</em> (status 1), up to the party
+cap of 12; the chamber's strangers are cleared so its treasure becomes collectable. Turn ends.</td></tr>
+</tbody>
+</table>
+
+<div class="clar"><strong>Solitaire permanent-indifference</strong> realises the rulebook's solitaire rule exactly:
+three indifferent rolls &rArr; permanent. The count is per-area, persisted in <code>AI[area]</code>, and the
+<code>T</code> option disappears once the perm-indiff flag is set.</div>
+
+<h3>8.5 Special creatures</h3>
+<ul>
+  <li><strong>Sorcerer</strong> &mdash; reaction thresholds make every roll hostile (always attacks). The rulebook's
+  &ldquo;may not approach to test&rdquo; restriction is achieved <em>by outcome</em> (testing always yields hostile)
+  rather than by removing the <code>T</code> option.</li>
+  <li><strong>Unicorn</strong> &mdash; thresholds make it <strong>always friendly to everyone</strong> in this build
+  (see gap below).</li>
+  <li><strong>Dragon</strong> &mdash; always hostile by threshold.</li>
+</ul>
+
+<div class="gap"><strong>Unicorn &ldquo;friendly only to a party with a Woman&rdquo; is not implemented.</strong> The
+canonical Unicorn is friendly if the party contains a Woman (or W-Hero, who has the befriends-unicorn flag) and
+otherwise stays indifferent, guarding treasure, and may only be approached after other strangers are dealt with. The
+build's Unicorn reaction table yields friendly for any roll. <em>To implement:</em> special-case creature&nbsp;13 in the
+reaction logic &mdash; if a living party member carries the befriends-unicorn flag, friendly; else indifferent; and
+prevent it from being chosen leader until other strangers are resolved.</div>
+
+<div class="gap"><strong>Charmed-Flute pre-emptive Dragon sleep is not implemented.</strong> The rules let a flute-bearer
+lull a Dragon to sleep <em>before</em> leader determination, so a friendlier creature leads. <em>To implement:</em>
+before <code>find_leader()</code>, if any living member carries the Charmed Flute and a Dragon is among the strangers,
+mark the Dragon asleep (exclude from leadership and from the fight) for as long as the party stays in the area.</div>
+
+<!-- ============================================================ -->
+<h2 id="fight">9. Fights</h2>
+<a class="up" href="#overview">&uarr; top</a>
+
+<blockquote class="rule">A fight may last one or more rounds, each round ending a turn of play&hellip; The player lays out
+the stranger cards in a line, and then pairs off his own fighting creatures against them&hellip; A die is rolled for each
+side, with that side's total strength&hellip; being added to the score. The side with the higher score wins that match,
+and the opponent is slain. If the score is tied, no one is slain.</blockquote>
+
+<h3>9.1 Pairing &mdash; the focus-fire model</h3>
+<p>Combat is automatic with one player decision: the <strong>focus target</strong>. Each round:</p>
+<ol>
+  <li>The player chooses which living stranger to <strong>focus</strong> (cursor left/right over strangers, confirm).
+  Default focus is the strongest stranger.</li>
+  <li><strong>Casters</strong> (living Priests/Wizards) support the focus match, contributing magical power.</li>
+  <li>The first non-caster front fighter anchors the focus; remaining non-casters each cover the next uncovered
+  stranger, or pile onto the focus if every stranger is already covered (gang-up / focus-fire).</li>
+  <li>Each stranger that has at least one front fighter is a <strong>primary match</strong>; strangers with no front
+  fighter fold their strength into the focus match.</li>
+</ol>
+<p>This realises the rulebook's &ldquo;send two against one&rdquo; (when the party outnumbers strangers) and &ldquo;send
+one against two&rdquo; / &ldquo;fight the strongest&rdquo; (when outnumbered), plus priests/wizards fighting from the
+background.</p>
+
+<h3>9.2 Surprise</h3>
+<blockquote class="rule">The party or group of strangers which gains the advantage of surprise in a fight adds 1 to all
+its die rolls in the first round of the fight.</blockquote>
+<p><code>FS</code> holds surprise: <code>+1</code> party (set by Attack or by arriving fresh through a new doorway),
+<code>&minus;1</code> strangers (set when strangers turn hostile on a test), <code>0</code> none. The +1 applies to that
+side's strength in <strong>round 1 only</strong>.</p>
+
+<h3>9.3 Match resolution &amp; strength bonuses</h3>
+<p>For each primary match, both sides compute total strength, each rolls 1d6, totals are compared. Higher wins (the
+strongest creature in the losing group is slain); a tie kills no one.</p>
+
+<table>
+<thead><tr><th>Bonus</th><th>Side</th><th>Condition</th><th>Amount</th><th>Status</th></tr></thead>
+<tbody>
+<tr><td>Base</td><td>both</td><td>always</td><td>fighting-strength + magical-power (per creature)</td><td><span class="pill p-done">yes</span></td></tr>
+<tr><td>Surprise</td><td>that side</td><td>round 1, FS matches side</td><td>+1</td><td><span class="pill p-done">yes</span></td></tr>
+<tr><td>Background magic</td><td>party</td><td>casters supporting a match</td><td>+&sum; supporters' MP</td><td><span class="pill p-done">yes</span></td></tr>
+<tr><td>The Ring</td><td>party</td><td>any living member carries it</td><td>+1 to all party rolls</td><td><span class="pill p-done">yes</span></td></tr>
+<tr><td>Curses</td><td>party</td><td>NC&gt;0</td><td>&minus;NC</td><td><span class="pill p-done">yes</span></td></tr>
+<tr><td>Magic Sword</td><td>party</td><td>bearer is Hero/W-Hero / Man/Woman</td><td>+2 / +1</td><td><span class="pill p-done">yes</span></td></tr>
+<tr><td>Magic Staff</td><td>party</td><td>bearer is Priest / Wizard</td><td>+1 / +2</td><td><span class="pill p-done">yes</span></td></tr>
+<tr><td>Strength Potion</td><td>party</td><td>slot == POTION bearer</td><td>+2</td><td><span class="pill p-part">plumbed; no activation UI</span></td></tr>
+<tr><td>Dragon-slayer</td><td>party</td><td>accumulated kills</td><td>+PK[slot]</td><td><span class="pill p-done">yes</span></td></tr>
+</tbody>
+</table>
+
+<div class="gap"><strong>Strength Potion has no activation UI.</strong> The +2 bonus is applied if the
+<code>POTION</code> state field names a slot, but nothing in the build ever sets it (it stays &minus;1). <em>To
+implement:</em> add a pre-round option to consume a Strength Potion held by a Man/Woman/Hero, set <code>POTION</code> to
+that slot for the duration of the fight, and remove the potion from inventory.</div>
+
+<h3>9.4 Special combat rules</h3>
+<blockquote class="rule">In any round of a fight in which a party does not have any magical power to pit against a
+spectre, the strongest creature in the party must be matched against the spectre, and is automatically slain.</blockquote>
+<ul>
+  <li><strong>Spectre</strong> &mdash; if a Spectre is among the strangers and the party has <em>no</em> magical power
+  and <em>no</em> Magic Sword bearer, the strongest living party member is slain each round before any dice. A party with
+  any caster MP or a sword fights normally. <span class="pill p-done">implemented</span></li>
+  <li><strong>Dragon-slayer</strong> &mdash; defeating a Dragon in a 1-on-1 match increments that fighter's
+  <code>PK</code>; thereafter <code>+PK</code> is added to its strength (the dragon card is &ldquo;inverted and put with
+  its slayer&rdquo;). <span class="pill p-done">implemented</span></li>
+</ul>
+<div class="gap"><strong>Ring invincibility (level 4+) is not implemented.</strong> The canonical Ring makes its bearer
+immune to death on level 4 and deeper (death rolls ignored). The build applies only the +1 roll bonus. <em>To
+implement:</em> when a match would slay the Ring-bearer and <code>level &ge; 4</code>, ignore the death.</div>
+
+<h3>9.5 Heavy-treasure drop, retreat &amp; casualties</h3>
+<blockquote class="rule">Any members of the exploring party who are to fight hand-to-hand must drop any heavy treasure
+they are carrying&hellip; A party which retreats must leave behind any treasure dropped in the area.</blockquote>
+<ul>
+  <li><strong>Retreat vs. continue.</strong> After each round (if both sides survive) the player chooses
+  <kbd>F</kbd>ight-on or <kbd>R</kbd>etreat. Retreat moves the party to the previous area and ends the encounter.</li>
+  <li><strong>Casualty selection.</strong> When a match is lost, the weakest front fighter in that match dies. The
+  rulebook's &ldquo;player states which he prefers, then rolls 4&ndash;6 to get his preference&rdquo; refinement is
+  simplified to always-weakest.</li>
+  <li><strong>Win / loss.</strong> All strangers dead &rArr; victory (return to exploration). All party members dead
+  &rArr; <code>GS=DEAD</code>.</li>
+</ul>
+<div class="gap"><strong>Heavy-treasure drop-before-combat and the blocked-retreat rule are not implemented.</strong>
+Fighters keep their heavy treasure through a fight, and a retreat into a dead end does not force another round.
+<em>To implement:</em> at fight start move every heavy item (ids 0,1,2,14) from fighters to the area, restore on victory,
+forfeit on retreat; and if a chosen retreat direction is a dead end or blocked by hostiles, force another round in the
+same turn.</div>
+<div class="gap"><strong>Healing Balm is not implemented</strong> (no revive of a just-killed member). <em>To implement:</em>
+remember the last creature killed this turn; offer, at the start of a fight-free turn, a Woman/Priest/Wizard bearer to
+revive it, then consume the balm.</div>
+
+<!-- ============================================================ -->
+<h2 id="special">10. Special Areas: Viper Pit &amp; Deep Pool</h2>
+<a class="up" href="#overview">&uarr; top</a>
+
+<blockquote class="rule">On first turning the card over you move your token onto it, but not onto the narrow ledge
+[/across the water]. On the following turn you may either go back&hellip; or cross&hellip; and proceed through another
+doorway.</blockquote>
+
+<h3>10.1 Viper Pit (special type 3)</h3>
+<p>On entry the party stops at the doorway; the turn ends. On the crossing turn:</p>
+<ul>
+  <li>For each <strong>living</strong> member, roll 1d6; a <strong>1</strong> means the member falls in and dies, their
+  carried treasure lost to the pit (recoverable only with the Charmed Flute).</li>
+  <li>If any living member carries the <strong>Charmed Flute</strong>, all rolls are skipped &mdash; the vipers sleep and
+  everyone crosses safely.</li>
+</ul>
+<div class="clar"><strong>Simplification:</strong> the rulebook's per-segment crossing (1 segment for adjacent exits,
+2 for opposite, one turn each) is collapsed into a <em>single</em> crossing event with one roll per member. Recovering
+lost pit-treasure with the flute is not modelled (the flute only prevents falls).</div>
+
+<h3>10.2 Deep Pool (special type 2)</h3>
+<blockquote class="rule">If a giant has to carry across more than one load of heavy treasure there is a delay of one turn
+per additional load&hellip; Heavy treasure that has to be left behind is left in the doorway&hellip; recoverable only by a
+giant.</blockquote>
+<p>On entry the party stops at the edge. When the party next moves out through a <em>different</em> doorway than it came
+in:</p>
+<ul>
+  <li>Each non-Giant member <strong>drops its heavy treasure (ids 0,1,2)</strong> into the doorway it exited from
+  (recorded in <code>DROP_SIDE</code> / <code>DROP_PT</code>, up to 4 items). Artifacts (weightless) are kept.</li>
+  <li>A living <strong>Giant carries all heavy treasure across</strong>.</li>
+  <li>Re-entering the pool and leaving by the <strong>same doorway</strong> where treasure was dropped offers to reclaim
+  it (returned to the first member with room).</li>
+</ul>
+<div class="clar"><strong>Simplification:</strong> a single living Giant carries <em>all</em> heavy loads at once, with
+no per-load turn delay; the multi-load Giant delay is not modelled. Up to 4 dropped items are tracked per doorway.</div>
+
+<h3>10.3 Tomb of Kings &amp; Great Hall</h3>
+<p>These are ordinary chambers handled entirely by the extra-draw rule in &sect;7.1 (+1 and +2 cards respectively).
+There is no special crossing behaviour.</p>
+
+<!-- ============================================================ -->
+<h2 id="artifacts">11. Artifacts &amp; Treasure Effects</h2>
+<a class="up" href="#overview">&uarr; top</a>
+
+<p>The reference build exposes one artifact primitive: a query &mdash; <em>does any living member carry treasure
+<code>k</code>?</em> &mdash; consulted by the systems that grant passive effects. There is <strong>no active artifact
+menu</strong>; effects are either passive (checked where they matter) or unimplemented.</p>
+
+<table>
+<thead><tr><th>Artifact</th><th>Status</th><th>Where / how</th></tr></thead>
+<tbody>
+<tr><td>Magic Sword</td><td><span class="pill p-done">done</span></td><td>Passive strength bonus in combat (&sect;9.3); enables fighting Spectres (&sect;9.4).</td></tr>
+<tr><td>Magic Staff</td><td><span class="pill p-done">done</span></td><td>Passive strength bonus in combat; Medusa ward for a Wizard (&sect;7.2). <span class="pill p-no">reanimate-stoned: no</span></td></tr>
+<tr><td>The Ring</td><td><span class="pill p-part">partial</span></td><td>+1 party combat rolls (&sect;9.3). <span class="pill p-no">level-4 invincibility &amp; reaction bonus: no</span></td></tr>
+<tr><td>Charmed Flute</td><td><span class="pill p-part">partial</span></td><td>Viper-pit safety (&sect;10.1). <span class="pill p-no">dragon sleep, secret doors, pit-treasure recovery: no</span></td></tr>
+<tr><td>Talisman</td><td><span class="pill p-no">no</span></td><td>Should ward Ghouls/Zombies, and Spectres on level 4+.</td></tr>
+<tr><td>Strength Potion</td><td><span class="pill p-part">plumbed</span></td><td>Bonus applies if a slot is selected, but no activation UI (&sect;9.3).</td></tr>
+<tr><td>Healing Balm</td><td><span class="pill p-no">no</span></td><td>Should revive a just-killed member (&sect;9.5).</td></tr>
+<tr><td>Lotus Dust</td><td><span class="pill p-no">no</span></td><td>Should sleep one creature for 2 turns (works on Medusa; not Spectres/Ghouls).</td></tr>
+<tr><td>Magic Carpet</td><td><span class="pill p-no">no</span></td><td>Should teleport to an adjacent area (no withdraw after; can't exit cave).</td></tr>
+<tr><td>Lost Ruby</td><td><span class="pill p-no">no</span></td><td>Should trigger a strength-8 statue fight on pickup; aroused statue attacks future visitors.</td></tr>
+<tr><td>Eye of God</td><td><span class="pill p-no">no</span></td><td>Should null area magic, annihilate Spectres, curse if dropped after taking up.</td></tr>
+<tr><td>Treasure Chest</td><td><span class="pill p-no">no</span></td><td>Should open via die roll (table below).</td></tr>
+</tbody>
+</table>
+
+<p>Each &ldquo;no&rdquo; above is specified for implementation in the gap analysis (&sect;16). The Treasure Chest open
+table (canonical), for reference:</p>
+<table>
+<thead><tr><th>Die</th><th>1</th><th>2</th><th>3</th><th>4</th><th>5</th><th>6</th></tr></thead>
+<tbody>
+<tr><td>Result</td><td>Curse</td><td>Spectre attacks (MP 5, one round)</td><td>Sand</td><td>Silver</td><td>Gold</td><td>Gems</td></tr>
+<tr><td>Points</td><td>0</td><td>0</td><td>0</td><td>20</td><td>40</td><td>80</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="scoring">12. Scoring &amp; Game Over</h2>
+<a class="up" href="#overview">&uarr; top</a>
+
+<blockquote class="rule">Players whose parties succeed in leaving the Cave receive points for all cards they hold&hellip;
+Dragon-slayers have double value. A party which has killed the Sorcerer receives a bonus of 30 points. A party under a
+curse deducts 30 points.</blockquote>
+
+<h3>12.1 The scoring formula</h3>
+<pre>score = 0
+for each party member with status ORIGINAL(0) or ALLY(1):       # not stone, not dead
+    pts = creature_points[PC]
+    if PK &gt; 0: pts *= 2                  # dragon-slayer doubles the creature's points
+    score += pts
+    for each treasure carried by the member:
+        score += treasure_points[treasure]
+if sorcerer killed (SK):  score += 30
+score -= 30 * NC                          # 30 per curse (cumulative)
+score = max(0, score)
+
+if GS == DEAD:  score = 0                  # a wiped party scores nothing</pre>
+
+<div class="clar"><strong>Curse penalty scales:</strong> &minus;30 <em>per</em> curse, not a flat &minus;30. The
+dragon-slayer doubling applies to the creature's own points only, not its treasure.</div>
+
+<h3>12.2 End screens</h3>
+<table>
+<thead><tr><th>GS</th><th>Screen</th><th>Content</th></tr></thead>
+<tbody>
+<tr><td>ESCAPED (1)</td><td>&ldquo;Escaped the Cave&rdquo;</td><td>Turns played; breakdown (creatures+treasure, dragon bonus, sorcerer +30, curse penalty); final score.</td></tr>
+<tr><td>DEAD (2)</td><td>&ldquo;Your party has perished&rdquo;</td><td>Score 0; a list of the loot the fallen party was carrying (artifacts by name, plus a heavy-treasure count and total kg) &mdash; all lost.</td></tr>
+<tr><td>QUIT (3)</td><td>&ldquo;You abandoned the cave&rdquo;</td><td>Header only, no breakdown.</td></tr>
+</tbody>
+</table>
+
+<!-- ============================================================ -->
+<h2 id="display">13. Display &amp; Interaction (Logical UX)</h2>
+<a class="up" href="#overview">&uarr; top</a>
+
+<p>The screen is a single rectangular canvas with a border. The game paints text and line-art into <em>logical
+regions</em> of that canvas and repaints the whole thing each turn inside one batched update. A browser port should
+treat each region as an independent component.</p>
+
+<h3>13.1 The turn screen &mdash; logical regions</h3>
+<figure>
+<svg viewBox="0 0 720 300" xmlns="http://www.w3.org/2000/svg" font-family="SF Mono,Menlo,monospace" font-size="12">
+  <style>.r{fill:#fff9ee;stroke:#7a4b25;stroke-width:1.4}.t{fill:#1c1a17}.c{fill:#6b6258;font-size:10.5px}</style>
+  <rect x="10" y="10" width="700" height="280" fill="none" stroke="#2f5d50" stroke-width="2"/>
+  <rect class="r" x="24" y="24" width="672" height="30"/><text class="t" x="360" y="44" text-anchor="middle">STATUS / HEADER &mdash; Level, area name, Turn N, areas explored</text>
+  <rect class="r" x="24" y="66" width="330" height="170"/><text class="t" x="189" y="92" text-anchor="middle" font-weight="bold">AREA VISUALIZATION</text>
+    <text class="c" x="189" y="112" text-anchor="middle">line-art tunnel / chamber / special;</text>
+    <text class="c" x="189" y="128" text-anchor="middle">exits, stairs, creatures, treasure,</text>
+    <text class="c" x="189" y="144" text-anchor="middle">party, hazards as glyphs</text>
+  <rect class="r" x="366" y="66" width="330" height="170"/><text class="t" x="531" y="92" text-anchor="middle" font-weight="bold">PARTY ROSTER</text>
+    <text class="c" x="531" y="112" text-anchor="middle">one row per living member:</text>
+    <text class="c" x="531" y="128" text-anchor="middle">NAME  item item item item</text>
+    <text class="c" x="531" y="150" text-anchor="middle">(framed "Party" box)</text>
+  <rect class="r" x="24" y="248" width="672" height="30"/><text class="t" x="360" y="268" text-anchor="middle">PROMPT / MESSAGE LINE &mdash; current action choices or event text</text>
+</svg>
+<figcaption>Logical regions of the per-turn screen. Positions are relative, not absolute. Encounter and fight screens
+reuse the same frame, replacing the area/roster regions with stranger lists, focus-pickers, and round results.</figcaption>
+</figure>
+
+<table>
+<thead><tr><th>Region</th><th>Purpose</th></tr></thead>
+<tbody>
+<tr><td>Status / header</td><td>Level, current area name (Tunnel / Chamber / special name), turn number, count of areas explored.</td></tr>
+<tr><td>Area visualization</td><td>Line-art of the current area with content glyphs (&sect;13.2). Replaces a textual exits list &mdash; exits and stairs are shown visually.</td></tr>
+<tr><td>Party roster</td><td>One line per living member: name + carried items, framed in a titled box. Stoned/dead members are omitted; an all-empty roster triggers game-over.</td></tr>
+<tr><td>Prompt / message</td><td>Centered action prompt or the latest event sentence (hazard banner, encounter result, etc.).</td></tr>
+</tbody>
+</table>
+
+<div class="note">The original design envisaged seven independent panels (status, party, map, chamber, legend, log,
+prompt). The shipped build consolidates these into one canvas with painted regions plus separate full-screen modes for
+the <em>map browser</em> and <em>help</em>. A re-implementation is free to use either structure; the region semantics
+above are what matter.</div>
+
+<h3>13.2 Area visualization vocabulary</h3>
+<p>The current area is drawn as line-art. <strong>Tunnels</strong> are a small crossroads with corridor arms only where
+exits exist; <strong>chambers</strong> are a larger rectangle with width-3 doorways and short exit stubs;
+<strong>special areas</strong> are a labelled rectangle (GATEWAY / POOL / VIPER). Content is placed by class:</p>
+<ul>
+  <li><strong>Creatures (strangers):</strong> top-left, single-letter mnemonics.</li>
+  <li><strong>Stairs:</strong> top-right, letters <code>U</code> / <code>D</code>.</li>
+  <li><strong>Party:</strong> centre, single-letter mnemonics of living members.</li>
+  <li><strong>Treasure:</strong> bottom-left, single-letter mnemonics.</li>
+  <li><strong>Dropped heavy treasure:</strong> a <code>$</code> in the doorway it was left in (Deep Pool).</li>
+</ul>
+
+<pre>     Chamber, exits N/E/S/W + stair-up, two strangers + treasure
+     +----------------+
+     | OT          U  |     OT = Ogre, Troll (top-left)   U = stair up (top-right)
+     |                |
+    -      H  P      -      H, P = party (centre)         - = E/W doorways
+     |                |
+     | $ G            |     $ G = Silver, Gold (bottom-left)
+     +----------------+
+            |  |              N/S doorway stubs</pre>
+
+<p>The glyph vocabulary (creatures &amp; treasures) is in <a href="#app-glyphs">Appendix&nbsp;C</a>. Letters are mostly
+the initial of the name, with case/letter disambiguation where initials collide. A browser port may instead use icons or
+colour-coded tiles, but should preserve the spatial grouping (who/where) so the player can read an area at a glance.</p>
+
+<h3>13.3 The map browser (full screen)</h3>
+<p>Pressing <kbd>M</kbd> opens a scrollable orthogonal map of the whole cave, one level at a time.</p>
+<ul>
+  <li>Each placed area is one glyph at its <code>(x,y)</code> cell. <strong>Current area is shown in reverse video.</strong></li>
+  <li>Area glyphs: <code>G</code> Gateway, <code>P</code> Deep Pool, <code>V</code> Viper Pit, <code>T</code> Tomb,
+  <code>H</code> Hall, <code>O</code> ordinary chamber, <code>+</code> tunnel.</li>
+  <li>Horizontal/vertical connectors (<code>&ndash;</code>, <code>|</code>) join areas with matching exits; stairs show
+  <code>^</code> (one cell above) and <code>v</code> (one cell below), pointing to the same <code>(x,y)</code> on the
+  adjacent level.</li>
+  <li><kbd>U</kbd>/<kbd>D</kbd> change level (clamped 1..max); arrows scroll the viewport; <kbd>M</kbd>/<kbd>Q</kbd>/<kbd>Enter</kbd> return.</li>
+  <li>Header shows &ldquo;Level&nbsp;<em>n</em> of <em>m</em>&rdquo;; a legend sits at the bottom. The viewport recenters
+  on the party on open.</li>
+</ul>
+<div class="note">Map cells are spaced (the reference build uses 4&times;2 character cells) so connectors are visible.
+The map shows structure only &mdash; no creatures, treasure, or hazards &mdash; per the original requirement.</div>
+
+<h3>13.4 Input model</h3>
+<p>Strictly single-keystroke, blocking, no echo of invalid keys. Universal keys during a turn:</p>
+<div class="legend-grid">
+<div><kbd>N</kbd> <kbd>E</kbd> <kbd>S</kbd> <kbd>W</kbd> &mdash; move (arrows alias)</div>
+<div><kbd>U</kbd> <kbd>D</kbd> &mdash; stairs up/down</div>
+<div><kbd>M</kbd> &mdash; open map</div>
+<div><kbd>?</kbd> &mdash; help</div>
+<div><kbd>X</kbd> &mdash; exit cave (level-1 stair-up)</div>
+<div><kbd>Q</kbd> &mdash; quit (confirm)</div>
+</div>
+<p>Modal keys: encounter <kbd>W</kbd>/<kbd>A</kbd>/<kbd>T</kbd>; fight <kbd>F</kbd>/<kbd>R</kbd> and focus-picker
+arrows + <kbd>Enter</kbd>; yes/no <kbd>Y</kbd>/<kbd>N</kbd>; treasure pickup roster cursor + <kbd>Enter</kbd>/<kbd>Space</kbd>/<kbd>L</kbd>(leave)/<kbd>D</kbd>(drop).</p>
+<div class="gap"><strong>Inventory-redistribution (<kbd>I</kbd>) and an artifact menu (<kbd>A</kbd>) are not wired into the
+turn loop.</strong> The rules permit redistributing treasure among members at the start/end of a turn (when not
+fighting); the build only assigns treasure at pickup time. <em>To implement:</em> add a modal that lets the player move
+items between members subject to weight limits, and an artifact menu to invoke the active artifacts of &sect;16.</div>
+
+<!-- ============================================================ -->
+<h2 id="help">14. In-Game Manual / Help</h2>
+<a class="up" href="#overview">&uarr; top</a>
+
+<p>Accessible from the title screen and (via <kbd>?</kbd>) during play. A topic index with keyboard navigation offers
+five topics:</p>
+<table>
+<thead><tr><th>Key</th><th>Topic</th><th>Source</th></tr></thead>
+<tbody>
+<tr><td>H</td><td>How to Play</td><td>prose (text file)</td></tr>
+<tr><td>C</td><td>Character chart</td><td>live-rendered: creature &amp; treasure glyph &rarr; name</td></tr>
+<tr><td>T</td><td>Creature attributes</td><td>live-rendered: FS / MP / carry / cost / points table</td></tr>
+<tr><td>A</td><td>Artifact glossary</td><td>prose (text file)</td></tr>
+<tr><td>M</td><td>Complete original manual</td><td>prose (text file)</td></tr>
+</tbody>
+</table>
+<p>Prose topics are loaded from a pre-wrapped text file using a tiny grammar (<code>*TOPIC|title|key</code> headers,
+<code>*H|</code> bold headings). The pager supports line-scroll, page forward/back, top/end, and back. If the file is
+missing, prose topics show an &ldquo;unavailable&rdquo; message but the two live tables still work. A re-implementation
+should bundle the same content (this directory's sibling docs and the rulebook) and may render it as HTML directly.</p>
+
+<!-- ============================================================ -->
+<h2 id="gaps">15. Gap Analysis: Manual vs. Implementation</h2>
+<a class="up" href="#overview">&uarr; top</a>
+
+<p>Status of every notable rule. &ldquo;Implemented&rdquo; closes a gap that the earlier Casio prototype left open;
+&ldquo;partial&rdquo; and &ldquo;not implemented&rdquo; are the work remaining for full fidelity. Each &ldquo;not
+implemented&rdquo; item has a concrete implementation sketch in its referenced section or in &sect;16.</p>
+
+<table>
+<thead><tr><th>Rule / feature</th><th>Status</th><th>Notes</th></tr></thead>
+<tbody>
+<tr><td>Earthquake collapses previous area (incl. double-quake)</td><td><span class="pill p-done">implemented</span></td><td>&sect;7.2</td></tr>
+<tr><td>Leader priority order</td><td><span class="pill p-done">implemented</span></td><td>&sect;8.2</td></tr>
+<tr><td>Solitaire 3&times;-indifferent &rArr; permanent</td><td><span class="pill p-done">implemented</span></td><td>&sect;8.4</td></tr>
+<tr><td>Mutineers join the stranger pool</td><td><span class="pill p-done">implemented</span></td><td>&sect;7.2</td></tr>
+<tr><td>Dwarf guides past one trap</td><td><span class="pill p-done">implemented</span></td><td>&sect;7.2</td></tr>
+<tr><td>Dragon-slayer strength bonus</td><td><span class="pill p-done">implemented</span></td><td>&sect;9.4</td></tr>
+<tr><td>Magic Sword / Magic Staff combat bonuses</td><td><span class="pill p-done">implemented</span></td><td>&sect;9.3</td></tr>
+<tr><td>Magic Staff wards Medusa from a Wizard</td><td><span class="pill p-done">implemented</span></td><td>&sect;7.2</td></tr>
+<tr><td>Spectre auto-slay without magic/sword</td><td><span class="pill p-done">implemented</span></td><td>&sect;9.4</td></tr>
+<tr><td>Focus-fire / gang-up pairing &amp; background casters</td><td><span class="pill p-done">implemented</span></td><td>&sect;9.1</td></tr>
+<tr><td>Viper Pit peril; Charmed Flute safety</td><td><span class="pill p-done">implemented</span> (simplified)</td><td>&sect;10.1</td></tr>
+<tr><td>Deep Pool heavy-treasure drop / Giant carry / reclaim</td><td><span class="pill p-done">implemented</span> (simplified)</td><td>&sect;10.2</td></tr>
+<tr><td>The Ring: +1 to combat rolls</td><td><span class="pill p-part">partial</span></td><td>No level-4 invincibility; no reaction-roll bonus. &sect;9.4</td></tr>
+<tr><td>Charmed Flute: dragon sleep, secret doors, pit recovery</td><td><span class="pill p-part">partial</span></td><td>Only viper safety. &sect;8.5</td></tr>
+<tr><td>Strength Potion activation</td><td><span class="pill p-part">plumbed</span></td><td>Bonus path exists; no UI. &sect;9.3</td></tr>
+<tr><td>Heavy-treasure drop before a fight; blocked-retreat re-round</td><td><span class="pill p-no">not impl.</span></td><td>&sect;9.5</td></tr>
+<tr><td>Talisman (ward Ghouls/Spectres)</td><td><span class="pill p-no">not impl.</span></td><td>&sect;16</td></tr>
+<tr><td>Healing Balm (revive)</td><td><span class="pill p-no">not impl.</span></td><td>&sect;9.5</td></tr>
+<tr><td>Lotus Dust (sleep)</td><td><span class="pill p-no">not impl.</span></td><td>&sect;16</td></tr>
+<tr><td>Magic Carpet (teleport)</td><td><span class="pill p-no">not impl.</span></td><td>&sect;16</td></tr>
+<tr><td>Lost Ruby statue fight</td><td><span class="pill p-no">not impl.</span></td><td>&sect;16</td></tr>
+<tr><td>Eye of God (null magic / annihilate Spectres / curse-on-drop)</td><td><span class="pill p-no">not impl.</span></td><td>&sect;16</td></tr>
+<tr><td>Treasure Chest open table</td><td><span class="pill p-no">not impl.</span></td><td>&sect;11 / &sect;16</td></tr>
+<tr><td>Magic Staff reanimates the stoned</td><td><span class="pill p-no">not impl.</span></td><td>&sect;16</td></tr>
+<tr><td>Unicorn friendly only with a Woman</td><td><span class="pill p-no">not impl.</span></td><td>Always friendly. &sect;8.5</td></tr>
+<tr><td>Forced redraw out of total dead-end deadlock</td><td><span class="pill p-no">not impl.</span></td><td>&sect;6.3</td></tr>
+<tr><td>Inventory redistribution / artifact menu UI</td><td><span class="pill p-no">not impl.</span></td><td>&sect;13.4</td></tr>
+<tr><td>Multiplayer, trading, unions, division, zombies, scenarios</td><td><span class="pill p-no">out of scope</span></td><td>Solitaire build by design.</td></tr>
+</tbody>
+</table>
+
+<h2 id="completeness">16. Implementation Sketches for the Open Gaps</h2>
+<a class="up" href="#overview">&uarr; top</a>
+<p>Concrete, minimal designs for the &ldquo;not implemented&rdquo; rows, so a re-implementation can reach full fidelity.</p>
+
+<h4>Talisman</h4>
+<p>Passive. Before the Ghouls handler, if any living member carries the Talisman, skip the ghoul fight (&ldquo;the
+talisman wards them off&rdquo;). In a stranger encounter, if the strangers include a Spectre, the party holds the
+Talisman, and <code>level &ge; 4</code>, remove the Spectre from the encounter.</p>
+
+<h4>Lotus Dust</h4>
+<p>Active, one use. Offer before approaching strangers or before any fight round. Player targets one enemy; mark it
+asleep (excluded from leadership/matching) for 2 of the player's turns, then it wakes. Invalid on Spectres/Ghouls; works
+on Medusa (used before the Medusa roll skips it). Consume on use; sleeping creatures are protected by a curse if killed
+while asleep.</p>
+
+<h4>Magic Carpet</h4>
+<p>Active, one use, requires a living Priest or Wizard. Player picks a direction (N/E/S/W/U/D); compute target coords;
+place or reuse the area there (cannot be the cave exit). The party arrives with no withdraw option if it meets strangers;
+arriving at a Pool/Viper lands on the island. Grants surprise (arrival by carpet counts as a fresh entry). Consume.</p>
+
+<h4>Healing Balm</h4>
+<p>Active, one use, requires a living Woman/Priest/Wizard, only at the start of a fight-free turn. Track the
+last-killed creature this turn (id + prior status + treasure); revive it (restore status), re-insert into the party,
+consume the balm.</p>
+
+<h4>Lost Ruby</h4>
+<p>On attempting to pick up the Lost Ruby, trigger a one-match fight against a statue of strength 8 (one party fighter vs
+8 + die). Win &rArr; ruby to inventory. Lose &rArr; fighter slain, ruby stays, set the area's statue-aroused flag
+(<code>AF</code> bit 0x20). On any later entry to an aroused-statue area, the statue attacks first.</p>
+
+<h4>Eye of God</h4>
+<p>While the Eye is in the party's area: priests/wizards and all other artifacts lose their magical effects (but keep
+fighting strength); Spectres are annihilated; the Lost-Ruby statue cannot attack. Once taken up, the Eye must remain
+with the party or a curse applies until it is retaken (including if left on a slain carrier). Picking it up is optional.</p>
+
+<h4>Treasure Chest open</h4>
+<p>An action available at the start of any in-cave turn while a member carries the Chest. Roll 1d6 and apply the table in
+&sect;11. On a 2, run a one-round fight against a Spectre (MP&nbsp;5); if undefeated it remains in the area, hostile.
+Two members may jointly carry the 100&nbsp;kg chest (relax the single-carrier weight check).</p>
+
+<h4>Magic Staff reanimation</h4>
+<p>Active, requires a Wizard bearing the Staff. Restore any party member with STONE status (2) to alive.</p>
+
+<!-- ============================================================ -->
+<h2 id="appendix">Appendices</h2>
+<a class="up" href="#overview">&uarr; top</a>
+
+<h3 id="app-cards">Appendix A &mdash; The 61 area cards</h3>
+<p>Index 21 (Gateway) is removed and placed as the start; the other 60 are shuffled into the large pack. &ldquo;String&rdquo;
+lists doorways/stairs in N,E,S,W,C(hamber),U,D order.</p>
+<table>
+<thead><tr><th>Idx</th><th>String</th><th>Special</th><th>Value</th><th>Idx</th><th>String</th><th>Special</th><th>Value</th></tr></thead>
+<tbody>
+<tr><td>0</td><td>NSEWUD</td><td></td><td>111</td><td>31</td><td>NS</td><td></td><td>5</td></tr>
+<tr><td>1</td><td>NESC</td><td></td><td>23</td><td>32</td><td>NSD</td><td></td><td>69</td></tr>
+<tr><td>2</td><td>NSWD</td><td></td><td>77</td><td>33</td><td>NSEWC</td><td></td><td>31</td></tr>
+<tr><td>3</td><td>NESC</td><td></td><td>23</td><td>34</td><td>NESC</td><td></td><td>23</td></tr>
+<tr><td>4</td><td>NSEWD</td><td></td><td>79</td><td>35</td><td>NSWC</td><td></td><td>29</td></tr>
+<tr><td>5</td><td>NSEWC</td><td>Tomb of Kings</td><td>543</td><td>36</td><td>ESWC</td><td></td><td>30</td></tr>
+<tr><td>6</td><td>NSEWC</td><td>Great Hall</td><td>671</td><td>37</td><td>NSEWU</td><td></td><td>47</td></tr>
+<tr><td>7</td><td>NSEWC</td><td>Deep Pool</td><td>287</td><td>38</td><td>ESWU</td><td></td><td>46</td></tr>
+<tr><td>8</td><td>NSEWC</td><td></td><td>31</td><td>39</td><td>NEW</td><td></td><td>11</td></tr>
+<tr><td>9</td><td>NSEW</td><td></td><td>15</td><td>40</td><td>NE</td><td></td><td>3</td></tr>
+<tr><td>10</td><td>NSWC</td><td></td><td>29</td><td>41</td><td>EWD</td><td></td><td>74</td></tr>
+<tr><td>11</td><td>NESC</td><td></td><td>23</td><td>42</td><td>NSEWC</td><td></td><td>31</td></tr>
+<tr><td>12</td><td>NW</td><td></td><td>9</td><td>43</td><td>NE</td><td></td><td>3</td></tr>
+<tr><td>13</td><td>NES</td><td></td><td>7</td><td>44</td><td>ESWD</td><td></td><td>78</td></tr>
+<tr><td>14</td><td>NEW</td><td></td><td>11</td><td>45</td><td>NEWC</td><td></td><td>27</td></tr>
+<tr><td>15</td><td>NSEWC</td><td>Viper Pit</td><td>415</td><td>46</td><td>EW</td><td></td><td>10</td></tr>
+<tr><td>16</td><td>NW</td><td></td><td>9</td><td>47</td><td>SWD</td><td></td><td>76</td></tr>
+<tr><td>17</td><td>NEWU</td><td></td><td>43</td><td>48</td><td>NESW</td><td></td><td>15</td></tr>
+<tr><td>18</td><td>NEWD</td><td></td><td>75</td><td>49</td><td>NES</td><td></td><td>7</td></tr>
+<tr><td>19</td><td>NW</td><td></td><td>9</td><td>50</td><td>NEWC</td><td></td><td>27</td></tr>
+<tr><td>20</td><td>NW</td><td></td><td>9</td><td>51</td><td>NSWU</td><td></td><td>45</td></tr>
+<tr><td>21</td><td>NSEWU</td><td>The Gateway</td><td>175</td><td>52</td><td>NESC</td><td></td><td>23</td></tr>
+<tr><td>22</td><td>NESU</td><td></td><td>39</td><td>53</td><td>NSW</td><td></td><td>13</td></tr>
+<tr><td>23</td><td>NESD</td><td></td><td>71</td><td>54</td><td>NSW</td><td></td><td>13</td></tr>
+<tr><td>24</td><td>ESW</td><td></td><td>14</td><td>55</td><td>SW</td><td></td><td>12</td></tr>
+<tr><td>25</td><td>NSEWC</td><td></td><td>31</td><td>56</td><td>ESWD</td><td></td><td>78</td></tr>
+<tr><td>26</td><td>NEWC</td><td></td><td>27</td><td>57</td><td>EW</td><td></td><td>10</td></tr>
+<tr><td>27</td><td>NSWC</td><td></td><td>29</td><td>58</td><td>NS</td><td></td><td>5</td></tr>
+<tr><td>28</td><td>NED</td><td></td><td>67</td><td>59</td><td>SW</td><td></td><td>12</td></tr>
+<tr><td>29</td><td>ESWC</td><td></td><td>30</td><td>60</td><td>NSWC</td><td></td><td>29</td></tr>
+<tr><td>30</td><td>ESW</td><td></td><td>14</td><td></td><td></td><td></td><td></td></tr>
+</tbody>
+</table>
+
+<h3 id="app-react">Appendix B &mdash; Reaction tables (cave strangers)</h3>
+<p>Roll (after modifiers) vs. the leader's thresholds: <code>&le; hostile_max</code> &rArr; hostile;
+<code>&le; indiff_max</code> &rArr; indifferent; else friendly.</p>
+<table>
+<thead><tr><th>Creature</th><th>hostile_max</th><th>indiff_max</th><th>Net behaviour (1&ndash;6)</th></tr></thead>
+<tbody>
+<tr><td>W-Hero (1)</td><td>3</td><td>3</td><td>1&ndash;3 hostile, 4&ndash;6 friendly</td></tr>
+<tr><td>Ogre (2)</td><td>4</td><td>5</td><td>1&ndash;4 hostile, 5 indiff, 6 friendly</td></tr>
+<tr><td>Troll (3)</td><td>3</td><td>4</td><td>1&ndash;3 hostile, 4 indiff, 5&ndash;6 friendly</td></tr>
+<tr><td>Wizard (8)</td><td>1</td><td>5</td><td>1 hostile, 2&ndash;5 indiff, 6 friendly</td></tr>
+<tr><td>Spectre (9)</td><td>5</td><td>6</td><td>1&ndash;5 hostile, 6 indiff</td></tr>
+<tr><td>Dragon (10)</td><td>6</td><td>6</td><td>always hostile</td></tr>
+<tr><td>Sorcerer (11)</td><td>6</td><td>6</td><td>always hostile</td></tr>
+<tr><td>Giant (12)</td><td>3</td><td>5</td><td>1&ndash;3 hostile, 4&ndash;5 indiff, 6 friendly</td></tr>
+<tr><td>Unicorn (13)</td><td>0</td><td>0</td><td>always friendly <span class="small">(simplified &mdash; see &sect;8.5)</span></td></tr>
+</tbody>
+</table>
+
+<h3 id="app-glyphs">Appendix C &mdash; Glyph vocabulary</h3>
+<div class="twocol">
+<div>
+<h4>Creatures</h4>
+<table>
+<thead><tr><th>Glyph</th><th>Creature</th><th>Glyph</th><th>Creature</th></tr></thead>
+<tbody>
+<tr><td>H</td><td>Hero</td><td>w</td><td>Wizard</td></tr>
+<tr><td>h</td><td>W-Hero</td><td>S</td><td>Spectre</td></tr>
+<tr><td>O</td><td>Ogre</td><td>d</td><td>Dragon</td></tr>
+<tr><td>T</td><td>Troll</td><td>s</td><td>Sorcerer</td></tr>
+<tr><td>P</td><td>Priest</td><td>G</td><td>Giant</td></tr>
+<tr><td>M</td><td>Man</td><td>U</td><td>Unicorn</td></tr>
+<tr><td>W</td><td>Woman</td><td>D</td><td>Dwarf</td></tr>
+</tbody>
+</table>
+</div>
+<div>
+<h4>Map area glyphs</h4>
+<table>
+<thead><tr><th>Glyph</th><th>Area</th></tr></thead>
+<tbody>
+<tr><td>G</td><td>Gateway</td></tr>
+<tr><td>P</td><td>Deep Pool</td></tr>
+<tr><td>V</td><td>Viper Pit</td></tr>
+<tr><td>T</td><td>Tomb of Kings</td></tr>
+<tr><td>H</td><td>Great Hall</td></tr>
+<tr><td>O</td><td>Chamber</td></tr>
+<tr><td>+</td><td>Tunnel</td></tr>
+<tr><td>^ v</td><td>stair up / down marker</td></tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="note">Treasure glyphs in the area view use single letters too (e.g. <code>$</code>=Silver, <code>G</code>=Gold,
+<code>J</code>=Gems, and initials/alternates for artifacts). Because several initials collide, a browser port is
+encouraged to replace these with unambiguous icons or labels; the spatial grouping (&sect;13.2) is the part that must be
+preserved.</div>
+
+<h3 id="app-const">Appendix D &mdash; Key constants</h3>
+<table>
+<thead><tr><th>Constant</th><th>Value</th></tr></thead>
+<tbody>
+<tr><td>Area cards total / large pack after Gateway</td><td>61 / 60</td></tr>
+<tr><td>Small pack size</td><td>52</td></tr>
+<tr><td>Party cap</td><td>12</td></tr>
+<tr><td>Party-selection budget</td><td>6 points</td></tr>
+<tr><td>Max strangers / treasure / hazards per chamber draw</td><td>8 / 8 / 4</td></tr>
+<tr><td>Chamber draw count</td><td>min(level,4) + Tomb(+1) + Hall(+2), capped at 8</td></tr>
+<tr><td>Indifferent rolls to permanent indifference</td><td>3</td></tr>
+<tr><td>Heavy-treasure unit weight / Chest weight</td><td>25 kg / 100 kg</td></tr>
+<tr><td>Sorcerer-slain bonus</td><td>+30</td></tr>
+<tr><td>Curse penalty</td><td>&minus;30 per curse</td></tr>
+<tr><td>Ghoul strength / Medusa stone threshold / Viper fall</td><td>2 / roll 1&ndash;2 / roll = 1</td></tr>
+<tr><td>Gateway start coords (packed)</td><td>level 1, x=50, y=50 (15050)</td></tr>
+<tr><td>LCG multiplier / increment / modulus</td><td>1103515245 / 12345 / 2^31</td></tr>
+</tbody>
+</table>
+
+<hr class="sec">
+<p class="small">This specification was reconstructed from the VAX&nbsp;MACRO-32 reference implementation
+(<code>src/macro32/sorcerer/</code>), the 1978 rulebook
+(<code>reference/sorcerors-cave/sorcerers-cave-rules.md</code>), and the prior gap analysis. Where the implementation and
+the rulebook diverge, the implemented behaviour is described as normative and the divergence is flagged. The goal is a
+faithful, language-agnostic re-implementation &mdash; terminal or browser &mdash; with a clear path to closing the
+remaining fidelity gaps.</p>
+
+</div>
+</body>
+</html>

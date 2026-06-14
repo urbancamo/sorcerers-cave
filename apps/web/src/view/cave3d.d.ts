@@ -1,0 +1,30 @@
+import type { CaveEngine } from "./ports";
+import type { TileArt } from "../data/manifest";
+
+/** A treasure or artifact a member is carrying, with its small-card art (if resolved). */
+export interface ViewItem {
+  name: string;
+  file: string | null;  // small-card image URL, or null when unresolved (e.g. under test)
+  weight: number;        // kg (0 for artifacts)
+  artifact: boolean;
+}
+export interface ViewPartyMember {
+  sig: string; name: string; lead?: boolean;
+  items: ViewItem[];
+  carry: number;  // capacity (kg)
+  load: number;   // carried heavy weight (kg)
+  fs: number; mp: number; charisma: boolean;
+}
+export interface BootOptions {
+  mount: HTMLElement;
+  engine: CaveEngine;
+  tiles: Map<string, TileArt>;
+  party: ViewPartyMember[];
+  tileAR: number;
+  partyColor?: string; // marker colour (hex)
+}
+export function boot(opts: BootOptions): Promise<{
+  dispose(): void;
+  refresh(): void;
+  setParty(party: ViewPartyMember[]): void;
+}>;

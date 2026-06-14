@@ -1,0 +1,77 @@
+
+*Feb OCT Nov 05 	
+2018 	2020 	2021
+About this capture
+Skookum's home page*
+
+# The Sorcerer's Cave and Its Sequel
+
+by Terence Peter Donnelly
+
+*[This article originally appeared in the Autumn 1980 issue of the late lamented Games & Puzzles magazine. I have edited it slightly.]*
+
+"I want to show you a new game," said my friend from a far-off city, as he pulled a rucksack from his shoulders.
+
+Out of the sack came stacks of computer print-outs, graph paper, oddly-shaped dice, books of rules....Two hours later my head was lopped off by an angry troll. I had discovered Dungeons & Dragons.
+
+A few days later my friend was gone, but he had planted a seed. I sent to TSR in Wisconsin for the D & D rules and dice. When they arrived, though, I made two discoveries. The first was that the rules (as they were presented in those early days) were little more than a sketch of the game, lacking such essentials as a combat system. The second was that, while I had enjoyed being a participant in a fantasy role-playing adventure, I wasn't ready to do the work needed to set one up.
+
+Yet the concept continued to intrigue me. I had been involved in play-by-mail fantasy games before, of the sort pioneered by Tony Bath's Hyboria (see Games & Puzzles No. 23). The dungeon adventure struck me as an advance over these: a relatively compact imaginary world suitable for across-the-table play. If only the concept could be translated into a format that would require no laborious set-up and no referee—a game that could be taken out of the box and played instantly, yet be different every time.
+
+From these meditations, some months later, sprang the idea of a self-constructing labyrinth—simply a pack of cards that could be laid out one by one as paths were explored by a party of adventurers. Another set of smaller cards would represent everything found in the labyrinth, as well as the adventurers themselves and their equipment. A principle quickly established itself: all necessary information, apart from the basic rules, was to be found on the cards. There was to be no need for pencil-and-paper bookkeeping, and no reference to separate charts and tables during play. All chance outcomes would be resolved by the throw of a six-sided die.
+
+The basic cast of characters was soon arrived at. I determined to avoid the exotic (like the gelatinous cubes and corrosive fungi so dear to D & D fans) and stick to easily recognized figures: Man, Woman, Hero, Wizard, Giant, Dragon, Ogre, and the like. Characters were distinguished by fighting strength, carrying strength, magical power, and a rudimentary personality expressed as a table of possible reactions to approach; for example, the Hero would attack a party on a throw of 1 to 3 but join it on a higher throw. The characteristics of individuals would remain constant through the game, except as modified by artefacts; but the composition of the exploring party would change as friends were made or individuals lost in combat etc.
+
+The main object of the game, of course, was to be the acquisition of treasure. For simplicity the Gold, Silver, and Gems were neatly packaged in 25 kg lots, and one 100 kg booby-trapped Chest. Artefacts, or magical devices, offered a rich field for experiment, and many ideas had to be winnowed out; to be of lasting interest, an artefact had to be useful in a variety of situations, yet not present complexities that would have to be explained at length in the rules book.
+
+Finally there were hazards. Because I wanted the players to have as many choices as possible (choice being the backbone of any good game), I had settled on the principle that in ordinary circumstances an exploring party would have the option of attacking, approaching, or withdrawing from any strangers it met in the Cave. An extra element of risk was needed so that a party could not simply go about seeking favourable encounters and retreating from every danger. Hazards like MEDUSA and GHOULS would automatically attack the party drawing them, while others like TRAP and EARTHQUAKE would block the party's escape route.
+
+The first version of the game was strictly for solitaire or co-operative play; that is, there would be only one exploring party. The Cave was to extend in all directions from a "magic gateway" at the centre of a mountain, with different chambers calling for various numbers of small cards to be drawn. Oddly, the Sorcerer himself did not appear in the prototype.
+
+In all, about two and a half years elapsed from the first frenzied drawing-up of index cards to the publication of The Sorcerer's Cave by Philmar. At the publisher's wise suggestion I drew up rules for competitive play (almost doubling the size of the rules book, which still however is a manageable dozen pages). In order to increase the dramatic effect of the game and add another element of choice, I abandoned the mountain idea and recreated the Cave as a series of levels below the surface of the earth, with more small cards being drawn on deeper levels; this, of course, was part of the original D & D concept, which I had misguidedly tried to avoid imitating.
+
+During its development the Cave was an obsession with me as no other project has ever been. I played the game over a thousand times, alone and with dozens of different people. It was not only the stories told by the game which fascinated me; it was the mythical aspect, if you will, which became entwined with a historical novel I was writing, and in which I began to see aspects of my own life.
+
+The descent into the underworld is, of course, an ancient and powerful myth. Closely connected with it are stories of labyrinth adventures, like that of Theseus and Ariadne. Typically the hero must journey into the realm of a dangerous and sinister figure (Pluto or the Minotaur) in order to rescue someone or acquire some knowledge. Only a few, those specially blessed by the gods, can succeed in gaining the upper air again.
+
+Volumes have been written about the meaning of this myth. To me, simply put, it became a parable of man's journey through the confined spaces of his own ego. But whatever its meaning, it is central in literature from Homer to Charles Williams, and no doubt has much to do with the current popularity of "dungeoneering."
+
+At times, too, the Cave seemed to assume almost the role of a Tarot pack, directed by an intelligence of its own which defied the laws of probability. Let me give a few examples.
+
+In the "Sorcerer's Den" solitaire scenario, the object is to reach a certain chamber on the fourth level and there slay the Sorcerer. One winter I played a series of such games. Night after night various exploring parties set out, only to meet some horrible fate on the downward journey, or to find the Sorcerer unapproachable or in the company of numerous Dragons or Spectres. Time after time I was on the brink of victory, only to see an abyss open in front of me. The Sorcerer's ingenuity seemed limitless. Then one day my party beat him; and after that I won the scenario as often as not.
+
+Another time two little girls of my acquaintance, new to the game and both true innocents, conducted an exploring party which drew every single bad card—hazards and totally unfriendly creatures—before a single potential ally or bit of treasure appeared. They survived all this and then immediately found the Ring, the best prize in the game, and went on to rack up a high score.
+
+A final instance. One day I took out the game from sheer boredom, although the time did not seem right. In three successive games the Hero was killed by a Giant in the first chamber he entered. Unready to give in, I sent down the Woman-Hero and Dwarf, who were immediately turned to stone by MEDUSA!
+
+I said earlier that the Cave is a game of choices, but it is not really a game of skill. The first thing a newcomer has to learn is that it is not a game in the ordinary sense, with an arbitrary set of rules demanding strategies unique to the game. Rather it is analogous to "real life" as it might exist in a sword-and-sorcery novel, and the players' choices are those which would have to be made by a Frodo or a Conan.
+
+This seems elementary, but it is well to bear it in mind when introducing the game to others. I have seen quite intelligent people look at a Dragon card as if it had no more meaning than a six of clubs, and say: "What do I do now?" Well, what would you do if you met a dragon?
+
+A few general strategies can be suggested. When descending to a lower level it is wise to explore underneath a known part of the Cave; in fact at all times the party should try to stay close to alternative routes to the surface. Disaster may strike at any time! But to really enjoy the game one needs to bring to it more imagination than strategy. Let me give one small example to show what I mean by this. A party befriends a Dwarf and, a few chambers later, draws MUTINY and TRAP together; the Dwarf stays behind and the party plunges to the next level. Does this not suggest that the Dwarf constructed the TRAP and treacherously led the party to it?
+
+It has been remarked, with justice, that the Cave is really a solitaire game even in its competitive version, where various parties set out to see which can acquire the most treasure and allies. Sometimes parties do get involved in epic battles with one another, or are in a position to cooperate; but the labyrinth is usually too widespread and tortuous to allow much contact. I find that in a group of people it is often best to have everyone participate in the adventure of a single party, especially when novice players or young children are involved.
+
+I have kept a log of some more recent solitaire games. As well as providing a record of some really hair-raising adventures, it furnishes some interesting statistics. About half the games end in failure, with the loss of the party and a score of zero, The average score is about 145. No combination of characters in the starting party has proven particularly successful, although the Woman-Hero and Dwarf are a favourite choice and make up a versatile team. My highest score is 487; the lowest, set by a couple of friends who set out as Ogre and Dwarf and promptly drew a curse on themselves by losing the Eye of God, was a dismal minus 22.
+
+Like any old campaigner I could bore you I with many stories, but I will content myself with one more which will perhaps suggest the variety of experience which the cards provide.
+
+A Hero, with several allies including a Wizard, was wandering on the third level when the party fell down a TRAP leading to another TRAP which led to the fifth level, where the Hero was quickly turned to stone by MEDUSA. The Wizard vowed that he would find the Magic Staff and return to reanimate the Hero. As he was leaving the vicinity, however, an EARTHQUAKE sealed off the only known entrance to MEDUSA's chamber.
+
+The Wizard found the Magic Staff, but now the rest of the party mutinied under another Wizard. The loyal Wizard approached the mutineers with a proposition: they would defeat the Sorcerer, have him transport the party to MEDUSA's chamber, rescue the Hero, and escape by Magic Carpet. The mutineers resented this idea and attacked the Wizard, who was only saved by the Ring, which rendered him invulnerable on the fourth level where all this was taking place.
+
+In a last-ditch effort, the Wizard used the Carpet to go to the Hero, whom he brought back to life. Now their only hope of escape was one unplayed area card, which might connect with a path to the surface. I wish I could tell you that it did; but alas, the Wizard and Hero died of starvation while holding MEDUSA at bay.
+
+Many players feel frustrated when this sort of thing happens and say that there should be more cards. Personally I find the basic set about the right size; it usually provides a varied adventure lasting half an hour to an hour. But to satisfy those devoted spelunkers who want more, we have prepared an extension kit which increases the size of the Cave by half and adds new creatures, treasures, and hazards, as well as more of the basic types.
+
+With the publication of the Cave its hold on me began to weaken, and I started to think of a sequel. It seemed natural to apply the mechanics of the game to a forest labyrinth, but for a long time I was at a loss how to create something really different. It was pointless to reproduce the treasure-hunting theme; besides, I wanted the new game to be less morbid and to provide more opportunity for player interaction.
+
+Ideas from folklore, fairy-tales, Tolkien, and Arthurian legend were all jumbled together in my mind, but no coherent framework presented itself. Then one day I picked up Spenser's Faerie Queen—a poem I had always managed to avoid reading even while earning an MA in English literature—with the vague notion that it might contain some useful ideas about a magic realm. To my astonishment, I found a virtual blueprint for a game of chance encounter in a "wandering wood," the adventurers being Knights in search of love and glory. Spenser led me to Ariosto's wonderful Orlando Furioso, a further gold-mine of character and incident.
+
+The result was The Mystic Wood. It is set in a labyrinth of 45 area cards, prearranged in a grid 9 rows by 5, with gates at either end and a Tower in the middle. Each player is a Knight who sets forth from the Earthly Gate and attempts to fulfil a particular quest, then leave the Wood by the Enchanted Gate; George, for example, must slay the Dragon, and Britomart must betroth the Prince. Whoever succeeds first wins the game. Naturally the Wood also contains a Cave, which can be entered only by a Knight who has the Golden Bough.
+
+Like the earlier game, the Wood consists of two packs of cards, but in other ways it is vastly different. It is much more dynamic: the Knights and denizens may move rapidly about by a kind of magical transportation, and there are fewer paths where nothing at all happens. There is a greater variety of denizens, who may among other things give up useful artefacts, cast spells, challenge the Knight, or demand to be rescued. Because of the compact form of the Wood, Knights come into frequent contact with one another and there is ample opportunity for jousts or cooperation. And the players never face the dreadful annihilation that may come so suddenly in the Cave; at worst a Knight may be imprisoned in the Tower for a number of turns.
+
+The Wood is more truly a role-playing game than the Cave, in that each Knight seeks to increase his or her individual strength and prowess in order to reach the final goal. Bookkeeping is avoided, again, by having the cards do the work. For example, if a Knight slays a Wild Ox, the added prowess of 1 is shown by inverting the Wild Ox card and placing it under the Knight card (like the Dragon-slayer, the germ of the idea in the Cave).
+
+Taken together, the Cave and the Wood are analogous to the first two parts of Dante's Divine Comedy: Hell, where souls are plunged into misery by their own desires, and Purgatory, through which they struggle to reach a higher state. What, then, is the next step? Dante's Paradise is set in outer space; perhaps the cards could be used to construct a solar system. But what would be the object of a game in which the players have already reached Heaven? The idea of a trilogy appeals to me, but I doubt if I will ever make the attempt to complete it.
