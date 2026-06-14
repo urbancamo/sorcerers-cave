@@ -428,9 +428,24 @@ function updateHUD(){const s=engine.state();
   document.getElementById('st-turn').textContent=s.turn;
   document.getElementById('st-party').textContent=PARTY.length;
   document.getElementById('st-tiles').textContent=s.deckLeft;}
+function escAttr(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function renderRoster(){const b=document.getElementById('rosterBody');b.innerHTML='';
   PARTY.forEach(m=>{const row=document.createElement('div');row.className='mbr'+(m.lead?' lead':'');
-    row.innerHTML='<div class="sig">'+m.sig+'</div><div class="who"><span class="nm">'+m.name+'</span><span class="it">'+(m.items.length?m.items.join(', '):'—')+'</span></div>';
+    const carry=m.carry||0, load=m.load||0, free=Math.max(0,carry-load);
+    const pct=carry>0?Math.min(100,Math.round((load/carry)*100)):0;
+    const cap=carry>0
+      ? '<div class="cap"><div class="cap-bar"><i style="width:'+pct+'%"></i></div><span class="cap-tx">'+load+'/'+carry+' kg · '+free+' free</span></div>'
+      : '<div class="cap"><span class="cap-tx none">no carry capacity</span></div>';
+    const items=Array.isArray(m.items)?m.items:[];
+    const carryRow=items.length
+      ? '<div class="carry">'+items.map(it=>{
+          const t=escAttr(it.name+(it.artifact?' · artifact':' · '+it.weight+'kg'));
+          return it.file
+            ? '<img class="tre'+(it.artifact?' art':'')+'" src="'+escAttr(it.file)+'" alt="'+escAttr(it.name)+'" title="'+t+'">'
+            : '<span class="tre ph'+(it.artifact?' art':'')+'" title="'+t+'">'+escAttr((it.name[0]||'?'))+'</span>';
+        }).join('')+'</div>'
+      : '<div class="carry"><span class="empty">empty-handed</span></div>';
+    row.innerHTML='<div class="sig">'+escAttr(m.sig)+'</div><div class="who"><span class="nm">'+escAttr(m.name)+'</span>'+cap+carryRow+'</div>';
     b.appendChild(row);});}
 /** Replace the party (e.g. after a creature joins) and refresh the roster + HUD count. */
 function setParty(p){ PARTY=p||[]; renderRoster(); updateHUD(); }

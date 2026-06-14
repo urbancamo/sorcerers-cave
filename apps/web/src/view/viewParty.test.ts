@@ -19,4 +19,29 @@ describe("viewParty", () => {
     expect(p[0]!.lead).toBe(true);
     expect(p.slice(1).every((m) => m.lead === false)).toBe(true);
   });
+
+  it("reports carry capacity, heavy load, and carried items (with resolved art)", () => {
+    const state = newGame(1, [5, 6]); // Man (carry 50) + Woman
+    state.party[0]!.treasure.push(1, 7); // Gold (heavy, 25kg) + Talisman (artifact, 0kg)
+    const cards = [
+      { cardId: "a", file: "/assets/cards/gold.png", name: "Gold", category: "treasure" as const, entityId: 1 },
+      { cardId: "b", file: "/assets/cards/talisman.png", name: "Talisman", category: "treasure" as const, entityId: 7 },
+    ];
+    const man = viewParty(state, cards)[0]!;
+    expect(man.carry).toBe(50);
+    expect(man.load).toBe(25); // only the heavy Gold counts toward load
+    expect(man.items).toHaveLength(2);
+
+    const gold = man.items.find((i) => i.name === "Gold")!;
+    expect(gold).toMatchObject({ artifact: false, weight: 25, file: "/assets/cards/gold.png" });
+    const talisman = man.items.find((i) => i.name === "Talisman")!;
+    expect(talisman).toMatchObject({ artifact: true, weight: 0, file: "/assets/cards/talisman.png" });
+  });
+
+  it("leaves item art null when no cards are provided", () => {
+    const state = newGame(1, [5, 6]);
+    state.party[0]!.treasure.push(0); // Silver
+    const man = viewParty(state)[0]!;
+    expect(man.items[0]).toMatchObject({ name: "Silver", file: null });
+  });
 });

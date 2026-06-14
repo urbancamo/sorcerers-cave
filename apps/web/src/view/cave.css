@@ -80,15 +80,27 @@ canvas{display:block;touch-action:none;}
   text-transform:uppercase;color:var(--brass-bright);padding:9px 14px;
   border-bottom:1px solid var(--line);background:rgba(201,161,78,.07);}
 .roster-body{display:flex;flex-direction:column;}
-.mbr{display:flex;align-items:center;gap:10px;padding:8px 13px;border-bottom:1px solid rgba(232,219,187,.06);}
+.mbr{display:flex;align-items:flex-start;gap:10px;padding:8px 13px;border-bottom:1px solid rgba(232,219,187,.06);}
 .mbr:last-child{border-bottom:none;}
-.mbr .sig{width:26px;height:26px;border-radius:7px;flex:none;display:grid;place-items:center;
+.mbr .sig{width:26px;height:26px;border-radius:7px;flex:none;display:grid;place-items:center;margin-top:1px;
   font-family:var(--display);font-size:13px;font-weight:700;color:#241a06;
   background:linear-gradient(180deg,var(--brass-bright),var(--brass));}
-.mbr .who{display:flex;flex-direction:column;line-height:1.15;min-width:0;}
+.mbr .who{display:flex;flex-direction:column;line-height:1.15;min-width:0;flex:1;}
 .mbr .who .nm{font-size:13px;color:var(--parchment);font-weight:600;}
 .mbr .who .it{font-size:10.5px;color:var(--stone-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mbr.lead .sig{background:linear-gradient(180deg,#f0d79a,var(--brass));box-shadow:0 0 10px rgba(201,161,78,.5);}
+/* carrying: capacity bar + carried-item card thumbnails */
+.mbr .who .cap{display:flex;align-items:center;gap:6px;margin-top:3px;}
+.mbr .who .cap-bar{flex:1;height:4px;border-radius:2px;background:rgba(232,219,187,.12);overflow:hidden;min-width:30px;}
+.mbr .who .cap-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--brass-bright),var(--brass));}
+.mbr .who .cap-tx{font-size:9.5px;color:var(--stone-dim);white-space:nowrap;}
+.mbr .who .cap-tx.none{font-style:italic;}
+.mbr .who .carry{display:flex;flex-wrap:wrap;gap:4px;margin-top:5px;}
+.mbr .who .carry .tre{width:24px;height:33px;border-radius:3px;object-fit:cover;flex:none;
+  border:1px solid var(--line-strong);background:#0d0d11;box-shadow:0 2px 5px -2px rgba(0,0,0,.7);}
+.mbr .who .carry .tre.art{border-color:var(--brass);box-shadow:0 0 7px -1px rgba(201,161,78,.55);}
+.mbr .who .carry .tre.ph{display:grid;place-items:center;font-size:11px;color:var(--parchment);font-family:var(--display);}
+.mbr .who .carry .empty{font-size:10px;color:var(--stone-dim);font-style:italic;}
 
 /* prompt / message line */
 .prompt{position:absolute;left:50%;bottom:84px;transform:translateX(-50%);

@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { CaveEngine } from "./ports";
 import type { GameState } from "@sorcerers-cave/engine";
-import { loadManifest, indexTilesById } from "../data/manifest";
+import { loadManifest, indexTilesById, type CardArt } from "../data/manifest";
 import { boot } from "./cave3d";
 import { viewParty } from "./viewParty";
 import { CaveHud } from "./CaveHud";
@@ -12,19 +12,21 @@ const TILE_AR = 1728 / 1210; // all tiles are 1728×1210 landscape (manifest)
 export function CaveCanvas({ engine, state }: { engine: CaveEngine; state: GameState }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const ctrl = useRef<{ dispose(): void; refresh(): void; setParty(p: ReturnType<typeof viewParty>): void } | null>(null);
+  const cardsRef = useRef<CardArt[]>([]); // small-card art for resolving carried items in the roster
 
   useEffect(() => {
     const mount = mountRef.current;
     if (!mount) return;
     let cancelled = false;
     void (async () => {
-      const { tiles } = await loadManifest();
+      const { tiles, cards } = await loadManifest();
       if (cancelled) return;
+      cardsRef.current = cards;
       ctrl.current = await boot({
         mount,
         engine,
         tiles: indexTilesById(tiles),
-        party: viewParty(state),
+        party: viewParty(state, cards),
         tileAR: TILE_AR,
       });
     })();
@@ -40,7 +42,7 @@ export function CaveCanvas({ engine, state }: { engine: CaveEngine; state: GameS
   // Panel-driven resolution mutates engine state outside the renderer's own doMove,
   // so re-sync the scene (roster after a join/death, exit markers, HUD, floor cards) on state change.
   useEffect(() => {
-    ctrl.current?.setParty(viewParty(state));
+    ctrl.current?.setParty(viewParty(state, cardsRef.current));
     ctrl.current?.refresh();
   }, [state]);
 
