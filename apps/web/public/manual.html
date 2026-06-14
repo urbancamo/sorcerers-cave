@@ -1,0 +1,595 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Sorcerer's Cave — Player's Manual</title>
+  <meta name="description" content="A comprehensive guide to playing The Sorcerer's Cave: party building, exploring, hazards, fights, treasure, and scoring." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=EB+Garamond:ital@0;1&family=Grenze+Gotisch:wght@400;700&display=swap"
+    rel="stylesheet" />
+  <style>
+    :root {
+      --void: #070709;
+      --panel: #15151b;
+      --panel-2: #1b1b22;
+      --stone: #b8b1a2;
+      --stone-dim: #6f6a5f;
+      --parchment: #e8dbbb;
+      --cream: #f6efce;
+      --brass: #c9a14e;
+      --brass-bright: #e6c578;
+      --crimson: #a8443a;
+      --teal: #5f8f8a;
+      --line: rgba(232, 219, 187, 0.13);
+      --line-strong: rgba(232, 219, 187, 0.26);
+      --display: "Cinzel", serif;
+      --body: "EB Garamond", serif;
+      --ui: ui-sans-serif, system-ui, -apple-system, sans-serif;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background:
+        radial-gradient(1200px 600px at 50% -10%, rgba(201, 161, 78, 0.10), transparent 60%),
+        radial-gradient(900px 500px at 100% 100%, rgba(95, 143, 138, 0.07), transparent 60%),
+        var(--void);
+      color: var(--parchment);
+      font-family: var(--body);
+      font-size: 18px;
+      line-height: 1.66;
+    }
+    a { color: var(--brass-bright); text-decoration: none; }
+    a:hover { color: var(--cream); text-decoration: underline; }
+
+    /* ---- layout ---- */
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 0 22px; }
+    .layout { display: grid; grid-template-columns: 232px 1fr; gap: 40px; align-items: start; }
+    nav.toc {
+      position: sticky; top: 18px; align-self: start;
+      max-height: calc(100vh - 36px); overflow-y: auto;
+      border: 1px solid var(--line); border-radius: 14px;
+      background: rgba(21, 21, 27, 0.7); backdrop-filter: blur(6px);
+      padding: 16px 16px 18px;
+    }
+    nav.toc .toc-hd { font-family: var(--display); font-size: 11px; letter-spacing: 0.22em; text-transform: uppercase; color: var(--brass-bright); margin: 0 0 10px; }
+    nav.toc ol { list-style: none; margin: 0; padding: 0; counter-reset: toc; }
+    nav.toc li { margin: 1px 0; }
+    nav.toc a { display: block; padding: 5px 8px; border-radius: 7px; font-family: var(--ui); font-size: 13.5px; color: var(--stone); }
+    nav.toc a:hover { background: rgba(201, 161, 78, 0.10); color: var(--cream); text-decoration: none; }
+    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static; max-height: none; } }
+
+    /* ---- hero ---- */
+    header.hero { text-align: center; padding: 70px 0 26px; }
+    header.hero .eyebrow { font-family: var(--display); letter-spacing: 0.34em; text-transform: uppercase; font-size: 12px; color: var(--brass); }
+    header.hero h1 {
+      font-family: var(--display); font-weight: 700; color: var(--cream);
+      font-size: clamp(34px, 6vw, 60px); letter-spacing: 0.04em; margin: 10px 0 6px;
+      text-shadow: 0 2px 30px rgba(201, 161, 78, 0.25);
+    }
+    header.hero .sub { font-family: var(--display); letter-spacing: 0.28em; text-transform: uppercase; font-size: 12.5px; color: var(--stone-dim); }
+    .epigraph { max-width: 640px; margin: 22px auto 0; font-style: italic; color: var(--stone); font-size: 18px; }
+    .epigraph cite { display: block; font-style: normal; font-family: var(--ui); font-size: 12px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--stone-dim); margin-top: 8px; }
+    .cta { margin-top: 26px; }
+    .cta a {
+      display: inline-block; font-family: var(--ui); font-weight: 600; font-size: 15px;
+      padding: 12px 24px; border-radius: 11px; border: 1px solid var(--brass); color: #241a06;
+      background: linear-gradient(180deg, var(--brass-bright), var(--brass));
+      box-shadow: 0 8px 22px -8px rgba(201, 161, 78, 0.6);
+    }
+    .cta a:hover { filter: brightness(1.07); text-decoration: none; }
+
+    /* ---- sections ---- */
+    section { padding: 30px 0; border-top: 1px solid var(--line); scroll-margin-top: 16px; }
+    section > h2 {
+      font-family: var(--display); font-weight: 700; color: var(--brass-bright);
+      font-size: 27px; letter-spacing: 0.03em; margin: 0 0 4px; display: flex; align-items: baseline; gap: 12px;
+    }
+    section > h2 .num { font-size: 15px; color: var(--brass); opacity: 0.8; font-variant-numeric: tabular-nums; }
+    section .lede { color: var(--stone); margin: 4px 0 18px; font-size: 19px; }
+    h3 { font-family: var(--display); font-weight: 600; color: var(--cream); font-size: 19px; letter-spacing: 0.02em; margin: 26px 0 8px; }
+    p { margin: 12px 0; }
+    strong { color: var(--cream); }
+    em.term { color: var(--brass-bright); font-style: normal; }
+    ul, ol { padding-left: 22px; }
+    li { margin: 6px 0; }
+
+    /* ---- callouts ---- */
+    .note { border-left: 3px solid var(--brass); background: rgba(201, 161, 78, 0.07); padding: 12px 16px; border-radius: 0 10px 10px 0; margin: 16px 0; font-size: 17px; }
+    .note.danger { border-left-color: var(--crimson); background: rgba(168, 68, 58, 0.10); }
+    .note.good { border-left-color: var(--teal); background: rgba(95, 143, 138, 0.10); }
+    .note .tag { font-family: var(--ui); font-weight: 700; font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--brass-bright); display: block; margin-bottom: 2px; }
+    .note.danger .tag { color: var(--crimson); }
+    .note.good .tag { color: var(--teal); }
+
+    /* ---- tables ---- */
+    table { width: 100%; border-collapse: collapse; margin: 16px 0; font-family: var(--ui); font-size: 14px; }
+    th, td { text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--line); }
+    th { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--stone-dim); border-bottom-color: var(--line-strong); }
+    td.num, th.num { text-align: right; font-variant-numeric: tabular-nums; }
+    tbody tr:hover { background: rgba(232, 219, 187, 0.03); }
+    td .nm { color: var(--cream); font-weight: 600; }
+
+    /* ---- card / tile grids ---- */
+    .grid { display: grid; gap: 16px; margin: 18px 0; }
+    .cards { grid-template-columns: repeat(auto-fill, minmax(118px, 1fr)); }
+    .cards.wide { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); }
+    figure.card { margin: 0; text-align: center; }
+    figure.card img {
+      width: 100%; aspect-ratio: 7 / 10; object-fit: cover; border-radius: 8px;
+      border: 1px solid var(--line-strong); background: #0d0d11; display: block;
+      box-shadow: 0 10px 24px -14px rgba(0, 0, 0, 0.9); transition: transform 0.16s ease, box-shadow 0.16s ease;
+    }
+    figure.card:hover img { transform: translateY(-3px); box-shadow: 0 16px 30px -14px rgba(0, 0, 0, 0.95); }
+    figure.card.art img { border-color: var(--brass); }
+    figure.card figcaption { font-family: var(--ui); font-size: 12.5px; color: var(--parchment); margin-top: 7px; }
+    figure.card figcaption .meta { display: block; color: var(--stone-dim); font-size: 11px; }
+    .tiles { grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); }
+    figure.tile { margin: 0; }
+    figure.tile img { width: 100%; aspect-ratio: 1728 / 1210; object-fit: cover; border-radius: 10px; border: 1px solid var(--brass); display: block; box-shadow: 0 12px 28px -16px rgba(0, 0, 0, 0.9); }
+    figure.tile figcaption { font-family: var(--ui); margin-top: 8px; }
+    figure.tile figcaption b { color: var(--brass-bright); font-family: var(--display); letter-spacing: 0.04em; }
+    figure.tile figcaption span { display: block; color: var(--stone); font-size: 14px; }
+
+    /* ---- screenshots ---- */
+    figure.shot { margin: 20px 0; }
+    figure.shot img { width: 100%; border-radius: 12px; border: 1px solid var(--line-strong); display: block; box-shadow: 0 18px 44px -22px rgba(0, 0, 0, 0.9); }
+    figure.shot figcaption { font-family: var(--ui); font-size: 13px; color: var(--stone-dim); text-align: center; margin-top: 8px; }
+
+    .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
+    @media (max-width: 760px) { .two-col { grid-template-columns: 1fr; } }
+
+    /* ---- footer ---- */
+    footer { border-top: 1px solid var(--line); margin-top: 30px; padding: 30px 0 70px; color: var(--stone-dim); font-size: 13.5px; font-family: var(--ui); }
+    footer .hd { font-family: var(--display); color: var(--brass); letter-spacing: 0.1em; text-transform: uppercase; font-size: 11px; margin: 14px 0 2px; }
+    footer p { margin: 4px 0; }
+    .pill { display: inline-block; font-family: var(--ui); font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 8px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--stone); margin-left: 8px; vertical-align: middle; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header class="hero">
+      <div class="eyebrow">Player's Manual</div>
+      <h1>The Sorcerer's Cave</h1>
+      <div class="sub">A solo descent into the labyrinth</div>
+      <blockquote class="epigraph">
+        “The descent to the underworld is easy: through day and night the door of black Dis lies open.
+        But to retrace your steps and escape to the upper air — there is trouble and toil.”
+        <cite>— Virgil, Aeneid vi. 126–29</cite>
+      </blockquote>
+      <div class="cta"><a href="/">▶ Play the game</a></div>
+    </header>
+
+    <div class="layout">
+      <nav class="toc" aria-label="Contents">
+        <p class="toc-hd">Contents</p>
+        <ol>
+          <li><a href="#quest">The Quest</a></li>
+          <li><a href="#party">Building Your Party</a></li>
+          <li><a href="#explore">Exploring the Cave</a></li>
+          <li><a href="#special">Special Areas</a></li>
+          <li><a href="#hazards">Hazards</a></li>
+          <li><a href="#strangers">Strangers &amp; Reactions</a></li>
+          <li><a href="#fights">Fights</a></li>
+          <li><a href="#treasure">Treasure &amp; Artefacts</a></li>
+          <li><a href="#secret">Secret Doors</a></li>
+          <li><a href="#scoring">Leaving &amp; Scoring</a></li>
+          <li><a href="#reference">Quick Reference</a></li>
+        </ol>
+      </nav>
+
+      <main>
+        <!-- ===================== QUEST ===================== -->
+        <section id="quest">
+          <h2><span class="num">I</span> The Quest</h2>
+          <p class="lede">Lead a band of adventurers down through a cave of many levels, gather what treasure you can, and climb back to the surface alive.</p>
+          <p>
+            The cave is built one card at a time as you explore. Behind every doorway may lie an empty
+            tunnel, a chamber heavy with gold, a sleeping dragon, or a trap that drops you into the dark
+            below. Nothing is fixed until you turn it over.
+          </p>
+          <p>
+            Your <strong>score</strong> is the worth of everyone who walks back out into the daylight,
+            plus the treasure they carry. A party wiped out underground scores nothing — so the real
+            art is knowing when to press deeper and when to turn for home. This edition is a
+            <strong>solitaire</strong> game: your progress is saved automatically on this device.
+          </p>
+          <figure class="shot">
+            <img src="/manual/shot-splash.png" alt="The Sorcerer's Cave title screen" />
+            <figcaption>The title screen — choose <em>Start Solitaire Game</em> to begin.</figcaption>
+          </figure>
+        </section>
+
+        <!-- ===================== PARTY ===================== -->
+        <section id="party">
+          <h2><span class="num">II</span> Building Your Party</h2>
+          <p class="lede">Spend up to <strong>6 selection points</strong> recruiting your expedition before you enter.</p>
+          <p>
+            Each creature costs points to recruit and is worth points if it survives the cave. Stronger,
+            more valuable creatures cost more, so a typical party is a careful mix — muscle to fight,
+            backs to carry treasure, and a specialist or two. You may take up to twelve members, but the
+            6-point budget is the real limit.
+          </p>
+
+          <div class="grid cards">
+            <figure class="card"><img src="/assets/cards/small-card-s04-1.png" alt="Hero card" /><figcaption>Hero<span class="meta">cost 6 · 10 pts</span></figcaption></figure>
+            <figure class="card"><img src="/assets/cards/small-card-s09-8.png" alt="Woman Hero card" /><figcaption>Woman&nbsp;Hero<span class="meta">cost 5 · 10 pts</span></figcaption></figure>
+            <figure class="card"><img src="/assets/cards/small-card-s05-7.png" alt="Ogre card" /><figcaption>Ogre<span class="meta">cost 5 · 5 pts</span></figcaption></figure>
+            <figure class="card"><img src="/assets/cards/small-card-s08-5.png" alt="Troll card" /><figcaption>Troll<span class="meta">cost 4 · 4 pts</span></figcaption></figure>
+            <figure class="card"><img src="/assets/cards/small-card-s06-2.png" alt="Priest card" /><figcaption>Priest<span class="meta">cost 4 · 8 pts</span></figcaption></figure>
+            <figure class="card"><img src="/assets/cards/small-card-s04-6.png" alt="Man card" /><figcaption>Man<span class="meta">cost 3 · 5 pts</span></figcaption></figure>
+            <figure class="card"><img src="/assets/cards/small-card-s09-5.png" alt="Woman card" /><figcaption>Woman<span class="meta">cost 2 · 5 pts</span></figcaption></figure>
+            <figure class="card"><img src="/assets/cards/small-card-s01-5.png" alt="Dwarf card" /><figcaption>Dwarf<span class="meta">cost 1 · 2 pts</span></figcaption></figure>
+          </div>
+
+          <table>
+            <thead>
+              <tr><th>Creature</th><th class="num">Fight</th><th class="num">Magic</th><th class="num">Carry&nbsp;(kg)</th><th class="num">Cost</th><th class="num">Points</th><th>Special</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="nm">Hero</td><td class="num">5</td><td class="num">—</td><td class="num">75</td><td class="num">6</td><td class="num">10</td><td>Charisma (+1 to reactions)</td></tr>
+              <tr><td class="nm">Woman Hero</td><td class="num">4</td><td class="num">—</td><td class="num">50</td><td class="num">5</td><td class="num">10</td><td>Charisma; befriends the Unicorn</td></tr>
+              <tr><td class="nm">Ogre</td><td class="num">5</td><td class="num">—</td><td class="num">100</td><td class="num">5</td><td class="num">5</td><td>Strong back</td></tr>
+              <tr><td class="nm">Troll</td><td class="num">4</td><td class="num">—</td><td class="num">75</td><td class="num">4</td><td class="num">4</td><td>—</td></tr>
+              <tr><td class="nm">Priest</td><td class="num">2</td><td class="num">2</td><td class="num">25</td><td class="num">4</td><td class="num">8</td><td>Caster (background magic)</td></tr>
+              <tr><td class="nm">Man</td><td class="num">3</td><td class="num">—</td><td class="num">50</td><td class="num">3</td><td class="num">5</td><td>—</td></tr>
+              <tr><td class="nm">Woman</td><td class="num">2</td><td class="num">—</td><td class="num">25</td><td class="num">2</td><td class="num">5</td><td>Befriends the Unicorn</td></tr>
+              <tr><td class="nm">Dwarf</td><td class="num">1</td><td class="num">—</td><td class="num">25</td><td class="num">1</td><td class="num">2</td><td>Guides the party safely past a trap</td></tr>
+            </tbody>
+          </table>
+
+          <p>
+            <strong>Charisma</strong> (Hero, Woman Hero) adds <strong>+1</strong> to every reaction roll,
+            making strangers friendlier. A <strong>Dwarf</strong> can steer the party around a single
+            trap. A <strong>Priest</strong> contributes <em class="term">magical power</em> in fights even
+            while standing safely behind the front line. Carrying capacity matters too: an Ogre or a
+            Giant can haul far more treasure home than a Dwarf.
+          </p>
+          <p>Pick a <strong>party colour</strong> for your markers, then descend.</p>
+
+          <figure class="shot">
+            <img src="/manual/shot-party.png" alt="Party selection screen with budget" />
+            <figcaption>Recruiting a party — the counter tracks your remaining budget; <em>Enter the cave</em> unlocks once you're within 6 points.</figcaption>
+          </figure>
+        </section>
+
+        <!-- ===================== EXPLORE ===================== -->
+        <section id="explore">
+          <h2><span class="num">III</span> Exploring the Cave</h2>
+          <p class="lede">Move through glowing doorways and stairways; each new step turns over the next area.</p>
+
+          <figure class="shot">
+            <img src="/manual/shot-cave.png" alt="Exploring the cave in 3D" />
+            <figcaption>The Gateway, where every expedition begins. Glowing markers show where you may go.</figcaption>
+          </figure>
+
+          <h3>Moving</h3>
+          <ul>
+            <li><strong>Click a glowing doorway marker</strong>, or press <strong>N / E / S / W</strong>, to step that way.</li>
+            <li>Press <strong>U / D</strong> (or click the corner stair markers) to climb or descend a stairway.</li>
+            <li><strong>Drag</strong> to orbit, <strong>scroll</strong> to zoom. <em>Snap to current tile</em> gives a clean overhead view; the <em>Levels</em> buttons focus a single floor; <em>Free orbit</em> shows the whole cave.</li>
+          </ul>
+          <p>
+            A doorway only leads somewhere if its edge matches the area beyond it. If it doesn't, you've
+            found a <strong>dead end</strong> — that exit closes, but you may try another. When you
+            descend, the floor you came from is hidden automatically so it never blocks your view of where
+            you now stand.
+          </p>
+
+          <h3>Drawing a chamber</h3>
+          <p>
+            The first time you enter a chamber you draw small cards onto its floor — and the deeper you
+            are, the more the cave throws at you:
+          </p>
+          <table>
+            <thead><tr><th>Depth</th><th class="num">Cards drawn</th></tr></thead>
+            <tbody>
+              <tr><td class="nm">Level 1</td><td class="num">1</td></tr>
+              <tr><td class="nm">Level 2</td><td class="num">2</td></tr>
+              <tr><td class="nm">Level 3</td><td class="num">3</td></tr>
+              <tr><td class="nm">Level 4 and deeper</td><td class="num">4</td></tr>
+            </tbody>
+          </table>
+          <p>
+            The <strong>Tomb of Kings</strong> adds one extra card, and the <strong>Great Hall</strong>
+            adds two. Those cards may be treasure to gather, strangers to face, or a hazard that strikes
+            at once.
+          </p>
+
+          <h3>The HUD at a glance</h3>
+          <ul>
+            <li><strong>Top-left roster</strong> — your living members and what each carries. Click it to open the full <em>party panel</em> (move or drop treasure between members). Fallen members drop off the list; an <span class="pill">ally</span> or <span class="pill">stone</span> badge marks befriended or petrified companions.</li>
+            <li><strong>Top bar</strong> — current depth, turn, party size, and cards left in the deck.</li>
+            <li><strong>Compass &amp; prompt</strong> — your orientation and a running description of what just happened.</li>
+            <li><strong>Card panel (right)</strong> — the art and name of the area or card under focus.</li>
+          </ul>
+        </section>
+
+        <!-- ===================== SPECIAL ===================== -->
+        <section id="special">
+          <h2><span class="num">IV</span> Special Areas</h2>
+          <p class="lede">Five named areas behave unlike ordinary tunnels and chambers.</p>
+          <div class="grid tiles">
+            <figure class="tile"><img src="/assets/tiles/area-tile-s14-2.png" alt="The Gateway tile" /><figcaption><b>The Gateway</b><span>Where you enter — and the way out. Any stairway up from level 1 leaves the cave for good.</span></figcaption></figure>
+            <figure class="tile"><img src="/assets/tiles/area-tile-s14-1.png" alt="The Deep Pool tile" /><figcaption><b>The Deep Pool</b><span>To cross, heavy treasure is dropped into the water (recoverable on the way back) unless a Giant carries it across.</span></figcaption></figure>
+            <figure class="tile"><img src="/assets/tiles/area-tile-s14-4.png" alt="The Viper Pit tile" /><figcaption><b>The Viper Pit</b><span>Cross the narrow ledge and a careless step can pitch a member — and their treasure — into the snakes. Arriving by stair or trap lands you safely on the island.</span></figcaption></figure>
+            <figure class="tile"><img src="/assets/tiles/area-tile-s15-1.png" alt="The Tomb of Kings tile" /><figcaption><b>Tomb of Kings</b><span>Draw one extra card on entry.</span></figcaption></figure>
+            <figure class="tile"><img src="/assets/tiles/area-tile-s14-3.png" alt="The Great Hall tile" /><figcaption><b>The Great Hall</b><span>Draw two extra cards on entry — rich, and dangerous.</span></figcaption></figure>
+          </div>
+        </section>
+
+        <!-- ===================== HAZARDS ===================== -->
+        <section id="hazards">
+          <h2><span class="num">V</span> Hazards</h2>
+          <p class="lede">When a chamber turns up a hazard, it strikes immediately — before any treasure or strangers are dealt with.</p>
+          <p>If several appear at once they resolve in this order: <strong>Earthquake → Medusa → Ghouls → Mutiny → Trap</strong>.</p>
+
+          <div class="grid cards wide">
+            <figure class="card"><img src="/assets/cards/small-card-s01-8.png" alt="Earthquake card" /><figcaption>Earthquake</figcaption></figure>
+            <figure class="card"><img src="/assets/cards/small-card-s05-5.png" alt="Medusa card" /><figcaption>Medusa</figcaption></figure>
+            <figure class="card"><img src="/assets/cards/small-card-s02-3.png" alt="Ghouls card" /><figcaption>Ghouls</figcaption></figure>
+            <figure class="card"><img src="/assets/cards/small-card-s05-6.png" alt="Mutiny card" /><figcaption>Mutiny</figcaption></figure>
+            <figure class="card"><img src="/assets/cards/small-card-s08-3.png" alt="Trap card" /><figcaption>Trap</figcaption></figure>
+          </div>
+
+          <h3>Earthquake</h3>
+          <p>The area you just came from collapses. It is removed from play — drawn as rubble, impassable, and the doorway back to it is sealed. You cannot return the way you came.</p>
+
+          <h3>Medusa</h3>
+          <p>Her gaze sweeps the party; each member risks being <strong>turned to stone</strong>. A petrified member is marked with a <span class="pill">stone</span> badge and can do nothing until freed by the <strong>Magic Staff</strong>. A wizard bearing the staff is immune to her.</p>
+
+          <h3>Ghouls</h3>
+          <p>The party fights a round against the ghouls; any member who loses is slain. There is no advantage of surprise on either side.</p>
+
+          <h3>Mutiny</h3>
+          <p>Your befriended allies desert — reverting to strangers and dropping any treasure they carried back onto the floor. If your party is made up entirely of allies, one loyal soul remains. You then face the deserters as you would any group of strangers.</p>
+
+          <h3>Trap</h3>
+          <p>The floor gives way and the party plunges to the area directly below — and there is <strong>no climbing back</strong>. A <strong>Dwarf</strong> guides the party safely past one trap (but not two in the same chamber).</p>
+          <div class="note danger"><span class="tag">No way back</span> A trap fall is one-way. You cannot withdraw or retreat back up, so plan to find another route out — or a secret stairway down and around.</div>
+        </section>
+
+        <!-- ===================== STRANGERS ===================== -->
+        <section id="strangers">
+          <h2><span class="num">VI</span> Strangers &amp; Reactions</h2>
+          <p class="lede">When a chamber holds creatures, you must decide how to meet them before touching any treasure there.</p>
+
+          <p>You have three choices, taken in the same turn:</p>
+          <ul>
+            <li><strong>Withdraw</strong> — back out the way you came, leaving the strangers and any treasure behind.</li>
+            <li><strong>Attack</strong> — fight at once (see <a href="#fights">Fights</a>). Striking the instant you enter a fresh chamber gains you the advantage of surprise.</li>
+            <li><strong>Test their reaction</strong> — approach and roll to see how they feel about you.</li>
+          </ul>
+
+          <h3>The leader, and the reaction roll</h3>
+          <p>
+            One stranger leads the group, by this order of priority:
+          </p>
+          <p style="font-family:var(--ui);font-size:13.5px;color:var(--stone);">
+            Spectre › Dragon › Wizard › Hero / Woman&nbsp;Hero › Priest › Man / Woman › Giant › Ogre › Troll › Dwarf
+          </p>
+          <p>
+            Roll a die for the leader; the rest react the same way. <strong>Charisma</strong> adds +1 and
+            each <strong>curse</strong> subtracts 1 — but a natural <strong>1 is always hostile</strong>,
+            no matter the bonuses. The result is one of:
+          </p>
+          <ul>
+            <li><strong>Friendly</strong> — they join your party as allies, and the chamber's treasure is yours.</li>
+            <li><strong>Indifferent</strong> — they ignore you. Next turn you may test again, attack, or simply leave.</li>
+            <li><strong>Hostile</strong> — they attack at once, and a round is fought (with the strangers holding the advantage of surprise).</li>
+          </ul>
+          <div class="note"><span class="tag">Who reacts how</span> Gentle folk are easily befriended; a Dragon or Spectre almost never is. Bringing a charismatic leader, and avoiding curses, swings the odds your way.</div>
+        </section>
+
+        <!-- ===================== FIGHTS ===================== -->
+        <section id="fights">
+          <h2><span class="num">VII</span> Fights</h2>
+          <p class="lede">A fight runs one round per turn until one side is wiped out, put to sleep, or your party retreats.</p>
+
+          <h3>Surprise</h3>
+          <p>
+            The side with surprise adds <strong>+1</strong> to all its rolls in the <strong>first round</strong>.
+            Your party gains it by attacking immediately on entering a chamber by a fresh doorway (or by
+            magic carpet). You do <em>not</em> get it if you stopped to test the strangers first, or if you
+            fell in through a trap. Strangers gain surprise when they turn hostile on being approached.
+          </p>
+
+          <h3>Pairing off</h3>
+          <p>
+            Each fighter is matched against a stranger and a die is rolled for each side; total strength
+            plus the die decides the winner, and the loser is slain. A tie kills no one.
+          </p>
+          <ul>
+            <li>If you <strong>outnumber</strong> the strangers, two of your members may gang up on one foe.</li>
+            <li>If they <strong>outnumber you</strong>, a single member can be set against at most two foes at once; any further strangers stand idle that round, and you face the strongest combination they can form.</li>
+            <li><strong>Priests and wizards</strong> may fight hand-to-hand or hang back, adding their <em class="term">magical power</em> to a front-line fighter. Any number of casters can pool their power against one enemy.</li>
+          </ul>
+
+          <h3>Choosing who falls</h3>
+          <p>
+            When two of your members lose a fight together, you decide which one is lost. State your
+            preference and roll: on a <strong>4, 5 or 6</strong> you get your wish; otherwise the other
+            falls. (The Ring protects its bearer — see below.)
+          </p>
+
+          <h3>Retreat</h3>
+          <p>
+            After at least one round has been fought, you may <strong>retreat</strong> by any open doorway
+            or stairway, leaving behind any treasure dropped in the area. You cannot retreat before the
+            first round, nor back up a trap you fell through.
+          </p>
+
+          <h3>Two foes to respect</h3>
+          <div class="two-col">
+            <div>
+              <div class="grid cards" style="grid-template-columns:repeat(3,1fr);max-width:340px;">
+                <figure class="card"><img src="/assets/cards/small-card-s01-2.png" alt="Dragon card" /><figcaption>Dragon</figcaption></figure>
+                <figure class="card"><img src="/assets/cards/small-card-s07-3.png" alt="Spectre card" /><figcaption>Spectre</figcaption></figure>
+                <figure class="card"><img src="/assets/cards/small-card-s08-2.png" alt="The Sorcerer card" /><figcaption>Sorcerer</figcaption></figure>
+              </div>
+            </div>
+            <div>
+              <p><strong>The Dragon</strong> (fighting strength 6) is the deadliest common foe — but slay one single-handed and that hero's worth is <strong>doubled</strong> at scoring forever.</p>
+              <p><strong>The Spectre</strong> cannot be harmed by ordinary blows. Without magic or the Magic Sword in hand, it slays your strongest member each round. The <strong>Eye of God</strong> destroys spectres outright.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================== TREASURE ===================== -->
+        <section id="treasure">
+          <h2><span class="num">VIII</span> Treasure &amp; Artefacts</h2>
+          <p class="lede">Unguarded treasure is yours to pick up; guarded treasure waits until the strangers are befriended or beaten.</p>
+
+          <h3>Heavy treasure</h3>
+          <p>
+            Silver, Gold and Gems are <strong>heavy</strong> — they count against a member's carrying
+            capacity, so distribute them with care (the party panel lets you move items between members or
+            drop them on the floor). The <strong>Treasure Chest</strong> is heaviest of all; open it
+            (while exploring) and a die decides your fortune: a curse, a Spectre, worthless sand, or
+            Silver, Gold, or Gems.
+          </p>
+          <div class="grid cards" style="grid-template-columns:repeat(4,minmax(90px,1fr));max-width:480px;">
+            <figure class="card"><img src="/assets/cards/small-card-s06-5.png" alt="Silver card" /><figcaption>Silver<span class="meta">5 pts · 25 kg</span></figcaption></figure>
+            <figure class="card"><img src="/assets/cards/small-card-s03-2.png" alt="Gold card" /><figcaption>Gold<span class="meta">10 pts · 25 kg</span></figcaption></figure>
+            <figure class="card"><img src="/assets/cards/small-card-s02-6.png" alt="Gems card" /><figcaption>Gems<span class="meta">20 pts · 25 kg</span></figcaption></figure>
+            <figure class="card"><img src="/assets/cards/small-card-s08-8.png" alt="Treasure Chest card" /><figcaption>Chest<span class="meta">d6 fortune</span></figcaption></figure>
+          </div>
+
+          <h3>Artefacts</h3>
+          <p>Artefacts weigh nothing and grant powers. Some are used up; others serve as long as you hold them.</p>
+          <div class="grid cards wide">
+            <figure class="card art"><img src="/assets/cards/small-card-s04-5.png" alt="Magic Sword card" /><figcaption>Magic Sword<span class="meta">15 pts</span></figcaption></figure>
+            <figure class="card art"><img src="/assets/cards/small-card-s04-4.png" alt="Magic Staff card" /><figcaption>Magic Staff<span class="meta">15 pts</span></figcaption></figure>
+            <figure class="card art"><img src="/assets/cards/small-card-s08-1.png" alt="The Ring card" /><figcaption>The Ring<span class="meta">30 pts</span></figcaption></figure>
+            <figure class="card art"><img src="/assets/cards/small-card-s07-8.png" alt="Talisman card" /><figcaption>Talisman<span class="meta">10 pts</span></figcaption></figure>
+            <figure class="card art"><img src="/assets/cards/small-card-s02-2.png" alt="Eye of God card" /><figcaption>Eye of God<span class="meta">0 pts</span></figcaption></figure>
+            <figure class="card art"><img src="/assets/cards/small-card-s01-1.png" alt="Charmed Flute card" /><figcaption>Charmed Flute<span class="meta">10 pts</span></figcaption></figure>
+            <figure class="card art"><img src="/assets/cards/small-card-s07-6.png" alt="Strength Potion card" /><figcaption>Strength Potion<span class="meta">5 pts</span></figcaption></figure>
+            <figure class="card art"><img src="/assets/cards/small-card-s04-8.png" alt="Lotus Dust card" /><figcaption>Lotus Dust<span class="meta">5 pts</span></figcaption></figure>
+            <figure class="card art"><img src="/assets/cards/small-card-s03-8.png" alt="Healing Balm card" /><figcaption>Healing Balm<span class="meta">5 pts</span></figcaption></figure>
+            <figure class="card art"><img src="/assets/cards/small-card-s04-3.png" alt="Magic Carpet card" /><figcaption>Magic Carpet<span class="meta">5 pts</span></figcaption></figure>
+            <figure class="card art"><img src="/assets/cards/small-card-s04-2.png" alt="Lost Ruby card" /><figcaption>Lost Ruby<span class="meta">20 pts</span></figcaption></figure>
+          </div>
+
+          <table>
+            <thead><tr><th>Artefact</th><th>Effect</th><th>Used up?</th></tr></thead>
+            <tbody>
+              <tr><td class="nm">Magic Sword</td><td>+2 fight strength for a Hero or Woman&nbsp;Hero, +1 for a Man or Woman. Also harms Spectres.</td><td>No</td></tr>
+              <tr><td class="nm">Magic Staff</td><td>Boosts a Priest's or Wizard's magic in fights; frees a petrified member; shields a staff-bearing Wizard from Medusa.</td><td>No</td></tr>
+              <tr><td class="nm">The Ring</td><td>+1 to every party die roll, and its bearer cannot be slain.</td><td>No</td></tr>
+              <tr><td class="nm">Talisman</td><td>Wards off Spectres, and shields a member from death once.</td><td>No</td></tr>
+              <tr><td class="nm">Eye of God</td><td>Nullifies all magic and artefacts in the area (creatures keep their fighting strength), destroys Spectres, and stills the Lost-Ruby statue. Keep it with the party or fall under a curse.</td><td>No</td></tr>
+              <tr><td class="nm">Charmed Flute</td><td>Lulls Dragons to sleep; reveals a concealed secret stairway while exploring.</td><td>No</td></tr>
+              <tr><td class="nm">Strength Potion</td><td>+2 fight strength to a Man, Woman or Hero for one fight.</td><td>Yes</td></tr>
+              <tr><td class="nm">Lotus Dust</td><td>Puts one stranger to sleep, before or during a fight.</td><td>Yes</td></tr>
+              <tr><td class="nm">Healing Balm</td><td>Restores one fallen member to life (between fights).</td><td>Yes</td></tr>
+              <tr><td class="nm">Magic Carpet</td><td>Whisks the party one area or level away.</td><td>Yes</td></tr>
+              <tr><td class="nm">Lost Ruby</td><td>Worth 20 points — but guarded by a strength-8 statue you must defeat to claim it.</td><td>—</td></tr>
+            </tbody>
+          </table>
+          <div class="note good"><span class="tag">Redistribute freely</span> Outside a fight, open the party panel to hand treasure to a stronger back or drop it where you stand. Hover an item to see it large.</div>
+        </section>
+
+        <!-- ===================== SECRET ===================== -->
+        <section id="secret">
+          <h2><span class="num">IX</span> Secret Doors</h2>
+          <p class="lede">More often than not, a stairway leads to an area where no matching stair is drawn. That hidden end is a secret door.</p>
+          <div class="two-col">
+            <div>
+              <p>
+                When you descend onto a chamber that shows no stair up — or climb onto one with no stair
+                down — your party learns of a <strong>secret door</strong> there, and can use it to retrace
+                their steps. Each one is marked on the floor with a lettered door card
+                (<strong>A, B, C…</strong>), laid in the order you discover them, so you can read at a
+                glance how the levels of the cave connect.
+              </p>
+              <p>The glowing up- or down-stair marker still appears on that tile — step onto it to travel back through the secret door.</p>
+            </div>
+            <div style="text-align:center;">
+              <img src="/assets/tokens/secret-doors-large/door-01.png" alt="Secret door A" style="width:150px;border-radius:10px;border:1px solid var(--brass);box-shadow:0 12px 28px -16px rgba(0,0,0,.9);" />
+              <div style="font-family:var(--ui);font-size:12.5px;color:var(--stone-dim);margin-top:8px;">Secret door “A”.</div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ===================== SCORING ===================== -->
+        <section id="scoring">
+          <h2><span class="num">X</span> Leaving the Cave &amp; Scoring</h2>
+          <p class="lede">Climb any stairway up from level 1 to leave the cave — and bank your score.</p>
+          <p>
+            Leaving is one-way: once your party steps out, the expedition is over. You'll be shown a roll
+            call of who made it out and what each carried, with the total tallied. Enter a name to record
+            it on the shared <strong>high-score table</strong>. You can also end an expedition at any time
+            with <strong>Quit</strong> — your score is still counted.
+          </p>
+
+          <figure class="shot">
+            <img src="/manual/shot-score.png" alt="The score screen" />
+            <figcaption>The roll call — each survivor's worth, plus carried treasure, totalled. Record it under your name.</figcaption>
+          </figure>
+
+          <h3>How the score is reckoned</h3>
+          <ul>
+            <li>The points value of every member who <strong>walks out alive</strong> (stone and fallen members count for nothing).</li>
+            <li>Plus the points value of all treasure they carry.</li>
+            <li><strong>Dragon-slayers</strong> who killed a dragon single-handed count double.</li>
+            <li>Plus any loot banked from the Treasure Chest, and <strong>+30</strong> for slaying the Sorcerer.</li>
+            <li><strong>−30</strong> for each curse upon the party.</li>
+          </ul>
+          <div class="note danger"><span class="tag">All or nothing</span> A party wiped out underground scores <strong>zero</strong>. Greed is the surest way to lose everything — know when to turn for the surface.</div>
+
+          <figure class="shot">
+            <img src="/manual/shot-party-panel.png" alt="The expanded party panel" />
+            <figcaption>The party panel — review each member's load and shuffle treasure before the long climb home.</figcaption>
+          </figure>
+        </section>
+
+        <!-- ===================== REFERENCE ===================== -->
+        <section id="reference">
+          <h2><span class="num">XI</span> Quick Reference</h2>
+          <div class="two-col">
+            <div>
+              <h3>Controls</h3>
+              <table>
+                <tbody>
+                  <tr><td class="nm">N E S W</td><td>Move through a doorway</td></tr>
+                  <tr><td class="nm">U / D</td><td>Climb / descend a stairway</td></tr>
+                  <tr><td class="nm">Click marker</td><td>Move that way</td></tr>
+                  <tr><td class="nm">Drag · Scroll</td><td>Orbit · zoom the cave</td></tr>
+                  <tr><td class="nm">Roster</td><td>Open the party panel</td></tr>
+                  <tr><td class="nm">Snap · Levels · Orbit</td><td>Change the camera view</td></tr>
+                  <tr><td class="nm">Quit</td><td>End the expedition &amp; tally the score</td></tr>
+                </tbody>
+              </table>
+            </div>
+            <div>
+              <h3>A few hard-won tips</h3>
+              <ul>
+                <li>Bring a strong back (Ogre, Troll) — treasure left behind scores nothing.</li>
+                <li>A Dwarf is cheap insurance against a trap; charisma makes strangers into allies.</li>
+                <li>Attack the instant you enter for the surprise bonus — testing first throws it away.</li>
+                <li>Befriending strangers is often safer (and richer) than fighting them.</li>
+                <li>Watch your depth: the deeper you go, the more the cave draws against you.</li>
+                <li>Turn back while you can still carry your winnings into the light.</li>
+              </ul>
+            </div>
+          </div>
+          <div class="cta" style="margin-top:24px;"><a href="/">▶ Enter the cave</a></div>
+        </section>
+
+        <footer>
+          <p>The Sorcerer's Cave — an online adaptation. This manual reflects the rules as the game actually plays them.</p>
+          <p class="hd">Original game</p>
+          <p>© 1978 &amp; 1982 Terence Peter Donnelly, published by Ariel Productions Ltd / Gibsons / Philmar.</p>
+          <p class="hd">Graphics</p>
+          <p>Conversion-kit artwork by Peter Vodden — Creative Commons CC BY-NC-SA 4.0 —
+            <a href="https://sorcererscaveconversionkit.wordpress.com" target="_blank" rel="noreferrer">sorcererscaveconversionkit.wordpress.com</a></p>
+        </footer>
+      </main>
+    </div>
+  </div>
+</body>
+</html>

@@ -69,6 +69,15 @@ export function SplashScreen({ onStartSolitaire }: { onStartSolitaire: () => voi
         <button className="scv-primary" disabled title="Coming soon">Start Multiplayer Game</button>
         <button className="scv-primary" disabled title="Coming soon">Join Multiplayer Game</button>
         <button className="scv-primary" onClick={() => setShowScores(true)}>High Scores</button>
+        <a
+          className="scv-primary"
+          href="/manual.html"
+          target="_blank"
+          rel="noreferrer"
+          style={{ display: "block", textAlign: "center", textDecoration: "none" }}
+        >
+          How to Play
+        </a>
       </section>
 
       {showScores && <HighScoresModal onClose={() => setShowScores(false)} />}
