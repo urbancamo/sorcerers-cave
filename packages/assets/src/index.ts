@@ -13,11 +13,6 @@ export interface AssetItem {
   file: string;
   w: number;
   h: number;
-  channels: string;
-  sheet: number | null;
-  index: number | null;
-  sourcePage: number;
-  rotationApplied: number;
   // Present on small cards (identified from the yellow name banner):
   name?: string; // e.g. "Dragon", "Charmed Flute", "Earthquake"
   category?: CardCategory; // the card type
@@ -36,7 +31,6 @@ export interface AssetCategory {
   dir: string;
   source: string;
   description: string;
-  rotationApplied: number;
   count: number;
   items: AssetItem[];
 }

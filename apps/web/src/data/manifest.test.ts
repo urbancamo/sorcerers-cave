@@ -6,18 +6,18 @@ const FIXTURE: AssetManifest = {
   generated: "test",
   categories: {
     tiles: {
-      dir: "tiles", source: "base", description: "", rotationApplied: -90, count: 3,
+      dir: "tiles", source: "base", description: "", count: 3,
       items: [
-        { file: "area-tile-s01-1.png", w: 1728, h: 1210, channels: "srgb", sheet: 1, index: 1, sourcePage: 3, rotationApplied: -90, exits: "NE", tileType: "tunnel", special: null, stairUp: false, stairDown: false },
-        { file: "area-tile-s07-2.png", w: 1728, h: 1210, channels: "srgb", sheet: 7, index: 2, sourcePage: 9, rotationApplied: -90, exits: "N", tileType: "chamber", special: null, stairUp: true, stairDown: true },
-        { file: "area-tile-s14-2.png", w: 1728, h: 1210, channels: "srgb", sheet: 14, index: 2, sourcePage: 16, rotationApplied: -90, exits: "NESW", tileType: "gateway", special: "gateway", stairUp: true, stairDown: false },
+        { file: "area-tile-s01-1.png", w: 1728, h: 1210, exits: "NE", tileType: "tunnel", special: null, stairUp: false, stairDown: false },
+        { file: "area-tile-s07-2.png", w: 1728, h: 1210, exits: "N", tileType: "chamber", special: null, stairUp: true, stairDown: true },
+        { file: "area-tile-s14-2.png", w: 1728, h: 1210, exits: "NESW", tileType: "gateway", special: "gateway", stairUp: true, stairDown: false },
       ],
     },
     cards: {
-      dir: "cards", source: "base", description: "", rotationApplied: -90, count: 2,
+      dir: "cards", source: "base", description: "", count: 2,
       items: [
-        { file: "small-card-s01-1.png", w: 1, h: 1, channels: "srgb", sheet: 1, index: 1, sourcePage: 3, rotationApplied: -90, name: "Dragon", category: "creature", entityId: 10 },
-        { file: "small-card-s02-1.png", w: 1, h: 1, channels: "srgb", sheet: 2, index: 1, sourcePage: 4, rotationApplied: -90, name: "Magic Sword", category: "treasure", entityId: 3 },
+        { file: "small-card-s01-1.png", w: 1, h: 1, name: "Dragon", category: "creature", entityId: 10 },
+        { file: "small-card-s02-1.png", w: 1, h: 1, name: "Magic Sword", category: "treasure", entityId: 3 },
       ],
     },
   },

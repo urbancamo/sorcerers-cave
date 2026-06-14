@@ -13,8 +13,7 @@ describe("assets package", () => {
 
   it("small-card items carry name/category/entityId identification", () => {
     const dragon: AssetItem = {
-      file: "small-card-s01-2.png", w: 700, h: 1000, channels: "srgb",
-      sheet: 1, index: 2, sourcePage: 18, rotationApplied: -90,
+      file: "small-card-s01-2.png", w: 700, h: 1000,
       name: "Dragon", category: "creature", entityId: 10,
     };
     expect(dragon.category).toBe("creature");
