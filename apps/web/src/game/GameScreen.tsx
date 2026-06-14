@@ -5,6 +5,7 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { api } from "../../convex/_generated/api";
 import { useCaveGame } from "./useCaveGame";
 import { CaveCanvas } from "../view/CaveCanvas";
+import { PartySelect } from "./PartySelect";
 
 export default function GameScreen() {
   const { isAuthenticated, isLoading } = useConvexAuth();
@@ -19,14 +20,7 @@ export default function GameScreen() {
   if (!isAuthenticated) return <p>Signing in…</p>;
 
   if (!gameId) {
-    return (
-      <button
-        className="rounded bg-amber-700 px-4 py-2 font-semibold"
-        onClick={async () => setGameId(await newGame({ seed: Date.now(), picks: [0] }))}
-      >
-        New game (Hero)
-      </button>
-    );
+    return <PartySelect onConfirm={async (picks) => setGameId(await newGame({ seed: Date.now(), picks }))} />;
   }
   if (loading || !engine || !state) return <p>Loading cave…</p>;
 
