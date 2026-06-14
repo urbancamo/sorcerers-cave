@@ -108,9 +108,12 @@ function rebuildPlatforms(){
     const ts=engine.areas.filter(a=>a.level===lvl);
     let minX=1e9,maxX=-1e9,minZ=1e9,maxZ=-1e9;
     ts.forEach(a=>{const p=worldPos(a);minX=Math.min(minX,p.x);maxX=Math.max(maxX,p.x);minZ=Math.min(minZ,p.z);maxZ=Math.max(maxZ,p.z);});
-    const w=(maxX-minX)+TILE_W+TILE_W*0.62,d=(maxZ-minZ)+TILE_D+TILE_D*0.62;
+    // size the platform to exactly cover the tile footprint, with the grid aligned one cell per tile
+    const cols=Math.max(1,Math.round((maxX-minX)/TILE_W)+1);
+    const rows=Math.max(1,Math.round((maxZ-minZ)/TILE_D)+1);
+    const w=cols*TILE_W,d=rows*TILE_D;
     const cx=(minX+maxX)/2,cz=(minZ+maxZ)/2,y=-lvlIndex(lvl)*LEVEL_GAP;
-    const grid=makeGridTexture();grid.wrapS=grid.wrapT=THREE.RepeatWrapping;grid.repeat.set(Math.round(w/TILE_W),Math.round(d/TILE_D));
+    const grid=makeGridTexture();grid.wrapS=grid.wrapT=THREE.RepeatWrapping;grid.repeat.set(cols,rows);
     const plane=new THREE.Mesh(new THREE.PlaneGeometry(w,d),new THREE.MeshBasicMaterial({map:grid,transparent:true,opacity:0.4,depthWrite:false}));
     plane.rotation.x=-Math.PI/2;plane.position.set(cx,y-0.08,cz);plane.userData.lvl=lvl;regMat(plane.material);platformGroup.add(plane);
     const edge=new THREE.LineSegments(new THREE.EdgesGeometry(new THREE.PlaneGeometry(w,d)),
