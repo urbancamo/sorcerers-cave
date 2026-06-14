@@ -54,6 +54,7 @@ export interface Area {
   visited: boolean;
   faceDown: boolean;     // placed but unrevealed (excluded from edge-matching)
   destroyed: boolean;    // collapsed by an earthquake — impassable, drawn as rubble
+  secretDoor: number | null; // discovery order of a secret-door stair up (0 → "A"), else null
 
   // PERSISTENT chamber contents — the cards laid on this area's floor.
   // This is the "AC[area]" the player sees for the rest of the game.

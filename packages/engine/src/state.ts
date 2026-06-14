@@ -38,6 +38,9 @@ export interface PlacedArea {
   // the card. They keep `card` traversable both ways but are excluded from rendering, so the tile
   // is always drawn in its printed orientation (the original game links levels with markers).
   mirroredStairs?: number;
+  // Set when the party descended onto this area and it shows no printed stair up: its end of the
+  // stairway is a secret door (§"Secret Doors"). The 0-based value is its discovery order (→ A, B, C…).
+  secretDoor?: number;
 }
 
 // surprise: +1 party, -1 strangers, 0 none (applies to round 1 only). focus indexes `strangers`.
@@ -80,4 +83,6 @@ export interface GameState {
   // or magic carpet (NOT a trap fall): the party gains the advantage of surprise if it attacks now.
   // Cleared once the party tests reaction (no longer an immediate attack) or the fight begins.
   surpriseReady?: boolean;
+  // Count of secret doors discovered so far — lays them in order (A, B, C…).
+  secretDoors?: number;
 }

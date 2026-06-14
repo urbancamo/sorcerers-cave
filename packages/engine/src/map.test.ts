@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { tryMove } from "./map";
 import { decodeArea } from "./decode";
-import { DIR_N, DIR_S, DIR_DOWN, packCoord } from "./coords";
+import { DIR_N, DIR_S, DIR_UP, DIR_DOWN, packCoord } from "./coords";
 import { AF_DESTROYED } from "./state";
 import { makeState } from "./testkit";
 
@@ -83,6 +83,39 @@ describe("tryMove (spec §6)", () => {
     expect(r.state.level).toBe(2);
     expect(r.state.areas[1]!.coord).toBe(packCoord(2, 50, 50));
     expect(decodeArea(r.state.areas[1]!.card).stairUp).toBe(true); // mirrored so you can climb back
+    // No printed stair up → the lower end is a secret door, lettered A (index 0).
+    expect(r.state.areas[1]!.secretDoor).toBe(0);
+    expect(r.state.secretDoors).toBe(1);
+  });
+
+  it("ascending onto a card with no stair down leaves a secret door (to climb back down)", () => {
+    // Current card 39 = NESU (has a stair up). Drawn card 7 = NES (no stairs).
+    const s = makeState({
+      level: 3,
+      areas: [{ card: 39, coord: packCoord(3, 50, 50), faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 }],
+      largePack: [7],
+      largeIdx: 0,
+    });
+    const r = tryMove(s, DIR_UP);
+    expect(r.moved).toBe(true);
+    expect(r.state.level).toBe(2);
+    expect(decodeArea(r.state.areas[1]!.card).stairDown).toBe(true); // mirrored so you can descend back
+    expect(r.state.areas[1]!.secretDoor).toBe(0);
+  });
+
+  it("descending onto a card that already shows a stair up is not a secret door", () => {
+    // Current card 71 = NESD. Drawn card 39 = NESU — it already pictures a stair up.
+    const s = makeState({
+      areas: [{ card: 71, coord: packCoord(1, 50, 50), faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 }],
+      largePack: [39],
+      largeIdx: 0,
+    });
+    const r = tryMove(s, DIR_DOWN);
+    expect(r.moved).toBe(true);
+    expect(decodeArea(r.state.areas[1]!.card).stairUp).toBe(true);
+    expect(r.state.areas[1]!.secretDoor).toBeUndefined(); // printed stair, not a secret door
+    expect(r.state.secretDoors ?? 0).toBe(0);
+    expect(r.state.areas[1]!.mirroredStairs ?? 0).toBe(0); // printed stair renders normally
   });
 
   it("suppresses a stair-up on a freshly drawn level-1 card", () => {

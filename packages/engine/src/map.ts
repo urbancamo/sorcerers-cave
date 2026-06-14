@@ -12,6 +12,7 @@ export interface MoveResult {
 }
 
 const STAIR_UP_BIT = 32;
+const STAIR_DOWN_BIT = 64;
 
 function hasExit(d: DecodedArea, dir: number): boolean {
   switch (dir) {
@@ -93,9 +94,24 @@ export function tryMove(state: GameState, dir: number): MoveResult {
   const connects = dir === DIR_UP || dir === DIR_DOWN || hasReverseDoor(decodeArea(drawn), dir);
 
   if (connects) {
-    const mirroredStairs = dir === DIR_DOWN ? STAIR_UP_BIT : 0; // climb-back link, not printed art
-    if (dir === DIR_DOWN) drawn = drawn | STAIR_UP_BIT; // mirror a stair-up so you can climb back
-    const placed: PlacedArea = { card: drawn, coord: target, faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0, mirroredStairs };
+    // A stairway leading to an area with no matching stair pictured has a secret door at that end
+    // (§"Secret Doors"): descending onto a card with no stair up, or ascending onto one with no
+    // stair down. Mirror the missing stair so the party can retrace its steps, exclude it from
+    // tile-art selection, and lay the next letter A, B, C…
+    let mirroredStairs = 0;
+    let secretDoor: number | undefined;
+    if (dir === DIR_DOWN && (drawn & STAIR_UP_BIT) === 0) {
+      drawn = drawn | STAIR_UP_BIT;
+      mirroredStairs = STAIR_UP_BIT;
+    } else if (dir === DIR_UP && (drawn & STAIR_DOWN_BIT) === 0) {
+      drawn = drawn | STAIR_DOWN_BIT;
+      mirroredStairs = STAIR_DOWN_BIT;
+    }
+    if (mirroredStairs !== 0) {
+      secretDoor = next.secretDoors ?? 0;
+      next.secretDoors = secretDoor + 1;
+    }
+    const placed: PlacedArea = { card: drawn, coord: target, faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0, mirroredStairs, secretDoor };
     next.areas.push(placed);
     next.prev2 = next.prev;
     next.prev = next.partyArea;

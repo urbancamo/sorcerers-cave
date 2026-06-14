@@ -45,10 +45,20 @@ function makeGridTexture(){
   const cx=cv.getContext('2d');cx.strokeStyle='rgba(232,219,187,0.14)';cx.lineWidth=2;cx.strokeRect(1,1,s-2,s-2);
   const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;return t;
 }
+// Secret-door card art (door-01.png = "A", door-02 = "B", …), cached and shared across rebuilds.
+const _texLoader=new THREE.TextureLoader();
+const doorTexCache=new Map();
+function doorTexture(idx){
+  const n=String(Math.min(idx,25)+1).padStart(2,'0');
+  let t=doorTexCache.get(n);
+  if(!t){ t=_texLoader.load('/assets/tokens/secret-doors-large/door-'+n+'.png'); t.colorSpace=THREE.SRGBColorSpace; doorTexCache.set(n,t); }
+  return t;
+}
 
 /* ---- groups ---- */
 const platformGroup=new THREE.Group(),tileGroup=new THREE.Group(),stairGroup=new THREE.Group(),
-      fxGroup=new THREE.Group(),exitGroup=new THREE.Group(),contentGroup=new THREE.Group();
+      fxGroup=new THREE.Group(),exitGroup=new THREE.Group(),contentGroup=new THREE.Group(),
+      secretGroup=new THREE.Group();
 const tileMeshes=[]; const exitMarkers=[]; const spawnAnims=[]; const stairDashes=[];
 const pendingTiles=new Set(); // coords whose mesh is mid-build (guards against duplicate laying)
 const contentMeshes=[]; const cardAnims=[];
@@ -106,6 +116,7 @@ function updateIsolation(){
   tileMeshes.forEach(applyFadeObj);
   platformGroup.children.forEach(applyFadeObj);
   stairGroup.children.forEach(applyFadeObj);
+  secretGroup.children.forEach(applyFadeObj);
   contentGroup.children.forEach(applyFadeObj);
 }
 
@@ -154,6 +165,21 @@ function rebuildStairs(){
       new THREE.MeshBasicMaterial({color:COLOR.brass,transparent:true,opacity:0.5,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));
       m.rotation.x=-Math.PI/2;m.position.copy(pt);m.position.y+=0.04;objs.push(m);});
     objs.forEach(o=>{o.userData.lvl=a.level;regMat(o.material);stairGroup.add(o);});
+  });
+}
+// Persistent secret-door card markers, laid flat on each area the party reached by a secret stair.
+const DOOR_AR=195/157; // door card art aspect (h/w)
+function rebuildSecretDoors(){
+  // Dispose geometry/material but keep the shared, cached door textures.
+  [...secretGroup.children].forEach(o=>{o.geometry?.dispose?.();o.material?.dispose?.();secretGroup.remove(o);});
+  engine.areas.forEach(a=>{
+    if(a.secretDoor==null) return;
+    const w=1.15, h=w*DOOR_AR;
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),
+      new THREE.MeshBasicMaterial({map:doorTexture(a.secretDoor),transparent:true,depthWrite:false,alphaTest:0.02}));
+    m.rotation.x=-Math.PI/2;
+    const p=worldPos(a); m.position.set(p.x-TILE_W*0.28, p.y+0.08, p.z-TILE_D*0.26); // tucked into a corner of the tile
+    m.renderOrder=3; m.userData.lvl=a.level; regMat(m.material); secretGroup.add(m);
   });
 }
 
@@ -240,7 +266,7 @@ function reconcileTiles(){
   for(const [k,a] of want){ if(!have.has(k)){ buildAreaMesh(a,true); changed=true; } }
   // Re-tint tiles whose destroyed state flipped (an earthquake collapses an already-placed area).
   for(const m of tileMeshes){ const a=m.userData.area&&want.get(akey(m.userData.area)); if(a&&m.material&&m.material.color) m.material.color.setHex(a.destroyed?DESTROYED_TINT:0xffffff); }
-  if(changed){ rebuildPlatforms(); rebuildStairs(); rebuildLevelButtons(); }
+  if(changed){ rebuildPlatforms(); rebuildStairs(); rebuildSecretDoors(); rebuildLevelButtons(); }
 }
 function refresh(){
   updateHUD(); selectCurrent(); refreshExitMarkers(); reconcileTiles();
@@ -374,13 +400,13 @@ function doMove(dir){
   const ev=engine.tryMove(dir);
   if(!ev.moved){
     if(ev.placed){ // a tile was drawn onto a dead-end frontier — lay it down even though we can't enter
-      buildAreaMesh(ev.placed,true).then(()=>{rebuildPlatforms();rebuildStairs();rebuildLevelButtons();});
+      buildAreaMesh(ev.placed,true).then(()=>{rebuildPlatforms();rebuildStairs();rebuildSecretDoors();rebuildLevelButtons();});
       refreshExitMarkers(); // the attempted exit was pruned
     }
     setPrompt(ev.deadEnd?'That way is a dead end.':'No exit that way.','danger'); flashMarker(dir,true); return;
   }
   busy=true;
-  if(ev.placed){ buildAreaMesh(ev.area,true).then(()=>{rebuildPlatforms();rebuildStairs();rebuildLevelButtons();}); }
+  if(ev.placed){ buildAreaMesh(ev.area,true).then(()=>{rebuildPlatforms();rebuildStairs();rebuildSecretDoors();rebuildLevelButtons();}); }
   // move token (a sprung trap drops the party a level, animated like a descent)
   const drop = ev.descended||ev.ascended||ev.fell;
   const from=partyToken.position.clone(), to=worldPos(ev.area);
@@ -648,10 +674,10 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
   controls.enableDamping=true; controls.dampingFactor=0.08;
   controls.minDistance=4; controls.maxDistance=95; controls.maxPolarAngle=Math.PI*0.97;
   maxAniso=renderer.capabilities.getMaxAnisotropy();
-  scene.add(platformGroup,tileGroup,stairGroup,fxGroup,exitGroup,contentGroup);
+  scene.add(platformGroup,tileGroup,stairGroup,fxGroup,exitGroup,contentGroup,secretGroup);
 
   // reset accumulated scene state so a new game (boot re-runs after dispose) starts from a clean map
-  [platformGroup,tileGroup,stairGroup,fxGroup,exitGroup,contentGroup].forEach(g=>{
+  [platformGroup,tileGroup,stairGroup,fxGroup,exitGroup,contentGroup,secretGroup].forEach(g=>{
     for(let i=g.children.length-1;i>=0;i--){const o=g.children[i];o.traverse?.(x=>{x.geometry?.dispose?.();x.material?.dispose?.();});g.remove(o);}
   });
   tileMeshes.length=0;exitMarkers.length=0;spawnAnims.length=0;stairDashes.length=0;contentMeshes.length=0;cardAnims.length=0;pendingTiles.clear();
@@ -689,7 +715,7 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
   });
   for(const a of engine.areas) await buildAreaMesh(a,false);
   engine.areas.forEach(a=>{ if(a.strangers.length||a.treasure.length) layContents(a,false); });
-  rebuildPlatforms();rebuildStairs();rebuildLevelButtons();refreshExitMarkers();
+  rebuildPlatforms();rebuildStairs();rebuildSecretDoors();rebuildLevelButtons();refreshExitMarkers();
   renderRoster();updateHUD();selectCurrent();
   // default to an overhead 'snap to tile' view of the start tile, North up the screen
   setMode('snap','Overhead · '+engine.current.name);

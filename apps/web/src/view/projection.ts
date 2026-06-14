@@ -93,6 +93,7 @@ export function projectArea(
     visited: pa.visited,
     faceDown: !pa.faceUp,
     destroyed: (pa.flags & AF_DESTROYED) !== 0,
+    secretDoor: pa.secretDoor ?? null,
     strangers: lanes.strangers,
     treasure: lanes.treasure,
     hazards: lanes.hazards,
