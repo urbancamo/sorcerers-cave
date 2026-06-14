@@ -54,12 +54,29 @@ function combatView(events: GameEvent[]): RollView | null {
   return { title: "Combat round", lanes, message, tone };
 }
 
-/** Build the dice overlay (if any) for the events an action produced — reaction first, else combat. */
+/** Turn an opened Treasure Chest (a d6) into a single-die overlay — otherwise its
+ *  curse / Spectre / loot outcome is invisible. */
+function chestView(events: GameEvent[]): RollView | null {
+  const chest = events.find((e): e is Extract<GameEvent, { type: "chestOpened" }> => e.type === "chestOpened");
+  if (!chest) return null;
+  const OUTCOME: Record<number, { message: string; tone: Tone }> = {
+    1: { message: "A curse! −30 points at scoring.", tone: "bad" },
+    2: { message: "A Spectre bursts from the chest — defend yourselves!", tone: "bad" },
+    3: { message: "Only sand — nothing of value.", tone: "neutral" },
+    4: { message: "Silver! +20 points.", tone: "good" },
+    5: { message: "Gold! +40 points.", tone: "good" },
+    6: { message: "Gems! +80 points.", tone: "good" },
+  };
+  const o = OUTCOME[chest.result] ?? { message: "The chest creaks open.", tone: "neutral" as Tone };
+  return { title: "The Treasure Chest", lanes: [{ enemy: { value: chest.result } }], message: o.message, tone: o.tone };
+}
+
+/** Build the dice overlay (if any) for the events an action produced — reaction, then chest, else combat. */
 export function rollFromEvents(events: GameEvent[]): RollView | null {
   const reaction = events.find((e): e is Extract<GameEvent, { type: "reaction" }> => e.type === "reaction");
   if (reaction) {
     const joined = events.find((e): e is Extract<GameEvent, { type: "strangersJoined" }> => e.type === "strangersJoined")?.count ?? 0;
     return reactionView(reaction, joined);
   }
-  return combatView(events);
+  return chestView(events) ?? combatView(events);
 }

@@ -12,6 +12,7 @@ import { PartyPanel } from "./PartyPanel";
 import { GameOverScreen } from "./GameOverScreen";
 import type { LeaderboardRow } from "./HighScores";
 import { EncounterPanel } from "./EncounterPanel";
+import { ExplorePanel } from "./ExplorePanel";
 import { DiceRoll } from "./DiceRoll";
 import { rollFromEvents, type RollView } from "./rollView";
 
@@ -79,6 +80,7 @@ export default function GameScreen() {
     <div className="relative h-screen w-screen">
       <CaveCanvas key={gameId} engine={engine} state={state} color={color} onPartyClick={() => setShowParty(true)} />
       <EncounterPanel state={state} dispatch={dispatchWithRolls} />
+      <ExplorePanel state={state} dispatch={dispatchWithRolls} />
       {showParty && <PartyPanel state={state} dispatch={dispatch} onClose={() => setShowParty(false)} />}
       {overlay}
     </div>

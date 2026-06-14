@@ -26,6 +26,21 @@ describe("rollFromEvents", () => {
     expect(view.message).toMatch(/keep their distance/i);
   });
 
+  it("shows an opened Treasure Chest as a single-die loot view", () => {
+    const view = rollFromEvents([{ type: "chestOpened", result: 6 }])!;
+    expect(view.title).toMatch(/treasure chest/i);
+    expect(view.lanes).toHaveLength(1);
+    expect(view.lanes[0]!.enemy.value).toBe(6);
+    expect(view.message).toMatch(/gems/i);
+    expect(view.tone).toBe("good");
+  });
+
+  it("reports a chest curse as a bad outcome", () => {
+    const view = rollFromEvents([{ type: "chestOpened", result: 1 }])!;
+    expect(view.message).toMatch(/curse/i);
+    expect(view.tone).toBe("bad");
+  });
+
   it("builds a party-vs-enemy combat view with both rolls and totals", () => {
     const events: GameEvent[] = [
       { type: "combatRoll", party: "Ogre", enemy: "Troll", partyRoll: 6, enemyRoll: 1, partyTotal: 12, enemyTotal: 5, result: "partyWon" },
