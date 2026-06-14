@@ -39,5 +39,6 @@ export function useCaveGame(id: Id<"games"> | null) {
   }, [art, game, id, apply]);
 
   const state = (game as { state?: GameState } | null | undefined)?.state ?? null;
-  return { engine: adapterRef.current, loading: !art || game === undefined, version, state };
+  const dispatch = (action: GameAction) => { if (id) void apply({ id, action }); };
+  return { engine: adapterRef.current, loading: !art || game === undefined, version, state, dispatch };
 }

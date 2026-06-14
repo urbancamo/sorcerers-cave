@@ -1,21 +1,30 @@
+import { useState } from "react";
 import ReactDOM from "react-dom/client";
-import { newGame } from "@sorcerers-cave/engine";
-import type { CaveEngine } from "./view/ports";
+import { newGame, reduce, type GameAction, type GameState } from "@sorcerers-cave/engine";
 import { createCaveAdapter } from "./view/engineAdapter";
 import { loadManifest } from "./data/manifest";
 import { CaveCanvas } from "./view/CaveCanvas";
+import { EncounterPanel } from "./game/EncounterPanel";
+import type { ArtTables } from "./view/projection";
 
-// Build a purely client-side adapter (no Convex) so the renderer can be exercised standalone.
-async function main() {
-  const { tiles, cards } = await loadManifest();
-  const state = newGame(20260613, [5, 6]); // Man + Woman, a valid party
-  // No-op onAction: createCaveAdapter's tryMove already advances its internal
-  // mirror optimistically, so the standalone harness needs no server plumbing.
-  const adapter: CaveEngine = createCaveAdapter(state, { tiles, cards }, {
-    onAction: () => {},
-  });
-  ReactDOM.createRoot(document.getElementById("root")!).render(
-    <CaveCanvas engine={adapter} state={state} />,
+function Harness({ art }: { art: ArtTables }) {
+  const [state, setState] = useState<GameState>(() => newGame(20260614, [5, 6]));
+  // One adapter; apply() advances the shared mirror and re-syncs the adapter (idempotent for moves).
+  const [adapter] = useState(() =>
+    createCaveAdapter(state, art, { onAction: (a: GameAction) => apply(a) }),
+  );
+  function apply(a: GameAction) {
+    setState((s) => { const next = reduce(s, a).state; adapter.sync(next); return next; });
+  }
+  return (
+    <div className="relative h-screen w-screen">
+      <CaveCanvas engine={adapter} state={state} />
+      <EncounterPanel state={state} dispatch={apply} />
+    </div>
   );
 }
-void main();
+
+void (async () => {
+  const { tiles, cards } = await loadManifest();
+  ReactDOM.createRoot(document.getElementById("root")!).render(<Harness art={{ tiles, cards }} />);
+})();

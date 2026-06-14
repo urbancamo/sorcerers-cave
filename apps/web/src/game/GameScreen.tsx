@@ -8,13 +8,14 @@ import { useCaveGame } from "./useCaveGame";
 import { CaveCanvas } from "../view/CaveCanvas";
 import { PartySelect } from "./PartySelect";
 import { GameOverScreen } from "./GameOverScreen";
+import { EncounterPanel } from "./EncounterPanel";
 
 export default function GameScreen() {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const { signIn } = useAuthActions();
   const newGame = useMutation(api.game.newGame);
   const [gameId, setGameId] = useState<Id<"games"> | null>(null);
-  const { engine, loading, state } = useCaveGame(gameId);
+  const { engine, loading, state, dispatch } = useCaveGame(gameId);
 
   useEffect(() => { if (!isLoading && !isAuthenticated) void signIn("anonymous"); }, [isLoading, isAuthenticated, signIn]);
 
@@ -28,5 +29,10 @@ export default function GameScreen() {
 
   if (state.gs !== GS_PLAYING) return <GameOverScreen state={state} onNewGame={() => setGameId(null)} />;
 
-  return <CaveCanvas key={gameId} engine={engine} state={state} />;
+  return (
+    <div className="relative h-screen w-screen">
+      <CaveCanvas key={gameId} engine={engine} state={state} />
+      <EncounterPanel state={state} dispatch={dispatch} />
+    </div>
+  );
 }

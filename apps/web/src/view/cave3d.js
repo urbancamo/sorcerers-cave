@@ -203,6 +203,13 @@ function refreshExitMarkers(){
   });
 }
 
+/* ---- re-sync the scene to engine state changed outside of doMove
+        (panel-driven encounter/fight/pickup resolution) ---- */
+function refresh(){
+  updateHUD(); selectCurrent(); refreshExitMarkers();
+  engine.areas.forEach(a=>{ if((a.strangers.length||a.treasure.length) && !a._contentGroup) layContents(a,false); });
+}
+
 /* ============================================================
    chamber contents — cards laid flat on the chamber floor,
    grouped spatially (creatures top-left, treasure bottom-left),
@@ -284,7 +291,6 @@ function viewLevel(lvl){activeLevel=lvl;setMode('level','Level '+lvl);setIsolati
    navigation
    ============================================================ */
 let busy=false;
-const revealed=new Set();
 function doMove(dir){
   if(busy||Reveal.active()) return;
   const ev=engine.tryMove(dir);
@@ -321,8 +327,8 @@ function onChamber(area,chamber){
   setPrompt(msg, haz.length?'danger':'event');
   const focus=haz[0]||strangers[0]||area.treasure[0]||draws[0];
   if(focus) showCard(focus,area.name);
-  const ak=area.level+','+area.col+','+area.row;
-  if(draws.length && !revealed.has(ak)){ revealed.add(ak); Reveal.run(area, chamber); }
+  // Resolution is now driven by the React EncounterPanel (engine-authoritative);
+  // reveal.js's self-contained abstract rolls are no longer invoked here.
 }
 function flashMarker(dir,bad){ const m=exitMarkers.find(x=>x.userData.move===dir); if(m) m.userData.flash={t0:clock.elapsedTime,bad}; }
 
@@ -508,7 +514,7 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
   window.__cave={scene,camera,controls,renderer,THREE,engine,tileMeshes,exitMarkers,doMove,worldPos,layContents,contentGroup};
   document.getElementById('loader').classList.add('hide');animate();
 
-  return function dispose(){
+  function dispose(){
     cancelAnimationFrame(rafId);
     removeEventListener('keydown', onKeyDown);
     removeEventListener('resize', onResize);
@@ -516,5 +522,6 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
     renderer.domElement.removeEventListener('pointerup', onPointerUp);
     renderer.dispose();
     renderer.domElement.remove();
-  };
+  }
+  return { dispose, refresh };
 }

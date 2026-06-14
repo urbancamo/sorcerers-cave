@@ -12,4 +12,4 @@ export interface BootOptions {
   party: ViewPartyMember[];
   tileAR: number;
 }
-export function boot(opts: BootOptions): Promise<() => void>;
+export function boot(opts: BootOptions): Promise<{ dispose(): void; refresh(): void }>;
