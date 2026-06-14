@@ -80,7 +80,7 @@ export function SplashScreen({ onStartSolitaire }: { onStartSolitaire: () => voi
         </p>
         <p className="scv-attrib-hd">Acknowledgements</p>
         <p>Original game: © 1978 &amp; 1982 Terence Peter Donnelly, published by Ariel Productions Ltd / Gibsons / Philmar.</p>
-        <p className="scv-attrib-hd">Conversion kit</p>
+        <p className="scv-attrib-hd">Graphics</p>
         <p>
           Concept and realisation by Peter Vodden. Area card artwork, small card template, tokens and
           incidental small card artwork by Peter Vodden using Dungeon Painter Studio, Epic Character
