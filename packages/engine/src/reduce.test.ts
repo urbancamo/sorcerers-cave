@@ -72,6 +72,35 @@ describe("reduce — chamber resolution (C-1)", () => {
     expect(state.treasures).toEqual([]);
   });
 
+  it("leaving treasure parks it on the chamber and clears the live working set", () => {
+    const s = makeState({ largePack: [31], largeIdx: 0, smallPack: [201], smallIdx: 0 });
+    const afterMove = reduce(s, { type: "move", dir: DIR_S }).state;
+    const { state } = reduce(afterMove, { type: "leaveTreasure" });
+    expect(state.phase).toBe("explore");
+    expect(state.treasures).toEqual([]);                  // working set cleared (so it stops following the party)
+    expect(state.areas[state.partyArea]!.contents).toContain(201); // it stays in the chamber it was left
+  });
+
+  it("a trap fall into strangers offers no withdraw (one-way drop, no way back up)", () => {
+    const s = makeState({
+      party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [] }], // Man, no dwarf
+      largePack: [31, 31], // upper chamber to enter, lower chamber to fall into
+      largeIdx: 0,
+      smallPack: [300 + 1, 110, 200], // upper draws a trap; level-2 chamber draws a Dragon + Silver
+      smallIdx: 0,
+    });
+    const { state } = reduce(s, { type: "move", dir: DIR_S });
+    expect(state.phase).toBe("encounter");
+    expect(state.level).toBe(2);
+    expect(state.fellThroughTrap).toBe(true);
+    const acts = legalActions(state);
+    expect(acts).not.toContainEqual({ type: "withdraw" }); // cannot retreat back up the trap
+    expect(acts).toContainEqual({ type: "attack" });
+    expect(acts).toContainEqual({ type: "quit" });
+    // a blocked withdraw is a no-op
+    expect(reduce(state, { type: "withdraw" }).events).toContainEqual({ type: "blocked" });
+  });
+
   it("moving into a chamber with a stranger enters the encounter phase", () => {
     const s = makeState({ largePack: [31], largeIdx: 0, smallPack: [110], smallIdx: 0 });
     const { state } = reduce(s, { type: "move", dir: DIR_S });

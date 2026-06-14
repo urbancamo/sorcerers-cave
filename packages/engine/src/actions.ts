@@ -26,6 +26,8 @@ export type GameEvent =
   | { type: "hazardFired"; hazard: number }
   // Allies deserted (Mutiny): they revert to strangers and drop their treasure into the chamber.
   | { type: "mutinied"; deserters: number[]; treasures: number[] }
+  | { type: "trapSprung"; level: number } // party fell through a trap to `level` (no climb back)
+  | { type: "trapAvoided" } // a dwarf guided the party safely past a trap
   | { type: "memberDied"; creatureId: number }
   | { type: "strangerKilled"; creatureId: number }
   | { type: "spectreSlew"; creatureId: number }

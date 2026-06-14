@@ -93,6 +93,8 @@ export function createCaveAdapter(initial: GameState, art: ArtTables, opts: Adap
       const ev: MoveEvent = { moved: true, dir, area, placed: grew ? area : null };
       if (dir === "D") ev.descended = "D";
       if (dir === "U") ev.ascended = "U";
+      if (events.some((e) => e.type === "trapSprung")) { ev.trap = "sprung"; ev.fell = true; }
+      else if (events.some((e) => e.type === "trapAvoided")) ev.trap = "avoided";
       const drew = events.find((e): e is Extract<GameEvent, { type: "drewChamber" }> => e.type === "drewChamber");
       if (drew) {
         // Build the draw display from the drewChamber event (the full draw, captured BEFORE

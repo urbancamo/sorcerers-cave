@@ -34,6 +34,11 @@ function persistAndExplore(state: GameState): void {
     ...state.strangers.map((id) => 100 + id),
     ...state.treasures.map((id) => 200 + id),
   ];
+  // Clear the live working set now that it's parked on the area — otherwise leftover cards (e.g.
+  // treasure the party left behind) keep rendering on the party's current tile as they move on.
+  state.strangers = [];
+  state.treasures = [];
+  state.hazards = [];
   state.phase = "explore";
 }
 
@@ -116,6 +121,7 @@ function resolveArea(state: GameState): GameEvent[] {
     events.push(...hzEvents);
     if (fell) {
       relocateDown(state);
+      events.push({ type: "trapSprung", level: state.level });
       events.push({ type: "moved", area: state.partyArea, level: state.level });
       continue;
     }
@@ -136,7 +142,9 @@ function relocateDown(state: GameState): void {
   const target = packCoord(level + 1, x, y);
   let idx = state.areas.findIndex((a) => a.coord === target);
   if (idx < 0) {
-    const card = state.largeIdx < state.largePack.length ? state.largePack[state.largeIdx++]! | 32 : 31 | 32;
+    // A trap is a one-way drop — no stair-up is added (the party cannot climb back). The card is
+    // drawn in its printed form, so it renders in its native orientation like any other tile.
+    const card = state.largeIdx < state.largePack.length ? state.largePack[state.largeIdx++]! : 31;
     state.areas.push({ card, coord: target, faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 });
     idx = state.areas.length - 1;
   }
@@ -144,6 +152,7 @@ function relocateDown(state: GameState): void {
   state.prev = state.partyArea;
   state.partyArea = idx;
   state.level = level + 1;
+  state.fellThroughTrap = true; // one-way: prev is the (unreachable) level above — no withdraw/retreat
 }
 
 /** Teleport the party one step in `dir`, ignoring doors; place a new face-up card if the target is unexplored. */
@@ -168,6 +177,7 @@ function carpetMove(state: GameState, dir: number): void {
   state.prev = state.partyArea;
   state.partyArea = idx;
   state.level = targetLevel;
+  state.fellThroughTrap = false; // carpet links both ways
 }
 
 export function reduce(state: GameState, action: GameAction): { state: GameState; events: GameEvent[] } {
@@ -196,6 +206,7 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
         return { state: res.state, events: [res.deadEnd ? { type: "deadEnd", dir: action.dir } : { type: "blocked" }] };
       }
       const next = { ...res.state, turn: res.state.turn + 1 };
+      next.fellThroughTrap = false; // a normal move reaches a reachable area (resolveArea re-sets it if a trap fires)
       const events: GameEvent[] = [];
       const crossing = next.partyArea !== oldPrev; // not simply going back the way we came
 
@@ -219,6 +230,7 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
 
     case "withdraw": {
       if (state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
+      if (state.fellThroughTrap) return { state, events: [{ type: "blocked" }] }; // no way back up a trap
       const next = structuredClone(state);
       next.areas[next.partyArea]!.contents = [
         ...next.areas[next.partyArea]!.contents,
@@ -367,6 +379,7 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
 
     case "retreat": {
       if (state.phase !== "fight") return { state, events: [{ type: "blocked" }] };
+      if (state.fellThroughTrap) return { state, events: [{ type: "blocked" }] }; // no way back up a trap
       const next = structuredClone(state);
       next.areas[next.partyArea]!.contents = [
         ...next.areas[next.partyArea]!.contents,

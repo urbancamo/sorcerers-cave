@@ -67,4 +67,7 @@ export interface GameState {
   hazards: number[];
   seed: number; // LCG state (spec §5)
   fight: FightState | null;
+  // True while the party's current position was reached by a one-way trap fall: prev is the level
+  // above, which is unreachable, so withdraw/retreat are disallowed. Cleared on the next move.
+  fellThroughTrap?: boolean;
 }

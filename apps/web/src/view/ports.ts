@@ -91,6 +91,8 @@ export type MoveEvent =
       placed?: Area | null;    // non-null ONLY when a new tile was drawn & placed
       descended?: 'D';         // present when a down-staircase was taken
       ascended?: 'U';          // present when an up-staircase was taken
+      fell?: boolean;          // present when a trap dropped the party a level (one-way, no climb back)
+      trap?: 'sprung' | 'avoided'; // a trap fired: 'sprung' = fell, 'avoided' = a dwarf guided past it
       chamber?: ChamberDraw;   // present when the area has on-floor cards to reveal
     };
 

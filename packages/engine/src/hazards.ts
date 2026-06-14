@@ -68,7 +68,8 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
       }
       case HAZARD_TRAP: {
         const hasDwarf = living(state).some((m) => (CREATURES[m.creatureId]!.flags & FLAG_GUIDES_PAST_TRAP) !== 0);
-        if (!hasDwarf) fell = true;
+        if (hasDwarf) events.push({ type: "trapAvoided" }); // the dwarf guides the party past it
+        else fell = true;                                   // otherwise the party drops a level
         break;
       }
     }

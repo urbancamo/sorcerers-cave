@@ -123,6 +123,34 @@ describe("tryMove + MoveEvent", () => {
     }
   });
 
+  it("surfaces a sprung trap as ev.trap='sprung' and drops the party a level", () => {
+    const A = mkArea(2, 1, 50, 50); // exit E; default party is a Hero (no dwarf)
+    // chamber (W reverse-door) to enter, then an NS corridor to fall onto; the chamber draws a trap.
+    const eng = createCaveAdapter(mkState([A], 0, { largePack: [8 | 16, 5], smallPack: [300 + 1] }), art);
+    const ev = eng.tryMove("E");
+    expect(ev.moved).toBe(true);
+    if (ev.moved) {
+      expect(ev.trap).toBe("sprung");
+      expect(ev.fell).toBe(true);
+      expect(ev.area.level).toBe(2); // dropped one level
+    }
+  });
+
+  it("surfaces a dwarf-negated trap as ev.trap='avoided' without falling", () => {
+    const A = mkArea(2, 1, 50, 50); // exit E
+    const eng = createCaveAdapter(
+      mkState([A], 0, { party: [{ creatureId: 7, status: 0, dragonKills: 0, treasure: [] }], largePack: [8 | 16], smallPack: [300 + 1] }),
+      art,
+    );
+    const ev = eng.tryMove("E");
+    expect(ev.moved).toBe(true);
+    if (ev.moved) {
+      expect(ev.trap).toBe("avoided");
+      expect(ev.fell).toBeUndefined();
+      expect(ev.area.level).toBe(1); // the dwarf guided them past — no fall
+    }
+  });
+
   it("forwards the accepted action via opts.onAction", () => {
     const A = mkArea(2, 1, 50, 50);
     const B = mkArea(8, 1, 51, 50, { visited: true });

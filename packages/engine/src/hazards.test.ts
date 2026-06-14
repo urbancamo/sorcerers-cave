@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { applyHazards } from "./hazards";
+import { reduce } from "./reduce";
 import { makeState } from "./testkit";
 import { packCoord } from "./coords";
 import { HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_MUTINY, HAZARD_TRAP } from "./data/hazards";
@@ -71,12 +72,36 @@ describe("applyHazards (spec §7.2)", () => {
       party: [{ creatureId: 7, status: 0, dragonKills: 0, treasure: [] }],
       hazards: [HAZARD_TRAP],
     });
-    expect(applyHazards(withDwarf).fell).toBe(false);
+    const dwarfRes = applyHazards(withDwarf);
+    expect(dwarfRes.fell).toBe(false);
+    expect(dwarfRes.events).toContainEqual({ type: "trapAvoided" }); // feedback before the card is discarded
 
     const noDwarf = makeState({
       party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [] }],
       hazards: [HAZARD_TRAP],
     });
-    expect(applyHazards(noDwarf).fell).toBe(true);
+    const fallRes = applyHazards(noDwarf);
+    expect(fallRes.fell).toBe(true);
+    expect(fallRes.events).not.toContainEqual({ type: "trapAvoided" });
+  });
+
+  it("a sprung trap drops the party a level with no climb-back stair", () => {
+    const A = { card: 2, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }; // exit E
+    const s = makeState({
+      areas: [A],
+      partyArea: 0,
+      level: 1,
+      party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [] }], // Man, no dwarf
+      largePack: [8 | 16, 5], // chamber (W reverse-door) to enter; an NS corridor (5) to fall onto
+      largeIdx: 0,
+      smallPack: [300 + HAZARD_TRAP], // the chamber draws a trap
+      smallIdx: 0,
+    });
+    const { state, events } = reduce(s, { type: "move", dir: 2 }); // move East into the chamber
+    expect(events).toContainEqual({ type: "trapSprung", level: 2 });
+    expect(state.level).toBe(2);
+    const here = state.areas[state.partyArea]!;
+    expect(here.card & 32).toBe(0);                 // no phantom stair-up → cannot climb back out
+    expect(here.mirroredStairs ?? 0).toBe(0);       // and nothing tagged as a connectivity link
   });
 });

@@ -364,11 +364,12 @@ function doMove(dir){
   }
   busy=true;
   if(ev.placed){ buildAreaMesh(ev.area,true).then(()=>{rebuildPlatforms();rebuildStairs();rebuildLevelButtons();}); }
-  // move token
+  // move token (a sprung trap drops the party a level, animated like a descent)
+  const drop = ev.descended||ev.ascended||ev.fell;
   const from=partyToken.position.clone(), to=worldPos(ev.area);
-  tokenMove={from,to,t0:clock.elapsedTime,dur: (ev.descended||ev.ascended)?0.9:0.55};
+  tokenMove={from,to,t0:clock.elapsedTime,dur: drop?0.9:0.55};
   // camera follow
-  if(ev.descended||ev.ascended) setTimeout(()=>flyFollow(to),120); else flyFollow(to);
+  if(drop) setTimeout(()=>flyFollow(to),120); else flyFollow(to);
   // HUD
   setTimeout(()=>{
     updateHUD(); selectCurrent();
@@ -379,8 +380,14 @@ function doMove(dir){
         :ev.ascended?('You climb to <b>'+n+'</b>.')
         :('You enter <b>'+n+'</b>.'), 'event');
     }
-    refreshExitMarkers(); busy=false;
-  }, (ev.descended||ev.ascended)?620:420);
+    refreshExitMarkers();
+    if(ev.trap){
+      const c = ev.trap==='sprung'
+        ? ['Trap sprung!','The floor gives way — the party plunges to <b>'+ev.area.name+'</b> on level '+ev.area.level+'. There is no way back up.','bad']
+        : ['Trap avoided','Your dwarf spots a hidden trap and guides the party safely across.','good'];
+      showConfirm(c[0],c[1],c[2]).then(()=>{ busy=false; });
+    } else { busy=false; }
+  }, drop?620:420);
 }
 function onChamber(area,chamber){
   layContents(area, chamber.firstVisit);           // lay the cards on the chamber floor (persists)
@@ -448,6 +455,17 @@ function setPrompt(html,cls){const el=document.getElementById('prompt');el.class
   document.getElementById('promptText').innerHTML=html;el.style.opacity='1';
   clearTimeout(promptT);promptT=setTimeout(()=>{el.style.opacity='0.86';},2600);}
 let toastT;function showToast(html){const el=document.getElementById('toast');el.innerHTML=html;el.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove('show'),1600);}
+/** A blocking acknowledgement modal (e.g. a sprung trap). Resolves when the player dismisses it. */
+function showConfirm(title,body,tone){
+  return new Promise(res=>{
+    const ov=document.createElement('div'); ov.className='scv-dice-overlay';
+    const card=document.createElement('div'); card.className='scv-dice-card';
+    card.innerHTML='<div class="scv-dice-title">'+title+'</div><p class="scv-dice-msg '+(tone||'')+'">'+body+'</p>';
+    const btn=document.createElement('button'); btn.className='scv-primary'; btn.textContent='Continue';
+    btn.addEventListener('click',()=>{ ov.remove(); res(); });
+    card.appendChild(btn); ov.appendChild(card); document.body.appendChild(ov); btn.focus();
+  });
+}
 function updateHUD(){const s=engine.state();
   document.getElementById('st-depth').textContent='Level '+s.level;
   document.getElementById('st-turn').textContent=s.turn;
