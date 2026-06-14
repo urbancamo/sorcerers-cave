@@ -92,7 +92,7 @@ export function eventNotices(events: GameEvent[]): Notice[] {
         out.push({ text: "The guardian statue stands powerless before you.", tone: "good" });
         break;
       case "deathPrevented":
-        out.push({ text: `The Talisman shields ${name(e.creatureId)} from death!`, tone: "good" });
+        out.push({ text: `The Ring renders ${name(e.creatureId)} invincible — the blow fails!`, tone: "good" });
         break;
       case "unicornGuards":
         out.push({ text: `A unicorn joins the party to guard ${name(e.creatureId)}.`, tone: "good" });

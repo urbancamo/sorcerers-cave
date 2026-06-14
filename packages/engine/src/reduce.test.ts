@@ -243,6 +243,19 @@ describe("reduce — fight dispatch (C-2 §9.5)", () => {
     expect(r.state.fight?.casualtyQueue).toBeUndefined();
   });
 
+  it("Lotus Dust has no effect on a Spectre (card)", () => {
+    const s = makeState({
+      phase: "fight",
+      fight: { surprise: 0, round: 1, focus: 0 },
+      strangers: [9], // a Spectre
+      party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [5] }], // Man holds Lotus Dust (id 5)
+    });
+    const { state, events } = reduce(s, { type: "useArtifact", artifact: 5, target: 0 });
+    expect(events).toEqual([{ type: "blocked" }]);
+    expect(state.strangers).toEqual([9]); // Spectre unaffected
+    expect(state.party[0]!.treasure).toContain(5); // Lotus Dust not spent
+  });
+
   it("Lotus Dust weakens the Sorcerer instead of putting him to sleep (card)", () => {
     const s = makeState({
       phase: "fight",

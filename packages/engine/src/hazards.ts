@@ -6,8 +6,16 @@ import {
 import { AF_DESTROYED, type GameState, type PartyMember } from "./state";
 import type { GameEvent } from "./actions";
 
+const T_TALISMAN = 7;
+const T_MAGIC_STAFF = 9;
+const C_WIZARD = 8;
+
 function living(state: GameState): PartyMember[] {
   return state.party.filter((m) => m.status === 0 || m.status === 1);
+}
+
+function livingHolds(state: GameState, treasureId: number): boolean {
+  return living(state).some((m) => m.treasure.includes(treasureId));
 }
 
 /** Resolve every hazard in the working set, in priority order (spec §7.2). */
@@ -18,6 +26,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
 
   for (const hz of order) {
     if (!state.hazards.includes(hz)) continue;
+    if (hz === HAZARD_GHOULS && livingHolds(state, T_TALISMAN)) continue; // the Talisman wards off Ghouls (card)
     events.push({ type: "hazardFired", hazard: hz });
     switch (hz) {
       case HAZARD_EARTHQUAKE: {
@@ -31,6 +40,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
       case HAZARD_MEDUSA: {
         for (const m of state.party) {
           if (m.status !== 0 && m.status !== 1) continue;
+          if (m.creatureId === C_WIZARD && m.treasure.includes(T_MAGIC_STAFF)) continue; // a Wizard bearing the Magic Staff is immune (card)
           const r = rollDie(state.seed);
           state.seed = r.seed;
           if (r.value <= 2) m.status = 2;

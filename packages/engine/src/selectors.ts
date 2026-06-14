@@ -21,8 +21,10 @@ function artifactActions(state: GameState): GameAction[] {
     }
   }
   if (state.phase === "fight" || state.phase === "encounter") {
-    if (has(5, () => true)) { // Lotus Dust -> each stranger
-      for (let i = 0; i < state.strangers.length; i++) actions.push({ type: "useArtifact", artifact: 5, target: i });
+    if (has(5, () => true)) { // Lotus Dust -> each stranger (but not a Spectre — no effect, per card)
+      for (let i = 0; i < state.strangers.length; i++) {
+        if (state.strangers[i] !== 9) actions.push({ type: "useArtifact", artifact: 5, target: i });
+      }
     }
     if (state.strangers.includes(10) && has(12, (id) => id === 0 || id === 4 || id === 5 || id === 6 || id === 8)) {
       actions.push({ type: "useArtifact", artifact: 12 }); // Charmed Flute -> lull Dragons to sleep

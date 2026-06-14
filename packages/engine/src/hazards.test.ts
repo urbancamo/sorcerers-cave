@@ -3,7 +3,7 @@ import { applyHazards } from "./hazards";
 import { reduce } from "./reduce";
 import { makeState } from "./testkit";
 import { packCoord } from "./coords";
-import { HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_MUTINY, HAZARD_TRAP } from "./data/hazards";
+import { HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_MUTINY, HAZARD_TRAP } from "./data/hazards";
 
 describe("applyHazards (spec §7.2)", () => {
   it("Earthquake collapses the previous area", () => {
@@ -103,5 +103,32 @@ describe("applyHazards (spec §7.2)", () => {
     const here = state.areas[state.partyArea]!;
     expect(here.card & 32).toBe(0);                 // no phantom stair-up → cannot climb back out
     expect(here.mirroredStairs ?? 0).toBe(0);       // and nothing tagged as a connectivity link
+  });
+
+  it("the Talisman wards off Ghouls — no harm, no hazard fired (card)", () => {
+    const s = makeState({
+      party: [
+        { creatureId: 7, status: 0, dragonKills: 0, treasure: [7] }, // Dwarf holding the Talisman (id 7)
+        { creatureId: 7, status: 0, dragonKills: 0, treasure: [] },  // a weak Dwarf the Ghouls would slay
+      ],
+      hazards: [HAZARD_GHOULS],
+      seed: 3,
+    });
+    const { events } = applyHazards(s);
+    expect(s.party.every((m) => m.status === 0)).toBe(true); // nobody harmed
+    expect(events.some((e) => e.type === "hazardFired")).toBe(false); // Ghouls driven off before they engage
+  });
+
+  it("a Wizard bearing the Magic Staff is immune to Medusa (card)", () => {
+    const s = makeState({
+      party: [
+        { creatureId: 8, status: 0, dragonKills: 0, treasure: [9] }, // Wizard with the Magic Staff (id 9)
+        { creatureId: 5, status: 0, dragonKills: 0, treasure: [] },  // Man, vulnerable
+      ],
+      hazards: [HAZARD_MEDUSA],
+      seed: 1,
+    });
+    applyHazards(s);
+    expect(s.party[0]!.status).toBe(0); // the staff-bearing Wizard is never turned to stone
   });
 });
