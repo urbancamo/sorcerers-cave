@@ -14,6 +14,7 @@ const DIRV={N:[0,-1],S:[0,1],E:[1,0],W:[-1,0]};
 let engine, startLevel, tiles, PARTY=[];
 const lvlIndex=l=>l-startLevel;
 function worldPos(a){ return new THREE.Vector3(a.col*TILE_W, -lvlIndex(a.level)*LEVEL_GAP, a.row*TILE_D); }
+const akey=a=>a.level+','+a.col+','+a.row; // one tile per (level,col,row)
 
 /* ---- renderer / scene / camera ---- */
 let renderer, scene, camera, controls, maxAniso;
@@ -48,11 +49,15 @@ function makeGridTexture(){
 const platformGroup=new THREE.Group(),tileGroup=new THREE.Group(),stairGroup=new THREE.Group(),
       fxGroup=new THREE.Group(),exitGroup=new THREE.Group(),contentGroup=new THREE.Group();
 const tileMeshes=[]; const exitMarkers=[]; const spawnAnims=[]; const stairDashes=[];
+const pendingTiles=new Set(); // coords whose mesh is mid-build (guards against duplicate laying)
 const contentMeshes=[]; const cardAnims=[];
 let partyToken=null, selectRing=null, tokenMove=null;
 
 /* ---- build a single area's tile ---- */
 async function buildAreaMesh(area, spawn){
+  const k=akey(area); // never lay two meshes for the same coord (optimistic + reconcile can race)
+  if(pendingTiles.has(k) || tileMeshes.some(m=>m.userData.area&&akey(m.userData.area)===k)) return;
+  pendingTiles.add(k);
   const tex=await loadAlphaTexture(area.tileId? (tiles.get(area.tileId)?.file ?? ''):'');
   const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,alphaTest:0.03,side:THREE.DoubleSide,depthWrite:true});
   const mesh=new THREE.Mesh(new THREE.PlaneGeometry(TILE_W,TILE_D),mat);
@@ -60,6 +65,7 @@ async function buildAreaMesh(area, spawn){
   if(area.rot) mesh.rotation.z=THREE.MathUtils.degToRad(-area.rot);
   const p=worldPos(area); mesh.position.copy(p); mesh.renderOrder=2;
   mesh.userData.area=area; mesh.userData.lvl=area.level; regMat(mat); area._mesh=mesh; tileGroup.add(mesh); tileMeshes.push(mesh);
+  pendingTiles.delete(k);
   if(spawn){ mat.opacity=0; mesh.position.y=p.y+1.4; spawnAnims.push({mesh,p,t0:clock.elapsedTime}); }
   if(area.cardId){ addCardGlow(area); }
 }
@@ -208,8 +214,27 @@ function refreshExitMarkers(){
 
 /* ---- re-sync the scene to engine state changed outside of doMove
         (panel-driven encounter/fight/pickup resolution) ---- */
+function disposeTileMesh(mesh){
+  tileGroup.remove(mesh);
+  mesh.geometry?.dispose?.();
+  if(mesh.material){ mesh.material.map?.dispose?.(); mesh.material.dispose(); }
+  let i=tileMeshes.indexOf(mesh); if(i>=0) tileMeshes.splice(i,1);
+  i=spawnAnims.findIndex(s=>s.mesh===mesh); if(i>=0) spawnAnims.splice(i,1);
+}
+/* Reconcile tile meshes to the authoritative area set. Optimistic doMove laying can drift
+   from the synced state: a racing move may leave an area with no mesh, or strand a mesh at a
+   phantom coord (e.g. one computed while the party was briefly on another level — the
+   "tile on the level below, offset" bug). Drop unbacked meshes; lay any area that lacks one. */
+function reconcileTiles(){
+  const want=new Map(); engine.areas.forEach(a=>want.set(akey(a),a));
+  let changed=false;
+  for(const m of [...tileMeshes]){ const ua=m.userData.area; if(!ua||!want.has(akey(ua))){ disposeTileMesh(m); changed=true; } }
+  const have=new Set(tileMeshes.map(m=>m.userData.area?akey(m.userData.area):''));
+  for(const [k,a] of want){ if(!have.has(k)){ buildAreaMesh(a,true); changed=true; } }
+  if(changed){ rebuildPlatforms(); rebuildStairs(); rebuildLevelButtons(); }
+}
 function refresh(){
-  updateHUD(); selectCurrent(); refreshExitMarkers();
+  updateHUD(); selectCurrent(); refreshExitMarkers(); reconcileTiles();
   // Re-lay every chamber whose on-floor cards changed (e.g. a treasure was picked up);
   // layContents is a no-op when an area's contents are unchanged.
   engine.areas.forEach(a=>layContents(a,false));
@@ -539,7 +564,7 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
   [platformGroup,tileGroup,stairGroup,fxGroup,exitGroup,contentGroup].forEach(g=>{
     for(let i=g.children.length-1;i>=0;i--){const o=g.children[i];o.traverse?.(x=>{x.geometry?.dispose?.();x.material?.dispose?.();});g.remove(o);}
   });
-  tileMeshes.length=0;exitMarkers.length=0;spawnAnims.length=0;stairDashes.length=0;contentMeshes.length=0;cardAnims.length=0;
+  tileMeshes.length=0;exitMarkers.length=0;spawnAnims.length=0;stairDashes.length=0;contentMeshes.length=0;cardAnims.length=0;pendingTiles.clear();
   contentGroups.clear();
   for(const k of Object.keys(levelBounds)) delete levelBounds[k];
   for(const k of Object.keys(isoAlpha)) delete isoAlpha[k];
