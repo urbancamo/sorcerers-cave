@@ -1,11 +1,13 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, type CSSProperties } from "react";
 import { CREATURES, STARTING_STOCK, PARTY_BUDGET, validatePicks } from "@sorcerers-cave/engine";
 import { loadManifest, resolveCard } from "../data/manifest";
+import { PARTY_COLORS, PARTY_COLOR_HEX, DEFAULT_PARTY_COLOR, type PartyColor } from "./partyColors";
 
 const SELECTABLE = CREATURES.filter((c) => c.cost !== null); // ids 0–7
 
-export function PartySelect({ onConfirm }: { onConfirm: (picks: number[]) => void }) {
+export function PartySelect({ onConfirm }: { onConfirm: (picks: number[], color: PartyColor) => void }) {
   const [counts, setCounts] = useState<Record<number, number>>({});
+  const [color, setColor] = useState<PartyColor>(DEFAULT_PARTY_COLOR);
   const [cardFile, setCardFile] = useState<Record<number, string>>({});
 
   // Card art is a progressive enhancement: if the manifest can't be fetched
@@ -60,7 +62,23 @@ export function PartySelect({ onConfirm }: { onConfirm: (picks: number[]) => voi
           );
         })}
       </div>
-      <button className="scv-primary" disabled={!valid} onClick={() => onConfirm(picks)}>
+      <div className="scv-colors">
+        <span className="scv-colors-label">Party colour</span>
+        <div className="scv-colors-row">
+          {PARTY_COLORS.map((c) => (
+            <button
+              key={c}
+              type="button"
+              className={"scv-swatch" + (color === c ? " sel" : "")}
+              style={{ "--swatch": PARTY_COLOR_HEX[c] } as CSSProperties}
+              aria-label={`party colour ${c}`}
+              aria-pressed={color === c}
+              onClick={() => setColor(c)}
+            />
+          ))}
+        </div>
+      </div>
+      <button className="scv-primary" disabled={!valid} onClick={() => onConfirm(picks, color)}>
         Enter the cave ({picks.length})
       </button>
     </section>

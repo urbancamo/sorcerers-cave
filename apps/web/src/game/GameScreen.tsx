@@ -19,7 +19,7 @@ export default function GameScreen() {
   const newGame = useMutation(api.game.newGame);
   const [gameId, setGameId] = useState<Id<"games"> | null>(null);
   const [started, setStarted] = useState(false); // dismissed the splash
-  const { engine, loading, state, dispatch } = useCaveGame(gameId);
+  const { engine, loading, state, color, dispatch } = useCaveGame(gameId);
   // The dice overlay lives here (not in EncounterPanel) so a fatal round's roll
   // still shows even though game-over swaps the panel out for GameOverScreen.
   const [roll, setRoll] = useState<RollView | null>(null);
@@ -43,7 +43,7 @@ export default function GameScreen() {
     return <SplashScreen onStartSolitaire={() => setStarted(true)} />;
   }
   if (!gameId) {
-    return <PartySelect onConfirm={async (picks) => setGameId(await newGame({ seed: Date.now(), picks }))} />;
+    return <PartySelect onConfirm={async (picks, color) => setGameId(await newGame({ seed: Date.now(), picks, color }))} />;
   }
   if (loading || !engine || !state) return <p>Loading cave…</p>;
 
@@ -63,7 +63,7 @@ export default function GameScreen() {
 
   return (
     <div className="relative h-screen w-screen">
-      <CaveCanvas key={gameId} engine={engine} state={state} />
+      <CaveCanvas key={gameId} engine={engine} state={state} color={color} />
       <EncounterPanel state={state} dispatch={dispatchWithRolls} />
       {overlay}
     </div>

@@ -21,6 +21,7 @@ export interface BootOptions {
   tiles: Map<string, TileArt>;
   party: ViewPartyMember[];
   tileAR: number;
+  partyColor?: string; // marker colour (hex)
 }
 export function boot(opts: BootOptions): Promise<{
   dispose(): void;

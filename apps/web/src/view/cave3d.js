@@ -11,7 +11,7 @@ const CAT_COLOR={creature:'#a8443a',treasure:'#c9a14e',artifact:'#c9a14e',hazard
 const TILE_W=4.3, LEVEL_GAP=5.2; let TILE_D;
 const DIRV={N:[0,-1],S:[0,1],E:[1,0],W:[-1,0]};
 
-let engine, startLevel, tiles, PARTY=[];
+let engine, startLevel, tiles, PARTY=[], partyColorHex;
 const lvlIndex=l=>l-startLevel;
 function worldPos(a){ return new THREE.Vector3(a.col*TILE_W, -lvlIndex(a.level)*LEVEL_GAP, a.row*TILE_D); }
 const akey=a=>a.level+','+a.col+','+a.row; // one tile per (level,col,row)
@@ -158,12 +158,15 @@ function rebuildStairs(){
 /* ---- party token + selection ring ---- */
 function buildPartyToken(){
   const g=new THREE.Group();
-  const disc=new THREE.Mesh(new THREE.CylinderGeometry(0.34,0.42,0.1,28),new THREE.MeshBasicMaterial({color:COLOR.brass}));disc.position.y=0.16;
-  const pillar=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.13,0.74,14),new THREE.MeshBasicMaterial({color:COLOR.brassBright}));pillar.position.y=0.58;
-  const gem=new THREE.Mesh(new THREE.OctahedronGeometry(0.22),new THREE.MeshBasicMaterial({color:COLOR.brassBright}));gem.position.y=1.12;
-  const halo=new THREE.Mesh(new THREE.RingGeometry(0.5,0.8,40),new THREE.MeshBasicMaterial({color:COLOR.brass,transparent:true,opacity:0.5,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));
+  const base=new THREE.Color(partyColorHex||COLOR.brass);
+  const bright=base.clone().lerp(new THREE.Color(0xffffff),0.42); // lighter accent for the pillar/gem
+  const disc=new THREE.Mesh(new THREE.CylinderGeometry(0.34,0.42,0.1,28),new THREE.MeshBasicMaterial({color:base}));disc.position.y=0.16;
+  const pillar=new THREE.Mesh(new THREE.CylinderGeometry(0.1,0.13,0.74,14),new THREE.MeshBasicMaterial({color:bright}));pillar.position.y=0.58;
+  const gem=new THREE.Mesh(new THREE.OctahedronGeometry(0.22),new THREE.MeshBasicMaterial({color:bright}));gem.position.y=1.12;
+  const halo=new THREE.Mesh(new THREE.RingGeometry(0.5,0.8,40),new THREE.MeshBasicMaterial({color:base,transparent:true,opacity:0.5,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));
   halo.rotation.x=-Math.PI/2;halo.position.y=0.05;
-  g.add(disc,pillar,gem,halo);g.userData={gem,halo};g.position.copy(worldPos(engine.current));fxGroup.add(g);partyToken=g;
+  g.add(disc,pillar,gem,halo);g.scale.setScalar(0.5); // party marker reduced by 50%
+  g.userData={gem,halo};g.position.copy(worldPos(engine.current));fxGroup.add(g);partyToken=g;
 }
 function buildSelectRing(){
   selectRing=new THREE.Mesh(new THREE.RingGeometry(TILE_D*0.4,TILE_D*0.45,56),
@@ -582,8 +585,8 @@ function onKeyDown(e){
 }
 function onResize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}
 
-export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr, tileAR }){
-  engine=eng; startLevel=eng.startLevel; tiles=tileMap; PARTY=partyArr; TILE_D=TILE_W/tileAR;
+export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr, tileAR, partyColor }){
+  engine=eng; startLevel=eng.startLevel; tiles=tileMap; PARTY=partyArr; TILE_D=TILE_W/tileAR; partyColorHex=partyColor;
 
   /* ---- renderer / scene / camera ---- */
   renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});

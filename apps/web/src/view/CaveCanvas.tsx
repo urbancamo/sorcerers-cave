@@ -5,14 +5,17 @@ import { loadManifest, indexTilesById, type CardArt } from "../data/manifest";
 import { boot } from "./cave3d";
 import { viewParty } from "./viewParty";
 import { CaveHud } from "./CaveHud";
+import { partyColorHex, type PartyColor } from "../game/partyColors";
 
 const TILE_AR = 1728 / 1210; // all tiles are 1728×1210 landscape (manifest)
 
 /** Mounts the vanilla Three.js renderer, booted from the injected engine adapter. */
-export function CaveCanvas({ engine, state }: { engine: CaveEngine; state: GameState }) {
+export function CaveCanvas({ engine, state, color }: { engine: CaveEngine; state: GameState; color: PartyColor }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const ctrl = useRef<{ dispose(): void; refresh(): void; setParty(p: ReturnType<typeof viewParty>): void } | null>(null);
   const cardsRef = useRef<CardArt[]>([]); // small-card art for resolving carried items in the roster
+  const colorRef = useRef(color);
+  colorRef.current = color;
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -28,6 +31,7 @@ export function CaveCanvas({ engine, state }: { engine: CaveEngine; state: GameS
         tiles: indexTilesById(tiles),
         party: viewParty(state, cards),
         tileAR: TILE_AR,
+        partyColor: partyColorHex(colorRef.current),
       });
     })();
     return () => {

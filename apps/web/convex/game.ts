@@ -22,15 +22,17 @@ const actionValidator = v.object({
 });
 
 /** Start a new authoritative game: validate the party, build the engine state, persist it (owned by the caller). */
+const colorValidator = v.union(v.literal("green"), v.literal("blue"), v.literal("yellow"), v.literal("red"));
+
 export const newGame = mutation({
-  args: { seed: v.number(), picks: v.array(v.number()) },
-  handler: async (ctx, { seed, picks }) => {
+  args: { seed: v.number(), picks: v.array(v.number()), color: v.optional(colorValidator) },
+  handler: async (ctx, { seed, picks, color }) => {
     const ownerId = await getAuthUserId(ctx);
     if (!ownerId) throw new Error("Unauthenticated");
     if (!validatePicks(picks)) throw new Error("Invalid party selection");
     const state = createGameState(seed, picks);
     const now = Date.now();
-    return await ctx.db.insert("games", { ownerId, state, status: "active", createdAt: now, updatedAt: now });
+    return await ctx.db.insert("games", { ownerId, state, status: "active", color, createdAt: now, updatedAt: now });
   },
 });
 

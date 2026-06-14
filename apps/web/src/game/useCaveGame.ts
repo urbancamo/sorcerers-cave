@@ -6,6 +6,7 @@ import { loadManifest } from "../data/manifest";
 import { createCaveAdapter, type CaveAdapter } from "../view/engineAdapter";
 import type { ArtTables } from "../view/projection";
 import type { GameState, GameAction } from "@sorcerers-cave/engine";
+import { DEFAULT_PARTY_COLOR, type PartyColor } from "./partyColors";
 
 /**
  * Bind a Convex-authoritative game to a synchronous CaveEngine adapter.
@@ -23,6 +24,7 @@ export function useCaveGame(id: Id<"games"> | null) {
   useEffect(() => { void loadManifest().then(setArt); }, []);
 
   const state = (game as { state?: GameState } | null | undefined)?.state ?? null;
+  const color = (game as { color?: PartyColor } | null | undefined)?.color ?? DEFAULT_PARTY_COLOR;
 
   // Reconcile the adapter mirror to the authoritative snapshot DURING render, not in an
   // effect: child effects (e.g. CaveCanvas's refresh) run before this hook's effects would,
@@ -43,5 +45,5 @@ export function useCaveGame(id: Id<"games"> | null) {
   // Returns the action's result ({ state, events }) so callers can react to events
   // (e.g. animate a reaction roll); null when there is no game.
   const dispatch = (action: GameAction) => (id ? apply({ id, action }) : Promise.resolve(null));
-  return { engine: adapterRef.current, loading: !art || game === undefined, state, dispatch };
+  return { engine: adapterRef.current, loading: !art || game === undefined, state, color, dispatch };
 }

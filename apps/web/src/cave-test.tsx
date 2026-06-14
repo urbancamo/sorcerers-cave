@@ -19,7 +19,7 @@ function Harness({ art }: { art: ArtTables }) {
   }
   return (
     <div className="relative h-screen w-screen">
-      <CaveCanvas engine={adapter} state={state} />
+      <CaveCanvas engine={adapter} state={state} color="yellow" />
       <EncounterPanel state={state} dispatch={apply} />
     </div>
   );

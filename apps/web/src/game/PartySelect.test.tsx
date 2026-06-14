@@ -9,7 +9,16 @@ describe("PartySelect", () => {
     // add one Woman (cost 2) — within the budget of 6
     fireEvent.click(screen.getByRole("button", { name: /add Woman/i }));
     fireEvent.click(screen.getByRole("button", { name: /^Enter the cave/i }));
-    expect(onConfirm).toHaveBeenCalledWith([6]);
+    expect(onConfirm).toHaveBeenCalledWith([6], "yellow"); // default party colour
+  });
+
+  it("selects a party colour and reports it on confirm", () => {
+    const onConfirm = vi.fn();
+    render(<PartySelect onConfirm={onConfirm} />);
+    fireEvent.click(screen.getByRole("button", { name: /add Woman/i }));
+    fireEvent.click(screen.getByRole("button", { name: /party colour blue/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Enter the cave/i }));
+    expect(onConfirm).toHaveBeenCalledWith([6], "blue");
   });
 
   it("disables Confirm when nothing is picked and when over budget", () => {
