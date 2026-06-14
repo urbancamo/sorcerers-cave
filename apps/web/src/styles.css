@@ -1,1 +1,183 @@
 @import "tailwindcss";
+
+/* ---- Sorcerer's Cave shared design tokens (mirror of view/cave.css) ---- */
+:root {
+  --void: #070709;
+  --panel: #15151b;
+  --stone: #b8b1a2;
+  --stone-dim: #6f6a5f;
+  --parchment: #e8dbbb;
+  --cream: #f6efce;
+  --brass: #c9a14e;
+  --brass-bright: #e6c578;
+  --crimson: #a8443a;
+  --line: rgba(232, 219, 187, 0.13);
+  --line-strong: rgba(232, 219, 187, 0.26);
+  --display: "Cinzel", serif;
+  --body: "EB Garamond", serif;
+  --ui: ui-sans-serif, system-ui, -apple-system, sans-serif;
+}
+
+/* ---- menu / shell screens (party select, sign-in, game over) ---- */
+.scv-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  gap: 28px;
+  padding: 40px 20px;
+  color: var(--parchment);
+  font-family: var(--ui);
+  background: radial-gradient(1300px 850px at 50% 6%, #15161d 0%, #0b0b0f 55%, var(--void) 100%);
+}
+.scv-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(28px, 5vw, 40px);
+  letter-spacing: 0.08em;
+  color: var(--cream);
+  text-align: center;
+  text-shadow: 0 2px 28px rgba(201, 161, 78, 0.32);
+}
+.scv-panel {
+  width: min(460px, 92vw);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 24px 26px 26px;
+  background: rgba(15, 15, 20, 0.74);
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 28px 70px -28px rgba(0, 0, 0, 0.8);
+}
+.scv-hd {
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--brass-bright);
+  text-align: center;
+}
+.scv-budget {
+  text-align: center;
+  font-family: var(--display);
+  font-size: 15px;
+  color: var(--stone);
+}
+.scv-budget b {
+  color: var(--cream);
+  font-weight: 600;
+}
+.scv-budget.over b {
+  color: var(--crimson);
+}
+.scv-list {
+  display: flex;
+  flex-direction: column;
+}
+.scv-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 2px;
+  border-top: 1px solid var(--line);
+}
+.scv-row:first-child {
+  border-top: none;
+}
+.scv-row .nm {
+  flex: 1;
+  font-size: 15px;
+  color: var(--parchment);
+}
+.scv-row .cost {
+  font-size: 10.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--stone-dim);
+}
+.scv-step {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  background: transparent;
+  color: var(--parchment);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.scv-step:hover:not(:disabled) {
+  border-color: var(--brass);
+  color: var(--cream);
+  background: rgba(201, 161, 78, 0.1);
+}
+.scv-step:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+.scv-qty {
+  width: 20px;
+  text-align: center;
+  font-family: var(--display);
+  font-size: 15px;
+  color: var(--cream);
+}
+.scv-stock {
+  width: 30px;
+  font-size: 10px;
+  color: var(--stone-dim);
+}
+.scv-primary {
+  margin-top: 8px;
+  font-family: var(--ui);
+  font-weight: 600;
+  font-size: 14px;
+  letter-spacing: 0.02em;
+  padding: 12px 18px;
+  border-radius: 11px;
+  border: 1px solid var(--brass);
+  color: #241a06;
+  cursor: pointer;
+  background: linear-gradient(180deg, var(--brass-bright), var(--brass));
+  box-shadow: 0 8px 22px -8px rgba(201, 161, 78, 0.6);
+  transition: filter 0.15s;
+}
+.scv-primary:hover:not(:disabled) {
+  filter: brightness(1.07);
+}
+.scv-primary:disabled {
+  opacity: 0.4;
+  cursor: default;
+  box-shadow: none;
+}
+.scv-muted {
+  color: var(--stone);
+}
+.scv-score {
+  text-align: center;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 48px;
+  line-height: 1;
+  color: var(--brass-bright);
+}
+.scv-points {
+  text-align: center;
+  margin-top: -6px;
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--stone-dim);
+}
+.scv-survivors {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--parchment);
+}

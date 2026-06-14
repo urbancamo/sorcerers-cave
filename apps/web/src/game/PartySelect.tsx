@@ -16,28 +16,30 @@ export function PartySelect({ onConfirm }: { onConfirm: (picks: number[]) => voi
     });
 
   return (
-    <div className="flex flex-col items-center gap-4 text-stone-100">
-      <h2 className="text-xl font-semibold">Choose your party</h2>
-      <p className="text-stone-400">Budget {total}/{PARTY_BUDGET}</p>
-      <ul className="flex flex-col gap-2">
-        {SELECTABLE.map((c) => (
-          <li key={c.id} className="flex items-center gap-3">
-            <span className="w-24">{c.name}</span>
-            <span className="w-16 text-stone-400">cost {c.cost}</span>
-            <button className="rounded bg-stone-700 px-2" aria-label={`remove ${c.name}`} onClick={() => set(c.id, -1)}>−</button>
-            <span className="w-6 text-center">{counts[c.id] ?? 0}</span>
-            <button className="rounded bg-stone-700 px-2" aria-label={`add ${c.name}`} onClick={() => set(c.id, +1)}>+</button>
-            <span className="text-stone-500 text-xs">/ {STARTING_STOCK[c.id]}</span>
-          </li>
-        ))}
+    <section className="scv-panel">
+      <h2 className="scv-hd">Choose your party</h2>
+      <p className={"scv-budget" + (total > PARTY_BUDGET ? " over" : "")}>
+        Budget <b>{total}</b> / {PARTY_BUDGET}
+      </p>
+      <ul className="scv-list">
+        {SELECTABLE.map((c) => {
+          const n = counts[c.id] ?? 0;
+          const stock = STARTING_STOCK[c.id] ?? 0;
+          return (
+            <li key={c.id} className="scv-row">
+              <span className="nm">{c.name}</span>
+              <span className="cost">cost {c.cost}</span>
+              <button className="scv-step" aria-label={`remove ${c.name}`} disabled={n === 0} onClick={() => set(c.id, -1)}>−</button>
+              <span className="scv-qty">{n}</span>
+              <button className="scv-step" aria-label={`add ${c.name}`} disabled={n >= stock} onClick={() => set(c.id, +1)}>+</button>
+              <span className="scv-stock">/ {stock}</span>
+            </li>
+          );
+        })}
       </ul>
-      <button
-        className="rounded bg-amber-700 px-4 py-2 font-semibold disabled:opacity-40"
-        disabled={!valid}
-        onClick={() => onConfirm(picks)}
-      >
+      <button className="scv-primary" disabled={!valid} onClick={() => onConfirm(picks)}>
         Enter the cave ({picks.length})
       </button>
-    </div>
+    </section>
   );
 }
