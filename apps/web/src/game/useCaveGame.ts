@@ -18,27 +18,28 @@ export function useCaveGame(id: Id<"games"> | null) {
   const [art, setArt] = useState<ArtTables | null>(null);
   const adapterRef = useRef<CaveAdapter | null>(null);
   const adapterIdRef = useRef<Id<"games"> | null>(null);
-  const [version, bump] = useState(0);
+  const syncedRef = useRef<GameState | null>(null);
 
   useEffect(() => { void loadManifest().then(setArt); }, []);
 
-  useEffect(() => {
-    const state = (game as { state?: GameState } | null | undefined)?.state;
-    if (!art || !state || !id) return;
-    // Rebuild the adapter on first state OR when the bound game id changes (so a
-    // switched/resumed game never keeps dispatching to the previous game's id).
+  const state = (game as { state?: GameState } | null | undefined)?.state ?? null;
+
+  // Reconcile the adapter mirror to the authoritative snapshot DURING render, not in an
+  // effect: child effects (e.g. CaveCanvas's refresh) run before this hook's effects would,
+  // so syncing here guarantees consumers that read engine.current see the latest state
+  // (otherwise a withdraw/retreat leaves the view on the old tile).
+  if (art && state && id) {
     if (!adapterRef.current || adapterIdRef.current !== id) {
       adapterIdRef.current = id;
       adapterRef.current = createCaveAdapter(state, art, {
-        onAction: (action: GameAction) => { void apply({ id, action }); },
+        onAction: (action: GameAction) => { if (id) void apply({ id, action }); },
       });
-    } else {
+    } else if (syncedRef.current !== state) {
       adapterRef.current.sync(state);
     }
-    bump((n) => n + 1); // re-render consumers when the mirror changes
-  }, [art, game, id, apply]);
+    syncedRef.current = state;
+  }
 
-  const state = (game as { state?: GameState } | null | undefined)?.state ?? null;
   const dispatch = (action: GameAction) => { if (id) void apply({ id, action }); };
-  return { engine: adapterRef.current, loading: !art || game === undefined, version, state, dispatch };
+  return { engine: adapterRef.current, loading: !art || game === undefined, state, dispatch };
 }
