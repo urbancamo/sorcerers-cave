@@ -207,7 +207,9 @@ function refreshExitMarkers(){
         (panel-driven encounter/fight/pickup resolution) ---- */
 function refresh(){
   updateHUD(); selectCurrent(); refreshExitMarkers();
-  engine.areas.forEach(a=>{ if((a.strangers.length||a.treasure.length) && !a._contentGroup) layContents(a,false); });
+  // Re-lay every chamber whose on-floor cards changed (e.g. a treasure was picked up);
+  // layContents is a no-op when an area's contents are unchanged.
+  engine.areas.forEach(a=>layContents(a,false));
 }
 
 /* ============================================================
@@ -245,13 +247,32 @@ function makeCardObject(card, yaw){
   contentMeshes.push(face);
   return g;
 }
+// laid card-groups keyed by area coord (stable across re-projection), with a
+// content signature so we only rebuild when the chamber's cards actually change.
+const contentGroups=new Map();                          // "lvl,col,row" -> {group,sig,faces}
+function contentSig(area){
+  return area.strangers.map(c=>c.id).join(',')+'|'+area.treasure.map(c=>c.id).join(',');
+}
+function disposeContentGroup(entry){
+  contentGroup.remove(entry.group);
+  entry.group.traverse(o=>{ o.geometry?.dispose?.(); o.material?.dispose?.(); });
+  for(const f of entry.faces){ const i=contentMeshes.indexOf(f); if(i>=0) contentMeshes.splice(i,1); }
+}
 function layContents(area, animated){
-  if(area._contentGroup) return;                       // already laid (persistent)
+  const key=area.level+','+area.col+','+area.row;
+  const sig=contentSig(area);
+  const existing=contentGroups.get(key);
+  if(existing){
+    if(existing.sig===sig) return;                      // unchanged — keep the laid cards
+    disposeContentGroup(existing); contentGroups.delete(key); // contents changed — rebuild
+  }
+  if(!area.strangers.length && !area.treasure.length) return; // nothing (or everything taken) — show no cards
   const lanes=[
     {list:area.strangers, ax:-TILE_W*0.14, az:-TILE_D*0.17},   // creatures: upper-left, inward
     {list:area.treasure,  ax:-TILE_W*0.14, az: TILE_D*0.19},   // treasure: lower-left, inward
   ];
   const grp=new THREE.Group(); grp.position.copy(worldPos(area));
+  const faces=[];
   let dealIdx=0;
   lanes.forEach(lane=>{
     const n=lane.list.length;
@@ -264,6 +285,7 @@ function layContents(area, animated){
       const x=lane.ax + off*dx;
       const z=lane.az + Math.abs(off)*0.045;            // gentle arc bow
       const o=makeCardObject(card,yaw);
+      faces.push(o.userData.face);
       o.userData.face.userData.area=area;
       const ty=0.07 + dealIdx*0.016;                    // later cards stack on top
       o.position.set(x,ty,z);
@@ -273,7 +295,8 @@ function layContents(area, animated){
       grp.add(o); dealIdx++;
     });
   });
-  grp.userData.lvl=area.level; area._contentGroup=grp; contentGroup.add(grp);
+  grp.userData.lvl=area.level; contentGroup.add(grp);
+  contentGroups.set(key,{group:grp,sig,faces});
 }
 const goal={pos:new THREE.Vector3(),target:new THREE.Vector3(),fov:45,active:false};
 function flyTo(pos,target,fov){goal.pos.copy(pos);goal.target.copy(target);goal.fov=fov??camera.fov;goal.active=true;controls.enabled=false;}
