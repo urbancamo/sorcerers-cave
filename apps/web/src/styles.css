@@ -182,6 +182,77 @@
   color: var(--parchment);
 }
 
+/* ---- party-select character cards ---- */
+.scv-party {
+  width: min(720px, 94vw);
+}
+.scv-cards {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+@media (max-width: 600px) {
+  .scv-cards {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+.scv-card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: rgba(8, 8, 12, 0.45);
+  transition: border-color 0.15s, box-shadow 0.15s, background 0.15s;
+}
+.scv-card.sel {
+  border-color: var(--brass);
+  background: rgba(201, 161, 78, 0.08);
+  box-shadow: 0 0 0 1px var(--brass), 0 8px 20px -10px rgba(201, 161, 78, 0.55);
+}
+.scv-card-art {
+  aspect-ratio: 63 / 88;
+  border-radius: 6px;
+  overflow: hidden;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--line);
+  display: grid;
+  place-items: center;
+}
+.scv-card-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  display: block;
+}
+.scv-card-art .ph {
+  font-family: var(--display);
+  font-size: 13px;
+  color: var(--stone-dim);
+  text-align: center;
+  padding: 8px;
+}
+.scv-card-nm {
+  font-family: var(--display);
+  font-size: 13px;
+  color: var(--cream);
+  text-align: center;
+}
+.scv-card-cost {
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--stone-dim);
+  text-align: center;
+}
+.scv-card-step {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+}
+
 /* ---- in-game encounter / fight / pickup overlay (matches the HUD) ---- */
 .scv-enc {
   position: absolute;
