@@ -20,6 +20,9 @@ export function PartyPanel({
 }) {
   const [cards, setCards] = useState<CardArt[]>([]);
   const [sel, setSel] = useState<{ mi: number; idx: number } | null>(null);
+  // Hovered/focused item shown as a large floating preview (fixed to the viewport so it
+  // can't be clipped by, or clash with, the panel edge).
+  const [preview, setPreview] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -87,6 +90,10 @@ export function PartyPanel({
                         aria-label={t.name}
                         title={t.name + (t.kind === "artifact" ? " · artifact" : ` · ${t.weight}kg`)}
                         onClick={() => setSel(selected ? null : { mi, idx })}
+                        onMouseEnter={() => setPreview(timg)}
+                        onMouseLeave={() => setPreview((p) => (p === timg ? null : p))}
+                        onFocus={() => setPreview(timg)}
+                        onBlur={() => setPreview((p) => (p === timg ? null : p))}
                       >
                         {timg ? <img src={timg} alt={t.name} /> : <span className="ph">{t.name[0]}</span>}
                       </button>
@@ -101,6 +108,12 @@ export function PartyPanel({
 
         {!canManage && <p className="scv-pp-note">Treasure can’t be redistributed during a fight.</p>}
       </div>
+
+      {preview && (
+        <div className="scv-pp-preview" aria-hidden="true">
+          <img src={preview} alt="" />
+        </div>
+      )}
     </div>
   );
 }

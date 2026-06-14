@@ -3,6 +3,13 @@ import { describe, it, expect, vi } from "vitest";
 import { newGame, type GameState } from "@sorcerers-cave/engine";
 import { PartyPanel } from "./PartyPanel";
 
+// Card art isn't available in jsdom; resolve Gold (treasure id 1) to a stub file so the
+// hover-preview test has an image to show. Other cards fall back to their name placeholder.
+vi.mock("../data/manifest", () => ({
+  loadManifest: () => Promise.resolve({ cards: [] }),
+  resolveCard: (cat: string, id: number) => (cat === "treasure" && id === 1 ? { file: "/gold.png" } : null),
+}));
+
 function partyState(): GameState {
   const s = newGame(1, [5, 7]); // Man (carry 50) + Dwarf (carry 25) — cost 3+1 ≤ 6 budget
   s.party[0]!.treasure.push(1); // Man carries Gold (id 1, 25kg — fits the Dwarf exactly)
@@ -24,6 +31,18 @@ describe("PartyPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: /^gold$/i }));
     fireEvent.click(screen.getByRole("button", { name: /drop into chamber/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "dropTreasure", mi: 0, idx: 0 });
+  });
+
+  it("shows a large floating preview while an item is hovered, and hides it on leave", () => {
+    render(<PartyPanel state={partyState()} dispatch={() => {}} onClose={() => {}} />);
+    const gold = screen.getByRole("button", { name: /^gold$/i });
+    expect(document.querySelector(".scv-pp-preview")).toBeNull();
+    fireEvent.mouseEnter(gold);
+    const preview = document.querySelector(".scv-pp-preview img");
+    expect(preview).not.toBeNull();
+    expect(preview!.getAttribute("src")).toBe("/gold.png");
+    fireEvent.mouseLeave(gold);
+    expect(document.querySelector(".scv-pp-preview")).toBeNull();
   });
 
   it("is view-only during a fight", () => {

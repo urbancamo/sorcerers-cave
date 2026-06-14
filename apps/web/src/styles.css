@@ -674,16 +674,26 @@
 .scv-pp-item {
   width: 64px; aspect-ratio: 7 / 10; padding: 0; border-radius: 6px; border: 1px solid var(--line-strong);
   background: #0d0d11; cursor: pointer; overflow: hidden;
-  transform-origin: center; transition: transform 0.16s ease, box-shadow 0.16s ease;
+  transition: filter 0.16s ease, box-shadow 0.16s ease;
 }
 .scv-pp-item:disabled { cursor: default; }
-/* hover-expand to read the card; centre-origin so the cursor stays on it (no flicker) and it works
-   with click-to-select. z-index lifts it above neighbouring cards. */
-.scv-pp-item:not(:disabled):hover { transform: scale(2); z-index: 6; box-shadow: 0 18px 36px -10px rgba(0, 0, 0, 0.92); }
+/* Hovering/focusing an item highlights it and shows a large floating preview (.scv-pp-preview)
+   that is fixed to the viewport, so the enlarged card never clips against or clashes with the panel. */
+.scv-pp-item:not(:disabled):hover { filter: brightness(1.12); box-shadow: 0 0 0 2px var(--brass-bright); }
 .scv-pp-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .scv-pp-item .ph { display: grid; place-items: center; height: 100%; font-size: 13px; color: var(--parchment); font-family: var(--display); }
 .scv-pp-item.art { border-color: var(--brass); }
 .scv-pp-item.sel { outline: 2px solid var(--brass-bright); outline-offset: 2px; box-shadow: 0 0 14px -2px var(--brass-bright); z-index: 4; }
+/* Large floating card preview — fixed to the viewport, above the panel, never clipped. */
+.scv-pp-preview {
+  position: fixed; inset: 0; z-index: 80; display: grid; place-items: center;
+  padding: 32px; pointer-events: none;
+}
+.scv-pp-preview img {
+  width: min(340px, 64vw); aspect-ratio: 7 / 10; max-height: 84vh; object-fit: contain;
+  border-radius: 12px; border: 1px solid var(--brass);
+  box-shadow: 0 28px 70px -16px rgba(0, 0, 0, 0.94);
+}
 .scv-pp-give {
   margin-top: auto; padding: 6px 10px; border-radius: 8px; border: 1px solid var(--brass);
   background: rgba(201, 161, 78, 0.16); color: var(--cream); font-size: 12px; cursor: pointer;
