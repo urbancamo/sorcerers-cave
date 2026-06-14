@@ -255,11 +255,13 @@
 
 /* ---- in-game encounter / fight / pickup overlay (matches the HUD) ---- */
 .scv-enc {
-  position: absolute;
+  position: fixed;
   right: 18px;
   bottom: 96px;
   z-index: 50;
   width: 280px;
+  max-height: calc(100vh - 120px);
+  overflow-y: auto;
   display: flex;
   flex-direction: column;
   gap: 10px;

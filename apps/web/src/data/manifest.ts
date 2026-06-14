@@ -80,16 +80,22 @@ export function parseManifest(m: AssetManifest): { tiles: TileArt[]; cards: Card
   return { tiles, cards };
 }
 
-/** Resolve a topology to a tile artwork + rotation; null if no art matches. */
+/**
+ * Resolve a topology to a tile artwork + rotation; null if no art matches.
+ * Rotations are tried 0 → 180 → 90 → 270: the tiles are landscape, so 0/180 preserve
+ * the aspect while 90/270 would render a tile portrait — prefer the aspect-preserving
+ * orientation (and the exact rot-0 match) over an incidental quarter-turn of another tile.
+ */
 export function resolveTile(topo: Topology, tiles: TileArt[]): { tileId: string; rot: Rot } | null {
   const want = normExits(topo.exits);
-  for (const t of tiles) {
-    if (t.special !== topo.special) continue;
-    if (t.stairUp !== topo.stairUp) continue;
-    if (t.stairDown !== topo.stairDown) continue;
-    if (topo.special === null && (t.type === "chamber") !== topo.isChamber) continue;
-    for (const rot of [0, 90, 180, 270] as Rot[]) {
-      if (rotateExits(t.exits, rot) === want) return { tileId: t.tileId, rot };
+  const fits = (t: TileArt) =>
+    t.special === topo.special &&
+    t.stairUp === topo.stairUp &&
+    t.stairDown === topo.stairDown &&
+    (topo.special !== null || (t.type === "chamber") === topo.isChamber);
+  for (const rot of [0, 180, 90, 270] as Rot[]) {
+    for (const t of tiles) {
+      if (fits(t) && rotateExits(t.exits, rot) === want) return { tileId: t.tileId, rot };
     }
   }
   return null;

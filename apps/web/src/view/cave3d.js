@@ -518,6 +518,16 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
   maxAniso=renderer.capabilities.getMaxAnisotropy();
   scene.add(platformGroup,tileGroup,stairGroup,fxGroup,exitGroup,contentGroup);
 
+  // reset accumulated scene state so a new game (boot re-runs after dispose) starts from a clean map
+  [platformGroup,tileGroup,stairGroup,fxGroup,exitGroup,contentGroup].forEach(g=>{
+    for(let i=g.children.length-1;i>=0;i--){const o=g.children[i];o.traverse?.(x=>{x.geometry?.dispose?.();x.material?.dispose?.();});g.remove(o);}
+  });
+  tileMeshes.length=0;exitMarkers.length=0;spawnAnims.length=0;stairDashes.length=0;contentMeshes.length=0;cardAnims.length=0;
+  contentGroups.clear();
+  for(const k of Object.keys(levelBounds)) delete levelBounds[k];
+  for(const k of Object.keys(isoAlpha)) delete isoAlpha[k];
+  isoFocus=null;isoHinted=false;partyToken=null;selectRing=null;tokenMove=null;goal.active=false;
+
   /* card-panel refs (the HUD exists by now) */
   cardPanel=document.getElementById('cardpanel');cardImg=document.getElementById('cardimg');emptyBox=cardPanel.querySelector('.emptybox');
   window.__cardCat={};
