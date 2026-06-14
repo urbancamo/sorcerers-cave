@@ -515,7 +515,7 @@ function updateHUD(){const s=engine.state();
   document.getElementById('st-tiles').textContent=s.deckLeft;}
 function escAttr(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function renderRoster(){const b=document.getElementById('rosterBody');b.innerHTML='';
-  PARTY.forEach(m=>{const row=document.createElement('div');row.className='mbr'+(m.lead?' lead':'');
+  PARTY.forEach(m=>{const row=document.createElement('div');row.className='mbr'+(m.lead?' lead':'')+(m.petrified?' petrified':'');
     const carry=m.carry||0, load=m.load||0, free=Math.max(0,carry-load);
     const pct=carry>0?Math.min(100,Math.round((load/carry)*100)):0;
     const cap=carry>0
@@ -530,7 +530,9 @@ function renderRoster(){const b=document.getElementById('rosterBody');b.innerHTM
             : '<span class="tre ph'+(it.artifact?' art':'')+'" title="'+t+'">'+escAttr((it.name[0]||'?'))+'</span>';
         }).join('')+'</div>'
       : '<div class="carry"><span class="empty">empty-handed</span></div>';
-    row.innerHTML='<div class="sig">'+escAttr(m.sig)+'</div><div class="who"><span class="nm">'+escAttr(m.name)+'</span>'+cap+carryRow+'</div>';
+    const badge=m.petrified?'<span class="badge stone" title="Turned to stone — cure with a Magic Staff">stone</span>'
+      :m.ally?'<span class="badge ally" title="Befriended ally">ally</span>':'';
+    row.innerHTML='<div class="sig">'+escAttr(m.sig)+'</div><div class="who"><div class="nm-line"><span class="nm">'+escAttr(m.name)+'</span>'+badge+'</div>'+cap+carryRow+'</div>';
     b.appendChild(row);});}
 let rosterAnimTimer=null;
 /** Indices in `oldP` whose members are gone from `newP` (matched greedily by name). */

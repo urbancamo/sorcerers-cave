@@ -24,6 +24,8 @@ export function viewParty(state: GameState, cards: CardArt[] = []): ViewPartyMem
       fs: c.fs,
       mp: c.mp,
       charisma: (c.flags & FLAG_CHARISMA) !== 0,
+      ally: m.status === 1,
+      petrified: m.status === 2,
     };
   });
 }

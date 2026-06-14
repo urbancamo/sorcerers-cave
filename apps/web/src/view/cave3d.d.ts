@@ -14,6 +14,8 @@ export interface ViewPartyMember {
   carry: number;  // capacity (kg)
   load: number;   // carried heavy weight (kg)
   fs: number; mp: number; charisma: boolean;
+  ally: boolean;      // befriended stranger (status 1), not an original recruit
+  petrified: boolean; // turned to stone (status 2) — incapacitated until cured
 }
 export interface BootOptions {
   mount: HTMLElement;

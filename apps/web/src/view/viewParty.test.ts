@@ -52,4 +52,16 @@ describe("viewParty", () => {
     expect(p.map((m) => m.name)).toEqual(["Woman"]);
     expect(p[0]!.lead).toBe(true); // the surviving member leads the roster
   });
+
+  it("flags ally and petrified members for status badges", () => {
+    const state = newGame(1, [5, 6]); // Man + Woman, both originals
+    state.party[1]!.status = 1; // Woman befriended → ally
+    const p = viewParty(state);
+    expect(p[0]).toMatchObject({ name: "Man", ally: false, petrified: false });
+    expect(p[1]).toMatchObject({ name: "Woman", ally: true, petrified: false });
+
+    state.party[0]!.status = 2; // Man turned to stone
+    const q = viewParty(state);
+    expect(q.find((m) => m.name === "Man")).toMatchObject({ petrified: true, ally: false });
+  });
 });
