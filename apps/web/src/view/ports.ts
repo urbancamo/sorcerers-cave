@@ -83,7 +83,7 @@ export interface ChamberDraw {
 
 /** The result of tryMove() — the view choreographs this. */
 export type MoveEvent =
-  | { moved: false; deadEnd?: boolean }
+  | { moved: false; deadEnd?: boolean; placed?: Area | null } // placed: a tile drawn onto a dead-end frontier (party stays put)
   | {
       moved: true;
       dir: Dir;

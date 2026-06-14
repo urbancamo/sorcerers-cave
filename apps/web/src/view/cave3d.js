@@ -213,6 +213,16 @@ function refresh(){
   // Re-lay every chamber whose on-floor cards changed (e.g. a treasure was picked up);
   // layContents is a no-op when an area's contents are unchanged.
   engine.areas.forEach(a=>layContents(a,false));
+  // Move the party token + camera to the current tile after a panel-driven move
+  // (withdraw/retreat send the party back to the previous tile, outside doMove's animation).
+  if(partyToken){
+    const to=worldPos(engine.current);
+    if(!tokenMove && partyToken.position.distanceTo(to)>0.01){
+      tokenMove={from:partyToken.position.clone(), to, t0:clock.elapsedTime, dur:0.55};
+      flyFollow(to);
+      if(isoFocus!=null) setIsolation(engine.current.level);
+    }
+  }
 }
 
 /* ============================================================
@@ -309,7 +319,7 @@ function flyFollow(newTarget){ // keep relative view, shift to new target
 }
 function sceneCenter(){const c=new THREE.Vector3();engine.areas.forEach(a=>c.add(worldPos(a)));return c.multiplyScalar(1/engine.areas.length);}
 function viewFreeOrbit(){setMode('orbit','Free orbit');setIsolation(null);const c=sceneCenter();flyTo(c.clone().add(new THREE.Vector3(TILE_W*2.4,13,16)),c,45);}
-function viewSnapTile(){const a=engine.current;setMode('snap','Overhead · '+a.name);setIsolation(a.level);flyTo(worldPos(a).clone().add(new THREE.Vector3(0.2,9.5,2.6)),worldPos(a),30);}
+function viewSnapTile(){const a=engine.current;setMode('snap','Overhead · '+a.name);setIsolation(a.level);flyTo(worldPos(a).clone().add(new THREE.Vector3(0,9.5,2.6)),worldPos(a),30);}
 let activeLevel=null;
 function viewLevel(lvl){activeLevel=lvl;setMode('level','Level '+lvl);setIsolation(lvl);const b=levelBounds[lvl];const c=new THREE.Vector3(b.cx,b.y,b.cz);flyTo(c.clone().add(new THREE.Vector3(TILE_W*1.4,10,12)),c,40);}
 
@@ -320,7 +330,13 @@ let busy=false;
 function doMove(dir){
   if(busy||Reveal.active()) return;
   const ev=engine.tryMove(dir);
-  if(!ev.moved){ setPrompt(ev.deadEnd?'That way is a dead end.':'No exit that way.','danger'); flashMarker(dir,true); return; }
+  if(!ev.moved){
+    if(ev.placed){ // a tile was drawn onto a dead-end frontier — lay it down even though we can't enter
+      buildAreaMesh(ev.placed,true).then(()=>{rebuildPlatforms();rebuildStairs();rebuildLevelButtons();});
+      refreshExitMarkers(); // the attempted exit was pruned
+    }
+    setPrompt(ev.deadEnd?'That way is a dead end.':'No exit that way.','danger'); flashMarker(dir,true); return;
+  }
   busy=true;
   if(ev.placed){ buildAreaMesh(ev.area,true).then(()=>{rebuildPlatforms();rebuildStairs();rebuildLevelButtons();}); }
   // move token
@@ -532,10 +548,13 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
   for(const a of engine.areas) await buildAreaMesh(a,false);
   engine.areas.forEach(a=>{ if(a.strangers.length||a.treasure.length) layContents(a,false); });
   rebuildPlatforms();rebuildStairs();rebuildLevelButtons();refreshExitMarkers();
-  renderRoster();updateHUD();selectCurrent();setMode('orbit','Free orbit');
-  const c=sceneCenter();
-  camera.position.copy(c.clone().add(new THREE.Vector3(TILE_W*2.4,13,16)));controls.target.copy(c);controls.update();
-  flyTo(c.clone().add(new THREE.Vector3(TILE_W*2,12,15)),c,45);
+  renderRoster();updateHUD();selectCurrent();
+  // default to an overhead 'snap to tile' view of the start tile, North up the screen
+  setMode('snap','Overhead · '+engine.current.name);
+  const ap=worldPos(engine.current);
+  camera.up.set(0,1,0); camera.fov=30; camera.updateProjectionMatrix();
+  camera.position.copy(ap.clone().add(new THREE.Vector3(0,9.5,2.6)));
+  controls.target.copy(ap); controls.update();
   setPrompt('Your party stands in <b>'+engine.current.name+'</b>. Click a glowing doorway, or press N/E/S/W.','event');
   window.__cave={scene,camera,controls,renderer,THREE,engine,tileMeshes,exitMarkers,doMove,worldPos,layContents,contentGroup};
   document.getElementById('loader').classList.add('hide');animate();

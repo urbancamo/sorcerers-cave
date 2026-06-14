@@ -79,6 +79,22 @@ describe("tryMove + MoveEvent", () => {
     expect(ev.moved).toBe(false);
   });
 
+  it("still places the drawn tile (face-down) on a dead-end frontier, without moving", () => {
+    const A = mkArea(2, 1, 50, 50);        // exits "E", frontier east is undrawn
+    // pack a tile with NO west reverse-door (card 1 = "N" only) → it can't connect → dead end
+    const eng = createCaveAdapter(mkState([A], 0, { largePack: [1], largeIdx: 0 }), art);
+    const ev = eng.tryMove("E");
+    expect(ev.moved).toBe(false);
+    if (!ev.moved) {
+      expect(ev.deadEnd).toBe(true);
+      expect(ev.placed).not.toBeNull();       // the tile is laid down…
+      expect(ev.placed!.faceDown).toBe(true); // …face-down (excluded from edge-matching)
+      expect(ev.placed!.col).toBe(51);
+    }
+    expect(eng.areas.length).toBe(2);          // mirror kept the placement (deck consumed)
+    expect(eng.current.col).toBe(50);          // party did NOT move
+  });
+
   it("draws a chamber tile on an undrawn frontier and reveals its cards (firstVisit)", () => {
     const A = mkArea(2, 1, 50, 50);        // exits "E", frontier to the east is undrawn
     // pack a chamber tile with a W reverse-door (8 | 16 = 24); small pack yields a Dragon (id 10)

@@ -75,7 +75,15 @@ export function createCaveAdapter(initial: GameState, art: ArtTables, opts: Adap
       const { state: next, events } = reduce(before, action);
       const blocked = events.some((e) => e.type === "blocked");
       const deadEnd = events.some((e) => e.type === "deadEnd");
-      if (blocked || deadEnd) return deadEnd ? { moved: false, deadEnd: true } : { moved: false };
+      if (blocked) return { moved: false }; // no exit that way — nothing drawn or placed
+      if (deadEnd) {
+        // a tile may have been drawn onto the frontier; keep the placement (pruned exit + face-down tile)
+        state = next;
+        opts.onAction?.(action);
+        const drew = next.areas.length > before.areas.length;
+        const placed = drew ? projectArea(next.areas[next.areas.length - 1]!, next.areas.length - 1, next, art) : null;
+        return { moved: false, deadEnd: true, placed };
+      }
       state = next;
       opts.onAction?.(action);
       const idx = next.partyArea;
