@@ -24,6 +24,8 @@ export type GameEvent =
   | { type: "enteredSpecial"; special: number }
   | { type: "gameOver"; gs: number }
   | { type: "hazardFired"; hazard: number }
+  // Allies deserted (Mutiny): they revert to strangers and drop their treasure into the chamber.
+  | { type: "mutinied"; deserters: number[]; treasures: number[] }
   | { type: "memberDied"; creatureId: number }
   | { type: "strangerKilled"; creatureId: number }
   | { type: "spectreSlew"; creatureId: number }

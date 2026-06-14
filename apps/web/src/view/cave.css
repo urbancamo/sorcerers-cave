@@ -89,6 +89,12 @@ canvas{display:block;touch-action:none;}
 .mbr .who .nm{font-size:13px;color:var(--parchment);font-weight:600;}
 .mbr .who .it{font-size:10.5px;color:var(--stone-dim);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .mbr.lead .sig{background:linear-gradient(180deg,#f0d79a,var(--brass));box-shadow:0 0 10px rgba(201,161,78,.5);}
+/* a member leaving the party (mutiny desertion) slides toward the chamber and fades */
+.mbr.mbr-leaving{animation:scv-mbr-leave .5s ease-in forwards;pointer-events:none;}
+@keyframes scv-mbr-leave{
+  0%{opacity:1;transform:translateX(0) scale(1);}
+  100%{opacity:0;transform:translateX(44px) scale(.9);}
+}
 /* carrying: capacity bar + carried-item card thumbnails */
 .mbr .who .cap{display:flex;align-items:center;gap:6px;margin-top:3px;}
 .mbr .who .cap-bar{flex:1;height:4px;border-radius:2px;background:rgba(232,219,187,.12);overflow:hidden;min-width:30px;}

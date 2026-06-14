@@ -33,18 +33,37 @@ describe("applyHazards (spec §7.2)", () => {
     for (const m of s.party) expect([0, 2]).toContain(m.status);
   });
 
-  it("Mutiny turns allies into strangers", () => {
+  it("Mutiny reverts allies to strangers, drops their treasure, and reports it", () => {
     const s = makeState({
       party: [
         { creatureId: 0, status: 0, dragonKills: 0, treasure: [] },
-        { creatureId: 10, status: 1, dragonKills: 0, treasure: [] },
+        { creatureId: 10, status: 1, dragonKills: 0, treasure: [1, 3] }, // ally carrying Gold + Magic Sword
       ],
       strangers: [],
+      treasures: [],
+      hazards: [HAZARD_MUTINY],
+    });
+    const { events } = applyHazards(s);
+    expect(s.party.map((m) => m.creatureId)).toEqual([0]); // only the original remains
+    expect(s.strangers).toContain(10);                     // the ally is now a stranger
+    expect(s.treasures).toEqual([1, 3]);                   // its loot returns to the chamber
+    expect(events).toContainEqual({ type: "mutinied", deserters: [10], treasures: [1, 3] });
+  });
+
+  it("Mutiny keeps one ally loyal when the party is all allies", () => {
+    const s = makeState({
+      party: [
+        { creatureId: 10, status: 1, dragonKills: 0, treasure: [] },
+        { creatureId: 11, status: 1, dragonKills: 0, treasure: [2] },
+      ],
+      strangers: [],
+      treasures: [],
       hazards: [HAZARD_MUTINY],
     });
     applyHazards(s);
-    expect(s.party.map((m) => m.creatureId)).toEqual([0]);
-    expect(s.strangers).toContain(10);
+    expect(s.party).toHaveLength(1);   // one ally stays
+    expect(s.strangers).toContain(11); // the rest desert
+    expect(s.treasures).toEqual([2]);  // dropping their loot
   });
 
   it("Trap drops the whole party one level (fell), negated by a Dwarf", () => {

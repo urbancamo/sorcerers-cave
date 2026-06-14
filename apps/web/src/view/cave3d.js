@@ -472,8 +472,29 @@ function renderRoster(){const b=document.getElementById('rosterBody');b.innerHTM
       : '<div class="carry"><span class="empty">empty-handed</span></div>';
     row.innerHTML='<div class="sig">'+escAttr(m.sig)+'</div><div class="who"><span class="nm">'+escAttr(m.name)+'</span>'+cap+carryRow+'</div>';
     b.appendChild(row);});}
-/** Replace the party (e.g. after a creature joins) and refresh the roster + HUD count. */
-function setParty(p){ PARTY=p||[]; renderRoster(); updateHUD(); }
+let rosterAnimTimer=null;
+/** Indices in `oldP` whose members are gone from `newP` (matched greedily by name). */
+function partyRemovedIdx(oldP,newP){
+  const left={}; for(const m of newP) left[m.name]=(left[m.name]||0)+1;
+  const out=[];
+  for(let i=0;i<oldP.length;i++){ const n=oldP[i].name; if(left[n]>0) left[n]--; else out.push(i); }
+  return out;
+}
+/** Replace the party and refresh the roster + HUD. Members who left (e.g. mutineers
+ *  deserting back into the chamber) first animate out of the roster. */
+function setParty(p){
+  p=p||[];
+  if(rosterAnimTimer){ clearTimeout(rosterAnimTimer); rosterAnimTimer=null; }
+  const removed=partyRemovedIdx(PARTY,p);
+  const rows=[...document.querySelectorAll('#rosterBody .mbr')];
+  const leaving=removed.map(i=>rows[i]).filter(Boolean);
+  if(leaving.length){
+    leaving.forEach(r=>r.classList.add('mbr-leaving'));
+    rosterAnimTimer=setTimeout(()=>{ rosterAnimTimer=null; PARTY=p; renderRoster(); updateHUD(); }, 520);
+  } else {
+    PARTY=p; renderRoster(); updateHUD();
+  }
+}
 function rebuildLevelButtons(){const grp=document.getElementById('levelGrp');const levels=[...new Set(engine.areas.map(a=>a.level))].sort((a,b)=>a-b);
   grp.innerHTML='';levels.forEach(lvl=>{const btn=document.createElement('button');btn.className='btn lvlbtn';btn.dataset.lvl=lvl;btn.textContent=lvl;btn.title='Focus level '+lvl;
     btn.addEventListener('click',()=>viewLevel(lvl));grp.appendChild(btn);});}
@@ -608,7 +629,7 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
   camera.position.copy(ap.clone().add(new THREE.Vector3(0,9.5,2.6)));
   controls.target.copy(ap); controls.update();
   setPrompt('Your party stands in <b>'+engine.current.name+'</b>. Click a glowing doorway, or press N/E/S/W.','event');
-  window.__cave={scene,camera,controls,renderer,THREE,engine,tileMeshes,exitMarkers,doMove,worldPos,layContents,contentGroup};
+  window.__cave={scene,camera,controls,renderer,THREE,engine,tileMeshes,exitMarkers,doMove,worldPos,layContents,contentGroup,setParty};
   document.getElementById('loader').classList.add('hide');animate();
 
   function dispose(){

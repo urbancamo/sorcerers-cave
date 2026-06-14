@@ -52,9 +52,18 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
       case HAZARD_MUTINY: {
         const allies = state.party.filter((m) => m.status === 1);
         const originals = state.party.filter((m) => m.status === 0);
+        // All allies desert; if the party is now ALL allies, one stays loyal (spec §Mutiny).
         const desert = originals.length === 0 ? allies.slice(1) : allies;
-        for (const a of desert) state.strangers.push(a.creatureId);
+        const dropped: number[] = [];
+        for (const a of desert) {
+          state.strangers.push(a.creatureId); // revert to a stranger (retestable)
+          dropped.push(...a.treasure);        // and drop their loot back into the chamber
+        }
+        state.treasures.push(...dropped);
         state.party = state.party.filter((m) => !desert.includes(m));
+        if (desert.length > 0) {
+          events.push({ type: "mutinied", deserters: desert.map((a) => a.creatureId), treasures: dropped });
+        }
         break;
       }
       case HAZARD_TRAP: {
