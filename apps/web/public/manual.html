@@ -139,6 +139,13 @@
     figure.shot img { width: 100%; border-radius: 12px; border: 1px solid var(--line-strong); display: block; box-shadow: 0 18px 44px -22px rgba(0, 0, 0, 0.9); }
     figure.shot figcaption { font-family: var(--ui); font-size: 13px; color: var(--stone-dim); text-align: center; margin-top: 8px; }
 
+    /* ---- click-to-zoom lightbox (read the card text full size) ---- */
+    figure.card img, figure.tile img, figure.shot img, img.zoomable { cursor: zoom-in; }
+    .lightbox { position: fixed; inset: 0; z-index: 100; display: none; place-items: center; padding: 4vh 4vw; background: rgba(7, 7, 9, 0.93); backdrop-filter: blur(3px); cursor: zoom-out; }
+    .lightbox.open { display: grid; }
+    .lightbox img { max-width: 92vw; max-height: 90vh; width: auto; height: auto; border-radius: 12px; border: 1px solid var(--brass); box-shadow: 0 30px 90px -20px rgba(0, 0, 0, 0.95); }
+    .lightbox .hint { position: fixed; left: 0; right: 0; bottom: 18px; text-align: center; font-family: var(--ui); font-size: 11px; letter-spacing: 0.14em; text-transform: uppercase; color: var(--stone-dim); }
+
     .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; align-items: start; }
     @media (max-width: 760px) { .two-col { grid-template-columns: 1fr; } }
 
@@ -174,6 +181,7 @@
           <li><a href="#hazards">Hazards</a></li>
           <li><a href="#strangers">Strangers &amp; Reactions</a></li>
           <li><a href="#fights">Fights</a></li>
+          <li><a href="#sorcerer">The Sorcerer</a></li>
           <li><a href="#treasure">Treasure &amp; Artefacts</a></li>
           <li><a href="#secret">Secret Doors</a></li>
           <li><a href="#scoring">Leaving &amp; Scoring</a></li>
@@ -425,22 +433,52 @@
           <h3>Two foes to respect</h3>
           <div class="two-col">
             <div>
-              <div class="grid cards" style="grid-template-columns:repeat(3,1fr);max-width:340px;">
+              <div class="grid cards" style="grid-template-columns:repeat(2,1fr);max-width:240px;">
                 <figure class="card"><img src="/assets/cards/small-card-s01-2.png" alt="Dragon card" /><figcaption>Dragon</figcaption></figure>
                 <figure class="card"><img src="/assets/cards/small-card-s07-3.png" alt="Spectre card" /><figcaption>Spectre</figcaption></figure>
-                <figure class="card"><img src="/assets/cards/small-card-s08-2.png" alt="The Sorcerer card" /><figcaption>Sorcerer</figcaption></figure>
               </div>
             </div>
             <div>
-              <p><strong>The Dragon</strong> (fighting strength 6) is the deadliest common foe — but slay one single-handed and that hero's worth is <strong>doubled</strong> at scoring forever.</p>
+              <p><strong>The Dragon</strong> (fighting strength 6) is the deadliest common foe — but slay one single-handed and that hero's worth is <strong>doubled</strong> at scoring forever. A <strong>Charmed Flute</strong> lulls dragons to sleep.</p>
               <p><strong>The Spectre</strong> cannot be harmed by ordinary blows. Without magic or the Magic Sword in hand, it slays your strongest member each round. The <strong>Eye of God</strong> destroys spectres outright.</p>
             </div>
           </div>
         </section>
 
+        <!-- ===================== SORCERER ===================== -->
+        <section id="sorcerer">
+          <h2><span class="num">VIII</span> The Sorcerer</h2>
+          <p class="lede">The single most powerful dweller in the cave — best avoided, unless you come prepared.</p>
+          <div class="two-col">
+            <div style="text-align:center;">
+              <figure class="card" style="max-width:200px;margin:0 auto;">
+                <img src="/assets/cards/small-card-s08-2.png" alt="The Sorcerer card" />
+                <figcaption>The Sorcerer<span class="meta">FS 4 · MP 9</span></figcaption>
+              </figure>
+            </div>
+            <div>
+              <p>
+                A lone Sorcerer lurks somewhere in the deck. With fighting strength 4 and
+                <strong>magical power 9</strong>, he fights at an effective strength of <strong>13</strong> —
+                far beyond a Dragon — and as the highest-ranking creature he always
+                <strong>leads</strong> any group he joins and turns it <strong>hostile</strong>. He is
+                never befriended, and carries no point value of his own.
+              </p>
+              <p>
+                His power is <em class="term">magic</em>, and magic can be unmade. Bring the
+                <strong>Eye of God</strong>: while it is in the area, all magic is nullified — the
+                Sorcerer's 9 points of magical power drop to nothing, leaving only his fighting strength
+                of 4, which a strong party can overcome. Without it, meeting the Sorcerer is very nearly
+                a death sentence; withdraw if you still can.
+              </p>
+            </div>
+          </div>
+          <div class="note"><span class="tag">Lore</span> In the original boxed game the Sorcerer rules a great cavern on the fourth level — the <em>Sorcerer's Den</em> — and slaying him is worth a 30-point bounty. That competitive scenario is not part of this solitaire edition; here the Sorcerer is simply the deadliest creature you may chance upon.</div>
+        </section>
+
         <!-- ===================== TREASURE ===================== -->
         <section id="treasure">
-          <h2><span class="num">VIII</span> Treasure &amp; Artefacts</h2>
+          <h2><span class="num">IX</span> Treasure &amp; Artefacts</h2>
           <p class="lede">Unguarded treasure is yours to pick up; guarded treasure waits until the strangers are befriended or beaten.</p>
 
           <h3>Heavy treasure</h3>
@@ -451,7 +489,7 @@
             (while exploring) and a die decides your fortune: a curse, a Spectre, worthless sand, or
             Silver, Gold, or Gems.
           </p>
-          <div class="grid cards" style="grid-template-columns:repeat(4,minmax(90px,1fr));max-width:480px;">
+          <div class="grid cards wide">
             <figure class="card"><img src="/assets/cards/small-card-s06-5.png" alt="Silver card" /><figcaption>Silver<span class="meta">5 pts · 25 kg</span></figcaption></figure>
             <figure class="card"><img src="/assets/cards/small-card-s03-2.png" alt="Gold card" /><figcaption>Gold<span class="meta">10 pts · 25 kg</span></figcaption></figure>
             <figure class="card"><img src="/assets/cards/small-card-s02-6.png" alt="Gems card" /><figcaption>Gems<span class="meta">20 pts · 25 kg</span></figcaption></figure>
@@ -495,7 +533,7 @@
 
         <!-- ===================== SECRET ===================== -->
         <section id="secret">
-          <h2><span class="num">IX</span> Secret Doors</h2>
+          <h2><span class="num">X</span> Secret Doors</h2>
           <p class="lede">More often than not, a stairway leads to an area where no matching stair is drawn. That hidden end is a secret door.</p>
           <div class="two-col">
             <div>
@@ -509,7 +547,7 @@
               <p>The glowing up- or down-stair marker still appears on that tile — step onto it to travel back through the secret door.</p>
             </div>
             <div style="text-align:center;">
-              <img src="/assets/tokens/secret-doors-large/door-01.png" alt="Secret door A" style="width:150px;border-radius:10px;border:1px solid var(--brass);box-shadow:0 12px 28px -16px rgba(0,0,0,.9);" />
+              <img class="zoomable" src="/assets/tokens/secret-doors-large/door-01.png" alt="Secret door A" style="width:150px;border-radius:10px;border:1px solid var(--brass);box-shadow:0 12px 28px -16px rgba(0,0,0,.9);" />
               <div style="font-family:var(--ui);font-size:12.5px;color:var(--stone-dim);margin-top:8px;">Secret door “A”.</div>
             </div>
           </div>
@@ -517,7 +555,7 @@
 
         <!-- ===================== SCORING ===================== -->
         <section id="scoring">
-          <h2><span class="num">X</span> Leaving the Cave &amp; Scoring</h2>
+          <h2><span class="num">XI</span> Leaving the Cave &amp; Scoring</h2>
           <p class="lede">Climb any stairway up from level 1 to leave the cave — and bank your score.</p>
           <p>
             Leaving is one-way: once your party steps out, the expedition is over. You'll be shown a roll
@@ -549,7 +587,7 @@
 
         <!-- ===================== REFERENCE ===================== -->
         <section id="reference">
-          <h2><span class="num">XI</span> Quick Reference</h2>
+          <h2><span class="num">XII</span> Quick Reference</h2>
           <div class="two-col">
             <div>
               <h3>Controls</h3>
@@ -591,5 +629,30 @@
       </main>
     </div>
   </div>
+
+  <!-- Click-to-zoom: enlarge any card / tile / screenshot so the printed text is readable. -->
+  <div class="lightbox" id="lightbox" aria-hidden="true">
+    <img alt="" id="lightbox-img" />
+    <div class="hint">Click anywhere or press Esc to close</div>
+  </div>
+  <script>
+    (function () {
+      var lb = document.getElementById('lightbox');
+      var img = document.getElementById('lightbox-img');
+      var sel = 'figure.card img, figure.tile img, figure.shot img, img.zoomable';
+      function close() { lb.classList.remove('open'); lb.setAttribute('aria-hidden', 'true'); img.removeAttribute('src'); }
+      document.addEventListener('click', function (e) {
+        var t = e.target;
+        if (t && t.tagName === 'IMG' && t.matches(sel)) {
+          img.src = t.currentSrc || t.src;
+          img.alt = t.alt || '';
+          lb.classList.add('open');
+          lb.setAttribute('aria-hidden', 'false');
+        }
+      });
+      lb.addEventListener('click', close);
+      document.addEventListener('keydown', function (e) { if (e.key === 'Escape') close(); });
+    })();
+  </script>
 </body>
 </html>
