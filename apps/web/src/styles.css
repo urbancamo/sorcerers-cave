@@ -445,3 +445,126 @@
 .scv-dice-msg.good { color: var(--brass-bright); }
 .scv-dice-msg.bad { color: var(--crimson); }
 .scv-dice-msg.neutral { color: var(--stone); }
+
+/* ---- splash / title screen ------------------------------------------------- */
+.scv-splash {
+  position: fixed;
+  inset: 0;
+  z-index: 40;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 26px;
+  padding: 46px 20px 36px;
+  color: var(--parchment);
+  font-family: var(--ui);
+  /* colourful, magical backdrop layered over the dark base */
+  background:
+    radial-gradient(900px 620px at 16% 10%, rgba(124, 58, 173, 0.45), transparent 60%),
+    radial-gradient(820px 600px at 86% 16%, rgba(40, 124, 146, 0.42), transparent 60%),
+    radial-gradient(1000px 720px at 50% 108%, rgba(168, 68, 58, 0.40), transparent 62%),
+    radial-gradient(640px 460px at 72% 74%, rgba(201, 161, 78, 0.30), transparent 60%),
+    linear-gradient(180deg, #0d0a16 0%, #0b0b10 100%);
+}
+.scv-splash-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(34px, 7vw, 66px);
+  letter-spacing: 0.06em;
+  text-align: center;
+  color: var(--cream);
+  text-shadow: 0 2px 30px rgba(201, 161, 78, 0.5), 0 0 70px rgba(124, 58, 173, 0.45);
+}
+
+/* fanned creature cards */
+.scv-splash-fan {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  padding: 8px 30px 0;
+  min-height: 150px;
+}
+/* slot = stationary fan position + hit area (does not move on hover) */
+.scv-fan-slot {
+  display: block;
+  transform-origin: bottom center;
+  transform: rotate(var(--rot, 0deg)) translateY(var(--ty, 0px));
+  z-index: var(--z, 1);
+}
+.scv-fan-slot:not(:first-child) { margin-left: clamp(-46px, -5vw, -34px); }
+.scv-fan-slot:hover { z-index: 100; } /* bring the whole card to the surface */
+.scv-fan-card {
+  display: block;
+  width: clamp(72px, 11vw, 104px);
+  height: auto;
+  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  background: #0d0d11;
+  box-shadow: 0 16px 34px -12px rgba(0, 0, 0, 0.85);
+  pointer-events: none; /* hover is governed by the stationary slot, not the moving image */
+  transform-origin: center;
+  transition: transform 0.2s cubic-bezier(0.2, 0.7, 0.2, 1), box-shadow 0.2s ease;
+}
+/* hover: straighten (counter the slot's rotation), lift slightly and enlarge */
+.scv-fan-slot:hover .scv-fan-card {
+  transform: rotate(calc(-1 * var(--rot, 0deg))) translateY(-22px) scale(1.5);
+  box-shadow: 0 34px 64px -16px rgba(0, 0, 0, 0.9), 0 0 30px -4px rgba(230, 197, 120, 0.55);
+}
+
+/* parchment quote scroll */
+.scv-scroll {
+  position: relative;
+  max-width: min(640px, 92vw);
+  margin: 6px 0 2px;
+  padding: 26px 32px;
+  border-radius: 4px;
+  color: #3b2c12;
+  font-family: var(--body);
+  font-size: clamp(15px, 2.1vw, 18px);
+  line-height: 1.5;
+  background:
+    repeating-linear-gradient(0deg, rgba(120, 86, 30, 0.05) 0 2px, transparent 2px 5px),
+    linear-gradient(180deg, #efe3c0, #e2d09c);
+  box-shadow: 0 18px 44px -18px rgba(0, 0, 0, 0.8), inset 0 0 36px rgba(120, 86, 30, 0.22);
+}
+.scv-scroll::before, .scv-scroll::after {
+  content: "";
+  position: absolute;
+  left: -8px;
+  right: -8px;
+  height: 16px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, #8a6a32, #5c451f);
+  box-shadow: 0 4px 10px -3px rgba(0, 0, 0, 0.7);
+}
+.scv-scroll::before { top: -8px; }
+.scv-scroll::after { bottom: -8px; }
+.scv-scroll-latin { font-style: italic; color: #4a3718; }
+.scv-scroll-cite { margin-top: 4px; text-align: right; font-size: 0.85em; color: #6b5326; }
+.scv-scroll-en { margin-top: 14px; }
+
+/* start-game panel: stacked options */
+.scv-start { width: min(360px, 92vw); }
+.scv-start .scv-primary { margin-top: 0; }
+
+/* attributions */
+.scv-attrib {
+  max-width: min(720px, 92vw);
+  text-align: center;
+  font-size: 11.5px;
+  line-height: 1.55;
+  color: var(--stone-dim);
+}
+.scv-attrib p { margin: 3px 0; }
+.scv-attrib .scv-attrib-hd {
+  margin-top: 12px;
+  font-family: var(--display);
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--brass);
+}
+.scv-attrib a { color: var(--brass-bright); text-decoration: underline; }
+.scv-attrib a:hover { color: var(--cream); }

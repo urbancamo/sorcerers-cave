@@ -6,6 +6,7 @@ import { api } from "../../convex/_generated/api";
 import { GS_PLAYING, type GameAction, type GameEvent } from "@sorcerers-cave/engine";
 import { useCaveGame } from "./useCaveGame";
 import { CaveCanvas } from "../view/CaveCanvas";
+import { SplashScreen } from "./SplashScreen";
 import { PartySelect } from "./PartySelect";
 import { GameOverScreen } from "./GameOverScreen";
 import { EncounterPanel } from "./EncounterPanel";
@@ -17,6 +18,7 @@ export default function GameScreen() {
   const { signIn } = useAuthActions();
   const newGame = useMutation(api.game.newGame);
   const [gameId, setGameId] = useState<Id<"games"> | null>(null);
+  const [started, setStarted] = useState(false); // dismissed the splash
   const { engine, loading, state, dispatch } = useCaveGame(gameId);
   // The dice overlay lives here (not in EncounterPanel) so a fatal round's roll
   // still shows even though game-over swaps the panel out for GameOverScreen.
@@ -37,6 +39,9 @@ export default function GameScreen() {
   if (isLoading) return <p>Connecting…</p>;
   if (!isAuthenticated) return <p>Signing in…</p>;
 
+  if (!started) {
+    return <SplashScreen onStartSolitaire={() => setStarted(true)} />;
+  }
   if (!gameId) {
     return <PartySelect onConfirm={async (picks) => setGameId(await newGame({ seed: Date.now(), picks }))} />;
   }
