@@ -40,6 +40,12 @@ describe("projectArea", () => {
     expect(down.level).toBe(2);
   });
 
+  it("flags an earthquake-collapsed area as destroyed", () => {
+    const state = newGame(1, [0]);
+    expect(projectArea(area({}), 0, state, art).destroyed).toBe(false);
+    expect(projectArea(area({ flags: 4 }), 1, state, art).destroyed).toBe(true); // AF_DESTROYED
+  });
+
   it("projects persisted floor contents into typed card lanes", () => {
     const state = newGame(1, [0]);
     // a chamber tile (bit16) with a creature (Dragon id10), a treasure (Magic Sword id3 = artifact), a hazard (id0)

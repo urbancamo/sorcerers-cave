@@ -53,6 +53,7 @@ export interface Area {
   party: boolean;        // the party currently stands here
   visited: boolean;
   faceDown: boolean;     // placed but unrevealed (excluded from edge-matching)
+  destroyed: boolean;    // collapsed by an earthquake — impassable, drawn as rubble
 
   // PERSISTENT chamber contents — the cards laid on this area's floor.
   // This is the "AC[area]" the player sees for the rest of the game.

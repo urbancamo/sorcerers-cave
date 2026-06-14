@@ -7,6 +7,9 @@ export const PARTY_CAP = 12;
 export const PARTY_BUDGET = 6;
 export const GATEWAY_START_COORD = 15050; // level 1, x=50, y=50
 
+// Area-flag (PlacedArea.flags) bits.
+export const AF_DESTROYED = 4; // collapsed by an earthquake — removed from play, impassable
+
 // Interactive mode: which controls the UI shows and which actions reduce accepts.
 // Milestone B uses only "explore" and "gameOver"; "encounter"/"fight"/"pickup" arrive in C.
 export type GamePhase = "explore" | "encounter" | "fight" | "pickup" | "gameOver";

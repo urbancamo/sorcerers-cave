@@ -9,6 +9,7 @@ import { Reveal } from './reveal.js';
 const COLOR={void:0x070709,brass:0xc9a14e,brassBright:0xe6c578,crimson:0xa8443a,arcane:0x5f8f8a,stone:0xb8b1a2};
 const CAT_COLOR={creature:'#a8443a',treasure:'#c9a14e',artifact:'#c9a14e',hazard:'#5f8f8a'};
 const TILE_W=4.3, LEVEL_GAP=5.2; let TILE_D;
+const DESTROYED_TINT=0x4a4036; // earthquake-collapsed tile: darkened rubble tone
 const DIRV={N:[0,-1],S:[0,1],E:[1,0],W:[-1,0]};
 
 let engine, startLevel, tiles, PARTY=[], partyColorHex;
@@ -60,6 +61,7 @@ async function buildAreaMesh(area, spawn){
   pendingTiles.add(k);
   const tex=await loadAlphaTexture(area.tileId? (tiles.get(area.tileId)?.file ?? ''):'');
   const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,alphaTest:0.03,side:THREE.DoubleSide,depthWrite:true});
+  if(area.destroyed) mat.color.setHex(DESTROYED_TINT); // earthquake rubble — darkened so it reads as collapsed
   const mesh=new THREE.Mesh(new THREE.PlaneGeometry(TILE_W,TILE_D),mat);
   mesh.rotation.x=-Math.PI/2;
   if(area.rot) mesh.rotation.z=THREE.MathUtils.degToRad(-area.rot);
@@ -236,6 +238,8 @@ function reconcileTiles(){
   for(const m of [...tileMeshes]){ const ua=m.userData.area; if(!ua||!want.has(akey(ua))){ disposeTileMesh(m); changed=true; } }
   const have=new Set(tileMeshes.map(m=>m.userData.area?akey(m.userData.area):''));
   for(const [k,a] of want){ if(!have.has(k)){ buildAreaMesh(a,true); changed=true; } }
+  // Re-tint tiles whose destroyed state flipped (an earthquake collapses an already-placed area).
+  for(const m of tileMeshes){ const a=m.userData.area&&want.get(akey(m.userData.area)); if(a&&m.material&&m.material.color) m.material.color.setHex(a.destroyed?DESTROYED_TINT:0xffffff); }
   if(changed){ rebuildPlatforms(); rebuildStairs(); rebuildLevelButtons(); }
 }
 function refresh(){

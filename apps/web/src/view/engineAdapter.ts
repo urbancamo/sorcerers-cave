@@ -1,5 +1,5 @@
 import {
-  reduce, legalActions, unpackCoord, packCoord, targetCoord,
+  reduce, legalActions, unpackCoord, packCoord, targetCoord, AF_DESTROYED,
   type GameState, type GameAction, type GameEvent,
 } from "@sorcerers-cave/engine";
 import type { CaveEngine, Area, StateSnapshot, Move, MoveEvent, Dir } from "./ports";
@@ -60,11 +60,10 @@ export function createCaveAdapter(initial: GameState, art: ArtTables, opts: Adap
         const dir = NUM_TO_DIR[a.dir]!;
         const t = unpackCoord(targetCoord(a.dir, level, x, y));
         const target = { level: t.level, col: t.x, row: t.y };
-        const kind: Move["kind"] = dir === "U" || dir === "D"
-          ? "stair"
-          : state.areas.some((ar) => ar.coord === packCoord(target.level, target.col, target.row))
-            ? "known"
-            : "undrawn";
+        const known = state.areas.find((ar) => ar.coord === packCoord(target.level, target.col, target.row));
+        // An earthquake-collapsed area is impassable — don't offer a doorway onto it.
+        if (known && (known.flags & AF_DESTROYED) !== 0) continue;
+        const kind: Move["kind"] = dir === "U" || dir === "D" ? "stair" : known ? "known" : "undrawn";
         moves.push({ dir, kind, target });
       }
       // The Cave exit: any level-1 up-stair offers exitCave instead of a move-up (spec §"Movement").

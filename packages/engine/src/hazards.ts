@@ -3,10 +3,8 @@ import { CREATURES, FLAG_GUIDES_PAST_TRAP } from "./data/creatures";
 import {
   HAZARD_MUTINY, HAZARD_TRAP, HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS,
 } from "./data/hazards";
-import type { GameState, PartyMember } from "./state";
+import { AF_DESTROYED, type GameState, type PartyMember } from "./state";
 import type { GameEvent } from "./actions";
-
-const AF_DESTROYED = 4;
 
 function living(state: GameState): PartyMember[] {
   return state.party.filter((m) => m.status === 0 || m.status === 1);

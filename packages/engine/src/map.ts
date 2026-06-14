@@ -3,7 +3,7 @@ import {
   DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN,
   targetCoord, unpackCoord,
 } from "./coords";
-import type { GameState, PlacedArea } from "./state";
+import { AF_DESTROYED, type GameState, type PlacedArea } from "./state";
 
 export interface MoveResult {
   state: GameState;
@@ -66,6 +66,12 @@ export function tryMove(state: GameState, dir: number): MoveResult {
   const foundIdx = next.areas.findIndex((a) => a.coord === target);
   if (foundIdx >= 0) {
     const dest = next.areas[foundIdx]!;
+    // An earthquake-collapsed area is removed from play: the doorway onto it is now blocked
+    // by rubble. Prune the exit (so it's no longer offered) and report a dead end.
+    if ((dest.flags & AF_DESTROYED) !== 0) {
+      current.card = pruneExit(current.card, dir);
+      return { state: next, moved: false, deadEnd: true };
+    }
     const connects = dir === DIR_UP || dir === DIR_DOWN || hasReverseDoor(decodeArea(dest.card), dir);
     if (connects) {
       dest.faceUp = true;

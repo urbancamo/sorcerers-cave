@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { tryMove } from "./map";
 import { decodeArea } from "./decode";
 import { DIR_N, DIR_S, DIR_DOWN, packCoord } from "./coords";
+import { AF_DESTROYED } from "./state";
 import { makeState } from "./testkit";
 
 // Gateway (175) has N,E,S,W exits and a stair-up. It starts at packCoord(1,50,50)=15050.
@@ -52,6 +53,21 @@ describe("tryMove (spec §6)", () => {
     const r = tryMove(s, DIR_S);
     expect(r.moved).toBe(true);
     expect(r.state.partyArea).toBe(1);
+    expect(r.state.largeIdx).toBe(0); // nothing drawn
+  });
+
+  it("treats an earthquake-collapsed adjacent area as impassable rubble", () => {
+    const s = makeState({
+      areas: [
+        { card: 175, coord: packCoord(1, 50, 50), faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 },
+        { card: 31, coord: packCoord(1, 50, 51), faceUp: true, visited: false, contents: [], flags: AF_DESTROYED, indiffCount: 0 },
+      ],
+      largePack: [],
+    });
+    const r = tryMove(s, DIR_S);
+    expect(r.moved).toBe(false);
+    expect(r.deadEnd).toBe(true);
+    expect(decodeArea(r.state.areas[0]!.card).s).toBe(false); // doorway onto the rubble is pruned
     expect(r.state.largeIdx).toBe(0); // nothing drawn
   });
 

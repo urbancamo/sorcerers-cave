@@ -1,4 +1,4 @@
-import { decodeArea, unpackCoord, TREASURES, type GameState, type PlacedArea } from "@sorcerers-cave/engine";
+import { decodeArea, unpackCoord, TREASURES, AF_DESTROYED, type GameState, type PlacedArea } from "@sorcerers-cave/engine";
 import { resolveTile, resolveCard, normExits, type TileArt, type CardArt, type Rot } from "../data/manifest";
 import type { Area, Card } from "./ports";
 
@@ -92,6 +92,7 @@ export function projectArea(
     party: idx === state.partyArea,
     visited: pa.visited,
     faceDown: !pa.faceUp,
+    destroyed: (pa.flags & AF_DESTROYED) !== 0,
     strangers: lanes.strangers,
     treasure: lanes.treasure,
     hazards: lanes.hazards,
