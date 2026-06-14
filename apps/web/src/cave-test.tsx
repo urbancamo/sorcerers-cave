@@ -1,5 +1,6 @@
 import { useState } from "react";
 import ReactDOM from "react-dom/client";
+import "./styles.css"; // global tokens + menu/encounter styles, so the harness matches the real app
 import { newGame, reduce, type GameAction, type GameState } from "@sorcerers-cave/engine";
 import { createCaveAdapter } from "./view/engineAdapter";
 import { loadManifest } from "./data/manifest";

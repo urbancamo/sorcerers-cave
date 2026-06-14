@@ -26,14 +26,18 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
   const treasures = state.treasures.map((id) => TREASURES[id]!.name);
 
   return (
-    <div className="absolute right-4 bottom-24 z-50 flex w-72 flex-col gap-2 rounded bg-stone-900/95 p-4 text-stone-100 ring-1 ring-amber-700/40" data-testid="encounter-panel">
-      <h3 className="font-semibold capitalize">{state.phase}</h3>
-      {strangers.length > 0 && <p className="text-sm text-rose-300">Strangers: {strangers.join(", ")}</p>}
-      {treasures.length > 0 && <p className="text-sm text-amber-300">Treasure: {treasures.join(", ")}</p>}
-      {state.fight && <p className="text-xs text-stone-400">Round {state.fight.round}</p>}
-      <div className="flex flex-col gap-1">
+    <div className="scv-enc" data-testid="encounter-panel">
+      <h3 className="scv-enc-hd">{state.phase}</h3>
+      {strangers.length > 0 && (
+        <p className="scv-enc-line scv-enc-strangers"><span className="k">Strangers: </span>{strangers.join(", ")}</p>
+      )}
+      {treasures.length > 0 && (
+        <p className="scv-enc-line scv-enc-treasure"><span className="k">Treasure: </span>{treasures.join(", ")}</p>
+      )}
+      {state.fight && <p className="scv-enc-round">Round {state.fight.round}</p>}
+      <div className="scv-enc-actions">
         {actions.map((a, i) => (
-          <button key={i} className="rounded bg-amber-800 px-3 py-1 text-left text-sm hover:bg-amber-700" onClick={() => dispatch(a)}>
+          <button key={i} className="scv-enc-btn" onClick={() => dispatch(a)}>
             {label(a, state)}
           </button>
         ))}

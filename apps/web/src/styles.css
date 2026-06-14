@@ -181,3 +181,73 @@
   font-size: 13px;
   color: var(--parchment);
 }
+
+/* ---- in-game encounter / fight / pickup overlay (matches the HUD) ---- */
+.scv-enc {
+  position: absolute;
+  right: 18px;
+  bottom: 96px;
+  z-index: 50;
+  width: 280px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 16px 18px;
+  background: rgba(15, 15, 20, 0.82);
+  border: 1px solid var(--line-strong);
+  border-radius: 14px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 18px 50px -18px rgba(0, 0, 0, 0.85);
+  color: var(--parchment);
+  font-family: var(--ui);
+}
+.scv-enc-hd {
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--brass-bright);
+}
+.scv-enc-line {
+  font-size: 12.5px;
+  line-height: 1.4;
+}
+.scv-enc-line .k {
+  color: var(--stone-dim);
+}
+.scv-enc-strangers {
+  color: var(--crimson);
+}
+.scv-enc-treasure {
+  color: var(--brass);
+}
+.scv-enc-round {
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--stone-dim);
+}
+.scv-enc-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 2px;
+}
+.scv-enc-btn {
+  font-family: var(--ui);
+  font-size: 13px;
+  text-align: left;
+  padding: 9px 12px;
+  border-radius: 9px;
+  border: 1px solid var(--line-strong);
+  color: var(--parchment);
+  background: rgba(201, 161, 78, 0.06);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.scv-enc-btn:hover {
+  border-color: var(--brass);
+  color: var(--cream);
+  background: rgba(201, 161, 78, 0.14);
+}
