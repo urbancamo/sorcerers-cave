@@ -41,6 +41,28 @@ describe("rollFromEvents", () => {
     expect(view.tone).toBe("good");
   });
 
+  it("frames the Lost Ruby statue fight: win takes the ruby, loss is the statue's blow", () => {
+    const win: GameEvent[] = [
+      { type: "combatRoll", party: "Hero", enemy: "Statue", partyRoll: 6, enemyRoll: 1, partyTotal: 11, enemyTotal: 9, result: "partyWon" },
+      { type: "rubyTaken" },
+    ];
+    const w = rollFromEvents(win)!;
+    expect(w.title).toBe("The guardian statue");
+    expect(w.lanes[0]!.enemy.name).toBe("Statue");
+    expect(w.message).toMatch(/wrest the lost ruby/i);
+    expect(w.tone).toBe("good");
+
+    const loss: GameEvent[] = [
+      { type: "combatRoll", party: "Dwarf", enemy: "Statue", partyRoll: 1, enemyRoll: 6, partyTotal: 2, enemyTotal: 14, result: "enemyWon" },
+      { type: "memberDied", creatureId: 7 },
+      { type: "statueAroused" },
+    ];
+    const l = rollFromEvents(loss)!;
+    expect(l.title).toBe("The guardian statue");
+    expect(l.message).toMatch(/statue strikes/i);
+    expect(l.tone).toBe("bad");
+  });
+
   it("shows one lane per pairing and a slain message when the party falls", () => {
     const events: GameEvent[] = [
       { type: "combatRoll", party: "Dwarf", enemy: "Dragon", partyRoll: 2, enemyRoll: 6, partyTotal: 4, enemyTotal: 12, result: "enemyWon" },

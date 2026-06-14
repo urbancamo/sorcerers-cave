@@ -45,6 +45,18 @@ describe("enterChamber (spec §7.1)", () => {
     expect(s.treasures).toEqual([0]); // Silver (200-200=0)
   });
 
+  it("draws 2 extra cards in the Great Hall (3 total on level 1)", () => {
+    // card 671 = special Great Hall (5<<7=640) + chamber (16) + NESW (15)
+    const s = makeState({
+      level: 1,
+      areas: [{ card: 671, coord: packCoord(1, 50, 50), faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 }],
+    });
+    s.smallPack = [110, 201, 301, 202];
+    s.smallIdx = 0;
+    enterChamber(s);
+    expect(s.smallIdx).toBe(3); // min(1,4)=1 + 2 extra
+  });
+
   it("does not redraw on a revisit; reloads persisted contents", () => {
     const s = chamberAt(2);
     s.areas[0]!.visited = true;

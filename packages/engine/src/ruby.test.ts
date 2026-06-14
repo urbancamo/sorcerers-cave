@@ -31,6 +31,8 @@ describe("Lost Ruby statue (spec §16)", () => {
     expect(state.party[0]!.treasure).toContain(11);
     expect(events).toContainEqual({ type: "rubyTaken" });
     expect([0, 1]).toContain(state.party[0]!.status);
+    // the fight against the strength-8 statue is surfaced as a combat roll (for UI feedback)
+    expect(events).toContainEqual(expect.objectContaining({ type: "combatRoll", enemy: "Statue", result: "partyWon" }));
   });
 
   it("entering an aroused-statue area makes the statue attack first", () => {

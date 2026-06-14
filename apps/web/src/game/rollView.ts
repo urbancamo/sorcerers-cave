@@ -30,8 +30,21 @@ function combatView(events: GameEvent[]): RollView | null {
 
   const over = events.some((e) => e.type === "gameOver");
   const won = events.some((e) => e.type === "fightWon");
+  const rubyTaken = events.some((e) => e.type === "rubyTaken");
+  const statue = events.some((e) => e.type === "statueAroused"); // Lost-Ruby statue fight
   const killed = events.filter((e) => e.type === "strangerKilled").length;
   const lost = events.filter((e) => e.type === "memberDied" || e.type === "spectreSlew").length;
+
+  // The Lost Ruby is guarded by a strength-8 statue (§16) — give that fight its own copy.
+  if (rubyTaken || statue) {
+    const message = rubyTaken
+      ? "You wrest the Lost Ruby from the statue!"
+      : over
+        ? "The statue strikes — the party is slain…"
+        : "The statue strikes your champion down!";
+    return { title: "The guardian statue", lanes, message, tone: rubyTaken ? "good" : "bad" };
+  }
+
   const message = over
     ? "The party is slain…"
     : won

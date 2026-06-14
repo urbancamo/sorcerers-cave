@@ -247,7 +247,20 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
         }
         const pr = rollDie(next.seed); next.seed = pr.seed;
         const sr = rollDie(next.seed); next.seed = sr.seed;
-        if (frontStrength(fighter) + pr.value >= 8 + sr.value) {
+        const fighterTotal = frontStrength(fighter) + pr.value;
+        const won = fighterTotal >= 8 + sr.value; // the statue guards with strength 8 (§16)
+        // Surface the roll so the UI can show the fight (the statue is a foe you must beat).
+        events.push({
+          type: "combatRoll",
+          party: CREATURES[fighter.creatureId]!.name,
+          enemy: "Statue",
+          partyRoll: pr.value,
+          enemyRoll: sr.value,
+          partyTotal: fighterTotal,
+          enemyTotal: 8 + sr.value,
+          result: won ? "partyWon" : "enemyWon",
+        });
+        if (won) {
           fighter.treasure.push(11);
           next.treasures.splice(action.ti, 1);
           events.push({ type: "rubyTaken" });
