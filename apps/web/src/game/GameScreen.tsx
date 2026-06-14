@@ -3,9 +3,11 @@ import { useConvexAuth, useMutation } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { api } from "../../convex/_generated/api";
+import { GS_PLAYING } from "@sorcerers-cave/engine";
 import { useCaveGame } from "./useCaveGame";
 import { CaveCanvas } from "../view/CaveCanvas";
 import { PartySelect } from "./PartySelect";
+import { GameOverScreen } from "./GameOverScreen";
 
 export default function GameScreen() {
   const { isAuthenticated, isLoading } = useConvexAuth();
@@ -23,6 +25,8 @@ export default function GameScreen() {
     return <PartySelect onConfirm={async (picks) => setGameId(await newGame({ seed: Date.now(), picks }))} />;
   }
   if (loading || !engine || !state) return <p>Loading cave…</p>;
+
+  if (state.gs !== GS_PLAYING) return <GameOverScreen state={state} onNewGame={() => setGameId(null)} />;
 
   return <CaveCanvas key={gameId} engine={engine} state={state} />;
 }
