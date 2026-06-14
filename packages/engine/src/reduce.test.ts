@@ -274,3 +274,54 @@ describe("reduce — special-area crossings (C-3 §10)", () => {
     expect(state.gs).toBe(0); // still playing
   });
 });
+
+describe("reduce — treasure redistribution (party panel)", () => {
+  it("moves a treasure between members when the recipient can carry it", () => {
+    const s = makeState({
+      phase: "explore",
+      party: [
+        { creatureId: 5, status: 0, dragonKills: 0, treasure: [1] }, // Man with Gold (25kg)
+        { creatureId: 2, status: 0, dragonKills: 0, treasure: [] },  // Ogre (carry 100)
+      ],
+    });
+    const { state } = reduce(s, { type: "moveTreasure", from: 0, to: 1, idx: 0 });
+    expect(state.party[0]!.treasure).toEqual([]);
+    expect(state.party[1]!.treasure).toEqual([1]);
+  });
+
+  it("blocks a move that exceeds the recipient's carry capacity", () => {
+    const s = makeState({
+      phase: "explore",
+      party: [
+        { creatureId: 5, status: 0, dragonKills: 0, treasure: [1] }, // Man with Gold
+        { creatureId: 6, status: 0, dragonKills: 0, treasure: [0] }, // Woman (carry 25) already full with Silver
+      ],
+    });
+    const { state, events } = reduce(s, { type: "moveTreasure", from: 0, to: 1, idx: 0 });
+    expect(events).toContainEqual({ type: "blocked" });
+    expect(state.party[0]!.treasure).toEqual([1]); // unchanged
+  });
+
+  it("drops a treasure onto the current chamber floor", () => {
+    const s = makeState({
+      phase: "explore",
+      party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [1] }],
+    });
+    const { state } = reduce(s, { type: "dropTreasure", mi: 0, idx: 0 });
+    expect(state.party[0]!.treasure).toEqual([]);
+    expect(state.areas[state.partyArea]!.contents).toContain(200 + 1); // Gold left on the floor
+  });
+
+  it("blocks redistribution during a fight", () => {
+    const s = makeState({
+      phase: "fight",
+      party: [
+        { creatureId: 5, status: 0, dragonKills: 0, treasure: [1] },
+        { creatureId: 2, status: 0, dragonKills: 0, treasure: [] },
+      ],
+      fight: { surprise: 0, round: 1, focus: 0 },
+    });
+    expect(reduce(s, { type: "moveTreasure", from: 0, to: 1, idx: 0 }).events).toContainEqual({ type: "blocked" });
+    expect(reduce(s, { type: "dropTreasure", mi: 0, idx: 0 }).events).toContainEqual({ type: "blocked" });
+  });
+});

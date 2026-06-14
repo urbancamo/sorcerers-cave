@@ -6,6 +6,9 @@ export type GameAction =
   | { type: "withdraw" }
   | { type: "takeTreasure"; ti: number; mi: number }
   | { type: "leaveTreasure" }
+  // Redistribute carried treasure (spec §"keep holdings… A player may redistribute treasure"):
+  | { type: "moveTreasure"; from: number; to: number; idx: number } // give party[from].treasure[idx] to party[to]
+  | { type: "dropTreasure"; mi: number; idx: number }               // drop party[mi].treasure[idx] onto the floor
   | { type: "test" }
   | { type: "attack" }
   | { type: "focusTarget"; idx: number }

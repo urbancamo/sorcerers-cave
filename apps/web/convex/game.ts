@@ -17,6 +17,8 @@ const actionValidator = v.object({
   ti: v.optional(v.number()),
   mi: v.optional(v.number()),
   idx: v.optional(v.number()),
+  from: v.optional(v.number()),
+  to: v.optional(v.number()),
   artifact: v.optional(v.number()),
   target: v.optional(v.number()),
 });

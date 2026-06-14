@@ -5,7 +5,7 @@ import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT } from "./data/areaCards";
 import { viperCrossing, deepPoolCrossing } from "./special";
 import { enterChamber } from "./chamber";
 import { applyHazards } from "./hazards";
-import { takeTreasure } from "./pickup";
+import { takeTreasure, canCarry } from "./pickup";
 import { unpackCoord, packCoord, targetCoord, DIR_UP, DIR_DOWN } from "./coords";
 import type { GameAction, GameEvent } from "./actions";
 import { reactionRoll } from "./reaction";
@@ -301,6 +301,34 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       if (state.phase !== "pickup") return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
       persistAndExplore(next);
+      return { state: next, events: [] };
+    }
+
+    case "moveTreasure": {
+      // Redistribute carried treasure between members — but not mid-fight (spec §Mutiny/holdings).
+      if (state.phase === "fight" || state.phase === "gameOver") return { state, events: [{ type: "blocked" }] };
+      if (action.from === action.to) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      const from = next.party[action.from];
+      const to = next.party[action.to];
+      if (!from || !to) return { state, events: [{ type: "blocked" }] };
+      if (!(to.status === 0 || to.status === 1)) return { state, events: [{ type: "blocked" }] }; // recipient must be living
+      const tid = from.treasure[action.idx];
+      if (tid === undefined || !canCarry(to, tid)) return { state, events: [{ type: "blocked" }] }; // honour carry capacity
+      from.treasure.splice(action.idx, 1);
+      to.treasure.push(tid);
+      return { state: next, events: [] };
+    }
+
+    case "dropTreasure": {
+      if (state.phase === "fight" || state.phase === "gameOver") return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      const m = next.party[action.mi];
+      if (!m) return { state, events: [{ type: "blocked" }] };
+      const tid = m.treasure[action.idx];
+      if (tid === undefined) return { state, events: [{ type: "blocked" }] };
+      m.treasure.splice(action.idx, 1);
+      next.areas[next.partyArea]!.contents.push(200 + tid); // left on the chamber floor
       return { state: next, events: [] };
     }
 

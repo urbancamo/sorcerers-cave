@@ -7,7 +7,7 @@ import "./cave.css";
  * discovery overlay (`reveal.js`) is preserved verbatim. The `#scene` div
  * receives the React container ref so `boot` can append its WebGL canvas there.
  */
-export function CaveHud({ mountRef }: { mountRef: RefObject<HTMLDivElement | null> }) {
+export function CaveHud({ mountRef, onPartyClick }: { mountRef: RefObject<HTMLDivElement | null>; onPartyClick?: () => void }) {
   return (
     <>
       <div id="bg"></div>
@@ -75,8 +75,14 @@ export function CaveHud({ mountRef }: { mountRef: RefObject<HTMLDivElement | nul
             </div>
           </div>
 
-          <div className="roster" id="roster">
-            <div className="roster-hd">Party</div>
+          <div
+            className={"roster" + (onPartyClick ? " clickable" : "")}
+            id="roster"
+            onClick={onPartyClick}
+            role={onPartyClick ? "button" : undefined}
+            title={onPartyClick ? "Manage party & treasure" : undefined}
+          >
+            <div className="roster-hd">Party <span className="roster-expand">⤢</span></div>
             <div className="roster-body" id="rosterBody"></div>
           </div>
 

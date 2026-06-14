@@ -1,0 +1,36 @@
+import { render, screen, fireEvent } from "@testing-library/react";
+import { describe, it, expect, vi } from "vitest";
+import { newGame, type GameState } from "@sorcerers-cave/engine";
+import { PartyPanel } from "./PartyPanel";
+
+function partyState(): GameState {
+  const s = newGame(1, [5, 7]); // Man (carry 50) + Dwarf (carry 25) — cost 3+1 ≤ 6 budget
+  s.party[0]!.treasure.push(1); // Man carries Gold (id 1, 25kg — fits the Dwarf exactly)
+  return s;
+}
+
+describe("PartyPanel", () => {
+  it("moves a carried treasure to another member", () => {
+    const dispatch = vi.fn();
+    render(<PartyPanel state={partyState()} dispatch={dispatch} onClose={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: /^gold$/i })); // select Man's Gold
+    fireEvent.click(screen.getByRole("button", { name: /move here/i })); // give it to the Ogre
+    expect(dispatch).toHaveBeenCalledWith({ type: "moveTreasure", from: 0, to: 1, idx: 0 });
+  });
+
+  it("drops a carried treasure into the chamber", () => {
+    const dispatch = vi.fn();
+    render(<PartyPanel state={partyState()} dispatch={dispatch} onClose={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: /^gold$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /drop into chamber/i }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "dropTreasure", mi: 0, idx: 0 });
+  });
+
+  it("is view-only during a fight", () => {
+    const s = partyState();
+    s.phase = "fight";
+    render(<PartyPanel state={s} dispatch={() => {}} onClose={() => {}} />);
+    expect(screen.getByText(/redistributed during a fight/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^gold$/i })).toBeDisabled();
+  });
+});

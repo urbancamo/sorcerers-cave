@@ -8,6 +8,7 @@ import { useCaveGame } from "./useCaveGame";
 import { CaveCanvas } from "../view/CaveCanvas";
 import { SplashScreen } from "./SplashScreen";
 import { PartySelect } from "./PartySelect";
+import { PartyPanel } from "./PartyPanel";
 import { GameOverScreen } from "./GameOverScreen";
 import { EncounterPanel } from "./EncounterPanel";
 import { DiceRoll } from "./DiceRoll";
@@ -19,6 +20,7 @@ export default function GameScreen() {
   const newGame = useMutation(api.game.newGame);
   const [gameId, setGameId] = useState<Id<"games"> | null>(null);
   const [started, setStarted] = useState(false); // dismissed the splash
+  const [showParty, setShowParty] = useState(false); // expanded party panel
   const { engine, loading, state, color, dispatch } = useCaveGame(gameId);
   // The dice overlay lives here (not in EncounterPanel) so a fatal round's roll
   // still shows even though game-over swaps the panel out for GameOverScreen.
@@ -63,8 +65,9 @@ export default function GameScreen() {
 
   return (
     <div className="relative h-screen w-screen">
-      <CaveCanvas key={gameId} engine={engine} state={state} color={color} />
+      <CaveCanvas key={gameId} engine={engine} state={state} color={color} onPartyClick={() => setShowParty(true)} />
       <EncounterPanel state={state} dispatch={dispatchWithRolls} />
+      {showParty && <PartyPanel state={state} dispatch={dispatch} onClose={() => setShowParty(false)} />}
       {overlay}
     </div>
   );

@@ -1,0 +1,106 @@
+import { useEffect, useState } from "react";
+import {
+  CREATURES, TREASURES, carriedWeight, canCarry,
+  type GameState, type GameAction,
+} from "@sorcerers-cave/engine";
+import { loadManifest, resolveCard, type CardArt } from "../data/manifest";
+
+const STATUS_LABEL: Record<number, string> = { 0: "", 1: "ally", 2: "petrified", 3: "fallen" };
+
+/** Expanded party view: each member as their card, what they carry as cards, a carry-weight
+ *  bar, and (outside combat) controls to move treasure between members or drop it. */
+export function PartyPanel({
+  state,
+  dispatch,
+  onClose,
+}: {
+  state: GameState;
+  dispatch: (a: GameAction) => void;
+  onClose: () => void;
+}) {
+  const [cards, setCards] = useState<CardArt[]>([]);
+  const [sel, setSel] = useState<{ mi: number; idx: number } | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    loadManifest().then(({ cards }) => { if (alive) setCards(cards); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
+  const canManage = state.phase !== "fight" && state.phase !== "gameOver";
+  const party = state.party;
+  const selTid = sel ? party[sel.mi]?.treasure[sel.idx] : undefined;
+
+  const move = (to: number) => { if (sel) { dispatch({ type: "moveTreasure", from: sel.mi, to, idx: sel.idx }); setSel(null); } };
+  const drop = () => { if (sel) { dispatch({ type: "dropTreasure", mi: sel.mi, idx: sel.idx }); setSel(null); } };
+  const imgOf = (cat: "creature" | "treasure", id: number) => resolveCard(cat, id, cards)?.file ?? null;
+
+  return (
+    <div className="scv-pp-overlay" role="dialog" aria-label="party" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="scv-pp">
+        <div className="scv-pp-hd">
+          <h2>Party</h2>
+          <button className="scv-pp-close" onClick={onClose} aria-label="close">×</button>
+        </div>
+
+        {sel && selTid !== undefined && canManage && (
+          <div className="scv-pp-bar">
+            <span>Move <b>{TREASURES[selTid]?.name}</b> to a member, or</span>
+            <button className="scv-pp-act" onClick={drop}>Drop into chamber</button>
+            <button className="scv-pp-act ghost" onClick={() => setSel(null)}>Cancel</button>
+          </div>
+        )}
+
+        <div className="scv-pp-members">
+          {party.map((m, mi) => {
+            const c = CREATURES[m.creatureId]!;
+            const load = carriedWeight(m), cap = c.carry;
+            const pct = cap > 0 ? Math.min(100, Math.round((load / cap) * 100)) : 0;
+            const living = m.status === 0 || m.status === 1;
+            const isTarget = !!sel && canManage && sel.mi !== mi && living && selTid !== undefined && canCarry(m, selTid);
+            const cimg = imgOf("creature", m.creatureId);
+            return (
+              <div key={mi} className={"scv-pp-member" + (m.status === 3 ? " fallen" : "") + (isTarget ? " target" : "")}>
+                <div className="scv-pp-card">
+                  {cimg ? <img src={cimg} alt={c.name} /> : <span className="ph">{c.name}</span>}
+                </div>
+                <div className="scv-pp-name">
+                  {c.name}
+                  {STATUS_LABEL[m.status] && <span className="scv-pp-status"> · {STATUS_LABEL[m.status]}</span>}
+                </div>
+                <div className="scv-pp-cap">
+                  <div className="scv-pp-cap-bar"><i style={{ width: pct + "%" }} /></div>
+                  <span className="scv-pp-cap-tx">{cap > 0 ? `${load} / ${cap} kg` : "no capacity"}</span>
+                </div>
+                <div className="scv-pp-items">
+                  {m.treasure.length === 0 && <span className="scv-pp-empty">empty-handed</span>}
+                  {m.treasure.map((tid, idx) => {
+                    const t = TREASURES[tid]!;
+                    const timg = imgOf("treasure", tid);
+                    const selected = sel?.mi === mi && sel?.idx === idx;
+                    return (
+                      <button
+                        key={idx}
+                        type="button"
+                        className={"scv-pp-item" + (t.kind === "artifact" ? " art" : "") + (selected ? " sel" : "")}
+                        disabled={!canManage}
+                        aria-label={t.name}
+                        title={t.name + (t.kind === "artifact" ? " · artifact" : ` · ${t.weight}kg`)}
+                        onClick={() => setSel(selected ? null : { mi, idx })}
+                      >
+                        {timg ? <img src={timg} alt={t.name} /> : <span className="ph">{t.name[0]}</span>}
+                      </button>
+                    );
+                  })}
+                </div>
+                {isTarget && <button className="scv-pp-give" onClick={() => move(mi)}>Move here</button>}
+              </div>
+            );
+          })}
+        </div>
+
+        {!canManage && <p className="scv-pp-note">Treasure can’t be redistributed during a fight.</p>}
+      </div>
+    </div>
+  );
+}
