@@ -78,7 +78,8 @@ export default function GameScreen() {
       <>
         <GameOverScreen
           state={state}
-          onNewGame={() => { setRoll(null); setGameId(null); }}
+          // Return to the splash screen (the home / high-scores entry), not straight to party select.
+          onNewGame={() => { setRoll(null); setNotices(null); setGameId(null); setStarted(false); }}
           onSaveScore={(name) => saveScore({ gameId, name })}
           leaderboard={leaderboard}
         />
