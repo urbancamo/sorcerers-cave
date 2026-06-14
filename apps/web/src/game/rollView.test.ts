@@ -1,0 +1,57 @@
+import { describe, it, expect } from "vitest";
+import type { GameEvent } from "@sorcerers-cave/engine";
+import { rollFromEvents } from "./rollView";
+
+describe("rollFromEvents", () => {
+  it("returns null when no reaction or combat roll happened", () => {
+    expect(rollFromEvents([{ type: "moved", area: 1, level: 1 }])).toBeNull();
+  });
+
+  it("builds a single-die reaction view, with a join message on a friendly recruit", () => {
+    const events: GameEvent[] = [
+      { type: "reaction", outcome: "friendly", roll: 6 },
+      { type: "strangersJoined", count: 1 },
+    ];
+    const view = rollFromEvents(events)!;
+    expect(view.title).toBe("Reaction roll");
+    expect(view.lanes).toHaveLength(1);
+    expect(view.lanes[0]!.party).toBeUndefined();
+    expect(view.lanes[0]!.enemy.value).toBe(6);
+    expect(view.message).toMatch(/join your party/i);
+    expect(view.tone).toBe("good");
+  });
+
+  it("reports a friendly reaction that does not recruit", () => {
+    const view = rollFromEvents([{ type: "reaction", outcome: "friendly", roll: 5 }])!;
+    expect(view.message).toMatch(/keep their distance/i);
+  });
+
+  it("builds a party-vs-enemy combat view with both rolls and totals", () => {
+    const events: GameEvent[] = [
+      { type: "combatRoll", party: "Ogre", enemy: "Troll", partyRoll: 6, enemyRoll: 1, partyTotal: 12, enemyTotal: 5, result: "partyWon" },
+      { type: "strangerKilled", creatureId: 7 },
+      { type: "fightWon" },
+    ];
+    const view = rollFromEvents(events)!;
+    expect(view.title).toBe("Combat round");
+    expect(view.lanes).toHaveLength(1);
+    expect(view.lanes[0]!.party).toMatchObject({ name: "Ogre", value: 6, total: 12, outcome: "win" });
+    expect(view.lanes[0]!.enemy).toMatchObject({ name: "Troll", value: 1, total: 5, outcome: "lose" });
+    expect(view.message).toMatch(/victory/i);
+    expect(view.tone).toBe("good");
+  });
+
+  it("shows one lane per pairing and a slain message when the party falls", () => {
+    const events: GameEvent[] = [
+      { type: "combatRoll", party: "Dwarf", enemy: "Dragon", partyRoll: 2, enemyRoll: 6, partyTotal: 4, enemyTotal: 12, result: "enemyWon" },
+      { type: "memberDied", creatureId: 7 },
+      { type: "gameOver", gs: 2 },
+    ];
+    const view = rollFromEvents(events)!;
+    expect(view.lanes).toHaveLength(1);
+    expect(view.lanes[0]!.enemy.outcome).toBe("win");
+    expect(view.lanes[0]!.party!.outcome).toBe("lose");
+    expect(view.message).toMatch(/slain/i);
+    expect(view.tone).toBe("bad");
+  });
+});
