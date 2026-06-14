@@ -67,6 +67,20 @@ describe("resolveRound (spec §9.1, §9.3-9.4)", () => {
     expect(rolls[0]!.enemyTotal - rolls[0]!.enemyRoll).toBe(9); // capped strongest combination, not all four summed
   });
 
+  it("Lotus Dust and the Eye of God each reduce the Sorcerer's Strength by only 2, never to zero (card)", () => {
+    const arena = (over = {}) => fightState({
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }], // Hero
+      strangers: [11], // Sorcerer: FS 4 + MP 9 = 13
+      seed: 5,
+      ...over,
+    });
+    const str = (s) => { const r = combatRolls(resolveRound(s))[0]!; return r.enemyTotal - r.enemyRoll; };
+    expect(str(arena())).toBe(13); // full strength
+    expect(str(arena({ party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [13] }] }))).toBe(11); // Eye of God: −2
+    expect(str(arena({ lotusOnSorcerer: true }))).toBe(11); // Lotus Dust: −2
+    expect(str(arena({ party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [13] }], lotusOnSorcerer: true }))).toBe(9); // both: −4
+  });
+
   it("a two-member group that loses queues a casualty for the player to decide (§9)", () => {
     // Two Dwarves gang an overwhelming Sorcerer (FS 4 + MP 9) and lose — both could fall, so the
     // choice is deferred rather than auto-killing the weakest.

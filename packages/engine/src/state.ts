@@ -85,4 +85,6 @@ export interface GameState {
   surpriseReady?: boolean;
   // Count of secret doors discovered so far — lays them in order (A, B, C…).
   secretDoors?: number;
+  // Lotus Dust has been used on the Sorcerer (he can't be slept, only weakened): −2 to his Strength.
+  lotusOnSorcerer?: boolean;
 }

@@ -504,6 +504,11 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
           if ((next.phase !== "encounter" && next.phase !== "fight") || action.target === undefined) return { state, events: [{ type: "blocked" }] };
           if (action.target < 0 || action.target >= next.strangers.length) return { state, events: [{ type: "blocked" }] };
           const sid = next.strangers[action.target]!;
+          if (sid === 11) { // the Sorcerer is too powerful to be slept — Lotus Dust only weakens him (−2 Strength)
+            next.lotusOnSorcerer = true;
+            consume();
+            return ok;
+          }
           next.areas[next.partyArea]!.contents.push(100 + sid);
           next.strangers.splice(action.target, 1);
           consume();

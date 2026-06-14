@@ -49,6 +49,7 @@ export function partyRollBonus(state: GameState): number {
 
 const C_SPECTRE = 9;
 const C_DRAGON = 10;
+const C_SORCERER = 11;
 
 function livingParty(state: GameState): PartyMember[] {
   return state.party.filter((m) => m.status === 0 || m.status === 1);
@@ -58,7 +59,17 @@ function livingParty(state: GameState): PartyMember[] {
 export function resolveRound(state: GameState): GameEvent[] {
   const fight = state.fight!;
   const events: GameEvent[] = [];
-  const enemyMP = (sid: number): number => (eyeActive(state) ? 0 : CREATURES[sid]!.mp);
+  // The Eye nullifies enemy magic outright — but the Sorcerer is too powerful: the Eye, and Lotus
+  // Dust, EACH reduce his Strength by only 2 (Sorcerer card text), never to zero.
+  const enemyMP = (sid: number): number => {
+    if (sid === C_SORCERER) {
+      let mp = CREATURES[sid]!.mp;
+      if (eyeActive(state)) mp -= 2;
+      if (state.lotusOnSorcerer) mp -= 2;
+      return Math.max(0, mp);
+    }
+    return eyeActive(state) ? 0 : CREATURES[sid]!.mp;
+  };
 
   // --- Spectre auto-slay: a Spectre the party can't engage kills the strongest member each round.
   const hasSpectre = state.strangers.includes(C_SPECTRE);

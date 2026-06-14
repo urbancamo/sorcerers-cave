@@ -243,6 +243,19 @@ describe("reduce — fight dispatch (C-2 §9.5)", () => {
     expect(r.state.fight?.casualtyQueue).toBeUndefined();
   });
 
+  it("Lotus Dust weakens the Sorcerer instead of putting him to sleep (card)", () => {
+    const s = makeState({
+      phase: "fight",
+      fight: { surprise: 0, round: 1, focus: 0 },
+      strangers: [11], // the Sorcerer
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [5] }], // Hero holds Lotus Dust (id 5)
+    });
+    const r = reduce(s, { type: "useArtifact", artifact: 5, target: 0 });
+    expect(r.state.strangers).toEqual([11]); // not slept — he remains
+    expect(r.state.lotusOnSorcerer).toBe(true); // but marked for −2 Strength
+    expect(r.state.party[0]!.treasure).not.toContain(5); // the dust is spent
+  });
+
   it("blocks retreat before any round has been fought (§Retreat)", () => {
     const s = arena({
       party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }],
