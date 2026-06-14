@@ -73,4 +73,8 @@ export interface GameState {
   // True while the party's current position was reached by a one-way trap fall: prev is the level
   // above, which is unreachable, so withdraw/retreat are disallowed. Cleared on the next move.
   fellThroughTrap?: boolean;
+  // True only for the turn the party freshly enters a chamber with strangers by an unused doorway
+  // or magic carpet (NOT a trap fall): the party gains the advantage of surprise if it attacks now.
+  // Cleared once the party tests reaction (no longer an immediate attack) or the fight begins.
+  surpriseReady?: boolean;
 }

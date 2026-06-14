@@ -123,12 +123,19 @@ describe("reduce — chamber resolution (C-1)", () => {
 });
 
 describe("reduce — stranger encounters (C-2 §8)", () => {
-  it("attack starts a fight with surprise to the party", () => {
-    const s = makeState({ phase: "encounter", strangers: [10], areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }] });
+  it("attack from a fresh entry starts a fight with surprise to the party", () => {
+    const s = makeState({ phase: "encounter", surpriseReady: true, strangers: [10], areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }] });
     const { state, events } = reduce(s, { type: "attack" });
     expect(state.phase).toBe("fight");
     expect(state.fight).toMatchObject({ surprise: 1, round: 1 });
     expect(events).toContainEqual({ type: "fightStarted", surprise: 1 });
+  });
+
+  it("attack with no fresh-entry surprise (e.g. after a delay) gets no advantage", () => {
+    const s = makeState({ phase: "encounter", surpriseReady: false, strangers: [10], areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }] });
+    const { state, events } = reduce(s, { type: "attack" });
+    expect(state.fight).toMatchObject({ surprise: 0 });
+    expect(events).toContainEqual({ type: "fightStarted", surprise: 0 });
   });
 
   it("testing a Dragon (always hostile) starts a fight with surprise to the strangers", () => {
@@ -196,17 +203,30 @@ describe("reduce — fight dispatch (C-2 §9.5)", () => {
     expect(state.phase).toBe("gameOver");
   });
 
-  it("focusTarget sets the focus; retreat leaves combat with strangers persisted", () => {
+  it("focusTarget sets the focus; retreat (after a round) leaves combat with strangers persisted", () => {
     const s = arena({
       party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }],
       strangers: [3, 10],
       prev: 0,
+      fight: { surprise: 0, round: 2, focus: 0 }, // a round has already been fought (retreat now allowed)
     });
     expect(reduce(s, { type: "focusTarget", idx: 1 }).state.fight!.focus).toBe(1);
     const r = reduce(s, { type: "retreat" }).state;
     expect(r.phase).toBe("explore");
     expect(r.fight).toBeNull();
     expect(r.areas[0]!.contents).toEqual(expect.arrayContaining([103, 110]));
+  });
+
+  it("blocks retreat before any round has been fought (§Retreat)", () => {
+    const s = arena({
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }],
+      strangers: [3, 10],
+      prev: 0,
+      fight: { surprise: 0, round: 1, focus: 0 },
+    });
+    const { state, events } = reduce(s, { type: "retreat" });
+    expect(state.phase).toBe("fight"); // still fighting
+    expect(events).toEqual([{ type: "blocked" }]);
   });
 });
 

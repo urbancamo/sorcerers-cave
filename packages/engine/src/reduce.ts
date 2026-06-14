@@ -57,6 +57,7 @@ function strongestStranger(state: GameState): number {
 function startFight(state: GameState, surprise: number): GameEvent[] {
   state.fight = { surprise, round: 1, focus: strongestStranger(state) };
   state.phase = "fight";
+  state.surpriseReady = false; // the surprise (if any) is now baked into the fight
   return [{ type: "fightStarted", surprise }];
 }
 
@@ -114,6 +115,7 @@ function resolveArea(state: GameState): GameEvent[] {
       state.phase = "explore";
       return events;
     }
+    const freshEntry = !here.visited; // first visit by this (unused) doorway → eligible for surprise
     events.push(...enterChamber(state));
     events.push(...annihilateWithEye(state)); // the Eye destroys Spectres on sight (§ Eye of God)
     events.push(...wardOffSpectres(state)); // the Talisman drives off Spectres on level >= 4 (§ Talisman)
@@ -127,6 +129,8 @@ function resolveArea(state: GameState): GameEvent[] {
     }
     if (state.strangers.length > 0) {
       state.phase = "encounter";
+      // Surprise if attacking immediately on a fresh entry — never after a trap fall (§Surprise).
+      state.surpriseReady = freshEntry && !state.fellThroughTrap;
     } else if (state.treasures.length > 0) {
       state.phase = "pickup";
     } else {
@@ -337,6 +341,7 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       const area = state.areas[state.partyArea]!;
       if (area.indiffCount >= 3) return { state, events: [{ type: "blocked" }] }; // permanently indifferent
       const next = structuredClone(state);
+      next.surpriseReady = false; // approaching to test forfeits the chance of a surprise attack (§Surprise)
       const roll = reactionRoll(next);
       next.seed = roll.seed;
       const events: GameEvent[] = [{ type: "reaction", outcome: roll.outcome, roll: roll.roll }];
@@ -371,7 +376,8 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
     case "attack": {
       if (state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
-      return { state: next, events: startFight(next, 1) }; // party gains surprise
+      // Surprise only on an immediate attack from a fresh, non-trap entry (§Surprise).
+      return { state: next, events: startFight(next, next.surpriseReady ? 1 : 0) };
     }
 
     case "focusTarget": {
@@ -408,6 +414,8 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
     case "retreat": {
       if (state.phase !== "fight") return { state, events: [{ type: "blocked" }] };
       if (state.fellThroughTrap) return { state, events: [{ type: "blocked" }] }; // no way back up a trap
+      // A party may retreat only after at least one round has been fought (§Retreat).
+      if (!state.fight || state.fight.round <= 1) return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
       next.areas[next.partyArea]!.contents = [
         ...next.areas[next.partyArea]!.contents,

@@ -68,7 +68,9 @@ export function legalActions(state: GameState): GameAction[] {
     return actions;
   }
   if (state.phase === "fight") {
-    const actions: GameAction[] = state.fellThroughTrap ? [{ type: "fightOn" }] : [{ type: "fightOn" }, { type: "retreat" }];
+    const actions: GameAction[] = [{ type: "fightOn" }];
+    // Retreat is allowed only after at least one round has been fought, and never back up a trap (§Retreat).
+    if (!state.fellThroughTrap && state.fight && state.fight.round > 1) actions.push({ type: "retreat" });
     for (let i = 0; i < state.strangers.length; i++) actions.push({ type: "focusTarget", idx: i });
     actions.push(...artifactActions(state));
     actions.push({ type: "quit" });
