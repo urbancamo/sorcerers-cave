@@ -183,8 +183,8 @@
           "exits": "NEW",
           "tileType": "tunnel",
           "special": null,
-          "stairUp": true,
-          "stairDown": false
+          "stairUp": false,
+          "stairDown": true
         },
         {
           "file": "area-tile-s04-4.png",
