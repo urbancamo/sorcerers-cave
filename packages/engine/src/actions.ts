@@ -27,9 +27,21 @@ export type GameEvent =
   | { type: "memberDied"; creatureId: number }
   | { type: "strangerKilled"; creatureId: number }
   | { type: "spectreSlew"; creatureId: number }
-  | { type: "reaction"; outcome: "hostile" | "indifferent" | "friendly" }
+  | { type: "reaction"; outcome: "hostile" | "indifferent" | "friendly"; roll: number }
   | { type: "strangersJoined"; count: number }
   | { type: "fightStarted"; surprise: number }
+  // One resolved pairing in a fight round: the party side and the enemy side, each with its
+  // raw d6 (`*Roll`) and modified total (`*Total`). The UI shows both rolls side by side.
+  | {
+      type: "combatRoll";
+      party: string;
+      enemy: string;
+      partyRoll: number;
+      enemyRoll: number;
+      partyTotal: number;
+      enemyTotal: number;
+      result: "partyWon" | "enemyWon" | "tie";
+    }
   | { type: "fightWon" }
   | { type: "crossedSpecial"; special: number }
   | { type: "treasureDropped"; count: number }

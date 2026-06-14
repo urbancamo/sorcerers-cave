@@ -12,4 +12,8 @@ export interface BootOptions {
   party: ViewPartyMember[];
   tileAR: number;
 }
-export function boot(opts: BootOptions): Promise<{ dispose(): void; refresh(): void }>;
+export function boot(opts: BootOptions): Promise<{
+  dispose(): void;
+  refresh(): void;
+  setParty(party: ViewPartyMember[]): void;
+}>;

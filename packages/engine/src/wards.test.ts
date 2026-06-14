@@ -184,7 +184,7 @@ describe("Unicorn loyalty to a Woman (§ Unicorn)", () => {
   it("a Unicorn joins the party when a Woman is present", () => {
     // Woman (id 6) in party → hasWoman() true → Unicorn joins normally.
     const { state, events } = reduce(unicornEncounter([member(6)]), { type: "test" });
-    expect(events).toContainEqual({ type: "reaction", outcome: "friendly" });
+    expect(events).toContainEqual(expect.objectContaining({ type: "reaction", outcome: "friendly" }));
     expect(state.party.map((m) => m.creatureId)).toContain(13); // Unicorn joined
     expect(state.strangers).toEqual([]);
   });
@@ -192,7 +192,7 @@ describe("Unicorn loyalty to a Woman (§ Unicorn)", () => {
   it("a Womanless party leaves the Unicorn guarding the area", () => {
     // Hero (id 0) only — no Woman → Unicorn stays behind guarding.
     const { state, events } = reduce(unicornEncounter([member(0)]), { type: "test" });
-    expect(events).toContainEqual({ type: "reaction", outcome: "friendly" });
+    expect(events).toContainEqual(expect.objectContaining({ type: "reaction", outcome: "friendly" }));
     expect(events).toContainEqual({ type: "unicornGuards", creatureId: 13 });
     expect(state.party.map((m) => m.creatureId)).not.toContain(13); // did NOT join
     expect(state.phase).toBe("explore"); // party moves on

@@ -13,8 +13,8 @@ export function findLeader(strangers: readonly number[]): number {
   return best;
 }
 
-/** Roll the leader's reaction (spec §8.3). Threads the seed. */
-export function reactionRoll(state: GameState): { seed: number; outcome: Reaction } {
+/** Roll the leader's reaction (spec §8.3). Threads the seed. `roll` is the raw d6 (for display). */
+export function reactionRoll(state: GameState): { seed: number; outcome: Reaction; roll: number } {
   const leader = CREATURES[state.strangers[findLeader(state.strangers)]!]!;
   const r = rollDie(state.seed);
   const natural1 = r.value === 1;
@@ -30,5 +30,5 @@ export function reactionRoll(state: GameState): { seed: number; outcome: Reactio
   const hostileMax = leader.hostileMax ?? 0; // no table -> never hostile
   const indiffMax = leader.indiffMax ?? 6; // no table -> always indifferent
   const outcome: Reaction = roll <= hostileMax ? "hostile" : roll <= indiffMax ? "indifferent" : "friendly";
-  return { seed: r.seed, outcome };
+  return { seed: r.seed, outcome, roll: r.value };
 }

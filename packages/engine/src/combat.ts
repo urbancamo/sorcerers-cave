@@ -130,6 +130,18 @@ export function resolveRound(state: GameState): GameEvent[] {
     const partyTotal = partyStr + pr.value + rollBonus + (fight.round === 1 && fight.surprise === 1 ? 1 : 0);
     const enemyTotal = enemyStr + er.value + (fight.round === 1 && fight.surprise === -1 ? 1 : 0);
 
+    // Surface both rolls (raw d6 + modified total) so the UI can show them side by side.
+    events.push({
+      type: "combatRoll",
+      party: group.map((m) => CREATURES[m.creatureId]!.name).join(" + "),
+      enemy: CREATURES[sid]!.name,
+      partyRoll: pr.value,
+      enemyRoll: er.value,
+      partyTotal,
+      enemyTotal,
+      result: partyTotal > enemyTotal ? "partyWon" : enemyTotal > partyTotal ? "enemyWon" : "tie",
+    });
+
     if (partyTotal > enemyTotal) {
       killedStrangerIdx.push(sIdx);
       if (sid === C_DRAGON && group.length === 1) group[0]!.dragonKills += 1; // single-handed slayer

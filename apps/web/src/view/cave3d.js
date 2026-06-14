@@ -432,6 +432,8 @@ function renderRoster(){const b=document.getElementById('rosterBody');b.innerHTM
   PARTY.forEach(m=>{const row=document.createElement('div');row.className='mbr'+(m.lead?' lead':'');
     row.innerHTML='<div class="sig">'+m.sig+'</div><div class="who"><span class="nm">'+m.name+'</span><span class="it">'+(m.items.length?m.items.join(', '):'—')+'</span></div>';
     b.appendChild(row);});}
+/** Replace the party (e.g. after a creature joins) and refresh the roster + HUD count. */
+function setParty(p){ PARTY=p||[]; renderRoster(); updateHUD(); }
 function rebuildLevelButtons(){const grp=document.getElementById('levelGrp');const levels=[...new Set(engine.areas.map(a=>a.level))].sort((a,b)=>a-b);
   grp.innerHTML='';levels.forEach(lvl=>{const btn=document.createElement('button');btn.className='btn lvlbtn';btn.dataset.lvl=lvl;btn.textContent=lvl;btn.title='Focus level '+lvl;
     btn.addEventListener('click',()=>viewLevel(lvl));grp.appendChild(btn);});}
@@ -578,5 +580,5 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
     renderer.dispose();
     renderer.domElement.remove();
   }
-  return { dispose, refresh };
+  return { dispose, refresh, setParty };
 }

@@ -285,7 +285,7 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       const next = structuredClone(state);
       const roll = reactionRoll(next);
       next.seed = roll.seed;
-      const events: GameEvent[] = [{ type: "reaction", outcome: roll.outcome }];
+      const events: GameEvent[] = [{ type: "reaction", outcome: roll.outcome, roll: roll.roll }];
       if (roll.outcome === "friendly") {
         const womanPresent = hasWoman(next);
         const room = PARTY_CAP - next.party.length;

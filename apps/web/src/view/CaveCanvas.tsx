@@ -11,7 +11,7 @@ const TILE_AR = 1728 / 1210; // all tiles are 1728×1210 landscape (manifest)
 /** Mounts the vanilla Three.js renderer, booted from the injected engine adapter. */
 export function CaveCanvas({ engine, state }: { engine: CaveEngine; state: GameState }) {
   const mountRef = useRef<HTMLDivElement>(null);
-  const ctrl = useRef<{ dispose(): void; refresh(): void } | null>(null);
+  const ctrl = useRef<{ dispose(): void; refresh(): void; setParty(p: ReturnType<typeof viewParty>): void } | null>(null);
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -38,8 +38,9 @@ export function CaveCanvas({ engine, state }: { engine: CaveEngine; state: GameS
   }, [engine]);
 
   // Panel-driven resolution mutates engine state outside the renderer's own doMove,
-  // so re-sync the scene (exit markers, HUD, newly-laid floor cards) on every state change.
+  // so re-sync the scene (roster after a join/death, exit markers, HUD, floor cards) on state change.
   useEffect(() => {
+    ctrl.current?.setParty(viewParty(state));
     ctrl.current?.refresh();
   }, [state]);
 

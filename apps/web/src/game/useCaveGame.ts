@@ -40,6 +40,8 @@ export function useCaveGame(id: Id<"games"> | null) {
     syncedRef.current = state;
   }
 
-  const dispatch = (action: GameAction) => { if (id) void apply({ id, action }); };
+  // Returns the action's result ({ state, events }) so callers can react to events
+  // (e.g. animate a reaction roll); null when there is no game.
+  const dispatch = (action: GameAction) => (id ? apply({ id, action }) : Promise.resolve(null));
   return { engine: adapterRef.current, loading: !art || game === undefined, state, dispatch };
 }

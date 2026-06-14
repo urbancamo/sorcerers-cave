@@ -107,7 +107,7 @@ describe("reduce — stranger encounters (C-2 §8)", () => {
     const { state, events } = reduce(s, { type: "test" });
     expect(state.phase).toBe("fight");
     expect(state.fight!.surprise).toBe(-1);
-    expect(events).toContainEqual({ type: "reaction", outcome: "hostile" });
+    expect(events).toContainEqual(expect.objectContaining({ type: "reaction", outcome: "hostile" }));
   });
 
   it("a friendly result recruits the strangers as allies", () => {
@@ -123,7 +123,7 @@ describe("reduce — stranger encounters (C-2 §8)", () => {
     expect(state.party.some((m) => m.creatureId === 13 && m.status === 1)).toBe(true);
     expect(state.strangers).toEqual([]);
     expect(state.phase).toBe("explore");
-    expect(events).toContainEqual({ type: "reaction", outcome: "friendly" });
+    expect(events).toContainEqual(expect.objectContaining({ type: "reaction", outcome: "friendly" }));
   });
 
   it("three indifferent results make the area permanently indifferent (no more test)", () => {
