@@ -390,7 +390,10 @@ function doMove(dir){
   // HUD
   setTimeout(()=>{
     updateHUD(); selectCurrent();
-    if(isoFocus!=null) setIsolation(engine.current.level);
+    // Descending (or falling) auto-hides the level above so it never occludes the new one;
+    // otherwise just keep an existing isolated view focused on the current level.
+    if(ev.descended||ev.fell) setIsolation(engine.current.level);
+    else if(isoFocus!=null) setIsolation(engine.current.level);
     if(ev.chamber) onChamber(ev.area,ev.chamber); else {
       const n=ev.area.name;
       setPrompt(ev.descended?('You descend to <b>'+n+'</b> on level '+ev.area.level+'.')
