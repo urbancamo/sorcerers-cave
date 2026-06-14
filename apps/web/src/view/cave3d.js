@@ -192,7 +192,8 @@ function refreshExitMarkers(){
     const known=m.kind==='known';
     const col=(m.kind==='stair'||m.kind==='exit')?COLOR.brassBright:(known?COLOR.stone:COLOR.brass);
     if(m.dir==='N'||m.dir==='S'||m.dir==='E'||m.dir==='W'){
-      const off={N:[0,0,-(TILE_D/2+0.55)],S:[0,0,TILE_D/2+0.55],E:[TILE_W/2+0.55,0,0],W:[-(TILE_W/2+0.55),0,0]}[m.dir];
+      const edge=0.15; // gap beyond the tile edge — markers hug the doorway tightly
+      const off={N:[0,0,-(TILE_D/2+edge)],S:[0,0,TILE_D/2+edge],E:[TILE_W/2+edge,0,0],W:[-(TILE_W/2+edge),0,0]}[m.dir];
       const ring=ringFlat(col,0.34,0.46);ring.rotation.x=-Math.PI/2;ring.position.set(0,0.06,0);
       const ch=chevron(col);ch.position.set(0,0.32,0);
       // point chevron outward (flat, lying down toward dir)
@@ -210,6 +211,7 @@ function refreshExitMarkers(){
       grp.add(ring,ch);
       grp.position.set(p.x+corner[0],p.y+0.02,p.z+corner[1]);
     }
+    grp.scale.setScalar(0.5); // direction markers reduced by 50% (bob/flash animate position only)
     grp.userData.base=grp.position.y; grp.userData.kind=m.kind;
     exitGroup.add(grp); exitMarkers.push(grp);
   });
