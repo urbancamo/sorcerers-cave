@@ -68,6 +68,9 @@ export function legalActions(state: GameState): GameAction[] {
     return actions;
   }
   if (state.phase === "fight") {
+    // A pending casualty must be decided before anything else: pick which of the losing pair falls.
+    const pending = state.fight?.casualtyQueue?.[0];
+    if (pending) return pending.map((idx) => ({ type: "chooseCasualty", idx }));
     const actions: GameAction[] = [{ type: "fightOn" }];
     // Retreat is allowed only after at least one round has been fought, and never back up a trap (§Retreat).
     if (!state.fellThroughTrap && state.fight && state.fight.round > 1) actions.push({ type: "retreat" });

@@ -1,4 +1,4 @@
-import type { GameEvent } from "@sorcerers-cave/engine";
+import { CREATURES, type GameEvent } from "@sorcerers-cave/engine";
 import type { Lane } from "./DiceRoll";
 
 export type Tone = "good" | "bad" | "neutral";
@@ -71,12 +71,26 @@ function chestView(events: GameEvent[]): RollView | null {
   return { title: "The Treasure Chest", lanes: [{ enemy: { value: chest.result } }], message: o.message, tone: o.tone };
 }
 
-/** Build the dice overlay (if any) for the events an action produced — reaction, then chest, else combat. */
+/** Turn a decided casualty (a 2-member match loss) into a single-die overlay showing the d6 and
+ *  whether the player's preference was honoured. */
+function casualtyView(events: GameEvent[]): RollView | null {
+  const c = events.find((e): e is Extract<GameEvent, { type: "casualtyChosen" }> => e.type === "casualtyChosen");
+  if (!c) return null;
+  const who = CREATURES[c.creatureId]?.name ?? "A companion";
+  return {
+    title: "Who falls",
+    lanes: [{ enemy: { value: c.roll } }],
+    message: `${who} falls — ${c.gotPreference ? "as you chose." : "fate decided otherwise."}`,
+    tone: "bad",
+  };
+}
+
+/** Build the dice overlay (if any) for the events an action produced — reaction, chest, casualty, else combat. */
 export function rollFromEvents(events: GameEvent[]): RollView | null {
   const reaction = events.find((e): e is Extract<GameEvent, { type: "reaction" }> => e.type === "reaction");
   if (reaction) {
     const joined = events.find((e): e is Extract<GameEvent, { type: "strangersJoined" }> => e.type === "strangersJoined")?.count ?? 0;
     return reactionView(reaction, joined);
   }
-  return chestView(events) ?? combatView(events);
+  return chestView(events) ?? casualtyView(events) ?? combatView(events);
 }

@@ -41,6 +41,16 @@ describe("rollFromEvents", () => {
     expect(view.tone).toBe("bad");
   });
 
+  it("shows a decided casualty as a single-die view noting whether the choice was honoured", () => {
+    const got = rollFromEvents([{ type: "casualtyChosen", creatureId: 0, roll: 5, gotPreference: true }])!;
+    expect(got.title).toMatch(/who falls/i);
+    expect(got.lanes[0]!.enemy.value).toBe(5);
+    expect(got.message).toMatch(/hero/i);
+    expect(got.message).toMatch(/as you chose/i);
+    const not = rollFromEvents([{ type: "casualtyChosen", creatureId: 7, roll: 2, gotPreference: false }])!;
+    expect(not.message).toMatch(/fate decided otherwise/i);
+  });
+
   it("builds a party-vs-enemy combat view with both rolls and totals", () => {
     const events: GameEvent[] = [
       { type: "combatRoll", party: "Ogre", enemy: "Troll", partyRoll: 6, enemyRoll: 1, partyTotal: 12, enemyTotal: 5, result: "partyWon" },

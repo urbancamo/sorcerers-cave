@@ -4,6 +4,7 @@ import { GS_QUIT, GS_ESCAPED } from "./state";
 import { DIR_S, packCoord } from "./coords";
 import { makeState } from "./testkit";
 import { legalActions } from "./selectors";
+import type { GameEvent } from "./actions";
 import { SPECIAL_VIPER_PIT, SPECIAL_DEEP_POOL } from "./data/areaCards";
 
 describe("reduce (spec §4 turn dispatch)", () => {
@@ -215,6 +216,31 @@ describe("reduce — fight dispatch (C-2 §9.5)", () => {
     expect(r.phase).toBe("explore");
     expect(r.fight).toBeNull();
     expect(r.areas[0]!.contents).toEqual(expect.arrayContaining([103, 110]));
+  });
+
+  it("chooseCasualty falls on the player's pick with a 4-6, otherwise the other (§9)", () => {
+    const s = arena({
+      party: [
+        { creatureId: 7, status: 0, dragonKills: 0, treasure: [] }, // idx 0
+        { creatureId: 7, status: 0, dragonKills: 0, treasure: [] }, // idx 1
+      ],
+      strangers: [10], // a Dragon still stands → the fight continues after the choice
+      fight: { surprise: 0, round: 2, focus: 0, casualtyQueue: [[0, 1]] },
+      prev: 0,
+      seed: 5,
+    });
+    // While a casualty is pending, only that choice is offered and fightOn is blocked.
+    expect(legalActions(s)).toEqual([{ type: "chooseCasualty", idx: 0 }, { type: "chooseCasualty", idx: 1 }]);
+    expect(reduce(s, { type: "fightOn" }).events).toEqual([{ type: "blocked" }]);
+
+    const r = reduce(s, { type: "chooseCasualty", idx: 0 }); // prefer member 0 to fall
+    const ev = r.events.find((e): e is Extract<GameEvent, { type: "casualtyChosen" }> => e.type === "casualtyChosen")!;
+    expect(ev).toBeDefined();
+    const deadIdx = r.state.party.findIndex((m) => m.status === 3);
+    expect(deadIdx).toBe(ev.roll >= 4 ? 0 : 1); // 4-6 honours the preference (0); else the other (1)
+    expect(ev.gotPreference).toBe(ev.roll >= 4);
+    expect(r.state.phase).toBe("fight"); // one Dwarf remains, Dragon still there
+    expect(r.state.fight?.casualtyQueue).toBeUndefined();
   });
 
   it("blocks retreat before any round has been fought (§Retreat)", () => {

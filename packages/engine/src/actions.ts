@@ -13,6 +13,7 @@ export type GameAction =
   | { type: "attack" }
   | { type: "focusTarget"; idx: number }
   | { type: "fightOn" }
+  | { type: "chooseCasualty"; idx: number } // pick which of a losing pair falls (§"A Round of Fighting")
   | { type: "retreat" }
   | { type: "useArtifact"; artifact: number; target?: number; dir?: number }
   | { type: "openChest" };
@@ -50,6 +51,8 @@ export type GameEvent =
       result: "partyWon" | "enemyWon" | "tie";
     }
   | { type: "fightWon" }
+  // A losing pair's casualty was decided: `roll` is the d6, `gotPreference` whether 4-6 honoured the choice.
+  | { type: "casualtyChosen"; creatureId: number; roll: number; gotPreference: boolean }
   | { type: "crossedSpecial"; special: number }
   | { type: "treasureDropped"; count: number }
   | { type: "treasureReclaimed"; count: number }

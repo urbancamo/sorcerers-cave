@@ -45,6 +45,9 @@ export interface FightState {
   surprise: number;
   round: number;
   focus: number;
+  // Pending casualty choices from the round just fought: each entry is a pair of party indices
+  // who lost a match together; the player picks which of the two falls (§"A Round of Fighting").
+  casualtyQueue?: number[][];
 }
 
 export interface GameState {

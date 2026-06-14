@@ -61,6 +61,28 @@ function startFight(state: GameState, surprise: number): GameEvent[] {
   return [{ type: "fightStarted", surprise }];
 }
 
+/** Settle the outcome once a round (and any casualty choices) is fully resolved: a Unicorn may
+ *  depart, the party may be wiped, or the foes cleared (→ pickup / explore). */
+function finalizeRound(state: GameState): GameEvent[] {
+  const events = reconcileUnicorns(state); // a Unicorn departs if the last Woman fell (§ Unicorn)
+  const partyAlive = state.party.some((m) => m.status === 0 || m.status === 1);
+  if (!partyAlive) {
+    state.gs = GS_DEAD;
+    state.phase = "gameOver";
+    state.fight = null;
+    state.party.forEach((m) => { m.potionActive = false; });
+    events.push({ type: "gameOver", gs: GS_DEAD });
+  } else if (state.strangers.length === 0) {
+    state.fight = null;
+    state.party.forEach((m) => { m.potionActive = false; });
+    events.push({ type: "fightWon" });
+    if (state.treasures.length > 0) state.phase = "pickup";
+    else persistAndExplore(state);
+  }
+  // else: still fighting; resolveRound already advanced the round
+  return events;
+}
+
 /** Resolve the area just entered: special markers, then chamber draw + hazards + phase (spec §4/§7). */
 function resolveArea(state: GameState): GameEvent[] {
   const events: GameEvent[] = [{ type: "moved", area: state.partyArea, level: state.level }];
@@ -390,24 +412,35 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
 
     case "fightOn": {
       if (state.phase !== "fight") return { state, events: [{ type: "blocked" }] };
+      if (state.fight?.casualtyQueue?.length) return { state, events: [{ type: "blocked" }] }; // resolve the choice first
       const next = structuredClone(state);
       const events = resolveRound(next);
-      events.push(...reconcileUnicorns(next)); // a Unicorn departs if the last Woman fell this round (§ Unicorn)
-      const partyAlive = next.party.some((m) => m.status === 0 || m.status === 1);
-      if (!partyAlive) {
-        next.gs = GS_DEAD;
-        next.phase = "gameOver";
-        next.fight = null;
-        next.party.forEach((m) => { m.potionActive = false; });
-        events.push({ type: "gameOver", gs: GS_DEAD });
-      } else if (next.strangers.length === 0) {
-        next.fight = null;
-        next.party.forEach((m) => { m.potionActive = false; });
-        events.push({ type: "fightWon" });
-        if (next.treasures.length > 0) next.phase = "pickup";
-        else persistAndExplore(next);
+      // If the round left a casualty for the player to decide, pause for chooseCasualty.
+      if (next.fight?.casualtyQueue?.length) return { state: next, events };
+      events.push(...finalizeRound(next));
+      return { state: next, events };
+    }
+
+    case "chooseCasualty": {
+      const pair = state.fight?.casualtyQueue?.[0];
+      if (state.phase !== "fight" || !pair) return { state, events: [{ type: "blocked" }] };
+      if (!pair.includes(action.idx)) return { state, events: [{ type: "blocked" }] }; // must pick one of the pair
+      const next = structuredClone(state);
+      const queue = next.fight!.casualtyQueue!;
+      const preferred = action.idx;
+      const other = pair.find((i) => i !== preferred)!;
+      const r = rollDie(next.seed); next.seed = r.seed;
+      const victim = r.value >= 4 ? preferred : other; // 4-6 grants the player's preference (§"A Round of Fighting")
+      next.party[victim]!.status = 3;
+      const events: GameEvent[] = [
+        { type: "casualtyChosen", creatureId: next.party[victim]!.creatureId, roll: r.value, gotPreference: victim === preferred },
+        { type: "memberDied", creatureId: next.party[victim]!.creatureId },
+      ];
+      queue.shift();
+      if (queue.length === 0) {
+        next.fight!.casualtyQueue = undefined;
+        events.push(...finalizeRound(next));
       }
-      // else: still fighting; resolveRound already advanced the round
       return { state: next, events };
     }
 

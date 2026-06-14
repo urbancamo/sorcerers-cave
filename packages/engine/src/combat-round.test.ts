@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { resolveRound } from "./combat";
 import { makeState } from "./testkit";
+import type { GameEvent } from "./actions";
+
+const combatRolls = (events: GameEvent[]) =>
+  events.filter((e): e is Extract<GameEvent, { type: "combatRoll" }> => e.type === "combatRoll");
 
 function fightState(over: Parameters<typeof makeState>[0] = {}) {
   return makeState({ phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, ...over });
@@ -47,5 +51,36 @@ describe("resolveRound (spec §9.1, §9.3-9.4)", () => {
     expect(s.party.find((m) => m.creatureId === 0)!.status).toBe(3); // Hero dead
     expect(events).toContainEqual({ type: "spectreSlew", creatureId: 0 });
     expect(s.strangers).toEqual([9]); // Spectre not killed
+  });
+
+  it("out-numbered: a fighter faces at most two strangers hand-to-hand + background caster MP (§Fights)", () => {
+    // The book example: 1 Hero vs Priest, Troll, Man, Dwarf. The strongest combination the Hero
+    // must face is Troll(4) + Man(3) hand-to-hand + the Priest's magical power (2) = 9; the Dwarf is idle.
+    const s = fightState({
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }], // Hero
+      strangers: [4, 3, 5, 7], // Priest(caster), Troll, Man, Dwarf
+      fight: { surprise: 0, round: 1, focus: 1 }, // focus the Troll (strongest)
+      seed: 5,
+    });
+    const rolls = combatRolls(resolveRound(s));
+    expect(rolls).toHaveLength(1); // one match only — the Dwarf stands idle, not folded in
+    expect(rolls[0]!.enemyTotal - rolls[0]!.enemyRoll).toBe(9); // capped strongest combination, not all four summed
+  });
+
+  it("a two-member group that loses queues a casualty for the player to decide (§9)", () => {
+    // Two Dwarves gang an overwhelming Sorcerer (FS 4 + MP 9) and lose — both could fall, so the
+    // choice is deferred rather than auto-killing the weakest.
+    const s = fightState({
+      party: [
+        { creatureId: 7, status: 0, dragonKills: 0, treasure: [] },
+        { creatureId: 7, status: 0, dragonKills: 0, treasure: [] },
+      ],
+      strangers: [11], // Sorcerer
+      seed: 5,
+    });
+    const events = resolveRound(s);
+    expect(s.fight!.casualtyQueue).toEqual([[0, 1]]);
+    expect(s.party.every((m) => m.status === 0)).toBe(true); // nobody dead yet — awaiting the choice
+    expect(events.some((e) => e.type === "memberDied")).toBe(false);
   });
 });

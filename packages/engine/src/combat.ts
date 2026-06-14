@@ -99,30 +99,42 @@ export function resolveRound(state: GameState): GameEvent[] {
 
   const focusIdx = eligible.includes(fight.focus) ? fight.focus : eligible[0]!;
   const order = [focusIdx, ...eligible.filter((i) => i !== focusIdx)];
+  // Pair each front fighter with a distinct stranger (focus first).
   const matches = new Map<number, PartyMember[]>();
-  frontFighters.forEach((f, i) => {
-    const target = i < order.length ? order[i]! : focusIdx; // extras gang the focus
-    const existing = matches.get(target);
-    if (existing) {
-      existing.push(f);
-    } else {
-      matches.set(target, [f]);
-    }
+  const primary = Math.min(frontFighters.length, order.length);
+  for (let i = 0; i < primary; i++) matches.set(order[i]!, [frontFighters[i]!]);
+  // Party larger: spare fighters gang existing matches, at most TWO party per stranger
+  // ("send two against one"). Any beyond 2× the strangers stand idle this round.
+  const spareFighters = frontFighters.slice(primary);
+  for (const k of order.slice(0, primary)) {
+    if (spareFighters.length === 0) break;
+    if (matches.get(k)!.length < 2) matches.get(k)!.push(spareFighters.shift()!);
+  }
+  // Out-numbered: a fighter may be set against at most TWO strangers hand-to-hand; further
+  // non-caster strangers stand idle. Unengaged stranger casters add their magical power to the
+  // focus group from the background (§"Setting up the Fight").
+  const matchedIdx = new Set(matches.keys());
+  const unmatched = eligible.filter((i) => !matchedIdx.has(i));
+  const enemyBgMP = unmatched.reduce((sum, i) => sum + enemyMP(state.strangers[i]!), 0); // non-casters add 0
+  const extraFighters = unmatched
+    .filter((i) => enemyMP(state.strangers[i]!) === 0) // non-caster strangers fight hand-to-hand
+    .sort((a, b) => CREATURES[state.strangers[b]!]!.fs - CREATURES[state.strangers[a]!]!.fs);
+  const extraForMatch = new Map<number, number>(); // one extra hand-to-hand stranger per single-fighter match
+  order.filter((k) => matches.get(k)?.length === 1).forEach((k, i) => {
+    const ex = extraFighters[i];
+    if (ex !== undefined) extraForMatch.set(k, CREATURES[state.strangers[ex]!]!.fs);
   });
-  // Unmatched eligible strangers fold their strength into the focus enemy.
-  const unmatchedStrength = eligible
-    .filter((i) => !matches.has(i))
-    .reduce((sum, i) => sum + CREATURES[state.strangers[i]!]!.fs + enemyMP(state.strangers[i]!), 0);
 
   // --- Resolve each match. Collect outcomes, then apply (so indices stay valid during rolls).
   const killedStrangerIdx: number[] = [];
+  const pendingCasualties: number[][] = []; // pairs (party indices) whose casualty the player picks
   const rollBonus = partyRollBonus(state);
   for (const [sIdx, group] of matches) {
     const sid = state.strangers[sIdx]!;
-    let enemyStr = CREATURES[sid]!.fs + enemyMP(sid);
+    let enemyStr = CREATURES[sid]!.fs + enemyMP(sid) + (extraForMatch.get(sIdx) ?? 0);
     let partyStr = group.reduce((sum, m) => sum + frontStrength(m, state), 0);
     if (sIdx === focusIdx) {
-      enemyStr += unmatchedStrength;
+      enemyStr += enemyBgMP;
       partyStr += casterMPTotal;
     }
     const pr = rollDie(state.seed); state.seed = pr.seed;
@@ -147,15 +159,16 @@ export function resolveRound(state: GameState): GameEvent[] {
       if (sid === C_DRAGON && group.length === 1) group[0]!.dragonKills += 1; // single-handed slayer
       events.push({ type: "strangerKilled", creatureId: sid });
     } else if (enemyTotal > partyTotal) {
-      let weakest: PartyMember | undefined;
-      for (const m of group) if (!weakest || frontStrength(m, state) < frontStrength(weakest, state)) weakest = m;
-      if (weakest) {
-        if (ringInvincible(weakest, state)) {
-          events.push({ type: "deathPrevented", creatureId: weakest.creatureId });
-        } else {
-          weakest.status = 3;
-          events.push({ type: "memberDied", creatureId: weakest.creatureId });
-        }
+      // The Ring makes its bearer invincible; the death falls on a mortal member.
+      const mortal = group.filter((m) => !ringInvincible(m, state));
+      if (mortal.length === 0) {
+        events.push({ type: "deathPrevented", creatureId: group[0]!.creatureId });
+      } else if (mortal.length === 1) {
+        mortal[0]!.status = 3;
+        events.push({ type: "memberDied", creatureId: mortal[0]!.creatureId });
+      } else {
+        // Two members lost together — the player chooses which falls (resolved after the round).
+        pendingCasualties.push(mortal.map((m) => state.party.indexOf(m)));
       }
     }
     // tie: no death
@@ -164,5 +177,6 @@ export function resolveRound(state: GameState): GameEvent[] {
   // Apply stranger removals (highest index first so earlier indices stay valid).
   killedStrangerIdx.sort((a, b) => b - a).forEach((i) => state.strangers.splice(i, 1));
   fight.round += 1;
+  if (pendingCasualties.length > 0) fight.casualtyQueue = pendingCasualties;
   return events;
 }
