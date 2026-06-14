@@ -155,10 +155,11 @@ function carpetMove(state: GameState, dir: number): void {
   let idx = state.areas.findIndex((a) => a.coord === target);
   if (idx < 0) {
     let drawn = state.largeIdx < state.largePack.length ? state.largePack[state.largeIdx++]! : 31;
+    const mirroredStairs = (dir === DIR_DOWN ? 32 : 0) | (dir === DIR_UP ? 64 : 0); // climb/descend-back link, not printed art
     if (dir === DIR_DOWN) drawn |= 32; // mirror a stair-up so the party can climb back
     if (dir === DIR_UP) drawn |= 64; // mirror a stair-down so the party can descend back
     if (targetLevel === 1) drawn &= ~32; // only the Gateway exits level 1
-    state.areas.push({ card: drawn, coord: target, faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 });
+    state.areas.push({ card: drawn, coord: target, faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0, mirroredStairs });
     idx = state.areas.length - 1;
   } else {
     state.areas[idx]!.faceUp = true;

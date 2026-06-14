@@ -31,6 +31,10 @@ export interface PlacedArea {
   flags: number; // AF bits (Milestone C)
   indiffCount: number; // AI permanent-indifference counter (Milestone C)
   dropped?: number[]; // heavy treasure ids left in a Deep Pool, reclaimable on return (§10.2)
+  // Stair bits (32=up, 64=down) added for level connectivity on descent/carpet, NOT printed on
+  // the card. They keep `card` traversable both ways but are excluded from rendering, so the tile
+  // is always drawn in its printed orientation (the original game links levels with markers).
+  mirroredStairs?: number;
 }
 
 // surprise: +1 party, -1 strangers, 0 none (applies to round 1 only). focus indexes `strangers`.

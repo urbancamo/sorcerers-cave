@@ -41,18 +41,6 @@ export function normExits(exits: string): string {
   return NESW.filter((d) => exits.includes(d)).join("");
 }
 
-/** Rotate an exits string clockwise by `rot` degrees; returns it canonicalised. */
-export function rotateExits(exits: string, rot: Rot): string {
-  const k = (rot / 90) % 4;
-  const mapped = [...exits]
-    .map((d) => {
-      const i = NESW.indexOf(d as (typeof NESW)[number]);
-      return i < 0 ? d : NESW[(i + k) % 4];
-    })
-    .join("");
-  return normExits(mapped);
-}
-
 const tileIdOf = (file: string) => file.replace(/^area-tile-/, "").replace(/\.png$/, "");
 const cardIdOf = (file: string) => file.replace(/^small-card-/, "").replace(/\.png$/, "");
 const urlOf = (dir: string, file: string) => `${ASSET_BASE}/${dir}/${file}`;
@@ -81,21 +69,22 @@ export function parseManifest(m: AssetManifest): { tiles: TileArt[]; cards: Card
 }
 
 /**
- * Resolve a topology to a tile artwork + rotation; null if no art matches.
- * Rotations are tried 0 → 180 → 90 → 270: the tiles are landscape, so 0/180 preserve
- * the aspect while 90/270 would render a tile portrait — prefer the aspect-preserving
- * orientation (and the exact rot-0 match) over an incidental quarter-turn of another tile.
+ * Resolve a topology to a tile artwork; null if no art matches.
+ * Tiles are LANDSCAPE and the cave grid is landscape-celled, so a rotated tile never fits a
+ * cell — every area card is therefore drawn in its printed orientation (rot 0). The full deck
+ * is covered at rot 0 (enforced by tileOrientation.test); rotation is intentionally not done.
  */
 export function resolveTile(topo: Topology, tiles: TileArt[]): { tileId: string; rot: Rot } | null {
   const want = normExits(topo.exits);
-  const fits = (t: TileArt) =>
-    t.special === topo.special &&
-    t.stairUp === topo.stairUp &&
-    t.stairDown === topo.stairDown &&
-    (topo.special !== null || (t.type === "chamber") === topo.isChamber);
-  for (const rot of [0, 180, 90, 270] as Rot[]) {
-    for (const t of tiles) {
-      if (fits(t) && rotateExits(t.exits, rot) === want) return { tileId: t.tileId, rot };
+  for (const t of tiles) {
+    if (
+      t.special === topo.special &&
+      t.stairUp === topo.stairUp &&
+      t.stairDown === topo.stairDown &&
+      (topo.special !== null || (t.type === "chamber") === topo.isChamber) &&
+      t.exits === want
+    ) {
+      return { tileId: t.tileId, rot: 0 };
     }
   }
   return null;

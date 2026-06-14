@@ -71,7 +71,13 @@ export function projectArea(
 ): Area {
   const { level, x, y } = unpackCoord(pa.coord);
   const { d, exits, special } = decodeTopology(pa.card);
-  const resolved = resolveTile({ exits, stairUp: d.stairUp, stairDown: d.stairDown, special, isChamber: d.chamber }, art.tiles);
+  // The tile is drawn in its PRINTED orientation: stairs added only for level connectivity
+  // (descent/carpet) are excluded from tile selection so the art is never rotated to fit.
+  const mirrored = pa.mirroredStairs ?? 0;
+  const resolved = resolveTile(
+    { exits, stairUp: d.stairUp && (mirrored & 32) === 0, stairDown: d.stairDown && (mirrored & 64) === 0, special, isChamber: d.chamber },
+    art.tiles,
+  );
   const lanes = laneCards(liveContents ?? pa.contents, art.cards);
   return {
     tileId: resolved?.tileId ?? art.tiles[0]!.tileId,

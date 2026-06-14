@@ -87,8 +87,9 @@ export function tryMove(state: GameState, dir: number): MoveResult {
   const connects = dir === DIR_UP || dir === DIR_DOWN || hasReverseDoor(decodeArea(drawn), dir);
 
   if (connects) {
+    const mirroredStairs = dir === DIR_DOWN ? STAIR_UP_BIT : 0; // climb-back link, not printed art
     if (dir === DIR_DOWN) drawn = drawn | STAIR_UP_BIT; // mirror a stair-up so you can climb back
-    const placed: PlacedArea = { card: drawn, coord: target, faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 };
+    const placed: PlacedArea = { card: drawn, coord: target, faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0, mirroredStairs };
     next.areas.push(placed);
     next.prev2 = next.prev;
     next.prev = next.partyArea;

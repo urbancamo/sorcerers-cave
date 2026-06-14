@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { AssetManifest } from "@sorcerers-cave/assets";
-import { rotateExits, normExits, parseManifest, resolveTile, resolveCard, type Topology, type Category } from "./manifest";
+import { normExits, parseManifest, resolveTile, resolveCard, type Topology, type Category } from "./manifest";
 
 const FIXTURE: AssetManifest = {
   generated: "test",
@@ -23,17 +23,10 @@ const FIXTURE: AssetManifest = {
   },
 };
 
-describe("rotateExits / normExits", () => {
+describe("normExits", () => {
   it("normalises to N,E,S,W order", () => {
     expect(normExits("EN")).toBe("NE");
     expect(normExits("WSEN")).toBe("NESW");
-  });
-  it("rotates clockwise (N→E→S→W)", () => {
-    expect(rotateExits("N", 90)).toBe("E");
-    expect(rotateExits("NE", 90)).toBe("ES");
-    expect(rotateExits("NE", 180)).toBe("SW");
-    expect(rotateExits("NESW", 90)).toBe("NESW"); // full set is rotation-invariant
-    expect(rotateExits("E", 0)).toBe("E");
   });
 });
 
@@ -52,12 +45,14 @@ describe("resolveTile", () => {
   const { tiles } = parseManifest(FIXTURE);
   const topo = (o: Partial<Topology>): Topology => ({ exits: "", stairUp: false, stairDown: false, special: null, isChamber: false, ...o });
 
-  it("matches a tunnel via rotation", () => {
-    // s01-1 is canonical "NE"; an engine area whose absolute exits are "ES" = "NE" rotated 90°.
-    expect(resolveTile(topo({ exits: "ES", isChamber: false }), tiles)).toEqual({ tileId: "s01-1", rot: 90 });
+  it("matches a tunnel only in its printed orientation (never rotated)", () => {
+    expect(resolveTile(topo({ exits: "NE", isChamber: false }), tiles)).toEqual({ tileId: "s01-1", rot: 0 });
+    // "ES" would be "NE" rotated 90° — rotation is intentionally not done, so there is no match.
+    expect(resolveTile(topo({ exits: "ES", isChamber: false }), tiles)).toBeNull();
   });
   it("matches a both-stairs chamber and respects stair flags", () => {
-    expect(resolveTile(topo({ exits: "E", isChamber: true, stairUp: true, stairDown: true }), tiles)).toEqual({ tileId: "s07-2", rot: 90 });
+    expect(resolveTile(topo({ exits: "N", isChamber: true, stairUp: true, stairDown: true }), tiles)).toEqual({ tileId: "s07-2", rot: 0 });
+    expect(resolveTile(topo({ exits: "E", isChamber: true, stairUp: true, stairDown: true }), tiles)).toBeNull(); // would need rotation
     expect(resolveTile(topo({ exits: "N", isChamber: true, stairUp: false, stairDown: false }), tiles)).toBeNull(); // no matching stair flags
   });
   it("matches a special tile by its special key", () => {
