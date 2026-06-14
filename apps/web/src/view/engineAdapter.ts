@@ -4,6 +4,7 @@ import {
 } from "@sorcerers-cave/engine";
 import type { CaveEngine, Area, StateSnapshot, Move, MoveEvent, Dir } from "./ports";
 import { projectArea, encodeWorkingSet, areaKey, laneCards, type ArtTables } from "./projection";
+import { eventNotices } from "../game/eventNotices";
 
 const DIR_TO_NUM: Record<Dir, number> = { N: 1, E: 2, S: 3, W: 4, U: 5, D: 6 };
 const NUM_TO_DIR: Record<number, Dir> = { 1: "N", 2: "E", 3: "S", 4: "W", 5: "U", 6: "D" };
@@ -123,6 +124,10 @@ export function createCaveAdapter(initial: GameState, art: ArtTables, opts: Adap
         const wasVisited = before.areas.find((a) => a.coord === arrived.coord)?.visited ?? false;
         ev.chamber = { draws: [...drawn.strangers, ...drawn.treasure, ...drawn.hazards], firstVisit: !wasVisited };
       }
+      // Feedback for otherwise-silent outcomes of the move (viper deaths, hazards, Deep Pool,
+      // special-area effects). The renderer surfaces these; chamber/trap have their own UI.
+      const notices = eventNotices(events);
+      if (notices.length) ev.notices = notices;
       return ev;
     },
     sync(next: GameState) { state = next; },

@@ -15,6 +15,8 @@ import { EncounterPanel } from "./EncounterPanel";
 import { ExplorePanel } from "./ExplorePanel";
 import { DiceRoll } from "./DiceRoll";
 import { rollFromEvents, type RollView } from "./rollView";
+import { NoticeModal } from "./NoticeModal";
+import { eventNotices, type Notice } from "./eventNotices";
 
 export default function GameScreen() {
   const { isAuthenticated, isLoading } = useConvexAuth();
@@ -28,6 +30,8 @@ export default function GameScreen() {
   // The dice overlay lives here (not in EncounterPanel) so a fatal round's roll
   // still shows even though game-over swaps the panel out for GameOverScreen.
   const [roll, setRoll] = useState<RollView | null>(null);
+  // Notices for panel-dispatched outcomes that aren't dice rolls (artifact effects, etc.).
+  const [notices, setNotices] = useState<Notice[] | null>(null);
   // Leaderboard for the post-game screen; only subscribed once a game has ended.
   const gameOver = !!state && state.gs !== GS_PLAYING;
   const leaderboard = useQuery(api.highScores.list, gameOver ? {} : "skip") as
@@ -37,8 +41,15 @@ export default function GameScreen() {
   const dispatchWithRolls = useCallback(
     async (action: GameAction) => {
       const res = await dispatch(action);
-      const view = rollFromEvents((res as { events?: GameEvent[] } | null)?.events ?? []);
+      const events = (res as { events?: GameEvent[] } | null)?.events ?? [];
+      const view = rollFromEvents(events);
+      // A dice view (reaction / chest / combat) already summarises the outcome; otherwise
+      // surface any silent-event notices (artifact effects, lulled dragons, …).
       if (view) setRoll(view);
+      else {
+        const ns = eventNotices(events);
+        if (ns.length) setNotices(ns);
+      }
       return res;
     },
     [dispatch],
@@ -83,6 +94,7 @@ export default function GameScreen() {
       <ExplorePanel state={state} dispatch={dispatchWithRolls} />
       {showParty && <PartyPanel state={state} dispatch={dispatch} onClose={() => setShowParty(false)} />}
       {overlay}
+      {notices && <NoticeModal notices={notices} onClose={() => setNotices(null)} />}
     </div>
   );
 }

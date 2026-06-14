@@ -15,6 +15,8 @@
  * method and return shape below.
  * ========================================================================== */
 
+import type { Notice } from '../game/eventNotices';
+
 export type Dir = 'N' | 'E' | 'S' | 'W' | 'U' | 'D';
 export type Exits = string;                 // sorted subset of "NESW" — "ESW", "NESW", ""
 export type AreaType = 'chamber' | 'tunnel';
@@ -94,6 +96,7 @@ export type MoveEvent =
       fell?: boolean;          // present when a trap dropped the party a level (one-way, no climb back)
       trap?: 'sprung' | 'avoided'; // a trap fired: 'sprung' = fell, 'avoided' = a dwarf guided past it
       chamber?: ChamberDraw;   // present when the area has on-floor cards to reveal
+      notices?: Notice[];      // feedback for otherwise-silent outcomes (viper deaths, hazards, Deep Pool, effects)
     };
 
 /** The surface the view requires of the engine. */

@@ -392,12 +392,26 @@ function doMove(dir){
         :('You enter <b>'+n+'</b>.'), 'event');
     }
     refreshExitMarkers();
-    if(ev.trap){
-      const c = ev.trap==='sprung'
-        ? ['Trap sprung!','The floor gives way — the party plunges to <b>'+ev.area.name+'</b> on level '+ev.area.level+'. There is no way back up.','bad']
-        : ['Trap avoided','Your dwarf spots a hidden trap and guides the party safely across.','good'];
-      showConfirm(c[0],c[1],c[2]).then(()=>{ busy=false; });
-    } else { busy=false; }
+    // Surface otherwise-silent outcomes (viper deaths, hazards, Deep Pool, effects) first,
+    // then the trap modal if the move sprung one. Chain so the player acks each in turn.
+    const notices = ev.notices || [];
+    const showNotices = notices.length
+      ? () => {
+          const tone = notices.some(n=>n.tone==='bad')?'bad':notices.some(n=>n.tone==='good')?'good':'';
+          return showConfirm('Aftermath', notices.map(n=>n.text).join('<br>'), tone);
+        }
+      : null;
+    const showTrap = ev.trap
+      ? () => {
+          const c = ev.trap==='sprung'
+            ? ['Trap sprung!','The floor gives way — the party plunges to <b>'+ev.area.name+'</b> on level '+ev.area.level+'. There is no way back up.','bad']
+            : ['Trap avoided','Your dwarf spots a hidden trap and guides the party safely across.','good'];
+          return showConfirm(c[0],c[1],c[2]);
+        }
+      : null;
+    (showNotices ? showNotices() : Promise.resolve())
+      .then(()=> showTrap ? showTrap() : null)
+      .then(()=>{ busy=false; });
   }, drop?620:420);
 }
 function onChamber(area,chamber){
