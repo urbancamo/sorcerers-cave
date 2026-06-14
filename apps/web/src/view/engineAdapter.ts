@@ -82,6 +82,12 @@ export function createCaveAdapter(initial: GameState, art: ArtTables, opts: Adap
       state = next;
       opts.onAction?.(action);
     },
+    quit(): void {
+      const action: GameAction = { type: "quit" };
+      const { state: next } = reduce(state, action);
+      state = next;
+      opts.onAction?.(action);
+    },
     tryMove(dir: Dir): MoveEvent {
       const before = state;
       const num = DIR_TO_NUM[dir];

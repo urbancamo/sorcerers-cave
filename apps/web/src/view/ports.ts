@@ -134,6 +134,9 @@ export interface CaveEngine {
 
   /** Leave the Cave (ends the game with GS_ESCAPED). Only valid when `canExit()`. */
   exit(): void;
+
+  /** Abandon the expedition (ends the game with GS_QUIT) — the score is still tallied. */
+  quit(): void;
 }
 
 /* ----------------------------------------------------------------------------

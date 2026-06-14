@@ -174,11 +174,12 @@ function rebuildSecretDoors(){
   [...secretGroup.children].forEach(o=>{o.geometry?.dispose?.();o.material?.dispose?.();secretGroup.remove(o);});
   engine.areas.forEach(a=>{
     if(a.secretDoor==null) return;
-    const w=1.15, h=w*DOOR_AR;
+    const w=1.15/3, h=w*DOOR_AR;
     const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),
       new THREE.MeshBasicMaterial({map:doorTexture(a.secretDoor),transparent:true,depthWrite:false,alphaTest:0.02}));
-    m.rotation.x=-Math.PI/2;
-    const p=worldPos(a); m.position.set(p.x-TILE_W*0.28, p.y+0.08, p.z-TILE_D*0.26); // tucked into a corner of the tile
+    m.rotation.x=-Math.PI/2; // flat to the floor
+    // A free corner (the up/down stair markers sit at the other corners) so the animated up marker stays visible.
+    const p=worldPos(a); m.position.set(p.x-TILE_W*0.30, p.y+0.03, p.z+TILE_D*0.30);
     m.renderOrder=3; m.userData.lvl=a.level; regMat(m.material); secretGroup.add(m);
   });
 }
@@ -696,7 +697,10 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
   addEventListener('keydown',onKeyDown);
   document.getElementById('snapBtn').addEventListener('click',viewSnapTile);
   document.getElementById('orbitBtn').addEventListener('click',viewFreeOrbit);
-  document.getElementById('resetBtn').addEventListener('click',()=>location.reload());
+  document.getElementById('resetBtn').addEventListener('click',()=>{
+    showChoice('Quit the expedition?','Your party leaves the Cave and your final score is tallied.','Quit','Keep playing')
+      .then(ok=>{ if(ok) engine.quit(); }); // ends the game (GS_QUIT) → the score screen
+  });
   needle=document.querySelector('#rose .needle');
   addEventListener('resize',onResize);
 
