@@ -12,7 +12,15 @@ function label(a: GameAction, state: GameState): string {
     case "retreat": return "Retreat";
     case "leaveTreasure": return "Leave the treasure";
     case "focusTarget": return `Focus ${CREATURES[state.strangers[a.idx]!]?.name ?? a.idx}`;
-    case "takeTreasure": return `Take ${TREASURES[state.treasures[a.ti]!]?.name ?? "treasure"} → ${CREATURES[state.party[a.mi]!.creatureId]!.name}`;
+    case "takeTreasure": {
+      const tid = state.treasures[a.ti]!;
+      const tname = TREASURES[tid]?.name ?? "treasure";
+      const member = CREATURES[state.party[a.mi]!.creatureId]!.name;
+      // The Lost Ruby (id 11) is guarded by a strength-8 statue that must be beaten to claim it (§16).
+      return tid === 11
+        ? `Seize the ${tname} — ${member} must defeat the guardian statue`
+        : `Take ${tname} → ${member}`;
+    }
     case "useArtifact": return `Use artifact ${TREASURES[a.artifact]?.name ?? a.artifact}`;
     case "quit": return "Abandon the expedition";
     default: return a.type;
