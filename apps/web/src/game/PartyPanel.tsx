@@ -32,6 +32,12 @@ export function PartyPanel({
 
   const canManage = state.phase !== "fight" && state.phase !== "gameOver";
   const party = state.party;
+  // Display order: living members (status 0/1) first, then petrified/fallen — but keep each
+  // member's ORIGINAL party index (`mi`), since treasure actions are index-based.
+  const isAlive = (status: number) => status === 0 || status === 1;
+  const ordered = party
+    .map((m, mi) => ({ m, mi }))
+    .sort((a, b) => Number(isAlive(b.m.status)) - Number(isAlive(a.m.status)));
   const selTid = sel ? party[sel.mi]?.treasure[sel.idx] : undefined;
 
   const move = (to: number) => { if (sel) { dispatch({ type: "moveTreasure", from: sel.mi, to, idx: sel.idx }); setSel(null); } };
@@ -55,7 +61,7 @@ export function PartyPanel({
         )}
 
         <div className="scv-pp-members">
-          {party.map((m, mi) => {
+          {ordered.map(({ m, mi }) => {
             const c = CREATURES[m.creatureId]!;
             const load = carriedWeight(m), cap = c.carry;
             const pct = cap > 0 ? Math.min(100, Math.round((load / cap) * 100)) : 0;

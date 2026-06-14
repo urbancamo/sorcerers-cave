@@ -53,6 +53,12 @@ describe("viewParty", () => {
     expect(p[0]!.lead).toBe(true); // the surviving member leads the roster
   });
 
+  it("lists living members before the petrified", () => {
+    const state = newGame(1, [5, 6, 7]); // Man, Woman, Dwarf — all alive
+    state.party[1]!.status = 2; // Woman turned to stone
+    expect(viewParty(state).map((m) => m.name)).toEqual(["Man", "Dwarf", "Woman"]);
+  });
+
   it("flags ally and petrified members for status badges", () => {
     const state = newGame(1, [5, 6]); // Man + Woman, both originals
     state.party[1]!.status = 1; // Woman befriended → ally

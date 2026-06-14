@@ -2,11 +2,17 @@ import { CREATURES, TREASURES, FLAG_CHARISMA, type GameState } from "@sorcerers-
 import { resolveCard, type CardArt } from "../data/manifest";
 import type { ViewPartyMember } from "./cave3d";
 
+const isAlive = (status: number) => status === 0 || status === 1; // original or ally (not stone/dead)
+
 /** Map the engine's party into the renderer/reveal party shape, resolving carried-item art.
  *  Fallen/dead members (status 3) drop out of the on-screen roster (the full party — including
- *  the fallen — remains in the engine state and the expanded party panel). */
+ *  the fallen — remains in the engine state and the expanded party panel). Living members
+ *  (status 0/1) are listed before the petrified. */
 export function viewParty(state: GameState, cards: CardArt[] = []): ViewPartyMember[] {
-  return state.party.filter((m) => m.status !== 3).map((m, i) => {
+  return state.party
+    .filter((m) => m.status !== 3)
+    .sort((a, b) => Number(isAlive(b.status)) - Number(isAlive(a.status))) // alive first; stable otherwise
+    .map((m, i) => {
     const c = CREATURES[m.creatureId]!;
     const items = m.treasure.map((tid) => {
       const t = TREASURES[tid]!;

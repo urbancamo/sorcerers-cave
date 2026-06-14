@@ -45,6 +45,21 @@ describe("PartyPanel", () => {
     expect(document.querySelector(".scv-pp-preview")).toBeNull();
   });
 
+  it("lists living members first but keeps original indices for treasure actions", () => {
+    const dispatch = vi.fn();
+    const s = newGame(1, [5, 6]); // Man (idx 0) + Woman (idx 1)
+    s.party[0]!.status = 2; // Man turned to stone
+    s.party[1]!.treasure.push(1); // living Woman carries Gold
+    render(<PartyPanel state={s} dispatch={dispatch} onClose={() => {}} />);
+    // Living Woman renders before the petrified Man.
+    const names = [...document.querySelectorAll(".scv-pp-name")].map((n) => n.textContent);
+    expect(names[0]).toMatch(/woman/i);
+    // Dropping Woman's Gold still dispatches with her ORIGINAL party index (1), not display position.
+    fireEvent.click(screen.getByRole("button", { name: /^gold$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /drop into chamber/i }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "dropTreasure", mi: 1, idx: 0 });
+  });
+
   it("is view-only during a fight", () => {
     const s = partyState();
     s.phase = "fight";
