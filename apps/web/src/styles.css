@@ -690,3 +690,194 @@
 }
 .scv-pp-give:hover { background: rgba(201, 161, 78, 0.28); }
 .scv-pp-note { padding: 0 22px 18px; text-align: center; font-size: 12px; color: var(--stone-dim); font-style: italic; }
+
+/* ---- two-button confirm dialog (e.g. "Leave the Cave?") ---- */
+.scv-dice-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+.scv-ghost {
+  font-family: var(--ui);
+  font-weight: 600;
+  font-size: 14px;
+  padding: 12px 18px;
+  border-radius: 11px;
+  border: 1px solid var(--line-strong);
+  color: var(--cream);
+  background: transparent;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.scv-ghost:hover { background: rgba(232, 219, 187, 0.08); }
+
+/* ---- game-over roll call + score breakdown ---- */
+.scv-gameover {
+  max-width: 460px;
+  width: 100%;
+}
+.scv-rollcall {
+  list-style: none;
+  margin: 8px 0 4px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.scv-rc-member {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  background: rgba(232, 219, 187, 0.03);
+}
+.scv-rc-out { opacity: 0.5; }
+.scv-rc-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+}
+.scv-rc-name {
+  font-family: var(--display);
+  font-weight: 600;
+  color: var(--cream);
+}
+.scv-rc-tag {
+  font-family: var(--ui);
+  font-weight: 500;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--stone-dim);
+}
+.scv-rc-pts {
+  font-variant-numeric: tabular-nums;
+  color: var(--brass-bright);
+  font-weight: 600;
+}
+.scv-rc-items {
+  list-style: none;
+  margin: 6px 0 0;
+  padding: 0 0 0 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.scv-rc-items li {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--stone);
+}
+.scv-rc-items .scv-rc-pts { color: var(--stone); font-weight: 500; }
+.scv-rc-totals {
+  margin: 8px 0 0;
+  padding: 8px 12px 0;
+  border-top: 1px solid var(--line);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.scv-rc-totals div {
+  display: flex;
+  justify-content: space-between;
+  gap: 10px;
+}
+.scv-rc-totals dt { color: var(--stone); font-size: 13px; }
+.scv-rc-totals dd { margin: 0; }
+
+/* ---- score name entry ---- */
+.scv-hs-entry {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+.scv-hs-label {
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--stone-dim);
+}
+.scv-hs-entryrow { display: flex; gap: 8px; }
+.scv-hs-input {
+  flex: 1;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--line-strong);
+  background: rgba(7, 7, 9, 0.4);
+  color: var(--cream);
+  font-family: var(--ui);
+  font-size: 14px;
+}
+.scv-hs-input:focus { outline: none; border-color: var(--brass); }
+.scv-hs-entryrow .scv-primary { margin-top: 0; }
+
+/* ---- high-score table ---- */
+.scv-hs-wrap { margin-top: 14px; }
+.scv-hs-heading {
+  font-family: var(--display);
+  font-size: 12px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--brass-bright);
+  text-align: center;
+  margin: 0 0 8px;
+}
+.scv-hs-status { text-align: center; padding: 16px 0; }
+.scv-hs-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.scv-hs-table th {
+  font-family: var(--ui);
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--stone-dim);
+  text-align: left;
+  padding: 4px 8px;
+  border-bottom: 1px solid var(--line-strong);
+}
+.scv-hs-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--line);
+  color: var(--stone);
+}
+.scv-hs-rank { width: 2.2em; }
+.scv-hs-num { text-align: right; font-variant-numeric: tabular-nums; }
+.scv-hs-table td.scv-hs-num { color: var(--cream); font-weight: 600; }
+.scv-hs-me td {
+  background: rgba(201, 161, 78, 0.14);
+  color: var(--cream);
+}
+
+/* ---- high-score modal (from splash) ---- */
+.scv-hs-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(7, 7, 9, 0.6);
+  backdrop-filter: blur(2px);
+}
+.scv-hs-modal {
+  width: 100%;
+  max-width: 520px;
+  max-height: 86vh;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 24px;
+  background: var(--panel);
+  border: 1px solid var(--line-strong);
+  border-radius: 16px;
+  box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.85);
+}
+.scv-hs-modal .scv-primary { margin-top: 0; align-self: center; }

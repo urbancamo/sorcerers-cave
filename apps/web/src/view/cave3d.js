@@ -190,7 +190,7 @@ function refreshExitMarkers(){
   engine.openMoves().forEach(m=>{
     const grp=new THREE.Group(); grp.userData.move=m.dir;
     const known=m.kind==='known';
-    const col=m.kind==='stair'?COLOR.brassBright:(known?COLOR.stone:COLOR.brass);
+    const col=(m.kind==='stair'||m.kind==='exit')?COLOR.brassBright:(known?COLOR.stone:COLOR.brass);
     if(m.dir==='N'||m.dir==='S'||m.dir==='E'||m.dir==='W'){
       const off={N:[0,0,-(TILE_D/2+0.55)],S:[0,0,TILE_D/2+0.55],E:[TILE_W/2+0.55,0,0],W:[-(TILE_W/2+0.55),0,0]}[m.dir];
       const ring=ringFlat(col,0.34,0.46);ring.rotation.x=-Math.PI/2;ring.position.set(0,0.06,0);
@@ -357,6 +357,14 @@ function viewLevel(lvl){activeLevel=lvl;setMode('level','Level '+lvl);setIsolati
 let busy=false;
 function doMove(dir){
   if(busy||Reveal.active()) return;
+  // Leaving the Cave: a level-1 up-stair exits instead of climbing (spec §"Movement"). Confirm
+  // first — it's one-way. On confirm the engine ends the game; React swaps in the score screen.
+  if(dir==='U' && engine.canExit && engine.canExit()){
+    busy=true;
+    showChoice('Leave the Cave?','Your party climbs the stairway to the surface. <b>Once you leave, you cannot return.</b>','Leave the Cave','Stay')
+      .then(ok=>{ if(ok) engine.exit(); else busy=false; });
+    return;
+  }
   const ev=engine.tryMove(dir);
   if(!ev.moved){
     if(ev.placed){ // a tile was drawn onto a dead-end frontier — lay it down even though we can't enter
@@ -467,6 +475,21 @@ function showConfirm(title,body,tone){
     const btn=document.createElement('button'); btn.className='scv-primary'; btn.textContent='Continue';
     btn.addEventListener('click',()=>{ ov.remove(); res(); });
     card.appendChild(btn); ov.appendChild(card); document.body.appendChild(ov); btn.focus();
+  });
+}
+// A two-button confirm — resolves true on the primary action, false on cancel.
+function showChoice(title,body,okLabel,cancelLabel,tone){
+  return new Promise(res=>{
+    const ov=document.createElement('div'); ov.className='scv-dice-overlay';
+    const card=document.createElement('div'); card.className='scv-dice-card';
+    card.innerHTML='<div class="scv-dice-title">'+title+'</div><p class="scv-dice-msg '+(tone||'')+'">'+body+'</p>';
+    const row=document.createElement('div'); row.className='scv-dice-actions';
+    const cancel=document.createElement('button'); cancel.className='scv-ghost'; cancel.textContent=cancelLabel||'Cancel';
+    const ok=document.createElement('button'); ok.className='scv-primary'; ok.textContent=okLabel||'OK';
+    cancel.addEventListener('click',()=>{ ov.remove(); res(false); });
+    ok.addEventListener('click',()=>{ ov.remove(); res(true); });
+    row.appendChild(cancel); row.appendChild(ok); card.appendChild(row);
+    ov.appendChild(card); document.body.appendChild(ov); ok.focus();
   });
 }
 function updateHUD(){const s=engine.state();

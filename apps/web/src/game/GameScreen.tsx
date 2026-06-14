@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useConvexAuth, useMutation } from "convex/react";
+import { useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { api } from "../../convex/_generated/api";
@@ -10,6 +10,7 @@ import { SplashScreen } from "./SplashScreen";
 import { PartySelect } from "./PartySelect";
 import { PartyPanel } from "./PartyPanel";
 import { GameOverScreen } from "./GameOverScreen";
+import type { LeaderboardRow } from "./HighScores";
 import { EncounterPanel } from "./EncounterPanel";
 import { DiceRoll } from "./DiceRoll";
 import { rollFromEvents, type RollView } from "./rollView";
@@ -18,6 +19,7 @@ export default function GameScreen() {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const { signIn } = useAuthActions();
   const newGame = useMutation(api.game.newGame);
+  const saveScore = useMutation(api.highScores.save);
   const [gameId, setGameId] = useState<Id<"games"> | null>(null);
   const [started, setStarted] = useState(false); // dismissed the splash
   const [showParty, setShowParty] = useState(false); // expanded party panel
@@ -25,6 +27,11 @@ export default function GameScreen() {
   // The dice overlay lives here (not in EncounterPanel) so a fatal round's roll
   // still shows even though game-over swaps the panel out for GameOverScreen.
   const [roll, setRoll] = useState<RollView | null>(null);
+  // Leaderboard for the post-game screen; only subscribed once a game has ended.
+  const gameOver = !!state && state.gs !== GS_PLAYING;
+  const leaderboard = useQuery(api.highScores.list, gameOver ? {} : "skip") as
+    | LeaderboardRow[]
+    | undefined;
 
   const dispatchWithRolls = useCallback(
     async (action: GameAction) => {
@@ -57,7 +64,12 @@ export default function GameScreen() {
   if (state.gs !== GS_PLAYING) {
     return (
       <>
-        <GameOverScreen state={state} onNewGame={() => { setRoll(null); setGameId(null); }} />
+        <GameOverScreen
+          state={state}
+          onNewGame={() => { setRoll(null); setGameId(null); }}
+          onSaveScore={(name) => saveScore({ gameId, name })}
+          leaderboard={leaderboard}
+        />
         {overlay}
       </>
     );

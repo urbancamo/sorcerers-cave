@@ -33,12 +33,15 @@ describe("createCaveAdapter — read surface", () => {
     expect(s.current.special).toBe("gateway");
   });
 
-  it("openMoves offers the gateway's four lateral frontiers as undrawn", () => {
+  it("openMoves offers the gateway's four lateral frontiers as undrawn, plus the Cave exit", () => {
     const eng = createCaveAdapter(newGame(1, [0]), art);
     const moves = eng.openMoves();
-    expect(moves.map((m) => m.dir).sort()).toEqual(["E", "N", "S", "W"]); // gateway 175: NESW, stairUp=escape (excluded), no down
-    expect(moves.every((m) => m.kind === "undrawn")).toBe(true);
+    // gateway 175: NESW lateral frontiers + the level-1 stair-up surfaced as the "U" exit.
+    expect(moves.map((m) => m.dir).sort()).toEqual(["E", "N", "S", "U", "W"]);
+    expect(moves.filter((m) => m.dir !== "U").every((m) => m.kind === "undrawn")).toBe(true);
+    expect(moves.find((m) => m.dir === "U")?.kind).toBe("exit");
     expect(moves.find((m) => m.dir === "N")?.target).toEqual({ level: 1, col: 50, row: 49 });
+    expect(eng.canExit()).toBe(true);
   });
 });
 

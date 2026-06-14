@@ -71,7 +71,7 @@ export interface StateSnapshot {
 /** A legal move offered from the current area. */
 export interface Move {
   dir: Dir;
-  kind: 'known' | 'undrawn' | 'stair';   // known=neighbour exists, undrawn=frontier
+  kind: 'known' | 'undrawn' | 'stair' | 'exit';   // known=neighbour exists, undrawn=frontier, exit=leave the cave (level-1 up-stair)
   target: { level: number; col: number; row: number };
 }
 
@@ -123,6 +123,12 @@ export interface CaveEngine {
    * Pure w.r.t. the view: the view only reads the returned event.
    */
   tryMove(dir: Dir): MoveEvent;
+
+  /** True when the party may leave the Cave from `current` (a level-1 up-stair, spec §"Movement"). */
+  canExit(): boolean;
+
+  /** Leave the Cave (ends the game with GS_ESCAPED). Only valid when `canExit()`. */
+  exit(): void;
 }
 
 /* ----------------------------------------------------------------------------

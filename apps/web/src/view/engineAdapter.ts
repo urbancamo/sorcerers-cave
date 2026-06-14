@@ -66,7 +66,21 @@ export function createCaveAdapter(initial: GameState, art: ArtTables, opts: Adap
             : "undrawn";
         moves.push({ dir, kind, target });
       }
+      // The Cave exit: any level-1 up-stair offers exitCave instead of a move-up (spec §"Movement").
+      // Surface it as a "U" marker so it's clickable; doMove routes it through the exit confirmation.
+      if (legalActions(state).some((a) => a.type === "exitCave")) {
+        moves.push({ dir: "U", kind: "exit", target: { level, col: x, row: y } });
+      }
       return moves;
+    },
+    canExit(): boolean {
+      return state.phase === "explore" && legalActions(state).some((a) => a.type === "exitCave");
+    },
+    exit(): void {
+      const action: GameAction = { type: "exitCave" };
+      const { state: next } = reduce(state, action);
+      state = next;
+      opts.onAction?.(action);
     },
     tryMove(dir: Dir): MoveEvent {
       const before = state;

@@ -1,6 +1,7 @@
 import { useEffect, useState, type CSSProperties } from "react";
 import { CREATURES } from "@sorcerers-cave/engine";
 import { loadManifest, resolveCard } from "../data/manifest";
+import { HighScoresModal } from "./HighScores";
 
 // The eight recruitable creatures (ids 0–7) make the decorative fan.
 const FAN_IDS = CREATURES.filter((c) => c.cost !== null).map((c) => c.id);
@@ -9,6 +10,7 @@ const REPO_URL = "https://github.com/urbancamo/sorcerers-cave";
 
 export function SplashScreen({ onStartSolitaire }: { onStartSolitaire: () => void }) {
   const [files, setFiles] = useState<string[]>([]);
+  const [showScores, setShowScores] = useState(false);
 
   // Card art is a progressive enhancement (falls back to no fan if the manifest can't load).
   useEffect(() => {
@@ -66,7 +68,10 @@ export function SplashScreen({ onStartSolitaire }: { onStartSolitaire: () => voi
         <button className="scv-primary" onClick={onStartSolitaire}>Start Solitaire Game</button>
         <button className="scv-primary" disabled title="Coming soon">Start Multiplayer Game</button>
         <button className="scv-primary" disabled title="Coming soon">Join Multiplayer Game</button>
+        <button className="scv-primary" onClick={() => setShowScores(true)}>High Scores</button>
       </section>
+
+      {showScores && <HighScoresModal onClose={() => setShowScores(false)} />}
 
       <footer className="scv-attrib">
         <p>
