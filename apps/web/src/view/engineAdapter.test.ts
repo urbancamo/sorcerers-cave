@@ -109,6 +109,20 @@ describe("tryMove + MoveEvent", () => {
     }
   });
 
+  it("counts a drawn hazard in the chamber draws even though it fires and clears itself", () => {
+    const A = mkArea(2, 1, 50, 50); // exit E
+    // Tomb (543 = special Tomb + chamber + NESW) drawn to the east → draws 2 on level 1 (1 + tomb extra).
+    // Small pack: a Dragon, then an Earthquake (hazard 2) which fires and removes itself during resolution.
+    const eng = createCaveAdapter(mkState([A], 0, { largePack: [543], smallPack: [100 + 10, 300 + 2] }), art);
+    const ev = eng.tryMove("E");
+    expect(ev.moved).toBe(true);
+    if (ev.moved) {
+      expect(ev.chamber?.draws.length).toBe(2); // both the surviving card AND the fired hazard are reported
+      expect(ev.chamber?.draws.some((c) => c.name === "Dragon")).toBe(true);
+      expect(ev.chamber?.draws.some((c) => c.category === "hazard")).toBe(true);
+    }
+  });
+
   it("forwards the accepted action via opts.onAction", () => {
     const A = mkArea(2, 1, 50, 50);
     const B = mkArea(8, 1, 51, 50, { visited: true });

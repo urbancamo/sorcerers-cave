@@ -24,7 +24,7 @@ function decodeTopology(card: number) {
   return { d, exits, special: SPECIAL[d.special] ?? null };
 }
 
-function laneCards(codes: readonly number[], cards: CardArt[]): { strangers: Card[]; treasure: Card[]; hazards: Card[] } {
+export function laneCards(codes: readonly number[], cards: CardArt[]): { strangers: Card[]; treasure: Card[]; hazards: Card[] } {
   const strangers: Card[] = [], treasure: Card[] = [], hazards: Card[] = [];
   const seen = new Map<string, number>();
   for (const code of codes) {

@@ -57,6 +57,18 @@ describe("enterChamber (spec §7.1)", () => {
     expect(s.smallIdx).toBe(3); // min(1,4)=1 + 2 extra
   });
 
+  it("draws 1 extra card in the Tomb of Kings (2 total on level 1)", () => {
+    // card 543 = special Tomb of Kings (4<<7=512) + chamber (16) + NESW (15)
+    const s = makeState({
+      level: 1,
+      areas: [{ card: 543, coord: packCoord(1, 50, 50), faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 }],
+    });
+    s.smallPack = [110, 201, 301];
+    s.smallIdx = 0;
+    enterChamber(s);
+    expect(s.smallIdx).toBe(2); // min(1,4)=1 + 1 extra
+  });
+
   it("does not redraw on a revisit; reloads persisted contents", () => {
     const s = chamberAt(2);
     s.areas[0]!.visited = true;

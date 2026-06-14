@@ -1,9 +1,9 @@
 import {
   reduce, legalActions, unpackCoord, packCoord, targetCoord,
-  type GameState, type GameAction,
+  type GameState, type GameAction, type GameEvent,
 } from "@sorcerers-cave/engine";
 import type { CaveEngine, Area, StateSnapshot, Move, MoveEvent, Dir } from "./ports";
-import { projectArea, encodeWorkingSet, areaKey, type ArtTables } from "./projection";
+import { projectArea, encodeWorkingSet, areaKey, laneCards, type ArtTables } from "./projection";
 
 const DIR_TO_NUM: Record<Dir, number> = { N: 1, E: 2, S: 3, W: 4, U: 5, D: 6 };
 const NUM_TO_DIR: Record<number, Dir> = { 1: "N", 2: "E", 3: "S", 4: "W", 5: "U", 6: "D" };
@@ -93,9 +93,19 @@ export function createCaveAdapter(initial: GameState, art: ArtTables, opts: Adap
       const ev: MoveEvent = { moved: true, dir, area, placed: grew ? area : null };
       if (dir === "D") ev.descended = "D";
       if (dir === "U") ev.ascended = "U";
-      if (events.some((e) => e.type === "drewChamber")) {
+      const drew = events.find((e): e is Extract<GameEvent, { type: "drewChamber" }> => e.type === "drewChamber");
+      if (drew) {
+        // Build the draw display from the drewChamber event (the full draw, captured BEFORE
+        // hazards fire and clear themselves) — not from post-resolution state, which would
+        // under-count any drawn hazard and so misreport extra-draw chambers (Tomb / Great Hall).
+        const codes = [
+          ...drew.strangers.map((id) => 100 + id),
+          ...drew.treasures.map((id) => 200 + id),
+          ...drew.hazards.map((id) => 300 + id),
+        ];
+        const drawn = laneCards(codes, art.cards);
         const wasVisited = before.areas.find((a) => a.coord === arrived.coord)?.visited ?? false;
-        ev.chamber = { draws: [...area.strangers, ...area.treasure, ...area.hazards], firstVisit: !wasVisited };
+        ev.chamber = { draws: [...drawn.strangers, ...drawn.treasure, ...drawn.hazards], firstVisit: !wasVisited };
       }
       return ev;
     },
