@@ -24,7 +24,12 @@ export function ChatPanel({ gameId }: { gameId: Id<"games"> }) {
     <div className="scv-chat">
       <div className="scv-chat-log">
         {messages.map((m) =>
-          m.seat === null ? (
+          m.kind === "action" ? (
+            <p key={m._id} className="scv-chat-act">
+              <span className="scv-chat-who" style={{ color: PARTY_COLOR_HEX[m.color as PartyColor] }}>{m.partyName}</span>
+              <span className="scv-chat-text">{m.text}</span>
+            </p>
+          ) : m.seat === null ? (
             <p key={m._id} className="scv-chat-sys">{m.text}</p>
           ) : (
             <p key={m._id} className="scv-chat-msg">

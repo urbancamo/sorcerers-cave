@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Id, Doc } from "./_generated/dataModel";
 import { uniqueCode } from "./game";
-import { buildMpGame, choosePartyFor, mpReduce, partyView, scoreGame, PARTY_BUDGET, type MpGameState, type MpAction } from "@sorcerers-cave/engine";
+import { buildMpGame, choosePartyFor, mpReduce, partyView, scoreGame, CREATURES, TREASURES, PARTY_BUDGET, type MpGameState, type MpAction, type PartyState, type GameEvent } from "@sorcerers-cave/engine";
 
 // Permissive action shape; the engine (mpReduce) enforces semantics. Includes the lobby-level endTurn.
 const mpActionValidator = v.object({
@@ -34,6 +34,53 @@ const cleanName = (n: string) => n.trim().slice(0, NAME_MAX);
 const OUTCOME_VERB: Record<string, string> = {
   wiped: "perished in the cave", left: "escaped the cave", quit: "abandoned the expedition",
 };
+
+const cname = (id: number) => CREATURES[id]?.name ?? "stranger";
+const tname = (id: number) => TREASURES[id]?.name ?? "treasure";
+
+/**
+ * Concise narration of a just-completed action — the significant outcomes other parties should see
+ * (defeats, befriendings, pickups, descents, …). Returns fragments without the party name; the
+ * caller prepends it. Most lines come straight from the engine events; treasure pickup and
+ * level changes are read from the before/after party states (those actions emit no event).
+ */
+export function actionNarration(action: MpAction, events: GameEvent[], before: PartyState, after: PartyState): string[] {
+  const frags: string[] = [];
+  const has = (t: GameEvent["type"]) => events.some((e) => e.type === t);
+  for (const e of events) {
+    switch (e.type) {
+      case "strangerKilled": frags.push(`defeated a ${cname(e.creatureId)}`); break;
+      case "annihilated": frags.push(`annihilated a ${cname(e.creatureId)}`); break;
+      case "strangersJoined": frags.push(e.count === 1 ? "befriended a stranger" : `befriended ${e.count} strangers`); break;
+      case "memberDied": frags.push(`lost ${cname(e.creatureId)}`); break;
+      case "spectreSlew": frags.push(`lost ${cname(e.creatureId)} to a Spectre`); break;
+      case "deathPrevented": frags.push("cheated death"); break;
+      case "chestOpened": frags.push("opened a treasure chest"); break;
+      case "artifactUsed": frags.push(`used the ${tname(e.artifact)}`); break;
+      case "rubyTaken": frags.push("seized the Lost Ruby"); break;
+      case "dragonsLulled": frags.push(e.count === 1 ? "charmed a dragon" : `charmed ${e.count} dragons`); break;
+      case "vipersLulled": frags.push("charmed the vipers"); break;
+      case "secretDoorRevealed": frags.push("found a secret door"); break;
+      case "trapSprung": frags.push(`fell through a trap to level ${e.level}`); break;
+      case "mutinied": frags.push("was struck by mutiny"); break;
+    }
+  }
+  if (action.type === "takeTreasure" && !has("rubyTaken")) {
+    const id = before.treasures[action.ti];
+    if (id !== undefined) frags.push(`${TREASURES[id]?.kind === "artifact" ? "found" : "claimed"} the ${tname(id)}`);
+  }
+  if (action.type === "move" && !has("trapSprung") && after.level !== before.level) {
+    frags.push(after.level > before.level ? `descended to level ${after.level}` : `ascended to level ${after.level}`);
+  }
+  if (action.type === "withdraw") frags.push("withdrew from an encounter");
+  if (action.type === "retreat") frags.push("retreated from the fight");
+  return frags;
+}
+
+/** Post an auto-narrated game event attributed to a seat (so it toasts to the OTHER players). */
+async function postAction(ctx: MutationCtx, gameId: Id<"games">, seat: number, partyName: string, color: Doc<"players">["color"], text: string, at: number) {
+  await ctx.db.insert("messages", { gameId, seat, partyName, color, text, kind: "action", createdAt: at });
+}
 
 /** All seats in a game, ordered by seat index. */
 async function seatsOf(ctx: QueryCtx, gameId: Id<"games">): Promise<Doc<"players">[]> {
@@ -334,6 +381,10 @@ export const act = mutation({
     const now = Date.now();
     await ctx.db.patch(gameId, { state, updatedAt: now });
 
+    // Narrate the completed action to the other parties (toasted on their screens).
+    const frags = actionNarration(action as MpAction, events, mp.parties[me.seat]!, state.parties[me.seat]!);
+    if (frags.length) await postAction(ctx, gameId, me.seat, me.partyName, me.color, frags.join(", "), now);
+
     // If the acting party just reached a terminal state, record it to the multiplayer high-score
     // table (§8.4) — kept separate from solo records. Only the acting seat's party can transition.
     const before = mp.parties[me.seat]!.status, after = state.parties[me.seat]!.status;
@@ -347,7 +398,7 @@ export const act = mutation({
       });
       // Broadcast the outcome to everyone still in the cave.
       const verb = OUTCOME_VERB[after] ?? "finished";
-      await postSystem(ctx, gameId, `${me.partyName} ${verb} (score ${score})`, now);
+      await postAction(ctx, gameId, me.seat, me.partyName, me.color, `${verb} (score ${score})`, now);
     }
     return { events };
   },
@@ -383,7 +434,7 @@ export const messages = query({
       .order("desc")
       .take(limit ?? 100);
     return recent.reverse().map((m) => ({
-      _id: m._id, seat: m.seat, partyName: m.partyName, color: m.color, text: m.text, createdAt: m.createdAt,
+      _id: m._id, seat: m.seat, partyName: m.partyName, color: m.color, text: m.text, createdAt: m.createdAt, kind: m.kind,
     }));
   },
 });

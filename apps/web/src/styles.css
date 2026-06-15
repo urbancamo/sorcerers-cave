@@ -636,6 +636,8 @@
 }
 .scv-chat-sys { margin: 0; color: var(--stone-dim); font-style: italic; text-align: center; }
 .scv-chat-msg { margin: 0; color: var(--stone); }
+/* Auto-narrated game events: dimmer and italic to set them apart from spoken chat. */
+.scv-chat-act { margin: 0; color: var(--stone-dim); font-style: italic; }
 .scv-chat-who { font-weight: 600; margin-right: 6px; }
 .scv-chat-row { display: flex; gap: 8px; }
 .scv-chat-input {

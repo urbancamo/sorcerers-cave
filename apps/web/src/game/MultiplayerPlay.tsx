@@ -64,7 +64,8 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
     else pushToast(`${view.parties.find((p) => p.seat === view.currentSeat)?.name ?? "…"}'s turn`, "turn");
   }, [view, pushToast]);
 
-  // Mirror chat received from other players as toasts (existing history is not replayed).
+  // Mirror feed activity from other players as toasts (existing history is not replayed): chat
+  // messages and auto-narrated game events (defeats, pickups, descents, finishes, …).
   const toastedCountRef = useRef<number | null>(null);
   useEffect(() => {
     if (chatFeed === undefined) return;
@@ -73,7 +74,9 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
     const fresh = chatFeed.slice(toastedCountRef.current);
     toastedCountRef.current = chatFeed.length;
     for (const m of fresh) {
-      if (m.seat !== null && m.seat !== view?.youSeat) pushToast(`${m.partyName}: ${m.text}`, "chat");
+      if (m.seat === null || m.seat === view?.youSeat) continue; // skip system lines and your own
+      if (m.kind === "action") pushToast(`${m.partyName} ${m.text}`, "chat");
+      else pushToast(`${m.partyName}: ${m.text}`, "chat");
     }
   }, [chatFeed, pushToast, view?.youSeat]);
 

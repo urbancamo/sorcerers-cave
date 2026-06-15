@@ -1,7 +1,30 @@
 import { convexTest } from "convex-test";
 import { expect, test } from "vitest";
+import type { PartyState } from "@sorcerers-cave/engine";
 import { api } from "./_generated/api";
+import { actionNarration } from "./multiplayer";
 import schema from "./schema";
+
+const P = (over: Partial<PartyState> = {}) => ({ level: 1, treasures: [], ...over } as unknown as PartyState);
+
+test("actionNarration summarises the significant outcomes of a completed action", () => {
+  expect(actionNarration({ type: "attack" }, [{ type: "strangerKilled", creatureId: 10 }], P(), P())).toEqual(["defeated a Dragon"]);
+  expect(actionNarration({ type: "test" }, [{ type: "strangersJoined", count: 2 }], P(), P())).toEqual(["befriended 2 strangers"]);
+  // takeTreasure emits no event — the pickup is read from the before-state's chamber treasures.
+  expect(actionNarration({ type: "takeTreasure", ti: 0, mi: 0 }, [], P({ treasures: [1] }), P())).toEqual(["claimed the Gold"]);
+  expect(actionNarration({ type: "takeTreasure", ti: 0, mi: 0 }, [], P({ treasures: [3] }), P())).toEqual(["found the Magic Sword"]);
+  // level changes come from the before/after party states.
+  expect(actionNarration({ type: "move", dir: 6 }, [], P({ level: 1 }), P({ level: 2 }))).toEqual(["descended to level 2"]);
+  expect(actionNarration({ type: "move", dir: 5 }, [], P({ level: 2 }), P({ level: 1 }))).toEqual(["ascended to level 1"]);
+  expect(actionNarration({ type: "withdraw" }, [], P(), P())).toEqual(["withdrew from an encounter"]);
+  // multiple outcomes in one round are returned as separate fragments (the caller joins them).
+  expect(actionNarration({ type: "fightOn" }, [
+    { type: "strangerKilled", creatureId: 10 },
+    { type: "memberDied", creatureId: 0 },
+  ], P(), P())).toEqual(["defeated a Dragon", "lost Hero"]);
+  // a quiet move (no level change, no events) says nothing.
+  expect(actionNarration({ type: "move", dir: 1 }, [], P(), P())).toEqual([]);
+});
 
 const modules = import.meta.glob("./**/*.*s");
 
@@ -233,11 +256,12 @@ test("a finished party is recorded to the multiplayer high-score table, kept apa
   // The solo leaderboard ignores multiplayer entries.
   expect(await userBySeat[0]!.query(api.highScores.list, {})).toEqual([]);
 
-  // The outcome is broadcast to the other player still in the cave.
+  // The outcome is broadcast to the other player still in the cave (as a seat-attributed action
+  // line, so it toasts on their screen but not the quitter's).
   const other = current === 0 ? 1 : 0;
   const feed = await userBySeat[other]!.query(api.multiplayer.messages, { gameId });
   const quitterName = current === 0 ? "Alpha" : "Beta";
-  expect(feed.some((m) => m.seat === null && m.text.includes(`${quitterName} abandoned the expedition`))).toBe(true);
+  expect(feed.some((m) => m.kind === "action" && m.seat === current && m.partyName === quitterName && m.text.includes("abandoned the expedition"))).toBe(true);
 });
 
 test("chat is membership-gated and includes system lines", async () => {

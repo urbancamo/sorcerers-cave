@@ -44,6 +44,9 @@ export default defineSchema({
     color: v.union(v.literal("green"), v.literal("blue"), v.literal("yellow"), v.literal("red"), v.null()),
     text: v.string(),
     createdAt: v.number(),
+    // "action" = an auto-narrated game event (defeat, pickup, descend…) attributed to a seat;
+    // absent for player chat and seat=null system lines.
+    kind: v.optional(v.literal("action")),
   }).index("by_game", ["gameId", "createdAt"]),
   gameEvents: defineTable({
     gameId: v.id("games"),
