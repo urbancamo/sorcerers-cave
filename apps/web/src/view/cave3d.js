@@ -69,7 +69,7 @@ function doorTexture(idx){
 /* ---- groups ---- */
 const platformGroup=new THREE.Group(),tileGroup=new THREE.Group(),stairGroup=new THREE.Group(),
       fxGroup=new THREE.Group(),exitGroup=new THREE.Group(),contentGroup=new THREE.Group(),
-      secretGroup=new THREE.Group();
+      secretGroup=new THREE.Group(),otherGroup=new THREE.Group(); // otherGroup: other parties' tokens (multiplayer)
 const tileMeshes=[]; const exitMarkers=[]; const spawnAnims=[]; const stairDashes=[];
 const pendingTiles=new Set(); // coords whose mesh is mid-build (guards against duplicate laying)
 const contentMeshes=[]; const cardAnims=[];
@@ -129,6 +129,7 @@ function updateIsolation(){
   stairGroup.children.forEach(applyFadeObj);
   secretGroup.children.forEach(applyFadeObj);
   contentGroup.children.forEach(applyFadeObj);
+  otherGroup.children.forEach(applyFadeObj);
 }
 
 function rebuildPlatforms(){
@@ -615,6 +616,23 @@ function setParty(p){
     PARTY=p; renderRoster(); updateHUD();
   }
 }
+/* ---- other parties' tokens (multiplayer): small coloured pins at each party's tile ---- */
+function setOtherParties(list){
+  [...otherGroup.children].forEach(o=>{o.traverse?.(c=>{c.geometry?.dispose?.();c.material?.dispose?.();});otherGroup.remove(o);});
+  (list||[]).forEach(p=>{
+    const base=new THREE.Color(p.color||COLOR.brass);
+    const g=new THREE.Group();
+    const disc=new THREE.Mesh(new THREE.CylinderGeometry(0.26,0.32,0.08,22),new THREE.MeshBasicMaterial({color:base}));disc.position.y=0.1;
+    const pin=new THREE.Mesh(new THREE.ConeGeometry(0.17,0.52,14),new THREE.MeshBasicMaterial({color:base.clone().lerp(new THREE.Color(0xffffff),0.3)}));pin.position.y=0.5;
+    g.add(disc,pin); g.scale.setScalar(0.5);
+    const wp=worldPos({col:p.col,row:p.row,level:p.level});
+    // offset to a tile corner so it never sits under the viewing party's centre token
+    g.position.set(wp.x+TILE_W*0.26, wp.y, wp.z-TILE_D*0.26);
+    g.userData.lvl=p.level;
+    otherGroup.add(g);
+  });
+  otherGroup.children.forEach(applyFadeObj);
+}
 function rebuildLevelButtons(){const grp=document.getElementById('levelGrp');const levels=[...new Set(engine.areas.map(a=>a.level))].sort((a,b)=>a-b);
   grp.innerHTML='';levels.forEach(lvl=>{const btn=document.createElement('button');btn.className='btn lvlbtn';btn.dataset.lvl=lvl;btn.textContent=lvl;btn.title='Focus level '+lvl;
     btn.addEventListener('click',()=>viewLevel(lvl));grp.appendChild(btn);});}
@@ -699,10 +717,10 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
   controls.enableDamping=true; controls.dampingFactor=0.08;
   controls.minDistance=4; controls.maxDistance=95; controls.maxPolarAngle=Math.PI*0.97;
   maxAniso=renderer.capabilities.getMaxAnisotropy();
-  scene.add(platformGroup,tileGroup,stairGroup,fxGroup,exitGroup,contentGroup,secretGroup);
+  scene.add(platformGroup,tileGroup,stairGroup,fxGroup,exitGroup,contentGroup,secretGroup,otherGroup);
 
   // reset accumulated scene state so a new game (boot re-runs after dispose) starts from a clean map
-  [platformGroup,tileGroup,stairGroup,fxGroup,exitGroup,contentGroup,secretGroup].forEach(g=>{
+  [platformGroup,tileGroup,stairGroup,fxGroup,exitGroup,contentGroup,secretGroup,otherGroup].forEach(g=>{
     for(let i=g.children.length-1;i>=0;i--){const o=g.children[i];o.traverse?.(x=>{x.geometry?.dispose?.();x.material?.dispose?.();});g.remove(o);}
   });
   tileMeshes.length=0;exitMarkers.length=0;spawnAnims.length=0;stairDashes.length=0;contentMeshes.length=0;cardAnims.length=0;pendingTiles.clear();
@@ -752,7 +770,7 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
   camera.position.copy(ap.clone().add(new THREE.Vector3(0,9.5,2.6)));
   controls.target.copy(ap); controls.update();
   setPrompt('Your party stands in <b>'+engine.current.name+'</b>. Click a glowing doorway, or press N/E/S/W.','event');
-  window.__cave={scene,camera,controls,renderer,THREE,engine,tileMeshes,exitMarkers,doMove,worldPos,layContents,contentGroup,setParty};
+  window.__cave={scene,camera,controls,renderer,THREE,engine,tileMeshes,exitMarkers,doMove,worldPos,layContents,contentGroup,setParty,setOtherParties};
   document.getElementById('loader').classList.add('hide');animate();
 
   function dispose(){
@@ -764,5 +782,5 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
     renderer.dispose();
     renderer.domElement.remove();
   }
-  return { dispose, refresh, setParty };
+  return { dispose, refresh, setParty, setOtherParties };
 }

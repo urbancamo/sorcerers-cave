@@ -199,6 +199,31 @@ test("playView gives the seat its own render view + whose turn; act is turn-gate
   expect((await userBySeat[0]!.query(api.multiplayer.playView, { gameId }))!.currentSeat).toBe(other);
 });
 
+test("a finished party is recorded to the multiplayer high-score table, kept apart from solo", async () => {
+  const t = convexTest(schema, modules);
+  const { gameId, userBySeat } = await reachPlaying(t);
+
+  // The active seat abandons its expedition → that party reaches a terminal state.
+  const current = (await userBySeat[0]!.query(api.multiplayer.playView, { gameId }))!.currentSeat;
+  await userBySeat[current]!.mutation(api.multiplayer.act, { gameId, action: { type: "quit" } });
+
+  // Its result is written to the shared high-score table, tagged multi and grouped by game code.
+  const rows = await t.run((ctx) => ctx.db.query("highScores").collect());
+  expect(rows).toHaveLength(1);
+  expect(rows[0]).toMatchObject({ mode: "multi", name: current === 0 ? "Alpha" : "Beta" });
+  expect(rows[0]!.gameCode).toMatch(/^[A-Z]{4}$/);
+  expect(typeof rows[0]!.score).toBe("number");
+
+  // The per-party score is also surfaced in the finished-game projection.
+  const finishedParty = (await userBySeat[0]!.query(api.multiplayer.gameState, { gameId }))!
+    .parties.find((p) => p.seat === current);
+  expect(finishedParty?.status).toBe("quit");
+  expect(typeof finishedParty?.score).toBe("number");
+
+  // The solo leaderboard ignores multiplayer entries.
+  expect(await userBySeat[0]!.query(api.highScores.list, {})).toEqual([]);
+});
+
 test("chat is membership-gated and includes system lines", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);

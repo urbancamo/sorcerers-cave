@@ -62,6 +62,10 @@ export default defineSchema({
     party: v.any(), // final party array (full member attributes + carried treasure)
     state: v.any(), // full final engine state, for deeper analysis
     createdAt: v.number(),
+    // Multiplayer results (§8.4): a finished party's entry, kept separate from solo records.
+    mode: v.optional(v.union(v.literal("solo"), v.literal("multi"))),
+    gameCode: v.optional(v.string()),  // the four-letter code (group a multi game's parties)
+    partyName: v.optional(v.string()),
   })
     .index("by_game", ["gameId"])
     .index("by_score", ["score"]),

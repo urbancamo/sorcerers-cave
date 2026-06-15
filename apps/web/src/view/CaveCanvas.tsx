@@ -10,12 +10,17 @@ import { partyColorHex, type PartyColor } from "../game/partyColors";
 const TILE_AR = 1728 / 1210; // all tiles are 1728×1210 landscape (manifest)
 
 /** Mounts the vanilla Three.js renderer, booted from the injected engine adapter. */
-export function CaveCanvas({ engine, state, color, onPartyClick, onSave }: { engine: CaveEngine; state: GameState; color: PartyColor; onPartyClick?: () => void; onSave?: () => void }) {
+/** Other parties' map positions in a multiplayer game (small coloured pins). */
+export interface OtherPartyToken { color: string; col: number; row: number; level: number; }
+
+export function CaveCanvas({ engine, state, color, onPartyClick, onSave, otherParties }: { engine: CaveEngine; state: GameState; color: PartyColor; onPartyClick?: () => void; onSave?: () => void; otherParties?: OtherPartyToken[] }) {
   const mountRef = useRef<HTMLDivElement>(null);
-  const ctrl = useRef<{ dispose(): void; refresh(): void; setParty(p: ReturnType<typeof viewParty>): void } | null>(null);
+  const ctrl = useRef<{ dispose(): void; refresh(): void; setParty(p: ReturnType<typeof viewParty>): void; setOtherParties?: (list: OtherPartyToken[]) => void } | null>(null);
   const cardsRef = useRef<CardArt[]>([]); // small-card art for resolving carried items in the roster
   const colorRef = useRef(color);
   colorRef.current = color;
+  const otherRef = useRef<OtherPartyToken[]>(otherParties ?? []);
+  otherRef.current = otherParties ?? [];
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -33,6 +38,7 @@ export function CaveCanvas({ engine, state, color, onPartyClick, onSave }: { eng
         tileAR: TILE_AR,
         partyColor: partyColorHex(colorRef.current),
       });
+      ctrl.current?.setOtherParties?.(otherRef.current); // apply any pins known at boot
     })();
     return () => {
       cancelled = true;
@@ -49,6 +55,11 @@ export function CaveCanvas({ engine, state, color, onPartyClick, onSave }: { eng
     ctrl.current?.setParty(viewParty(state, cardsRef.current));
     ctrl.current?.refresh();
   }, [state]);
+
+  // Multiplayer: place the other parties' pins (reactively as they move).
+  useEffect(() => {
+    ctrl.current?.setOtherParties?.(otherParties ?? []);
+  }, [otherParties]);
 
   return <CaveHud mountRef={mountRef} onPartyClick={onPartyClick} onSave={onSave} />;
 }

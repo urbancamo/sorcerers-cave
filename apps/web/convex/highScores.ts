@@ -43,11 +43,12 @@ export const save = mutation({
       party: state.party,
       state,
       createdAt: Date.now(),
+      mode: "solo",
     });
   },
 });
 
-/** Top scores across all players (highest first). Omits the heavy full-state blob. */
+/** Top SOLO scores across all players (highest first). Multiplayer results live separately. */
 export const list = query({
   args: {},
   handler: async (ctx) => {
@@ -55,8 +56,11 @@ export const list = query({
       .query("highScores")
       .withIndex("by_score")
       .order("desc")
-      .take(LEADERBOARD_LIMIT);
-    return rows.map((r) => ({
+      .take(LEADERBOARD_LIMIT * 2); // over-fetch, then drop multiplayer entries
+    return rows
+      .filter((r) => r.mode !== "multi")
+      .slice(0, LEADERBOARD_LIMIT)
+      .map((r) => ({
       _id: r._id,
       name: r.name,
       score: r.score,

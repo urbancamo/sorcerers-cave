@@ -2,11 +2,11 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { GS_PLAYING, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
+import { GS_PLAYING, unpackCoord, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
 import { createCaveAdapter, type CaveAdapter } from "../view/engineAdapter";
 import { loadManifest } from "../data/manifest";
 import type { ArtTables } from "../view/projection";
-import { CaveCanvas } from "../view/CaveCanvas";
+import { CaveCanvas, type OtherPartyToken } from "../view/CaveCanvas";
 import { EncounterPanel } from "./EncounterPanel";
 import { ExplorePanel } from "./ExplorePanel";
 import { PartyPanel } from "./PartyPanel";
@@ -15,6 +15,7 @@ import { rollFromEvents, type RollView } from "./rollView";
 import { NoticeModal } from "./NoticeModal";
 import { eventNotices, type Notice } from "./eventNotices";
 import { ChatPanel } from "./ChatPanel";
+import { GameOverScreen } from "./GameOverScreen";
 import { DEFAULT_PARTY_COLOR, type PartyColor } from "./partyColors";
 
 /**
@@ -76,9 +77,20 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
     ? "Your expedition has ended — watching the others."
     : yourTurn ? "Your turn — explore!" : `Waiting for ${currentName}…`;
 
+  // Other active parties' pins on the shared map (positions read from the shared areas).
+  const otherParties: OtherPartyToken[] = view.parties
+    .filter((p) => p.seat !== view.youSeat && p.status === "exploring")
+    .map((p) => {
+      const area = state.areas[p.partyArea];
+      if (!area) return null;
+      const c = unpackCoord(area.coord);
+      return { color: p.color, col: c.x, row: c.y, level: c.level };
+    })
+    .filter((x): x is OtherPartyToken => x !== null);
+
   return (
     <div className="relative h-screen w-screen">
-      <CaveCanvas key={gameId} engine={engine} state={state} color={myColor} onPartyClick={() => setShowParty(true)} />
+      <CaveCanvas key={gameId} engine={engine} state={state} color={myColor} onPartyClick={() => setShowParty(true)} otherParties={otherParties} />
       <div className={"scv-turn-banner" + (yourTurn ? " you" : "")}>{banner}</div>
       {yourTurn && <EncounterPanel state={state} dispatch={dispatch} />}
       {yourTurn && <ExplorePanel state={state} dispatch={dispatch} />}
@@ -90,6 +102,12 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
         {showChat && <ChatPanel gameId={gameId} />}
       </div>
       <button className="scv-mp-leave" onClick={onExit}>Leave</button>
+      {/* Your expedition has ended: show the score screen. Result is auto-recorded server-side, so no save form. */}
+      {terminal && (
+        <div className="scv-mp-finishoverlay">
+          <GameOverScreen state={state} onNewGame={onExit} />
+        </div>
+      )}
     </div>
   );
 }

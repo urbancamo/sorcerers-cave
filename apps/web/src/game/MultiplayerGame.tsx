@@ -7,20 +7,29 @@ import { ChatPanel } from "./ChatPanel";
 import { PartyDraft } from "./PartyDraft";
 import { MultiplayerPlay } from "./MultiplayerPlay";
 
-type Party = { seat: number; name: string; color: string; status: string; members: number[] };
+type Party = { seat: number; name: string; color: string; status: string; members: number[]; score: number };
 
-/** Roster shown during play/finish (shared gameplay rendering arrives in Phase 4). */
-function Roster({ parties, currentSeat }: { parties: Party[]; currentSeat: number | null }) {
+const OUTCOME: Record<string, string> = {
+  left: "Escaped", wiped: "Perished", quit: "Abandoned", exploring: "Still in cave", selecting: "—",
+};
+
+/** Final standings once every party has finished: ranked by score, highest first. */
+function Results({ parties }: { parties: Party[] }) {
+  const ranked = [...parties].sort((a, b) => b.score - a.score);
   return (
-    <ul className="scv-lobby-seats">
-      {parties.map((p) => (
-        <li key={p.seat} className={"scv-lobby-seat" + (p.seat === currentSeat ? " active" : "")}>
+    <ol className="scv-mp-results">
+      {ranked.map((p, i) => (
+        <li key={p.seat} className="scv-mp-result">
+          <span className="scv-mp-rank">{i + 1}</span>
           <span className="scv-lobby-chip" style={{ background: PARTY_COLOR_HEX[p.color as PartyColor] }} />
-          <span className="scv-lobby-nm">{p.name}{p.seat === currentSeat && <span className="scv-lobby-host"> turn</span>}</span>
-          <span className="scv-lobby-ready">{p.members.map((id) => CREATURES[id]!.name).join(", ") || "—"}</span>
+          <span className="scv-mp-rnm">
+            {p.name}
+            <span className="scv-muted"> · {OUTCOME[p.status] ?? p.status} · {p.members.map((id) => CREATURES[id]!.name).join(", ") || "—"}</span>
+          </span>
+          <span className="scv-mp-rscore">{p.score}</span>
         </li>
       ))}
-    </ul>
+    </ol>
   );
 }
 
@@ -40,8 +49,8 @@ export function MultiplayerGame({ gameId, onExit }: { gameId: Id<"games">; onExi
   } else if (proj.phase === "finished") {
     body = (
       <section className="scv-panel scv-mp">
-        <h2 className="scv-hd">Game over</h2>
-        <Roster parties={proj.parties} currentSeat={null} />
+        <h2 className="scv-hd">Final results</h2>
+        <Results parties={proj.parties} />
       </section>
     );
   } else {

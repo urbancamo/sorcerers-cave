@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Id, Doc } from "./_generated/dataModel";
 import { uniqueCode } from "./game";
-import { buildMpGame, choosePartyFor, mpReduce, partyView, PARTY_BUDGET, type MpGameState, type MpAction } from "@sorcerers-cave/engine";
+import { buildMpGame, choosePartyFor, mpReduce, partyView, scoreGame, PARTY_BUDGET, type MpGameState, type MpAction } from "@sorcerers-cave/engine";
 
 // Permissive action shape; the engine (mpReduce) enforces semantics. Includes the lobby-level endTurn.
 const mpActionValidator = v.object({
@@ -267,7 +267,12 @@ export const gameState = query({
       currentPicker: mp.phase === "partySelect" ? mp.pickOrder[mp.active]! : null,
       currentSeat: mp.phase === "playing" ? mp.order[mp.active]! : null,
       turnCount: mp.turnCount,
-      parties: mp.parties.map((p) => ({ seat: p.seat, name: p.name, color: p.color, status: p.status, members: p.party.map((m) => m.creatureId) })),
+      parties: mp.parties.map((p) => ({
+        seat: p.seat, name: p.name, color: p.color, status: p.status,
+        members: p.party.map((m) => m.creatureId),
+        // running/final score per party (the engine computes it from the party's state)
+        score: p.party.length ? scoreGame(partyView(mp, p.seat)) : 0,
+      })),
       draft: mp.phase === "partySelect" ? { remaining, budget: PARTY_BUDGET } : null,
     };
   },
@@ -318,7 +323,22 @@ export const act = mutation({
 
     const { state, events } = mpReduce(mp, me.seat, action as MpAction);
     const blocked = events.length === 1 && events[0]!.type === "blocked";
-    if (!blocked) await ctx.db.patch(gameId, { state, updatedAt: Date.now() });
+    if (blocked) return { events };
+
+    const now = Date.now();
+    await ctx.db.patch(gameId, { state, updatedAt: now });
+
+    // If the acting party just reached a terminal state, record it to the multiplayer high-score
+    // table (§8.4) — kept separate from solo records. Only the acting seat's party can transition.
+    const before = mp.parties[me.seat]!.status, after = state.parties[me.seat]!.status;
+    if (before === "exploring" && after !== "exploring") {
+      const view = partyView(state, me.seat);
+      await ctx.db.insert("highScores", {
+        gameId, ownerId: me.userId, name: state.parties[me.seat]!.name,
+        score: scoreGame(view), outcome: view.gs, party: view.party, state: view, createdAt: now,
+        mode: "multi", gameCode: game.code, partyName: state.parties[me.seat]!.name,
+      });
+    }
     return { events };
   },
 });
