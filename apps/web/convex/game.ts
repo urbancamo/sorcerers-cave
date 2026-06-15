@@ -72,9 +72,10 @@ export const save = mutation({
   },
 });
 
-/** Resume a saved game by its four-letter code. The code is a portable save handle, so this CLAIMS
- *  the game for the current player (anonymous owners differ per browser) and returns its id, or null
- *  if no game has that code. */
+/** Resume one of YOUR saved games by its four-letter code. Returns its id, or null if no game with
+ *  that code belongs to the caller. The code is only four letters (a small, guessable keyspace), so
+ *  it is deliberately NOT a cross-user access token: resume is owner-scoped and never transfers
+ *  ownership, so a guessed code cannot hijack another player's game. */
 export const resumeByCode = mutation({
   args: { code: v.string() },
   handler: async (ctx, { code }) => {
@@ -82,8 +83,7 @@ export const resumeByCode = mutation({
     if (!callerId) throw new Error("Unauthenticated");
     const normalized = code.trim().toUpperCase();
     const game = await ctx.db.query("games").withIndex("by_code", (q) => q.eq("code", normalized)).first();
-    if (!game) return null;
-    if (game.ownerId !== callerId) await ctx.db.patch(game._id, { ownerId: callerId });
+    if (!game || game.ownerId !== callerId) return null; // owner-scoped (no ownership transfer)
     return game._id;
   },
 });

@@ -97,9 +97,14 @@ untouched.
 
 ## Decisions / notes
 
-- **Resume claims ownership.** With anonymous auth the owner is per-browser; claiming on resume makes
-  the code a true portable save handle and keeps the owner-scoped `applyAction` guard intact. For
-  single-player this is the expected "load my save" behaviour. (Revisit if shared multiplayer lands.)
+- **Resume is owner-scoped (no ownership transfer).** A four-letter code is a small, guessable
+  keyspace (26⁴ ≈ 457k). An earlier draft transferred ownership on resume to allow cross-device
+  restore, but that turned the guessable code into an account-takeover vector (brute-force a code →
+  claim a stranger's game). Per the security review, resume now only restores games owned by the
+  caller and never reassigns `ownerId`, so a guessed code cannot hijack another player's game.
+  Practical effect: resume works within the same browser/anonymous session (the requirement's
+  single-player intent). True shareable/cross-device resume would need a long random secret token,
+  which conflicts with the "four uppercase letters" requirement.
 - **No engine changes** — codes and ownership live entirely in the Convex layer.
 - **Back-compat:** `code` is optional in the schema; only new games get one (existing dev docs are
   unaffected and simply aren't resumable).

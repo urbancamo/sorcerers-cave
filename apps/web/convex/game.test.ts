@@ -133,21 +133,26 @@ test("save returns the game's resume code", async () => {
   expect(game?.code).toBe(code);
 });
 
-test("resumeByCode restores a game and claims it for the caller", async () => {
+test("resumeByCode restores the owner's saved game (and normalises input)", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+  const code = await as.mutation(api.game.save, { id });
+  expect(await as.mutation(api.game.resumeByCode, { code })).toBe(id);
+  // Whitespace and lowercase input are normalised.
+  expect(await as.mutation(api.game.resumeByCode, { code: ` ${code.toLowerCase()} ` })).toBe(id);
+});
+
+test("resumeByCode is owner-scoped: a guessed code cannot hijack another player's game", async () => {
   const t = convexTest(schema, modules);
   const owner = await asUser(t);
   const id = await owner.as.mutation(api.game.newGame, { seed: 1, picks: [0] });
   const code = await owner.as.mutation(api.game.save, { id });
 
-  // A different player (another browser/session) resumes by code: it claims the game so they can play.
-  const other = await asUser(t);
-  const resumed = await other.as.mutation(api.game.resumeByCode, { code });
-  expect(resumed).toBe(id);
-  const game = await other.as.query(api.game.get, { id }); // now readable by the new owner
-  expect(game?.state.turn).toBe(1);
-  // Whitespace and lowercase input are normalised.
-  const again = await other.as.mutation(api.game.resumeByCode, { code: ` ${code.toLowerCase()} ` });
-  expect(again).toBe(id);
+  const attacker = await asUser(t);
+  expect(await attacker.as.mutation(api.game.resumeByCode, { code })).toBeNull(); // not their game
+  // …and ownership is untouched: the owner can still resume it.
+  expect(await owner.as.mutation(api.game.resumeByCode, { code })).toBe(id);
 });
 
 test("resumeByCode returns null for an unknown code", async () => {
