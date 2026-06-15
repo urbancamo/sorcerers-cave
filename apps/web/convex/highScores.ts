@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { scoreGame, GS_PLAYING, type GameState } from "@sorcerers-cave/engine";
+import { scoreGame, unpackCoord, GS_PLAYING, type GameState, type GameEvent } from "@sorcerers-cave/engine";
 
 const MAX_NAME = 40;
 const LEADERBOARD_LIMIT = 100;
@@ -64,5 +64,42 @@ export const list = query({
       party: r.party,
       createdAt: r.createdAt,
     }));
+  },
+});
+
+/**
+ * Expedition statistics for one recorded score, derived on demand from the stored final state and
+ * the game's event log (so it works for games saved before this feature). Public, like `list`.
+ */
+export const stats = query({
+  args: { id: v.id("highScores") },
+  handler: async (ctx, { id }) => {
+    const hs = await ctx.db.get(id);
+    if (!hs) return null;
+    const state = hs.state as GameState;
+
+    const levels = state.areas.map((a) => unpackCoord(a.coord).level);
+    const maxDepth = levels.length ? Math.max(...levels) : 1;
+    const dragonsSlain = state.party.reduce((n, m) => n + (m.dragonKills ?? 0), 0);
+
+    // Total enemies slain isn't tracked in the state, so count strangerKilled across the event log.
+    const eventRows = await ctx.db
+      .query("gameEvents")
+      .withIndex("by_game", (q) => q.eq("gameId", hs.gameId))
+      .collect();
+    const enemiesSlain = eventRows.reduce(
+      (n, row) => n + (row.events as GameEvent[]).filter((e) => e.type === "strangerKilled").length,
+      0,
+    );
+
+    return {
+      maxDepth,
+      turns: state.turn,
+      areasMapped: state.areas.length,
+      enemiesSlain,
+      dragonsSlain,
+      sorcererSlain: !!state.sorcererKilled,
+      membersLost: state.party.filter((m) => m.status === 3).length,
+    };
   },
 });

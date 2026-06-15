@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 import { CREATURES, TREASURES, GS_ESCAPED, GS_DEAD, GS_QUIT, type PartyMember } from "@sorcerers-cave/engine";
 import { loadManifest, resolveCard, resolveCardVariant, type CardArt } from "../data/manifest";
 
@@ -32,6 +33,9 @@ function ScoreDetail({ row, rank, onBack }: { row: LeaderboardRow; rank?: number
     return () => { alive = false; };
   }, []);
 
+  // Expedition stats are derived on demand from the stored state + event log (see highScores.stats).
+  const stats = useQuery(api.highScores.stats, { id: row._id as Id<"highScores"> });
+
   const left = row.party.filter(survived);
   const artifacts = left.flatMap((m) => m.treasure).filter((t) => TREASURES[t]?.kind === "artifact").length;
   // Each member's copy-index among same-creature members → its own card illustration (so two Men
@@ -50,6 +54,17 @@ function ScoreDetail({ row, rank, onBack }: { row: LeaderboardRow; rank?: number
         {left.length} of {row.party.length} left the cave
         {artifacts > 0 ? ` with ${artifacts} artifact${artifacts > 1 ? "s" : ""}` : ""}.
       </p>
+      {stats && (
+        <dl className="scv-hsd-stats" data-testid="hs-stats">
+          <div><dt>Max depth</dt><dd>Level {stats.maxDepth}</dd></div>
+          <div><dt>Turns</dt><dd>{stats.turns}</dd></div>
+          <div><dt>Areas mapped</dt><dd>{stats.areasMapped}</dd></div>
+          <div><dt>Enemies slain</dt><dd>{stats.enemiesSlain}</dd></div>
+          <div><dt>Dragons slain</dt><dd>{stats.dragonsSlain}</dd></div>
+          <div><dt>Members lost</dt><dd>{stats.membersLost}</dd></div>
+          {stats.sorcererSlain && <div><dt>Sorcerer</dt><dd>slain!</dd></div>}
+        </dl>
+      )}
       <ul className="scv-hsd-list">
         {row.party.map((m, i) => {
           const c = CREATURES[m.creatureId];

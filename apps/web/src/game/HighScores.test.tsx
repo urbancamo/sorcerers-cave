@@ -1,7 +1,12 @@
 import { render, screen, fireEvent, within } from "@testing-library/react";
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GS_ESCAPED, GS_DEAD } from "@sorcerers-cave/engine";
 import { HighScores, type LeaderboardRow } from "./HighScores";
+
+// The detail view subscribes to highScores.stats via Convex's useQuery; mock it (no provider in unit tests).
+const { useQueryMock } = vi.hoisted(() => ({ useQueryMock: vi.fn() }));
+vi.mock("convex/react", () => ({ useQuery: (...args: unknown[]) => useQueryMock(...args) }));
+beforeEach(() => useQueryMock.mockReturnValue(undefined)); // stats still loading by default
 
 const row = (over: Partial<LeaderboardRow>): LeaderboardRow => ({
   _id: "x",
@@ -63,5 +68,20 @@ describe("HighScores", () => {
 
     fireEvent.click(within(detail).getByRole("button", { name: /back to scores/i }));
     expect(screen.getByTestId("high-scores")).toBeInTheDocument(); // table again
+  });
+
+  it("shows expedition stats in the detail once they load", () => {
+    useQueryMock.mockReturnValue({
+      maxDepth: 4, turns: 23, areasMapped: 30, enemiesSlain: 12, dragonsSlain: 1, sorcererSlain: true, membersLost: 2,
+    });
+    const rows = [row({ _id: "a", name: "Alice", party: [{ creatureId: 0, status: 0, dragonKills: 1, treasure: [] }] })];
+    render(<HighScores rows={rows} />);
+    fireEvent.click(screen.getByText("Alice"));
+    const stats = screen.getByTestId("hs-stats");
+    expect(within(stats).getByText(/max depth/i)).toBeInTheDocument();
+    expect(within(stats).getByText("Level 4")).toBeInTheDocument();
+    expect(within(stats).getByText(/enemies slain/i)).toBeInTheDocument();
+    expect(within(stats).getByText("12")).toBeInTheDocument();
+    expect(within(stats).getByText(/sorcerer/i)).toBeInTheDocument();
   });
 });

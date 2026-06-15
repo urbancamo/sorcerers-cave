@@ -925,6 +925,35 @@
 .scv-hs-detail-meta { font-family: var(--ui); font-size: 12px; color: var(--stone-dim); }
 .scv-hs-detail-sub { margin: 0; font-size: 12px; }
 
+/* Expedition stats grid. */
+.scv-hsd-stats {
+  margin: 2px 0 2px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 6px;
+}
+.scv-hsd-stats > div {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 6px 9px;
+  background: rgba(255, 255, 255, 0.02);
+}
+.scv-hsd-stats dt {
+  font-family: var(--ui);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--stone-dim);
+}
+.scv-hsd-stats dd {
+  margin: 1px 0 0;
+  font-family: var(--display);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--cream);
+  font-variant-numeric: tabular-nums;
+}
+
 /* Member roll-call with card art. */
 .scv-hsd-list {
   list-style: none;
