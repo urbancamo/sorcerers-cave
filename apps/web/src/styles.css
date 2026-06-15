@@ -901,6 +901,31 @@
   background: rgba(201, 161, 78, 0.14);
   color: var(--cream);
 }
+/* Clickable rows → party/artifact detail. */
+.scv-hs-row { cursor: pointer; transition: background 0.12s; }
+.scv-hs-row:hover td, .scv-hs-row:focus-visible td { background: rgba(201, 161, 78, 0.1); color: var(--cream); }
+.scv-hs-row:focus-visible { outline: none; }
+.scv-hs-chev { width: 1.4em; text-align: right; color: var(--brass); font-weight: 700; }
+
+/* ---- one-score detail (party & artifacts that left the cave) ---- */
+.scv-hs-detail { display: flex; flex-direction: column; gap: 8px; text-align: left; }
+.scv-hs-back {
+  align-self: flex-start;
+  background: none;
+  border: none;
+  padding: 2px 0;
+  font-family: var(--ui);
+  font-size: 12px;
+  color: var(--brass-bright);
+  cursor: pointer;
+}
+.scv-hs-back:hover { text-decoration: underline; }
+.scv-hs-detail-hd { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; }
+.scv-hs-detail-name { font-family: var(--display); font-size: 17px; color: var(--cream); font-weight: 600; }
+.scv-hs-detail-meta { font-family: var(--ui); font-size: 12px; color: var(--stone-dim); }
+.scv-hs-detail-sub { margin: 0; font-size: 12px; }
+.scv-hs-detail-empty { margin: 2px 0 0; font-size: 11px; font-style: italic; }
+.scv-hs-detail .scv-rollcall { max-height: 46vh; overflow-y: auto; }
 
 /* ---- high-score modal (from splash) ---- */
 .scv-hs-overlay {
