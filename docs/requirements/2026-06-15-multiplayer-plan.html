@@ -98,7 +98,9 @@
       <li><b>One shared cave, many parties.</b> The map, the area (large) deck and the small-card deck are shared; each player commands their own party with its own position, members, treasure and fortunes.</li>
       <li><b>Join by code.</b> The four-letter code already minted for save/resume becomes the invitation: share it out-of-band, others enter it in their own browser to take a seat.</li>
       <li><b>Host-controlled lobby.</b> Up to four seats. The creator starts the game when ready; once started, no one else may join.</li>
+      <li><b>Named parties.</b> Each player must give their party a <b>required Party Name</b> when creating or joining — it identifies them everywhere (lobby, token labels, turn banner, chat, results).</li>
       <li><b>Unique colours.</b> Each seat picks an unused party colour; only free colours are offered.</li>
+      <li><b>In-game chat.</b> A simple broadcast message feed lets players talk to each other (simulating table-talk) — an MVP feature alongside the lobby.</li>
       <li><b>Everything is turn-based — including party selection</b>, because every party is drawn from the same finite small pack.</li>
       <li><b>Faithful to the board game</b> first; advanced inter-party interactions (fights, unions, trading) are staged and optional, matching the rulebook's own "beginners vs. serious play" split.</li>
     </ul>
@@ -125,7 +127,7 @@
     </ul>
 
     <h3>2.3 The cave is shared; chambers persist</h3>
-    <div class="callout ok"><span class="lbl">Key insight — already supported</span> Leftover strangers, treasure and hazards are persisted onto the <em>area</em> (<code>PlacedArea.contents</code>) and reloaded when any party (re)enters. So a chamber a previous player left half-fought is seen by the next party that walks in — "<em>other parties entering the chamber have the usual options.</em>" The shared map + per-area contents model already carries this; we only need each party to carry its <em>own</em> transient working set during its own turn.</li></div>
+    <div class="callout ok"><span class="lbl">Key insight — already supported</span> Leftover strangers, treasure and hazards are persisted onto the <em>area</em> (<code>PlacedArea.contents</code>) and reloaded when any party (re)enters. So a chamber a previous player left half-fought is seen by the next party that walks in — "<em>other parties entering the chamber have the usual options.</em>" The shared map + per-area contents model already carries this; we only need each party to carry its <em>own</em> transient working set during its own turn.</div>
     <ul>
       <li>The <b>first</b> party to enter a fresh chamber draws the small cards; later parties draw none, but must deal with whatever remains.</li>
       <li>Strangers that turned hostile to a party and were retreated-from <em>stay hostile to that party</em> but may be approached afresh by others — a per-party relationship flag (advanced; see gaps).</li>
@@ -214,12 +216,24 @@
       <tr><td><code>gameId</code></td><td>id(games)</td><td>index <code>by_game</code></td></tr>
       <tr><td><code>userId</code></td><td>id(users)</td><td>the human in the seat; index <code>by_user</code></td></tr>
       <tr><td><code>seat</code></td><td>number</td><td>0–3, stable seat index used by the engine</td></tr>
-      <tr><td><code>name</code></td><td>string</td><td>display name</td></tr>
+      <tr><td><code>partyName</code></td><td>string <span class="tag">required</span></td><td>the seat's identity — shown on the token label, lobby, turn banner, chat and results. Trimmed, 1–24 chars, must be unique within the game.</td></tr>
       <tr><td><code>color</code></td><td><code>green|blue|yellow|red</code></td><td>reserved colour (unique per game)</td></tr>
       <tr><td><code>ready</code></td><td>boolean</td><td>lobby readiness</td></tr>
       <tr><td><code>lastSeen</code></td><td>number</td><td>presence / disconnect detection</td></tr>
     </table>
     <p class="muted">Colour reservation = "no other <code>players</code> row in this game holds the colour." The lobby query returns taken colours so the picker offers only free ones. <code>gameEvents</code> gains an optional <code>seat</code> column so the per-seat stat/event history still works.</p>
+
+    <h4>messages (new) — in-game chat / broadcast</h4>
+    <table>
+      <tr><th>Field</th><th>Type</th><th>Purpose</th></tr>
+      <tr><td><code>gameId</code></td><td>id(games)</td><td>index <code>by_game</code> (ordered by <code>createdAt</code>)</td></tr>
+      <tr><td><code>seat</code></td><td>number | null</td><td>author's seat; <code>null</code> for system lines ("Verdant Few joined", "it is Red's turn")</td></tr>
+      <tr><td><code>partyName</code></td><td>string</td><td>denormalised author label (so old messages keep their name if a seat is freed)</td></tr>
+      <tr><td><code>color</code></td><td>string | null</td><td>denormalised author colour for the chat bubble</td></tr>
+      <tr><td><code>text</code></td><td>string</td><td>message body, trimmed, ≤ 280 chars</td></tr>
+      <tr><td><code>createdAt</code></td><td>number</td><td>ordering</td></tr>
+    </table>
+    <p class="muted">Chat is a digital-only convenience (the board game has no equivalent — players just talk). It is available from the lobby onward, so players can coordinate before and during the game. System lines reuse the same feed for join/leave/turn notices.</p>
 
     <h3>5.2 Engine state shape</h3>
 <pre><code>interface CaveState {            // shared by all parties
@@ -230,7 +244,7 @@
 }
 
 interface PartyState {          // one per seat
-  seat: number; color: PartyColor;
+  seat: number; color: PartyColor; name: string;   // name = the required Party Name
   members: PartyMember[];
   partyArea: number; prev: number; prev2: number;
   strangers: number[]; treasures: number[]; hazards: number[];
@@ -259,14 +273,16 @@ interface MpGameState {
     <h2><span class="n">6</span> Server functions (Convex)</h2>
     <table>
       <tr><th>Function</th><th>Kind</th><th>Behaviour &amp; guards</th></tr>
-      <tr><td><code>createMultiplayer({name,color})</code></td><td>mutation</td><td>mint a unique <code>code</code>; insert <code>games</code> (<code>mode:"multi"</code>, <code>lobby:"open"</code>, <code>hostId</code>); insert the host's <code>players</code> seat 0 with chosen colour. Returns <code>{ gameId, code }</code>.</td></tr>
-      <tr><td><code>lobby({code})</code></td><td>query</td><td>public; returns seats (names, colours, ready), host, lobby status, taken colours. Drives the join screen for everyone, reactively.</td></tr>
-      <tr><td><code>joinByCode({code,name,color})</code></td><td>mutation</td><td>only while <code>lobby==="open"</code> &amp; seats &lt; max &amp; colour free &amp; caller not already seated; assigns next <code>seat</code>. Does <b>not</b> claim ownership. Idempotent if already seated (lets a player rejoin).</td></tr>
-      <tr><td><code>setColor / setReady / leaveSeat</code></td><td>mutation</td><td>lobby housekeeping; colour change rejected if taken; host leaving either promotes the next seat or closes the lobby.</td></tr>
+      <tr><td><code>createMultiplayer({partyName,color})</code></td><td>mutation</td><td>require a non-empty <code>partyName</code> (1–24 chars); mint a unique <code>code</code>; insert <code>games</code> (<code>mode:"multi"</code>, <code>lobby:"open"</code>, <code>hostId</code>); insert the host's <code>players</code> seat 0 with party name + colour; post a "&lt;partyName&gt; created the game" system message. Returns <code>{ gameId, code }</code>.</td></tr>
+      <tr><td><code>lobby({code})</code></td><td>query</td><td>public; returns seats (party names, colours, ready), host, lobby status, taken colours and taken names. Drives the join screen for everyone, reactively.</td></tr>
+      <tr><td><code>joinByCode({code,partyName,color})</code></td><td>mutation</td><td>only while <code>lobby==="open"</code> &amp; seats &lt; max &amp; colour free &amp; <code>partyName</code> non-empty and unique-in-game &amp; caller not already seated; assigns next <code>seat</code>; posts a "&lt;partyName&gt; joined" system message. Does <b>not</b> claim ownership. Idempotent if already seated (lets a player rejoin).</td></tr>
+      <tr><td><code>setPartyName / setColor / setReady / leaveSeat</code></td><td>mutation</td><td>lobby housekeeping; name change rejected if blank or taken, colour change rejected if taken; host leaving either promotes the next seat or closes the lobby.</td></tr>
       <tr><td><code>startGame({gameId})</code></td><td>mutation</td><td>host only; flips <code>lobby:"started"</code> (locks joins), rolls the random play order (seeded), builds the shared <code>MpGameState</code> in <code>phase:"partySelect"</code>, sets <code>turnSeat</code> to the first picker.</td></tr>
       <tr><td><code>pickParty({gameId,picks})</code></td><td>mutation</td><td>turn-gated to the current picker; validates value ≤ 6 &amp; that each card is still in the pack; removes them; advances pick turn; when the last seat picks, transitions to <code>phase:"playing"</code> and sets the first mover.</td></tr>
       <tr><td><code>applyAction({gameId,action})</code></td><td>mutation</td><td>generalised: resolve caller→seat; require <code>seat === state.turnSeat</code> (turn-gating replaces owner-gating); run <code>mpReduce</code>; persist state + <code>turnSeat</code>; append <code>gameEvents</code> with <code>seat</code>. End-of-turn advances to the next seat still in play.</td></tr>
       <tr><td><code>get({gameId})</code></td><td>query</td><td>readable by any seated player (membership check via <code>players</code>), not just an owner. Returns the full reactive state for the renderer.</td></tr>
+      <tr><td><code>sendMessage({gameId,text})</code></td><td>mutation</td><td>membership-gated (caller must be a seated player); trims &amp; caps text at 280 chars, rejects empty; stamps it with the caller's seat/party name/colour and inserts a <code>messages</code> row. Allowed any time (lobby and in-game), on any seat's turn.</td></tr>
+      <tr><td><code>messages({gameId,limit?})</code></td><td>query</td><td>membership-gated; returns the most recent chat + system lines (default ~100) oldest-first, reactively, for the chat panel.</td></tr>
     </table>
     <div class="callout"><span class="lbl">Authority model</span> Replace the single <code>ownerId === caller</code> check with: <b>membership</b> (a <code>players</code> row exists for caller+game) for reads, and <b>turn ownership</b> (caller's seat === <code>turnSeat</code>) for actions. The engine still re-validates every move, so the server stays the sole authority and the client is never trusted.</div>
   </section>
@@ -279,12 +295,13 @@ interface MpGameState {
       <span class="sw" style="background:#c9a14e"></span><span class="sw" style="background:#a8443a"></span>
     </div>
     <ol>
-      <li><b>Splash → "Start Multiplayer Game".</b> Host enters a name, picks a colour, gets a <b>code</b> shown prominently (reuse the save-modal styling) to share out-of-band.</li>
-      <li><b>Splash → "Join Multiplayer Game".</b> Anyone enters the code (reusing the resume-by-code input), a name, and picks from the <em>remaining</em> colours.</li>
-      <li><b>Lobby</b> (reactive for all): list of seats with colour chips and ready state; the host sees a <b>Start</b> button (enabled with ≥ 2 seats). Late-comers past <code>started</code> are told the game has begun.</li>
-      <li><b>Turn-based party selection.</b> A shared "draft" screen shows the small pack's remaining selectable creatures; only the player whose pick turn it is can choose (others see "Waiting for &lt;colour&gt;…"). Picks deplete the shared pool live.</li>
-      <li><b>Play.</b> The existing 3D cave renders the shared map with every party's coloured token. A persistent banner shows <b>whose turn</b> it is; controls are live only on your turn (others watch the map update reactively). The HUD's Deck indicator (already shared) reflects the common large pack.</li>
-      <li><b>Leaving &amp; results.</b> Parties exit independently; when all have left/wiped, a multi-party results screen ranks the parties and writes each to the leaderboard.</li>
+      <li><b>Splash → "Start Multiplayer Game".</b> Host enters a <b>required Party Name</b> and picks a colour, then gets a <b>code</b> shown prominently (reuse the save-modal styling) to share out-of-band. Start is blocked until a party name is given.</li>
+      <li><b>Splash → "Join Multiplayer Game".</b> Anyone enters the code (reusing the resume-by-code input), a <b>required Party Name</b> (must be unused in that game), and picks from the <em>remaining</em> colours.</li>
+      <li><b>Lobby</b> (reactive for all): list of seats by party name with colour chips and ready state; the host sees a <b>Start</b> button (enabled with ≥ 2 seats). Late-comers past <code>started</code> are told the game has begun. A <b>chat panel</b> is present from here on so players can coordinate.</li>
+      <li><b>Turn-based party selection.</b> A shared "draft" screen shows the small pack's remaining selectable creatures; only the player whose pick turn it is can choose (others see "Waiting for &lt;party name&gt;…"). Picks deplete the shared pool live.</li>
+      <li><b>Play.</b> The existing 3D cave renders the shared map with every party's coloured token, <b>labelled by party name</b>. A persistent banner shows <b>whose turn</b> it is (by party name); controls are live only on your turn (others watch the map update reactively). The HUD's Deck indicator (already shared) reflects the common large pack. The chat panel stays docked in a HUD corner with an unread badge.</li>
+      <li><b>Chat.</b> A docked, collapsible message feed: coloured bubbles tagged with each sender's party name, plus system lines (joins, turn changes, exits). Send on Enter; reactive for everyone. MVP scope = plain broadcast to all players in the game (no private/whisper messages).</li>
+      <li><b>Leaving &amp; results.</b> Parties exit independently; when all have left/wiped, a multi-party results screen ranks the parties <b>by party name</b> and writes each to the leaderboard.</li>
     </ol>
   </section>
 
@@ -292,8 +309,8 @@ interface MpGameState {
   <section id="roadmap">
     <h2><span class="n">8</span> Phased roadmap</h2>
 
-    <div class="phase"><div class="ph-hd"><span class="ph-n">Phase 1 — Infrastructure &amp; lobby</span> <span class="tag">no engine change</span></div>
-      Schema (<code>games</code> lobby fields + <code>players</code> table); <code>createMultiplayer</code>, <code>joinByCode</code>, <code>lobby</code>, <code>setColor/setReady/leaveSeat</code>, <code>startGame</code> (lobby flip only). Splash buttons, join input, reactive lobby with colour reservation and host start. <b>Deliverable: create a game, share the code, join from another browser, see each other, host can lock the lobby.</b></div>
+    <div class="phase"><div class="ph-hd"><span class="ph-n">Phase 1 — Infrastructure, lobby, names &amp; chat</span> <span class="tag">no engine change</span> <span class="tag">MVP</span></div>
+      Schema (<code>games</code> lobby fields + <code>players</code> + <code>messages</code> tables); <code>createMultiplayer</code>, <code>joinByCode</code> (both requiring a <b>Party Name</b>), <code>lobby</code>, <code>setPartyName/setColor/setReady/leaveSeat</code>, <code>startGame</code> (lobby flip only), and <code>sendMessage</code>/<code>messages</code> for chat. Splash buttons, join input, reactive lobby with party names + colour reservation + host start, and the docked chat panel. <b>Deliverable: create a named-party game, share the code, join from another browser, see each other by party name, chat, and host can lock the lobby.</b></div>
 
     <div class="phase"><div class="ph-hd"><span class="ph-n">Phase 2 — Multi-party engine core</span></div>
       Introduce <code>MpGameState</code>/<code>PartyState</code>/<code>CaveState</code>; refactor solitaire primitives to a party context; <code>mpReduce</code> with turn-gating; build state on <code>startGame</code> with random play order. Unit-tested in isolation (no UI yet).</div>
@@ -316,10 +333,11 @@ interface MpGameState {
     <h2><span class="n">9</span> Step-by-step: building a fully multiplayer game</h2>
     <p>The concrete sequence, from infrastructure to a finished competitive game.</p>
     <ol class="steps">
-      <li><b>Schema.</b> Add lobby fields to <code>games</code> and create the <code>players</code> table with <code>by_game</code> / <code>by_user</code> indexes; add optional <code>seat</code> to <code>gameEvents</code>. Deploy (additive, back-compatible).</li>
-      <li><b>Create + code.</b> Implement <code>createMultiplayer</code> (mint code, host seat, lobby open) and surface "Start Multiplayer Game" on the splash, showing the code to share.</li>
-      <li><b>Join in another browser.</b> Implement <code>lobby</code> (public, reactive) and <code>joinByCode</code> (seat assignment, colour reservation, no ownership claim). Wire "Join Multiplayer Game" with the code + name + free-colour picker.</li>
-      <li><b>Lobby &amp; colours.</b> Render the reactive seat list with colour chips; reserve colours (offer only unused ones); host sees <b>Start</b>.</li>
+      <li><b>Schema.</b> Add lobby fields to <code>games</code>; create the <code>players</code> table (with <code>partyName</code>) and the <code>messages</code> table, both with <code>by_game</code> indexes (<code>players</code> also <code>by_user</code>); add optional <code>seat</code> to <code>gameEvents</code>. Deploy (additive, back-compatible).</li>
+      <li><b>Create + code.</b> Implement <code>createMultiplayer</code> (require <b>Party Name</b>, mint code, host seat, lobby open) and surface "Start Multiplayer Game" on the splash with a required party-name field, showing the code to share.</li>
+      <li><b>Join in another browser.</b> Implement <code>lobby</code> (public, reactive) and <code>joinByCode</code> (require a unique <b>Party Name</b>, seat assignment, colour reservation, no ownership claim). Wire "Join Multiplayer Game" with the code + party-name field + free-colour picker.</li>
+      <li><b>Lobby &amp; colours.</b> Render the reactive seat list by party name with colour chips; reserve colours (offer only unused ones); host sees <b>Start</b>.</li>
+      <li><b>Chat.</b> Implement <code>sendMessage</code>/<code>messages</code> and a docked, reactive chat panel (coloured bubbles tagged by party name + system lines), available from the lobby onward. <span class="tag">MVP</span></li>
       <li><b>Start &amp; lock.</b> <code>startGame</code>: host-only, flip <code>lobby:"started"</code> (joins refused), roll random play order, build <code>MpGameState</code> in <code>partySelect</code>.</li>
       <li><b>Engine core.</b> Land <code>MpGameState</code> + <code>mpReduce</code> + party-context refactor with unit tests (movement, chamber, combat, pickup per seat against the shared cave).</li>
       <li><b>Turn-based party draft.</b> <code>pickParty</code> from the shared pack in reverse play order; draft UI showing the depleting pool and "waiting for &lt;colour&gt;"; transition to <code>playing</code>.</li>
@@ -339,7 +357,9 @@ interface MpGameState {
       <li><b>MVP interaction scope.</b> Ship Phase 1–4 (beginner ruleset: no party-vs-party, all cards visible). This is a complete, fun competitive race and de-risks the hardest rules (cross-turn defender rounds, fog-of-war).</li>
       <li><b>Engine refactor blast radius.</b> The single-→multi-party change touches the core reducer; mitigate by keeping solitaire on its current path and building multiplayer beside it, converging only if/when it's clearly safe.</li>
       <li><b>RNG.</b> One authoritative seeded stream on the cave keeps every browser deterministic and replayable, as today.</li>
-      <li><b>Leaderboard.</b> Decide whether multiplayer results post per-party (recommended) and whether they're tagged as multiplayer to keep solo records comparable.</li>
+      <li><b>Leaderboard.</b> Decide whether multiplayer results post per-party (recommended) and whether they're tagged as multiplayer to keep solo records comparable. Party names make natural leaderboard labels.</li>
+      <li><b>Party names.</b> Required, 1–24 chars, unique within a game. Open question: profanity filtering and whether to allow editing a name after the game starts (proposed: lobby-only edits).</li>
+      <li><b>Chat scope &amp; safety.</b> MVP is plain broadcast to everyone in the game (no whispers, no cross-game channels), capped at 280 chars with light rate-limiting. Open questions: profanity filtering, message retention/clearing, and whether to keep chat after the game finishes.</li>
     </ul>
     <div class="callout ok"><span class="lbl">Bottom line</span> Phases 1 &amp; 4 deliver the requirement — create, share a code, join from another browser, take turns (including party selection) and play one shared cave to a ranked finish. Phases 5–6 add the rulebook's full competitive depth and can follow once the core is proven.</div>
   </section>
