@@ -44,8 +44,8 @@ export function CaveHud({ mountRef, onPartyClick, onSave }: { mountRef: RefObjec
             </div>
             <div className="chip">
               <span className="k">Deck</span>
-              <span className="v warn" id="st-tiles">
-                47
+              <span className="v" id="st-tiles">
+                — / —
               </span>
             </div>
           </div>

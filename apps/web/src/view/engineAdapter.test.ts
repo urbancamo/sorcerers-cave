@@ -30,6 +30,7 @@ describe("createCaveAdapter — read surface", () => {
     expect(s.turn).toBe(1);
     expect(s.placed).toBe(1);
     expect(s.deckLeft).toBe(60);          // 60-card large pack, none drawn
+    expect(s.deckTotal).toBe(60);         // full deck size (for the "N / total" indicator)
     expect(s.current.special).toBe("gateway");
   });
 

@@ -560,11 +560,17 @@ function showChoice(title,body,okLabel,cancelLabel,tone){
     ov.appendChild(card); document.body.appendChild(ov); ok.focus();
   });
 }
+let deckWarned=false; // one-shot toast when the area deck first runs low
 function updateHUD(){const s=engine.state();
   document.getElementById('st-depth').textContent='Level '+s.level;
   document.getElementById('st-turn').textContent=s.turn;
   document.getElementById('st-party').textContent=PARTY.length;
-  document.getElementById('st-tiles').textContent=s.deckLeft;}
+  const tilesEl=document.getElementById('st-tiles');
+  tilesEl.textContent=s.deckLeft+' / '+s.deckTotal;
+  const low=s.deckLeft<10; // running out of area cards to explore
+  tilesEl.classList.toggle('danger',low);
+  if(low){ if(!deckWarned){ showToast('Only <b>'+s.deckLeft+'</b> tile cards left!'); deckWarned=true; } }
+  else deckWarned=false;}
 function escAttr(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function renderRoster(){const b=document.getElementById('rosterBody');b.innerHTML='';
   PARTY.forEach(m=>{const row=document.createElement('div');row.className='mbr'+(m.lead?' lead':'')+(m.petrified?' petrified':'');

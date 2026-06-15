@@ -50,6 +50,7 @@ export function createCaveAdapter(initial: GameState, art: ArtTables, opts: Adap
         turn: state.turn,
         placed: state.areas.length,
         deckLeft: state.largePack.length - state.largeIdx,
+        deckTotal: state.largePack.length, // full area deck (varies by game variant / expansions)
         current,
       };
     },

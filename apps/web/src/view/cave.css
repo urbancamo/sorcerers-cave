@@ -46,6 +46,10 @@ canvas{display:block;touch-action:none;}
 .chip .k{font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--stone-dim);}
 .chip .v{font-family:var(--display);font-size:16px;color:var(--cream);font-weight:600;line-height:1.1;}
 .chip .v.warn{color:var(--brass-bright);}
+/* Area deck running low (< 10 cards): a red, pulsing warning on the Deck indicator. */
+.chip .v.danger{color:#e86b5c;}
+.chip:has(.v.danger){border-color:var(--crimson);box-shadow:0 0 0 1px rgba(168,68,58,.5),0 10px 30px -16px rgba(0,0,0,.8);animation:deckLowPulse 1.4s ease-in-out infinite;}
+@keyframes deckLowPulse{0%,100%{box-shadow:0 0 0 1px rgba(168,68,58,.4),0 10px 30px -16px rgba(0,0,0,.8);}50%{box-shadow:0 0 10px 1px rgba(168,68,58,.7),0 10px 30px -16px rgba(0,0,0,.8);}}
 
 /* compass top-right */
 .compass{position:absolute;top:20px;right:26px;width:62px;height:62px;border-radius:50%;

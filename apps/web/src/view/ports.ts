@@ -70,6 +70,7 @@ export interface StateSnapshot {
   turn: number;
   placed: number;        // areas placed so far
   deckLeft: number;      // tiles remaining in the area deck
+  deckTotal: number;     // full area-deck size (varies by game variant / expansions)
   current: Area;
 }
 
