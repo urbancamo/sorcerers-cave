@@ -10,6 +10,7 @@ const mpActionValidator = v.object({
   type: v.string(),
   dir: v.optional(v.number()),
   idx: v.optional(v.number()),
+  ti: v.optional(v.number()),   // takeTreasure: which chamber treasure
   mi: v.optional(v.number()),
   from: v.optional(v.number()),
   to: v.optional(v.number()),

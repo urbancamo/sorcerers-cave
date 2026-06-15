@@ -199,6 +199,16 @@ test("playView gives the seat its own render view + whose turn; act is turn-gate
   expect((await userBySeat[0]!.query(api.multiplayer.playView, { gameId }))!.currentSeat).toBe(other);
 });
 
+test("act accepts a takeTreasure action (its `ti` field must pass the validator)", async () => {
+  const t = convexTest(schema, modules);
+  const { gameId, userBySeat } = await reachPlaying(t);
+  const current = (await userBySeat[0]!.query(api.multiplayer.playView, { gameId }))!.currentSeat;
+  // No treasure underfoot yet, so this resolves to a blocked no-op — the point is it must NOT
+  // throw an argument-validation error for the `ti` field (regression: pickup was unresponsive).
+  const res = await userBySeat[current]!.mutation(api.multiplayer.act, { gameId, action: { type: "takeTreasure", ti: 0, mi: 0 } });
+  expect(res.events).toEqual([{ type: "blocked" }]);
+});
+
 test("a finished party is recorded to the multiplayer high-score table, kept apart from solo", async () => {
   const t = convexTest(schema, modules);
   const { gameId, userBySeat } = await reachPlaying(t);
