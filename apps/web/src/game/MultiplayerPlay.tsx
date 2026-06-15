@@ -32,6 +32,18 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   const [showParty, setShowParty] = useState(false);
   const [showChat, setShowChat] = useState(false);
 
+  // Unread-chat marker: count messages that arrive while the dock is closed. Existing history is
+  // treated as read on first load; opening the dock (or new lines arriving while it's open) clears it.
+  const chatFeed = useQuery(api.multiplayer.messages, { gameId });
+  const [seenCount, setSeenCount] = useState(0);
+  const chatInited = useRef(false);
+  useEffect(() => {
+    if (chatFeed === undefined) return;
+    if (!chatInited.current) { chatInited.current = true; setSeenCount(chatFeed.length); return; }
+    if (showChat) setSeenCount(chatFeed.length);
+  }, [chatFeed, showChat]);
+  const unreadChat = !showChat && (chatFeed?.length ?? 0) > seenCount;
+
   useEffect(() => { void loadManifest().then(setArt); }, []);
 
   const adapterRef = useRef<CaveAdapter | null>(null);
@@ -98,7 +110,10 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
       {roll && <DiceRoll title={roll.title} lanes={roll.lanes} message={roll.message} tone={roll.tone} onContinue={() => setRoll(null)} />}
       {notices && <NoticeModal notices={notices} onClose={() => setNotices(null)} />}
       <div className={"scv-mp-chatdock" + (showChat ? " open" : "")}>
-        <button className="scv-mp-chattoggle" onClick={() => setShowChat((s) => !s)}>{showChat ? "Hide chat ▾" : "Chat ▸"}</button>
+        <button className={"scv-mp-chattoggle" + (unreadChat ? " unread" : "")} onClick={() => setShowChat((s) => !s)}>
+          {showChat ? "Hide chat ▾" : "Chat ▸"}
+          {unreadChat && <span className="scv-mp-unread" aria-label="unread messages" />}
+        </button>
         {showChat && <ChatPanel gameId={gameId} />}
       </div>
       <button className="scv-mp-leave" onClick={onExit}>Leave</button>
