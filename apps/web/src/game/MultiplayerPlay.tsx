@@ -89,6 +89,7 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   const adapterRef = useRef<CaveAdapter | null>(null);
   const syncedRef = useRef<GameState | null>(null);
   const yourTurnRef = useRef(false);
+  const focusApiRef = useRef<{ focusArea: (a: { col: number; row: number; level: number }) => void } | null>(null);
 
   const state = (view?.state as GameState | undefined) ?? null;
   yourTurnRef.current = !!view?.yourTurn;
@@ -127,8 +128,14 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   const gameOver = view.currentSeat === null; // playView reports no current seat once finished
   const showScoreboard = (terminal || gameOver) ? !spectating : peeking;
 
-  // PR1: clicking a row drops into the read-only cave (PR2 adds the camera fly-to).
-  const focusSeat = (_seat: number) => { setPeeking(false); setSpectating(true); };
+  // Drop into the read-only cave and fly the camera to that party's current area.
+  const focusSeat = (seat: number) => {
+    setPeeking(false);
+    setSpectating(true);
+    const p = view.parties.find((q) => q.seat === seat);
+    const area = p ? state.areas[p.partyArea] : undefined;
+    if (area) { const c = unpackCoord(area.coord); focusApiRef.current?.focusArea({ col: c.x, row: c.y, level: c.level }); }
+  };
 
   // Other active parties' pins on the shared map (positions read from the shared areas).
   const otherParties: OtherPartyToken[] = view.parties
@@ -143,7 +150,7 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
 
   return (
     <div className="relative h-screen w-screen">
-      <CaveCanvas key={gameId} engine={engine} state={state} color={myColor} onPartyClick={() => setShowParty(true)} onQuit={() => setShowQuit(true)} otherParties={otherParties} />
+      <CaveCanvas key={gameId} engine={engine} state={state} color={myColor} onPartyClick={() => setShowParty(true)} onQuit={() => setShowQuit(true)} otherParties={otherParties} onReady={(apiRef) => { focusApiRef.current = apiRef; }} />
       <div className="scv-mp-toasts">
         {toasts.map((t) => (
           <div key={t.id} className={"scv-mp-toast" + (t.tone === "you" ? " you" : t.tone === "chat" ? " chat" : "")}>{t.text}</div>
