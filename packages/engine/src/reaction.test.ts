@@ -37,10 +37,18 @@ describe("reactionRoll (spec §8.3, Appendix B)", () => {
     expect(out).not.toBe(undefined);
   });
 
-  it("a leader with no reaction table (a mutineer) is treated as indifferent", () => {
-    // Man (id 5) has hostileMax=null, indiffMax=null -> always indifferent.
-    const s = makeState({ strangers: [5] });
-    expect(reactionRoll(s).outcome).toBe("indifferent");
+  it("tests human strangers by their card's reaction table (all outcomes reachable)", () => {
+    // Woman (id 6): hostile 1-2, indifferent 3-4, friendly 5-6 — drawn in the cave from the one
+    // small pack, she is tested like any creature (no longer the old always-indifferent fallback).
+    // No-charisma party (a Man) so the raw d6 isn't shifted; 60 seeds cover every face.
+    const outcomes = new Set<string>();
+    for (let seed = 1; seed <= 60; seed++) {
+      const s = makeState({ strangers: [6], party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [] }], seed });
+      outcomes.add(reactionRoll(s).outcome);
+    }
+    expect(outcomes).toContain("friendly"); // a 5-6 reads friendly (the reported bug)
+    expect(outcomes).toContain("indifferent");
+    expect(outcomes).toContain("hostile");
   });
 
   it("advances the seed", () => {

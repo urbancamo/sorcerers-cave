@@ -233,6 +233,24 @@ This is the full set of cards, with the encoded string in column 1.
 
 ✝- `UNICORN` is Friendly to `WOMEN` otherwise Indifferent
 
+**Starting Creatures - Die Roll Results**
+
+The starting creatures are part of the same small pack, so any not chosen for a party may be drawn
+in the cave as `STRANGERS` and are tested by the reaction tables printed on their cards:
+
+| Type     | Hostile | Indifferent | Friendly |
+|----------|---------|-------------|----------|
+| `HERO`   | 1-3     |             | 4-6      |
+| `PRIEST` | 1       | 2-4         | 5-6      |
+| `MAN`    | 1-2     | 3-4         | 5-6      |
+| `WOMAN`  | 1-2     | 3-4         | 5-6      |
+| `DWARF`  |         | 1-4         | 5-6      |
+
+> **One pack.** There is a single small pack. A party is built only from the *starting creatures*
+> subset (those with a Selection Value), but every creature — starting or cave — is one of the
+> physical cards in that pack. Cards taken into a party are removed; the rest are shuffled into the
+> chamber draw pile, where they are tested via the reaction tables above.
+
 The composition of the exploring parties will change throughout the game as creatures and treasure are gained and lost. At all times the players should keep their holdings neatly arranged and open to view, each creature with whatever treasure it may be carrying, A player may redistribute treasure among the creatures of his party at the beginning or end of a turn, provided the party is not involved in a fight at the time.
 
 After the exploring parties have been chosen, shuffle the small pack thoroughly and put it face down in a place handy to all the players.

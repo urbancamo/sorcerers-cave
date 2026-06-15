@@ -164,8 +164,12 @@ describe("reduce — stranger encounters (C-2 §8)", () => {
   });
 
   it("three indifferent results make the area permanently indifferent (no more test)", () => {
-    // Man-stranger (id 5) is always indifferent.
-    let s = makeState({ phase: "encounter", strangers: [5], areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }] });
+    // Woman-stranger (id 6): seed 9 with a no-charisma party (a Man) rolls indifferent three times.
+    let s = makeState({
+      phase: "encounter", strangers: [6], seed: 9,
+      party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [] }],
+      areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+    });
     for (let i = 0; i < 3; i++) s = reduce(s, { type: "test" }).state;
     expect(s.areas[0]!.indiffCount).toBe(3);
     expect(legalActions(s)).not.toContainEqual({ type: "test" });
