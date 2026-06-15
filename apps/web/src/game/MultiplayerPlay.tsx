@@ -16,6 +16,7 @@ import { NoticeModal } from "./NoticeModal";
 import { eventNotices, type Notice } from "./eventNotices";
 import { ChatPanel } from "./ChatPanel";
 import { GameOverScreen } from "./GameOverScreen";
+import { ScoreboardPanel } from "./ScoreboardPanel";
 import { DEFAULT_PARTY_COLOR, type PartyColor } from "./partyColors";
 
 /**
@@ -31,7 +32,10 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   const [notices, setNotices] = useState<Notice[] | null>(null);
   const [showParty, setShowParty] = useState(false);
   const [showChat, setShowChat] = useState(false);
-  const [showQuit, setShowQuit] = useState(false); // HUD "Quit" → leave-to-menu vs abandon popup
+  const [showQuit, setShowQuit] = useState(false); // HUD "Quit" → leave-to-menu confirm
+  const [spectating, setSpectating] = useState(false); // terminal/finished: scrim hidden, roaming the cave
+  const [peeking, setPeeking] = useState(false);       // active player opened the standings
+  const [showMyRun, setShowMyRun] = useState(false);   // personal GameOverScreen sub-modal
 
   // Unread-chat marker: count messages that arrive while the dock is closed. Existing history is
   // treated as read on first load; opening the dock (or new lines arriving while it's open) clears it.
@@ -120,6 +124,11 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   const myColor = (me?.color as PartyColor) ?? DEFAULT_PARTY_COLOR;
   const terminal = state.gs !== GS_PLAYING;
   const yourTurn = view.yourTurn && !terminal;
+  const gameOver = view.currentSeat === null; // playView reports no current seat once finished
+  const showScoreboard = (terminal || gameOver) ? !spectating : peeking;
+
+  // PR1: clicking a row drops into the read-only cave (PR2 adds the camera fly-to).
+  const focusSeat = (_seat: number) => { setPeeking(false); setSpectating(true); };
 
   // Other active parties' pins on the shared map (positions read from the shared areas).
   const otherParties: OtherPartyToken[] = view.parties
@@ -168,9 +177,30 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
           </div>
         </div>
       )}
-      {/* Your expedition has ended: show the score screen. Result is auto-recorded server-side, so no save form. */}
-      {terminal && (
-        <div className="scv-mp-finishoverlay">
+      {/* Active players can peek at standings; terminal/finished players land here by default. */}
+      {!showScoreboard && !terminal && !gameOver && (
+        <button className="scv-mp-standings" onClick={() => setPeeking(true)}>Standings ▣</button>
+      )}
+      {(terminal || gameOver) && spectating && (
+        <button className="scv-mp-standings" onClick={() => setSpectating(false)}>Standings ▣</button>
+      )}
+      {showScoreboard && (
+        <div className="scv-sb-overlay">
+          <ScoreboardPanel
+            gameId={gameId}
+            frozen={gameOver}
+            onRowClick={(seat) => focusSeat(seat)}
+            onResume={peeking ? () => setPeeking(false) : undefined}
+            onSpectate={(terminal || gameOver) ? () => setSpectating(true) : undefined}
+            onViewMyRun={terminal && !gameOver ? () => setShowMyRun(true) : undefined}
+            onQuit={(terminal && !gameOver) ? onExit : undefined}
+            onBackToMenu={gameOver ? onExit : undefined}
+          />
+        </div>
+      )}
+      {/* Personal score breakdown (no save form — the result is auto-recorded server-side). */}
+      {showMyRun && (
+        <div className="scv-mp-finishoverlay" onClick={() => setShowMyRun(false)}>
           <GameOverScreen state={state} onNewGame={onExit} />
         </div>
       )}
