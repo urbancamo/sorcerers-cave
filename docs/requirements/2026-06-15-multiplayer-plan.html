@@ -82,9 +82,10 @@
     <a href="#data">5 · Data model</a>
     <a href="#functions">6 · Server functions</a>
     <a href="#flow">7 · Client &amp; UX flow</a>
-    <a href="#roadmap">8 · Phased roadmap</a>
-    <a href="#build">9 · Step-by-step build</a>
-    <a href="#decisions">10 · Open decisions &amp; risks</a>
+    <a href="#endgame">8 · Finishing the game</a>
+    <a href="#roadmap">9 · Phased roadmap</a>
+    <a href="#build">10 · Step-by-step build</a>
+    <a href="#decisions">11 · Open decisions &amp; risks</a>
   </nav>
 
   <main>
@@ -253,7 +254,8 @@ interface PartyState {          // one per seat
   curses: number; bonusScore: number; sorcererKilled: boolean;
   surpriseReady?: boolean; fellThroughTrap?: boolean;
   knownSecretDoors: number[];   // area coords this seat may use
-  status: "selecting" | "exploring" | "left" | "wiped";
+  status: "selecting" | "exploring" | "left" | "wiped" | "abandoned"; // last three are terminal
+  score?: number;               // frozen when the party reaches a terminal state
 }
 
 interface MpGameState {
@@ -283,6 +285,7 @@ interface MpGameState {
       <tr><td><code>get({gameId})</code></td><td>query</td><td>readable by any seated player (membership check via <code>players</code>), not just an owner. Returns the full reactive state for the renderer.</td></tr>
       <tr><td><code>sendMessage({gameId,text})</code></td><td>mutation</td><td>membership-gated (caller must be a seated player); trims &amp; caps text at 280 chars, rejects empty; stamps it with the caller's seat/party name/colour and inserts a <code>messages</code> row. Allowed any time (lobby and in-game), on any seat's turn.</td></tr>
       <tr><td><code>messages({gameId,limit?})</code></td><td>query</td><td>membership-gated; returns the most recent chat + system lines (default ~100) oldest-first, reactively, for the chat panel.</td></tr>
+      <tr><td><code>results({gameId})</code></td><td>query</td><td>once <code>phase==="finished"</code>, returns every party ranked by score (party name, colour, outcome, score, and the per-party detail) for the combined scoreboard. Public by code so players can compare afterwards. (See §8.4.)</td></tr>
     </table>
     <div class="callout"><span class="lbl">Authority model</span> Replace the single <code>ownerId === caller</code> check with: <b>membership</b> (a <code>players</code> row exists for caller+game) for reads, and <b>turn ownership</b> (caller's seat === <code>turnSeat</code>) for actions. The engine still re-validates every move, so the server stays the sole authority and the client is never trusted.</div>
   </section>
@@ -306,8 +309,58 @@ interface MpGameState {
   </section>
 
   <!-- 8 -->
+  <section id="endgame">
+    <h2><span class="n">8</span> Finishing the game</h2>
+    <p class="lede">Parties finish independently; the <em>game</em> finishes when none can carry on. An exited
+      player isn't kicked out — they can keep watching, and everyone gets a shared scoreboard at the end.</p>
+
+    <h3>8.1 When a single party finishes</h3>
+    <p>A party reaches a <b>terminal</b> state in one of three ways:</p>
+    <ul>
+      <li><b>Escaped</b> — climbed out via a level-1 up-stair (cannot return).</li>
+      <li><b>Wiped</b> — every member dead/stone.</li>
+      <li><b>Abandoned</b> — the player voluntarily ends the expedition (the per-party equivalent of today's <em>quit</em>), for when "no one cares to go further."</li>
+    </ul>
+    <p>On reaching a terminal state the engine freezes that party's <code>score</code> and sets its <code>status</code>;
+      turn-rotation then <b>skips that seat</b> for the rest of the game. The player is shown their personal
+      score screen (the existing solo <code>GameOverScreen</code>, scoped to their party).</p>
+
+    <h3>8.2 Read-only spectating <span class="tag">your suggestion</span></h3>
+    <div class="callout ok"><span class="lbl">Exited ≠ gone</span> From their score screen an exited player chooses
+      <b>Return to menu</b> or <b>Watch the cave</b>. "Watch" drops them into the live cave in read-only mode:
+      the shared map and every party's token update reactively, but no controls are offered (their seat is terminal,
+      so turn-gating never gives them a move). Chat stays open so they can cheer or heckle.</div>
+    <ul>
+      <li>This needs almost nothing new: <code>get</code> is membership-gated (an exited player is still a member),
+        the renderer already reflects reactive state, and turn-gating already excludes terminal seats. The client
+        just hides action controls when <code>mySeat</code> is terminal or it's not your turn.</li>
+      <li>An optional <code>players.spectating</code> flag (or reusing <code>lastSeen</code> presence) lets the UI show
+        "👁 2 watching". A player who returned to the menu can rejoin by code at any time to watch or see results.</li>
+    </ul>
+
+    <h3>8.3 When the whole game finishes</h3>
+    <p>The game flips to <code>phase:"finished"</code> when <b>every seat is terminal</b> — i.e. all parties have
+      escaped, been wiped, or abandoned. It also ends if the large pack is exhausted and no still-active party can
+      (or wishes to) move, in which case remaining parties are settled as abandoned where they stand. After each
+      action the server checks this end condition and, on transition, records the combined results.</p>
+
+    <h3>8.4 Combined results view <span class="tag">your suggestion</span></h3>
+    <div class="callout ok"><span class="lbl">One shared scoreboard</span> Once finished, all participants (players and
+      spectators) see a single <b>combined results screen</b>: every party ranked by score, with colour, party name,
+      outcome (escaped / wiped / abandoned), final score, and an expandable per-party breakdown — the party &amp;
+      artifacts that left the cave and the expedition stats — reusing the high-score detail components we already built.</div>
+    <ul>
+      <li>It's reachable by anyone in the game (and later via the game <b>code</b>), so players can compare at leisure.</li>
+      <li>Each party's result is also posted to the <b>global leaderboard</b>, tagged as multiplayer and labelled with
+        the party name, so multiplayer runs sit alongside solo records (filterable).</li>
+      <li>A new query <code>results({gameId})</code> returns the ranked per-party results once <code>phase==="finished"</code>;
+        a <code>finishParty</code>/end-of-game step writes them. Chat remains visible beside the scoreboard.</li>
+    </ul>
+  </section>
+
+  <!-- 9 -->
   <section id="roadmap">
-    <h2><span class="n">8</span> Phased roadmap</h2>
+    <h2><span class="n">9</span> Phased roadmap</h2>
 
     <div class="phase"><div class="ph-hd"><span class="ph-n">Phase 1 — Infrastructure, lobby, names &amp; chat</span> <span class="tag">no engine change</span> <span class="tag">MVP</span></div>
       Schema (<code>games</code> lobby fields + <code>players</code> + <code>messages</code> tables); <code>createMultiplayer</code>, <code>joinByCode</code> (both requiring a <b>Party Name</b>), <code>lobby</code>, <code>setPartyName/setColor/setReady/leaveSeat</code>, <code>startGame</code> (lobby flip only), and <code>sendMessage</code>/<code>messages</code> for chat. Splash buttons, join input, reactive lobby with party names + colour reservation + host start, and the docked chat panel. <b>Deliverable: create a named-party game, share the code, join from another browser, see each other by party name, chat, and host can lock the lobby.</b></div>
@@ -318,8 +371,8 @@ interface MpGameState {
     <div class="phase"><div class="ph-hd"><span class="ph-n">Phase 3 — Turn-based party selection</span></div>
       <code>pickParty</code> draft from the shared pack in reverse play order; transition to <code>playing</code>. Draft UI.</div>
 
-    <div class="phase"><div class="ph-hd"><span class="ph-n">Phase 4 — Shared exploration &amp; turns</span></div>
-      Turn-gated <code>applyAction</code>; render all parties' tokens; turn banner; end-of-turn advance; independent leaving; multi-party results + leaderboard. <b>Deliverable: a fully playable competitive game under the beginner ruleset (no party-vs-party).</b></div>
+    <div class="phase"><div class="ph-hd"><span class="ph-n">Phase 4 — Shared exploration, turns &amp; finish</span></div>
+      Turn-gated <code>applyAction</code>; render all parties' tokens; turn banner; end-of-turn advance; independent terminal states (escaped / wiped / abandoned) with per-party score; <b>read-only spectating</b> for exited players; end-of-game detection; the <b>combined results</b> screen (<code>results</code> query) + per-party leaderboard posts (see §8). <b>Deliverable: a fully playable competitive game under the beginner ruleset (no party-vs-party), from lobby to shared scoreboard.</b></div>
 
     <div class="phase"><div class="ph-hd"><span class="ph-n">Phase 5 — Inter-party interaction</span> <span class="tag">advanced</span></div>
       Trading; party-vs-party fights with the cross-turn defender reaction window &amp; surprise rule; per-party stranger-hostility memory; per-player secret-door knowledge.</div>
@@ -330,7 +383,7 @@ interface MpGameState {
 
   <!-- 9 -->
   <section id="build">
-    <h2><span class="n">9</span> Step-by-step: building a fully multiplayer game</h2>
+    <h2><span class="n">10</span> Step-by-step: building a fully multiplayer game</h2>
     <p>The concrete sequence, from infrastructure to a finished competitive game.</p>
     <ol class="steps">
       <li><b>Schema.</b> Add lobby fields to <code>games</code>; create the <code>players</code> table (with <code>partyName</code>) and the <code>messages</code> table, both with <code>by_game</code> indexes (<code>players</code> also <code>by_user</code>); add optional <code>seat</code> to <code>gameEvents</code>. Deploy (additive, back-compatible).</li>
@@ -342,7 +395,7 @@ interface MpGameState {
       <li><b>Engine core.</b> Land <code>MpGameState</code> + <code>mpReduce</code> + party-context refactor with unit tests (movement, chamber, combat, pickup per seat against the shared cave).</li>
       <li><b>Turn-based party draft.</b> <code>pickParty</code> from the shared pack in reverse play order; draft UI showing the depleting pool and "waiting for &lt;colour&gt;"; transition to <code>playing</code>.</li>
       <li><b>Turn-gated play.</b> Generalise <code>applyAction</code> to membership + turn checks; render every party token on the shared map; add the whose-turn banner; advance the seat at end of turn; skip seats that have left/wiped.</li>
-      <li><b>Independent exits &amp; results.</b> Each party leaves via a level-1 up-stair; when all parties are out/wiped, show the ranked multi-party results and record each on the leaderboard.</li>
+      <li><b>Independent exits &amp; finish.</b> Each party reaches a terminal state (escaped via a level-1 up-stair / wiped / abandoned) and sees its score with a <b>Watch the cave</b> (read-only spectate) or <b>Return to menu</b> choice; turn-rotation skips terminal seats. When all seats are terminal, flip to <code>finished</code>, show the <b>combined results</b> scoreboard (ranked, expandable per-party detail) via <code>results({gameId})</code>, and post each party to the leaderboard. (See §8.)</li>
       <li><b>Resilience.</b> Presence (<code>lastSeen</code>), a turn timeout / host "skip seat", and rejoin-by-code into a started game (membership already exists).</li>
       <li><b>Advanced interactions.</b> Layer in Phase 5–6 (trading, party fights, unions, division, fog-of-war) behind a game-variant flag.</li>
     </ol>
@@ -350,7 +403,7 @@ interface MpGameState {
 
   <!-- 10 -->
   <section id="decisions">
-    <h2><span class="n">10</span> Open decisions &amp; risks</h2>
+    <h2><span class="n">11</span> Open decisions &amp; risks</h2>
     <ul>
       <li><b>Minimum players to start.</b> Recommend ≥ 2 (a one-seat "multi" game is just solitaire). Host decides exact count up to 4.</li>
       <li><b>Disconnection &amp; stalls.</b> No board-rule precedent. Proposed: a soft turn timer with a host "skip turn", and a host "remove seat" that leaves the abandoned party's cards in place (so others may still encounter/loot them). Confirm desired behaviour.</li>
@@ -359,7 +412,8 @@ interface MpGameState {
       <li><b>RNG.</b> One authoritative seeded stream on the cave keeps every browser deterministic and replayable, as today.</li>
       <li><b>Leaderboard.</b> Decide whether multiplayer results post per-party (recommended) and whether they're tagged as multiplayer to keep solo records comparable. Party names make natural leaderboard labels.</li>
       <li><b>Party names.</b> Required, 1–24 chars, unique within a game. Open question: profanity filtering and whether to allow editing a name after the game starts (proposed: lobby-only edits).</li>
-      <li><b>Chat scope &amp; safety.</b> MVP is plain broadcast to everyone in the game (no whispers, no cross-game channels), capped at 280 chars with light rate-limiting. Open questions: profanity filtering, message retention/clearing, and whether to keep chat after the game finishes.</li>
+      <li><b>Chat scope &amp; safety.</b> MVP is plain broadcast to everyone in the game (no whispers, no cross-game channels), capped at 280 chars with light rate-limiting. Open questions: profanity filtering, message retention/clearing, and whether to keep chat after the game finishes (proposed: keep, so the results screen stays social).</li>
+      <li><b>Finishing (§8).</b> Confirm: spectating is opt-in from the score screen; a voluntary <em>abandon</em> action ends a party in place. Open questions — what an abandoned/wiped party's cards do (proposed: <b>left in place</b> as lootable contents, true to the board game), and whether a long-idle active seat is auto-abandoned by a turn timeout (host-skippable). Combined results post per-party to the leaderboard, tagged multiplayer.</li>
     </ul>
     <div class="callout ok"><span class="lbl">Bottom line</span> Phases 1 &amp; 4 deliver the requirement — create, share a code, join from another browser, take turns (including party selection) and play one shared cave to a ranked finish. Phases 5–6 add the rulebook's full competitive depth and can follow once the core is proven.</div>
   </section>
