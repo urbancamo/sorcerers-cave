@@ -11,9 +11,14 @@ const REPO_URL = "https://github.com/urbancamo/sorcerers-cave";
 export function SplashScreen({
   onStartSolitaire,
   onResume,
+  onStartMultiplayer,
+  onJoinMultiplayer,
 }: {
   onStartSolitaire: () => void;
   onResume?: (code: string) => Promise<boolean>;
+  // Multiplayer entry points — undefined (disabled) unless the feature flag is on.
+  onStartMultiplayer?: () => void;
+  onJoinMultiplayer?: () => void;
 }) {
   const [files, setFiles] = useState<string[]>([]);
   const [showScores, setShowScores] = useState(false);
@@ -113,8 +118,22 @@ export function SplashScreen({
           {resumeErr && <p className="scv-resume-err" role="alert">{resumeErr}</p>}
         </div>
 
-        <button className="scv-primary" disabled title="Coming soon">Start Multiplayer Game</button>
-        <button className="scv-primary" disabled title="Coming soon">Join Multiplayer Game</button>
+        <button
+          className="scv-primary"
+          disabled={!onStartMultiplayer}
+          title={onStartMultiplayer ? undefined : "Coming soon"}
+          onClick={onStartMultiplayer}
+        >
+          Start Multiplayer Game
+        </button>
+        <button
+          className="scv-primary"
+          disabled={!onJoinMultiplayer}
+          title={onJoinMultiplayer ? undefined : "Coming soon"}
+          onClick={onJoinMultiplayer}
+        >
+          Join Multiplayer Game
+        </button>
         <button className="scv-primary" onClick={() => setShowScores(true)}>High Scores</button>
         <a
           className="scv-primary"

@@ -14,11 +14,37 @@ export default defineSchema({
     // party marker colour (optional for games created before colours existed); multiplayer will
     // use this to reserve colours already taken in a shared game.
     color: v.optional(v.union(v.literal("green"), v.literal("blue"), v.literal("yellow"), v.literal("red"))),
+    // --- Multiplayer (Phase 1) — all optional so existing solo rows still validate. ---
+    mode: v.optional(v.union(v.literal("solo"), v.literal("multi"))),
+    hostId: v.optional(v.id("users")),        // the creator; only the host may start the game
+    lobby: v.optional(v.union(v.literal("open"), v.literal("started"), v.literal("finished"))),
+    maxSeats: v.optional(v.number()),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
     .index("by_owner", ["ownerId"])
     .index("by_code", ["code"]),
+  // Multiplayer seats — one row per player in a multi game (Phase 1).
+  players: defineTable({
+    gameId: v.id("games"),
+    userId: v.id("users"),
+    seat: v.number(),        // 0–3, stable index
+    partyName: v.string(),   // required identity (1–24 chars, unique within a game)
+    color: v.union(v.literal("green"), v.literal("blue"), v.literal("yellow"), v.literal("red")),
+    ready: v.boolean(),
+    lastSeen: v.number(),
+  })
+    .index("by_game", ["gameId"])
+    .index("by_user", ["userId"]),
+  // Multiplayer chat / broadcast feed (Phase 1). seat=null for system lines.
+  messages: defineTable({
+    gameId: v.id("games"),
+    seat: v.union(v.number(), v.null()),
+    partyName: v.string(),
+    color: v.union(v.literal("green"), v.literal("blue"), v.literal("yellow"), v.literal("red"), v.null()),
+    text: v.string(),
+    createdAt: v.number(),
+  }).index("by_game", ["gameId", "createdAt"]),
   gameEvents: defineTable({
     gameId: v.id("games"),
     seq: v.number(),

@@ -47,6 +47,19 @@ describe("SplashScreen", () => {
     expect(btn).toBeEnabled();
   });
 
+  it("enables the multiplayer buttons only when their handlers are provided", () => {
+    const onStartMp = vi.fn(); const onJoinMp = vi.fn();
+    render(<SplashScreen onStartSolitaire={() => {}} onStartMultiplayer={onStartMp} onJoinMultiplayer={onJoinMp} />);
+    const startMp = screen.getByRole("button", { name: /start multiplayer game/i });
+    const joinMp = screen.getByRole("button", { name: /join multiplayer game/i });
+    expect(startMp).toBeEnabled();
+    expect(joinMp).toBeEnabled();
+    fireEvent.click(startMp);
+    fireEvent.click(joinMp);
+    expect(onStartMp).toHaveBeenCalledOnce();
+    expect(onJoinMp).toHaveBeenCalledOnce();
+  });
+
   it("credits the authors and links the repository", () => {
     render(<SplashScreen onStartSolitaire={() => {}} />);
     expect(screen.getByText(/written by mark wickens/i)).toBeInTheDocument();

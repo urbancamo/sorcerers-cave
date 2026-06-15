@@ -18,6 +18,9 @@ import { rollFromEvents, type RollView } from "./rollView";
 import { NoticeModal } from "./NoticeModal";
 import { SaveGameModal } from "./SaveGameModal";
 import { eventNotices, type Notice } from "./eventNotices";
+import { MULTIPLAYER_ENABLED } from "./featureFlags";
+import { MultiplayerSetup } from "./MultiplayerSetup";
+import { MultiplayerLobby } from "./MultiplayerLobby";
 
 export default function GameScreen() {
   const { isAuthenticated, isLoading } = useConvexAuth();
@@ -30,6 +33,8 @@ export default function GameScreen() {
   const [started, setStarted] = useState(false); // dismissed the splash
   const [showParty, setShowParty] = useState(false); // expanded party panel
   const [savedCode, setSavedCode] = useState<string | null>(null); // shows the save modal when set
+  // Multiplayer flow (behind the production-off feature flag): create/join setup → reactive lobby.
+  const [mp, setMp] = useState<{ view: "create" | "join" } | { view: "lobby"; code: string } | null>(null);
   const { engine, loading, state, color, dispatch } = useCaveGame(gameId);
   // The dice overlay lives here (not in EncounterPanel) so a fatal round's roll
   // still shows even though game-over swaps the panel out for GameOverScreen.
@@ -85,8 +90,29 @@ export default function GameScreen() {
   if (isLoading) return <p>Connecting…</p>;
   if (!isAuthenticated) return <p>Signing in…</p>;
 
+  // Multiplayer (flag-gated): create/join setup, then the reactive lobby.
+  if (mp) {
+    if (mp.view === "lobby") {
+      return <MultiplayerLobby code={mp.code} onExit={() => setMp(null)} />;
+    }
+    return (
+      <MultiplayerSetup
+        mode={mp.view}
+        onEnterLobby={(code) => setMp({ view: "lobby", code })}
+        onCancel={() => setMp(null)}
+      />
+    );
+  }
+
   if (!started) {
-    return <SplashScreen onStartSolitaire={() => setStarted(true)} onResume={handleResume} />;
+    return (
+      <SplashScreen
+        onStartSolitaire={() => setStarted(true)}
+        onResume={handleResume}
+        onStartMultiplayer={MULTIPLAYER_ENABLED ? () => setMp({ view: "create" }) : undefined}
+        onJoinMultiplayer={MULTIPLAYER_ENABLED ? () => setMp({ view: "join" }) : undefined}
+      />
+    );
   }
   if (!gameId) {
     return <PartySelect onConfirm={async (picks, color) => setGameId(await newGame({ seed: Date.now(), picks, color }))} />;

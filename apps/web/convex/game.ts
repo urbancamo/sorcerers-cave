@@ -34,7 +34,7 @@ function genCode(): string {
 }
 
 /** Allocate a four-letter code not already used by another game (26^4 space → collisions are rare). */
-async function uniqueCode(ctx: MutationCtx): Promise<string> {
+export async function uniqueCode(ctx: MutationCtx): Promise<string> {
   for (let i = 0; i < 20; i++) {
     const code = genCode();
     const clash = await ctx.db.query("games").withIndex("by_code", (q) => q.eq("code", code)).first();
