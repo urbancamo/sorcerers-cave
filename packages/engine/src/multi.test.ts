@@ -6,7 +6,7 @@ const member = (creatureId: number, treasure: number[] = []) => ({ creatureId, s
 
 // A playing-phase party at the shared gateway (area 0), at rest.
 const partyAt = (seat: number, over: Partial<PartyState> = {}): PartyState => ({
-  seat, color: ["green", "blue", "yellow", "red"][seat]!, name: "Party " + seat, status: "exploring",
+  seat, color: ["green", "blue", "yellow", "red"][seat]!, name: "Party " + seat, status: "exploring", kills: 0,
   gs: 0, phase: "explore", turn: 1, score: 0, curses: 0, bonusScore: 0, sorcererKilled: false,
   partyArea: 0, level: 1, prev: 0, prev2: 0, party: [member(0)], strangers: [], treasures: [], hazards: [], fight: null,
   ...over,
@@ -127,6 +127,23 @@ describe("mpReduce (turn-gated play)", () => {
     const b = mpReduce(a, 1, { type: "quit" }).state;
     expect(b.parties[1]!.status).toBe("quit");
     expect(b.phase).toBe("finished");
+  });
+
+  it("counts enemies slain on the acting party (strangerKilled/annihilated), not other events", () => {
+    // A Giant (FS 7) vs a single Dwarf-stranger, surprise to the party → it wins the round.
+    const fighter = { creatureId: 12, status: 0 as const, dragonKills: 0, treasure: [] };
+    const mp = playing({ seed: 5 }, [
+      partyAt(0, { phase: "fight", fight: { surprise: 1, round: 1, focus: 0 }, party: [fighter], strangers: [7] }),
+      partyAt(1),
+    ]);
+    const r = mpReduce(mp, 0, { type: "fightOn" });
+    expect(r.state.parties[0]!.kills).toBe(1); // the Dwarf was slain
+    expect(r.state.parties[1]!.kills).toBe(0); // untouched
+  });
+
+  it("starts every party with zero kills", () => {
+    const mp = buildMpGame(7, [{ seat: 0, color: "green", name: "A" }, { seat: 1, color: "blue", name: "B" }]);
+    expect(mp.parties.every((p) => p.kills === 0)).toBe(true);
   });
 
   it("endTurn passes when at rest and is rejected mid-encounter", () => {

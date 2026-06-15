@@ -40,6 +40,7 @@ export interface PartyState extends PartyCore {
   color: string;
   name: string;        // the required Party Name (identity)
   status: SeatStatus;
+  kills: number;       // enemies slain this game (for the live scoreboard)
 }
 
 export interface MpGameState {
@@ -103,7 +104,7 @@ export function buildMpGame(seed: number, seats: { seat: number; color: string; 
   const pickOrder = [...order].reverse();
   const gateway = { card: AREA_CARDS[GATEWAY_INDEX]!, coord: GATEWAY_START_COORD, faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 };
   const parties: PartyState[] = seats.map((s) => ({
-    seat: s.seat, color: s.color, name: s.name, status: "selecting",
+    seat: s.seat, color: s.color, name: s.name, status: "selecting", kills: 0,
     gs: GS_PLAYING, phase: "explore", turn: 1, score: 0, curses: 0, bonusScore: 0, sorcererKilled: false,
     partyArea: 0, level: 1, prev: 0, prev2: 0, party: [], strangers: [], treasures: [], hazards: [], fight: null,
   }));
@@ -155,7 +156,11 @@ export function mpReduce(mp: MpGameState, seat: number, action: MpAction): { sta
   if (events.length === 1 && events[0]!.type === "blocked") return { state: mp, events }; // no-op, no handoff
 
   const { cave, rest } = splitCave(next);
-  const updated: PartyState = { ...rest, seat: party.seat, color: party.color, name: party.name, status: TERMINAL[next.gs] ?? "exploring" };
+  const slain = events.filter((e) => e.type === "strangerKilled" || e.type === "annihilated").length;
+  const updated: PartyState = {
+    ...rest, seat: party.seat, color: party.color, name: party.name,
+    status: TERMINAL[next.gs] ?? "exploring", kills: (party.kills ?? 0) + slain,
+  };
   let out: MpGameState = { ...mp, cave, parties: mp.parties.map((p, i) => (i === seat ? updated : p)) };
   if (turnEnds(action, next)) out = advanceTurn(out);
   return { state: out, events };
