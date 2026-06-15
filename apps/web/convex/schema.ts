@@ -6,6 +6,9 @@ export default defineSchema({
   ...authTables,
   games: defineTable({
     ownerId: v.optional(v.id("users")),
+    // Short, human-typable resume handle: four uppercase letters, unique across games. Optional so
+    // games created before this feature still validate; every new game is allocated one.
+    code: v.optional(v.string()),
     state: v.any(), // serialized engine GameState (engine owns the shape; Milestone B)
     status: v.union(v.literal("active"), v.literal("finished")),
     // party marker colour (optional for games created before colours existed); multiplayer will
@@ -13,7 +16,9 @@ export default defineSchema({
     color: v.optional(v.union(v.literal("green"), v.literal("blue"), v.literal("yellow"), v.literal("red"))),
     createdAt: v.number(),
     updatedAt: v.number(),
-  }).index("by_owner", ["ownerId"]),
+  })
+    .index("by_owner", ["ownerId"])
+    .index("by_code", ["code"]),
   gameEvents: defineTable({
     gameId: v.id("games"),
     seq: v.number(),

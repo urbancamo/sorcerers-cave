@@ -106,3 +106,52 @@ test("a finished game accepts no more changes", async () => {
   const res = await as.mutation(api.game.applyAction, { id, action: { type: "move", dir: 1 } });
   expect(res.events).toEqual([]);
 });
+
+// ---------------------------------------------------------------------------
+// Save / resume by four-letter code
+// ---------------------------------------------------------------------------
+
+test("newGame allocates a unique four-uppercase-letter code", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const id1 = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+  const id2 = await as.mutation(api.game.newGame, { seed: 2, picks: [0] });
+  const g1 = await as.query(api.game.get, { id: id1 });
+  const g2 = await as.query(api.game.get, { id: id2 });
+  expect(g1?.code).toMatch(/^[A-Z]{4}$/);
+  expect(g2?.code).toMatch(/^[A-Z]{4}$/);
+  expect(g1?.code).not.toBe(g2?.code);
+});
+
+test("save returns the game's resume code", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+  const code = await as.mutation(api.game.save, { id });
+  expect(code).toMatch(/^[A-Z]{4}$/);
+  const game = await as.query(api.game.get, { id });
+  expect(game?.code).toBe(code);
+});
+
+test("resumeByCode restores a game and claims it for the caller", async () => {
+  const t = convexTest(schema, modules);
+  const owner = await asUser(t);
+  const id = await owner.as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+  const code = await owner.as.mutation(api.game.save, { id });
+
+  // A different player (another browser/session) resumes by code: it claims the game so they can play.
+  const other = await asUser(t);
+  const resumed = await other.as.mutation(api.game.resumeByCode, { code });
+  expect(resumed).toBe(id);
+  const game = await other.as.query(api.game.get, { id }); // now readable by the new owner
+  expect(game?.state.turn).toBe(1);
+  // Whitespace and lowercase input are normalised.
+  const again = await other.as.mutation(api.game.resumeByCode, { code: ` ${code.toLowerCase()} ` });
+  expect(again).toBe(id);
+});
+
+test("resumeByCode returns null for an unknown code", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  expect(await as.mutation(api.game.resumeByCode, { code: "ZZZZ" })).toBeNull();
+});

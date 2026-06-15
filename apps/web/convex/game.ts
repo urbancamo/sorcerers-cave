@@ -1,4 +1,4 @@
-import { mutation, query } from "./_generated/server";
+import { mutation, query, type MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import {
@@ -26,6 +26,23 @@ const actionValidator = v.object({
 /** Start a new authoritative game: validate the party, build the engine state, persist it (owned by the caller). */
 const colorValidator = v.union(v.literal("green"), v.literal("blue"), v.literal("yellow"), v.literal("red"));
 
+/** A random four-uppercase-letter code (A–Z). */
+function genCode(): string {
+  let s = "";
+  for (let i = 0; i < 4; i++) s += String.fromCharCode(65 + Math.floor(Math.random() * 26));
+  return s;
+}
+
+/** Allocate a four-letter code not already used by another game (26^4 space → collisions are rare). */
+async function uniqueCode(ctx: MutationCtx): Promise<string> {
+  for (let i = 0; i < 20; i++) {
+    const code = genCode();
+    const clash = await ctx.db.query("games").withIndex("by_code", (q) => q.eq("code", code)).first();
+    if (!clash) return code;
+  }
+  throw new Error("Could not allocate a unique game code");
+}
+
 export const newGame = mutation({
   args: { seed: v.number(), picks: v.array(v.number()), color: v.optional(colorValidator) },
   handler: async (ctx, { seed, picks, color }) => {
@@ -34,7 +51,40 @@ export const newGame = mutation({
     if (!validatePicks(picks)) throw new Error("Invalid party selection");
     const state = createGameState(seed, picks);
     const now = Date.now();
-    return await ctx.db.insert("games", { ownerId, state, status: "active", color, createdAt: now, updatedAt: now });
+    const code = await uniqueCode(ctx);
+    return await ctx.db.insert("games", { ownerId, code, state, status: "active", color, createdAt: now, updatedAt: now });
+  },
+});
+
+/** Save the current game: persists nothing new (state is already authoritative) but bumps the save
+ *  time and returns the four-letter code the player uses to resume it. Owner-scoped (IDOR guard). */
+export const save = mutation({
+  args: { id: v.id("games") },
+  handler: async (ctx, { id }) => {
+    const callerId = await getAuthUserId(ctx);
+    if (!callerId) throw new Error("Unauthenticated");
+    const game = await ctx.db.get(id);
+    if (!game || game.ownerId !== callerId) throw new Error("Forbidden");
+    let code = game.code;
+    if (!code) code = await uniqueCode(ctx); // back-fill a code for games created before this feature
+    await ctx.db.patch(id, { code, updatedAt: Date.now() });
+    return code;
+  },
+});
+
+/** Resume a saved game by its four-letter code. The code is a portable save handle, so this CLAIMS
+ *  the game for the current player (anonymous owners differ per browser) and returns its id, or null
+ *  if no game has that code. */
+export const resumeByCode = mutation({
+  args: { code: v.string() },
+  handler: async (ctx, { code }) => {
+    const callerId = await getAuthUserId(ctx);
+    if (!callerId) throw new Error("Unauthenticated");
+    const normalized = code.trim().toUpperCase();
+    const game = await ctx.db.query("games").withIndex("by_code", (q) => q.eq("code", normalized)).first();
+    if (!game) return null;
+    if (game.ownerId !== callerId) await ctx.db.patch(game._id, { ownerId: callerId });
+    return game._id;
   },
 });
 

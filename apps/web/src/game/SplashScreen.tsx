@@ -8,9 +8,29 @@ const FAN_IDS = CREATURES.filter((c) => c.cost !== null).map((c) => c.id);
 
 const REPO_URL = "https://github.com/urbancamo/sorcerers-cave";
 
-export function SplashScreen({ onStartSolitaire }: { onStartSolitaire: () => void }) {
+export function SplashScreen({
+  onStartSolitaire,
+  onResume,
+}: {
+  onStartSolitaire: () => void;
+  onResume?: (code: string) => Promise<boolean>;
+}) {
   const [files, setFiles] = useState<string[]>([]);
   const [showScores, setShowScores] = useState(false);
+  const [resumeCode, setResumeCode] = useState("");
+  const [resumeErr, setResumeErr] = useState<string | null>(null);
+  const [resuming, setResuming] = useState(false);
+
+  const submitResume = async () => {
+    const code = resumeCode.trim().toUpperCase();
+    if (!/^[A-Z]{4}$/.test(code)) { setResumeErr("Enter a four-letter game code."); return; }
+    if (!onResume) return;
+    setResuming(true);
+    setResumeErr(null);
+    const ok = await onResume(code);
+    setResuming(false);
+    if (!ok) setResumeErr("No game found with that code.");
+  };
 
   // Card art is a progressive enhancement (falls back to no fan if the manifest can't load).
   useEffect(() => {
@@ -66,6 +86,33 @@ export function SplashScreen({ onStartSolitaire }: { onStartSolitaire: () => voi
       <section className="scv-panel scv-start">
         <h2 className="scv-hd">Start new game</h2>
         <button className="scv-primary" onClick={onStartSolitaire}>Start Solitaire Game</button>
+
+        <div className="scv-resume" data-testid="resume">
+          <label className="scv-resume-label" htmlFor="scv-resume-code">Resume a saved game</label>
+          <div className="scv-resume-row">
+            <input
+              id="scv-resume-code"
+              className="scv-resume-input"
+              value={resumeCode}
+              onChange={(e) => { setResumeCode(e.target.value.toUpperCase().slice(0, 4)); setResumeErr(null); }}
+              onKeyDown={(e) => { if (e.key === "Enter") void submitResume(); }}
+              maxLength={4}
+              placeholder="ABCD"
+              aria-label="four-letter game code"
+              autoCapitalize="characters"
+              spellCheck={false}
+            />
+            <button
+              className="scv-primary"
+              onClick={() => void submitResume()}
+              disabled={resuming || resumeCode.trim().length !== 4}
+            >
+              {resuming ? "Resuming…" : "Resume"}
+            </button>
+          </div>
+          {resumeErr && <p className="scv-resume-err" role="alert">{resumeErr}</p>}
+        </div>
+
         <button className="scv-primary" disabled title="Coming soon">Start Multiplayer Game</button>
         <button className="scv-primary" disabled title="Coming soon">Join Multiplayer Game</button>
         <button className="scv-primary" onClick={() => setShowScores(true)}>High Scores</button>

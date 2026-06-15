@@ -555,6 +555,43 @@
 .scv-start { width: min(360px, 92vw); }
 .scv-start .scv-primary { margin-top: 0; }
 
+/* Resume-a-saved-game control, grouped under the solitaire button. */
+.scv-resume {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 2px 0 4px;
+  padding: 10px;
+  border: 1px solid rgba(201, 161, 78, 0.28);
+  border-radius: 11px;
+  background: rgba(201, 161, 78, 0.06);
+}
+.scv-resume-label {
+  font-family: var(--ui);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--stone-dim, #9a8c6a);
+}
+.scv-resume-row { display: flex; gap: 8px; }
+.scv-resume-input {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--mono, ui-monospace, monospace);
+  font-size: 20px;
+  font-weight: 700;
+  letter-spacing: 0.4em;
+  text-align: center;
+  text-transform: uppercase;
+  padding: 8px 10px;
+  border-radius: 9px;
+  border: 1px solid var(--brass);
+  background: rgba(0, 0, 0, 0.25);
+  color: var(--stone, #e8dcc0);
+}
+.scv-resume-row .scv-primary { margin-top: 0; white-space: nowrap; }
+.scv-resume-err { margin: 0; font-family: var(--ui); font-size: 12px; color: #e08a6a; }
+
 /* attributions */
 .scv-attrib {
   max-width: min(720px, 92vw);

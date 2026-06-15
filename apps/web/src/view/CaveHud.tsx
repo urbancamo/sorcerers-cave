@@ -7,7 +7,7 @@ import "./cave.css";
  * discovery overlay (`reveal.js`) is preserved verbatim. The `#scene` div
  * receives the React container ref so `boot` can append its WebGL canvas there.
  */
-export function CaveHud({ mountRef, onPartyClick }: { mountRef: RefObject<HTMLDivElement | null>; onPartyClick?: () => void }) {
+export function CaveHud({ mountRef, onPartyClick, onSave }: { mountRef: RefObject<HTMLDivElement | null>; onPartyClick?: () => void; onSave?: () => void }) {
   return (
     <>
       <div id="bg"></div>
@@ -125,6 +125,22 @@ export function CaveHud({ mountRef, onPartyClick }: { mountRef: RefObject<HTMLDi
             <span className="lbl">Levels</span>
             <div className="grp" id="levelGrp"></div>
             <div className="sep"></div>
+            {onSave && (
+              <button className="btn" onClick={onSave} title="Save and return to the menu">
+                <svg
+                  className="ic"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
+                  <path d="M17 21v-8H7v8" />
+                  <path d="M7 3v5h8" />
+                </svg>
+                Save &amp; exit
+              </button>
+            )}
             <button className="btn" id="resetBtn">
               <svg
                 className="ic"

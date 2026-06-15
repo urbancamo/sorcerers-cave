@@ -16,16 +16,20 @@ import { ExplorePanel } from "./ExplorePanel";
 import { DiceRoll } from "./DiceRoll";
 import { rollFromEvents, type RollView } from "./rollView";
 import { NoticeModal } from "./NoticeModal";
+import { SaveGameModal } from "./SaveGameModal";
 import { eventNotices, type Notice } from "./eventNotices";
 
 export default function GameScreen() {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const { signIn } = useAuthActions();
   const newGame = useMutation(api.game.newGame);
+  const saveGame = useMutation(api.game.save);
+  const resumeByCode = useMutation(api.game.resumeByCode);
   const saveScore = useMutation(api.highScores.save);
   const [gameId, setGameId] = useState<Id<"games"> | null>(null);
   const [started, setStarted] = useState(false); // dismissed the splash
   const [showParty, setShowParty] = useState(false); // expanded party panel
+  const [savedCode, setSavedCode] = useState<string | null>(null); // shows the save modal when set
   const { engine, loading, state, color, dispatch } = useCaveGame(gameId);
   // The dice overlay lives here (not in EncounterPanel) so a fatal round's roll
   // still shows even though game-over swaps the panel out for GameOverScreen.
@@ -55,13 +59,34 @@ export default function GameScreen() {
     [dispatch],
   );
 
+  // Return to the splash screen, clearing all in-game overlays and the current game binding.
+  const goHome = useCallback(() => {
+    setRoll(null); setNotices(null); setSavedCode(null); setShowParty(false); setGameId(null); setStarted(false);
+  }, []);
+
+  // Save from the HUD: the state is already authoritative in Convex, so this just surfaces the
+  // four-letter code (modal) and, on dismiss, returns to the menu.
+  const handleSave = useCallback(async () => {
+    if (!gameId) return;
+    setSavedCode(await saveGame({ id: gameId }));
+  }, [gameId, saveGame]);
+
+  // Resume from the splash by code: look it up, claim it, and drop straight into the loaded game.
+  const handleResume = useCallback(async (code: string): Promise<boolean> => {
+    const id = await resumeByCode({ code });
+    if (!id) return false;
+    setGameId(id);
+    setStarted(true);
+    return true;
+  }, [resumeByCode]);
+
   useEffect(() => { if (!isLoading && !isAuthenticated) void signIn("anonymous"); }, [isLoading, isAuthenticated, signIn]);
 
   if (isLoading) return <p>Connecting…</p>;
   if (!isAuthenticated) return <p>Signing in…</p>;
 
   if (!started) {
-    return <SplashScreen onStartSolitaire={() => setStarted(true)} />;
+    return <SplashScreen onStartSolitaire={() => setStarted(true)} onResume={handleResume} />;
   }
   if (!gameId) {
     return <PartySelect onConfirm={async (picks, color) => setGameId(await newGame({ seed: Date.now(), picks, color }))} />;
@@ -90,12 +115,13 @@ export default function GameScreen() {
 
   return (
     <div className="relative h-screen w-screen">
-      <CaveCanvas key={gameId} engine={engine} state={state} color={color} onPartyClick={() => setShowParty(true)} />
+      <CaveCanvas key={gameId} engine={engine} state={state} color={color} onPartyClick={() => setShowParty(true)} onSave={handleSave} />
       <EncounterPanel state={state} dispatch={dispatchWithRolls} />
       <ExplorePanel state={state} dispatch={dispatchWithRolls} />
       {showParty && <PartyPanel state={state} dispatch={dispatch} onClose={() => setShowParty(false)} />}
       {overlay}
       {notices && <NoticeModal notices={notices} onClose={() => setNotices(null)} />}
+      {savedCode && <SaveGameModal code={savedCode} onClose={goHome} />}
     </div>
   );
 }
