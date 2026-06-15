@@ -72,7 +72,8 @@ describe("HighScores", () => {
 
   it("shows expedition stats in the detail once they load", () => {
     useQueryMock.mockReturnValue({
-      maxDepth: 4, turns: 23, areasMapped: 30, enemiesSlain: 12, dragonsSlain: 1, sorcererSlain: true, membersLost: 2,
+      maxDepth: 4, turns: 23, areasMapped: 30, roundsFought: 7, enemiesSlain: 12, artifactsUsed: 5,
+      dragonsSlain: 1, sorcererSlain: true, membersLost: 2,
     });
     const rows = [row({ _id: "a", name: "Alice", party: [{ creatureId: 0, status: 0, dragonKills: 1, treasure: [] }] })];
     render(<HighScores rows={rows} />);
@@ -82,6 +83,10 @@ describe("HighScores", () => {
     expect(within(stats).getByText("Level 4")).toBeInTheDocument();
     expect(within(stats).getByText(/enemies slain/i)).toBeInTheDocument();
     expect(within(stats).getByText("12")).toBeInTheDocument();
+    expect(within(stats).getByText(/rounds fought/i)).toBeInTheDocument();
+    expect(within(stats).getByText("7")).toBeInTheDocument();
+    expect(within(stats).getByText(/artifacts used/i)).toBeInTheDocument();
+    expect(within(stats).getByText("5")).toBeInTheDocument();
     expect(within(stats).getByText(/sorcerer/i)).toBeInTheDocument();
   });
 });

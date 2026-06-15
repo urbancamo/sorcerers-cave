@@ -6,8 +6,10 @@ import { packCoord, GS_ESCAPED } from "@sorcerers-cave/engine";
 
 const modules = import.meta.glob("./**/*.*s");
 
-// Insert a finished game, its leaderboard row, and a few logged events directly, then derive stats.
-async function seedScore(t: ReturnType<typeof convexTest>, over: { events?: unknown[][] } = {}) {
+type LoggedRow = { action: unknown; events: unknown[] };
+
+// Insert a finished game, its leaderboard row, and a few logged action/event rows, then derive stats.
+async function seedScore(t: ReturnType<typeof convexTest>, over: { rows?: LoggedRow[] } = {}) {
   return t.run(async (ctx) => {
     const now = 0;
     const state = {
@@ -25,12 +27,14 @@ async function seedScore(t: ReturnType<typeof convexTest>, over: { events?: unkn
       ],
     };
     const gameId = await ctx.db.insert("games", { state, status: "finished", createdAt: now, updatedAt: now });
-    const events = over.events ?? [
-      [{ type: "strangerKilled", creatureId: 5 }, { type: "fightWon" }],
-      [{ type: "strangerKilled" }, { type: "strangerKilled" }],
+    const rows = over.rows ?? [
+      { action: { type: "fightOn" }, events: [{ type: "combatRoll" }, { type: "strangerKilled", creatureId: 5 }] },
+      { action: { type: "fightOn" }, events: [{ type: "strangerKilled" }, { type: "strangerKilled" }, { type: "fightWon" }] },
+      { action: { type: "useArtifact", artifact: 6 }, events: [{ type: "artifactUsed", artifact: 6 }] },
+      { action: { type: "useArtifact", artifact: 4 }, events: [{ type: "artifactUsed", artifact: 4 }, { type: "carpetUsed", dir: 1 }] },
     ];
-    for (let i = 0; i < events.length; i++) {
-      await ctx.db.insert("gameEvents", { gameId, seq: i, action: { type: "attack" }, events: events[i] });
+    for (let i = 0; i < rows.length; i++) {
+      await ctx.db.insert("gameEvents", { gameId, seq: i, action: rows[i]!.action, events: rows[i]!.events });
     }
     const id = await ctx.db.insert("highScores", {
       gameId, name: "Alice", score: 99, outcome: GS_ESCAPED, party: state.party, state, createdAt: now,
@@ -39,7 +43,7 @@ async function seedScore(t: ReturnType<typeof convexTest>, over: { events?: unkn
   });
 }
 
-test("stats derives expedition figures from the state and counts kills from the event log", async () => {
+test("stats derives expedition figures from the state and the event log", async () => {
   const t = convexTest(schema, modules);
   const id = await seedScore(t);
   const s = await t.query(api.highScores.stats, { id });
@@ -47,16 +51,20 @@ test("stats derives expedition figures from the state and counts kills from the 
     maxDepth: 4,        // deepest area level
     turns: 23,
     areasMapped: 3,
+    roundsFought: 2,    // two fightOn actions
     enemiesSlain: 3,    // three strangerKilled events across the log
+    artifactsUsed: 2,   // two artifactUsed events
     dragonsSlain: 1,
     sorcererSlain: true,
     membersLost: 1,     // the fallen Man
   });
 });
 
-test("stats reports zero enemies slain when the log has no kills", async () => {
+test("stats reports zeros when the log has no combat or artifact use", async () => {
   const t = convexTest(schema, modules);
-  const id = await seedScore(t, { events: [[{ type: "moved", area: 1, level: 1 }]] });
+  const id = await seedScore(t, { rows: [{ action: { type: "move", dir: 1 }, events: [{ type: "moved", area: 1, level: 1 }] }] });
   const s = await t.query(api.highScores.stats, { id });
   expect(s?.enemiesSlain).toBe(0);
+  expect(s?.roundsFought).toBe(0);
+  expect(s?.artifactsUsed).toBe(0);
 });

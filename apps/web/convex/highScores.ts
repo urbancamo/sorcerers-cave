@@ -82,21 +82,29 @@ export const stats = query({
     const maxDepth = levels.length ? Math.max(...levels) : 1;
     const dragonsSlain = state.party.reduce((n, m) => n + (m.dragonKills ?? 0), 0);
 
-    // Total enemies slain isn't tracked in the state, so count strangerKilled across the event log.
+    // Some figures aren't kept in the state, so derive them from the per-action event log:
+    //  - enemies slain  → strangerKilled events
+    //  - artifacts used → artifactUsed events
+    //  - rounds fought  → fightOn actions (each resolves exactly one combat round)
     const eventRows = await ctx.db
       .query("gameEvents")
       .withIndex("by_game", (q) => q.eq("gameId", hs.gameId))
       .collect();
-    const enemiesSlain = eventRows.reduce(
-      (n, row) => n + (row.events as GameEvent[]).filter((e) => e.type === "strangerKilled").length,
-      0,
-    );
+    let enemiesSlain = 0, artifactsUsed = 0, roundsFought = 0;
+    for (const row of eventRows) {
+      const evs = row.events as GameEvent[];
+      enemiesSlain += evs.filter((e) => e.type === "strangerKilled").length;
+      artifactsUsed += evs.filter((e) => e.type === "artifactUsed").length;
+      if ((row.action as { type?: string } | null)?.type === "fightOn") roundsFought += 1;
+    }
 
     return {
       maxDepth,
       turns: state.turn,
       areasMapped: state.areas.length,
+      roundsFought,
       enemiesSlain,
+      artifactsUsed,
       dragonsSlain,
       sorcererSlain: !!state.sorcererKilled,
       membersLost: state.party.filter((m) => m.status === 3).length,

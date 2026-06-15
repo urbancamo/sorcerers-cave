@@ -59,7 +59,9 @@ function ScoreDetail({ row, rank, onBack }: { row: LeaderboardRow; rank?: number
           <div><dt>Max depth</dt><dd>Level {stats.maxDepth}</dd></div>
           <div><dt>Turns</dt><dd>{stats.turns}</dd></div>
           <div><dt>Areas mapped</dt><dd>{stats.areasMapped}</dd></div>
+          <div><dt>Rounds fought</dt><dd>{stats.roundsFought}</dd></div>
           <div><dt>Enemies slain</dt><dd>{stats.enemiesSlain}</dd></div>
+          <div><dt>Artifacts used</dt><dd>{stats.artifactsUsed}</dd></div>
           <div><dt>Dragons slain</dt><dd>{stats.dragonsSlain}</dd></div>
           <div><dt>Members lost</dt><dd>{stats.membersLost}</dd></div>
           {stats.sorcererSlain && <div><dt>Sorcerer</dt><dd>slain!</dd></div>}
