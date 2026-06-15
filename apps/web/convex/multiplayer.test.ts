@@ -165,6 +165,40 @@ test("the party draft is turn-based and transitions to play after the last pick"
   expect(typeof playing?.currentSeat).toBe("number");
 });
 
+async function reachPlaying(t: ReturnType<typeof convexTest>) {
+  const host = await asUser(t);
+  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
+  const p2 = await asUser(t);
+  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await host.mutation(api.multiplayer.startGame, { gameId });
+  const userBySeat = [host, p2];
+  for (let i = 0; i < 2; i++) {
+    const picker = (await host.query(api.multiplayer.gameState, { gameId }))!.currentPicker!;
+    await userBySeat[picker]!.mutation(api.multiplayer.pickParty, { gameId, picks: [5] }); // each drafts a Man
+  }
+  return { gameId, userBySeat };
+}
+
+test("playView gives the seat its own render view + whose turn; act is turn-gated", async () => {
+  const t = convexTest(schema, modules);
+  const { gameId, userBySeat } = await reachPlaying(t);
+
+  const pv = (await userBySeat[0]!.query(api.multiplayer.playView, { gameId }))!;
+  expect(pv.state.party.map((m: { creatureId: number }) => m.creatureId)).toEqual([5]); // seat 0's own party
+  expect(pv.state.areas.length).toBeGreaterThan(0); // the shared cave
+  expect(pv.parties).toHaveLength(2);
+  const current = pv.currentSeat;
+  const other = current === 0 ? 1 : 0;
+  expect(((await userBySeat[current]!.query(api.multiplayer.playView, { gameId }))!).yourTurn).toBe(true);
+  expect(((await userBySeat[other]!.query(api.multiplayer.playView, { gameId }))!).yourTurn).toBe(false);
+
+  // the seat whose turn it isn't is blocked
+  expect((await userBySeat[other]!.mutation(api.multiplayer.act, { gameId, action: { type: "endTurn" } })).events).toEqual([{ type: "blocked" }]);
+  // the active seat passes → turn moves on
+  await userBySeat[current]!.mutation(api.multiplayer.act, { gameId, action: { type: "endTurn" } });
+  expect((await userBySeat[0]!.query(api.multiplayer.playView, { gameId }))!.currentSeat).toBe(other);
+});
+
 test("chat is membership-gated and includes system lines", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);

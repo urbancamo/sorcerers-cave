@@ -3,7 +3,19 @@ import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Id, Doc } from "./_generated/dataModel";
 import { uniqueCode } from "./game";
-import { buildMpGame, choosePartyFor, PARTY_BUDGET, type MpGameState } from "@sorcerers-cave/engine";
+import { buildMpGame, choosePartyFor, mpReduce, partyView, PARTY_BUDGET, type MpGameState, type MpAction } from "@sorcerers-cave/engine";
+
+// Permissive action shape; the engine (mpReduce) enforces semantics. Includes the lobby-level endTurn.
+const mpActionValidator = v.object({
+  type: v.string(),
+  dir: v.optional(v.number()),
+  idx: v.optional(v.number()),
+  mi: v.optional(v.number()),
+  from: v.optional(v.number()),
+  to: v.optional(v.number()),
+  artifact: v.optional(v.number()),
+  target: v.optional(v.number()),
+});
 
 // Multiplayer lobby (Phase 1), the multi-party game state + turn-based party draft (Phase 2/3).
 // Inert until the client's production-off feature flag exposes it.
@@ -258,6 +270,56 @@ export const gameState = query({
       parties: mp.parties.map((p) => ({ seat: p.seat, name: p.name, color: p.color, status: p.status, members: p.party.map((m) => m.creatureId) })),
       draft: mp.phase === "partySelect" ? { remaining, budget: PARTY_BUDGET } : null,
     };
+  },
+});
+
+/**
+ * The viewing seat's render view during play: a single-party GameState (shared cave ⊕ your party,
+ * decks included for optimistic moves), plus whose turn it is and every party's position/colour for
+ * the multi-token map. Membership-gated; null unless the game is in the playing phase.
+ */
+export const playView = query({
+  args: { gameId: v.id("games") },
+  handler: async (ctx, { gameId }) => {
+    const callerId = await getAuthUserId(ctx);
+    const game = await ctx.db.get(gameId);
+    if (!game || game.mode !== "multi") return null;
+    const seats = await seatsOf(ctx, gameId);
+    const me = callerId ? seats.find((p) => p.userId === callerId) : null;
+    if (!me) return null;
+    const mp = game.state as MpGameState | null;
+    if (!mp || mp.phase !== "playing") return null;
+
+    const current = mp.order[mp.active]!;
+    return {
+      state: partyView(mp, me.seat),
+      youSeat: me.seat,
+      currentSeat: current,
+      yourTurn: current === me.seat,
+      parties: mp.parties.map((p) => ({
+        seat: p.seat, name: p.name, color: p.color, status: p.status,
+        partyArea: p.partyArea, level: p.level,
+      })),
+    };
+  },
+});
+
+/** Apply one action in a multiplayer game, turn-gated by the engine. Persists the new shared state. */
+export const act = mutation({
+  args: { gameId: v.id("games"), action: mpActionValidator },
+  handler: async (ctx, { gameId, action }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
+    const me = await mySeat(ctx, gameId, userId);
+    if (!me) throw new Error("Not in this game");
+    const game = await ctx.db.get(gameId);
+    const mp = game?.state as MpGameState | null;
+    if (!game || game.mode !== "multi" || !mp) return { events: [{ type: "blocked" }] };
+
+    const { state, events } = mpReduce(mp, me.seat, action as MpAction);
+    const blocked = events.length === 1 && events[0]!.type === "blocked";
+    if (!blocked) await ctx.db.patch(gameId, { state, updatedAt: Date.now() });
+    return { events };
   },
 });
 

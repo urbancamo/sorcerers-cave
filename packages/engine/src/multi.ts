@@ -163,6 +163,12 @@ export function mpReduce(mp: MpGameState, seat: number, action: MpAction): { sta
   return { state: out, events };
 }
 
+/** The single-party GameState view for one seat (shared cave ⊕ that seat's party) — what the
+ *  renderer consumes. Includes the cave decks (the client's optimistic move-reduce needs them). */
+export function partyView(mp: MpGameState, seat: number): GameState {
+  return compose(mp.cave, mp.parties[seat]!);
+}
+
 /** The seat whose turn it is (null if not in the playing phase). */
 export function currentSeat(mp: MpGameState): number | null {
   return mp.phase === "playing" ? mp.order[mp.active]! : null;
