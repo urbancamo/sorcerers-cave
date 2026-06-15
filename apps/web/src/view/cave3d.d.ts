@@ -24,6 +24,7 @@ export interface BootOptions {
   party: ViewPartyMember[];
   tileAR: number;
   partyColor?: string; // marker colour (hex)
+  onQuit?: () => void; // when set, the HUD "Quit" delegates here instead of the built-in confirm (multiplayer)
 }
 export function boot(opts: BootOptions): Promise<{
   dispose(): void;

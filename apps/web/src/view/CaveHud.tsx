@@ -7,7 +7,7 @@ import "./cave.css";
  * discovery overlay (`reveal.js`) is preserved verbatim. The `#scene` div
  * receives the React container ref so `boot` can append its WebGL canvas there.
  */
-export function CaveHud({ mountRef, onPartyClick, onSave, onLeave }: { mountRef: RefObject<HTMLDivElement | null>; onPartyClick?: () => void; onSave?: () => void; onLeave?: () => void }) {
+export function CaveHud({ mountRef, onPartyClick, onSave }: { mountRef: RefObject<HTMLDivElement | null>; onPartyClick?: () => void; onSave?: () => void }) {
   return (
     <>
       <div id="bg"></div>
@@ -155,22 +155,6 @@ export function CaveHud({ mountRef, onPartyClick, onSave, onLeave }: { mountRef:
               </svg>
               Quit
             </button>
-            {onLeave && (
-              <button className="btn" onClick={onLeave} title="Leave to the menu (your party stays in the game)">
-                <svg
-                  className="ic"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                >
-                  <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-                  <path d="M16 17l5-5-5-5" />
-                  <path d="M21 12H9" />
-                </svg>
-                Leave
-              </button>
-            )}
           </div>
 
           <div className="cardpanel" id="cardpanel">

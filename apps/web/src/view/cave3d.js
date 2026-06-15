@@ -702,7 +702,7 @@ function onKeyDown(e){
 }
 function onResize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}
 
-export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr, tileAR, partyColor }){
+export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr, tileAR, partyColor, onQuit }){
   engine=eng; startLevel=eng.startLevel; tiles=tileMap; PARTY=partyArr; TILE_D=TILE_W/tileAR; partyColorHex=partyColor;
 
   /* ---- renderer / scene / camera ---- */
@@ -740,8 +740,11 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
   document.getElementById('snapBtn').addEventListener('click',viewSnapTile);
   document.getElementById('orbitBtn').addEventListener('click',viewFreeOrbit);
   document.getElementById('resetBtn').addEventListener('click',()=>{
+    // Multiplayer injects its own quit flow (leave-to-menu vs abandon, in a popup); solo uses the
+    // built-in confirm that ends the game (GS_QUIT) → the score screen.
+    if(onQuit){ onQuit(); return; }
     showChoice('Quit the expedition?','Your party leaves the Cave and your final score is tallied.','Quit','Keep playing')
-      .then(ok=>{ if(ok) engine.quit(); }); // ends the game (GS_QUIT) → the score screen
+      .then(ok=>{ if(ok) engine.quit(); });
   });
   needle=document.querySelector('#rose .needle');
   addEventListener('resize',onResize);

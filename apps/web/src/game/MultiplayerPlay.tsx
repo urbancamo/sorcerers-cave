@@ -31,6 +31,7 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   const [notices, setNotices] = useState<Notice[] | null>(null);
   const [showParty, setShowParty] = useState(false);
   const [showChat, setShowChat] = useState(false);
+  const [showQuit, setShowQuit] = useState(false); // HUD "Quit" → leave-to-menu vs abandon popup
 
   // Unread-chat marker: count messages that arrive while the dock is closed. Existing history is
   // treated as read on first load; opening the dock (or new lines arriving while it's open) clears it.
@@ -130,7 +131,7 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
 
   return (
     <div className="relative h-screen w-screen">
-      <CaveCanvas key={gameId} engine={engine} state={state} color={myColor} onPartyClick={() => setShowParty(true)} onLeave={onExit} otherParties={otherParties} />
+      <CaveCanvas key={gameId} engine={engine} state={state} color={myColor} onPartyClick={() => setShowParty(true)} onQuit={() => setShowQuit(true)} otherParties={otherParties} />
       <div className="scv-mp-toasts">
         {toasts.map((t) => (
           <div key={t.id} className={"scv-mp-toast" + (t.tone === "you" ? " you" : t.tone === "chat" ? " chat" : "")}>{t.text}</div>
@@ -148,6 +149,30 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
         </button>
         {showChat && <ChatPanel gameId={gameId} />}
       </div>
+      {/* HUD "Quit" → choose between leaving to the menu (party stays) and abandoning the run. */}
+      {showQuit && (
+        <div className="scv-mp-modal" role="dialog" aria-modal="true">
+          <div className="scv-mp-modal-card">
+            <h3 className="scv-hd">Leave the game?</h3>
+            <p className="scv-muted">
+              Leaving to the menu keeps your party in the game — rejoin any time with the code.
+              Abandoning ends your expedition now: your score is tallied and the other players are told.
+            </p>
+            <div className="scv-mp-modal-actions">
+              <button className="scv-primary" onClick={() => { setShowQuit(false); onExit(); }}>Leave to menu</button>
+              <button
+                className="scv-primary danger"
+                disabled={!yourTurn}
+                title={yourTurn ? undefined : "You can only abandon on your turn"}
+                onClick={() => { setShowQuit(false); void dispatch({ type: "quit" }); }}
+              >
+                Abandon expedition
+              </button>
+              <button className="scv-primary ghost" onClick={() => setShowQuit(false)}>Cancel</button>
+            </div>
+          </div>
+        </div>
+      )}
       {/* Your expedition has ended: show the score screen. Result is auto-recorded server-side, so no save form. */}
       {terminal && (
         <div className="scv-mp-finishoverlay">
