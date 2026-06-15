@@ -17,6 +17,8 @@ test("actionNarration summarises the significant outcomes of a completed action"
   expect(actionNarration({ type: "move", dir: 6 }, [], P({ level: 1 }), P({ level: 2 }))).toEqual(["descended to level 2"]);
   expect(actionNarration({ type: "move", dir: 5 }, [], P({ level: 2 }), P({ level: 1 }))).toEqual(["ascended to level 1"]);
   expect(actionNarration({ type: "withdraw" }, [], P(), P())).toEqual(["withdrew from an encounter"]);
+  expect(actionNarration({ type: "move", dir: 1 }, [{ type: "enteredSpecial", special: 2 }], P(), P())).toEqual(["entered the Deep Pool"]);
+  expect(actionNarration({ type: "move", dir: 1 }, [{ type: "crossedSpecial", special: 3 }], P(), P())).toEqual(["crossed the Viper Pit"]);
   // multiple outcomes in one round are returned as separate fragments (the caller joins them).
   expect(actionNarration({ type: "fightOn" }, [
     { type: "strangerKilled", creatureId: 10 },

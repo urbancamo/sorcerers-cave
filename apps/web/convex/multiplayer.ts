@@ -37,6 +37,9 @@ const OUTCOME_VERB: Record<string, string> = {
 
 const cname = (id: number) => CREATURES[id]?.name ?? "stranger";
 const tname = (id: number) => TREASURES[id]?.name ?? "treasure";
+// Special-area names (SPECIAL_* in engine data/areaCards), for enter/cross narration.
+const SPECIAL_NAME: Record<number, string> = { 1: "Gateway", 2: "Deep Pool", 3: "Viper Pit", 4: "Tomb", 5: "Great Hall" };
+const sname = (id: number) => SPECIAL_NAME[id] ?? "special area";
 
 /**
  * Concise narration of a just-completed action — the significant outcomes other parties should see
@@ -61,6 +64,8 @@ export function actionNarration(action: MpAction, events: GameEvent[], before: P
       case "dragonsLulled": frags.push(e.count === 1 ? "charmed a dragon" : `charmed ${e.count} dragons`); break;
       case "vipersLulled": frags.push("charmed the vipers"); break;
       case "secretDoorRevealed": frags.push("found a secret door"); break;
+      case "enteredSpecial": frags.push(`entered the ${sname(e.special)}`); break;
+      case "crossedSpecial": frags.push(`crossed the ${sname(e.special)}`); break;
       case "trapSprung": frags.push(`fell through a trap to level ${e.level}`); break;
       case "mutinied": frags.push("was struck by mutiny"); break;
     }
