@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Sorcerer's Cave — Multiplayer Implementation Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=EB+Garamond:ital@0;1&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --void:#070709; --panel:#15151b; --panel-2:#1b1b22; --stone:#b8b1a2; --stone-dim:#6f6a5f;
+    --parchment:#e8dbbb; --cream:#f6efce; --brass:#c9a14e; --brass-bright:#e6c578;
+    --crimson:#a8443a; --teal:#5f8f8a; --line:rgba(232,219,187,.13); --line-strong:rgba(232,219,187,.26);
+    --display:"Cinzel",serif; --body:"EB Garamond",serif; --ui:ui-sans-serif,system-ui,-apple-system,sans-serif;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--void); color:var(--parchment); font-family:var(--body); font-size:18px; line-height:1.55; }
+  .wrap { max-width:1100px; margin:0 auto; padding:32px 22px 120px; display:grid; grid-template-columns:230px 1fr; gap:34px; }
+  @media (max-width:860px){ .wrap{ grid-template-columns:1fr; } nav.toc{ position:static!important; } }
+  header.hero { grid-column:1/-1; text-align:center; padding:18px 0 6px; }
+  header.hero h1 { font-family:var(--display); font-weight:700; font-size:34px; color:var(--cream); margin:0 0 6px; letter-spacing:.01em; }
+  header.hero .sub { color:var(--stone); font-style:italic; }
+  header.hero .meta { color:var(--stone-dim); font-family:var(--ui); font-size:12px; letter-spacing:.08em; text-transform:uppercase; margin-top:10px; }
+  nav.toc { position:sticky; top:18px; align-self:start; border:1px solid var(--line); border-radius:14px;
+            background:rgba(21,21,27,.7); backdrop-filter:blur(6px); padding:16px 14px; font-family:var(--ui); font-size:13.5px; }
+  nav.toc .toc-hd { font-family:var(--display); font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--brass-bright); margin:0 0 10px; }
+  nav.toc a { display:block; color:var(--stone); padding:3px 0; }
+  nav.toc a:hover { color:var(--cream); }
+  main { min-width:0; }
+  section { border:1px solid var(--line); border-radius:14px; background:rgba(21,21,27,.55); padding:22px 26px; margin:0 0 22px; }
+  h2 { font-family:var(--display); color:var(--cream); font-size:23px; margin:0 0 12px; display:flex; gap:12px; align-items:baseline; }
+  h2 .n { color:var(--brass); font-size:15px; font-weight:600; }
+  h3 { font-family:var(--display); color:var(--brass-bright); font-size:17px; margin:22px 0 8px; font-weight:600; }
+  h4 { font-family:var(--ui); text-transform:uppercase; letter-spacing:.08em; font-size:12px; color:var(--stone-dim); margin:16px 0 6px; }
+  p { margin:0 0 12px; }
+  a { color:var(--brass-bright); text-decoration:none; } a:hover { text-decoration:underline; }
+  ul,ol { margin:0 0 12px; padding-left:22px; } li { margin:5px 0; }
+  code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:14px; background:rgba(0,0,0,.34); border:1px solid var(--line); border-radius:5px; padding:1px 5px; color:var(--brass-bright); }
+  pre { background:rgba(0,0,0,.42); border:1px solid var(--line-strong); border-radius:10px; padding:14px 16px; overflow:auto; margin:0 0 14px; }
+  pre code { background:none; border:none; padding:0; color:var(--parchment); font-size:13.5px; line-height:1.5; }
+  table { width:100%; border-collapse:collapse; margin:0 0 16px; font-size:14.5px; }
+  th,td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { font-family:var(--ui); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--stone-dim); }
+  td code { font-size:13px; }
+  .lede { font-size:19px; color:var(--cream); }
+  .tag { font-family:var(--ui); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; padding:1px 7px; border-radius:20px; border:1px solid var(--brass); color:var(--brass-bright); white-space:nowrap; }
+  .pill-row { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 14px; }
+  .callout { border-left:3px solid var(--brass); background:rgba(201,161,78,.07); border-radius:0 10px 10px 0; padding:12px 16px; margin:0 0 14px; }
+  .callout.gap { border-left-color:var(--crimson); background:rgba(168,68,58,.08); }
+  .callout.ok { border-left-color:var(--teal); background:rgba(95,143,138,.08); }
+  .callout .lbl { font-family:var(--ui); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--brass-bright); display:block; margin-bottom:4px; }
+  .callout.gap .lbl { color:#e0938a; } .callout.ok .lbl { color:#8fc9c2; }
+  .steps { counter-reset:step; list-style:none; padding-left:0; }
+  .steps > li { counter-increment:step; position:relative; padding:10px 0 10px 46px; border-bottom:1px solid var(--line); }
+  .steps > li::before { content:counter(step); position:absolute; left:0; top:9px; width:30px; height:30px; border-radius:50%;
+    border:1px solid var(--brass); color:var(--brass-bright); font-family:var(--display); font-weight:700; display:grid; place-items:center; font-size:14px; }
+  .swatches { display:flex; gap:10px; margin:0 0 12px; }
+  .sw { width:26px; height:26px; border-radius:6px; border:1px solid var(--line-strong); }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; } @media(max-width:680px){ .grid2{ grid-template-columns:1fr; } }
+  .phase { border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin:0 0 12px; background:rgba(0,0,0,.18); }
+  .phase .ph-hd { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .phase .ph-n { font-family:var(--display); color:var(--brass-bright); font-weight:700; }
+  hr { border:none; border-top:1px solid var(--line); margin:18px 0; }
+  .muted { color:var(--stone-dim); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="hero">
+    <h1>Multiplayer — Implementation Plan</h1>
+    <p class="sub">Turning the solitaire cave into a shared, turn-based expedition for up to four parties.</p>
+    <p class="meta">The Sorcerer's Cave · planning document · 2026-06-15</p>
+  </header>
+
+  <nav class="toc">
+    <p class="toc-hd">Contents</p>
+    <a href="#goals">1 · Goals &amp; scope</a>
+    <a href="#rules">2 · How multiplayer works (rules)</a>
+    <a href="#gaps">3 · Gaps in rules &amp; code</a>
+    <a href="#arch">4 · Target architecture</a>
+    <a href="#data">5 · Data model</a>
+    <a href="#functions">6 · Server functions</a>
+    <a href="#flow">7 · Client &amp; UX flow</a>
+    <a href="#roadmap">8 · Phased roadmap</a>
+    <a href="#build">9 · Step-by-step build</a>
+    <a href="#decisions">10 · Open decisions &amp; risks</a>
+  </nav>
+
+  <main>
+
+  <!-- 1 -->
+  <section id="goals">
+    <h2><span class="n">1</span> Goals &amp; scope</h2>
+    <p class="lede">Let up to four people, each in their own browser, explore one shared Cave as separate
+      parties, taking turns according to the board rules — joining via the existing four-letter game code.</p>
+    <ul>
+      <li><b>One shared cave, many parties.</b> The map, the area (large) deck and the small-card deck are shared; each player commands their own party with its own position, members, treasure and fortunes.</li>
+      <li><b>Join by code.</b> The four-letter code already minted for save/resume becomes the invitation: share it out-of-band, others enter it in their own browser to take a seat.</li>
+      <li><b>Host-controlled lobby.</b> Up to four seats. The creator starts the game when ready; once started, no one else may join.</li>
+      <li><b>Unique colours.</b> Each seat picks an unused party colour; only free colours are offered.</li>
+      <li><b>Everything is turn-based — including party selection</b>, because every party is drawn from the same finite small pack.</li>
+      <li><b>Faithful to the board game</b> first; advanced inter-party interactions (fights, unions, trading) are staged and optional, matching the rulebook's own "beginners vs. serious play" split.</li>
+    </ul>
+    <div class="callout"><span class="lbl">Guiding principle</span> The engine stays the single source of truth for <em>rules</em>; Convex stays the single source of truth for <em>authority and turn order</em>; Convex reactivity is the real-time sync layer (no extra websockets needed). This mirrors the existing solitaire architecture.</div>
+  </section>
+
+  <!-- 2 -->
+  <section id="rules">
+    <h2><span class="n">2</span> How multiplayer works, per the rules</h2>
+    <p>Interpreted from the rulebook (<code>docs/specs/sorcerers-cave-rules.md</code>), with the exact online mapping.</p>
+
+    <h3>2.1 Turn order &amp; party selection</h3>
+    <ul>
+      <li><b>Order of play</b> is decided by a die roll. The rule: <em>"the player who has first choice of an exploring party is the last to move, and vice versa."</em> → We roll a random <b>play order</b>; <b>party selection runs in the reverse order</b>, so first-pick = last-to-move (compensating the pick-first advantage).</li>
+      <li><b>Party selection is turn-based from the one small pack.</b> On a player's pick turn they choose creatures (selection value ≤ 6) from the cards still in the pack; those cards are removed so no one else can draw or pick them. After all seats have picked, the remaining pack is the shared chamber draw pile.</li>
+      <li>This is already half-built: solitaire <code>newGame</code> removes a single party's picks from the shared pack. Multiplayer generalises it to <em>sequential</em> picks during a dedicated <code>partySelect</code> phase.</li>
+    </ul>
+
+    <h3>2.2 A turn (exploration)</h3>
+    <p>"It takes one turn to explore one area." On their turn a player either moves one area into already-explored space, or announces a doorway and draws the top <b>large-pack</b> card:</p>
+    <ul>
+      <li>Dead end → card laid face-down, party stays (<b>turn ends</b>).</li>
+      <li>Matching doorway → card face-up, token moves on. Tunnel / pool / pit → turn ends. <b>Chamber</b> → draw small cards (1–4 by level) and resolve hazards / treasure / strangers — exactly today's solitaire flow, but acting on <em>that player's</em> party.</li>
+    </ul>
+
+    <h3>2.3 The cave is shared; chambers persist</h3>
+    <div class="callout ok"><span class="lbl">Key insight — already supported</span> Leftover strangers, treasure and hazards are persisted onto the <em>area</em> (<code>PlacedArea.contents</code>) and reloaded when any party (re)enters. So a chamber a previous player left half-fought is seen by the next party that walks in — "<em>other parties entering the chamber have the usual options.</em>" The shared map + per-area contents model already carries this; we only need each party to carry its <em>own</em> transient working set during its own turn.</li></div>
+    <ul>
+      <li>The <b>first</b> party to enter a fresh chamber draws the small cards; later parties draw none, but must deal with whatever remains.</li>
+      <li>Strangers that turned hostile to a party and were retreated-from <em>stay hostile to that party</em> but may be approached afresh by others — a per-party relationship flag (advanced; see gaps).</li>
+      <li><b>Secret doors</b> are per-discoverer: only the colour(s) who explored the stairway (or were shown it) may use it. Today <code>secretDoors</code>/<code>PlacedArea.secretDoor</code> is global; multiplayer needs per-player knowledge.</li>
+    </ul>
+
+    <h3>2.4 Leaving &amp; scoring</h3>
+    <p>Any up-stair on level 1 is an exit; once a party leaves it cannot return. "Play ends when all parties able to do so have left the Cave." Each party scores independently (creatures + treasure, dragon-slayers doubled, Sorcerer bonus −30-curse), and the highest score wins. A Sorcerer bonus is <em>split</em> if parties combined against him.</p>
+
+    <h3>2.5 Inter-party interaction (advanced / optional)</h3>
+    <p>The rulebook explicitly recommends that <b>beginners disallow party-vs-party</b> interaction. We adopt that for the MVP and stage the rest:</p>
+    <table>
+      <tr><th>Interaction</th><th>Rule summary</th><th>Stage</th></tr>
+      <tr><td>Shared visibility</td><td>Same-area parties see each other; "hidden cards" is a serious-play variation</td><td>MVP (all face-up)</td></tr>
+      <tr><td>Trading cards</td><td>Parties in the same area may trade any cards (Eye trades without curse)</td><td>Phase 5</td></tr>
+      <tr><td>Fights between parties</td><td>Attack a co-located party (not in pit/pool or a chamber with strangers/Medusa/trap/ghouls); alternating rounds across turns; surprise only when not following</td><td>Phase 5</td></tr>
+      <tr><td>Unions</td><td>Co-located parties combine under one commander (others forfeit a turn)</td><td>Phase 6</td></tr>
+      <tr><td>Division</td><td>Leave creatures behind to guard; only one part moves</td><td>Phase 6</td></tr>
+    </table>
+  </section>
+
+  <!-- 3 -->
+  <section id="gaps">
+    <h2><span class="n">3</span> Gaps in the rules &amp; the code</h2>
+
+    <h3>3.1 Functionality gaps (today's code is single-party)</h3>
+    <div class="callout gap"><span class="lbl">Biggest item</span> The engine's <code>GameState</code> models exactly <em>one</em> party — a single <code>party</code>, <code>partyArea</code>, working set (<code>strangers/treasures/hazards/sleeping/lulled</code>), <code>fight</code>, <code>curses</code>, <code>turn</code>, <code>seed</code>. Multiplayer needs <b>one shared cave + N per-player parties</b>. This is the core refactor (see §4–5).</div>
+    <ul>
+      <li><b>Server is owner-scoped &amp; single-player.</b> <code>games</code> holds one <code>state</code> and one <code>color</code>; <code>applyAction</code>/<code>get</code> enforce <code>ownerId === caller</code> (an IDOR guard). Multiplayer needs <em>multiple</em> authorised players per game and <em>turn</em>-gating instead of owner-gating.</li>
+      <li><b>No lobby / seats / colour reservation / start-lock</b> exist yet.</li>
+      <li><b>Join by code is single-player only.</b> <code>resumeByCode</code> restores one's <em>own</em> game; multiplayer needs a <code>joinByCode</code> that <em>adds a seat</em> to someone else's game (without claiming ownership).</li>
+      <li><b>Turn-based party selection</b> doesn't exist (solitaire picks once, locally, then creates the game).</li>
+      <li><b>Per-player secret-door knowledge</b> and <b>per-party stranger-hostility memory</b> aren't modelled (currently global / absent).</li>
+    </ul>
+
+    <h3>3.2 Rules gaps (the board game assumes humans in a room)</h3>
+    <ul>
+      <li><b>Disconnection / abandonment.</b> The rules have no notion of a player dropping out. We must decide turn-timeouts, host "skip seat / remove seat", and what a removed party's cards do (left in place? removed?).</li>
+      <li><b>Simultaneity &amp; the defender's rolls.</b> "It is always a player's privilege to roll the die for his own scores" and inter-party fights alternate across turns — i.e. some actions belong to a non-current player. The MVP (no party fights) sidesteps this; Phase 5 needs an explicit "reaction window" for the defender.</li>
+      <li><b>Hidden information.</b> Competitive play hides most cards; the engine/transport would need per-player views. We default to the rulebook's beginner recommendation (all cards shown) and treat fog-of-war as a later variation.</li>
+      <li><b>Physical "show the cards" / arranging the map</b> have no digital analogue — handled implicitly by shared reactive state.</li>
+    </ul>
+  </section>
+
+  <!-- 4 -->
+  <section id="arch">
+    <h2><span class="n">4</span> Target architecture</h2>
+    <p>Two clean layers, same as solitaire, generalised:</p>
+    <div class="grid2">
+      <div class="phase"><div class="ph-hd"><span class="ph-n">Engine</span> <span class="tag">pure TS</span></div>
+        A multi-party state = <b>one Cave</b> (shared map + decks + RNG) and <b>an array of Parties</b> (one per seat) + turn order. A new reducer <code>mpReduce(game, seat, action) → {game, events}</code> validates that <code>seat</code> may act, then dispatches to the same primitives solitaire already uses (move, enterChamber, combat, pickup) operating on <em>that seat's</em> party against the shared cave.</div>
+      <div class="phase"><div class="ph-hd"><span class="ph-n">Convex</span> <span class="tag">authority</span></div>
+        Owns identity, the seat roster, colour reservation, turn order and the start-lock. <code>applyAction</code> becomes turn-gated (the caller must occupy the current seat). Reactive queries push every change to all browsers — no extra realtime infra.</div>
+    </div>
+
+    <h3>4.1 Reuse, don't rewrite</h3>
+    <p>Most solitaire reduce logic already operates on "the party + the cave." The refactor extracts a <b>party context</b> so the same code runs per-seat:</p>
+    <ul>
+      <li>Shared on the cave: <code>areas</code>, <code>largePack/largeIdx</code>, <code>smallPack/smallIdx</code>, <code>seed</code>.</li>
+      <li>Per party: <code>members</code>, <code>partyArea/prev/prev2</code>, the transient working set, <code>fight</code>, <code>curses</code>, <code>bonusScore</code>, <code>sorcererKilled</code>, <code>surpriseReady/fellThroughTrap</code>, secret-door knowledge, status.</li>
+    </ul>
+    <div class="callout"><span class="lbl">Migration tactic</span> Keep solitaire working throughout. Introduce the multi-party types alongside the existing <code>GameState</code>; implement <code>mpReduce</code> by delegating to refactored, party-context primitives. Solitaire can later be re-expressed as "a one-seat multiplayer game," but that convergence is optional and comes last.</div>
+  </section>
+
+  <!-- 5 -->
+  <section id="data">
+    <h2><span class="n">5</span> Data model</h2>
+
+    <h3>5.1 Convex schema changes</h3>
+    <p>Extend the <code>games</code> table with lobby/turn fields and add a <code>players</code> table. (Existing solitaire rows keep working — new fields are optional or defaulted.)</p>
+
+    <h4>games (extended)</h4>
+    <table>
+      <tr><th>Field</th><th>Type</th><th>Purpose</th></tr>
+      <tr><td><code>code</code></td><td>string</td><td>existing four-letter handle — now the join key</td></tr>
+      <tr><td><code>mode</code></td><td><code>"solo" | "multi"</code></td><td>new; selects single- vs multi-party state &amp; reducer</td></tr>
+      <tr><td><code>hostId</code></td><td>id(users)</td><td>the creator; only the host may start the game</td></tr>
+      <tr><td><code>lobby</code></td><td><code>"open" | "started" | "finished"</code></td><td>join allowed only while <code>open</code></td></tr>
+      <tr><td><code>maxSeats</code></td><td>number</td><td>≤ 4</td></tr>
+      <tr><td><code>state</code></td><td>any</td><td>the multi-party game state (Cave + Party[] + turn)</td></tr>
+      <tr><td><code>turnSeat</code></td><td>number</td><td>denormalised "whose turn" for cheap turn-gating &amp; UI</td></tr>
+    </table>
+
+    <h4>players (new) — one row per seat</h4>
+    <table>
+      <tr><td><code>gameId</code></td><td>id(games)</td><td>index <code>by_game</code></td></tr>
+      <tr><td><code>userId</code></td><td>id(users)</td><td>the human in the seat; index <code>by_user</code></td></tr>
+      <tr><td><code>seat</code></td><td>number</td><td>0–3, stable seat index used by the engine</td></tr>
+      <tr><td><code>name</code></td><td>string</td><td>display name</td></tr>
+      <tr><td><code>color</code></td><td><code>green|blue|yellow|red</code></td><td>reserved colour (unique per game)</td></tr>
+      <tr><td><code>ready</code></td><td>boolean</td><td>lobby readiness</td></tr>
+      <tr><td><code>lastSeen</code></td><td>number</td><td>presence / disconnect detection</td></tr>
+    </table>
+    <p class="muted">Colour reservation = "no other <code>players</code> row in this game holds the colour." The lobby query returns taken colours so the picker offers only free ones. <code>gameEvents</code> gains an optional <code>seat</code> column so the per-seat stat/event history still works.</p>
+
+    <h3>5.2 Engine state shape</h3>
+<pre><code>interface CaveState {            // shared by all parties
+  areas: PlacedArea[];          // the one map (per-area contents already shared)
+  largePack: number[]; largeIdx: number;   // area deck
+  smallPack: number[]; smallIdx: number;   // small deck (party picks removed in turn)
+  seed: number;                 // single authoritative RNG stream
+}
+
+interface PartyState {          // one per seat
+  seat: number; color: PartyColor;
+  members: PartyMember[];
+  partyArea: number; prev: number; prev2: number;
+  strangers: number[]; treasures: number[]; hazards: number[];
+  sleeping?: number[]; lulled?: number[];   // current chamber working set
+  fight: FightState | null;
+  curses: number; bonusScore: number; sorcererKilled: boolean;
+  surpriseReady?: boolean; fellThroughTrap?: boolean;
+  knownSecretDoors: number[];   // area coords this seat may use
+  status: "selecting" | "exploring" | "left" | "wiped";
+}
+
+interface MpGameState {
+  phase: "partySelect" | "playing" | "finished";
+  cave: CaveState;
+  parties: PartyState[];
+  order: number[];              // seats in PLAY order (random)
+  pickOrder: number[];         // = order reversed (first pick = last to move)
+  active: number;              // index into the relevant order whose turn it is
+  turnCount: number;
+}</code></pre>
+    <p>The reducer signature becomes <code>mpReduce(g: MpGameState, seat: number, a: GameAction) → {state, events}</code>; it rejects actions from a seat that isn't currently to move (except a future "defender reaction" in Phase 5).</p>
+  </section>
+
+  <!-- 6 -->
+  <section id="functions">
+    <h2><span class="n">6</span> Server functions (Convex)</h2>
+    <table>
+      <tr><th>Function</th><th>Kind</th><th>Behaviour &amp; guards</th></tr>
+      <tr><td><code>createMultiplayer({name,color})</code></td><td>mutation</td><td>mint a unique <code>code</code>; insert <code>games</code> (<code>mode:"multi"</code>, <code>lobby:"open"</code>, <code>hostId</code>); insert the host's <code>players</code> seat 0 with chosen colour. Returns <code>{ gameId, code }</code>.</td></tr>
+      <tr><td><code>lobby({code})</code></td><td>query</td><td>public; returns seats (names, colours, ready), host, lobby status, taken colours. Drives the join screen for everyone, reactively.</td></tr>
+      <tr><td><code>joinByCode({code,name,color})</code></td><td>mutation</td><td>only while <code>lobby==="open"</code> &amp; seats &lt; max &amp; colour free &amp; caller not already seated; assigns next <code>seat</code>. Does <b>not</b> claim ownership. Idempotent if already seated (lets a player rejoin).</td></tr>
+      <tr><td><code>setColor / setReady / leaveSeat</code></td><td>mutation</td><td>lobby housekeeping; colour change rejected if taken; host leaving either promotes the next seat or closes the lobby.</td></tr>
+      <tr><td><code>startGame({gameId})</code></td><td>mutation</td><td>host only; flips <code>lobby:"started"</code> (locks joins), rolls the random play order (seeded), builds the shared <code>MpGameState</code> in <code>phase:"partySelect"</code>, sets <code>turnSeat</code> to the first picker.</td></tr>
+      <tr><td><code>pickParty({gameId,picks})</code></td><td>mutation</td><td>turn-gated to the current picker; validates value ≤ 6 &amp; that each card is still in the pack; removes them; advances pick turn; when the last seat picks, transitions to <code>phase:"playing"</code> and sets the first mover.</td></tr>
+      <tr><td><code>applyAction({gameId,action})</code></td><td>mutation</td><td>generalised: resolve caller→seat; require <code>seat === state.turnSeat</code> (turn-gating replaces owner-gating); run <code>mpReduce</code>; persist state + <code>turnSeat</code>; append <code>gameEvents</code> with <code>seat</code>. End-of-turn advances to the next seat still in play.</td></tr>
+      <tr><td><code>get({gameId})</code></td><td>query</td><td>readable by any seated player (membership check via <code>players</code>), not just an owner. Returns the full reactive state for the renderer.</td></tr>
+    </table>
+    <div class="callout"><span class="lbl">Authority model</span> Replace the single <code>ownerId === caller</code> check with: <b>membership</b> (a <code>players</code> row exists for caller+game) for reads, and <b>turn ownership</b> (caller's seat === <code>turnSeat</code>) for actions. The engine still re-validates every move, so the server stays the sole authority and the client is never trusted.</div>
+  </section>
+
+  <!-- 7 -->
+  <section id="flow">
+    <h2><span class="n">7</span> Client &amp; UX flow</h2>
+    <div class="swatches" aria-hidden="true">
+      <span class="sw" style="background:#4a8f5b"></span><span class="sw" style="background:#3f6fa3"></span>
+      <span class="sw" style="background:#c9a14e"></span><span class="sw" style="background:#a8443a"></span>
+    </div>
+    <ol>
+      <li><b>Splash → "Start Multiplayer Game".</b> Host enters a name, picks a colour, gets a <b>code</b> shown prominently (reuse the save-modal styling) to share out-of-band.</li>
+      <li><b>Splash → "Join Multiplayer Game".</b> Anyone enters the code (reusing the resume-by-code input), a name, and picks from the <em>remaining</em> colours.</li>
+      <li><b>Lobby</b> (reactive for all): list of seats with colour chips and ready state; the host sees a <b>Start</b> button (enabled with ≥ 2 seats). Late-comers past <code>started</code> are told the game has begun.</li>
+      <li><b>Turn-based party selection.</b> A shared "draft" screen shows the small pack's remaining selectable creatures; only the player whose pick turn it is can choose (others see "Waiting for &lt;colour&gt;…"). Picks deplete the shared pool live.</li>
+      <li><b>Play.</b> The existing 3D cave renders the shared map with every party's coloured token. A persistent banner shows <b>whose turn</b> it is; controls are live only on your turn (others watch the map update reactively). The HUD's Deck indicator (already shared) reflects the common large pack.</li>
+      <li><b>Leaving &amp; results.</b> Parties exit independently; when all have left/wiped, a multi-party results screen ranks the parties and writes each to the leaderboard.</li>
+    </ol>
+  </section>
+
+  <!-- 8 -->
+  <section id="roadmap">
+    <h2><span class="n">8</span> Phased roadmap</h2>
+
+    <div class="phase"><div class="ph-hd"><span class="ph-n">Phase 1 — Infrastructure &amp; lobby</span> <span class="tag">no engine change</span></div>
+      Schema (<code>games</code> lobby fields + <code>players</code> table); <code>createMultiplayer</code>, <code>joinByCode</code>, <code>lobby</code>, <code>setColor/setReady/leaveSeat</code>, <code>startGame</code> (lobby flip only). Splash buttons, join input, reactive lobby with colour reservation and host start. <b>Deliverable: create a game, share the code, join from another browser, see each other, host can lock the lobby.</b></div>
+
+    <div class="phase"><div class="ph-hd"><span class="ph-n">Phase 2 — Multi-party engine core</span></div>
+      Introduce <code>MpGameState</code>/<code>PartyState</code>/<code>CaveState</code>; refactor solitaire primitives to a party context; <code>mpReduce</code> with turn-gating; build state on <code>startGame</code> with random play order. Unit-tested in isolation (no UI yet).</div>
+
+    <div class="phase"><div class="ph-hd"><span class="ph-n">Phase 3 — Turn-based party selection</span></div>
+      <code>pickParty</code> draft from the shared pack in reverse play order; transition to <code>playing</code>. Draft UI.</div>
+
+    <div class="phase"><div class="ph-hd"><span class="ph-n">Phase 4 — Shared exploration &amp; turns</span></div>
+      Turn-gated <code>applyAction</code>; render all parties' tokens; turn banner; end-of-turn advance; independent leaving; multi-party results + leaderboard. <b>Deliverable: a fully playable competitive game under the beginner ruleset (no party-vs-party).</b></div>
+
+    <div class="phase"><div class="ph-hd"><span class="ph-n">Phase 5 — Inter-party interaction</span> <span class="tag">advanced</span></div>
+      Trading; party-vs-party fights with the cross-turn defender reaction window &amp; surprise rule; per-party stranger-hostility memory; per-player secret-door knowledge.</div>
+
+    <div class="phase"><div class="ph-hd"><span class="ph-n">Phase 6 — Unions, division &amp; variations</span> <span class="tag">optional</span></div>
+      Unions/forfeit-a-turn, party division/guarding, and the hidden-cards (fog-of-war) competitive variation via per-seat views.</div>
+  </section>
+
+  <!-- 9 -->
+  <section id="build">
+    <h2><span class="n">9</span> Step-by-step: building a fully multiplayer game</h2>
+    <p>The concrete sequence, from infrastructure to a finished competitive game.</p>
+    <ol class="steps">
+      <li><b>Schema.</b> Add lobby fields to <code>games</code> and create the <code>players</code> table with <code>by_game</code> / <code>by_user</code> indexes; add optional <code>seat</code> to <code>gameEvents</code>. Deploy (additive, back-compatible).</li>
+      <li><b>Create + code.</b> Implement <code>createMultiplayer</code> (mint code, host seat, lobby open) and surface "Start Multiplayer Game" on the splash, showing the code to share.</li>
+      <li><b>Join in another browser.</b> Implement <code>lobby</code> (public, reactive) and <code>joinByCode</code> (seat assignment, colour reservation, no ownership claim). Wire "Join Multiplayer Game" with the code + name + free-colour picker.</li>
+      <li><b>Lobby &amp; colours.</b> Render the reactive seat list with colour chips; reserve colours (offer only unused ones); host sees <b>Start</b>.</li>
+      <li><b>Start &amp; lock.</b> <code>startGame</code>: host-only, flip <code>lobby:"started"</code> (joins refused), roll random play order, build <code>MpGameState</code> in <code>partySelect</code>.</li>
+      <li><b>Engine core.</b> Land <code>MpGameState</code> + <code>mpReduce</code> + party-context refactor with unit tests (movement, chamber, combat, pickup per seat against the shared cave).</li>
+      <li><b>Turn-based party draft.</b> <code>pickParty</code> from the shared pack in reverse play order; draft UI showing the depleting pool and "waiting for &lt;colour&gt;"; transition to <code>playing</code>.</li>
+      <li><b>Turn-gated play.</b> Generalise <code>applyAction</code> to membership + turn checks; render every party token on the shared map; add the whose-turn banner; advance the seat at end of turn; skip seats that have left/wiped.</li>
+      <li><b>Independent exits &amp; results.</b> Each party leaves via a level-1 up-stair; when all parties are out/wiped, show the ranked multi-party results and record each on the leaderboard.</li>
+      <li><b>Resilience.</b> Presence (<code>lastSeen</code>), a turn timeout / host "skip seat", and rejoin-by-code into a started game (membership already exists).</li>
+      <li><b>Advanced interactions.</b> Layer in Phase 5–6 (trading, party fights, unions, division, fog-of-war) behind a game-variant flag.</li>
+    </ol>
+  </section>
+
+  <!-- 10 -->
+  <section id="decisions">
+    <h2><span class="n">10</span> Open decisions &amp; risks</h2>
+    <ul>
+      <li><b>Minimum players to start.</b> Recommend ≥ 2 (a one-seat "multi" game is just solitaire). Host decides exact count up to 4.</li>
+      <li><b>Disconnection &amp; stalls.</b> No board-rule precedent. Proposed: a soft turn timer with a host "skip turn", and a host "remove seat" that leaves the abandoned party's cards in place (so others may still encounter/loot them). Confirm desired behaviour.</li>
+      <li><b>MVP interaction scope.</b> Ship Phase 1–4 (beginner ruleset: no party-vs-party, all cards visible). This is a complete, fun competitive race and de-risks the hardest rules (cross-turn defender rounds, fog-of-war).</li>
+      <li><b>Engine refactor blast radius.</b> The single-→multi-party change touches the core reducer; mitigate by keeping solitaire on its current path and building multiplayer beside it, converging only if/when it's clearly safe.</li>
+      <li><b>RNG.</b> One authoritative seeded stream on the cave keeps every browser deterministic and replayable, as today.</li>
+      <li><b>Leaderboard.</b> Decide whether multiplayer results post per-party (recommended) and whether they're tagged as multiplayer to keep solo records comparable.</li>
+    </ul>
+    <div class="callout ok"><span class="lbl">Bottom line</span> Phases 1 &amp; 4 deliver the requirement — create, share a code, join from another browser, take turns (including party selection) and play one shared cave to a ranked finish. Phases 5–6 add the rulebook's full competitive depth and can follow once the core is proven.</div>
+  </section>
+
+  </main>
+</div>
+</body>
+</html>
