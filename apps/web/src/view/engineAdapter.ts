@@ -12,6 +12,8 @@ const NUM_TO_DIR: Record<number, Dir> = { 1: "N", 2: "E", 3: "S", 4: "W", 5: "U"
 export interface AdapterOptions {
   /** Forward each accepted action (the seam D-3 uses to dispatch to Convex). */
   onAction?: (action: GameAction) => void;
+  /** Multiplayer turn-gate: when present and false, no moves/exits are offered or accepted. */
+  canAct?: () => boolean;
 }
 
 export interface CaveAdapter extends CaveEngine {
@@ -21,6 +23,7 @@ export interface CaveAdapter extends CaveEngine {
 
 export function createCaveAdapter(initial: GameState, art: ArtTables, opts: AdapterOptions = {}): CaveAdapter {
   let state = initial;
+  const acting = () => !opts.canAct || opts.canAct(); // true unless a turn-gate says otherwise
 
   // Live floor codes for the party's area when a chamber encounter is active; else undefined (use persisted contents).
   const liveForCurrent = (): number[] | undefined =>
@@ -55,7 +58,7 @@ export function createCaveAdapter(initial: GameState, art: ArtTables, opts: Adap
       };
     },
     openMoves(): Move[] {
-      if (state.phase !== "explore") return [];
+      if (state.phase !== "explore" || !acting()) return []; // not your turn → no doorways offered
       const { level, x, y } = unpackCoord(state.areas[state.partyArea]!.coord);
       const moves: Move[] = [];
       for (const a of legalActions(state)) {
@@ -77,21 +80,24 @@ export function createCaveAdapter(initial: GameState, art: ArtTables, opts: Adap
       return moves;
     },
     canExit(): boolean {
-      return state.phase === "explore" && legalActions(state).some((a) => a.type === "exitCave");
+      return acting() && state.phase === "explore" && legalActions(state).some((a) => a.type === "exitCave");
     },
     exit(): void {
+      if (!acting()) return;
       const action: GameAction = { type: "exitCave" };
       const { state: next } = reduce(state, action);
       state = next;
       opts.onAction?.(action);
     },
     quit(): void {
+      if (!acting()) return;
       const action: GameAction = { type: "quit" };
       const { state: next } = reduce(state, action);
       state = next;
       opts.onAction?.(action);
     },
     tryMove(dir: Dir): MoveEvent {
+      if (!acting()) return { moved: false }; // not your turn
       const before = state;
       const num = DIR_TO_NUM[dir];
       const action: GameAction = { type: "move", dir: num };

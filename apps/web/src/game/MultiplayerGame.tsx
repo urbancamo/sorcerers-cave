@@ -5,6 +5,7 @@ import { CREATURES } from "@sorcerers-cave/engine";
 import { PARTY_COLOR_HEX, type PartyColor } from "./partyColors";
 import { ChatPanel } from "./ChatPanel";
 import { PartyDraft } from "./PartyDraft";
+import { MultiplayerPlay } from "./MultiplayerPlay";
 
 type Party = { seat: number; name: string; color: string; status: string; members: number[] };
 
@@ -30,17 +31,12 @@ export function MultiplayerGame({ gameId, onExit }: { gameId: Id<"games">; onExi
   if (proj === undefined) return <section className="scv-panel scv-mp"><p className="scv-muted">Loading…</p></section>;
   if (proj === null) return <section className="scv-panel scv-mp"><h2 className="scv-hd">Game not found</h2><button className="scv-primary" onClick={onExit}>Back to menu</button></section>;
 
+  // Shared 3D play renders full-screen (its own layout), outside the panel/chat wrap below.
+  if (proj.phase === "playing") return <MultiplayerPlay gameId={gameId} onExit={onExit} />;
+
   let body: React.ReactNode;
   if (proj.phase === "partySelect") {
     body = <PartyDraft gameId={gameId} proj={proj} />;
-  } else if (proj.phase === "playing") {
-    body = (
-      <section className="scv-panel scv-mp">
-        <h2 className="scv-hd">Into the cave</h2>
-        <p className="scv-lobby-started">The expedition has begun. <span className="scv-muted">(Shared 3D play arrives in the next update.)</span></p>
-        <Roster parties={proj.parties} currentSeat={proj.currentSeat ?? null} />
-      </section>
-    );
   } else if (proj.phase === "finished") {
     body = (
       <section className="scv-panel scv-mp">
