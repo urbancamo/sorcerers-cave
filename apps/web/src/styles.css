@@ -664,6 +664,37 @@
 .scv-mp-toast.chat { font-weight: 500; color: var(--cream); }
 @keyframes scv-toast-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: translateY(0); } }
 
+/* Phase 5 — live scoreboard overlay (translucent over the live cave; AA-contrast text). */
+.scv-sb-overlay {
+  position: fixed; inset: 0; z-index: 70; display: flex; align-items: center; justify-content: center;
+  padding: 24px; background: rgba(10, 10, 14, 0.55); backdrop-filter: blur(4px);
+}
+.scv-sb {
+  width: min(560px, 94vw); padding: 16px 18px; border-radius: 14px;
+  background: rgba(16, 16, 22, 0.92); border: 1px solid var(--brass); box-shadow: 0 24px 60px -20px rgba(0,0,0,0.9);
+}
+.scv-sb-hd { margin: 0 0 10px; font-family: var(--display); font-size: 18px; color: var(--cream); }
+.scv-sb-table { width: 100%; border-collapse: collapse; font-family: var(--ui); font-size: 13px; color: var(--cream); }
+.scv-sb-table th { text-align: left; font-size: 10px; letter-spacing: 0.12em; text-transform: uppercase; color: var(--stone-dim); padding: 4px 8px; }
+.scv-sb-table th.num, .scv-sb-table td.num { text-align: right; }
+.scv-sb-row td { padding: 8px; border-top: 1px solid rgba(255,255,255,0.10); cursor: pointer; }
+.scv-sb-row:hover td { background: rgba(255,255,255,0.05); }
+.scv-sb-row.me td { background: rgba(230,196,99,0.12); }
+.scv-sb-chip { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 7px; vertical-align: middle; }
+.scv-sb-you { color: var(--stone-dim); font-style: normal; opacity: 0.7; }
+.scv-sb-score { font-weight: 700; color: var(--brass-bright); }
+.scv-sb-badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; }
+.scv-sb-badge.esc { background: #2e6b3e; color: #eaf4ea; }
+.scv-sb-badge.die { background: #8a3a34; color: #f6e2df; }
+.scv-sb-badge.live { background: #36476b; color: #e3e9f6; }
+.scv-sb-foot { display: flex; gap: 10px; margin-top: 14px; flex-wrap: wrap; }
+.scv-sb-foot .scv-primary { margin-top: 0; }
+.scv-mp-standings {
+  position: fixed; top: 12px; right: 14px; z-index: 60;
+  font-family: var(--ui); font-size: 12px; padding: 6px 12px; border-radius: 9px;
+  border: 1px solid var(--line-strong); background: rgba(15,15,20,0.82); color: var(--brass-bright); cursor: pointer;
+}
+
 /* Quit popup (leave-to-menu vs abandon), reached from the HUD "Quit" button. */
 .scv-mp-modal {
   position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center;
