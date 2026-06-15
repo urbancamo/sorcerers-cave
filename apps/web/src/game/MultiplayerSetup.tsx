@@ -30,6 +30,7 @@ export function MultiplayerSetup({ mode, onEnterLobby, onCancel }: {
   // For joining, preview the lobby reactively to surface validity and which colours are free.
   const preview = useQuery(api.multiplayer.lobby, mode === "join" && codeReady ? { code } : "skip");
   const taken = new Set<string>(mode === "join" ? preview?.takenColors ?? [] : []);
+  const isMember = preview?.youSeat != null; // already seated → may rejoin even a started game
 
   const submit = async () => {
     setErr(null);
@@ -49,7 +50,7 @@ export function MultiplayerSetup({ mode, onEnterLobby, onCancel }: {
     } finally { setBusy(false); }
   };
 
-  const canSubmit = !busy && !!partyName.trim() && !!color && (mode === "create" || (codeReady && preview?.lobby === "open"));
+  const canSubmit = !busy && !!partyName.trim() && !!color && (mode === "create" || (codeReady && (preview?.lobby === "open" || isMember)));
 
   return (
     <section className="scv-panel scv-mp">
@@ -70,7 +71,8 @@ export function MultiplayerSetup({ mode, onEnterLobby, onCancel }: {
         </label>
       )}
       {mode === "join" && codeReady && preview === null && <p className="scv-resume-err">No game found with that code.</p>}
-      {mode === "join" && preview && preview.lobby !== "open" && <p className="scv-resume-err">That game has already started.</p>}
+      {mode === "join" && preview && preview.lobby !== "open" && !isMember && <p className="scv-resume-err">That game has already started.</p>}
+      {mode === "join" && preview && preview.lobby !== "open" && isMember && <p className="scv-muted">Rejoining your game in progress…</p>}
 
       <label className="scv-mp-field">
         <span>Party name</span>
