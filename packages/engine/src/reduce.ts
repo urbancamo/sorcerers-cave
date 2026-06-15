@@ -33,12 +33,14 @@ function persistAndExplore(state: GameState): void {
     ...area.contents,
     ...state.strangers.map((id) => 100 + id),
     ...state.treasures.map((id) => 200 + id),
+    ...(state.sleeping ?? []).map((id) => 400 + id), // sleeping creatures stay (inert) in the chamber
   ];
   // Clear the live working set now that it's parked on the area — otherwise leftover cards (e.g.
   // treasure the party left behind) keep rendering on the party's current tile as they move on.
   state.strangers = [];
   state.treasures = [];
   state.hazards = [];
+  state.sleeping = [];
   state.phase = "explore";
 }
 
@@ -262,8 +264,9 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
         ...next.areas[next.partyArea]!.contents,
         ...next.strangers.map((id) => 100 + id),
         ...next.treasures.map((id) => 200 + id),
+        ...(next.sleeping ?? []).map((id) => 400 + id),
       ];
-      next.strangers = []; next.treasures = []; next.hazards = [];
+      next.strangers = []; next.treasures = []; next.hazards = []; next.sleeping = [];
       next.partyArea = next.prev;
       next.level = unpackCoord(next.areas[next.partyArea]!.coord).level;
       next.phase = "explore";
@@ -454,8 +457,9 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
         ...next.areas[next.partyArea]!.contents,
         ...next.strangers.map((id) => 100 + id),
         ...next.treasures.map((id) => 200 + id),
+        ...(next.sleeping ?? []).map((id) => 400 + id),
       ];
-      next.strangers = []; next.treasures = []; next.hazards = [];
+      next.strangers = []; next.treasures = []; next.hazards = []; next.sleeping = [];
       next.fight = null;
       next.party.forEach((m) => { m.potionActive = false; });
       next.partyArea = next.prev;
@@ -510,10 +514,10 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
             consume();
             return ok;
           }
-          next.areas[next.partyArea]!.contents.push(100 + sid);
+          (next.sleeping ??= []).push(sid); // the creature sleeps — inert, but stays in the chamber
           next.strangers.splice(action.target, 1);
           consume();
-          if (next.strangers.length === 0) { // no one left to face
+          if (next.strangers.length === 0) { // no one left awake to face — the party may proceed past the sleepers
             next.fight = null;
             next.party.forEach((m) => { m.potionActive = false; });
             if (next.treasures.length > 0) next.phase = "pickup";

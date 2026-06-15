@@ -15,6 +15,7 @@ export function encodeWorkingSet(state: GameState): number[] {
     ...state.strangers.map((id) => 100 + id),
     ...state.treasures.map((id) => 200 + id),
     ...state.hazards.map((id) => 300 + id),
+    ...(state.sleeping ?? []).map((id) => 400 + id),
   ];
 }
 
@@ -28,8 +29,9 @@ export function laneCards(codes: readonly number[], cards: CardArt[]): { strange
   const strangers: Card[] = [], treasure: Card[] = [], hazards: Card[] = [];
   const seen = new Map<string, number>();
   for (const code of codes) {
-    const kind = code >= 300 ? "hazard" : code >= 200 ? "treasure" : "creature";
-    const entityId = code >= 300 ? code - 300 : code >= 200 ? code - 200 : code - 100;
+    const asleep = code >= 400; // 400+cid = a creature put to sleep by Lotus Dust
+    const kind = asleep ? "creature" : code >= 300 ? "hazard" : code >= 200 ? "treasure" : "creature";
+    const entityId = asleep ? code - 400 : code >= 300 ? code - 300 : code >= 200 ? code - 200 : code - 100;
     const art = resolveCard(kind, entityId, cards);
     const baseId = art?.cardId ?? `${kind}-${entityId}`;
     const n = seen.get(baseId) ?? 0; seen.set(baseId, n + 1);
@@ -38,11 +40,12 @@ export function laneCards(codes: readonly number[], cards: CardArt[]): { strange
       : kind === "hazard" ? "hazard"
       : TREASURES[entityId]?.kind === "artifact" ? "artifact" : "treasure";
     const card: Card = {
-      id: n === 0 ? baseId : `${baseId}#${n}`,
+      id: (n === 0 ? baseId : `${baseId}#${n}`) + (asleep ? "·z" : ""),
       name: art?.name ?? `${kind} ${entityId}`,
       category,
       entityId: String(entityId),
       file: art?.file ?? "",
+      asleep,
     };
     if (kind === "creature") strangers.push(card);
     else if (kind === "hazard") hazards.push(card);

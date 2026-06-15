@@ -24,7 +24,9 @@ export function createCaveAdapter(initial: GameState, art: ArtTables, opts: Adap
 
   // Live floor codes for the party's area when a chamber encounter is active; else undefined (use persisted contents).
   const liveForCurrent = (): number[] | undefined =>
-    state.strangers.length || state.treasures.length || state.hazards.length ? encodeWorkingSet(state) : undefined;
+    state.strangers.length || state.treasures.length || state.hazards.length || (state.sleeping?.length ?? 0)
+      ? encodeWorkingSet(state)
+      : undefined;
 
   const projectAll = (): Area[] =>
     state.areas.map((pa, i) => projectArea(pa, i, state, art, i === state.partyArea ? liveForCurrent() : undefined));

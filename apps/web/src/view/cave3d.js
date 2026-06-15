@@ -45,6 +45,17 @@ function makeGridTexture(){
   const cx=cv.getContext('2d');cx.strokeStyle='rgba(232,219,187,0.14)';cx.lineWidth=2;cx.strokeRect(1,1,s-2,s-2);
   const t=new THREE.CanvasTexture(cv);t.colorSpace=THREE.SRGBColorSpace;return t;
 }
+// "Zzz" sleep marker for a creature put to sleep by Lotus Dust.
+let _zzzTex=null;
+function zzzTexture(){
+  if(_zzzTex) return _zzzTex;
+  const s=128,cv=document.createElement('canvas');cv.width=cv.height=s;
+  const cx=cv.getContext('2d');
+  cx.font='bold 40px Georgia, serif';cx.textAlign='center';cx.textBaseline='middle';
+  cx.fillStyle='#e6c578';cx.shadowColor='rgba(0,0,0,0.8)';cx.shadowBlur=6;
+  cx.fillText('Z',44,86);cx.font='bold 30px Georgia, serif';cx.fillText('z',74,62);cx.font='bold 22px Georgia, serif';cx.fillText('z',96,42);
+  _zzzTex=new THREE.CanvasTexture(cv);_zzzTex.colorSpace=THREE.SRGBColorSpace;return _zzzTex;
+}
 // Secret-door card art (door-01.png = "A", door-02 = "B", …), cached and shared across rebuilds.
 const _texLoader=new THREE.TextureLoader();
 const doorTexCache=new Map();
@@ -313,10 +324,17 @@ function makeCardObject(card, yaw){
   // the card face
   const face=new THREE.Mesh(new THREE.PlaneGeometry(CARD_W,CARD_H),
     new THREE.MeshBasicMaterial({map:loadPlainTexture(card.file),transparent:true,depthWrite:false}));
+  if(card.asleep) face.material.color.setHex(0x8a8aa6); // a sleeping creature: cool, dimmed
   face.rotation.x=-Math.PI/2; face.position.y=0.001; face.renderOrder=6;
   face.userData.card=card;
   regMat(mat.material);regMat(edge.material);regMat(face.material);
   g.add(mat,edge,face); g.rotation.y=yaw||0;
+  if(card.asleep){ // "Zzz" marker so it reads as asleep, not a threat
+    const zzz=new THREE.Mesh(new THREE.PlaneGeometry(CARD_W*0.55,CARD_W*0.55),
+      new THREE.MeshBasicMaterial({map:zzzTexture(),transparent:true,depthWrite:false}));
+    zzz.rotation.x=-Math.PI/2; zzz.position.set(CARD_W*0.24,0.02,-CARD_H*0.30); zzz.renderOrder=7;
+    regMat(zzz.material); g.add(zzz);
+  }
   g.userData.face=face;
   contentMeshes.push(face);
   return g;

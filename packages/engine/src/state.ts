@@ -74,6 +74,7 @@ export interface GameState {
   strangers: number[]; // chamber working set (Milestone C)
   treasures: number[];
   hazards: number[];
+  sleeping?: number[]; // creatures put to sleep by Lotus Dust — inert, no longer block the party
   seed: number; // LCG state (spec §5)
   fight: FightState | null;
   // True while the party's current position was reached by a one-way trap fall: prev is the level

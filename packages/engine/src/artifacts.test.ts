@@ -45,12 +45,20 @@ describe("useArtifact — Magic Staff reanimation (§16)", () => {
 });
 
 describe("useArtifact — Lotus Dust (§16)", () => {
-  it("sleeps a stranger (out of the encounter, persisted to the area) and is consumed", () => {
+  it("sleeps a stranger (out of the encounter, kept asleep in the chamber) and is consumed", () => {
     const s = makeState({ phase: "encounter", areas: [area], strangers: [10, 3], party: [member(5, [5])] });
     const { state } = reduce(s, { type: "useArtifact", artifact: 5, target: 0 });
-    expect(state.strangers).toEqual([3]); // Dragon removed
-    expect(state.areas[0]!.contents).toContain(110); // Dragon asleep in the area
+    expect(state.strangers).toEqual([3]); // Dragon no longer blocks
+    expect(state.sleeping).toEqual([10]); // Dragon now asleep (Troll still awake → still in the encounter)
     expect(state.party[0]!.treasure).toEqual([]); // consumed
+  });
+
+  it("sleeping the last stranger lets the party proceed past it", () => {
+    const s = makeState({ phase: "encounter", areas: [area], strangers: [10], party: [member(5, [5])] });
+    const { state } = reduce(s, { type: "useArtifact", artifact: 5, target: 0 });
+    expect(state.strangers).toEqual([]); // none left awake
+    expect(state.phase).toBe("explore"); // free to move on
+    expect(state.areas[0]!.contents).toContain(410); // Dragon parked asleep (400 + id 10)
   });
   it("clears potionActive on all party members when Lotus Dust ends the last fight-phase stranger", () => {
     const s = makeState({

@@ -29,6 +29,7 @@ export interface Card {
   category: CardCategory;
   entityId?: string;     // your engine's canonical entity id, if any
   file: string;          // path/URL to the card-art PNG
+  asleep?: boolean;      // a creature put to sleep by Lotus Dust — drawn with a sleep effect, inert
 }
 
 /** A placed tile = one "area" (chamber or tunnel) on the grid. */

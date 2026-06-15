@@ -7,9 +7,12 @@ const MAX_STRANGERS = 8;
 const MAX_TREASURE = 8;
 const MAX_HAZARDS = 4;
 
-/** Classify a small-pack code into the chamber working set. */
+/** Classify a small-pack / parked code into the chamber working set (400+ = a sleeping creature). */
 function classify(state: GameState, code: number): void {
-  if (code >= 300) {
+  if (code >= 400) {
+    state.sleeping ??= [];
+    if (state.sleeping.length < MAX_STRANGERS) state.sleeping.push(code - 400);
+  } else if (code >= 300) {
     if (state.hazards.length < MAX_HAZARDS) state.hazards.push(code - 300);
   } else if (code >= 200) {
     if (state.treasures.length < MAX_TREASURE) state.treasures.push(code - 200);
@@ -29,6 +32,7 @@ export function enterChamber(state: GameState): GameEvent[] {
   state.strangers = [];
   state.treasures = [];
   state.hazards = [];
+  state.sleeping = [];
 
   if (area.visited) {
     for (const code of area.contents) classify(state, code);
