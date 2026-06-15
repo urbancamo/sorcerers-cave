@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { CREATURES, TREASURES, GS_ESCAPED, GS_DEAD, GS_QUIT, type PartyMember } from "@sorcerers-cave/engine";
+import { loadManifest, resolveCard, resolveCardVariant, type CardArt } from "../data/manifest";
 
 export interface LeaderboardRow {
   _id: string;
@@ -21,10 +22,23 @@ const OUTCOME_LABEL: Record<number, string> = {
 const STATUS_NOTE: Record<number, string> = { 2: "petrified", 3: "fallen" };
 const survived = (m: PartyMember) => m.status === 0 || m.status === 1;
 
-/** Roll-call detail for one score: who walked out, and the treasure & artifacts they carried. */
+/** Roll-call detail for one score: who walked out, and the treasure & artifacts they carried —
+ *  shown with the actual card art (progressive enhancement; falls back to names if art can't load). */
 function ScoreDetail({ row, rank, onBack }: { row: LeaderboardRow; rank?: number; onBack: () => void }) {
+  const [cards, setCards] = useState<CardArt[]>([]);
+  useEffect(() => {
+    let alive = true;
+    loadManifest().then(({ cards }) => { if (alive) setCards(cards); }).catch(() => {});
+    return () => { alive = false; };
+  }, []);
+
   const left = row.party.filter(survived);
   const artifacts = left.flatMap((m) => m.treasure).filter((t) => TREASURES[t]?.kind === "artifact").length;
+  // Each member's copy-index among same-creature members → its own card illustration (so two Men
+  // don't share one image), mirroring the in-game party panel.
+  const copyIdx = new Map<number, number>(), tally = new Map<number, number>();
+  row.party.forEach((m, i) => { const k = tally.get(m.creatureId) ?? 0; copyIdx.set(i, k); tally.set(m.creatureId, k + 1); });
+
   return (
     <div className="scv-hs-detail" data-testid="hs-detail">
       <button className="scv-hs-back" onClick={onBack}>← Back to scores</button>
@@ -36,36 +50,42 @@ function ScoreDetail({ row, rank, onBack }: { row: LeaderboardRow; rank?: number
         {left.length} of {row.party.length} left the cave
         {artifacts > 0 ? ` with ${artifacts} artifact${artifacts > 1 ? "s" : ""}` : ""}.
       </p>
-      <ul className="scv-rollcall">
+      <ul className="scv-hsd-list">
         {row.party.map((m, i) => {
           const c = CREATURES[m.creatureId];
           const note = STATUS_NOTE[m.status];
+          const cimg = resolveCardVariant("creature", m.creatureId, copyIdx.get(i) ?? 0, cards)?.file ?? null;
           return (
-            <li key={i} className={"scv-rc-member" + (survived(m) ? "" : " scv-rc-out")}>
-              <div className="scv-rc-head">
-                <span className="scv-rc-name">
+            <li key={i} className={"scv-hsd-member" + (survived(m) ? "" : " out")}>
+              <div className="scv-hsd-card">
+                {cimg ? <img src={cimg} alt={c?.name ?? ""} /> : <span className="ph">{(c?.name ?? "?")[0]}</span>}
+              </div>
+              <div className="scv-hsd-info">
+                <div className="scv-hsd-name">
                   {c?.name ?? `Creature ${m.creatureId}`}
                   {m.dragonKills > 0 && <span className="scv-rc-tag"> dragon-slayer</span>}
                   {note && <span className="scv-rc-tag"> {note}</span>}
-                </span>
-              </div>
-              {m.treasure.length > 0 ? (
-                <ul className="scv-rc-items">
+                </div>
+                <div className="scv-hsd-items">
+                  {m.treasure.length === 0 && <span className="scv-hsd-empty">carried nothing out</span>}
                   {m.treasure.map((tid, j) => {
                     const t = TREASURES[tid];
+                    const timg = resolveCard("treasure", tid, cards)?.file ?? null;
                     return (
-                      <li key={j}>
-                        <span>
-                          {t?.name ?? `Treasure ${tid}`}
-                          {t?.kind === "artifact" && <span className="scv-rc-tag"> artifact</span>}
+                      <span
+                        key={j}
+                        className={"scv-hsd-item" + (t?.kind === "artifact" ? " art" : "")}
+                        title={t ? t.name + (t.kind === "artifact" ? " · artifact" : ` · ${t.weight}kg`) : `Treasure ${tid}`}
+                      >
+                        <span className="scv-hsd-thumb">
+                          {timg ? <img src={timg} alt={t?.name ?? ""} /> : <span className="ph">{(t?.name ?? "?")[0]}</span>}
                         </span>
-                      </li>
+                        <span className="scv-hsd-item-nm">{t?.name ?? `Treasure ${tid}`}</span>
+                      </span>
                     );
                   })}
-                </ul>
-              ) : (
-                <p className="scv-muted scv-hs-detail-empty">— carried nothing —</p>
-              )}
+                </div>
+              </div>
             </li>
           );
         })}
