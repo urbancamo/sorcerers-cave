@@ -68,17 +68,15 @@ function splitCave(g: GameState): { cave: CaveState; rest: PartyCore } {
   return { cave: { areas, largePack, largeIdx, smallPack, smallIdx, seed }, rest: rest as PartyCore };
 }
 
-/** A turn ends (the seat passes) when the party is at rest or has done a turn-ending action. */
-function turnEnds(action: MpAction, next: GameState): boolean {
-  if (next.gs !== GS_PLAYING) return true;                       // party left / wiped / quit
-  if (next.fight?.casualtyQueue?.length) return false;          // must resolve the casualty choice first
-  switch (action.type) {
-    case "test": case "attack": case "fightOn": case "chooseCasualty":
-    case "retreat": case "withdraw": case "exitCave": case "quit":
-      return true; // a reaction test, a fought round, a withdrawal/retreat or leaving all end the turn
-    default:
-      return next.phase === "explore"; // moved into a tunnel/empty area, or finished pickup → at rest
-  }
+/**
+ * A turn ends (the seat passes) only when the party is back at rest, i.e. its phase has returned to
+ * "explore" — or the party has left/wiped/quit. The active seat therefore keeps acting until any
+ * encounter is fully resolved: a reaction test, every round of a multi-round fight, casualty choices,
+ * and treasure pickup all happen within the one turn and never spill onto later turns.
+ */
+function turnEnds(_action: MpAction, next: GameState): boolean {
+  if (next.gs !== GS_PLAYING) return true;             // party left / wiped / quit
+  return next.phase === "explore";                     // at rest (encounter/fight/pickup fully resolved)
 }
 
 /** Advance to the next seat (in play order) whose party is still exploring; finish if none remain. */

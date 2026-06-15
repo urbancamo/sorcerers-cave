@@ -85,7 +85,7 @@ describe("mpReduce (turn-gated play)", () => {
     expect(r.state.parties[1]!.partyArea).toBe(0); // the other party is untouched
   });
 
-  it("entering a chamber with strangers keeps the turn until the party acts", () => {
+  it("a fight is fully resolved within the one turn, then the turn passes", () => {
     // card 17 (N+chamber) drawn south; level-1 draw of one Dragon (110) → an encounter.
     const mp = playing({ largePack: [17], smallPack: [110] }, [partyAt(0), partyAt(1)]);
     const r = mpReduce(mp, 0, { type: "move", dir: 3 });
@@ -94,9 +94,21 @@ describe("mpReduce (turn-gated play)", () => {
     expect(r.state.parties[0]!.strangers).toEqual([10]);
     // the other seat can't jump in
     expect(mpReduce(r.state, 1, { type: "attack" }).events).toEqual([{ type: "blocked" }]);
-    // seat 0 attacks — a round is fought, which ends the turn
-    const r2 = mpReduce(r.state, 0, { type: "attack" });
-    expect(r2.state.active).toBe(1);
+
+    // Hero (FS 5) vs Dragon (FS 6): the first round does not settle it, so the fight continues and
+    // the turn stays with seat 0 — it no longer passes mid-fight.
+    let s = mpReduce(r.state, 0, { type: "attack" }).state;
+    expect(s.parties[0]!.phase).toBe("fight");
+    expect(s.active).toBe(0);
+
+    // Keep fighting until the chamber is cleared (or the party is wiped); only then is the turn handed off.
+    let guard = 0;
+    while (s.parties[0]!.status === "exploring" && s.parties[0]!.phase !== "explore" && guard++ < 30) {
+      expect(s.active).toBe(0); // throughout the whole fight, it remains seat 0's turn
+      s = mpReduce(s, 0, { type: "fightOn" }).state;
+    }
+    expect(s.parties[0]!.phase === "explore" || s.parties[0]!.status !== "exploring").toBe(true);
+    expect(s.active).toBe(1); // resolved → next seat
   });
 
   it("shares the area deck across seats", () => {
