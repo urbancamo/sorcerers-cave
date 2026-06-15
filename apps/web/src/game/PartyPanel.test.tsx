@@ -8,6 +8,7 @@ import { PartyPanel } from "./PartyPanel";
 vi.mock("../data/manifest", () => ({
   loadManifest: () => Promise.resolve({ cards: [] }),
   resolveCard: (cat: string, id: number) => (cat === "treasure" && id === 1 ? { file: "/gold.png" } : null),
+  resolveCardVariant: (cat: string, id: number) => (cat === "creature" ? { file: `/c${id}.png` } : null),
 }));
 
 function partyState(): GameState {

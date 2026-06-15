@@ -3,7 +3,7 @@ import {
   CREATURES, TREASURES, carriedWeight, canCarry,
   type GameState, type GameAction,
 } from "@sorcerers-cave/engine";
-import { loadManifest, resolveCard, type CardArt } from "../data/manifest";
+import { loadManifest, resolveCard, resolveCardVariant, type CardArt } from "../data/manifest";
 
 const STATUS_LABEL: Record<number, string> = { 0: "", 1: "ally", 2: "petrified", 3: "fallen" };
 
@@ -43,6 +43,13 @@ export function PartyPanel({
   const move = (to: number) => { if (sel) { dispatch({ type: "moveTreasure", from: sel.mi, to, idx: sel.idx }); setSel(null); } };
   const drop = () => { if (sel) { dispatch({ type: "dropTreasure", mi: sel.mi, idx: sel.idx }); setSel(null); } };
   const imgOf = (cat: "creature" | "treasure", id: number) => resolveCard(cat, id, cards)?.file ?? null;
+  // Each member's copy-index among same-creature members (by original party order) → its own card art,
+  // so two Men in the party show different illustrations rather than both showing the first Man card.
+  const copyIdx = new Map<number, number>(); // original index -> nth copy of that creatureId
+  const tally = new Map<number, number>();
+  party.forEach((m, i) => { const k = tally.get(m.creatureId) ?? 0; copyIdx.set(i, k); tally.set(m.creatureId, k + 1); });
+  const creatureImgOf = (creatureId: number, mi: number) =>
+    resolveCardVariant("creature", creatureId, copyIdx.get(mi) ?? 0, cards)?.file ?? null;
 
   return (
     <div className="scv-pp-overlay" role="dialog" aria-label="party" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -67,7 +74,7 @@ export function PartyPanel({
             const pct = cap > 0 ? Math.min(100, Math.round((load / cap) * 100)) : 0;
             const living = m.status === 0 || m.status === 1;
             const isTarget = !!sel && canManage && sel.mi !== mi && living && selTid !== undefined && canCarry(m, selTid);
-            const cimg = imgOf("creature", m.creatureId);
+            const cimg = creatureImgOf(m.creatureId, mi);
             return (
               <div key={mi} className={"scv-pp-member" + (m.status === 3 ? " fallen" : "") + (isTarget ? " target" : "")}>
                 <div className="scv-pp-card">

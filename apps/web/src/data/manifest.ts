@@ -95,6 +95,18 @@ export function resolveCard(category: Category, entityId: number, cards: CardArt
   return cards.find((c) => c.category === category && c.entityId === entityId) ?? null;
 }
 
+/** All distinct card images for an entity, in manifest (deck) order — the physical copies of that
+ *  creature/treasure/hazard. Used to give each duplicate (e.g. the 6 Men) its own illustration. */
+export function cardsFor(category: Category, entityId: number, cards: CardArt[]): CardArt[] {
+  return cards.filter((c) => c.category === category && c.entityId === entityId);
+}
+
+/** The nth physical copy's image for an entity, wrapping if there are more copies than images. */
+export function resolveCardVariant(category: Category, entityId: number, n: number, cards: CardArt[]): CardArt | null {
+  const arts = cardsFor(category, entityId, cards);
+  return arts.length ? arts[n % arts.length]! : null;
+}
+
 /** Index tiles by tileId for O(1) lookup (used by the renderer adapter in D-2). */
 export function indexTilesById(tiles: TileArt[]): Map<string, TileArt> {
   return new Map(tiles.map((t) => [t.tileId, t]));

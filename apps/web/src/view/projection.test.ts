@@ -56,6 +56,9 @@ describe("projectArea", () => {
     // unique ids even for repeats
     const dup = projectArea(area({ card: 16, contents: [100 + 10, 100 + 10] }), 1, state, art);
     expect(new Set(dup.strangers.map((c) => c.id)).size).toBe(2);
+    // …each duplicate shows its OWN card art (the manifest has 3 distinct Dragon images)
+    expect(dup.strangers[0]!.file).not.toBe(dup.strangers[1]!.file);
+    expect(new Set(dup.strangers.map((c) => c.file)).size).toBe(2);
   });
 
   it("renders a Dragon asleep on the party's tile while the Charmed Flute is held", () => {

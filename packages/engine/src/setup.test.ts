@@ -35,12 +35,21 @@ describe("newGame (spec §3 setup)", () => {
     expect(g.party.map((m) => m.creatureId)).toEqual([4, 6]);
     expect(g.party.every((m) => m.status === 0)).toBe(true);
   });
-  it("builds a 60-card large pack and a 52-card small pack", () => {
-    const g = newGame(1, [0]);
+  it("builds a 60-card large pack and the small pack minus the chosen party", () => {
+    const g = newGame(1, [0]); // one Hero picked
     expect(g.largePack).toHaveLength(60);
-    expect(g.smallPack).toHaveLength(52);
+    expect(g.smallPack).toHaveLength(70); // 71-card deck minus the 1 picked Hero
     expect(g.largeIdx).toBe(0);
     expect(g.smallIdx).toBe(0);
+  });
+  it("removes the chosen party cards from the small pack (one finite deck)", () => {
+    // The lone Woman-Hero (code 101): take it into the party and it can no longer be drawn.
+    const g = newGame(1, [1]); // Woman-Hero, cost 5
+    expect(g.smallPack).toHaveLength(70);
+    expect(g.smallPack.filter((c) => c === 101)).toHaveLength(0);
+    // Two of the three Dwarves (107) picked → exactly one Dwarf remains in the pile.
+    const d = newGame(1, [7, 7]); // two Dwarves, cost 1 each
+    expect(d.smallPack.filter((c) => c === 107)).toHaveLength(1);
   });
   it("throws on invalid picks", () => {
     expect(() => newGame(1, [0, 0])).toThrow();

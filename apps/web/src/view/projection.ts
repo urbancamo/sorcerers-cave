@@ -1,5 +1,5 @@
 import { decodeArea, unpackCoord, TREASURES, AF_DESTROYED, fluteLulls, type GameState, type PlacedArea } from "@sorcerers-cave/engine";
-import { resolveTile, resolveCard, normExits, type TileArt, type CardArt, type Rot } from "../data/manifest";
+import { resolveTile, resolveCardVariant, normExits, type TileArt, type CardArt, type Rot } from "../data/manifest";
 import type { Area, Card } from "./ports";
 
 export interface ArtTables { tiles: TileArt[]; cards: CardArt[]; }
@@ -37,15 +37,18 @@ export function laneCards(
     const entityId = lotusAsleep ? code - 400 : code >= 300 ? code - 300 : code >= 200 ? code - 200 : code - 100;
     // A Dragon (id 10) sleeps while the party holds the Charmed Flute (dynamic; see fluteLulls).
     const asleep = lotusAsleep || (kind === "creature" && entityId === 10 && dragonsAsleep);
-    const art = resolveCard(kind, entityId, cards);
-    const baseId = art?.cardId ?? `${kind}-${entityId}`;
-    const n = seen.get(baseId) ?? 0; seen.set(baseId, n + 1);
+    // The nth copy of an entity in this lane gets the nth physical card's art, so duplicates (e.g.
+    // two Men, several Dragons) each show their own illustration instead of all sharing the first.
+    const occKey = `${kind}-${entityId}`;
+    const n = seen.get(occKey) ?? 0; seen.set(occKey, n + 1);
+    const art = resolveCardVariant(kind, entityId, n, cards);
+    const baseId = art?.cardId ?? `${kind}-${entityId}#${n}`;
     const category: Card["category"] =
       kind === "creature" ? "creature"
       : kind === "hazard" ? "hazard"
       : TREASURES[entityId]?.kind === "artifact" ? "artifact" : "treasure";
     const card: Card = {
-      id: (n === 0 ? baseId : `${baseId}#${n}`) + (asleep ? "·z" : ""),
+      id: `${baseId}#${n}` + (asleep ? "·z" : ""),
       name: art?.name ?? `${kind} ${entityId}`,
       category,
       entityId: String(entityId),

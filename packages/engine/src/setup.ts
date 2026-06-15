@@ -35,6 +35,15 @@ export function newGame(seed: number, picks: readonly number[]): GameState {
   const large = buildLargePack(seed);
   const small = buildSmallPack(large.seed);
 
+  // The party is drawn FROM the small pack: remove the chosen creature cards so they cannot also be
+  // drawn as chamber strangers (one finite deck — rules §"choosing creatures from the small pack").
+  // validatePicks has already confirmed enough copies of each, so every removal succeeds.
+  const smallPack = small.pack.slice();
+  for (const creatureId of picks) {
+    const at = smallPack.indexOf(100 + creatureId);
+    if (at >= 0) smallPack.splice(at, 1);
+  }
+
   const gateway: PlacedArea = {
     card: AREA_CARDS[GATEWAY_INDEX]!, // 175
     coord: GATEWAY_START_COORD,
@@ -68,7 +77,7 @@ export function newGame(seed: number, picks: readonly number[]): GameState {
     party,
     largePack: large.pack,
     largeIdx: 0,
-    smallPack: small.pack,
+    smallPack,
     smallIdx: 0,
     strangers: [],
     treasures: [],
