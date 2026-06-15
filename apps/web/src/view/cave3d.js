@@ -400,6 +400,12 @@ function flyFollow(newTarget){ // keep relative view, shift to new target
 function sceneCenter(){const c=new THREE.Vector3();engine.areas.forEach(a=>c.add(worldPos(a)));return c.multiplyScalar(1/engine.areas.length);}
 function viewFreeOrbit(){setMode('orbit','Free orbit');setIsolation(null);const c=sceneCenter();flyTo(c.clone().add(new THREE.Vector3(TILE_W*2.4,13,16)),c,45);}
 function viewSnapTile(){const a=engine.current;setMode('snap','Overhead · '+a.name);setIsolation(a.level);flyTo(worldPos(a).clone().add(new THREE.Vector3(0,9.5,2.6)),worldPos(a),30);}
+function focusArea(a){ // a: {col,row,level} — fly the camera to that area (free-roam spectating)
+  if(a==null) return;
+  setMode('orbit','Spectating'); setIsolation(a.level);
+  const wp=worldPos(a);
+  flyTo(wp.clone().add(new THREE.Vector3(TILE_W*1.6,11,12)),wp,40);
+}
 let activeLevel=null;
 function viewLevel(lvl){activeLevel=lvl;setMode('level','Level '+lvl);setIsolation(lvl);const b=levelBounds[lvl];const c=new THREE.Vector3(b.cx,b.y,b.cz);flyTo(c.clone().add(new THREE.Vector3(TILE_W*1.4,10,12)),c,40);}
 
@@ -776,7 +782,7 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
   camera.position.copy(ap.clone().add(new THREE.Vector3(0,9.5,2.6)));
   controls.target.copy(ap); controls.update();
   setPrompt('Your party stands in <b>'+engine.current.name+'</b>. Click a glowing doorway, or press N/E/S/W.','event');
-  window.__cave={scene,camera,controls,renderer,THREE,engine,tileMeshes,exitMarkers,doMove,worldPos,layContents,contentGroup,setParty,setOtherParties};
+  window.__cave={scene,camera,controls,renderer,THREE,engine,tileMeshes,exitMarkers,doMove,worldPos,layContents,contentGroup,setParty,setOtherParties,focusArea};
   document.getElementById('loader').classList.add('hide');animate();
 
   function dispose(){
@@ -788,5 +794,5 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
     renderer.dispose();
     renderer.domElement.remove();
   }
-  return { dispose, refresh, setParty, setOtherParties };
+  return { dispose, refresh, setParty, setOtherParties, focusArea };
 }

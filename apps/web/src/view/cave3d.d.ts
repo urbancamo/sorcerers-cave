@@ -30,4 +30,6 @@ export function boot(opts: BootOptions): Promise<{
   dispose(): void;
   refresh(): void;
   setParty(party: ViewPartyMember[]): void;
+  setOtherParties(list: { color: string; col: number; row: number; level: number }[]): void;
+  focusArea(a: { col: number; row: number; level: number }): void;
 }>;
