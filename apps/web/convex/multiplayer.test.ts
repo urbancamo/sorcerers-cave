@@ -232,6 +232,12 @@ test("a finished party is recorded to the multiplayer high-score table, kept apa
 
   // The solo leaderboard ignores multiplayer entries.
   expect(await userBySeat[0]!.query(api.highScores.list, {})).toEqual([]);
+
+  // The outcome is broadcast to the other player still in the cave.
+  const other = current === 0 ? 1 : 0;
+  const feed = await userBySeat[other]!.query(api.multiplayer.messages, { gameId });
+  const quitterName = current === 0 ? "Alpha" : "Beta";
+  expect(feed.some((m) => m.seat === null && m.text.includes(`${quitterName} abandoned the expedition`))).toBe(true);
 });
 
 test("chat is membership-gated and includes system lines", async () => {

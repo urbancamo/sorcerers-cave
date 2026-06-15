@@ -30,6 +30,11 @@ const MSG_MAX = 280;
 
 const cleanName = (n: string) => n.trim().slice(0, NAME_MAX);
 
+// How a finished party's outcome reads in the broadcast feed (keyed by terminal SeatStatus).
+const OUTCOME_VERB: Record<string, string> = {
+  wiped: "perished in the cave", left: "escaped the cave", quit: "abandoned the expedition",
+};
+
 /** All seats in a game, ordered by seat index. */
 async function seatsOf(ctx: QueryCtx, gameId: Id<"games">): Promise<Doc<"players">[]> {
   const rows = await ctx.db.query("players").withIndex("by_game", (q) => q.eq("gameId", gameId)).collect();
@@ -334,11 +339,15 @@ export const act = mutation({
     const before = mp.parties[me.seat]!.status, after = state.parties[me.seat]!.status;
     if (before === "exploring" && after !== "exploring") {
       const view = partyView(state, me.seat);
+      const score = scoreGame(view);
       await ctx.db.insert("highScores", {
         gameId, ownerId: me.userId, name: state.parties[me.seat]!.name,
-        score: scoreGame(view), outcome: view.gs, party: view.party, state: view, createdAt: now,
+        score, outcome: view.gs, party: view.party, state: view, createdAt: now,
         mode: "multi", gameCode: game.code, partyName: state.parties[me.seat]!.name,
       });
+      // Broadcast the outcome to everyone still in the cave.
+      const verb = OUTCOME_VERB[after] ?? "finished";
+      await postSystem(ctx, gameId, `${me.partyName} ${verb} (score ${score})`, now);
     }
     return { events };
   },
