@@ -204,6 +204,17 @@ async function reachPlaying(t: ReturnType<typeof convexTest>) {
   return { gameId, userBySeat };
 }
 
+test("gameState projection exposes live per-party stats (depth, turns, kills)", async () => {
+  const t = convexTest(schema, modules);
+  const { gameId, userBySeat } = await reachPlaying(t);
+  const gs = (await userBySeat[0]!.query(api.multiplayer.gameState, { gameId }))!;
+  for (const p of gs.parties) {
+    expect(typeof p.depth).toBe("number");
+    expect(typeof p.turns).toBe("number");
+    expect(typeof p.kills).toBe("number");
+  }
+});
+
 test("playView gives the seat its own render view + whose turn; act is turn-gated", async () => {
   const t = convexTest(schema, modules);
   const { gameId, userBySeat } = await reachPlaying(t);
@@ -264,6 +275,22 @@ test("a finished party is recorded to the multiplayer high-score table, kept apa
   const feed = await userBySeat[other]!.query(api.multiplayer.messages, { gameId });
   const quitterName = current === 0 ? "Alpha" : "Beta";
   expect(feed.some((m) => m.kind === "action" && m.seat === current && m.partyName === quitterName && m.text.includes("abandoned the expedition"))).toBe(true);
+});
+
+test("playView still returns a state once the whole game is finished", async () => {
+  const t = convexTest(schema, modules);
+  const { gameId, userBySeat } = await reachPlaying(t);
+  // Both seats quit → every seat terminal → phase flips to "finished".
+  for (let i = 0; i < 2; i++) {
+    const cur = (await userBySeat[0]!.query(api.multiplayer.playView, { gameId }))?.currentSeat;
+    if (cur === null || cur === undefined) break;
+    await userBySeat[cur]!.mutation(api.multiplayer.act, { gameId, action: { type: "quit" } });
+  }
+  const gs = await userBySeat[0]!.query(api.multiplayer.gameState, { gameId });
+  expect(gs?.phase).toBe("finished");
+  const pv = await userBySeat[0]!.query(api.multiplayer.playView, { gameId });
+  expect(pv).not.toBeNull();
+  expect(pv!.yourTurn).toBe(false);
 });
 
 test("chat is membership-gated and includes system lines", async () => {

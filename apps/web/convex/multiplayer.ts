@@ -330,6 +330,7 @@ export const gameState = query({
         members: p.party.map((m) => m.creatureId),
         // running/final score per party (the engine computes it from the party's state)
         score: p.party.length ? scoreGame(partyView(mp, p.seat)) : 0,
+        depth: p.level, turns: p.turn, kills: p.kills ?? 0, // live scoreboard stats
       })),
       draft: mp.phase === "partySelect" ? { remaining, budget: PARTY_BUDGET } : null,
     };
@@ -351,9 +352,9 @@ export const playView = query({
     const me = callerId ? seats.find((p) => p.userId === callerId) : null;
     if (!me) return null;
     const mp = game.state as MpGameState | null;
-    if (!mp || mp.phase !== "playing") return null;
+    if (!mp || (mp.phase !== "playing" && mp.phase !== "finished")) return null;
 
-    const current = mp.order[mp.active]!;
+    const current = mp.phase === "playing" ? mp.order[mp.active]! : null;
     return {
       state: partyView(mp, me.seat),
       youSeat: me.seat,
