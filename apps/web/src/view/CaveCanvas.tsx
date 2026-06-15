@@ -13,7 +13,7 @@ const TILE_AR = 1728 / 1210; // all tiles are 1728×1210 landscape (manifest)
 /** Other parties' map positions in a multiplayer game (small coloured pins). */
 export interface OtherPartyToken { color: string; col: number; row: number; level: number; }
 
-export function CaveCanvas({ engine, state, color, onPartyClick, onSave, otherParties }: { engine: CaveEngine; state: GameState; color: PartyColor; onPartyClick?: () => void; onSave?: () => void; otherParties?: OtherPartyToken[] }) {
+export function CaveCanvas({ engine, state, color, onPartyClick, onSave, onLeave, otherParties }: { engine: CaveEngine; state: GameState; color: PartyColor; onPartyClick?: () => void; onSave?: () => void; onLeave?: () => void; otherParties?: OtherPartyToken[] }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const ctrl = useRef<{ dispose(): void; refresh(): void; setParty(p: ReturnType<typeof viewParty>): void; setOtherParties?: (list: OtherPartyToken[]) => void } | null>(null);
   const cardsRef = useRef<CardArt[]>([]); // small-card art for resolving carried items in the roster
@@ -61,5 +61,5 @@ export function CaveCanvas({ engine, state, color, onPartyClick, onSave, otherPa
     ctrl.current?.setOtherParties?.(otherParties ?? []);
   }, [otherParties]);
 
-  return <CaveHud mountRef={mountRef} onPartyClick={onPartyClick} onSave={onSave} />;
+  return <CaveHud mountRef={mountRef} onPartyClick={onPartyClick} onSave={onSave} onLeave={onLeave} />;
 }

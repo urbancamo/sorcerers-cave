@@ -44,6 +44,38 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   }, [chatFeed, showChat]);
   const unreadChat = !showChat && (chatFeed?.length ?? 0) > seenCount;
 
+  // Transient toasts (turn changes + mirrored chat), shown under the depth bar for 3s each.
+  const [toasts, setToasts] = useState<{ id: number; text: string; tone: "turn" | "you" | "chat" }[]>([]);
+  const toastIdRef = useRef(0);
+  const pushToast = useCallback((text: string, tone: "turn" | "you" | "chat") => {
+    const id = ++toastIdRef.current;
+    setToasts((ts) => [...ts, { id, text, tone }]);
+    setTimeout(() => setToasts((ts) => ts.filter((t) => t.id !== id)), 3000);
+  }, []);
+
+  // Announce each turn change as a toast (suppressed once your own run has ended).
+  const prevSeatRef = useRef<number | null | undefined>(undefined);
+  useEffect(() => {
+    if (!view || view.currentSeat === prevSeatRef.current) return;
+    prevSeatRef.current = view.currentSeat;
+    if ((view.state as GameState).gs !== GS_PLAYING) return;
+    if (view.yourTurn) pushToast("Your turn — explore!", "you");
+    else pushToast(`${view.parties.find((p) => p.seat === view.currentSeat)?.name ?? "…"}'s turn`, "turn");
+  }, [view, pushToast]);
+
+  // Mirror chat received from other players as toasts (existing history is not replayed).
+  const toastedCountRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (chatFeed === undefined) return;
+    if (toastedCountRef.current === null) { toastedCountRef.current = chatFeed.length; return; }
+    if (chatFeed.length <= toastedCountRef.current) return;
+    const fresh = chatFeed.slice(toastedCountRef.current);
+    toastedCountRef.current = chatFeed.length;
+    for (const m of fresh) {
+      if (m.seat !== null && m.seat !== view?.youSeat) pushToast(`${m.partyName}: ${m.text}`, "chat");
+    }
+  }, [chatFeed, pushToast, view?.youSeat]);
+
   useEffect(() => { void loadManifest().then(setArt); }, []);
 
   const adapterRef = useRef<CaveAdapter | null>(null);
@@ -84,10 +116,6 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   const myColor = (me?.color as PartyColor) ?? DEFAULT_PARTY_COLOR;
   const terminal = state.gs !== GS_PLAYING;
   const yourTurn = view.yourTurn && !terminal;
-  const currentName = view.parties.find((p) => p.seat === view.currentSeat)?.name ?? "…";
-  const banner = terminal
-    ? "Your expedition has ended — watching the others."
-    : yourTurn ? "Your turn — explore!" : `Waiting for ${currentName}…`;
 
   // Other active parties' pins on the shared map (positions read from the shared areas).
   const otherParties: OtherPartyToken[] = view.parties
@@ -102,8 +130,12 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
 
   return (
     <div className="relative h-screen w-screen">
-      <CaveCanvas key={gameId} engine={engine} state={state} color={myColor} onPartyClick={() => setShowParty(true)} otherParties={otherParties} />
-      <div className={"scv-turn-banner" + (yourTurn ? " you" : "")}>{banner}</div>
+      <CaveCanvas key={gameId} engine={engine} state={state} color={myColor} onPartyClick={() => setShowParty(true)} onLeave={onExit} otherParties={otherParties} />
+      <div className="scv-mp-toasts">
+        {toasts.map((t) => (
+          <div key={t.id} className={"scv-mp-toast" + (t.tone === "you" ? " you" : t.tone === "chat" ? " chat" : "")}>{t.text}</div>
+        ))}
+      </div>
       {yourTurn && <EncounterPanel state={state} dispatch={dispatch} />}
       {yourTurn && <ExplorePanel state={state} dispatch={dispatch} />}
       {showParty && <PartyPanel state={state} dispatch={dispatch} onClose={() => setShowParty(false)} />}
@@ -116,7 +148,6 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
         </button>
         {showChat && <ChatPanel gameId={gameId} />}
       </div>
-      <button className="scv-mp-leave" onClick={onExit}>Leave</button>
       {/* Your expedition has ended: show the score screen. Result is auto-recorded server-side, so no save form. */}
       {terminal && (
         <div className="scv-mp-finishoverlay">
