@@ -696,6 +696,9 @@ function onPointerUp(e){
   if(hitT){const a=hitT.object.userData.area; if(a===engine.current){viewSnapTile();selectCurrent();} else inspectArea(a);}
 }
 function onKeyDown(e){
+  // Don't treat typing in a text field (e.g. the chat box) as movement commands.
+  const t=e.target;
+  if(t&&(t.tagName==='INPUT'||t.tagName==='TEXTAREA'||t.isContentEditable))return;
   const k=e.key.toLowerCase();
   const map={arrowup:'N',arrowright:'E',arrowdown:'S',arrowleft:'W',n:'N',e:'E',s:'S',w:'W',u:'U',d:'D'};
   if(map[k]){e.preventDefault();doMove(map[k]);}
