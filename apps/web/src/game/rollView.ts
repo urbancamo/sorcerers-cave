@@ -33,7 +33,15 @@ function combatView(events: GameEvent[]): RollView | null {
   const rubyTaken = events.some((e) => e.type === "rubyTaken");
   const statue = events.some((e) => e.type === "statueAroused"); // Lost-Ruby statue fight
   const killed = events.filter((e) => e.type === "strangerKilled").length;
-  const lost = events.filter((e) => e.type === "memberDied" || e.type === "spectreSlew").length;
+  // Count party losses from the round's MATCH RESULTS, not just memberDied events: when a two-member
+  // group loses a match the death is deferred to a casualty choice (no memberDied is emitted yet), so
+  // counting events alone reported 0 even though a roll was lost. Each enemy-won match costs exactly
+  // one member (immediate or pending); a Spectre may slay one outside the matches, and The Ring can
+  // avert a death.
+  const enemyWon = rolls.filter((r) => r.result === "enemyWon").length;
+  const spectreSlew = events.filter((e) => e.type === "spectreSlew").length;
+  const prevented = events.filter((e) => e.type === "deathPrevented").length;
+  const lost = Math.max(0, enemyWon + spectreSlew - prevented);
 
   // The Lost Ruby is guarded by a strength-8 statue (§16) — give that fight its own copy.
   if (rubyTaken || statue) {

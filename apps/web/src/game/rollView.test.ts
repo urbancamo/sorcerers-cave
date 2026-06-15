@@ -88,6 +88,26 @@ describe("rollFromEvents", () => {
     expect(l.tone).toBe("bad");
   });
 
+  it("counts a deferred two-member casualty as a loss (no memberDied event yet)", () => {
+    // W-Hero + Man lose the match — the death is deferred to a casualty choice, so NO memberDied
+    // fires this round. The summary must still report one of yours lost (matching the lost roll).
+    const events: GameEvent[] = [
+      { type: "combatRoll", party: "W-Hero + Man", enemy: "Hero", partyRoll: 2, enemyRoll: 5, partyTotal: 9, enemyTotal: 10, result: "enemyWon" },
+    ];
+    const view = rollFromEvents(events)!;
+    expect(view.message).toBe("Round resolved — 0 foe(s) down, 1 of yours lost.");
+    expect(view.tone).toBe("bad");
+  });
+
+  it("does not count a death that The Ring averted", () => {
+    const events: GameEvent[] = [
+      { type: "combatRoll", party: "Hero", enemy: "Dragon", partyRoll: 1, enemyRoll: 6, partyTotal: 6, enemyTotal: 12, result: "enemyWon" },
+      { type: "deathPrevented", creatureId: 0 },
+    ];
+    const view = rollFromEvents(events)!;
+    expect(view.message).toBe("Round resolved — 0 foe(s) down, 0 of yours lost.");
+  });
+
   it("shows one lane per pairing and a slain message when the party falls", () => {
     const events: GameEvent[] = [
       { type: "combatRoll", party: "Dwarf", enemy: "Dragon", partyRoll: 2, enemyRoll: 6, partyTotal: 4, enemyTotal: 12, result: "enemyWon" },
