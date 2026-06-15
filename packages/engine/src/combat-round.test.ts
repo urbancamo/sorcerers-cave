@@ -74,7 +74,7 @@ describe("resolveRound (spec §9.1, §9.3-9.4)", () => {
       seed: 5,
       ...over,
     });
-    const str = (s) => { const r = combatRolls(resolveRound(s))[0]!; return r.enemyTotal - r.enemyRoll; };
+    const str = (s: ReturnType<typeof arena>) => { const r = combatRolls(resolveRound(s))[0]!; return r.enemyTotal - r.enemyRoll; };
     expect(str(arena())).toBe(13); // full strength
     expect(str(arena({ party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [13] }] }))).toBe(11); // Eye of God: −2
     expect(str(arena({ lotusOnSorcerer: true }))).toBe(11); // Lotus Dust: −2

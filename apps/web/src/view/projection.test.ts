@@ -57,6 +57,17 @@ describe("projectArea", () => {
     const dup = projectArea(area({ card: 16, contents: [100 + 10, 100 + 10] }), 1, state, art);
     expect(new Set(dup.strangers.map((c) => c.id)).size).toBe(2);
   });
+
+  it("renders a Dragon asleep on the party's tile while the Charmed Flute is held", () => {
+    const state = newGame(1, [0]); // Hero (eligible flute player), partyArea 0
+    const dragon = (idx: number) =>
+      projectArea(area({ card: 16, contents: [100 + 10] }), idx, state, art).strangers[0]!;
+    state.party[0]!.treasure = [12]; // Charmed Flute
+    expect(dragon(0).asleep).toBe(true); // party's tile + Flute held → asleep (Zzz)
+    expect(dragon(1).asleep).toBe(false); // a different tile → awake (the charm is local to the party)
+    state.party[0]!.treasure = []; // drop the Flute
+    expect(dragon(0).asleep).toBe(false); // no Flute → awake again
+  });
 });
 
 describe("encodeWorkingSet", () => {

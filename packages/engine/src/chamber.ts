@@ -33,6 +33,7 @@ export function enterChamber(state: GameState): GameEvent[] {
   state.treasures = [];
   state.hazards = [];
   state.sleeping = [];
+  state.lulled = []; // recomputed from flute presence each entry (see resolveArea)
 
   if (area.visited) {
     for (const code of area.contents) classify(state, code);

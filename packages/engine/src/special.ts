@@ -1,8 +1,8 @@
 import { rollDie } from "./rng";
+import { fluteLulls } from "./effects";
 import type { GameState, PartyMember } from "./state";
 import type { GameEvent } from "./actions";
 
-const T_CHARMED_FLUTE = 12;
 const C_GIANT = 12;
 const HEAVY = new Set([0, 1, 2]); // Silver, Gold, Gems
 
@@ -15,7 +15,8 @@ function living(state: GameState): PartyMember[] {
 export function viperCrossing(state: GameState): GameEvent[] {
   const events: GameEvent[] = [];
   const members = living(state);
-  if (members.some((m) => m.treasure.includes(T_CHARMED_FLUTE))) return events;
+  // The Charmed Flute (played by an eligible member) lulls the vipers — the party crosses unharmed.
+  if (fluteLulls(state)) return [{ type: "vipersLulled" }];
   for (const m of members) {
     const r = rollDie(state.seed);
     state.seed = r.seed;

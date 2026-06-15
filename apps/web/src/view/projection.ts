@@ -1,4 +1,4 @@
-import { decodeArea, unpackCoord, TREASURES, AF_DESTROYED, type GameState, type PlacedArea } from "@sorcerers-cave/engine";
+import { decodeArea, unpackCoord, TREASURES, AF_DESTROYED, fluteLulls, type GameState, type PlacedArea } from "@sorcerers-cave/engine";
 import { resolveTile, resolveCard, normExits, type TileArt, type CardArt, type Rot } from "../data/manifest";
 import type { Area, Card } from "./ports";
 
@@ -16,6 +16,7 @@ export function encodeWorkingSet(state: GameState): number[] {
     ...state.treasures.map((id) => 200 + id),
     ...state.hazards.map((id) => 300 + id),
     ...(state.sleeping ?? []).map((id) => 400 + id),
+    ...(state.lulled ?? []).map((id) => 100 + id), // flute-lulled Dragons; rendered asleep via the dragonsAsleep flag
   ];
 }
 
@@ -25,13 +26,17 @@ function decodeTopology(card: number) {
   return { d, exits, special: SPECIAL[d.special] ?? null };
 }
 
-export function laneCards(codes: readonly number[], cards: CardArt[]): { strangers: Card[]; treasure: Card[]; hazards: Card[] } {
+export function laneCards(
+  codes: readonly number[], cards: CardArt[], dragonsAsleep = false,
+): { strangers: Card[]; treasure: Card[]; hazards: Card[] } {
   const strangers: Card[] = [], treasure: Card[] = [], hazards: Card[] = [];
   const seen = new Map<string, number>();
   for (const code of codes) {
-    const asleep = code >= 400; // 400+cid = a creature put to sleep by Lotus Dust
-    const kind = asleep ? "creature" : code >= 300 ? "hazard" : code >= 200 ? "treasure" : "creature";
-    const entityId = asleep ? code - 400 : code >= 300 ? code - 300 : code >= 200 ? code - 200 : code - 100;
+    const lotusAsleep = code >= 400; // 400+cid = a creature put to sleep by Lotus Dust (permanent)
+    const kind = lotusAsleep ? "creature" : code >= 300 ? "hazard" : code >= 200 ? "treasure" : "creature";
+    const entityId = lotusAsleep ? code - 400 : code >= 300 ? code - 300 : code >= 200 ? code - 200 : code - 100;
+    // A Dragon (id 10) sleeps while the party holds the Charmed Flute (dynamic; see fluteLulls).
+    const asleep = lotusAsleep || (kind === "creature" && entityId === 10 && dragonsAsleep);
     const art = resolveCard(kind, entityId, cards);
     const baseId = art?.cardId ?? `${kind}-${entityId}`;
     const n = seen.get(baseId) ?? 0; seen.set(baseId, n + 1);
@@ -81,7 +86,10 @@ export function projectArea(
     { exits, stairUp: d.stairUp && (mirrored & 32) === 0, stairDown: d.stairDown && (mirrored & 64) === 0, special, isChamber: d.chamber },
     art.tiles,
   );
-  const lanes = laneCards(liveContents ?? pa.contents, art.cards);
+  // Dragons in the party's CURRENT area sleep while it holds the Charmed Flute (§ Charmed Flute);
+  // leaving the area wakes them, so the flag is scoped to the party's tile.
+  const dragonsAsleep = idx === state.partyArea && fluteLulls(state);
+  const lanes = laneCards(liveContents ?? pa.contents, art.cards, dragonsAsleep);
   return {
     tileId: resolved?.tileId ?? art.tiles[0]!.tileId,
     rot: (resolved?.rot ?? 0) as Area["rot"],

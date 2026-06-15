@@ -10,7 +10,7 @@ import { unpackCoord, packCoord, targetCoord, DIR_UP, DIR_DOWN } from "./coords"
 import type { GameAction, GameEvent } from "./actions";
 import { reactionRoll } from "./reaction";
 import { resolveRound, frontStrength } from "./combat";
-import { wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman } from "./effects";
+import { wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls } from "./effects";
 import { rollDie } from "./rng";
 import { CREATURES } from "./data/creatures";
 
@@ -34,6 +34,7 @@ function persistAndExplore(state: GameState): void {
     ...state.strangers.map((id) => 100 + id),
     ...state.treasures.map((id) => 200 + id),
     ...(state.sleeping ?? []).map((id) => 400 + id), // sleeping creatures stay (inert) in the chamber
+    ...(state.lulled ?? []).map((id) => 100 + id), // flute-lulled dragons park AWAKE — re-lulled on re-entry only if the flute is still held
   ];
   // Clear the live working set now that it's parked on the area — otherwise leftover cards (e.g.
   // treasure the party left behind) keep rendering on the party's current tile as they move on.
@@ -41,6 +42,7 @@ function persistAndExplore(state: GameState): void {
   state.treasures = [];
   state.hazards = [];
   state.sleeping = [];
+  state.lulled = [];
   state.phase = "explore";
 }
 
@@ -150,6 +152,15 @@ function resolveArea(state: GameState): GameEvent[] {
       events.push({ type: "trapSprung", level: state.level });
       events.push({ type: "moved", area: state.partyArea, level: state.level });
       continue;
+    }
+    // The Charmed Flute lulls every Dragon for as long as the party holds it: they sleep in the
+    // chamber, no longer leading or blocking, so a friendlier creature reacts and the area plays
+    // out as if empty (§ Charmed Flute). Re-evaluated each entry, so they wake if the flute is gone.
+    if (fluteLulls(state) && state.strangers.includes(10)) {
+      const dragons = state.strangers.filter((id) => id === 10);
+      state.lulled = [...(state.lulled ?? []), ...dragons];
+      state.strangers = state.strangers.filter((id) => id !== 10);
+      if (freshEntry) events.push({ type: "dragonsLulled", count: dragons.length });
     }
     if (state.strangers.length > 0) {
       state.phase = "encounter";
@@ -265,8 +276,9 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
         ...next.strangers.map((id) => 100 + id),
         ...next.treasures.map((id) => 200 + id),
         ...(next.sleeping ?? []).map((id) => 400 + id),
+        ...(next.lulled ?? []).map((id) => 100 + id), // flute-lulled dragons park awake (re-lulled on re-entry if held)
       ];
-      next.strangers = []; next.treasures = []; next.hazards = []; next.sleeping = [];
+      next.strangers = []; next.treasures = []; next.hazards = []; next.sleeping = []; next.lulled = [];
       next.partyArea = next.prev;
       next.level = unpackCoord(next.areas[next.partyArea]!.coord).level;
       next.phase = "explore";
@@ -458,8 +470,9 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
         ...next.strangers.map((id) => 100 + id),
         ...next.treasures.map((id) => 200 + id),
         ...(next.sleeping ?? []).map((id) => 400 + id),
+        ...(next.lulled ?? []).map((id) => 100 + id), // flute-lulled dragons park awake (re-lulled on re-entry if held)
       ];
-      next.strangers = []; next.treasures = []; next.hazards = []; next.sleeping = [];
+      next.strangers = []; next.treasures = []; next.hazards = []; next.sleeping = []; next.lulled = [];
       next.fight = null;
       next.party.forEach((m) => { m.potionActive = false; });
       next.partyArea = next.prev;
@@ -557,23 +570,10 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
             }
             return { state: next, events: [{ type: "artifactUsed", artifact: 12 }, { type: "secretDoorRevealed", dir: action.dir }] };
           }
-          // Lull Dragons (encounter/fight) — not consumed.
-          // Deferred: Vipers are a special-area crossing (viperCrossing in special.ts), not creatures
-          // in `strangers`, so flute-lulling of Vipers is not implemented.
-          if (next.phase !== "encounter" && next.phase !== "fight") return { state, events: [{ type: "blocked" }] };
-          if (!next.strangers.includes(10)) return { state, events: [{ type: "blocked" }] };
-          let count = 0;
-          for (let i = next.strangers.length - 1; i >= 0; i--) {
-            if (next.strangers[i] === 10) { next.areas[next.partyArea]!.contents.push(110); next.strangers.splice(i, 1); count += 1; }
-          }
-          const events: GameEvent[] = [{ type: "artifactUsed", artifact: 12 }, { type: "dragonsLulled", count }];
-          if (next.strangers.length === 0) { // nothing left to face
-            next.fight = null;
-            next.party.forEach((m) => { m.potionActive = false; });
-            if (next.treasures.length > 0) next.phase = "pickup";
-            else persistAndExplore(next);
-          }
-          return { state: next, events };
+          // Lulling Dragons is passive: the Flute lulls them automatically on chamber entry for as
+          // long as the party holds it (see resolveArea) — and lulls Vipers on the pit crossing (see
+          // special.ts). So there is no explicit "lull" action; without a `dir`, the Flute does nothing.
+          return { state, events: [{ type: "blocked" }] };
         }
         default:
           return { state, events: [{ type: "blocked" }] };

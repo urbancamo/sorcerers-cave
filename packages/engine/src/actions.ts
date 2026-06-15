@@ -69,4 +69,5 @@ export type GameEvent =
   | { type: "unicornDeparted"; creatureId: number }
   | { type: "carpetUsed"; dir: number }
   | { type: "dragonsLulled"; count: number }
+  | { type: "vipersLulled" }
   | { type: "secretDoorRevealed"; dir: number };

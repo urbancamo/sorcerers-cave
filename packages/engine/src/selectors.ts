@@ -26,9 +26,8 @@ function artifactActions(state: GameState): GameAction[] {
         if (state.strangers[i] !== 9) actions.push({ type: "useArtifact", artifact: 5, target: i });
       }
     }
-    if (state.strangers.includes(10) && has(12, (id) => id === 0 || id === 4 || id === 5 || id === 6 || id === 8)) {
-      actions.push({ type: "useArtifact", artifact: 12 }); // Charmed Flute -> lull Dragons to sleep
-    }
+    // The Charmed Flute lulls Dragons passively (on chamber entry, while held) — see resolveArea —
+    // so there is no explicit lull action to offer here.
   }
   if (state.phase === "explore") {
     if (has(6, (id) => id === 6 || id === 4 || id === 8)) { // Healing Balm -> each dead member

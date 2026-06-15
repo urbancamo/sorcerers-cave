@@ -75,6 +75,8 @@ export interface GameState {
   treasures: number[];
   hazards: number[];
   sleeping?: number[]; // creatures put to sleep by Lotus Dust — inert, no longer block the party
+  lulled?: number[]; // Dragons lulled by the Charmed Flute — asleep ONLY while the party holds it,
+  // so they're re-evaluated on each chamber entry (parked awake; re-lulled if the flute is still held)
   seed: number; // LCG state (spec §5)
   fight: FightState | null;
   // True while the party's current position was reached by a one-way trap fall: prev is the level

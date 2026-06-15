@@ -20,3 +20,4 @@ export * from "./score";
 export * from "./reaction";
 export * from "./combat";
 export * from "./special";
+export * from "./effects";

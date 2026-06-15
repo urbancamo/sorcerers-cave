@@ -7,12 +7,20 @@ const member = (creatureId: number, treasure: number[] = []) => ({ creatureId, s
 
 describe("viperCrossing (spec §10.1)", () => {
   it("the Charmed Flute carries everyone across safely (no rolls)", () => {
-    const s = makeState({ party: [member(0, [12]), member(5)], seed: 1 });
+    const s = makeState({ party: [member(0, [12]), member(5)], seed: 1 }); // Hero may play it
     const seedBefore = s.seed;
     const events = viperCrossing(s);
     expect(s.seed).toBe(seedBefore); // no dice rolled
     expect(s.party.every((m) => m.status === 0)).toBe(true);
-    expect(events).toEqual([]);
+    expect(events).toEqual([{ type: "vipersLulled" }]);
+  });
+
+  it("the Flute does not lull when only an ineligible creature carries it", () => {
+    // An Ogre (id 2) cannot play the Flute, so the vipers are not lulled — the party rolls to cross.
+    const s = makeState({ party: [member(2, [12])], seed: 4 });
+    const events = viperCrossing(s);
+    expect(events).not.toContainEqual({ type: "vipersLulled" });
+    expect(s.seed).not.toBe(4); // dice were rolled
   });
 
   it("rolls a d6 per living member; a 1 means falling in (death, treasure lost)", () => {

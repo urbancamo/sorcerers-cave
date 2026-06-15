@@ -82,6 +82,9 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "dragonsLulled":
         out.push({ text: `The Charmed Flute lulls ${plural(e.count, "dragon")} to sleep.`, tone: "good" });
         break;
+      case "vipersLulled":
+        out.push({ text: "The Charmed Flute lulls the vipers — the party crosses unharmed.", tone: "good" });
+        break;
       case "wardedOff":
         out.push({ text: `The Talisman wards off ${name(e.creatureId)}.`, tone: "good" });
         break;
