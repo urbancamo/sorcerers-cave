@@ -643,6 +643,9 @@
   border: 1px solid var(--brass); background: rgba(0, 0, 0, 0.25); color: var(--cream);
 }
 .scv-chat-row .scv-primary { margin-top: 0; }
+.scv-mp-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; }
+.scv-lobby-seat.active { border-color: var(--brass); background: rgba(201, 161, 78, 0.08); }
+.scv-card.gone { opacity: 0.4; }
 
 /* attributions */
 .scv-attrib {

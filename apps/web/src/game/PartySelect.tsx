@@ -5,9 +5,25 @@ import { PARTY_COLORS, PARTY_COLOR_HEX, DEFAULT_PARTY_COLOR, type PartyColor } f
 
 const SELECTABLE = CREATURES.filter((c) => c.cost !== null); // ids 0–7
 
-export function PartySelect({ onConfirm }: { onConfirm: (picks: number[], color: PartyColor) => void }) {
+/**
+ * Party-builder used both for solitaire (default stock = STARTING_STOCK, colour chosen here) and the
+ * multiplayer draft (stock = the shared pack's remaining counts, colour locked to the seat's choice).
+ */
+export function PartySelect({
+  onConfirm,
+  stock = STARTING_STOCK,
+  lockedColor,
+  title = "Choose your party",
+  confirmLabel = (n) => `Enter the cave (${n})`,
+}: {
+  onConfirm: (picks: number[], color: PartyColor) => void;
+  stock?: Readonly<Record<number, number>>;
+  lockedColor?: PartyColor;
+  title?: string;
+  confirmLabel?: (count: number) => string;
+}) {
   const [counts, setCounts] = useState<Record<number, number>>({});
-  const [color, setColor] = useState<PartyColor>(DEFAULT_PARTY_COLOR);
+  const [color, setColor] = useState<PartyColor>(lockedColor ?? DEFAULT_PARTY_COLOR);
   const [cardFile, setCardFile] = useState<Record<number, string>>({});
 
   // Card art is a progressive enhancement: if the manifest can't be fetched
@@ -30,56 +46,58 @@ export function PartySelect({ onConfirm }: { onConfirm: (picks: number[], color:
 
   const picks = Object.entries(counts).flatMap(([id, n]) => Array(n).fill(Number(id)) as number[]);
   const total = picks.reduce((s, id) => s + (CREATURES[id]!.cost ?? 0), 0);
-  const valid = validatePicks(picks);
+  const valid = validatePicks(picks) && picks.every((id) => (counts[id] ?? 0) <= (stock[id] ?? 0));
 
   const set = (id: number, delta: number) =>
-    setCounts((c) => ({ ...c, [id]: Math.max(0, Math.min(STARTING_STOCK[id] ?? 0, (c[id] ?? 0) + delta)) }));
+    setCounts((c) => ({ ...c, [id]: Math.max(0, Math.min(stock[id] ?? 0, (c[id] ?? 0) + delta)) }));
 
   return (
     <section className="scv-panel scv-party">
-      <h2 className="scv-hd">Choose your party</h2>
+      <h2 className="scv-hd">{title}</h2>
       <p className={"scv-budget" + (total > PARTY_BUDGET ? " over" : "")}>
         Budget <b>{total}</b> / {PARTY_BUDGET}
       </p>
       <div className="scv-cards">
         {SELECTABLE.map((c) => {
           const n = counts[c.id] ?? 0;
-          const stock = STARTING_STOCK[c.id] ?? 0;
+          const avail = stock[c.id] ?? 0;
           const file = cardFile[c.id];
           return (
-            <div key={c.id} className={"scv-card" + (n > 0 ? " sel" : "")}>
+            <div key={c.id} className={"scv-card" + (n > 0 ? " sel" : "") + (avail === 0 ? " gone" : "")}>
               <div className="scv-card-art">
                 {file ? <img src={file} alt={c.name} /> : <span className="ph">{c.name}</span>}
               </div>
               <div className="scv-card-nm">{c.name}</div>
-              <div className="scv-card-cost">cost {c.cost} · {n}/{stock}</div>
+              <div className="scv-card-cost">cost {c.cost} · {n}/{avail}</div>
               <div className="scv-card-step">
                 <button className="scv-step" aria-label={`remove ${c.name}`} disabled={n === 0} onClick={() => set(c.id, -1)}>−</button>
                 <span className="scv-qty">{n}</span>
-                <button className="scv-step" aria-label={`add ${c.name}`} disabled={n >= stock} onClick={() => set(c.id, +1)}>+</button>
+                <button className="scv-step" aria-label={`add ${c.name}`} disabled={n >= avail} onClick={() => set(c.id, +1)}>+</button>
               </div>
             </div>
           );
         })}
       </div>
-      <div className="scv-colors">
-        <span className="scv-colors-label">Party colour</span>
-        <div className="scv-colors-row">
-          {PARTY_COLORS.map((c) => (
-            <button
-              key={c}
-              type="button"
-              className={"scv-swatch" + (color === c ? " sel" : "")}
-              style={{ "--swatch": PARTY_COLOR_HEX[c] } as CSSProperties}
-              aria-label={`party colour ${c}`}
-              aria-pressed={color === c}
-              onClick={() => setColor(c)}
-            />
-          ))}
+      {!lockedColor && (
+        <div className="scv-colors">
+          <span className="scv-colors-label">Party colour</span>
+          <div className="scv-colors-row">
+            {PARTY_COLORS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                className={"scv-swatch" + (color === c ? " sel" : "")}
+                style={{ "--swatch": PARTY_COLOR_HEX[c] } as CSSProperties}
+                aria-label={`party colour ${c}`}
+                aria-pressed={color === c}
+                onClick={() => setColor(c)}
+              />
+            ))}
+          </div>
         </div>
-      </div>
-      <button className="scv-primary" disabled={!valid} onClick={() => onConfirm(picks, color)}>
-        Enter the cave ({picks.length})
+      )}
+      <button className="scv-primary" disabled={!valid} onClick={() => onConfirm(picks, lockedColor ?? color)}>
+        {confirmLabel(picks.length)}
       </button>
     </section>
   );

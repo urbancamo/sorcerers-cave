@@ -119,6 +119,52 @@ test("the host leaving promotes the next seat", async () => {
   expect(lob?.isHost).toBe(true); // Beta promoted to host
 });
 
+test("startGame builds the shared game state and opens the party draft", async () => {
+  const t = convexTest(schema, modules);
+  const host = await asUser(t);
+  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
+  const p2 = await asUser(t);
+  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await host.mutation(api.multiplayer.startGame, { gameId });
+
+  const gs = await host.query(api.multiplayer.gameState, { gameId });
+  expect(gs?.phase).toBe("partySelect");
+  expect(gs?.draft?.budget).toBe(6);
+  expect(gs?.draft?.remaining[5]).toBe(6); // six Men in the fresh pack
+  expect(typeof gs?.currentPicker).toBe("number");
+  expect(gs?.parties.map((p) => p.name)).toEqual(["Alpha", "Beta"]);
+  // a non-member gets nothing
+  const outsider = await asUser(t);
+  expect(await outsider.query(api.multiplayer.gameState, { gameId })).toBeNull();
+});
+
+test("the party draft is turn-based and transitions to play after the last pick", async () => {
+  const t = convexTest(schema, modules);
+  const host = await asUser(t);
+  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
+  const p2 = await asUser(t);
+  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await host.mutation(api.multiplayer.startGame, { gameId });
+
+  const userBySeat = [host, p2]; // seats compacted to 0 (host), 1 (p2)
+  const firstSeat = (await host.query(api.multiplayer.gameState, { gameId }))!.currentPicker!;
+  const secondSeat = firstSeat === 0 ? 1 : 0;
+
+  // the seat whose turn it isn't can't pick
+  expect((await userBySeat[secondSeat]!.mutation(api.multiplayer.pickParty, { gameId, picks: [5] })).reason).toBe("not_your_pick");
+  // the current picker drafts, then the other — last pick begins play
+  expect((await userBySeat[firstSeat]!.mutation(api.multiplayer.pickParty, { gameId, picks: [5] })).ok).toBe(true);
+  const mid = await host.query(api.multiplayer.gameState, { gameId });
+  expect(mid?.phase).toBe("partySelect");
+  expect(mid?.draft?.remaining[5]).toBe(5); // one Man taken from the shared pack
+  expect((await userBySeat[secondSeat]!.mutation(api.multiplayer.pickParty, { gameId, picks: [0] })).phase).toBe("playing");
+
+  const playing = await host.query(api.multiplayer.gameState, { gameId });
+  expect(playing?.phase).toBe("playing");
+  expect(playing?.parties.every((p) => p.members.length > 0)).toBe(true);
+  expect(typeof playing?.currentSeat).toBe("number");
+});
+
 test("chat is membership-gated and includes system lines", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);

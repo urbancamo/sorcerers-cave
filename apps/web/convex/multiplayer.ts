@@ -3,10 +3,11 @@ import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Id, Doc } from "./_generated/dataModel";
 import { uniqueCode } from "./game";
+import { buildMpGame, choosePartyFor, PARTY_BUDGET, type MpGameState } from "@sorcerers-cave/engine";
 
-// Phase 1 of multiplayer: lobby, named parties, colour reservation, host start-lock, and chat.
-// No gameplay yet (startGame only flips the lobby state). These functions are inert until the
-// client's production-off feature flag exposes them.
+// Multiplayer lobby (Phase 1), the multi-party game state + turn-based party draft (Phase 2/3).
+// Inert until the client's production-off feature flag exposes it.
+const SELECTABLE = [0, 1, 2, 3, 4, 5, 6, 7]; // creature ids with a selection value
 
 const COLORS = ["green", "blue", "yellow", "red"] as const;
 const colorV = v.union(v.literal("green"), v.literal("blue"), v.literal("yellow"), v.literal("red"));
@@ -178,7 +179,8 @@ export const leaveSeat = mutation({
   },
 });
 
-/** Host locks the lobby and starts. Phase 1 only flips the lobby state (gameplay arrives in Phase 2). */
+/** Host locks the lobby and starts: seats are compacted to 0..n-1, the shared multi-party game state
+ *  is built (random play order, party-selection phase), and stored on the game. */
 export const startGame = mutation({
   args: { gameId: v.id("games") },
   handler: async (ctx, { gameId }) => {
@@ -190,10 +192,72 @@ export const startGame = mutation({
     if ((game.lobby ?? "open") !== "open") return { ok: false as const, reason: "already_started" };
     const seats = await seatsOf(ctx, gameId);
     if (seats.length < 2) return { ok: false as const, reason: "need_players" };
+
     const now = Date.now();
-    await ctx.db.patch(gameId, { lobby: "started", updatedAt: now });
-    await postSystem(ctx, gameId, "The game has started", now);
+    // Compact seats to a contiguous 0..n-1 (leaves can leave gaps) so engine party indices line up.
+    for (let i = 0; i < seats.length; i++) {
+      if (seats[i]!.seat !== i) await ctx.db.patch(seats[i]!._id, { seat: i });
+    }
+    const mp = buildMpGame(now, seats.map((p, i) => ({ seat: i, color: p.color, name: p.partyName })));
+    await ctx.db.patch(gameId, { lobby: "started", state: mp, updatedAt: now });
+    await postSystem(ctx, gameId, "The game has started — choose your parties", now);
     return { ok: true as const };
+  },
+});
+
+/** Draft a party in turn (Phase 3). Turn-gated to the current picker; depletes the shared pack and,
+ *  after the last pick, transitions the game to the playing phase. */
+export const pickParty = mutation({
+  args: { gameId: v.id("games"), picks: v.array(v.number()) },
+  handler: async (ctx, { gameId, picks }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
+    const me = await mySeat(ctx, gameId, userId);
+    if (!me) throw new Error("Not in this game");
+    const game = await ctx.db.get(gameId);
+    const mp = game?.state as MpGameState | null;
+    if (!game || game.mode !== "multi" || !mp) return { ok: false as const, reason: "not_multi" };
+
+    const res = choosePartyFor(mp, me.seat, picks);
+    if (!res.ok) return { ok: false as const, reason: res.reason ?? "invalid" };
+    const now = Date.now();
+    await ctx.db.patch(gameId, { state: res.state, updatedAt: now });
+    await postSystem(ctx, gameId, `${me.partyName} chose their party`, now);
+    if (res.state.phase === "playing") await postSystem(ctx, gameId, "All parties chosen — into the cave!", now + 1);
+    return { ok: true as const, phase: res.state.phase };
+  },
+});
+
+/**
+ * Membership-gated projection of a multi game for the client — never the raw cave (which would leak
+ * the shuffled deck order). Drives the draft (Phase 3) and, later, play.
+ */
+export const gameState = query({
+  args: { gameId: v.id("games") },
+  handler: async (ctx, { gameId }) => {
+    const callerId = await getAuthUserId(ctx);
+    const game = await ctx.db.get(gameId);
+    if (!game || game.mode !== "multi") return null;
+    const seats = await seatsOf(ctx, gameId);
+    const me = callerId ? seats.find((p) => p.userId === callerId) : null;
+    if (!me) return null; // not a member
+
+    const mp = game.state as MpGameState | null;
+    if (!mp) return { phase: "lobby" as const, youSeat: me.seat };
+
+    const remaining: Record<number, number> = {};
+    if (mp.phase === "partySelect") {
+      for (const id of SELECTABLE) remaining[id] = mp.cave.smallPack.filter((c) => c === 100 + id).length;
+    }
+    return {
+      phase: mp.phase,
+      youSeat: me.seat,
+      currentPicker: mp.phase === "partySelect" ? mp.pickOrder[mp.active]! : null,
+      currentSeat: mp.phase === "playing" ? mp.order[mp.active]! : null,
+      turnCount: mp.turnCount,
+      parties: mp.parties.map((p) => ({ seat: p.seat, name: p.name, color: p.color, status: p.status, members: p.party.map((m) => m.creatureId) })),
+      draft: mp.phase === "partySelect" ? { remaining, budget: PARTY_BUDGET } : null,
+    };
   },
 });
 

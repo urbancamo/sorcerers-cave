@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { PARTY_COLORS, PARTY_COLOR_HEX, type PartyColor } from "./partyColors";
 import { ChatPanel } from "./ChatPanel";
+import { MultiplayerGame } from "./MultiplayerGame";
 
 /** Reactive multiplayer lobby: seats, colour/ready controls, host start-lock and chat (Phase 1). */
 export function MultiplayerLobby({ code, onExit }: { code: string; onExit: () => void }) {
@@ -25,9 +26,11 @@ export function MultiplayerLobby({ code, onExit }: { code: string; onExit: () =>
     );
   }
 
+  // Once the host starts, the lobby hands off to the in-game view (draft → play).
+  if (lob.lobby !== "open") return <MultiplayerGame gameId={lob.gameId} onExit={onExit} />;
+
   const gameId = lob.gameId;
   const me = lob.seats.find((s) => s.isYou);
-  const started = lob.lobby !== "open";
   const taken = new Set(lob.takenColors);
 
   const doLeave = async () => { await leave({ gameId }); onExit(); };
@@ -62,7 +65,7 @@ export function MultiplayerLobby({ code, onExit }: { code: string; onExit: () =>
         ))}
       </ul>
 
-      {!started && me && (
+      {me && (
         <div className="scv-lobby-controls">
           <div className="scv-mp-field">
             <span>Your colour</span>
@@ -89,14 +92,10 @@ export function MultiplayerLobby({ code, onExit }: { code: string; onExit: () =>
         </div>
       )}
 
-      {started && (
-        <p className="scv-lobby-started">The expedition has begun. <span className="scv-muted">(Shared gameplay arrives in the next update.)</span></p>
-      )}
-
       {err && <p className="scv-resume-err" role="alert">{err}</p>}
 
       <div className="scv-lobby-actions">
-        {lob.isHost && !started && (
+        {lob.isHost && (
           <button className="scv-primary" disabled={lob.seats.length < 2} onClick={() => void doStart()}>
             Start game ({lob.seats.length})
           </button>
