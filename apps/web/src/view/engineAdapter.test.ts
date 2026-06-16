@@ -59,6 +59,24 @@ function mkState(areas: PlacedArea[], partyArea: number, over: Partial<GameState
 const mkArea = (card: number, level: number, col: number, row: number, over: Partial<PlacedArea> = {}): PlacedArea =>
   ({ card, coord: pc(level, col, row), faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0, ...over });
 
+describe("current-tile floor merges the working set with dropped contents", () => {
+  it("shows treasure dropped onto the current chamber even while a pickup working set is active", () => {
+    // Chamber (card 31) is the party's tile: working set holds Gold (id 1); a Treasure Chest (id 14)
+    // was just dropped here (parked on contents). Both must appear on the floor.
+    const A = mkArea(31, 1, 50, 50, { visited: true, contents: [200 + 14] });
+    const eng = createCaveAdapter(mkState([A], 0, { phase: "pickup", treasures: [1] }), art);
+    expect(eng.current.treasure.length).toBe(2);
+    expect(eng.current.treasure.some((c) => c.entityId === "14")).toBe(true); // the dropped chest
+    expect(eng.current.treasure.some((c) => c.entityId === "1")).toBe(true);  // the working-set gold
+  });
+
+  it("shows a dropped item on the current tile at rest (empty working set)", () => {
+    const A = mkArea(31, 1, 50, 50, { visited: true, contents: [200 + 14] });
+    const eng = createCaveAdapter(mkState([A], 0), art); // explore, empty working set
+    expect(eng.current.treasure.some((c) => c.entityId === "14")).toBe(true);
+  });
+});
+
 describe("tryMove + MoveEvent", () => {
   it("moves into a known adjacent area (no tile drawn)", () => {
     // A: E-exit corridor at (50,50); B: W-exit corridor at (51,50). Moving E lands on B.

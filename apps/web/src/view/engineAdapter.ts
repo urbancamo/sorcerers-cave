@@ -25,11 +25,15 @@ export function createCaveAdapter(initial: GameState, art: ArtTables, opts: Adap
   let state = initial;
   const acting = () => !opts.canAct || opts.canAct(); // true unless a turn-gate says otherwise
 
-  // Live floor codes for the party's area when a chamber encounter is active; else undefined (use persisted contents).
-  const liveForCurrent = (): number[] | undefined =>
-    state.strangers.length || state.treasures.length || state.hazards.length || (state.sleeping?.length ?? 0) || (state.lulled?.length ?? 0)
-      ? encodeWorkingSet(state)
-      : undefined;
+  // Live floor codes for the party's current area = the active working set PLUS anything parked on
+  // that tile's `contents`. enterChamber clears `contents` on entry, so for the current tile it only
+  // holds items dropped here this visit (dropTreasure) — merge them so a just-dropped item shows
+  // immediately even while an encounter/pickup working set is active. Undefined when the floor is bare.
+  const liveForCurrent = (): number[] | undefined => {
+    const parked = state.areas[state.partyArea]?.contents ?? [];
+    const merged = [...encodeWorkingSet(state), ...parked];
+    return merged.length ? merged : undefined;
+  };
 
   const projectAll = (): Area[] =>
     state.areas.map((pa, i) => projectArea(pa, i, state, art, i === state.partyArea ? liveForCurrent() : undefined));
