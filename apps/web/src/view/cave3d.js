@@ -106,15 +106,20 @@ const levelBounds={};
 
 /* ---- level isolation: fade levels stacked ABOVE the focused one so they
         never occlude an overhead / tile-level / reveal view ---- */
-let isoFocus=null, isoHinted=false;      // focused level, or null = whole cave
+let isoFocus=null, isoDir='above', isoHinted=false; // focused level (null = whole cave); dir = which side to hide
 const isoAlpha={};                        // level -> current (lerped) alpha
 function regMat(m){ if(m && m.userData.b===undefined) m.userData.b=m.opacity; }
-function setIsolation(focus){
+// dir 'above' hides shallower levels (overhead views); 'below' hides deeper levels (after climbing up).
+function setIsolation(focus, dir){
   if(focus!=null && isoFocus==null && !isoHinted){ isoHinted=true;
-    showToast('Levels above hidden — <b>Free orbit</b> shows the whole cave'); }
-  isoFocus=focus;
+    showToast('Some levels hidden — <b>Free orbit</b> shows the whole cave'); }
+  isoFocus=focus; isoDir=dir||'above';
 }
-function isoTargetFor(lvl){ return isoFocus==null ? 1 : (lvlIndex(lvl)<lvlIndex(isoFocus) ? 0 : 1); }
+function isoTargetFor(lvl){
+  if(isoFocus==null) return 1;
+  const a=lvlIndex(lvl), f=lvlIndex(isoFocus);
+  return (isoDir==='below' ? a>f : a<f) ? 0 : 1;
+}
 function applyFadeObj(o){
   const lvl=o.userData.lvl; if(lvl==null) return;
   const a=isoAlpha[lvl]!==undefined?isoAlpha[lvl]:1;
@@ -295,7 +300,7 @@ function refresh(){
     if(!tokenMove && partyToken.position.distanceTo(to)>0.01){
       tokenMove={from:partyToken.position.clone(), to, t0:clock.elapsedTime, dur:0.55};
       flyFollow(to);
-      if(isoFocus!=null) setIsolation(engine.current.level);
+      if(isoFocus!=null) setIsolation(engine.current.level, isoDir);
     }
   }
 }
@@ -445,10 +450,12 @@ function doMove(dir){
   // HUD
   setTimeout(()=>{
     updateHUD(); selectCurrent();
-    // Descending (or falling) auto-hides the level above so it never occludes the new one;
-    // otherwise just keep an existing isolated view focused on the current level.
-    if(ev.descended||ev.fell) setIsolation(engine.current.level);
-    else if(isoFocus!=null) setIsolation(engine.current.level);
+    // Descending (or falling) auto-hides the level above so it never occludes the new one.
+    // Climbing UP a level hides the lower (deeper) levels left behind — they only clutter the view.
+    // Otherwise just keep an existing isolated view focused on the current level.
+    if(ev.descended||ev.fell) setIsolation(engine.current.level, 'above');
+    else if(ev.ascended) setIsolation(engine.current.level, 'below');
+    else if(isoFocus!=null) setIsolation(engine.current.level, isoDir);
     if(ev.chamber) onChamber(ev.area,ev.chamber); else {
       const n=ev.area.name;
       setPrompt(ev.descended?('You descend to <b>'+n+'</b> on level '+ev.area.level+'.')
