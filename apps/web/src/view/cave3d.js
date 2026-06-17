@@ -508,13 +508,7 @@ function showCard(card,where){
     '<span id="cardtaglabel">'+card.category+'</span></span>';
   cardPanel.classList.add('show');
 }
-function showEmpty(area){
-  cardPanel.classList.add('empty','show');cardImg.style.display='none';emptyBox.style.display='grid';
-  document.getElementById('cardwhere').textContent=area.name;
-  document.getElementById('cardname').textContent= area.type==='chamber'?'Empty chamber':'Tunnel';
-  document.getElementById('cardkind').innerHTML='<span style="font-style:italic;color:#9a9281">'+
-    (area.note||(area.type==='chamber'?'Nothing stirs in the dark.':'A passage winds onward.'))+'</span>';
-}
+function hideCard(){ cardPanel.classList.remove('show'); } // nothing on the floor → no card at all
 function areaPanel(area, useLevel){
   selectRing.position.copy(worldPos(area));selectRing.position.y+=0.02;selectRing.visible=true;
   document.getElementById('sel-nm').textContent=area.name;
@@ -524,7 +518,7 @@ function areaPanel(area, useLevel){
   const base=useLevel?('Level '+area.level):(area.type[0].toUpperCase()+area.type.slice(1));
   document.getElementById('sel-sub').textContent= base+' · '+(counts.length?counts.join(' · '):('exits '+(area.exits||'—')))+stair;
   const focus=area.strangers[0]||area.treasure[0];
-  if(focus) showCard(focus,area.name); else showEmpty(area);
+  if(focus) showCard(focus,area.name); else hideCard();
 }
 function selectCurrent(){ areaPanel(engine.current,false); }
 function inspectArea(a){ areaPanel(a,true); }
@@ -535,6 +529,7 @@ function hexA(hex,a){const n=parseInt(hex.replace('#',''),16);return 'rgba('+((n
    ============================================================ */
 function setMode(mode,label){document.getElementById('modelabel').textContent=label;
   document.getElementById('orbitBtn').classList.toggle('active',mode==='orbit');
+  document.querySelector('.compass')?.classList.toggle('hidden',mode!=='orbit'); // compass: free-orbit only
   [...document.querySelectorAll('.lvlbtn')].forEach(b=>b.classList.toggle('active',mode==='level'&&+b.dataset.lvl===activeLevel));}
 let promptT;
 function setPrompt(html,cls){const el=document.getElementById('prompt');el.className='prompt'+(cls?' '+cls:'');
@@ -724,6 +719,7 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
   camera=new THREE.PerspectiveCamera(45,innerWidth/innerHeight,0.1,500);
   controls=new OrbitControls(camera,renderer.domElement);
   controls.enableDamping=true; controls.dampingFactor=0.08;
+  controls.zoomSpeed=1.7; controls.zoomToCursor=true; // snappier wheel zoom, toward the pointer
   controls.minDistance=4; controls.maxDistance=95; controls.maxPolarAngle=Math.PI*0.97;
   maxAniso=renderer.capabilities.getMaxAnisotropy();
   scene.add(platformGroup,tileGroup,stairGroup,fxGroup,exitGroup,contentGroup,secretGroup,otherGroup);

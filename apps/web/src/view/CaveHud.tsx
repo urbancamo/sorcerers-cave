@@ -48,15 +48,15 @@ export function CaveHud({ mountRef, onPartyClick, onSave }: { mountRef: RefObjec
                 — / —
               </span>
             </div>
-          </div>
 
-          <div className="compass" title="Camera orientation">
-            <div className="rose" id="rose">
-              <span className="n">N</span>
-              <span className="s">S</span>
-              <span className="e">E</span>
-              <span className="w">W</span>
-              <span className="needle"></span>
+            <div className="compass hidden" title="Camera orientation">
+              <div className="rose" id="rose">
+                <span className="n">N</span>
+                <span className="s">S</span>
+                <span className="e">E</span>
+                <span className="w">W</span>
+                <span className="needle"></span>
+              </div>
             </div>
           </div>
 

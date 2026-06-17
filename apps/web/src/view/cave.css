@@ -52,9 +52,11 @@ canvas{display:block;touch-action:none;}
 @keyframes deckLowPulse{0%,100%{box-shadow:0 0 0 1px rgba(168,68,58,.4),0 10px 30px -16px rgba(0,0,0,.8);}50%{box-shadow:0 0 10px 1px rgba(168,68,58,.7),0 10px 30px -16px rgba(0,0,0,.8);}}
 
 /* compass top-right */
-.compass{position:absolute;top:20px;right:26px;width:62px;height:62px;border-radius:50%;
+/* Compass sits inline in the stats bar, immediately right of the Deck chip; shown in free-orbit only. */
+.compass{align-self:center;width:54px;height:54px;border-radius:50%;flex:none;
   background:rgba(15,15,20,.74);border:1px solid var(--line-strong);backdrop-filter:blur(8px);
   display:grid;place-items:center;box-shadow:0 10px 30px -16px rgba(0,0,0,.8);}
+.compass.hidden{display:none;}
 .compass .rose{position:relative;width:46px;height:46px;border-radius:50%;
   border:1px solid var(--line);}
 .compass .rose .n{position:absolute;top:-2px;left:50%;transform:translateX(-50%);
@@ -154,9 +156,9 @@ canvas{display:block;touch-action:none;}
 .lvlbtn{width:38px;height:34px;justify-content:center;padding:0;font-family:var(--display);font-size:13px;font-weight:600;}
 
 /* card reveal panel right */
-/* Sits in the top-right, just below the compass, to stay clear of the bottom-right
+/* Sits in the top-right corner (where the compass used to be), clear of the bottom-right
    action panels (encounter / explore). */
-.cardpanel{position:absolute;right:26px;top:96px;width:236px;
+.cardpanel{position:absolute;right:26px;top:20px;width:236px;
   opacity:0;transition:.34s cubic-bezier(.2,.7,.2,1);pointer-events:none;}
 .cardpanel.show{opacity:1;pointer-events:auto;}
 .cardpanel .frame{background:linear-gradient(180deg,#efe3c4,#d8c393);
