@@ -45,6 +45,17 @@ describe("applyHazards (spec §7.2)", () => {
     expect(s.areas[s.partyArea]!.markers ?? []).not.toContain(300 + HAZARD_MEDUSA);
   });
 
+  it("Ghouls drop heavy treasure onto the floor and roll against each member", () => {
+    const s = makeState({
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [1, 3] }], // Hero: Gold (heavy) + Magic Sword (artifact)
+      hazards: [HAZARD_GHOULS], treasures: [], seed: 5,
+    });
+    const { events } = applyHazards(s);
+    expect(s.treasures).toContain(1);          // Gold dropped to the chamber floor (reclaimable)
+    expect(s.party[0]!.treasure).toEqual([3]); // keeps the weightless Magic Sword
+    expect(events.some((e) => e.type === "combatRoll" && e.enemy === "Ghouls")).toBe(true);
+  });
+
   it("Earthquake leaves a display-only scar (marker), not a reloading hazard", () => {
     const s = makeState({
       areas: [

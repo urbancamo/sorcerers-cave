@@ -1,10 +1,12 @@
 import { rollDie } from "./rng";
 import { CREATURES, FLAG_GUIDES_PAST_TRAP } from "./data/creatures";
+import { TREASURES } from "./data/treasures";
 import {
   HAZARD_MUTINY, HAZARD_TRAP, HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS,
 } from "./data/hazards";
 import { AF_DESTROYED, type GameState, type PartyMember } from "./state";
 import type { GameEvent } from "./actions";
+import { frontStrength } from "./combat";
 
 const T_TALISMAN = 7;
 const T_MAGIC_STAFF = 9;
@@ -48,12 +50,29 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         break;
       }
       case HAZARD_GHOULS: {
+        // The attack forces everyone to drop heavy treasure to fight; it lands on the chamber floor,
+        // visible and reclaimable at the end of the turn (§Ghouls).
+        for (const m of state.party) {
+          if (m.status !== 0 && m.status !== 1) continue;
+          const heavy = m.treasure.filter((t) => TREASURES[t]!.kind === "heavy");
+          if (heavy.length) {
+            m.treasure = m.treasure.filter((t) => TREASURES[t]!.kind !== "heavy");
+            state.treasures.push(...heavy);
+          }
+        }
+        // Each creature fights the ghouls (strength 2) in the normal way — full fighting strength
+        // (Magic Sword / Strength Potion count), no surprise. A lost match removes that member.
         for (const m of state.party) {
           if (m.status !== 0 && m.status !== 1) continue;
           const ours = rollDie(state.seed); state.seed = ours.seed;
           const theirs = rollDie(state.seed); state.seed = theirs.seed;
-          const fs = CREATURES[m.creatureId]!.fs;
-          if (ours.value + fs < theirs.value + 2) m.status = 3;
+          const partyTotal = frontStrength(m, state) + ours.value, enemyTotal = 2 + theirs.value;
+          events.push({
+            type: "combatRoll", party: CREATURES[m.creatureId]!.name, enemy: "Ghouls",
+            partyRoll: ours.value, enemyRoll: theirs.value, partyTotal, enemyTotal,
+            result: partyTotal > enemyTotal ? "partyWon" : enemyTotal > partyTotal ? "enemyWon" : "tie",
+          });
+          if (enemyTotal > partyTotal) m.status = 3;
         }
         break;
       }
