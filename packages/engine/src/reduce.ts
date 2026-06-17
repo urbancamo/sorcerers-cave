@@ -536,8 +536,8 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
           consume();
           return ok;
         }
-        case 9: { // Magic Staff reanimation — explore only, target a stoned member; NOT consumed
-          if (next.phase !== "explore" || action.target === undefined) return { state, events: [{ type: "blocked" }] };
+        case 9: { // Magic Staff reanimation — at rest or while looting, target a stoned member; NOT consumed
+          if ((next.phase !== "explore" && next.phase !== "pickup") || action.target === undefined) return { state, events: [{ type: "blocked" }] };
           const sm = next.party[action.target];
           if (!sm || sm.status !== 2) return { state, events: [{ type: "blocked" }] };
           sm.status = 0;

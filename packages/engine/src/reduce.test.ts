@@ -232,6 +232,21 @@ describe("reduce — stranger encounters (C-2 §8)", () => {
     expect(state.party[1]!.status).toBe(0);       // Hero revived
     expect(state.party[0]!.treasure).toEqual([]); // balm consumed (no longer visible)
   });
+
+  it("Magic Staff can free a petrified member during pickup (Wizard, staff not consumed)", () => {
+    const s = makeState({
+      phase: "pickup", treasures: [1],
+      party: [
+        { creatureId: 8, status: 0, dragonKills: 0, treasure: [9] }, // Wizard holding the Magic Staff
+        { creatureId: 0, status: 2, dragonKills: 0, treasure: [] },  // petrified Hero
+      ],
+      areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+    });
+    expect(legalActions(s)).toContainEqual({ type: "useArtifact", artifact: 9, target: 1 });
+    const { state } = reduce(s, { type: "useArtifact", artifact: 9, target: 1 });
+    expect(state.party[1]!.status).toBe(0);       // Hero freed from stone
+    expect(state.party[0]!.treasure).toEqual([9]); // staff kept (reusable)
+  });
 });
 
 describe("reduce — fight dispatch (C-2 §9.5)", () => {

@@ -30,15 +30,16 @@ function artifactActions(state: GameState): GameAction[] {
     // The Charmed Flute lulls Dragons passively (on chamber entry, while held) — see resolveArea —
     // so there is no explicit lull action to offer here.
   }
-  // Healing Balm -> revive each dead member. Offered at rest (explore) AND while looting (pickup),
-  // so a party can revive the fallen straight after a fight that dropped treasure.
-  if ((state.phase === "explore" || state.phase === "pickup") && has(6, (id) => id === 6 || id === 4 || id === 8)) {
+  // Reviving the fallen is offered at rest (explore) AND while looting (pickup), so a party can
+  // restore members straight after a fight that dropped treasure.
+  const atRestOrLooting = state.phase === "explore" || state.phase === "pickup";
+  if (atRestOrLooting && has(6, (id) => id === 6 || id === 4 || id === 8)) { // Healing Balm -> each dead member
     state.party.forEach((m, idx) => { if (m.status === 3) actions.push({ type: "useArtifact", artifact: 6, target: idx }); });
   }
+  if (atRestOrLooting && has(9, (id) => id === 8)) { // Magic Staff (Wizard) -> each stoned member
+    state.party.forEach((m, idx) => { if (m.status === 2) actions.push({ type: "useArtifact", artifact: 9, target: idx }); });
+  }
   if (state.phase === "explore") {
-    if (has(9, (id) => id === 8)) { // Magic Staff -> each stoned member
-      state.party.forEach((m, idx) => { if (m.status === 2) actions.push({ type: "useArtifact", artifact: 9, target: idx }); });
-    }
     if (has(4, (id) => id === 4 || id === 8)) { // Magic Carpet -> teleport in each available direction
       for (const dir of [DIR_N, DIR_E, DIR_S, DIR_W, DIR_DOWN]) actions.push({ type: "useArtifact", artifact: 4, dir });
       if (state.level > 1) actions.push({ type: "useArtifact", artifact: 4, dir: DIR_UP });

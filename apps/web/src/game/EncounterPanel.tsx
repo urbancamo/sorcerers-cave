@@ -29,8 +29,11 @@ function label(a: GameAction, state: GameState): string {
     }
     case "useArtifact": {
       const tname = TREASURES[a.artifact]?.name ?? `artifact ${a.artifact}`;
-      // The Healing Balm revives a specific fallen member — name them so each option is distinct.
-      if (a.artifact === 6 && a.target !== undefined) return `${tname} — revive ${CREATURES[state.party[a.target]!.creatureId]!.name}`;
+      // Member-targeting revives — name the member so each option is distinct.
+      if (a.target !== undefined) {
+        if (a.artifact === 6) return `${tname} — revive ${CREATURES[state.party[a.target]!.creatureId]!.name}`;
+        if (a.artifact === 9) return `${tname} — free ${CREATURES[state.party[a.target]!.creatureId]!.name} from stone`;
+      }
       return `Use ${tname}`;
     }
     default: return a.type;
