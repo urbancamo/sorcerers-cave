@@ -353,6 +353,9 @@
   border: 1px solid var(--line-strong);
   border-radius: 16px;
   box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.85);
+  /* A big party makes many lanes — cap to the viewport and scroll inside so the button stays reachable. */
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
 }
 .scv-dice-title {
   font-family: var(--display);
