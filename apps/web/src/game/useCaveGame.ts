@@ -5,7 +5,7 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { loadManifest } from "../data/manifest";
 import { createCaveAdapter, type CaveAdapter } from "../view/engineAdapter";
 import type { ArtTables } from "../view/projection";
-import type { GameState, GameAction } from "@sorcerers-cave/engine";
+import type { GameState, GameAction, GameEvent } from "@sorcerers-cave/engine";
 import { DEFAULT_PARTY_COLOR, type PartyColor } from "./partyColors";
 
 /**
@@ -13,13 +13,15 @@ import { DEFAULT_PARTY_COLOR, type PartyColor } from "./partyColors";
  * The adapter mirrors the authoritative snapshot (reconciled on every query update)
  * and forwards accepted actions to the `applyAction` mutation (server authority).
  */
-export function useCaveGame(id: Id<"games"> | null) {
+export function useCaveGame(id: Id<"games"> | null, onResolved?: (events: GameEvent[]) => void) {
   const game = useQuery(api.game.get, id ? { id } : "skip");
   const apply = useMutation(api.game.applyAction);
   const [art, setArt] = useState<ArtTables | null>(null);
   const adapterRef = useRef<CaveAdapter | null>(null);
   const adapterIdRef = useRef<Id<"games"> | null>(null);
   const syncedRef = useRef<GameState | null>(null);
+  const onResolvedRef = useRef(onResolved);
+  onResolvedRef.current = onResolved;
 
   useEffect(() => { void loadManifest().then(setArt); }, []);
 
@@ -34,7 +36,14 @@ export function useCaveGame(id: Id<"games"> | null) {
     if (!adapterRef.current || adapterIdRef.current !== id) {
       adapterIdRef.current = id;
       adapterRef.current = createCaveAdapter(state, art, {
-        onAction: (action: GameAction) => { if (id) void apply({ id, action }); },
+        // Surface dice rolled by a renderer-initiated action (e.g. ghouls fighting each member on
+        // entry) — these bypass the panel dispatch path that normally shows the DiceRoll.
+        onAction: (action: GameAction) => {
+          if (!id) return;
+          void apply({ id, action }).then((res) => {
+            onResolvedRef.current?.((res as { events?: GameEvent[] } | null)?.events ?? []);
+          });
+        },
       });
     } else if (syncedRef.current !== state) {
       adapterRef.current.sync(state);

@@ -98,7 +98,14 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   if (art && state) {
     if (!adapterRef.current) {
       adapterRef.current = createCaveAdapter(state, art, {
-        onAction: (a) => { void actMut({ gameId, action: a }); },
+        // Renderer-initiated actions (moves) — surface any dice they roll (e.g. ghouls fighting each
+        // member on entry) as a DiceRoll, since these don't go through the panel dispatch path.
+        onAction: (a) => {
+          void actMut({ gameId, action: a }).then((res) => {
+            const v = rollFromEvents((res as { events?: GameEvent[] } | null)?.events ?? []);
+            if (v) setRoll(v);
+          });
+        },
         canAct: () => yourTurnRef.current,
       });
     } else if (syncedRef.current !== state) {

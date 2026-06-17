@@ -35,12 +35,17 @@ export default function GameScreen() {
   const [savedCode, setSavedCode] = useState<string | null>(null); // shows the save modal when set
   // Multiplayer flow (behind the production-off feature flag): create/join setup → reactive lobby.
   const [mp, setMp] = useState<{ view: "create" | "join" } | { view: "lobby"; code: string } | null>(null);
-  const { engine, loading, state, color, dispatch } = useCaveGame(gameId);
   // The dice overlay lives here (not in EncounterPanel) so a fatal round's roll
   // still shows even though game-over swaps the panel out for GameOverScreen.
   const [roll, setRoll] = useState<RollView | null>(null);
   // Notices for panel-dispatched outcomes that aren't dice rolls (artifact effects, etc.).
   const [notices, setNotices] = useState<Notice[] | null>(null);
+  // Dice rolled by a move (e.g. ghouls fighting each member on entry) surface here too.
+  const onMoveResolved = useCallback((events: GameEvent[]) => {
+    const view = rollFromEvents(events);
+    if (view) setRoll(view);
+  }, []);
+  const { engine, loading, state, color, dispatch } = useCaveGame(gameId, onMoveResolved);
   // Leaderboard for the post-game screen; only subscribed once a game has ended.
   const gameOver = !!state && state.gs !== GS_PLAYING;
   const leaderboard = useQuery(api.highScores.list, gameOver ? {} : "skip") as
