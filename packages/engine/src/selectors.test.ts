@@ -23,6 +23,36 @@ describe("legalActions (interactive contract)", () => {
   it("returns no actions once the game is over", () => {
     expect(legalActions(makeState({ gs: GS_QUIT, phase: "gameOver" }))).toEqual([]);
   });
+
+  it("offers a heavy-treasure take only to members with spare carry capacity", () => {
+    // Gold (25kg). A Dwarf (carry 25) already holding Gems (25kg) is full; a Man (carry 50) has room.
+    const s = makeState({
+      phase: "pickup",
+      treasures: [1], // Gold, 25kg
+      party: [
+        { creatureId: 7, status: 0, dragonKills: 0, treasure: [2] }, // Dwarf, full (carrying Gems)
+        { creatureId: 5, status: 0, dragonKills: 0, treasure: [] },  // Man, has room
+      ],
+    });
+    const acts = legalActions(s);
+    expect(acts).toContainEqual({ type: "takeTreasure", ti: 0, mi: 1 });     // Man can carry it
+    expect(acts).not.toContainEqual({ type: "takeTreasure", ti: 0, mi: 0 }); // Dwarf is full
+    expect(acts).toContainEqual({ type: "leaveTreasure" });
+  });
+
+  it("offers the 100kg Treasure Chest only to a carrier big enough", () => {
+    const s = makeState({
+      phase: "pickup",
+      treasures: [14], // Treasure Chest, 100kg
+      party: [
+        { creatureId: 12, status: 0, dragonKills: 0, treasure: [] }, // Giant (carry 150) — fits
+        { creatureId: 0, status: 0, dragonKills: 0, treasure: [] },  // Hero (carry 75) — too small
+      ],
+    });
+    const acts = legalActions(s);
+    expect(acts).toContainEqual({ type: "takeTreasure", ti: 0, mi: 0 });     // Giant fits 100kg
+    expect(acts).not.toContainEqual({ type: "takeTreasure", ti: 0, mi: 1 }); // Hero (75) cannot
+  });
 });
 
 describe("legalActions — usable artifacts (E-1)", () => {

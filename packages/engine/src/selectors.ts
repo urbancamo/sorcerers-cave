@@ -2,6 +2,7 @@ import { decodeArea } from "./decode";
 import { DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, unpackCoord, packCoord } from "./coords";
 import { GS_PLAYING, type GameState } from "./state";
 import type { GameAction } from "./actions";
+import { canCarry } from "./pickup";
 
 function living(state: GameState) {
   return state.party.map((m, idx) => ({ m, idx })).filter(({ m }) => m.status === 0 || m.status === 1);
@@ -84,7 +85,10 @@ export function legalActions(state: GameState): GameAction[] {
     const actions: GameAction[] = [];
     for (let ti = 0; ti < state.treasures.length; ti++) {
       for (let mi = 0; mi < state.party.length; mi++) {
-        if (state.party[mi]!.status === 0 || state.party[mi]!.status === 1) {
+        const m = state.party[mi]!;
+        // Only offer the take to living/ally members who have the spare capacity to carry it
+        // (heavy treasure counts against carry weight; artifacts are weightless so always fit).
+        if ((m.status === 0 || m.status === 1) && canCarry(m, state.treasures[ti]!)) {
           actions.push({ type: "takeTreasure", ti, mi });
         }
       }
