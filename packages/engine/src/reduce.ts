@@ -159,6 +159,9 @@ function resolveArea(state: GameState): GameEvent[] {
       return events;
     }
     if (fell) {
+      // The party falls away from this chamber — its strangers and treasure stay behind here (parked
+      // to its contents). Clearing the working set first stops them leaking onto the tile fallen into.
+      persistAndExplore(state);
       relocateDown(state);
       events.push({ type: "trapSprung", level: state.level });
       events.push({ type: "moved", area: state.partyArea, level: state.level });

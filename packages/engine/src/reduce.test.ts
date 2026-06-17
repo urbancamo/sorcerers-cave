@@ -538,4 +538,25 @@ describe("reduce — treasure redistribution (party panel)", () => {
     expect(moved.events).toContainEqual({ type: "eyeForsaken" });
     expect(moved.state.party[1]!.treasure).toEqual([13]);
   });
+
+  it("falling through a trap leaves the chamber's strangers/treasure behind — they don't follow you", () => {
+    // A level-3 chamber drawn to the south yields a Trap + a Man + Gold; the (dwarfless) party falls
+    // to the tunnel directly below. The Man and Gold must stay in the chamber, not leak onto the tunnel.
+    const A0 = { card: 31, coord: packCoord(3, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };
+    const s = makeState({
+      phase: "explore", areas: [A0], partyArea: 0, prev: 0, level: 3,
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }], // Hero — no dwarf, so the trap fires
+      largePack: [31, 1], largeIdx: 0, // [chamber to the south, then a tunnel (card 1) below it]
+      smallPack: [300 + 1, 100 + 5, 200 + 1], smallIdx: 0, // Trap, Man, Gold (3 draws at level 3)
+      seed: 1,
+    });
+    const { state } = reduce(s, { type: "move", dir: DIR_S });
+    expect(state.fellThroughTrap).toBe(true);
+    expect(state.level).toBe(4);
+    expect(state.phase).toBe("explore");   // fell into a tunnel — at rest, not an encounter
+    expect(state.strangers).toEqual([]);   // the Man did NOT follow the party down
+    expect(state.treasures).toEqual([]);   // nor did the Gold
+    const chamber = state.areas.find((a) => a.coord === packCoord(3, 50, 51))!;
+    expect(chamber.contents).toEqual(expect.arrayContaining([100 + 5, 200 + 1])); // left behind in the chamber
+  });
 });
