@@ -34,6 +34,7 @@ export function enterChamber(state: GameState): GameEvent[] {
   state.hazards = [];
   state.sleeping = [];
   state.lulled = []; // recomputed from flute presence each entry (see resolveArea)
+  state.indiffStreak = 0; // a fresh visit re-tests from scratch (only permanent indifference persists)
 
   if (area.visited) {
     for (const code of area.contents) classify(state, code);

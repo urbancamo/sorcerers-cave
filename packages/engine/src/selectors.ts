@@ -63,7 +63,7 @@ export function legalActions(state: GameState): GameAction[] {
   if (state.phase === "encounter") {
     // No retreat back up a trap the party fell through (prev is the unreachable level above).
     const actions: GameAction[] = state.fellThroughTrap ? [{ type: "attack" }] : [{ type: "withdraw" }, { type: "attack" }];
-    if (state.areas[state.partyArea]!.indiffCount < 3) actions.push({ type: "test" });
+    if ((state.indiffStreak ?? 0) < 3) actions.push({ type: "test" });
     actions.push(...artifactActions(state));
     actions.push({ type: "quit" });
     return actions;

@@ -90,4 +90,11 @@ export interface GameState {
   secretDoors?: number;
   // Lotus Dust has been used on the Sorcerer (he can't be slept, only weakened): −2 to his Strength.
   lotusOnSorcerer?: boolean;
+  // Indifference (per party — NOT on the shared area, so it never affects other parties):
+  // `indiffStreak` counts consecutive indifferent reaction tests in the CURRENT chamber visit
+  // (reset on each chamber entry). When it reaches 3 the strangers are permanently indifferent to
+  // this party: `pacifiedAreas` records that area's index so re-entry skips the encounter. A pacified
+  // party may leave by any exit but still cannot loot the (guarded) treasure.
+  indiffStreak?: number;
+  pacifiedAreas?: number[];
 }

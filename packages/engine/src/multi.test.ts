@@ -146,6 +146,19 @@ describe("mpReduce (turn-gated play)", () => {
     expect(mp.parties.every((p) => p.kills === 0)).toBe(true);
   });
 
+  it("permanent indifference is per-party — pacifying a chamber doesn't affect other parties", () => {
+    // Woman-stranger (id 6) + a no-charisma Man party: shared seed 9 rolls indifferent three times.
+    const mp = playing({ seed: 9 }, [
+      partyAt(0, { phase: "encounter", strangers: [6], treasures: [1], party: [member(5)] }),
+      partyAt(1, { phase: "encounter", strangers: [6], treasures: [1], party: [member(5)] }),
+    ]);
+    let s = mp;
+    for (let i = 0; i < 3; i++) s = mpReduce(s, 0, { type: "test" }).state;
+    expect(s.parties[0]!.pacifiedAreas).toContain(0);          // seat 0 is now permanently indifferent here
+    expect(s.parties[0]!.phase).toBe("explore");               // free to leave by any exit
+    expect(s.parties[1]!.pacifiedAreas ?? []).not.toContain(0); // seat 1 is entirely unaffected
+  });
+
   it("endTurn passes when at rest and is rejected mid-encounter", () => {
     const resting = playing({}, [partyAt(0), partyAt(1)]);
     expect(mpReduce(resting, 0, { type: "endTurn" }).state.active).toBe(1);

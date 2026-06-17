@@ -196,7 +196,7 @@ describe("Unicorn loyalty to a Woman (§ Unicorn)", () => {
     expect(events).toContainEqual({ type: "unicornGuards", creatureId: 13 });
     expect(state.party.map((m) => m.creatureId)).not.toContain(13); // did NOT join
     expect(state.phase).toBe("explore"); // party moves on
-    expect(state.areas[state.partyArea]!.indiffCount).toBe(3); // permanently indifferent
+    expect(state.pacifiedAreas).toContain(state.partyArea); // guarded for this party (per-party, re-entry skips it)
   });
 
   it("a Unicorn ally departs after combat once the last Woman is gone", () => {

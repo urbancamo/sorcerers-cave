@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
 import { GS_QUIT, GS_ESCAPED } from "./state";
-import { DIR_S, packCoord } from "./coords";
+import { DIR_S, DIR_E, packCoord } from "./coords";
 import { makeState } from "./testkit";
 import { legalActions } from "./selectors";
 import type { GameEvent } from "./actions";
@@ -163,17 +163,40 @@ describe("reduce — stranger encounters (C-2 §8)", () => {
     expect(events).toContainEqual(expect.objectContaining({ type: "reaction", outcome: "friendly" }));
   });
 
-  it("three indifferent results make the area permanently indifferent (no more test)", () => {
+  it("three indifferent results pacify the chamber for that party: guarded treasure, free to leave", () => {
     // Woman-stranger (id 6): seed 9 with a no-charisma party (a Man) rolls indifferent three times.
     let s = makeState({
-      phase: "encounter", strangers: [6], seed: 9,
+      phase: "encounter", strangers: [6], treasures: [1], seed: 9,
       party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [] }],
       areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
     });
     for (let i = 0; i < 3; i++) s = reduce(s, { type: "test" }).state;
-    expect(s.areas[0]!.indiffCount).toBe(3);
-    expect(legalActions(s)).not.toContainEqual({ type: "test" });
+    expect(s.indiffStreak).toBe(3);
+    expect(s.pacifiedAreas).toContain(0);
+    expect(s.phase).toBe("explore"); // free to move out by any valid exit
+    const acts = legalActions(s);
+    expect(acts).not.toContainEqual({ type: "test" });               // no more testing
+    expect(acts.some((a) => a.type === "takeTreasure")).toBe(false); // treasure protected — cannot loot
+    expect(acts.some((a) => a.type === "move")).toBe(true);          // may leave by a doorway
+    // the indifferent stranger AND the treasure stay guarded in the chamber
+    expect(s.areas[0]!.contents).toEqual(expect.arrayContaining([200 + 1, 100 + 6]));
+    expect(s.party[0]!.treasure).toEqual([]);                        // nothing looted
     expect(reduce(s, { type: "test" }).events).toContainEqual({ type: "blocked" });
+  });
+
+  it("a pacified chamber stays indifferent on re-entry (no encounter, treasure still guarded)", () => {
+    // Tunnel A (exit E) → chamber B (card 31), already pacified for this party with a guarded stranger+treasure.
+    const A = { card: 2, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };
+    const B = { card: 31, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents: [100 + 6, 200 + 1], flags: 0, indiffCount: 0 };
+    const s = makeState({
+      phase: "explore", areas: [A, B], partyArea: 0, prev: 0,
+      party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [] }], pacifiedAreas: [1],
+    });
+    const r = reduce(s, { type: "move", dir: DIR_E });
+    expect(r.state.partyArea).toBe(1);
+    expect(r.state.phase).toBe("explore"); // walked straight in, no encounter
+    expect(legalActions(r.state).some((a) => a.type === "takeTreasure")).toBe(false);
+    expect(r.state.areas[1]!.contents).toEqual(expect.arrayContaining([200 + 1, 100 + 6])); // still guarded
   });
 });
 

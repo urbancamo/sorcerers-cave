@@ -162,6 +162,12 @@ function resolveArea(state: GameState): GameEvent[] {
       state.strangers = state.strangers.filter((id) => id !== 10);
       if (freshEntry) events.push({ type: "dragonsLulled", count: dragons.length });
     }
+    // Already permanently indifferent to this party: the strangers ignore it and it ignores them —
+    // pass straight through (any exit), treasure stays guarded. Other parties are unaffected.
+    if (state.pacifiedAreas?.includes(state.partyArea)) {
+      persistAndExplore(state);
+      return events;
+    }
     if (state.strangers.length > 0) {
       state.phase = "encounter";
       // Surprise if attacking immediately on a fresh entry — never after a trap fall (§Surprise).
@@ -375,8 +381,7 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
 
     case "test": {
       if (state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
-      const area = state.areas[state.partyArea]!;
-      if (area.indiffCount >= 3) return { state, events: [{ type: "blocked" }] }; // permanently indifferent
+      if ((state.indiffStreak ?? 0) >= 3) return { state, events: [{ type: "blocked" }] }; // permanently indifferent
       const next = structuredClone(state);
       next.surpriseReady = false; // approaching to test forfeits the chance of a surprise attack (§Surprise)
       const roll = reactionRoll(next);
@@ -394,7 +399,10 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
         if (guardPool.length > 0) {
           next.strangers = guardPool;
           for (const id of guardPool) events.push({ type: "unicornGuards", creatureId: id });
-          next.areas[next.partyArea]!.indiffCount = 3; // cannot be approached further; it guards any treasure
+          // The womanless Unicorn guards the area for THIS party (per-party): pass through, no loot.
+          if (!next.pacifiedAreas?.includes(next.partyArea)) {
+            next.pacifiedAreas = [...(next.pacifiedAreas ?? []), next.partyArea];
+          }
           persistAndExplore(next); // the party moves on, leaving the Unicorn (and guarded treasure) behind
         } else {
           next.strangers = [];
@@ -402,8 +410,16 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
           else persistAndExplore(next);
         }
       } else if (roll.outcome === "indifferent") {
-        next.areas[next.partyArea]!.indiffCount += 1;
-        // stays in the encounter phase
+        next.indiffStreak = (next.indiffStreak ?? 0) + 1;
+        if (next.indiffStreak >= 3) {
+          // Permanently indifferent to this party: treasure stays guarded (no pickup), but the
+          // party may now leave by any valid exit. Record the area so re-entry skips the encounter.
+          if (!next.pacifiedAreas?.includes(next.partyArea)) {
+            next.pacifiedAreas = [...(next.pacifiedAreas ?? []), next.partyArea];
+          }
+          persistAndExplore(next); // park strangers + treasure back as guarded; return to explore
+        }
+        // else stays in the encounter phase
       } else {
         events.push(...startFight(next, -1)); // strangers gain surprise
       }
