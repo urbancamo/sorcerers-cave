@@ -15,9 +15,12 @@ export function GameOverScreen({
   onNewGame,
   onSaveScore,
   leaderboard,
+  newGameLabel,
 }: {
   state: GameState;
   onNewGame: () => void;
+  /** Label for the primary button (default "New game"; e.g. "Back to Standings" in multiplayer). */
+  newGameLabel?: string;
   /** Persist the score under `name`; returns the new record id (to highlight it). */
   onSaveScore?: (name: string) => Promise<string | void>;
   /** Leaderboard rows for the post-save table (undefined = loading). */
@@ -120,7 +123,7 @@ export function GameOverScreen({
         </div>
       )}
 
-      <button className="scv-primary" onClick={onNewGame}>New game</button>
+      <button className="scv-primary" onClick={onNewGame}>{newGameLabel ?? "New game"}</button>
     </section>
   );
 }

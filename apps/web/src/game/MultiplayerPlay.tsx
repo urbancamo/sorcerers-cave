@@ -17,7 +17,7 @@ import { eventNotices, type Notice } from "./eventNotices";
 import { ChatPanel } from "./ChatPanel";
 import { GameOverScreen } from "./GameOverScreen";
 import { ScoreboardPanel } from "./ScoreboardPanel";
-import { DEFAULT_PARTY_COLOR, type PartyColor } from "./partyColors";
+import { DEFAULT_PARTY_COLOR, PARTY_COLOR_HEX, type PartyColor } from "./partyColors";
 
 /**
  * Shared-cave play for the viewing seat: renders the existing 3D cave from this party's composed
@@ -126,6 +126,10 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   const terminal = state.gs !== GS_PLAYING;
   const yourTurn = view.yourTurn && !terminal;
   const gameOver = view.currentSeat === null; // playView reports no current seat once finished
+  // Permanent turn marker (left of Depth): whose turn is in progress.
+  const currentParty = view.parties.find((p) => p.seat === view.currentSeat);
+  const turnLabel = gameOver ? "Game over" : yourTurn ? "You" : (currentParty?.name ?? "…");
+  const turnColor = currentParty ? PARTY_COLOR_HEX[currentParty.color as PartyColor] : undefined;
   // Don't pop the scoreboard over the final combat roll / death notice from your last action —
   // wait until that outcome dialog is dismissed (otherwise a wipe hides how it happened).
   const outcomeDialogOpen = roll !== null || notices !== null;
@@ -153,7 +157,7 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
 
   return (
     <div className="relative h-screen w-screen">
-      <CaveCanvas key={gameId} engine={engine} state={state} color={myColor} onPartyClick={() => setShowParty(true)} onQuit={() => setShowQuit(true)} otherParties={otherParties} onReady={(apiRef) => { focusApiRef.current = apiRef; }} multiplayer />
+      <CaveCanvas key={gameId} engine={engine} state={state} color={myColor} onPartyClick={() => setShowParty(true)} onQuit={() => setShowQuit(true)} otherParties={otherParties} onReady={(apiRef) => { focusApiRef.current = apiRef; }} multiplayer turnLabel={turnLabel} turnColor={turnColor} />
       <div className="scv-mp-toasts">
         {toasts.map((t) => (
           <div key={t.id} className={"scv-mp-toast" + (t.tone === "you" ? " you" : t.tone === "chat" ? " chat" : "")}>{t.text}</div>
@@ -218,8 +222,8 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
       )}
       {/* Personal score breakdown (no save form — the result is auto-recorded server-side). */}
       {showMyRun && (
-        <div className="scv-mp-finishoverlay" onClick={() => setShowMyRun(false)}>
-          <GameOverScreen state={state} onNewGame={onExit} />
+        <div className="scv-mp-finishoverlay">
+          <GameOverScreen state={state} onNewGame={() => setShowMyRun(false)} newGameLabel="← Back to Standings" />
         </div>
       )}
     </div>

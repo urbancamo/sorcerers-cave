@@ -683,7 +683,7 @@
 .scv-sb-chip { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 7px; vertical-align: middle; }
 .scv-sb-you { color: var(--stone-dim); font-style: normal; opacity: 0.7; }
 .scv-sb-score { font-weight: 700; color: var(--brass-bright); }
-.scv-sb-badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; }
+.scv-sb-badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; white-space: nowrap; }
 .scv-sb-badge.esc { background: #2e6b3e; color: #eaf4ea; }
 .scv-sb-badge.die { background: #8a3a34; color: #f6e2df; }
 .scv-sb-badge.live { background: #36476b; color: #e3e9f6; }
