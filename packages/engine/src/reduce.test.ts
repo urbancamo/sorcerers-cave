@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
-import { GS_QUIT, GS_ESCAPED } from "./state";
+import { GS_QUIT, GS_ESCAPED, GS_DEAD } from "./state";
 import { DIR_S, DIR_E, packCoord } from "./coords";
 import { makeState } from "./testkit";
 import { legalActions } from "./selectors";
@@ -97,7 +97,7 @@ describe("reduce — chamber resolution (C-1)", () => {
     const acts = legalActions(state);
     expect(acts).not.toContainEqual({ type: "withdraw" }); // cannot retreat back up the trap
     expect(acts).toContainEqual({ type: "attack" });
-    expect(acts).toContainEqual({ type: "quit" });
+    expect(acts).not.toContainEqual({ type: "quit" }); // quit is via the HUD Quit button, not an in-menu action
     // a blocked withdraw is a no-op
     expect(reduce(state, { type: "withdraw" }).events).toContainEqual({ type: "blocked" });
   });
@@ -110,7 +110,7 @@ describe("reduce — chamber resolution (C-1)", () => {
     expect(legalActions(state)).toContainEqual({ type: "withdraw" });
     expect(legalActions(state)).toContainEqual({ type: "attack" });
     expect(legalActions(state)).toContainEqual({ type: "test" });
-    expect(legalActions(state)).toContainEqual({ type: "quit" });
+    expect(legalActions(state)).not.toContainEqual({ type: "quit" }); // abandoning is via the HUD Quit button
   });
 
   it("withdraw steps back to the previous area and leaves the strangers behind", () => {
@@ -197,6 +197,23 @@ describe("reduce — stranger encounters (C-2 §8)", () => {
     expect(r.state.phase).toBe("explore"); // walked straight in, no encounter
     expect(legalActions(r.state).some((a) => a.type === "takeTreasure")).toBe(false);
     expect(r.state.areas[1]!.contents).toEqual(expect.arrayContaining([200 + 1, 100 + 6])); // still guarded
+  });
+
+  it("Medusa turning the whole party to stone ends the game (petrifiedOut + gameOver)", () => {
+    // Tunnel A (exit E) → draw a chamber (card 24 = W door + chamber) that yields a Medusa; the lone
+    // Man is petrified (seed picked so the gaze roll is <= 2), leaving no one alive.
+    const A = { card: 2, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };
+    const s = makeState({
+      phase: "explore", areas: [A], partyArea: 0, prev: 0,
+      party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [] }],
+      largePack: [24], smallPack: [300 + 3], seed: 2,
+    });
+    const { state, events } = reduce(s, { type: "move", dir: DIR_E });
+    expect(state.party.every((m) => m.status === 2)).toBe(true); // all stone
+    expect(state.gs).toBe(GS_DEAD);
+    expect(state.phase).toBe("gameOver");
+    expect(events).toContainEqual({ type: "petrifiedOut" });
+    expect(events).toContainEqual({ type: "gameOver", gs: GS_DEAD });
   });
 });
 

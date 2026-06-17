@@ -49,6 +49,9 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "spectreSlew":
         out.push({ text: `A Spectre's touch slays ${name(e.creatureId)}!`, tone: "bad" });
         break;
+      case "petrifiedOut":
+        out.push({ text: "No party members have been left alive by Medusa's gaze.", tone: "bad" });
+        break;
       case "hazardFired": {
         const n = hazardNotice(e.hazard);
         if (n) out.push(n);

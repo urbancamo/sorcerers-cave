@@ -147,6 +147,15 @@ function resolveArea(state: GameState): GameEvent[] {
     events.push(...wardOffSpectres(state)); // the Talisman drives off Spectres on level >= 4 (§ Talisman)
     const { events: hzEvents, fell } = applyHazards(state);
     events.push(...hzEvents);
+    // A hazard may incapacitate the whole party (Medusa petrifies everyone, or Ghouls slay them) —
+    // with no one left able to act, the expedition ends.
+    if (!state.party.some((m) => m.status === 0 || m.status === 1)) {
+      state.gs = GS_DEAD;
+      state.phase = "gameOver";
+      if (state.party.every((m) => m.status === 2)) events.push({ type: "petrifiedOut" }); // all turned to stone
+      events.push({ type: "gameOver", gs: GS_DEAD });
+      return events;
+    }
     if (fell) {
       relocateDown(state);
       events.push({ type: "trapSprung", level: state.level });
