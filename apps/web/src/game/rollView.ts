@@ -93,12 +93,27 @@ function casualtyView(events: GameEvent[]): RollView | null {
   };
 }
 
-/** Build the dice overlay (if any) for the events an action produced — reaction, chest, casualty, else combat. */
+/** Turn Medusa's gaze into a die-per-member overlay (a 1-2 turns that creature to stone). */
+function medusaView(events: GameEvent[]): RollView | null {
+  const gaze = events.find((e): e is Extract<GameEvent, { type: "medusaGaze" }> => e.type === "medusaGaze");
+  if (!gaze) return null;
+  const lanes: Lane[] = gaze.rolls.map((r) => ({
+    enemy: { name: CREATURES[r.creatureId]?.name ?? "?", value: r.roll, outcome: r.petrified ? "lose" : "win" },
+  }));
+  const stoned = gaze.rolls.filter((r) => r.petrified).length;
+  const wipedOut = events.some((e) => e.type === "petrifiedOut");
+  const message = wipedOut
+    ? "Medusa's gaze petrifies the whole party…"
+    : stoned > 0 ? `Medusa's gaze — ${stoned} turned to stone.` : "Medusa's gaze — the party averts its eyes!";
+  return { title: "Medusa's gaze", lanes, message, tone: stoned > 0 ? "bad" : "good" };
+}
+
+/** Build the dice overlay (if any) for the events an action produced — reaction, chest, casualty, Medusa, else combat. */
 export function rollFromEvents(events: GameEvent[]): RollView | null {
   const reaction = events.find((e): e is Extract<GameEvent, { type: "reaction" }> => e.type === "reaction");
   if (reaction) {
     const joined = events.find((e): e is Extract<GameEvent, { type: "strangersJoined" }> => e.type === "strangersJoined")?.count ?? 0;
     return reactionView(reaction, joined);
   }
-  return chestView(events) ?? casualtyView(events) ?? combatView(events);
+  return chestView(events) ?? casualtyView(events) ?? medusaView(events) ?? combatView(events);
 }

@@ -36,17 +36,23 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         if (prev && state.prev !== state.partyArea) {
           prev.flags |= AF_DESTROYED;
           prev.contents = [];
+          // Lay the earthquake card on the tile it collapsed (display-only scar on the rubble).
+          prev.markers = [...(prev.markers ?? []), 300 + HAZARD_EARTHQUAKE];
         }
         break;
       }
       case HAZARD_MEDUSA: {
+        const rolls: { creatureId: number; roll: number; petrified: boolean }[] = [];
         for (const m of state.party) {
           if (m.status !== 0 && m.status !== 1) continue;
           if (m.creatureId === C_WIZARD && m.treasure.includes(T_MAGIC_STAFF)) continue; // a Wizard bearing the Magic Staff is immune (card)
           const r = rollDie(state.seed);
           state.seed = r.seed;
-          if (r.value <= 2) m.status = 2;
+          const petrified = r.value <= 2; // a 1 or 2 turns that creature to stone (§Medusa)
+          if (petrified) m.status = 2;
+          rolls.push({ creatureId: m.creatureId, roll: r.value, petrified });
         }
+        if (rolls.length) events.push({ type: "medusaGaze", rolls });
         break;
       }
       case HAZARD_GHOULS: {
@@ -101,17 +107,14 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
       }
     }
   }
-  // Some hazard cards stay drawn on the chamber's tile. Medusa & Ghouls LURK — re-parked into the
-  // area's contents so they reload and fire again on every re-entry (§Medusa, §Ghouls). Earthquake
-  // leaves a one-time SCAR — a display-only marker that never re-fires.
+  // Medusa & Ghouls LURK in the chamber — re-parked into the area's contents so they reload and fire
+  // again on every re-entry (§Medusa, §Ghouls). (Earthquake's scar is laid on the tile it collapsed,
+  // handled in its case above.)
   const here = state.areas[state.partyArea];
   if (here) {
     for (const hz of state.hazards) {
       if ((hz === HAZARD_MEDUSA || hz === HAZARD_GHOULS) && !here.contents.includes(300 + hz)) {
         here.contents.push(300 + hz);
-      } else if (hz === HAZARD_EARTHQUAKE) {
-        here.markers = here.markers ?? [];
-        if (!here.markers.includes(300 + hz)) here.markers.push(300 + hz);
       }
     }
   }

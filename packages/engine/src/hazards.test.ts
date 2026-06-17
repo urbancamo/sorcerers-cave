@@ -56,7 +56,7 @@ describe("applyHazards (spec §7.2)", () => {
     expect(events.some((e) => e.type === "combatRoll" && e.enemy === "Ghouls")).toBe(true);
   });
 
-  it("Earthquake leaves a display-only scar (marker), not a reloading hazard", () => {
+  it("Earthquake lays a display-only scar on the tile it collapses (not the current tile)", () => {
     const s = makeState({
       areas: [
         { card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
@@ -66,8 +66,9 @@ describe("applyHazards (spec §7.2)", () => {
       hazards: [HAZARD_EARTHQUAKE],
     });
     applyHazards(s);
-    expect(s.areas[1]!.markers).toEqual([300 + HAZARD_EARTHQUAKE]);
-    expect(s.areas[1]!.contents).not.toContain(300 + HAZARD_EARTHQUAKE); // scar never re-fires
+    expect(s.areas[0]!.markers).toEqual([300 + HAZARD_EARTHQUAKE]); // on the collapsed (prev) tile
+    expect(s.areas[1]!.markers ?? []).not.toContain(300 + HAZARD_EARTHQUAKE); // not the current tile
+    expect(s.areas[0]!.contents).not.toContain(300 + HAZARD_EARTHQUAKE); // scar never re-fires
   });
 
   it("Mutiny reverts allies to strangers, drops their treasure, and reports it", () => {
