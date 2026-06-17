@@ -28,7 +28,6 @@ function label(a: GameAction, state: GameState): string {
         : `Take ${tname} → ${member}`;
     }
     case "useArtifact": return `Use artifact ${TREASURES[a.artifact]?.name ?? a.artifact}`;
-    case "quit": return "Abandon the expedition";
     default: return a.type;
   }
 }

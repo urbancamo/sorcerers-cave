@@ -754,7 +754,7 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
     // Multiplayer injects its own quit flow (leave-to-menu vs abandon, in a popup); solo uses the
     // built-in confirm that ends the game (GS_QUIT) → the score screen.
     if(onQuit){ onQuit(); return; }
-    showChoice('Quit the expedition?','Your party leaves the Cave and your final score is tallied.','Quit','Keep playing')
+    showChoice('Abandon the expedition?','You forsake your party to the Cave — they do not escape. Your final score is tallied.','Abandon','Keep playing')
       .then(ok=>{ if(ok) engine.quit(); });
   });
   needle=document.querySelector('#rose .needle');

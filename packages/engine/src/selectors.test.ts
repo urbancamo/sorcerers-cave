@@ -8,14 +8,14 @@ import { GS_QUIT } from "./state";
 import { makeState } from "./testkit";
 
 describe("legalActions (interactive contract)", () => {
-  it("offers the Gateway's lateral moves, exitCave (level-1 stair-up), and quit", () => {
+  it("offers the Gateway's lateral moves and exitCave (level-1 stair-up); quit is NOT an in-menu action", () => {
     const acts = legalActions(makeState()); // Gateway 175 = NSEW + stairUp, level 1
     expect(acts).toContainEqual({ type: "move", dir: DIR_N });
     expect(acts).toContainEqual({ type: "move", dir: DIR_E });
     expect(acts).toContainEqual({ type: "move", dir: DIR_S });
     expect(acts).toContainEqual({ type: "move", dir: DIR_W });
     expect(acts).toContainEqual({ type: "exitCave" });
-    expect(acts).toContainEqual({ type: "quit" });
+    expect(acts).not.toContainEqual({ type: "quit" }); // abandoning is via the HUD Quit button only
     // On level 1 a stair-up is the cave exit, NOT a move up.
     expect(acts).not.toContainEqual({ type: "move", dir: DIR_UP });
   });

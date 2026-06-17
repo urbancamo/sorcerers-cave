@@ -66,8 +66,7 @@ export function legalActions(state: GameState): GameAction[] {
     const actions: GameAction[] = state.fellThroughTrap ? [{ type: "attack" }] : [{ type: "withdraw" }, { type: "attack" }];
     if ((state.indiffStreak ?? 0) < 3) actions.push({ type: "test" });
     actions.push(...artifactActions(state));
-    actions.push({ type: "quit" });
-    return actions;
+    return actions; // quitting is via the HUD Quit button, not an in-menu action
   }
   if (state.phase === "fight") {
     // A pending casualty must be decided before anything else: pick which of the losing pair falls.
@@ -78,8 +77,7 @@ export function legalActions(state: GameState): GameAction[] {
     if (!state.fellThroughTrap && state.fight && state.fight.round > 1) actions.push({ type: "retreat" });
     for (let i = 0; i < state.strangers.length; i++) actions.push({ type: "focusTarget", idx: i });
     actions.push(...artifactActions(state));
-    actions.push({ type: "quit" });
-    return actions;
+    return actions; // quitting is via the HUD Quit button, not an in-menu action
   }
   if (state.phase === "pickup") {
     const actions: GameAction[] = [];
@@ -111,6 +109,5 @@ export function legalActions(state: GameState): GameAction[] {
   }
   if (state.party.some((m) => (m.status === 0 || m.status === 1) && m.treasure.includes(14))) actions.push({ type: "openChest" });
   actions.push(...artifactActions(state));
-  actions.push({ type: "quit" });
-  return actions;
+  return actions; // quitting is via the HUD Quit button, not an in-menu action
 }

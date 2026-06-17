@@ -171,17 +171,25 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
         </button>
         {showChat && <ChatPanel gameId={gameId} />}
       </div>
-      {/* HUD "Quit" → confirm leaving to the menu (the party stays in the game, rejoinable by code). */}
+      {/* HUD "Quit" → leave to the menu (party stays) or abandon the expedition (party forsaken to the Cave). */}
       {showQuit && (
         <div className="scv-mp-modal" role="dialog" aria-modal="true">
           <div className="scv-mp-modal-card">
-            <h3 className="scv-hd">Leave to the menu?</h3>
+            <h3 className="scv-hd">Leave the game?</h3>
             <p className="scv-muted">
-              Your party stays in the game — rejoin any time with the code. To end your run instead,
-              use “Abandon the expedition” from the action menu.
+              Leaving to the menu keeps your party in the game — rejoin any time with the code.
+              Abandoning forsakes your party to the Cave: they do not escape, your final score is tallied, and the others are told.
             </p>
             <div className="scv-mp-modal-actions">
               <button className="scv-primary" onClick={() => { setShowQuit(false); onExit(); }}>Leave to menu</button>
+              <button
+                className="scv-primary danger"
+                disabled={!yourTurn}
+                title={yourTurn ? undefined : "You can only abandon on your turn"}
+                onClick={() => { setShowQuit(false); void dispatch({ type: "quit" }); }}
+              >
+                Abandon the expedition
+              </button>
               <button className="scv-primary ghost" onClick={() => setShowQuit(false)}>Cancel</button>
             </div>
           </div>
