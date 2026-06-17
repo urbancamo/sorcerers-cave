@@ -178,9 +178,14 @@ function resolveArea(state: GameState): GameEvent[] {
       return events;
     }
     if (state.strangers.length > 0) {
-      state.phase = "encounter";
-      // Surprise if attacking immediately on a fresh entry — never after a trap fall (§Surprise).
-      state.surpriseReady = freshEntry && !state.fellThroughTrap;
+      if (state.hostileAreas?.includes(state.partyArea)) {
+        // The party retreated from these strangers before — they attack on sight (with surprise). §Retreat
+        events.push(...startFight(state, -1));
+      } else {
+        state.phase = "encounter";
+        // Surprise if attacking immediately on a fresh entry — never after a trap fall (§Surprise).
+        state.surpriseReady = freshEntry && !state.fellThroughTrap;
+      }
     } else if (state.treasures.length > 0) {
       state.phase = "pickup";
     } else {
@@ -510,6 +515,10 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       res.state.strangers = []; res.state.treasures = []; res.state.hazards = []; res.state.sleeping = []; res.state.lulled = [];
       res.state.fight = null;
       res.state.party.forEach((m) => { m.potionActive = false; });
+      // The strangers we fled stay hostile to this party for the rest of the game (§Retreat).
+      if (!res.state.hostileAreas?.includes(fromIdx)) {
+        res.state.hostileAreas = [...(res.state.hostileAreas ?? []), fromIdx];
+      }
       const events = resolveArea(res.state); // resolve the area we retreated into (fresh tunnel/chamber)
       return { state: res.state, events };
     }

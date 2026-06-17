@@ -98,4 +98,7 @@ export interface GameState {
   // party may leave by any exit but still cannot loot the (guarded) treasure.
   indiffStreak?: number;
   pacifiedAreas?: number[];
+  // Areas this party retreated from: those strangers stay hostile to it for the rest of the game
+  // (§Retreat) and attack on sight if the party returns. Per-party; other parties are unaffected.
+  hostileAreas?: number[];
 }

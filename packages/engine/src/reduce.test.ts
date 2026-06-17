@@ -297,6 +297,22 @@ describe("reduce — fight dispatch (C-2 §9.5)", () => {
     expect(r.partyArea).toBe(1); // fled north into the known tile
     expect(r.fight).toBeNull();
     expect(r.areas[0]!.contents).toEqual(expect.arrayContaining([103, 110])); // strangers left in the chamber
+    expect(r.hostileAreas).toContain(0); // the strangers we fled stay hostile to us (§Retreat)
+  });
+
+  it("re-entering a chamber you retreated from is met with an immediate fight (§Retreat)", () => {
+    const A = { card: 2, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }; // tunnel, exit E
+    const B = { card: 31, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents: [100 + 3], flags: 0, indiffCount: 0 }; // Troll parked
+    const s = makeState({
+      phase: "explore", areas: [A, B], partyArea: 0, prev: 0,
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }],
+      hostileAreas: [1],
+    });
+    const r = reduce(s, { type: "move", dir: DIR_E }).state;
+    expect(r.partyArea).toBe(1);
+    expect(r.phase).toBe("fight"); // attacked on sight — no test/encounter offered
+    expect(r.fight).not.toBeNull();
+    expect(r.strangers).toEqual([3]);
   });
 
   it("retreating toward a dead end fails — the party must fight another round (§Retreat)", () => {
