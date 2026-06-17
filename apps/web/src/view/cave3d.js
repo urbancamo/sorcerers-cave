@@ -12,7 +12,7 @@ const TILE_W=4.3, LEVEL_GAP=5.2; let TILE_D;
 const DESTROYED_TINT=0x4a4036; // earthquake-collapsed tile: darkened rubble tone
 const DIRV={N:[0,-1],S:[0,1],E:[1,0],W:[-1,0]};
 
-let engine, startLevel, tiles, PARTY=[], partyColorHex;
+let engine, startLevel, tiles, PARTY=[], partyColorHex, isMultiplayer=false;
 const lvlIndex=l=>l-startLevel;
 function worldPos(a){ return new THREE.Vector3(a.col*TILE_W, -lvlIndex(a.level)*LEVEL_GAP, a.row*TILE_D); }
 const akey=a=>a.level+','+a.col+','+a.row; // one tile per (level,col,row)
@@ -187,8 +187,10 @@ function rebuildSecretDoors(){
   engine.areas.forEach(a=>{
     if(a.secretDoor==null) return;
     const w=1.15/3, h=w*DOOR_AR;
-    const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),
-      new THREE.MeshBasicMaterial({map:doorTexture(a.secretDoor),transparent:true,depthWrite:false,alphaTest:0.02}));
+    const mat=new THREE.MeshBasicMaterial({map:doorTexture(a.secretDoor),transparent:true,depthWrite:false,alphaTest:0.02});
+    // Multiplayer: wash the marker in the viewing party's colour (kept light so the door art stays legible).
+    if(isMultiplayer) mat.color=new THREE.Color(partyColorHex||COLOR.brass).lerp(new THREE.Color(0xffffff),0.5);
+    const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat);
     m.rotation.x=-Math.PI/2; // flat to the floor
     // A free corner (the up/down stair markers sit at the other corners) so the animated up marker stays visible.
     const p=worldPos(a); m.position.set(p.x-TILE_W*0.30, p.y+0.03, p.z+TILE_D*0.30);
@@ -344,7 +346,7 @@ function makeCardObject(card, yaw){
 // content signature so we only rebuild when the chamber's cards actually change.
 const contentGroups=new Map();                          // "lvl,col,row" -> {group,sig,faces}
 function contentSig(area){
-  return area.strangers.map(c=>c.id).join(',')+'|'+area.treasure.map(c=>c.id).join(',');
+  return area.strangers.map(c=>c.id).join(',')+'|'+area.treasure.map(c=>c.id).join(',')+'|'+area.hazards.map(c=>c.id).join(',');
 }
 function disposeContentGroup(entry){
   contentGroup.remove(entry.group);
@@ -359,10 +361,11 @@ function layContents(area, animated){
     if(existing.sig===sig) return;                      // unchanged — keep the laid cards
     disposeContentGroup(existing); contentGroups.delete(key); // contents changed — rebuild
   }
-  if(!area.strangers.length && !area.treasure.length) return; // nothing (or everything taken) — show no cards
+  if(!area.strangers.length && !area.treasure.length && !area.hazards.length) return; // nothing to show
   const lanes=[
     {list:area.strangers, ax:-TILE_W*0.14, az:-TILE_D*0.17},   // creatures: upper-left, inward
     {list:area.treasure,  ax:-TILE_W*0.14, az: TILE_D*0.19},   // treasure: lower-left, inward
+    {list:area.hazards,   ax: TILE_W*0.16, az:-TILE_D*0.17},   // hazards (permanent: Medusa, earthquake scar): upper-right
   ];
   const grp=new THREE.Group(); grp.position.copy(worldPos(area));
   const faces=[];
@@ -620,6 +623,7 @@ function setParty(p){
 /* ---- other parties' tokens (multiplayer): small coloured pins at each party's tile ---- */
 function setOtherParties(list){
   [...otherGroup.children].forEach(o=>{o.traverse?.(c=>{c.geometry?.dispose?.();c.material?.dispose?.();});otherGroup.remove(o);});
+  const seen=new Map(); // tile key -> how many other parties already placed there (to fan them)
   (list||[]).forEach(p=>{
     const base=new THREE.Color(p.color||COLOR.brass);
     const g=new THREE.Group();
@@ -627,8 +631,10 @@ function setOtherParties(list){
     const pin=new THREE.Mesh(new THREE.ConeGeometry(0.17,0.52,14),new THREE.MeshBasicMaterial({color:base.clone().lerp(new THREE.Color(0xffffff),0.3)}));pin.position.y=0.5;
     g.add(disc,pin); g.scale.setScalar(0.5);
     const wp=worldPos({col:p.col,row:p.row,level:p.level});
-    // offset to a tile corner so it never sits under the viewing party's centre token
-    g.position.set(wp.x+TILE_W*0.26, wp.y, wp.z-TILE_D*0.26);
+    // Cluster near the tile centre; if several share a tile, fan them in a small ring so they don't overlap.
+    const key=p.level+','+p.col+','+p.row, n=seen.get(key)??0; seen.set(key,n+1);
+    const r=n===0?0:TILE_W*0.13, ang=(n-1)*(Math.PI*2/3);
+    g.position.set(wp.x+Math.cos(ang)*r, wp.y, wp.z+Math.sin(ang)*r);
     g.userData.lvl=p.level;
     otherGroup.add(g);
   });
@@ -706,8 +712,8 @@ function onKeyDown(e){
 }
 function onResize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}
 
-export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr, tileAR, partyColor, onQuit }){
-  engine=eng; startLevel=eng.startLevel; tiles=tileMap; PARTY=partyArr; TILE_D=TILE_W/tileAR; partyColorHex=partyColor;
+export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr, tileAR, partyColor, onQuit, multiplayer }){
+  engine=eng; startLevel=eng.startLevel; tiles=tileMap; PARTY=partyArr; TILE_D=TILE_W/tileAR; partyColorHex=partyColor; isMultiplayer=!!multiplayer;
 
   /* ---- renderer / scene / camera ---- */
   renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});

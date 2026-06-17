@@ -153,7 +153,7 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
 
   return (
     <div className="relative h-screen w-screen">
-      <CaveCanvas key={gameId} engine={engine} state={state} color={myColor} onPartyClick={() => setShowParty(true)} onQuit={() => setShowQuit(true)} otherParties={otherParties} onReady={(apiRef) => { focusApiRef.current = apiRef; }} />
+      <CaveCanvas key={gameId} engine={engine} state={state} color={myColor} onPartyClick={() => setShowParty(true)} onQuit={() => setShowQuit(true)} otherParties={otherParties} onReady={(apiRef) => { focusApiRef.current = apiRef; }} multiplayer />
       <div className="scv-mp-toasts">
         {toasts.map((t) => (
           <div key={t.id} className={"scv-mp-toast" + (t.tone === "you" ? " you" : t.tone === "chat" ? " chat" : "")}>{t.text}</div>

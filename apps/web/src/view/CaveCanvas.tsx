@@ -13,7 +13,7 @@ const TILE_AR = 1728 / 1210; // all tiles are 1728×1210 landscape (manifest)
 /** Other parties' map positions in a multiplayer game (small coloured pins). */
 export interface OtherPartyToken { color: string; col: number; row: number; level: number; }
 
-export function CaveCanvas({ engine, state, color, onPartyClick, onSave, onQuit, otherParties, onReady }: { engine: CaveEngine; state: GameState; color: PartyColor; onPartyClick?: () => void; onSave?: () => void; onQuit?: () => void; otherParties?: OtherPartyToken[]; onReady?: (api: { focusArea: (a: { col: number; row: number; level: number }) => void }) => void }) {
+export function CaveCanvas({ engine, state, color, onPartyClick, onSave, onQuit, otherParties, onReady, multiplayer }: { engine: CaveEngine; state: GameState; color: PartyColor; onPartyClick?: () => void; onSave?: () => void; onQuit?: () => void; otherParties?: OtherPartyToken[]; onReady?: (api: { focusArea: (a: { col: number; row: number; level: number }) => void }) => void; multiplayer?: boolean }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const ctrl = useRef<{ dispose(): void; refresh(): void; setParty(p: ReturnType<typeof viewParty>): void; setOtherParties?: (list: OtherPartyToken[]) => void; focusArea?: (a: { col: number; row: number; level: number }) => void } | null>(null);
   const cardsRef = useRef<CardArt[]>([]); // small-card art for resolving carried items in the roster
@@ -39,6 +39,7 @@ export function CaveCanvas({ engine, state, color, onPartyClick, onSave, onQuit,
         party: viewParty(state, cards),
         tileAR: TILE_AR,
         partyColor: partyColorHex(colorRef.current),
+        multiplayer,
         onQuit: onQuitRef.current ? () => onQuitRef.current?.() : undefined,
       });
       ctrl.current?.setOtherParties?.(otherRef.current); // apply any pins known at boot
