@@ -528,8 +528,8 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
           consume();
           return ok;
         }
-        case 6: { // Healing Balm — explore only, target a dead member
-          if (next.phase !== "explore" || action.target === undefined) return { state, events: [{ type: "blocked" }] };
+        case 6: { // Healing Balm — at rest or while looting, target a dead member
+          if ((next.phase !== "explore" && next.phase !== "pickup") || action.target === undefined) return { state, events: [{ type: "blocked" }] };
           const dm = next.party[action.target];
           if (!dm || dm.status !== 3) return { state, events: [{ type: "blocked" }] };
           dm.status = 0;

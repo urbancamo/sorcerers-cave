@@ -217,6 +217,21 @@ describe("reduce — stranger encounters (C-2 §8)", () => {
     expect(events).toContainEqual({ type: "petrifiedOut" });
     expect(events).toContainEqual({ type: "gameOver", gs: GS_DEAD });
   });
+
+  it("Healing Balm can revive a fallen member during pickup (loot still on the floor)", () => {
+    const s = makeState({
+      phase: "pickup", treasures: [1], // treasure on the floor after a fight
+      party: [
+        { creatureId: 6, status: 0, dragonKills: 0, treasure: [6] }, // Woman holding the Healing Balm
+        { creatureId: 0, status: 3, dragonKills: 0, treasure: [] },  // fallen Hero
+      ],
+      areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+    });
+    expect(legalActions(s)).toContainEqual({ type: "useArtifact", artifact: 6, target: 1 }); // offered in pickup
+    const { state } = reduce(s, { type: "useArtifact", artifact: 6, target: 1 });
+    expect(state.party[1]!.status).toBe(0);       // Hero revived
+    expect(state.party[0]!.treasure).toEqual([]); // balm consumed (no longer visible)
+  });
 });
 
 describe("reduce — fight dispatch (C-2 §9.5)", () => {

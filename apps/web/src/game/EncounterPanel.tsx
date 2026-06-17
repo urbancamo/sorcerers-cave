@@ -27,7 +27,12 @@ function label(a: GameAction, state: GameState): string {
         ? `Seize the ${tname} — ${member} must defeat the guardian statue`
         : `Take ${tname} → ${member}`;
     }
-    case "useArtifact": return `Use artifact ${TREASURES[a.artifact]?.name ?? a.artifact}`;
+    case "useArtifact": {
+      const tname = TREASURES[a.artifact]?.name ?? `artifact ${a.artifact}`;
+      // The Healing Balm revives a specific fallen member — name them so each option is distinct.
+      if (a.artifact === 6 && a.target !== undefined) return `${tname} — revive ${CREATURES[state.party[a.target]!.creatureId]!.name}`;
+      return `Use ${tname}`;
+    }
     default: return a.type;
   }
 }
