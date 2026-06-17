@@ -293,6 +293,16 @@ test("playView still returns a state once the whole game is finished", async () 
   expect(pv!.yourTurn).toBe(false);
 });
 
+test("spectateView returns any seat's composed view to a member, and nothing to outsiders", async () => {
+  const t = convexTest(schema, modules);
+  const { gameId, userBySeat } = await reachPlaying(t);
+  const sv = await userBySeat[0]!.query(api.multiplayer.spectateView, { gameId, seat: 1 });
+  expect(sv?.seat).toBe(1);
+  expect(sv?.state.party.map((m: { creatureId: number }) => m.creatureId)).toEqual([5]); // seat 1's own party
+  const outsider = await asUser(t);
+  expect(await outsider.query(api.multiplayer.spectateView, { gameId, seat: 0 })).toBeNull();
+});
+
 test("chat is membership-gated and includes system lines", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);

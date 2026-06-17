@@ -694,6 +694,13 @@
   font-family: var(--ui); font-size: 12px; padding: 6px 12px; border-radius: 9px;
   border: 1px solid var(--line-strong); background: rgba(15,15,20,0.82); color: var(--brass-bright); cursor: pointer;
 }
+/* "Following <party>" label while spectating another player's screen. */
+.scv-spectate-banner {
+  position: fixed; top: 78px; left: 50%; transform: translateX(-50%); z-index: 60;
+  font-family: var(--ui); font-size: 13px; padding: 6px 14px; border-radius: 20px; color: var(--stone);
+  background: rgba(15, 15, 20, 0.82); border: 1px solid var(--line-strong); backdrop-filter: blur(8px);
+}
+.scv-spectate-banner b { color: var(--brass-bright); }
 
 /* Quit popup (leave-to-menu vs abandon), reached from the HUD "Quit" button. */
 .scv-mp-modal {

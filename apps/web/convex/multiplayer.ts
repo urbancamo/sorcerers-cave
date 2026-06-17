@@ -368,6 +368,35 @@ export const playView = query({
   },
 });
 
+/**
+ * Read-only render view of ANY seat's party (membership-gated) — lets a player follow along with
+ * another party's screen from the scoreboard. Beginner ruleset: the whole cave is visible to all,
+ * so this leaks nothing the scoreboard doesn't already show.
+ */
+export const spectateView = query({
+  args: { gameId: v.id("games"), seat: v.number() },
+  handler: async (ctx, { gameId, seat }) => {
+    const userId = await getAuthUserId(ctx);
+    const game = await ctx.db.get(gameId);
+    if (!game || game.mode !== "multi") return null;
+    const seats = await seatsOf(ctx, gameId);
+    if (!userId || !seats.some((p) => p.userId === userId)) return null; // members only
+    const mp = game.state as MpGameState | null;
+    if (!mp || (mp.phase !== "playing" && mp.phase !== "finished")) return null;
+    if (seat < 0 || seat >= mp.parties.length) return null;
+    return {
+      state: partyView(mp, seat),
+      seat,
+      name: mp.parties[seat]!.name,
+      color: mp.parties[seat]!.color,
+      parties: mp.parties.map((p) => ({
+        seat: p.seat, name: p.name, color: p.color, status: p.status,
+        partyArea: p.partyArea, level: p.level,
+      })),
+    };
+  },
+});
+
 /** Apply one action in a multiplayer game, turn-gated by the engine. Persists the new shared state. */
 export const act = mutation({
   args: { gameId: v.id("games"), action: mpActionValidator },

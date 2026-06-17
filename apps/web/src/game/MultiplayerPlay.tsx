@@ -17,6 +17,7 @@ import { eventNotices, type Notice } from "./eventNotices";
 import { ChatPanel } from "./ChatPanel";
 import { GameOverScreen } from "./GameOverScreen";
 import { ScoreboardPanel } from "./ScoreboardPanel";
+import { SpectateView } from "./SpectateView";
 import { DEFAULT_PARTY_COLOR, PARTY_COLOR_HEX, type PartyColor } from "./partyColors";
 
 /**
@@ -33,7 +34,7 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   const [showParty, setShowParty] = useState(false);
   const [showChat, setShowChat] = useState(false);
   const [showQuit, setShowQuit] = useState(false); // HUD "Quit" → leave-to-menu confirm
-  const [spectating, setSpectating] = useState(false); // terminal/finished: scrim hidden, roaming the cave
+  const [spectateSeat, setSpectateSeat] = useState<number | null>(null); // following a party's screen
   const [peeking, setPeeking] = useState(false);       // active player opened the standings
   const [showMyRun, setShowMyRun] = useState(false);   // personal GameOverScreen sub-modal
 
@@ -89,7 +90,6 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   const adapterRef = useRef<CaveAdapter | null>(null);
   const syncedRef = useRef<GameState | null>(null);
   const yourTurnRef = useRef(false);
-  const focusApiRef = useRef<{ focusArea: (a: { col: number; row: number; level: number }) => void } | null>(null);
 
   const state = (view?.state as GameState | undefined) ?? null;
   yourTurnRef.current = !!view?.yourTurn;
@@ -120,6 +120,11 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
     return <p className="scv-mp-loading">Loading cave…</p>;
   }
 
+  // Following another party (or your own, read-only): render their screen until "Back to Standings".
+  if (spectateSeat !== null) {
+    return <SpectateView gameId={gameId} seat={spectateSeat} onBack={() => setSpectateSeat(null)} />;
+  }
+
   const engine = adapterRef.current;
   const me = view.parties.find((p) => p.seat === view.youSeat);
   const myColor = (me?.color as PartyColor) ?? DEFAULT_PARTY_COLOR;
@@ -133,16 +138,7 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   // Don't pop the scoreboard over the final combat roll / death notice from your last action —
   // wait until that outcome dialog is dismissed (otherwise a wipe hides how it happened).
   const outcomeDialogOpen = roll !== null || notices !== null;
-  const showScoreboard = ((terminal || gameOver) ? !spectating : peeking) && !outcomeDialogOpen;
-
-  // Drop into the read-only cave and fly the camera to that party's current area.
-  const focusSeat = (seat: number) => {
-    setPeeking(false);
-    setSpectating(true);
-    const p = view.parties.find((q) => q.seat === seat);
-    const area = p ? state.areas[p.partyArea] : undefined;
-    if (area) { const c = unpackCoord(area.coord); focusApiRef.current?.focusArea({ col: c.x, row: c.y, level: c.level }); }
-  };
+  const showScoreboard = ((terminal || gameOver) || peeking) && !outcomeDialogOpen;
 
   // Other active parties' pins on the shared map (positions read from the shared areas).
   const otherParties: OtherPartyToken[] = view.parties
@@ -157,7 +153,7 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
 
   return (
     <div className="relative h-screen w-screen">
-      <CaveCanvas key={gameId} engine={engine} state={state} color={myColor} onPartyClick={() => setShowParty(true)} onQuit={() => setShowQuit(true)} otherParties={otherParties} onReady={(apiRef) => { focusApiRef.current = apiRef; }} multiplayer turnLabel={turnLabel} turnColor={turnColor} />
+      <CaveCanvas key={gameId} engine={engine} state={state} color={myColor} onPartyClick={() => setShowParty(true)} onQuit={() => setShowQuit(true)} otherParties={otherParties} multiplayer turnLabel={turnLabel} turnColor={turnColor} />
       <div className="scv-mp-toasts">
         {toasts.map((t) => (
           <div key={t.id} className={"scv-mp-toast" + (t.tone === "you" ? " you" : t.tone === "chat" ? " chat" : "")}>{t.text}</div>
@@ -199,21 +195,18 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
           </div>
         </div>
       )}
-      {/* Active players can peek at standings; terminal/finished players land here by default. */}
+      {/* Active players can peek at the standings; terminal/finished players land here by default. */}
       {!showScoreboard && !terminal && !gameOver && (
         <button className="scv-mp-standings" onClick={() => setPeeking(true)}>Standings ▣</button>
-      )}
-      {(terminal || gameOver) && spectating && (
-        <button className="scv-mp-standings" onClick={() => setSpectating(false)}>Standings ▣</button>
       )}
       {showScoreboard && (
         <div className="scv-sb-overlay">
           <ScoreboardPanel
             gameId={gameId}
             frozen={gameOver}
-            onRowClick={(seat) => focusSeat(seat)}
+            onRowClick={(seat) => setSpectateSeat(seat)}
             onResume={peeking ? () => setPeeking(false) : undefined}
-            onSpectate={(terminal || gameOver) ? () => setSpectating(true) : undefined}
+            onSpectate={(terminal || gameOver) ? () => setSpectateSeat(view.youSeat) : undefined}
             onViewMyRun={terminal && !gameOver ? () => setShowMyRun(true) : undefined}
             onQuit={(terminal && !gameOver) ? onExit : undefined}
             onBackToMenu={gameOver ? onExit : undefined}
