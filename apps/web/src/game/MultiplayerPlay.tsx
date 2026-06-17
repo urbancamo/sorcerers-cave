@@ -126,7 +126,10 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   const terminal = state.gs !== GS_PLAYING;
   const yourTurn = view.yourTurn && !terminal;
   const gameOver = view.currentSeat === null; // playView reports no current seat once finished
-  const showScoreboard = (terminal || gameOver) ? !spectating : peeking;
+  // Don't pop the scoreboard over the final combat roll / death notice from your last action —
+  // wait until that outcome dialog is dismissed (otherwise a wipe hides how it happened).
+  const outcomeDialogOpen = roll !== null || notices !== null;
+  const showScoreboard = ((terminal || gameOver) ? !spectating : peeking) && !outcomeDialogOpen;
 
   // Drop into the read-only cave and fly the camera to that party's current area.
   const focusSeat = (seat: number) => {
