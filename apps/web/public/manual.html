@@ -185,6 +185,7 @@
           <li><a href="#treasure">Treasure &amp; Artefacts</a></li>
           <li><a href="#secret">Secret Doors</a></li>
           <li><a href="#scoring">Leaving &amp; Scoring</a></li>
+          <li><a href="#multiplayer">Multiplayer Games</a></li>
           <li><a href="#reference">Quick Reference</a></li>
         </ol>
       </nav>
@@ -344,13 +345,13 @@
           </div>
 
           <h3>Earthquake</h3>
-          <p>The area you just came from collapses. It is removed from play — drawn as rubble, impassable, and the doorway back to it is sealed. You cannot return the way you came.</p>
+          <p>The area you just came from collapses. It is removed from play — drawn as rubble, impassable, and the doorway back to it is sealed. You cannot return the way you came. The earthquake card is left lying on the rubble to mark what fell.</p>
 
           <h3>Medusa</h3>
-          <p>Her gaze sweeps the party; each member risks being <strong>turned to stone</strong>. A petrified member is marked with a <span class="pill">stone</span> badge and can do nothing until freed by the <strong>Magic Staff</strong>. A wizard bearing the staff is immune to her.</p>
+          <p>Her gaze sweeps the party; a die is rolled for each member, and a <strong>1 or 2</strong> turns that member <strong>to stone</strong> (the rolls are shown one per member). A petrified member is marked with a <span class="pill">stone</span> badge and can do nothing until freed by the <strong>Magic Staff</strong> (a wizard bearing the staff is immune). Medusa <strong>lurks for good</strong>: her card stays on the chamber floor, and she rolls against the party <em>again every time you re-enter</em>. If her gaze petrifies your <em>whole</em> party, the expedition ends there.</p>
 
           <h3>Ghouls</h3>
-          <p>The party fights a round against the ghouls; any member who loses is slain. There is no advantage of surprise on either side.</p>
+          <p>Each member fights a round against the ghouls (strength 2) at full fighting strength — a Magic Sword or Strength Potion counts — and anyone who loses is slain (the rolls are shown per member; no surprise on either side). The attack forces the party to <strong>drop all heavy treasure</strong> onto the floor, which you may reclaim once the fight is over. Like Medusa, ghouls <strong>lurk</strong>: their card stays in the chamber and they attack again whenever you re-enter. The <strong>Talisman</strong> wards them off entirely.</p>
 
           <h3>Mutiny</h3>
           <p>Your befriended allies desert — reverting to strangers and dropping any treasure they carried back onto the floor. If your party is made up entirely of allies, one loyal soul remains. You then face the deserters as you would any group of strangers.</p>
@@ -386,7 +387,7 @@
           </p>
           <ul>
             <li><strong>Friendly</strong> — they join your party as allies, and the chamber's treasure is yours.</li>
-            <li><strong>Indifferent</strong> — they ignore you. Next turn you may test again, attack, or simply leave.</li>
+            <li><strong>Indifferent</strong> — they ignore you for now. Next turn you may test again, attack, or leave. Test to <strong>indifferent three times</strong> and they become <em>permanently</em> indifferent to your party: you may then walk on out by any exit, though the treasure stays guarded (you can't take it), and they stay indifferent if you return.</li>
             <li><strong>Hostile</strong> — they attack at once, and a round is fought (with the strangers holding the advantage of surprise).</li>
           </ul>
           <div class="note"><span class="tag">Who reacts how</span> Gentle folk are easily befriended; a Dragon or Spectre almost never is. Bringing a charismatic leader, and avoiding curses, swings the odds your way.</div>
@@ -425,10 +426,13 @@
 
           <h3>Retreat</h3>
           <p>
-            After at least one round has been fought, you may <strong>retreat</strong> by any open doorway
-            or stairway, leaving behind any treasure dropped in the area. You cannot retreat before the
-            first round, nor back up a trap you fell through.
+            After at least one round has been fought, you may <strong>retreat</strong> by <em>any</em> of the
+            tile's doorways or stairways — even one you haven't explored yet (a tile is drawn for it). The
+            strangers and any treasure dropped in the fight are left behind. But if that way turns out to be
+            a <strong>dead end</strong>, the party can't escape it and must fight another round this turn — so
+            try a different exit. You cannot retreat before the first round, nor back up a trap you fell through.
           </p>
+          <div class="note danger"><span class="tag">They remember</span> Strangers you retreat from stay <strong>hostile to your party for the rest of the game</strong> — return to that chamber and they attack on sight, with no chance to test them. (Other parties may still approach them.)</div>
 
           <h3>Two foes to respect</h3>
           <div class="two-col">
@@ -484,9 +488,11 @@
           <h3>Heavy treasure</h3>
           <p>
             Silver, Gold and Gems are <strong>heavy</strong> — they count against a member's carrying
-            capacity, so distribute them with care (the party panel lets you move items between members or
-            drop them on the floor). The <strong>Treasure Chest</strong> is heaviest of all; open it
-            (while exploring) and a die decides your fortune: a curse, a Spectre, worthless sand, or
+            capacity. When you pick a piece up, only the members who have the <strong>spare capacity</strong>
+            to bear it are offered (the party panel lets you move items between members or drop them on the
+            floor). The <strong>Treasure Chest</strong> is heaviest of all at 100&nbsp;kg, so only a strong
+            back — a Giant, or an empty-handed Ogre — can carry it. A member must be <em>carrying</em> the
+            chest to open it; do so and a die decides your fortune: a curse, a Spectre, worthless sand, or
             Silver, Gold, or Gems.
           </p>
           <div class="grid cards wide">
@@ -517,14 +523,14 @@
             <thead><tr><th>Artefact</th><th>What the card says</th><th>In this game</th></tr></thead>
             <tbody>
               <tr><td class="nm">Magic Sword<br><span class="meta" style="color:var(--stone-dim);font-size:11px;">15 pts</span></td><td><em>“Adds 1 to the Strength of the Man or Woman who bears it, or 2 to a Hero. Also enables the bearer to fight Spectres.”</em></td><td>As written. The Woman&nbsp;Hero counts as a Hero (+2).</td></tr>
-              <tr><td class="nm">Magic Staff<br><span class="meta" style="color:var(--stone-dim);font-size:11px;">15 pts</span></td><td><em>“Increases the Magical Power of a Priest by 1, or of a Wizard by 2. In the hands of a Wizard, reanimates creatures turned to stone, and wards off Medusa.”</em></td><td>As written.</td></tr>
+              <tr><td class="nm">Magic Staff<br><span class="meta" style="color:var(--stone-dim);font-size:11px;">15 pts</span></td><td><em>“Increases the Magical Power of a Priest by 1, or of a Wizard by 2. In the hands of a Wizard, reanimates creatures turned to stone, and wards off Medusa.”</em></td><td>As written; a Wizard may free petrified members at rest or while looting after a fight. Not used up.</td></tr>
               <tr><td class="nm">The Ring<br><span class="meta" style="color:var(--stone-dim);font-size:11px;">30 pts</span></td><td><em>“When worn by a Man, Woman, Priest, Wizard, Hero or Dwarf, adds 1 to the die rolls of your party. Also makes the bearer invincible on the fourth level or deeper.”</em></td><td>As written — the +1 applies while any member holds it; invincibility only on level&nbsp;4+.</td></tr>
               <tr><td class="nm">Talisman<br><span class="meta" style="color:var(--stone-dim);font-size:11px;">10 pts</span></td><td><em>“Wards off Zombies and Ghouls from the party displaying it. On the fourth level or deeper, also wards off Spectres.”</em></td><td>Wards Ghouls and (on level&nbsp;4+) Spectres. Zombies don't appear in this deck.</td></tr>
               <tr><td class="nm">Eye of God<br><span class="meta" style="color:var(--stone-dim);font-size:11px;">0 pts</span></td><td><em>“A gem which renders powerless all magic in the area, and annihilates Spectres and Zombies. Having taken it up, you must keep it; otherwise you will be cursed.”</em></td><td>Nullifies magic and destroys Spectres; also stills the Lost-Ruby statue. The Sorcerer is the one exception (−2 only — see his section). The “keep it or be cursed” clause isn't enforced in this solo edition.</td></tr>
               <tr><td class="nm">Charmed Flute<br><span class="meta" style="color:var(--stone-dim);font-size:11px;">10 pts</span></td><td><em>“When played by a Man, Woman, Hero, Priest or Wizard, lulls Dragons and Vipers to sleep. Also opens secret doors. Sleeping creatures are protected by a curse.”</em></td><td>Held by an eligible player it works automatically, for as long as you hold it: Dragons in a chamber fall asleep (shown with a “Zzz”) and stop blocking you, so the chamber plays out as if empty — and the Vipers are lulled so the party crosses the Viper Pit unharmed. Drop or lose the Flute and they wake again. It also reveals secret stairways. The card's “curse” on sleeping creatures isn't modelled.</td></tr>
               <tr><td class="nm">Strength Potion<br><span class="meta" style="color:var(--stone-dim);font-size:11px;">5 pts · used up</span></td><td><em>“Adds 2 to the Strength of a Man, Woman or Hero for the duration of a fight. One draught only.”</em></td><td>As written.</td></tr>
               <tr><td class="nm">Lotus Dust<br><span class="meta" style="color:var(--stone-dim);font-size:11px;">5 pts · used up</span></td><td><em>“Enough to put one creature to sleep for 2 turns. Works on Medusa, but not on Ghouls, Spectres or Zombies. Sleeping creatures are protected by a curse.”</em></td><td>Sleeps one stranger (no effect on a Spectre). A slept creature stays in the chamber — shown asleep with a “Zzz” — and no longer blocks you, so you may proceed past it. The sleep is permanent here, not the card's 2 turns, and the “curse” clause isn't modelled. The Sorcerer is only weakened by 2.</td></tr>
-              <tr><td class="nm">Healing Balm<br><span class="meta" style="color:var(--stone-dim);font-size:11px;">5 pts · used up</span></td><td><em>“In the hands of a Wizard, Priest, or Woman, will restore to life any creature just killed. Enough for one cure only; use at the start of your turn when not fighting.”</em></td><td>Revives any fallen member (not only one killed this turn), between fights.</td></tr>
+              <tr><td class="nm">Healing Balm<br><span class="meta" style="color:var(--stone-dim);font-size:11px;">5 pts · used up</span></td><td><em>“In the hands of a Wizard, Priest, or Woman, will restore to life any creature just killed. Enough for one cure only; use at the start of your turn when not fighting.”</em></td><td>Revives any fallen member (not only one killed this turn) — at rest, or while gathering treasure straight after a fight. Used up on the cure, so the balm then disappears.</td></tr>
               <tr><td class="nm">Magic Carpet<br><span class="meta" style="color:var(--stone-dim);font-size:11px;">5 pts · used up</span></td><td><em>“When commanded by a Priest or Wizard, will transport a party to any adjacent area in any direction (including up or down), drawing another tile if necessary. You may not withdraw, and the carpet remains behind.”</em></td><td>Transports as written and is left behind. The “may not withdraw after landing” clause isn't enforced.</td></tr>
               <tr><td class="nm">Lost Ruby<br><span class="meta" style="color:var(--stone-dim);font-size:11px;">20 pts</span></td><td><em>“Set in the forehead of a colossal statue. Try to remove it at the beginning of a turn. The statue attacks with a strength of 8, and you must defeat it to win the jewel.”</em></td><td>As written. An active Eye of God stills the statue, letting you take the jewel unopposed.</td></tr>
             </tbody>
@@ -561,8 +567,9 @@
           <p>
             Leaving is one-way: once your party steps out, the expedition is over. You'll be shown a roll
             call of who made it out and what each carried, with the total tallied. Enter a name to record
-            it on the shared <strong>high-score table</strong>. You can also end an expedition at any time
-            with <strong>Quit</strong> — your score is still counted.
+            it on the shared <strong>high-score table</strong>. You can also end a run at any time with
+            <strong>Quit</strong> — but quitting <em>abandons</em> your party to the cave: they do not climb
+            out. The score they had gathered is still tallied (a wiped party, of course, scores nothing).
           </p>
 
           <figure class="shot">
@@ -586,9 +593,62 @@
           </figure>
         </section>
 
+        <!-- ===================== MULTIPLAYER ===================== -->
+        <section id="multiplayer">
+          <h2><span class="num">XII</span> Multiplayer Games</h2>
+          <p class="lede">Up to four parties race the same cave at once, taking turns from their own browsers — first to the richest haul out wins.</p>
+
+          <h3>Creating and joining a game</h3>
+          <ul>
+            <li><strong>Create</strong> a game from the title screen: choose your party name and a colour, and you become the <em>host</em>. The game is given a unique <strong>four-letter code</strong>.</li>
+            <li>Share that code with your friends. Each of them picks <strong>Join Multiplayer Game</strong>, enters the code in their own browser, and chooses a party name and an <strong>unused colour</strong> (colours already taken are greyed out).</li>
+            <li>Up to <strong>four</strong> players may gather in the lobby. When everyone's ready the <strong>host starts the game</strong> — after that no one new can join.</li>
+          </ul>
+
+          <h3>Choosing parties</h3>
+          <p>
+            Everyone drafts their party from <em>one shared pack</em> of creatures, so the draft is taken in
+            turns — a card another player takes is gone for the rest of you. Once the last player has chosen,
+            the expedition begins.
+          </p>
+
+          <h3>Turn by turn</h3>
+          <ul>
+            <li>Players take turns in a set order. The <strong>“Now”</strong> marker in the top bar (in that party's colour) always shows whose turn it is; you can only act on <strong>your</strong> turn.</li>
+            <li>A turn plays out <strong>to a finish</strong> — an entire fight, a reaction, picking up treasure — before play passes on, so combat never spills across other players' turns.</li>
+            <li>The cave is <strong>shared</strong>: it grows as everyone explores, and you'll see the other parties as small coloured tokens on the map where they currently stand.</li>
+          </ul>
+
+          <h3>Keeping in touch</h3>
+          <ul>
+            <li><strong>Toast messages</strong> slide in under the depth bar to announce what every other party does — defeating or befriending creatures, taking treasure, descending or climbing, and finishing their run.</li>
+            <li>A docked <strong>chat</strong> (bottom-left) lets the players talk; a red dot on the “Chat” tab marks unread messages, and incoming chat is also mirrored as a toast.</li>
+          </ul>
+
+          <h3>When a party finishes</h3>
+          <p>
+            A party's run ends when it <strong>escapes</strong> the cave, is <strong>wiped out</strong>, or
+            the player <strong>abandons</strong> it (the multiplayer <em>Quit</em> → <em>Abandon the
+            expedition</em>). The outcome and score are recorded to a separate multiplayer
+            <strong>high-score table</strong> and announced to everyone still below. You are <em>not</em>
+            kicked out — you land on the <strong>standings</strong>, and the whole game ends once every party
+            has finished.
+          </p>
+
+          <h3>The standings page</h3>
+          <p>A live scoreboard ranks every party by score, showing finished parties' outcomes and the live depth, turns, enemies slain and running score of those still exploring. From it you can:</p>
+          <ul>
+            <li><strong>Dip into the cave</strong> — drop into a free-roaming, read-only view to watch the action.</li>
+            <li><strong>Follow a party</strong> — click any row to see <em>exactly</em> what that player sees, until you go back to the standings.</li>
+            <li><strong>My run</strong> — review your own party's final score breakdown (then “Back to Standings”).</li>
+            <li><strong>Leave to menu</strong> — your party stays in the game; you can rejoin later with the code. (<strong>Abandon</strong>, by contrast, ends your run for good.)</li>
+          </ul>
+          <div class="note"><span class="tag">Note</span> This first multiplayer release runs the beginner ruleset: parties race the same cave but don't fight, trade with, or block one another — the whole map is open to all.</div>
+        </section>
+
         <!-- ===================== REFERENCE ===================== -->
         <section id="reference">
-          <h2><span class="num">XII</span> Quick Reference</h2>
+          <h2><span class="num">XIII</span> Quick Reference</h2>
           <div class="two-col">
             <div>
               <h3>Controls</h3>
@@ -600,7 +660,7 @@
                   <tr><td class="nm">Drag · Scroll</td><td>Orbit · zoom the cave</td></tr>
                   <tr><td class="nm">Roster</td><td>Open the party panel</td></tr>
                   <tr><td class="nm">Snap · Levels · Orbit</td><td>Change the camera view</td></tr>
-                  <tr><td class="nm">Quit</td><td>End the expedition &amp; tally the score</td></tr>
+                  <tr><td class="nm">Quit</td><td>Abandon the expedition (the party is left behind; score still tallied)</td></tr>
                 </tbody>
               </table>
             </div>
