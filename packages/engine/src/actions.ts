@@ -38,6 +38,7 @@ export type GameEvent =
   | { type: "strangerKilled"; creatureId: number }
   | { type: "spectreSlew"; creatureId: number }
   | { type: "reaction"; outcome: "hostile" | "indifferent" | "friendly"; roll: number }
+  | { type: "pacified" } // a 3rd indifferent test — the strangers are now permanently indifferent to this party
   | { type: "strangersJoined"; count: number }
   | { type: "fightStarted"; surprise: number }
   // One resolved pairing in a fight round: the party side and the enemy side, each with its

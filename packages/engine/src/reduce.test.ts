@@ -170,7 +170,9 @@ describe("reduce — stranger encounters (C-2 §8)", () => {
       party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [] }],
       areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
     });
-    for (let i = 0; i < 3; i++) s = reduce(s, { type: "test" }).state;
+    let lastEvents: GameEvent[] = [];
+    for (let i = 0; i < 3; i++) { const r = reduce(s, { type: "test" }); s = r.state; lastEvents = r.events; }
+    expect(lastEvents).toContainEqual({ type: "pacified" }); // the 3rd indifferent announces it
     expect(s.indiffStreak).toBe(3);
     expect(s.pacifiedAreas).toContain(0);
     expect(s.phase).toBe("explore"); // free to move out by any valid exit

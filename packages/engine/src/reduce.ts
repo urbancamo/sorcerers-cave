@@ -426,6 +426,7 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
           if (!next.pacifiedAreas?.includes(next.partyArea)) {
             next.pacifiedAreas = [...(next.pacifiedAreas ?? []), next.partyArea];
           }
+          events.push({ type: "pacified" }); // tell the player they may now move on
           persistAndExplore(next); // park strangers + treasure back as guarded; return to explore
         }
         // else stays in the encounter phase
