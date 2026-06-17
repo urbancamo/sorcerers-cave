@@ -18,6 +18,13 @@ const area = (over: Partial<PlacedArea>): PlacedArea => ({
 });
 
 describe("projectArea", () => {
+  it("shows treasure dropped into a Deep Pool on the area's floor", () => {
+    const state = newGame(1, [0]);
+    const pool = area({ dropped: [1, 2] }); // Gold + Gems jettisoned into the pool
+    const a = projectArea(pool, 0, state, art);
+    expect(a.treasure.map((c) => c.entityId).sort()).toEqual(["1", "2"]);
+  });
+
   it("projects the gateway with resolved art and view coords", () => {
     const state = newGame(1, [0]);
     const a = projectArea(state.areas[0]!, 0, state, art);
