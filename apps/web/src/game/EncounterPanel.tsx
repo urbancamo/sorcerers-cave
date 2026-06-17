@@ -2,6 +2,8 @@ import { CREATURES, TREASURES, legalActions, type GameState, type GameAction } f
 
 const ACTIVE = new Set<GameState["phase"]>(["encounter", "fight", "pickup"]);
 
+const RETREAT_DIR: Record<number, string> = { 1: "north", 2: "east", 3: "south", 4: "west", 5: "up the stair", 6: "down the stair" };
+
 /** Human label for a legal action button. */
 function label(a: GameAction, state: GameState): string {
   switch (a.type) {
@@ -9,7 +11,7 @@ function label(a: GameAction, state: GameState): string {
     case "attack": return "Attack";
     case "withdraw": return "Withdraw";
     case "fightOn": return (state.fight?.round ?? 1) > 1 ? "Fight on" : "Fight"; // first round reads "Fight"
-    case "retreat": return "Retreat";
+    case "retreat": return `Retreat ${RETREAT_DIR[a.dir] ?? ""}`.trim();
     case "leaveTreasure": return "Leave the treasure";
     case "focusTarget": return `Focus ${CREATURES[state.strangers[a.idx]!]?.name ?? a.idx}`;
     case "chooseCasualty": {

@@ -490,21 +490,28 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       if (state.fellThroughTrap) return { state, events: [{ type: "blocked" }] }; // no way back up a trap
       // A party may retreat only after at least one round has been fought (§Retreat).
       if (!state.fight || state.fight.round <= 1) return { state, events: [{ type: "blocked" }] };
-      const next = structuredClone(state);
-      next.areas[next.partyArea]!.contents = [
-        ...next.areas[next.partyArea]!.contents,
-        ...next.strangers.map((id) => 100 + id),
-        ...next.treasures.map((id) => 200 + id),
-        ...(next.sleeping ?? []).map((id) => 400 + id),
-        ...(next.lulled ?? []).map((id) => 100 + id), // flute-lulled dragons park awake (re-lulled on re-entry if held)
+      // A party may retreat by ANY doorway or stairway — even an unexplored one (§Retreat). Attempt
+      // the move; if the way is a dead end (or blocked), the party must fight another round this turn.
+      const fromIdx = state.partyArea;
+      const res = tryMove(state, action.dir);
+      if (!res.moved) {
+        // Keep any tile that was drawn onto the dead-end frontier; the fight continues (still "fight" phase).
+        return { state: res.state, events: [{ type: res.deadEnd ? "deadEnd" : "blocked", dir: action.dir }] };
+      }
+      // Retreat succeeds: the strangers and any dropped treasure are LEFT BEHIND in the chamber we fled.
+      const fled = res.state.areas[fromIdx]!;
+      fled.contents = [
+        ...fled.contents,
+        ...res.state.strangers.map((id) => 100 + id),
+        ...res.state.treasures.map((id) => 200 + id),
+        ...(res.state.sleeping ?? []).map((id) => 400 + id),
+        ...(res.state.lulled ?? []).map((id) => 100 + id), // flute-lulled dragons park awake (re-lulled on re-entry if held)
       ];
-      next.strangers = []; next.treasures = []; next.hazards = []; next.sleeping = []; next.lulled = [];
-      next.fight = null;
-      next.party.forEach((m) => { m.potionActive = false; });
-      next.partyArea = next.prev;
-      next.level = unpackCoord(next.areas[next.partyArea]!.coord).level;
-      next.phase = "explore";
-      return { state: next, events: [{ type: "moved", area: next.partyArea, level: next.level }] };
+      res.state.strangers = []; res.state.treasures = []; res.state.hazards = []; res.state.sleeping = []; res.state.lulled = [];
+      res.state.fight = null;
+      res.state.party.forEach((m) => { m.potionActive = false; });
+      const events = resolveArea(res.state); // resolve the area we retreated into (fresh tunnel/chamber)
+      return { state: res.state, events };
     }
 
     case "useArtifact": {

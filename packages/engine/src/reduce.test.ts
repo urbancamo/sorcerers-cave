@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
 import { GS_QUIT, GS_ESCAPED, GS_DEAD } from "./state";
-import { DIR_S, DIR_E, packCoord } from "./coords";
+import { DIR_S, DIR_E, DIR_N, packCoord } from "./coords";
 import { makeState } from "./testkit";
 import { legalActions } from "./selectors";
 import type { GameEvent } from "./actions";
@@ -280,18 +280,39 @@ describe("reduce — fight dispatch (C-2 §9.5)", () => {
     expect(state.phase).toBe("gameOver");
   });
 
-  it("focusTarget sets the focus; retreat (after a round) leaves combat with strangers persisted", () => {
+  it("focusTarget sets the focus; retreat (after a round) flees by a doorway, leaving strangers behind", () => {
     const s = arena({
       party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }],
       strangers: [3, 10],
-      prev: 0,
+      areas: [
+        { card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }, // chamber (NESW)
+        { card: 31, coord: packCoord(1, 50, 49), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }, // known tile to the north
+      ],
+      partyArea: 0, prev: 1,
       fight: { surprise: 0, round: 2, focus: 0 }, // a round has already been fought (retreat now allowed)
     });
     expect(reduce(s, { type: "focusTarget", idx: 1 }).state.fight!.focus).toBe(1);
-    const r = reduce(s, { type: "retreat" }).state;
+    const r = reduce(s, { type: "retreat", dir: DIR_N }).state;
     expect(r.phase).toBe("explore");
+    expect(r.partyArea).toBe(1); // fled north into the known tile
     expect(r.fight).toBeNull();
-    expect(r.areas[0]!.contents).toEqual(expect.arrayContaining([103, 110]));
+    expect(r.areas[0]!.contents).toEqual(expect.arrayContaining([103, 110])); // strangers left in the chamber
+  });
+
+  it("retreating toward a dead end fails — the party must fight another round (§Retreat)", () => {
+    const s = arena({
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }],
+      strangers: [3],
+      areas: [{ card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+      partyArea: 0, prev: 0,
+      fight: { surprise: 0, round: 2, focus: 0 },
+      largePack: [1], largeIdx: 0, // card 1 = N-only → no S reverse-door → a dead end to the north
+    });
+    const { state, events } = reduce(s, { type: "retreat", dir: DIR_N });
+    expect(state.phase).toBe("fight");        // still fighting
+    expect(state.fight).not.toBeNull();
+    expect(state.strangers).toEqual([3]);     // strangers remain
+    expect(events).toContainEqual({ type: "deadEnd", dir: DIR_N });
   });
 
   it("chooseCasualty falls on the player's pick with a 4-6, otherwise the other (§9)", () => {
@@ -352,7 +373,7 @@ describe("reduce — fight dispatch (C-2 §9.5)", () => {
       prev: 0,
       fight: { surprise: 0, round: 1, focus: 0 },
     });
-    const { state, events } = reduce(s, { type: "retreat" });
+    const { state, events } = reduce(s, { type: "retreat", dir: DIR_N });
     expect(state.phase).toBe("fight"); // still fighting
     expect(events).toEqual([{ type: "blocked" }]);
   });

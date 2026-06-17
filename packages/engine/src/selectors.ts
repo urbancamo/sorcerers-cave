@@ -77,7 +77,16 @@ export function legalActions(state: GameState): GameAction[] {
     if (pending) return pending.map((idx) => ({ type: "chooseCasualty", idx }));
     const actions: GameAction[] = [{ type: "fightOn" }];
     // Retreat is allowed only after at least one round has been fought, and never back up a trap (§Retreat).
-    if (!state.fellThroughTrap && state.fight && state.fight.round > 1) actions.push({ type: "retreat" });
+    // A party may flee by ANY of the tile's doorways/stairs (even unexplored ones).
+    if (!state.fellThroughTrap && state.fight && state.fight.round > 1) {
+      const dec = decodeArea(state.areas[state.partyArea]!.card);
+      if (dec.n) actions.push({ type: "retreat", dir: DIR_N });
+      if (dec.e) actions.push({ type: "retreat", dir: DIR_E });
+      if (dec.s) actions.push({ type: "retreat", dir: DIR_S });
+      if (dec.w) actions.push({ type: "retreat", dir: DIR_W });
+      if (dec.stairDown) actions.push({ type: "retreat", dir: DIR_DOWN });
+      if (dec.stairUp && state.level > 1) actions.push({ type: "retreat", dir: DIR_UP }); // not the level-1 cave exit
+    }
     for (let i = 0; i < state.strangers.length; i++) actions.push({ type: "focusTarget", idx: i });
     actions.push(...artifactActions(state));
     return actions; // quitting is via the HUD Quit button, not an in-menu action

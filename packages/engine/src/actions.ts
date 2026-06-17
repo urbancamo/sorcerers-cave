@@ -14,7 +14,7 @@ export type GameAction =
   | { type: "focusTarget"; idx: number }
   | { type: "fightOn" }
   | { type: "chooseCasualty"; idx: number } // pick which of a losing pair falls (§"A Round of Fighting")
-  | { type: "retreat" }
+  | { type: "retreat"; dir: number } // flee a fight by any doorway/stair; a dead end means fight on
   | { type: "useArtifact"; artifact: number; target?: number; dir?: number }
   | { type: "openChest" };
 
