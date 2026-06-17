@@ -92,9 +92,13 @@ export function projectArea(
   // Dragons in the party's CURRENT area sleep while it holds the Charmed Flute (§ Charmed Flute);
   // leaving the area wakes them, so the flag is scoped to the party's tile.
   const dragonsAsleep = idx === state.partyArea && fluteLulls(state);
-  // Heavy treasure left in a Deep Pool lives on `dropped` (reclaimable on return) — show it on the
-  // pool's floor alongside any normal contents so players can see what's been jettisoned there.
-  const floor = [...(liveContents ?? pa.contents), ...(pa.dropped ?? []).map((t) => 200 + t)];
+  // Heavy treasure left in a Deep Pool lives on `dropped` (reclaimable on return); display-only
+  // hazard scars (e.g. an Earthquake) live on `markers`. Show both on the floor alongside contents.
+  const floor = [
+    ...(liveContents ?? pa.contents),
+    ...(pa.dropped ?? []).map((t) => 200 + t),
+    ...(pa.markers ?? []),
+  ];
   const lanes = laneCards(floor, art.cards, dragonsAsleep);
   return {
     tileId: resolved?.tileId ?? art.tiles[0]!.tileId,

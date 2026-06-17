@@ -25,6 +25,13 @@ describe("projectArea", () => {
     expect(a.treasure.map((c) => c.entityId).sort()).toEqual(["1", "2"]);
   });
 
+  it("shows a permanent hazard scar (Earthquake marker) on the tile", () => {
+    const state = newGame(1, [0]);
+    const scarred = area({ markers: [300 + 2] }); // Earthquake (hazard id 2)
+    const a = projectArea(scarred, 0, state, art);
+    expect(a.hazards.some((c) => c.category === "hazard")).toBe(true);
+  });
+
   it("projects the gateway with resolved art and view coords", () => {
     const state = newGame(1, [0]);
     const a = projectArea(state.areas[0]!, 0, state, art);

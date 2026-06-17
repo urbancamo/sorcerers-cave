@@ -34,6 +34,31 @@ describe("applyHazards (spec §7.2)", () => {
     for (const m of s.party) expect([0, 2]).toContain(m.status);
   });
 
+  it("Medusa and Ghouls lurk — re-parked into the chamber so they reload on re-entry", () => {
+    const s = makeState({
+      party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [] }],
+      hazards: [HAZARD_MEDUSA, HAZARD_GHOULS],
+      seed: 3,
+    });
+    applyHazards(s);
+    expect(s.areas[s.partyArea]!.contents).toEqual(expect.arrayContaining([300 + HAZARD_MEDUSA, 300 + HAZARD_GHOULS]));
+    expect(s.areas[s.partyArea]!.markers ?? []).not.toContain(300 + HAZARD_MEDUSA);
+  });
+
+  it("Earthquake leaves a display-only scar (marker), not a reloading hazard", () => {
+    const s = makeState({
+      areas: [
+        { card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+        { card: 31, coord: packCoord(1, 50, 51), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+      ],
+      partyArea: 1, prev: 0,
+      hazards: [HAZARD_EARTHQUAKE],
+    });
+    applyHazards(s);
+    expect(s.areas[1]!.markers).toEqual([300 + HAZARD_EARTHQUAKE]);
+    expect(s.areas[1]!.contents).not.toContain(300 + HAZARD_EARTHQUAKE); // scar never re-fires
+  });
+
   it("Mutiny reverts allies to strangers, drops their treasure, and reports it", () => {
     const s = makeState({
       party: [

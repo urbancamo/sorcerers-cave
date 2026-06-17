@@ -82,6 +82,20 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
       }
     }
   }
+  // Some hazard cards stay drawn on the chamber's tile. Medusa & Ghouls LURK — re-parked into the
+  // area's contents so they reload and fire again on every re-entry (§Medusa, §Ghouls). Earthquake
+  // leaves a one-time SCAR — a display-only marker that never re-fires.
+  const here = state.areas[state.partyArea];
+  if (here) {
+    for (const hz of state.hazards) {
+      if ((hz === HAZARD_MEDUSA || hz === HAZARD_GHOULS) && !here.contents.includes(300 + hz)) {
+        here.contents.push(300 + hz);
+      } else if (hz === HAZARD_EARTHQUAKE) {
+        here.markers = here.markers ?? [];
+        if (!here.markers.includes(300 + hz)) here.markers.push(300 + hz);
+      }
+    }
+  }
   state.hazards = [];
   return { events, fell };
 }
