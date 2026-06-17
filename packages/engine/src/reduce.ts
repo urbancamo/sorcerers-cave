@@ -461,6 +461,7 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       if (state.fight?.casualtyQueue?.length) return { state, events: [{ type: "blocked" }] }; // resolve the choice first
       const next = structuredClone(state);
       const events = resolveRound(next);
+      if (next.fight) next.fight.retreatBlocked = false; // a round was fought — retreat is open again next turn
       // If the round left a casualty for the player to decide, pause for chooseCasualty.
       if (next.fight?.casualtyQueue?.length) return { state: next, events };
       events.push(...finalizeRound(next));
@@ -500,7 +501,10 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       const fromIdx = state.partyArea;
       const res = tryMove(state, action.dir);
       if (!res.moved) {
-        // Keep any tile that was drawn onto the dead-end frontier; the fight continues (still "fight" phase).
+        // The way is a dead end (§Retreat): the party must fight another round this turn — no more
+        // retreat attempts. Keep any tile drawn onto the frontier; flag the fight so only Fight remains.
+        // (tryMove clones the state for a dead end; the no-exit guard returns the original untouched.)
+        if (res.deadEnd && res.state.fight) res.state.fight = { ...res.state.fight, retreatBlocked: true };
         return { state: res.state, events: [{ type: res.deadEnd ? "deadEnd" : "blocked", dir: action.dir }] };
       }
       // Retreat succeeds: the strangers and any dropped treasure are LEFT BEHIND in the chamber we fled.

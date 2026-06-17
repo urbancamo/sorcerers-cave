@@ -52,6 +52,9 @@ export interface FightState {
   // Pending casualty choices from the round just fought: each entry is a pair of party indices
   // who lost a match together; the player picks which of the two falls (§"A Round of Fighting").
   casualtyQueue?: number[][];
+  // A retreat this round hit a dead end (§Retreat): no further retreat may be tried — the party must
+  // fight another round. Cleared when a round is actually fought.
+  retreatBlocked?: boolean;
 }
 
 export interface GameState {

@@ -329,6 +329,11 @@ describe("reduce — fight dispatch (C-2 §9.5)", () => {
     expect(state.fight).not.toBeNull();
     expect(state.strangers).toEqual([3]);     // strangers remain
     expect(events).toContainEqual({ type: "deadEnd", dir: DIR_N });
+    // No further retreat is allowed this round — only fighting on (§Retreat).
+    expect(state.fight!.retreatBlocked).toBe(true);
+    const acts = legalActions(state);
+    expect(acts.some((a) => a.type === "retreat")).toBe(false);
+    expect(acts).toContainEqual({ type: "fightOn" });
   });
 
   it("chooseCasualty falls on the player's pick with a 4-6, otherwise the other (§9)", () => {

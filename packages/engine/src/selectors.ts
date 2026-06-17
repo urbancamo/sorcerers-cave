@@ -78,7 +78,7 @@ export function legalActions(state: GameState): GameAction[] {
     const actions: GameAction[] = [{ type: "fightOn" }];
     // Retreat is allowed only after at least one round has been fought, and never back up a trap (§Retreat).
     // A party may flee by ANY of the tile's doorways/stairs (even unexplored ones).
-    if (!state.fellThroughTrap && state.fight && state.fight.round > 1) {
+    if (!state.fellThroughTrap && state.fight && state.fight.round > 1 && !state.fight.retreatBlocked) {
       const dec = decodeArea(state.areas[state.partyArea]!.card);
       if (dec.n) actions.push({ type: "retreat", dir: DIR_N });
       if (dec.e) actions.push({ type: "retreat", dir: DIR_E });
