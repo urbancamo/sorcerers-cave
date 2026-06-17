@@ -13,7 +13,7 @@ function reactionView(reaction: Extract<GameEvent, { type: "reaction" }>, joined
         : "Friendly — but they keep their distance."
       : reaction.outcome === "indifferent"
         ? "Indifferent — they pay you no heed."
-        : "Hostile — they ready for a fight!";
+        : "Hostile — they're ready for a fight!";
   const tone: Tone =
     reaction.outcome === "friendly" ? "good" : reaction.outcome === "hostile" ? "bad" : "neutral";
   return { title: "Reaction roll", lanes: [{ enemy: { value: reaction.roll } }], message, tone };
