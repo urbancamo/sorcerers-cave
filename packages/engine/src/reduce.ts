@@ -14,6 +14,8 @@ import { wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWo
 import { rollDie } from "./rng";
 import { CREATURES } from "./data/creatures";
 
+const T_EYE_OF_GOD = 13; // treasure id — must stay with its bearer or the party is cursed (§Eye of God)
+
 /** First living member who may bear+use `artifact` now (some artifacts need a specific creature). */
 function findBearer(state: GameState, artifact: number): number {
   return state.party.findIndex((m: PartyMember) => {
@@ -378,6 +380,8 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       if (tid === undefined || !canCarry(to, tid)) return { state, events: [{ type: "blocked" }] }; // honour carry capacity
       from.treasure.splice(action.idx, 1);
       to.treasure.push(tid);
+      // The Eye of God must stay with its bearer — moving it off them brings a curse (§Eye of God).
+      if (tid === T_EYE_OF_GOD) { next.curses += 1; return { state: next, events: [{ type: "eyeForsaken" }] }; }
       return { state: next, events: [] };
     }
 
@@ -390,6 +394,8 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       if (tid === undefined) return { state, events: [{ type: "blocked" }] };
       m.treasure.splice(action.idx, 1);
       next.areas[next.partyArea]!.contents.push(200 + tid); // left on the chamber floor
+      // Forsaking the Eye of God curses the party (§Eye of God).
+      if (tid === T_EYE_OF_GOD) { next.curses += 1; return { state: next, events: [{ type: "eyeForsaken" }] }; }
       return { state: next, events: [] };
     }
 

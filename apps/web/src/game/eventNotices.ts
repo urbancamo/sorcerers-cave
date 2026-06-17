@@ -52,6 +52,9 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "petrifiedOut":
         out.push({ text: "No party members have been left alive by Medusa's gaze.", tone: "bad" });
         break;
+      case "eyeForsaken":
+        out.push({ text: "The Eye of God leaves its bearer — a curse settles on the party (−1 to every roll).", tone: "bad" });
+        break;
       case "hazardFired": {
         const n = hazardNotice(e.hazard);
         if (n) out.push(n);

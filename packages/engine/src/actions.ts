@@ -31,6 +31,7 @@ export type GameEvent =
   // Allies deserted (Mutiny): they revert to strangers and drop their treasure into the chamber.
   | { type: "mutinied"; deserters: number[]; treasures: number[] }
   | { type: "medusaGaze"; rolls: { creatureId: number; roll: number; petrified: boolean }[] } // a d6 per member
+  | { type: "eyeForsaken" } // the Eye of God was dropped or handed off — a curse falls on the party
   | { type: "petrifiedOut" } // Medusa's gaze turned the WHOLE party to stone — the game ends
   | { type: "trapSprung"; level: number } // party fell through a trap to `level` (no climb back)
   | { type: "trapAvoided" } // a dwarf guided the party safely past a trap

@@ -32,7 +32,8 @@ export function fluteLulls(state: GameState): boolean {
 
 /**
  * The Eye of God is held by a living member: nullifies magic & artefacts, annihilates Spectres, stills the statue.
- * NOTE: the Eye's "keep it or be cursed" rule is deferred (single-party game, no party-splitting; bearer-death edge).
+ * "Keep it or be cursed": dropping or transferring the Eye adds a (permanent) curse — see reduce.ts
+ * drop/moveTreasure. The bearer-death edge (Eye lost on a slain carrier) is not yet modelled.
  */
 export function eyeActive(state: GameState): boolean {
   return partyHolds(state, T_EYE_OF_GOD);
