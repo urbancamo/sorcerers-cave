@@ -2,6 +2,8 @@
 
 Online Re-Imagining of the classic Sorcerer's Cave board game.
 
+Available to play [here](https://sorcerers-cave.vercel.app).
+
 A pnpm + Turborepo monorepo:
 
 - `packages/engine` — pure, deterministic TypeScript game rules (no I/O).
