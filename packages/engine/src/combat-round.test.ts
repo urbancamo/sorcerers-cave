@@ -53,6 +53,57 @@ describe("resolveRound (spec §9.1, §9.3-9.4)", () => {
     expect(s.strangers).toEqual([9]); // Spectre not killed
   });
 
+  it("a Spectre is fought by the party's magic only — ordinary fighters never engage it", () => {
+    // Priest (caster, MP 2) + Man + Dwarf vs a lone Spectre (MP 5). Only the Priest's magic is
+    // pitted against it; the Man and Dwarf cannot harm a Spectre, so they stand by.
+    const s = fightState({
+      party: [
+        { creatureId: 4, status: 0, dragonKills: 0, treasure: [] }, // Priest
+        { creatureId: 5, status: 0, dragonKills: 0, treasure: [] }, // Man
+        { creatureId: 7, status: 0, dragonKills: 0, treasure: [] }, // Dwarf
+      ],
+      strangers: [9], // Spectre
+      seed: 5,
+    });
+    const rolls = combatRolls(resolveRound(s));
+    expect(rolls).toHaveLength(1);
+    expect(rolls[0]!.party).toBe("Priest");      // the Priest, not the Man or Dwarf
+    expect(rolls[0]!.enemy).toBe("Spectre");
+    expect(rolls[0]!.partyTotal - rolls[0]!.partyRoll).toBe(2); // magical power only (MP 2), no front strength
+    expect(rolls[0]!.enemyTotal - rolls[0]!.enemyRoll).toBe(5); // the Spectre's MP 5
+    expect(s.party.find((m) => m.creatureId === 5)!.status).toBe(0); // Man untouched
+    expect(s.party.find((m) => m.creatureId === 7)!.status).toBe(0); // Dwarf untouched
+  });
+
+  it("a Man/Woman/Hero bearing the Magic Sword may fight a Spectre hand-to-hand when no caster is present", () => {
+    const s = fightState({
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [3] }], // Hero with the Magic Sword
+      strangers: [9], // Spectre
+      seed: 5,
+    });
+    const rolls = combatRolls(resolveRound(s));
+    expect(rolls).toHaveLength(1);
+    expect(rolls[0]!.party).toBe("Hero");
+    expect(rolls[0]!.enemy).toBe("Spectre");
+    expect(rolls[0]!.partyTotal - rolls[0]!.partyRoll).toBe(7); // Hero FS 5 + Magic Sword 2
+  });
+
+  it("with both a Spectre and a corporeal foe, the caster takes the Spectre and the fighter the foe", () => {
+    const s = fightState({
+      party: [
+        { creatureId: 4, status: 0, dragonKills: 0, treasure: [] }, // Priest
+        { creatureId: 5, status: 0, dragonKills: 0, treasure: [] }, // Man
+      ],
+      strangers: [9, 3], // Spectre, Troll
+      fight: { surprise: 0, round: 1, focus: 0 }, // focus the Spectre
+      seed: 5,
+    });
+    const rolls = combatRolls(resolveRound(s));
+    expect(rolls).toHaveLength(2);
+    expect(rolls.find((r) => r.enemy === "Spectre")!.party).toBe("Priest"); // magic vs Spectre
+    expect(rolls.find((r) => r.enemy === "Troll")!.party).toBe("Man");      // fighter vs corporeal foe
+  });
+
   it("out-numbered: a fighter faces at most two strangers hand-to-hand + background caster MP (§Fights)", () => {
     // The book example: 1 Hero vs Priest, Troll, Man, Dwarf. The strongest combination the Hero
     // must face is Troll(4) + Man(3) hand-to-hand + the Priest's magical power (2) = 9; the Dwarf is idle.

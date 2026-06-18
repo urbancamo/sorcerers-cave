@@ -71,11 +71,17 @@ export function resolveRound(state: GameState): GameEvent[] {
     return eyeActive(state) ? 0 : CREATURES[sid]!.mp;
   };
 
-  // --- Spectre auto-slay: a Spectre the party can't engage kills the strongest member each round.
+  // A Spectre is not of flesh and blood (§ Spectre): it can be fought ONLY with magical power — a
+  // Priest's or Wizard's MP — or, failing a caster, by a Man/Woman/Hero/W-Hero bearing the Magic
+  // Sword. Ordinary hand-to-hand fighters can never harm it.
+  const canSwordSpectre = (m: PartyMember): boolean =>
+    !eyeActive(state) && m.treasure.includes(T_MAGIC_SWORD) && [0, 1, 5, 6].includes(m.creatureId);
+
+  // --- Spectre auto-slay: a Spectre the party can't engage at all kills the strongest member each round.
   const hasSpectre = state.strangers.includes(C_SPECTRE);
   const party = livingParty(state);
   const partyHasMP = party.some((m) => casterMP(m, state) > 0);
-  const partyHasSword = party.some((m) => m.treasure.includes(T_MAGIC_SWORD));
+  const partyHasSword = party.some(canSwordSpectre);
   const spectreUnfightable = hasSpectre && !partyHasMP && !partyHasSword;
   if (spectreUnfightable) {
     let strongest: PartyMember | undefined;
@@ -101,59 +107,22 @@ export function resolveRound(state: GameState): GameEvent[] {
     fight.round += 1;
     return events;
   }
-  const nonCasters = fighters.filter((m) => !isCaster(m));
-  const frontFighters = nonCasters.length > 0
-    ? nonCasters
-    : fighters; // if no non-casters, casters fight hand-to-hand
-  const casters = fighters.filter((m) => isCaster(m) && !frontFighters.includes(m));
-  const casterMPTotal = casters.reduce((sum, m) => sum + casterMP(m, state), 0);
 
-  const focusIdx = eligible.includes(fight.focus) ? fight.focus : eligible[0]!;
-  const order = [focusIdx, ...eligible.filter((i) => i !== focusIdx)];
-  // Pair each front fighter with a distinct stranger (focus first).
-  const matches = new Map<number, PartyMember[]>();
-  const primary = Math.min(frontFighters.length, order.length);
-  for (let i = 0; i < primary; i++) matches.set(order[i]!, [frontFighters[i]!]);
-  // Party larger: spare fighters gang existing matches, at most TWO party per stranger
-  // ("send two against one"). Any beyond 2× the strangers stand idle this round.
-  const spareFighters = frontFighters.slice(primary);
-  for (const k of order.slice(0, primary)) {
-    if (spareFighters.length === 0) break;
-    if (matches.get(k)!.length < 2) matches.get(k)!.push(spareFighters.shift()!);
-  }
-  // Out-numbered: a fighter may be set against at most TWO strangers hand-to-hand; further
-  // non-caster strangers stand idle. Unengaged stranger casters add their magical power to the
-  // focus group from the background (§"Setting up the Fight").
-  const matchedIdx = new Set(matches.keys());
-  const unmatched = eligible.filter((i) => !matchedIdx.has(i));
-  const enemyBgMP = unmatched.reduce((sum, i) => sum + enemyMP(state.strangers[i]!), 0); // non-casters add 0
-  const extraFighters = unmatched
-    .filter((i) => enemyMP(state.strangers[i]!) === 0) // non-caster strangers fight hand-to-hand
-    .sort((a, b) => CREATURES[state.strangers[b]!]!.fs - CREATURES[state.strangers[a]!]!.fs);
-  const extraForMatch = new Map<number, number>(); // one extra hand-to-hand stranger per single-fighter match
-  order.filter((k) => matches.get(k)?.length === 1).forEach((k, i) => {
-    const ex = extraFighters[i];
-    if (ex !== undefined) extraForMatch.set(k, CREATURES[state.strangers[ex]!]!.fs);
-  });
-
-  // --- Resolve each match. Collect outcomes, then apply (so indices stay valid during rolls).
+  const rollBonus = partyRollBonus(state);
+  const surpriseParty = fight.round === 1 && fight.surprise === 1 ? 1 : 0;
+  const surpriseEnemy = fight.round === 1 && fight.surprise === -1 ? 1 : 0;
+  // Collect outcomes, then apply removals after (so indices stay valid during rolls).
   const killedStrangerIdx: number[] = [];
   const pendingCasualties: number[][] = []; // pairs (party indices) whose casualty the player picks
-  const rollBonus = partyRollBonus(state);
-  for (const [sIdx, group] of matches) {
+
+  // Resolve one stranger match: roll, surface both dice, and apply the kill / death / casualty.
+  // `partyStr` is the group's pooled strength against this foe (front strength, or MP vs a Spectre).
+  const resolveMatch = (group: PartyMember[], sIdx: number, partyStr: number, enemyStr: number): void => {
     const sid = state.strangers[sIdx]!;
-    let enemyStr = CREATURES[sid]!.fs + enemyMP(sid) + (extraForMatch.get(sIdx) ?? 0);
-    let partyStr = group.reduce((sum, m) => sum + frontStrength(m, state), 0);
-    if (sIdx === focusIdx) {
-      enemyStr += enemyBgMP;
-      partyStr += casterMPTotal;
-    }
     const pr = rollDie(state.seed); state.seed = pr.seed;
     const er = rollDie(state.seed); state.seed = er.seed;
-    const partyTotal = partyStr + pr.value + rollBonus + (fight.round === 1 && fight.surprise === 1 ? 1 : 0);
-    const enemyTotal = enemyStr + er.value + (fight.round === 1 && fight.surprise === -1 ? 1 : 0);
-
-    // Surface both rolls (raw d6 + modified total) so the UI can show them side by side.
+    const partyTotal = partyStr + pr.value + rollBonus + surpriseParty;
+    const enemyTotal = enemyStr + er.value + surpriseEnemy;
     events.push({
       type: "combatRoll",
       party: group.map((m) => CREATURES[m.creatureId]!.name).join(" + "),
@@ -164,7 +133,6 @@ export function resolveRound(state: GameState): GameEvent[] {
       enemyTotal,
       result: partyTotal > enemyTotal ? "partyWon" : enemyTotal > partyTotal ? "enemyWon" : "tie",
     });
-
     if (partyTotal > enemyTotal) {
       killedStrangerIdx.push(sIdx);
       if (sid === C_DRAGON && group.length === 1) group[0]!.dragonKills += 1; // single-handed slayer
@@ -183,6 +151,80 @@ export function resolveRound(state: GameState): GameEvent[] {
       }
     }
     // tie: no death
+  };
+
+  // --- Spectre match: pit the party's magical contingent against ONE Spectre this round (the focus
+  // Spectre if the player aimed there, else the first). Prefer casters (magical power only); a
+  // sword-bearer takes it on only when the party has no caster. These members are reserved — they
+  // never join the hand-to-hand matches, and a caster fighting the Spectre is "otherwise engaged",
+  // so it no longer supports the front line.
+  const reserved = new Set<PartyMember>();
+  let engagedSpectre = -1;
+  const spectreIdxs = eligible.filter((i) => state.strangers[i] === C_SPECTRE);
+  if (spectreIdxs.length > 0) {
+    engagedSpectre = spectreIdxs.includes(fight.focus) ? fight.focus : spectreIdxs[0]!;
+    const casters = fighters.filter((m) => casterMP(m, state) > 0);
+    const group = casters.length > 0
+      ? casters
+      : fighters.filter(canSwordSpectre).sort((a, b) => frontStrength(b, state) - frontStrength(a, state)).slice(0, 1);
+    group.forEach((m) => reserved.add(m));
+    if (group.length > 0) {
+      // Casters contribute magical power only; a sword-bearer contributes front strength.
+      const partyStr = group.reduce((s, m) => s + (casterMP(m, state) > 0 ? casterMP(m, state) : frontStrength(m, state)), 0);
+      resolveMatch(group, engagedSpectre, partyStr, CREATURES[C_SPECTRE]!.fs + enemyMP(C_SPECTRE));
+    }
+  }
+
+  // --- Corporeal foes: ordinary focus-fire with the fighters NOT reserved to the Spectre. Any extra
+  // Spectres beyond the one engaged are left for a later round (only one magic contingent per round).
+  const corporealIdxs = eligible.filter((i) => state.strangers[i] !== C_SPECTRE);
+  const available = fighters.filter((m) => !reserved.has(m));
+  if (corporealIdxs.length > 0 && available.length > 0) {
+    const nonCasters = available.filter((m) => !isCaster(m));
+    const frontFighters = nonCasters.length > 0
+      ? nonCasters
+      : available; // if no non-casters, casters fight hand-to-hand
+    const casters = available.filter((m) => isCaster(m) && !frontFighters.includes(m));
+    const casterMPTotal = casters.reduce((sum, m) => sum + casterMP(m, state), 0);
+
+    const focusIdx = corporealIdxs.includes(fight.focus) ? fight.focus : corporealIdxs[0]!;
+    const order = [focusIdx, ...corporealIdxs.filter((i) => i !== focusIdx)];
+    // Pair each front fighter with a distinct stranger (focus first).
+    const matches = new Map<number, PartyMember[]>();
+    const primary = Math.min(frontFighters.length, order.length);
+    for (let i = 0; i < primary; i++) matches.set(order[i]!, [frontFighters[i]!]);
+    // Party larger: spare fighters gang existing matches, at most TWO party per stranger
+    // ("send two against one"). Any beyond 2× the strangers stand idle this round.
+    const spareFighters = frontFighters.slice(primary);
+    for (const k of order.slice(0, primary)) {
+      if (spareFighters.length === 0) break;
+      if (matches.get(k)!.length < 2) matches.get(k)!.push(spareFighters.shift()!);
+    }
+    // Out-numbered: a fighter may be set against at most TWO strangers hand-to-hand; further
+    // non-caster strangers stand idle. Unengaged stranger casters add their magical power to the
+    // focus group from the background (§"Setting up the Fight").
+    const matchedIdx = new Set(matches.keys());
+    const unmatched = corporealIdxs.filter((i) => !matchedIdx.has(i));
+    const enemyBgMP = unmatched.reduce((sum, i) => sum + enemyMP(state.strangers[i]!), 0); // non-casters add 0
+    const extraFighters = unmatched
+      .filter((i) => enemyMP(state.strangers[i]!) === 0) // non-caster strangers fight hand-to-hand
+      .sort((a, b) => CREATURES[state.strangers[b]!]!.fs - CREATURES[state.strangers[a]!]!.fs);
+    const extraForMatch = new Map<number, number>(); // one extra hand-to-hand stranger per single-fighter match
+    order.filter((k) => matches.get(k)?.length === 1).forEach((k, i) => {
+      const ex = extraFighters[i];
+      if (ex !== undefined) extraForMatch.set(k, CREATURES[state.strangers[ex]!]!.fs);
+    });
+
+    for (const [sIdx, group] of matches) {
+      const sid = state.strangers[sIdx]!;
+      let enemyStr = CREATURES[sid]!.fs + enemyMP(sid) + (extraForMatch.get(sIdx) ?? 0);
+      let partyStr = group.reduce((sum, m) => sum + frontStrength(m, state), 0);
+      if (sIdx === focusIdx) {
+        enemyStr += enemyBgMP;
+        partyStr += casterMPTotal;
+      }
+      resolveMatch(group, sIdx, partyStr, enemyStr);
+    }
   }
 
   // Apply stranger removals (highest index first so earlier indices stay valid).
