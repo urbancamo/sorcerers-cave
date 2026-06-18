@@ -70,7 +70,7 @@ function chestView(events: GameEvent[]): RollView | null {
   const chest = events.find((e): e is Extract<GameEvent, { type: "chestOpened" }> => e.type === "chestOpened");
   if (!chest) return null;
   const OUTCOME: Record<number, { message: string; tone: Tone }> = {
-    1: { message: "A curse! −30 points at scoring.", tone: "bad" },
+    1: { message: "A curse! A curse card settles on the party — −1 to every roll, and −30 points at scoring.", tone: "bad" },
     2: { message: "A Spectre bursts from the chest — defend yourselves!", tone: "bad" },
     3: { message: "Only sand — nothing of value.", tone: "neutral" },
     4: { message: "Silver! +20 points.", tone: "good" },

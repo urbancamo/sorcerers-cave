@@ -4,7 +4,7 @@ import { GS_QUIT, GS_ESCAPED, GS_DEAD } from "./state";
 import { DIR_S, DIR_E, DIR_N, packCoord } from "./coords";
 import { makeState } from "./testkit";
 import { legalActions } from "./selectors";
-import type { GameEvent } from "./actions";
+import type { GameEvent, GameAction } from "./actions";
 import { SPECIAL_VIPER_PIT, SPECIAL_DEEP_POOL } from "./data/areaCards";
 
 describe("reduce (spec §4 turn dispatch)", () => {
@@ -502,6 +502,30 @@ describe("reduce — treasure redistribution (party panel)", () => {
     expect(state.areas[state.partyArea]!.contents).toContain(200 + 1); // Gold left on the floor
   });
 
+  it("re-offers treasure dropped during pickup so a Giant can clear room for the Chest", () => {
+    // Giant (carry 150) carrying Silver+Gold+Gems (75kg) can't also lift the 100kg Chest.
+    const s = makeState({
+      phase: "pickup",
+      treasures: [14], // Treasure Chest on the chamber floor
+      party: [{ creatureId: 12, status: 0, dragonKills: 0, treasure: [0, 1, 2] }],
+      areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+    });
+    // The Chest is out of reach until room is freed.
+    expect(legalActions(s).filter((a) => a.type === "takeTreasure")).toHaveLength(0);
+
+    // Drop all three carried items to make room — each lands back on the live floor.
+    let next = s;
+    for (let i = 0; i < 3; i++) next = reduce(next, { type: "dropTreasure", mi: 0, idx: 0 }).state;
+    expect(next.party[0]!.treasure).toEqual([]);
+    expect(next.treasures).toEqual([14, 0, 1, 2]); // chest + the three dropped, all on the floor
+
+    // Exactly one take for the Chest, plus one for each dropped item — all to the Giant.
+    const takes = legalActions(next).filter((a): a is Extract<GameAction, { type: "takeTreasure" }> => a.type === "takeTreasure");
+    expect(takes).toHaveLength(4);
+    expect(takes.every((a) => a.mi === 0)).toBe(true);
+    expect(takes.filter((a) => next.treasures[a.ti] === 14)).toHaveLength(1); // not three Chests
+  });
+
   it("blocks redistribution during a fight", () => {
     const s = makeState({
       phase: "fight",
@@ -537,6 +561,20 @@ describe("reduce — treasure redistribution (party panel)", () => {
     expect(moved.state.curses).toBe(1);
     expect(moved.events).toContainEqual({ type: "eyeForsaken" });
     expect(moved.state.party[1]!.treasure).toEqual([13]);
+  });
+
+  it("opening the Treasure Chest on a curse roll lays a permanent curse on the party", () => {
+    // seed 2 rolls a 1 (Curse) on the chest d6. The Giant that opened it carries the curse home.
+    const s = makeState({
+      phase: "explore",
+      party: [{ creatureId: 12, status: 0, dragonKills: 0, treasure: [14] }], // Giant holding the Chest
+      areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+      seed: 2,
+    });
+    const { state, events } = reduce(s, { type: "openChest" });
+    expect(events).toContainEqual({ type: "chestOpened", result: 1 });
+    expect(state.curses).toBe(1); // a permanent curse card — −1 to every roll, like the Eye of God
+    expect(state.party[0]!.treasure).toEqual([]); // the chest is consumed
   });
 
   it("falling through a trap leaves the chamber's strangers/treasure behind — they don't follow you", () => {

@@ -396,7 +396,11 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       const tid = m.treasure[action.idx];
       if (tid === undefined) return { state, events: [{ type: "blocked" }] };
       m.treasure.splice(action.idx, 1);
-      next.areas[next.partyArea]!.contents.push(200 + tid); // left on the chamber floor
+      // During an active pickup the chamber floor IS the live working set, so a member dropping
+      // treasure to free capacity (e.g. a Giant clearing room for the 100kg Chest) lands it back on
+      // the floor where it can be re-taken this same visit. Otherwise (at rest) it parks on contents.
+      if (next.phase === "pickup") next.treasures.push(tid);
+      else next.areas[next.partyArea]!.contents.push(200 + tid); // left on the chamber floor
       // Forsaking the Eye of God curses the party (§Eye of God).
       if (tid === T_EYE_OF_GOD) { next.curses += 1; return { state: next, events: [{ type: "eyeForsaken" }] }; }
       return { state: next, events: [] };
