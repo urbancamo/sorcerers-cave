@@ -1,0 +1,139 @@
+import { describe, it, expect } from "vitest";
+import { validatePlan, resolvePlannedRound } from "./combatPlan";
+import { makeState } from "./testkit";
+import type { BattlePlan } from "./state";
+import type { GameEvent } from "./actions";
+
+const member = (creatureId: number, treasure: number[] = []) => ({ creatureId, status: 0 as const, dragonKills: 0, treasure });
+const fightS = (over: Parameters<typeof makeState>[0] = {}) =>
+  makeState({ phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, ...over });
+const ok = (s: ReturnType<typeof makeState>, p: BattlePlan) => validatePlan(s, p).ok;
+const reason = (s: ReturnType<typeof makeState>, p: BattlePlan) => { const r = validatePlan(s, p); return r.ok ? null : r.reason; };
+const rolls = (events: GameEvent[]) => events.filter((e): e is Extract<GameEvent, { type: "combatRoll" }> => e.type === "combatRoll");
+// Deep-ish clone so a resolution mutates its own copy, not the test fixture.
+const clone = (s: ReturnType<typeof makeState>) => ({ ...s, fight: { ...s.fight! }, strangers: [...s.strangers], party: s.party.map((m) => ({ ...m })) });
+
+describe("validatePlan (§FIGHTS pairing rules)", () => {
+  it("accepts a simple 1-v-1 pairing", () => {
+    const s = fightS({ party: [member(0)], strangers: [3] });
+    expect(ok(s, { matches: [{ front: [0], backers: [], strangers: [0] }] })).toBe(true);
+  });
+  it("rejects when not in a fight", () => {
+    const s = makeState({ phase: "explore", party: [member(0)], strangers: [3] });
+    expect(reason(s, { matches: [{ front: [0], backers: [], strangers: [0] }] })).toBe("notFighting");
+  });
+  it("rejects an empty plan", () => {
+    expect(reason(fightS({ party: [member(0)], strangers: [3] }), { matches: [] })).toBe("emptyPlan");
+  });
+  it("rejects reusing a member across matches", () => {
+    const s = fightS({ party: [member(0)], strangers: [3, 5] });
+    expect(reason(s, { matches: [
+      { front: [0], backers: [], strangers: [0] },
+      { front: [0], backers: [], strangers: [1] },
+    ] })).toBe("memberReused");
+  });
+  it("rejects reusing a stranger across matches", () => {
+    const s = fightS({ party: [member(0), member(2)], strangers: [3] });
+    expect(reason(s, { matches: [
+      { front: [0], backers: [], strangers: [0] },
+      { front: [1], backers: [], strangers: [0] },
+    ] })).toBe("strangerReused");
+  });
+  it("rejects a 2-against-2 group", () => {
+    const s = fightS({ party: [member(0), member(2)], strangers: [3, 5] });
+    expect(reason(s, { matches: [{ front: [0, 1], backers: [], strangers: [0, 1] }] })).toBe("twoVsTwo");
+  });
+  it("rejects a non-caster placed in the background", () => {
+    const s = fightS({ party: [member(0), member(2)], strangers: [3] });
+    expect(reason(s, { matches: [{ front: [0], backers: [1], strangers: [0] }] })).toBe("backerNotCaster");
+  });
+  it("rejects an ordinary fighter set against a Spectre", () => {
+    const s = fightS({ party: [member(5)], strangers: [9] });
+    expect(reason(s, { matches: [{ front: [0], backers: [], strangers: [0] }] })).toBe("spectreNeedsMagic");
+  });
+  it("accepts a caster or a sword-bearer against a Spectre", () => {
+    expect(ok(fightS({ party: [member(8)], strangers: [9] }), { matches: [{ front: [0], backers: [], strangers: [0] }] })).toBe(true);
+    expect(ok(fightS({ party: [member(0, [3])], strangers: [9] }), { matches: [{ front: [0], backers: [], strangers: [0] }] })).toBe(true);
+  });
+  it("rejects leaving an engageable stranger unengaged while a fighter is free", () => {
+    const s = fightS({ party: [member(0), member(2)], strangers: [3, 5] });
+    expect(reason(s, { matches: [{ front: [0], backers: [], strangers: [0] }] })).toBe("mustEngageAll");
+  });
+  it("allows leftover strangers when out-numbered (all fighters committed)", () => {
+    const s = fightS({ party: [member(0)], strangers: [3, 5, 7] });
+    expect(ok(s, { matches: [{ front: [0], backers: [], strangers: [0] }] })).toBe(true);
+  });
+  it("allows idle fighters once every stranger is engaged", () => {
+    const s = fightS({ party: [member(0), member(2), member(7)], strangers: [3] });
+    expect(ok(s, { matches: [{ front: [0], backers: [], strangers: [0] }] })).toBe(true);
+  });
+});
+
+describe("resolvePlannedRound (§A Round of Fighting)", () => {
+  it("resolves the §417 book example to the exact strengths (7/6 and 5/5)", () => {
+    const s = clone(fightS({
+      fight: { surprise: -1, round: 1, focus: 0 },
+      party: [member(0, [3]), member(6), member(7), member(4)], // Hero+Sword, Woman, Dwarf, Priest
+      strangers: [2, 3], seed: 5, // Ogre, Troll
+    }));
+    const r = rolls(resolvePlannedRound(s, { matches: [
+      { front: [0], backers: [], strangers: [0] },
+      { front: [1, 2], backers: [3], strangers: [1] },
+    ] }));
+    const ogre = r.find((x) => x.enemy === "Ogre")!;
+    const troll = r.find((x) => x.enemy === "Troll")!;
+    expect(ogre.partyTotal - ogre.partyRoll).toBe(7);   // Hero 5 + sword 2
+    expect(ogre.enemyTotal - ogre.enemyRoll).toBe(6);   // Ogre 5 + surprise 1
+    expect(troll.partyTotal - troll.partyRoll).toBe(5); // Woman 2 + Dwarf 1 + Priest 2
+    expect(troll.enemyTotal - troll.enemyRoll).toBe(5); // Troll 4 + surprise 1
+  });
+  it("a solo win removes the foe and advances the round", () => {
+    const s = clone(fightS({ party: [member(12)], strangers: [7], seed: 5 })); // Giant vs Dwarf
+    resolvePlannedRound(s, { matches: [{ front: [0], backers: [], strangers: [0] }] });
+    expect(s.strangers).toEqual([]);
+    expect(s.fight!.round).toBe(2);
+  });
+  it("credits a single-handed dragon slayer", () => {
+    const s = clone(fightS({ fight: { surprise: 1, round: 1, focus: 0 }, party: [member(12)], strangers: [10], seed: 5 }));
+    resolvePlannedRound(s, { matches: [{ front: [0], backers: [], strangers: [0] }] });
+    expect(s.strangers).toEqual([]);
+    expect(s.party[0]!.dragonKills).toBe(1);
+  });
+  it("queues a casualty choice when two front fighters lose together", () => {
+    const s = clone(fightS({ fight: { surprise: -1, round: 1, focus: 0 }, party: [member(6), member(7)], strangers: [10], seed: 5 }));
+    resolvePlannedRound(s, { matches: [{ front: [0, 1], backers: [], strangers: [0] }] });
+    if (s.fight!.casualtyQueue?.length) {
+      expect(s.fight!.casualtyQueue[0]).toEqual([0, 1]);
+      expect(s.party.every((m) => m.status === 0)).toBe(true);
+    }
+  });
+});
+
+describe("resolvePlannedRound — Spectres (§Spectre)", () => {
+  it("a caster pits magical power only against the Spectre", () => {
+    const s = clone(fightS({ party: [member(8)], strangers: [9], seed: 5 })); // Wizard vs Spectre
+    const r = rolls(resolvePlannedRound(s, { matches: [{ front: [0], backers: [], strangers: [0] }] }));
+    expect(r[0]!.party).toBe("Wizard");
+    expect(r[0]!.partyTotal - r[0]!.partyRoll).toBe(5); // MP 5, not front strength
+    expect(r[0]!.enemyTotal - r[0]!.enemyRoll).toBe(5); // Spectre MP 5
+  });
+  it("a sword-bearer fights the Spectre with front strength", () => {
+    const s = clone(fightS({ party: [member(0, [3])], strangers: [9], seed: 5 })); // Hero+Sword vs Spectre
+    const r = rolls(resolvePlannedRound(s, { matches: [{ front: [0], backers: [], strangers: [0] }] }));
+    expect(r[0]!.partyTotal - r[0]!.partyRoll).toBe(7); // Hero 5 + Magic Sword 2
+  });
+  it("an un-fightable, unengaged Spectre auto-slays the strongest member", () => {
+    const s = clone(fightS({ party: [member(0), member(7)], strangers: [9, 3], seed: 5 })); // Hero+Dwarf vs Spectre+Troll
+    const r = resolvePlannedRound(s, { matches: [{ front: [0], backers: [], strangers: [1] }] }); // Hero vs Troll only
+    expect(r.some((e) => e.type === "spectreSlew")).toBe(true);
+  });
+});
+
+describe("resolvePlannedRound — out-numbered (§395)", () => {
+  it("a lone Hero faces the strongest combination (Troll+Man + Priest bg = 9)", () => {
+    const s = clone(fightS({ party: [member(0)], strangers: [4, 3, 5, 7], seed: 5 })); // Priest, Troll, Man, Dwarf
+    const r = rolls(resolvePlannedRound(s, { matches: [{ front: [0], backers: [], strangers: [1] }] })); // engage the Troll
+    expect(r).toHaveLength(1);
+    expect(r[0]!.enemyTotal - r[0]!.enemyRoll).toBe(9); // Troll 4 + Man 3 + Priest 2
+  });
+});
