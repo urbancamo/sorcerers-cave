@@ -57,6 +57,19 @@ export interface FightState {
   retreatBlocked?: boolean;
 }
 
+/** One pairing in a battle plan: party fighters (front), supporting casters (backers), and the
+ *  stranger(s) they engage. `strangers` holds two only for a 1-against-2 (a lone front fighter). */
+export interface PlanMatch {
+  front: number[];     // 1–2 living party indices fighting hand-to-hand
+  backers: number[];   // caster party indices lending magical power to this match
+  strangers: number[]; // 1–2 stranger indices engaged
+}
+
+/** A player's pairing for one round of fighting (§FIGHTS "Setting up the Fight"). */
+export interface BattlePlan {
+  matches: PlanMatch[];
+}
+
 export interface GameState {
   gs: number; // GS_*
   phase: GamePhase; // interactive mode (UI controls + valid actions)

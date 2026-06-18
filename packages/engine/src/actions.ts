@@ -1,3 +1,5 @@
+import type { PlanMatch } from "./state";
+
 // Player decisions. Multiplayer will later wrap these with a playerId.
 export type GameAction =
   | { type: "move"; dir: number }
@@ -13,6 +15,7 @@ export type GameAction =
   | { type: "attack" }
   | { type: "focusTarget"; idx: number }
   | { type: "fightOn" }
+  | { type: "resolveRound"; matches: PlanMatch[] } // resolve one round from a player-supplied pairing
   | { type: "chooseCasualty"; idx: number } // pick which of a losing pair falls (§"A Round of Fighting")
   | { type: "retreat"; dir: number } // flee a fight by any doorway/stair; a dead end means fight on
   | { type: "useArtifact"; artifact: number; target?: number; dir?: number }
@@ -24,6 +27,7 @@ export type GameEvent =
   | { type: "moved"; area: number; level: number }
   | { type: "deadEnd"; dir: number }
   | { type: "blocked" }
+  | { type: "planRejected"; reason: string } // the submitted battle plan broke a pairing rule
   | { type: "drewChamber"; strangers: number[]; treasures: number[]; hazards: number[] }
   | { type: "enteredSpecial"; special: number }
   | { type: "gameOver"; gs: number }
