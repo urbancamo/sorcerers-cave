@@ -85,7 +85,8 @@ function turnEnds(action: MpAction, next: GameState): boolean {
   if (next.gs !== GS_PLAYING) return true;             // party left / wiped / quit
   if (next.phase === "explore") return true;           // back at rest
   if (next.phase === "fight" && !next.fight?.casualtyQueue?.length) {
-    return action.type === "fightOn" || action.type === "chooseCasualty"; // one round fought → pass the turn
+    // one round fought → pass the turn (whether via the legacy auto fightOn or a planned resolveRound)
+    return action.type === "fightOn" || action.type === "resolveRound" || action.type === "chooseCasualty";
   }
   return false;                                        // encounter decision, mid-round, or looting — same turn
 }

@@ -131,6 +131,16 @@ describe("mpReduce (turn-gated play)", () => {
     }
   });
 
+  it("a planned resolveRound ends the turn like fightOn", () => {
+    const fighter = { creatureId: 12, status: 0 as const, dragonKills: 0, treasure: [] }; // Giant
+    const mp = playing({ seed: 5 }, [
+      partyAt(0, { phase: "fight", fight: { surprise: 1, round: 1, focus: 0 }, party: [fighter], strangers: [10] }), // Dragon
+      partyAt(1),
+    ]);
+    const r = mpReduce(mp, 0, { type: "resolveRound", matches: [{ front: [0], backers: [], strangers: [0] }] });
+    expect(r.state.active).toBe(1); // one round fought → turn passes
+  });
+
   it("shares the area deck across seats", () => {
     const mp = playing({ largePack: [1, 8] }, [partyAt(0), partyAt(1)]); // 1 = N door, 8 = W door
     const a = mpReduce(mp, 0, { type: "move", dir: 3 }).state; // seat 0 south
