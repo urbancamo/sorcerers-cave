@@ -573,11 +573,18 @@ function showChoice(title,body,okLabel,cancelLabel,tone){
   });
 }
 let deckWarned=false; // one-shot toast when the area deck first runs low
-function updateHUD(){const s=engine.state();
-  document.getElementById('st-depth').textContent='Level '+s.level;
-  document.getElementById('st-turn').textContent=s.turn;
-  document.getElementById('st-party').textContent=PARTY.length;
-  const tilesEl=document.getElementById('st-tiles');
+function updateHUD(){
+  // The HUD is React-owned and may be absent for a moment between games (unmount/remount) or when a
+  // delayed timer (e.g. the roster animation) fires after this renderer's DOM is gone. Bail out
+  // rather than throw — a thrown error here used to abort doMove's chain and strand `busy=true`,
+  // which then blocked all movement in the next game.
+  const depth=document.getElementById('st-depth');
+  if(!depth) return;
+  const s=engine.state();
+  depth.textContent='Level '+s.level;
+  const turn=document.getElementById('st-turn'); if(turn) turn.textContent=s.turn;
+  const party=document.getElementById('st-party'); if(party) party.textContent=PARTY.length;
+  const tilesEl=document.getElementById('st-tiles'); if(!tilesEl) return;
   tilesEl.textContent=s.deckLeft+' / '+s.deckTotal;
   const low=s.deckLeft<10; // running out of area cards to explore
   tilesEl.classList.toggle('danger',low);
@@ -746,6 +753,11 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
   for(const k of Object.keys(levelBounds)) delete levelBounds[k];
   for(const k of Object.keys(isoAlpha)) delete isoAlpha[k];
   isoFocus=null;isoHinted=false;partyToken=null;selectRing=null;tokenMove=null;goal.active=false;
+  // Clear transient interaction state that lives at module scope, so a new game never inherits it from
+  // however the previous one ended. In particular `busy` is left true when a game ends by leaving the
+  // Cave (the exit-confirm path), which would otherwise block every move on the next game's gateway.
+  busy=false;
+  if(rosterAnimTimer){clearTimeout(rosterAnimTimer);rosterAnimTimer=null;}
 
   /* card-panel refs (the HUD exists by now) */
   cardPanel=document.getElementById('cardpanel');cardImg=document.getElementById('cardimg');emptyBox=cardPanel.querySelector('.emptybox');
