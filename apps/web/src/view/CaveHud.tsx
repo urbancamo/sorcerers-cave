@@ -7,7 +7,7 @@ import "./cave.css";
  * discovery overlay (`reveal.js`) is preserved verbatim. The `#scene` div
  * receives the React container ref so `boot` can append its WebGL canvas there.
  */
-export function CaveHud({ mountRef, onPartyClick, onSave, turnLabel, turnColor }: { mountRef: RefObject<HTMLDivElement | null>; onPartyClick?: () => void; onSave?: () => void; turnLabel?: string; turnColor?: string }) {
+export function CaveHud({ mountRef, onPartyClick, onSave, turnLabel, turnColor, curses }: { mountRef: RefObject<HTMLDivElement | null>; onPartyClick?: () => void; onSave?: () => void; turnLabel?: string; turnColor?: string; curses?: number }) {
   return (
     <>
       <div id="bg"></div>
@@ -36,6 +36,12 @@ export function CaveHud({ mountRef, onPartyClick, onSave, turnLabel, turnColor }
                 Level 3
               </span>
             </div>
+            {curses != null && curses > 0 && (
+              <div className="chip scv-cursechip" title="The party is cursed — 1 subtracted from every die roll (−30 each at scoring)">
+                <img className="scv-curse-card" src="/assets/tokens/markers/marker-01.png" alt="Curse" />
+                {curses > 1 && <span className="scv-curse-x">×{curses}</span>}
+              </div>
+            )}
             <div className="chip">
               <span className="k">Turn</span>
               <span className="v" id="st-turn">
