@@ -263,16 +263,21 @@
 /* ---- in-game encounter / fight / pickup overlay (matches the HUD) ---- */
 .scv-enc {
   position: fixed;
-  right: 18px;
-  bottom: 96px;
+  left: 50%;
+  bottom: 84px;
+  transform: translateX(-50%);
   z-index: 50;
-  width: 280px;
-  max-height: calc(100vh - 120px);
+  width: auto;
+  max-width: 94vw;
+  max-height: 42vh;
   overflow-y: auto;
   display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 16px 18px;
+  flex-direction: row;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px 14px;
+  padding: 12px 18px;
   background: rgba(15, 15, 20, 0.82);
   border: 1px solid var(--line-strong);
   border-radius: 14px;
@@ -310,9 +315,11 @@
 }
 .scv-enc-actions {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  flex-wrap: wrap;
+  justify-content: center;
   gap: 6px;
-  margin-top: 2px;
+  margin-top: 0;
 }
 .scv-enc-btn {
   font-family: var(--ui);
