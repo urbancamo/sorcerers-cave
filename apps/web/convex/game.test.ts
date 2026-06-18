@@ -64,6 +64,17 @@ test("applyAction matches the local engine and logs the event", async () => {
   expect(logged[0]!.seq).toBe(0);
 });
 
+test("applyAction accepts a resolveRound action carrying matches (arg validator)", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 7, picks: [0] });
+  // Regression: the action validator rejected the resolveRound `matches` field. It must be accepted
+  // (the engine then no-ops it in the explore phase — we only assert the mutation doesn't throw).
+  await expect(as.mutation(api.game.applyAction, {
+    id, action: { type: "resolveRound", matches: [{ front: [0], backers: [], strangers: [0] }] },
+  })).resolves.toBeDefined();
+});
+
 test("an illegal action is a no-op and is not logged", async () => {
   const t = convexTest(schema, modules);
   const { as } = await asUser(t);

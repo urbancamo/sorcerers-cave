@@ -16,6 +16,12 @@ const mpActionValidator = v.object({
   to: v.optional(v.number()),
   artifact: v.optional(v.number()),
   target: v.optional(v.number()),
+  // resolveRound: the player's pairing for one fight round (front/background/strangers per match).
+  matches: v.optional(v.array(v.object({
+    front: v.array(v.number()),
+    backers: v.array(v.number()),
+    strangers: v.array(v.number()),
+  }))),
 });
 
 // Multiplayer lobby (Phase 1), the multi-party game state + turn-based party draft (Phase 2/3).

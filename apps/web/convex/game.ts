@@ -21,6 +21,12 @@ const actionValidator = v.object({
   to: v.optional(v.number()),
   artifact: v.optional(v.number()),
   target: v.optional(v.number()),
+  // resolveRound: the player's pairing for one fight round (front/background/strangers per match).
+  matches: v.optional(v.array(v.object({
+    front: v.array(v.number()),
+    backers: v.array(v.number()),
+    strangers: v.array(v.number()),
+  }))),
 });
 
 /** Start a new authoritative game: validate the party, build the engine state, persist it (owned by the caller). */
