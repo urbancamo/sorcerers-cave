@@ -585,6 +585,38 @@ describe("reduce — treasure redistribution (party panel)", () => {
     expect(reduce(makeState({ phase: "explore" }), { type: "resolveRound", matches: [] }).events).toContainEqual({ type: "blocked" });
   });
 
+  it("resolveRound: winning reclaims floor-dropped treasure into the pickup", () => {
+    const s = makeState({ phase: "fight", fight: { surprise: 1, round: 1, focus: 0 }, seed: 5,
+      party: [{ creatureId: 12, status: 0, dragonKills: 0, treasure: [1] }], strangers: [7], // Giant w/ Gold vs Dwarf
+      areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }] });
+    const { state, events } = reduce(s, { type: "resolveRound", matches: [{ front: [0], backers: [], strangers: [0] }] });
+    expect(events).toContainEqual({ type: "fightWon" });
+    expect(state.phase).toBe("pickup");          // there is treasure to reclaim → pickup, not straight to explore
+    expect(state.treasures).toContain(1);        // the dropped Gold is reclaimable
+    expect(state.areas[0]!.contents).not.toContain(200 + 1);
+  });
+
+  it("retreat leaves a slain member's treasure behind; the living keep theirs (§426)", () => {
+    // Two pre-placed chamber tiles (card 31 = NESW) so the party can flee north into the known tile.
+    const s = makeState({
+      phase: "fight", fight: { surprise: 0, round: 2, focus: 0 }, partyArea: 0, prev: 1, level: 1,
+      party: [
+        { creatureId: 0, status: 3, dragonKills: 0, treasure: [3] }, // a slain Hero carrying the Magic Sword
+        { creatureId: 5, status: 0, dragonKills: 0, treasure: [7] }, // a living Man carrying the Talisman
+      ],
+      strangers: [3],
+      areas: [
+        { card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+        { card: 31, coord: packCoord(1, 50, 49), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+      ],
+    });
+    const { state } = reduce(s, { type: "retreat", dir: DIR_N });
+    expect(state.partyArea).toBe(1);                     // fled north into the known tile
+    expect(state.areas[0]!.contents).toContain(200 + 3); // the slain Hero's Magic Sword is left behind
+    expect(state.party[0]!.treasure).toEqual([]);        // ...and removed from the corpse
+    expect(state.party[1]!.treasure).toEqual([7]);       // the living Man keeps his Talisman
+  });
+
   it("opening the Treasure Chest on a curse roll lays a permanent curse on the party", () => {
     // seed 2 rolls a 1 (Curse) on the chest d6. The Giant that opened it carries the curse home.
     const s = makeState({

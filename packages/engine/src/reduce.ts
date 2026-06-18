@@ -80,6 +80,13 @@ function finalizeRound(state: GameState): GameEvent[] {
     state.party.forEach((m) => { m.potionActive = false; });
     events.push({ type: "gameOver", gs: GS_DEAD });
   } else if (state.strangers.length === 0) {
+    // The party won: reclaim treasure dropped onto the floor to fight so it joins the pickup (§387).
+    const area = state.areas[state.partyArea]!;
+    const reclaimed = area.contents.filter((c) => c >= 200 && c < 300).map((c) => c - 200);
+    if (reclaimed.length) {
+      state.treasures.push(...reclaimed);
+      area.contents = area.contents.filter((c) => c < 200 || c >= 300);
+    }
     state.fight = null;
     state.party.forEach((m) => { m.potionActive = false; });
     events.push({ type: "fightWon" });
@@ -543,6 +550,14 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
         ...(res.state.sleeping ?? []).map((id) => 400 + id),
         ...(res.state.lulled ?? []).map((id) => 100 + id), // flute-lulled dragons park awake (re-lulled on re-entry if held)
       ];
+      // §426: artefacts carried by creatures who have perished are left behind in the area; the living
+      // retreat with theirs. (Heavy treasure dropped to fight is already on the floor — it stays too.)
+      res.state.party.forEach((m) => {
+        if (m.status === 3 && m.treasure.length) {
+          fled.contents.push(...m.treasure.map((t) => 200 + t));
+          m.treasure = [];
+        }
+      });
       res.state.strangers = []; res.state.treasures = []; res.state.hazards = []; res.state.sleeping = []; res.state.lulled = [];
       res.state.fight = null;
       res.state.party.forEach((m) => { m.potionActive = false; });
