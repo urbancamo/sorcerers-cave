@@ -13,8 +13,6 @@ export type GameAction =
   | { type: "dropTreasure"; mi: number; idx: number }               // drop party[mi].treasure[idx] onto the floor
   | { type: "test" }
   | { type: "attack" }
-  | { type: "focusTarget"; idx: number }
-  | { type: "fightOn" }
   | { type: "resolveRound"; matches: PlanMatch[] } // resolve one round from a player-supplied pairing
   | { type: "chooseCasualty"; idx: number } // pick which of a losing pair falls (§"A Round of Fighting")
   | { type: "retreat"; dir: number } // flee a fight by any doorway/stair; a dead end means fight on

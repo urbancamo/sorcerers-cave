@@ -9,7 +9,7 @@ import { takeTreasure, canCarry } from "./pickup";
 import { unpackCoord, packCoord, targetCoord, DIR_UP, DIR_DOWN } from "./coords";
 import type { GameAction, GameEvent } from "./actions";
 import { reactionRoll } from "./reaction";
-import { resolveRound, frontStrength } from "./combat";
+import { frontStrength } from "./combat";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import { wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls } from "./effects";
 import { rollDie } from "./rng";
@@ -467,26 +467,6 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       const next = structuredClone(state);
       // Surprise only on an immediate attack from a fresh, non-trap entry (§Surprise).
       return { state: next, events: startFight(next, next.surpriseReady ? 1 : 0) };
-    }
-
-    case "focusTarget": {
-      if (state.phase !== "fight") return { state, events: [{ type: "blocked" }] };
-      if (action.idx < 0 || action.idx >= state.strangers.length) return { state, events: [{ type: "blocked" }] };
-      const next = structuredClone(state);
-      next.fight!.focus = action.idx;
-      return { state: next, events: [] };
-    }
-
-    case "fightOn": {
-      if (state.phase !== "fight") return { state, events: [{ type: "blocked" }] };
-      if (state.fight?.casualtyQueue?.length) return { state, events: [{ type: "blocked" }] }; // resolve the choice first
-      const next = structuredClone(state);
-      const events = resolveRound(next);
-      if (next.fight) next.fight.retreatBlocked = false; // a round was fought — retreat is open again next turn
-      // If the round left a casualty for the player to decide, pause for chooseCasualty.
-      if (next.fight?.casualtyQueue?.length) return { state: next, events };
-      events.push(...finalizeRound(next));
-      return { state: next, events };
     }
 
     case "resolveRound": {

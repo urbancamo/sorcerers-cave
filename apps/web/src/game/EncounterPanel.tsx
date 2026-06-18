@@ -11,10 +11,8 @@ function label(a: GameAction, state: GameState): string {
     case "test": return "Test reaction";
     case "attack": return "Attack";
     case "withdraw": return "Withdraw";
-    case "fightOn": return (state.fight?.round ?? 1) > 1 ? "Fight on" : "Fight"; // first round reads "Fight"
     case "retreat": return `Retreat ${RETREAT_DIR[a.dir] ?? ""}`.trim();
     case "leaveTreasure": return "Leave the treasure";
-    case "focusTarget": return `Focus ${CREATURES[state.strangers[a.idx]!]?.name ?? a.idx}`;
     case "chooseCasualty": {
       const m = state.party[a.idx]!;
       const carried = m.treasure.length;
