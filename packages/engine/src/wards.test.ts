@@ -2,7 +2,8 @@ import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
 import { makeState } from "./testkit";
 import { packCoord } from "./coords";
-import { frontStrength, casterMP, partyRollBonus, resolveRound } from "./combat";
+import { frontStrength, casterMP, partyRollBonus } from "./combat";
+import { resolvePlannedRound } from "./combatPlan";
 
 const member = (creatureId: number, treasure: number[] = [], status = 0) =>
   ({ creatureId, status: status as 0 | 1 | 2 | 3, dragonKills: 0, treasure });
@@ -215,7 +216,7 @@ describe("Unicorn loyalty to a Woman (§ Unicorn)", () => {
       strangers: [10], // Dragon
       seed: 2,
     });
-    const { state: result, events } = reduce(s, { type: "fightOn" });
+    const { state: result, events } = reduce(s, { type: "resolveRound", matches: [{ front: [0], backers: [], strangers: [0] }] });
     // The Woman dies deterministically at seed 2.
     expect(events).toContainEqual({ type: "memberDied", creatureId: 6 });
     // Once the last Woman is gone, the Unicorn must depart.
@@ -241,7 +242,7 @@ describe("The Ring — level-4 invincibility (§ The Ring)", () => {
       strangers: [10], // Dragon
       seed: 3,
     });
-    const events = resolveRound(s);
+    const events = resolvePlannedRound(s, { matches: [{ front: [0], backers: [], strangers: [0] }] });
     expect(s.party[0]!.status).not.toBe(3); // Ring bearer survives
     expect(events).toContainEqual({ type: "deathPrevented", creatureId: 7 });
     expect(events).not.toContainEqual({ type: "memberDied", creatureId: 7 });
@@ -258,7 +259,7 @@ describe("The Ring — level-4 invincibility (§ The Ring)", () => {
       strangers: [10],
       seed: 3,
     });
-    resolveRound(s);
+    resolvePlannedRound(s, { matches: [{ front: [0], backers: [], strangers: [0] }] });
     expect(s.party[0]!.status).toBe(3); // dies normally at level 3 (no invincibility)
   });
 });

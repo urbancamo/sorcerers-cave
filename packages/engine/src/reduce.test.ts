@@ -257,16 +257,16 @@ describe("reduce — fight dispatch (C-2 §9.5)", () => {
     ...over,
   });
 
-  it("fightOn that wipes the strangers wins the fight and exits combat", () => {
+  it("a round that wipes the strangers wins the fight and exits combat", () => {
     const s = arena({ party: [{ creatureId: 12, status: 0, dragonKills: 0, treasure: [] }], strangers: [7], seed: 5 });
-    const { state, events } = reduce(s, { type: "fightOn" });
+    const { state, events } = reduce(s, { type: "resolveRound", matches: [{ front: [0], backers: [], strangers: [0] }] });
     expect(state.strangers).toEqual([]);
     expect(state.fight).toBeNull();
     expect(state.phase).toBe("explore");
     expect(events).toContainEqual({ type: "fightWon" });
   });
 
-  it("fightOn that wipes the party ends the game as DEAD", () => {
+  it("a round that wipes the party ends the game as DEAD", () => {
     // A lone Dwarf (FS 1) vs a Dragon (FS 6) with surprise to the strangers — the Dwarf dies.
     const s = arena({
       party: [{ creatureId: 7, status: 0, dragonKills: 0, treasure: [] }],
@@ -274,13 +274,13 @@ describe("reduce — fight dispatch (C-2 §9.5)", () => {
       fight: { surprise: -1, round: 1, focus: 0 },
       seed: 5,
     });
-    const { state } = reduce(s, { type: "fightOn" });
+    const { state } = reduce(s, { type: "resolveRound", matches: [{ front: [0], backers: [], strangers: [0] }] });
     expect(state.party.every((m) => m.status === 3)).toBe(true);
     expect(state.gs).toBe(2); // GS_DEAD
     expect(state.phase).toBe("gameOver");
   });
 
-  it("focusTarget sets the focus; retreat (after a round) flees by a doorway, leaving strangers behind", () => {
+  it("retreat (after a round) flees by a doorway, leaving strangers behind", () => {
     const s = arena({
       party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }],
       strangers: [3, 10],
@@ -291,7 +291,6 @@ describe("reduce — fight dispatch (C-2 §9.5)", () => {
       partyArea: 0, prev: 1,
       fight: { surprise: 0, round: 2, focus: 0 }, // a round has already been fought (retreat now allowed)
     });
-    expect(reduce(s, { type: "focusTarget", idx: 1 }).state.fight!.focus).toBe(1);
     const r = reduce(s, { type: "retreat", dir: DIR_N }).state;
     expect(r.phase).toBe("explore");
     expect(r.partyArea).toBe(1); // fled north into the known tile
@@ -329,11 +328,10 @@ describe("reduce — fight dispatch (C-2 §9.5)", () => {
     expect(state.fight).not.toBeNull();
     expect(state.strangers).toEqual([3]);     // strangers remain
     expect(events).toContainEqual({ type: "deadEnd", dir: DIR_N });
-    // No further retreat is allowed this round — only fighting on (§Retreat).
+    // No further retreat is allowed this round — only fighting on (the round is resolved via the
+    // resolveRound action, which is built by the fight UI rather than offered in legalActions). §Retreat
     expect(state.fight!.retreatBlocked).toBe(true);
-    const acts = legalActions(state);
-    expect(acts.some((a) => a.type === "retreat")).toBe(false);
-    expect(acts).toContainEqual({ type: "fightOn" });
+    expect(legalActions(state).some((a) => a.type === "retreat")).toBe(false);
   });
 
   it("chooseCasualty falls on the player's pick with a 4-6, otherwise the other (§9)", () => {
@@ -347,9 +345,9 @@ describe("reduce — fight dispatch (C-2 §9.5)", () => {
       prev: 0,
       seed: 5,
     });
-    // While a casualty is pending, only that choice is offered and fightOn is blocked.
+    // While a casualty is pending, only that choice is offered and resolving a round is blocked.
     expect(legalActions(s)).toEqual([{ type: "chooseCasualty", idx: 0 }, { type: "chooseCasualty", idx: 1 }]);
-    expect(reduce(s, { type: "fightOn" }).events).toEqual([{ type: "blocked" }]);
+    expect(reduce(s, { type: "resolveRound", matches: [] }).events).toEqual([{ type: "blocked" }]);
 
     const r = reduce(s, { type: "chooseCasualty", idx: 0 }); // prefer member 0 to fall
     const ev = r.events.find((e): e is Extract<GameEvent, { type: "casualtyChosen" }> => e.type === "casualtyChosen")!;

@@ -101,16 +101,17 @@ describe("mpReduce (turn-gated play)", () => {
     expect(a.active).toBe(0);
 
     // One round of fighting ends the turn: it passes to seat 1 even if the battle continues.
-    const b = mpReduce(a, 0, { type: "fightOn" }).state;
+    const round = { type: "resolveRound" as const, matches: [{ front: [0], backers: [], strangers: [0] }] };
+    const b = mpReduce(a, 0, round).state;
     expect(b.active).toBe(1);
     // seat 0 cannot act again until its next turn comes round.
-    expect(mpReduce(b, 0, { type: "fightOn" }).events).toEqual([{ type: "blocked" }]);
+    expect(mpReduce(b, 0, round).events).toEqual([{ type: "blocked" }]);
 
     // If the battle is still going, seat 0 resumes it on its NEXT turn — not all in one go.
     if (b.parties[0]!.phase === "fight" && b.parties[0]!.status === "exploring") {
       const c = mpReduce(b, 1, { type: "endTurn" }).state; // seat 1 (at rest) passes back
       expect(c.active).toBe(0);
-      expect(mpReduce(c, 0, { type: "fightOn" }).events).not.toContainEqual({ type: "blocked" });
+      expect(mpReduce(c, 0, round).events).not.toContainEqual({ type: "blocked" });
     }
   });
 
@@ -122,7 +123,7 @@ describe("mpReduce (turn-gated play)", () => {
       partyAt(0, { phase: "fight", fight: { surprise: -1, round: 1, focus: 0 }, party: [m0, m1], strangers: [10] }), // Dragon
       partyAt(1),
     ]);
-    const r = mpReduce(mp, 0, { type: "fightOn" });
+    const r = mpReduce(mp, 0, { type: "resolveRound", matches: [{ front: [0, 1], backers: [], strangers: [0] }] });
     if (r.state.parties[0]!.fight?.casualtyQueue?.length) {
       expect(r.state.active).toBe(0); // still seat 0 — must resolve the casualty choice first
       const done = mpReduce(r.state, 0, { type: "chooseCasualty", idx: 0 });
@@ -166,7 +167,7 @@ describe("mpReduce (turn-gated play)", () => {
       partyAt(0, { phase: "fight", fight: { surprise: 1, round: 1, focus: 0 }, party: [fighter], strangers: [7] }),
       partyAt(1),
     ]);
-    const r = mpReduce(mp, 0, { type: "fightOn" });
+    const r = mpReduce(mp, 0, { type: "resolveRound", matches: [{ front: [0], backers: [], strangers: [0] }] });
     expect(r.state.parties[0]!.kills).toBe(1); // the Dwarf was slain
     expect(r.state.parties[1]!.kills).toBe(0); // untouched
   });

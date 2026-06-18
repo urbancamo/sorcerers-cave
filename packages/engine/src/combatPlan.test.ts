@@ -138,6 +138,17 @@ describe("resolvePlannedRound — out-numbered (§395)", () => {
   });
 });
 
+describe("resolvePlannedRound — Sorcerer magic (card)", () => {
+  it("the Eye of God reduces the Sorcerer's strength by only 2, never to zero", () => {
+    const base = clone(fightS({ party: [member(0)], strangers: [11], seed: 5 })); // Hero vs Sorcerer (FS 4 + MP 9 = 13)
+    const r = rolls(resolvePlannedRound(base, { matches: [{ front: [0], backers: [], strangers: [0] }] }));
+    expect(r[0]!.enemyTotal - r[0]!.enemyRoll).toBe(13);
+    const eye = clone(fightS({ party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [13] }], strangers: [11], seed: 5 }));
+    const r2 = rolls(resolvePlannedRound(eye, { matches: [{ front: [0], backers: [], strangers: [0] }] }));
+    expect(r2[0]!.enemyTotal - r2[0]!.enemyRoll).toBe(11); // 13 − 2
+  });
+});
+
 describe("resolvePlannedRound — heavy treasure (§387)", () => {
   it("a front fighter drops heavy treasure onto the area floor; artefacts are kept", () => {
     const s = clone(fightS({
