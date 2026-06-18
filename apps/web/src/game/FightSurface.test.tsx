@@ -1,0 +1,56 @@
+import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent, within } from "@testing-library/react";
+import { newGame, type GameState } from "@sorcerers-cave/engine";
+import { FightSurface } from "./FightSurface";
+import type { CardArt } from "../data/manifest";
+
+const cards: CardArt[] = []; // art is optional in tests — FightCard falls back to a name block
+
+// Web tests build state by spreading newGame(seed, picks), as the other panel tests do. The party
+// budget is 6, so [6, 4] = Woman (non-caster, idx 0) + Priest (caster, idx 1) — exactly the mix needed
+// to fight a Troll and a Spectre.
+const fightState = (over: Partial<GameState> = {}): GameState =>
+  ({ ...newGame(1, [6, 4]), phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, strangers: [3, 9], ...over });
+
+describe("FightSurface", () => {
+  it("Roll is disabled until the plan is legal, then dispatches resolveRound", () => {
+    const dispatch = vi.fn();
+    render(<FightSurface state={fightState()} dispatch={dispatch} cards={cards} />); // Woman, Priest vs Troll, Spectre
+    const roll = screen.getByRole("button", { name: /roll the round/i });
+    expect(roll).toBeDisabled();
+
+    // Assign the Priest (caster) to the Spectre, the Hero to the Troll (tap model).
+    fireEvent.click(screen.getByTestId("tray-1"));     // pick the Priest
+    fireEvent.click(screen.getByTestId("front-1"));    // place on the Spectre (stranger idx 1)
+    fireEvent.click(screen.getByTestId("tray-0"));     // pick the Hero
+    fireEvent.click(screen.getByTestId("front-0"));    // place on the Troll (stranger idx 0)
+
+    expect(roll).not.toBeDisabled();
+    fireEvent.click(roll);
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "resolveRound" }));
+    const arg = dispatch.mock.calls[0]![0];
+    expect(arg.matches).toEqual(expect.arrayContaining([
+      { front: [0], backers: [], strangers: [0] },
+      { front: [1], backers: [], strangers: [1] },
+    ]));
+  });
+
+  it("shows the casualty chooser when a casualty is queued", () => {
+    const dispatch = vi.fn();
+    const s = fightState({ fight: { surprise: 0, round: 2, focus: 0, casualtyQueue: [[0, 1]] } });
+    render(<FightSurface state={s} dispatch={dispatch} cards={cards} />);
+    expect(screen.getByText(/who is lost/i)).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button", { name: /let .* fall/i })[0]!);
+    expect(dispatch).toHaveBeenCalledWith({ type: "chooseCasualty", idx: expect.any(Number) });
+  });
+
+  it("offers retreat after round 1", () => {
+    const dispatch = vi.fn();
+    // The gateway (card 175) has all four doorways, so legalActions offers N/E/S/W retreats at round > 1.
+    const s = fightState({ fight: { surprise: 0, round: 2, focus: 0 }, strangers: [3] });
+    render(<FightSurface state={s} dispatch={dispatch} cards={cards} />);
+    fireEvent.click(screen.getByRole("button", { name: /retreat/i }));
+    fireEvent.click(within(screen.getByTestId("retreat-menu")).getAllByRole("button")[0]!);
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "retreat" }));
+  });
+});

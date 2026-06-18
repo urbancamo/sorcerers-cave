@@ -1206,3 +1206,53 @@
   box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.85);
 }
 .scv-hs-modal .scv-primary { margin-top: 0; align-self: center; }
+
+/* ---- player-driven fight surface ---- */
+.scv-fight { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 55;
+  width: min(960px, 96vw); max-height: 70vh; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
+  padding: 14px 18px; background: linear-gradient(180deg, rgba(21,21,27,.94), rgba(10,10,14,.97));
+  border: 1px solid var(--line-strong); border-radius: 16px; backdrop-filter: blur(8px);
+  box-shadow: 0 30px 70px -28px rgba(0,0,0,.9); color: var(--parchment); font-family: var(--ui); }
+.scv-fight-top { display: flex; align-items: center; gap: 12px; }
+.scv-fight-hd { font-family: var(--display); font-weight: 700; font-size: 14px; letter-spacing: .14em; text-transform: uppercase; color: var(--cream); }
+.scv-fight-sub, .scv-fight-cap, .scv-fight-hint { font-family: var(--body); font-style: italic; font-size: 13px; color: var(--stone-dim); }
+.scv-fight-banner { font-family: var(--body); font-style: italic; font-size: 13px; padding: 3px 11px; border-radius: 999px; }
+.scv-fight-banner.bad { color: #e7a59c; border: 1px solid rgba(168,68,58,.5); background: rgba(46,18,16,.6); }
+.scv-fight-banner.good { color: #bfe0ad; border: 1px solid rgba(127,174,111,.5); background: rgba(22,34,18,.6); }
+.scv-fight-strangers { display: flex; gap: 22px; flex-wrap: wrap; }
+.scv-match { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px; border: 1px dashed var(--line-strong); border-radius: 12px; background: rgba(201,161,78,.04); min-width: 150px; }
+.scv-match-vs { font-family: var(--display); font-weight: 700; font-size: 14px; }
+.scv-match-vs .me { color: #7fae6f; } .scv-match-vs .them { color: #e7a59c; }
+.scv-match-front { min-height: 96px; min-width: 120px; display: flex; gap: 10px; align-items: center; justify-content: center; padding: 6px; border: 1px dashed var(--line); border-radius: 9px; }
+.scv-match-front:focus-visible, .scv-match-bg:focus-visible { outline: 2px solid var(--brass-bright); }
+.scv-match-hint { font-family: var(--body); font-style: italic; font-size: 12px; color: var(--stone-dim); }
+.scv-match-bg { font-family: var(--body); font-style: italic; font-size: 12px; color: var(--arcane); border: 1px dashed var(--line); border-radius: 999px; padding: 4px 10px; cursor: pointer; }
+.scv-fight-tray { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; border: 1px dashed var(--line); border-radius: 12px; padding: 10px; background: rgba(0,0,0,.18); }
+.scv-fight-reason { font-family: var(--body); font-style: italic; font-size: 13px; color: #e7c07a; }
+.scv-fight-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.scv-fight-row { display: flex; gap: 12px; }
+.scv-fight-btn { font-family: var(--ui); font-size: 13.5px; padding: 9px 14px; border-radius: 9px; border: 1px solid var(--line-strong); color: var(--parchment); background: rgba(201,161,78,.06); cursor: pointer; }
+.scv-fight-btn.primary { border-color: var(--brass); color: var(--cream); background: rgba(201,161,78,.16); font-weight: 600; }
+.scv-fight-btn.ghost { background: transparent; } .scv-fight-btn:disabled { opacity: .4; cursor: default; }
+.scv-fight-btn:hover:not(:disabled) { border-color: var(--brass); color: var(--cream); }
+.scv-retreat { position: relative; } .scv-retreat-menu { position: absolute; bottom: 110%; left: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px; background: rgba(15,15,20,.96); border: 1px solid var(--line-strong); border-radius: 10px; }
+
+/* a fight card */
+.scv-fc { width: 84px; }
+.scv-fc-frame { position: relative; width: 84px; cursor: pointer; }
+.scv-fc-art { width: 84px; aspect-ratio: 63/88; object-fit: cover; border-radius: 7px; border: 1px solid var(--line-strong); background: #0c0c10; display: block; }
+.scv-fc-blank { display: flex; align-items: center; justify-content: center; font-family: var(--black); font-size: 12px; color: var(--parchment); text-align: center; }
+.scv-fc-ally .scv-fc-art { border-color: #b9a05a; } .scv-fc-caster .scv-fc-art { border-color: var(--arcane); } .scv-fc-foe .scv-fc-art { border-color: rgba(168,68,58,.6); }
+.scv-fc.is-sel .scv-fc-art { outline: 2px solid var(--brass-bright); outline-offset: 1px; }
+.scv-fc.is-dim { opacity: .45; }
+.scv-fc-badge { position: absolute; top: -8px; right: -8px; min-width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--display); font-weight: 700; font-size: 12px; background: #2b2310; color: var(--brass-bright); border: 1px solid var(--brass); }
+.scv-fc-foe .scv-fc-badge { background: #2a1014; color: #e7a59c; border-color: rgba(168,68,58,.7); }
+.scv-fc-wield { position: absolute; right: -9px; bottom: -10px; display: flex; }
+.scv-fc-relic { width: 32px; aspect-ratio: 63/88; object-fit: cover; border-radius: 4px; border: 1px solid var(--brass); margin-left: -14px; box-shadow: 0 3px 8px -3px rgba(0,0,0,.8); }
+.scv-fc-relic:first-child { margin-left: 0; }
+.scv-fc-cap { text-align: center; margin-top: 7px; font-family: var(--ui); font-size: 10.5px; color: var(--stone); }
+.scv-fc-cap b { display: block; font-family: var(--black); font-weight: 500; font-size: 12px; color: var(--parchment); }
+
+/* zoom overlay */
+.scv-cardzoom { position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; pointer-events: none; background: rgba(7,7,9,.55); }
+.scv-cardzoom img { width: min(320px, 70vw); aspect-ratio: 63/88; object-fit: contain; border-radius: 12px; box-shadow: 0 30px 80px -20px rgba(0,0,0,.9); }
