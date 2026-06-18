@@ -88,6 +88,27 @@ describe("resolveRound (spec §9.1, §9.3-9.4)", () => {
     expect(rolls[0]!.partyTotal - rolls[0]!.partyRoll).toBe(7); // Hero FS 5 + Magic Sword 2
   });
 
+  it("prefers a Magic-Sword bearer over a caster to engage the Spectre, freeing the caster's magic", () => {
+    // Hero with the Magic Sword + Priest vs a Spectre + Troll. The Hero takes the Spectre hand-to-hand;
+    // the Priest is then free to support the front line against the Troll.
+    const s = fightState({
+      party: [
+        { creatureId: 0, status: 0, dragonKills: 0, treasure: [3] }, // Hero with the Magic Sword
+        { creatureId: 4, status: 0, dragonKills: 0, treasure: [] },  // Priest
+      ],
+      strangers: [9, 3], // Spectre, Troll
+      fight: { surprise: 0, round: 1, focus: 0 }, // focus the Spectre
+      seed: 5,
+    });
+    const rolls = combatRolls(resolveRound(s));
+    const spectreRoll = rolls.find((r) => r.enemy === "Spectre")!;
+    expect(spectreRoll.party).toBe("Hero"); // the sword-bearer, not the Priest
+    expect(spectreRoll.partyTotal - spectreRoll.partyRoll).toBe(7); // Hero FS 5 + Magic Sword 2
+    // The Troll match gets the Priest's MP 2 as background support (FS 4 Troll vs front + magic).
+    const trollRoll = rolls.find((r) => r.enemy === "Troll")!;
+    expect(trollRoll).toBeDefined();
+  });
+
   it("with both a Spectre and a corporeal foe, the caster takes the Spectre and the fighter the foe", () => {
     const s = fightState({
       party: [

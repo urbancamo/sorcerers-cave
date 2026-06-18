@@ -153,20 +153,20 @@ export function resolveRound(state: GameState): GameEvent[] {
     // tie: no death
   };
 
-  // --- Spectre match: pit the party's magical contingent against ONE Spectre this round (the focus
-  // Spectre if the player aimed there, else the first). Prefer casters (magical power only); a
-  // sword-bearer takes it on only when the party has no caster. These members are reserved — they
-  // never join the hand-to-hand matches, and a caster fighting the Spectre is "otherwise engaged",
-  // so it no longer supports the front line.
+  // --- Spectre match: pit the party's anti-Spectre contingent against ONE Spectre this round (the
+  // focus Spectre if the player aimed there, else the first). Prefer a Magic-Sword bearer — its
+  // strongest Man/Woman/Hero takes the Spectre on hand-to-hand, freeing the casters to support the
+  // front line; failing a sword-bearer, the casters pit their magical power. These members are
+  // reserved — they never join the hand-to-hand matches against corporeal foes.
   const reserved = new Set<PartyMember>();
   let engagedSpectre = -1;
   const spectreIdxs = eligible.filter((i) => state.strangers[i] === C_SPECTRE);
   if (spectreIdxs.length > 0) {
     engagedSpectre = spectreIdxs.includes(fight.focus) ? fight.focus : spectreIdxs[0]!;
-    const casters = fighters.filter((m) => casterMP(m, state) > 0);
-    const group = casters.length > 0
-      ? casters
-      : fighters.filter(canSwordSpectre).sort((a, b) => frontStrength(b, state) - frontStrength(a, state)).slice(0, 1);
+    const swordBearers = fighters.filter(canSwordSpectre).sort((a, b) => frontStrength(b, state) - frontStrength(a, state));
+    const group = swordBearers.length > 0
+      ? swordBearers.slice(0, 1) // the strongest sword-bearer engages it
+      : fighters.filter((m) => casterMP(m, state) > 0); // else the casters' magical power
     group.forEach((m) => reserved.add(m));
     if (group.length > 0) {
       // Casters contribute magical power only; a sword-bearer contributes front strength.
