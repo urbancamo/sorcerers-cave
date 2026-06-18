@@ -137,3 +137,30 @@ describe("resolvePlannedRound — out-numbered (§395)", () => {
     expect(r[0]!.enemyTotal - r[0]!.enemyRoll).toBe(9); // Troll 4 + Man 3 + Priest 2
   });
 });
+
+describe("resolvePlannedRound — heavy treasure (§387)", () => {
+  it("a front fighter drops heavy treasure onto the area floor; artefacts are kept", () => {
+    const s = clone(fightS({
+      party: [{ creatureId: 12, status: 0, dragonKills: 0, treasure: [1, 7] }], // Giant carrying Gold + Talisman
+      strangers: [3], seed: 5,
+      areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+    }));
+    resolvePlannedRound(s, { matches: [{ front: [0], backers: [], strangers: [0] }] });
+    expect(s.party[0]!.treasure).toEqual([7]);             // Talisman (artefact) kept
+    expect(s.areas[0]!.contents).toContain(200 + 1);       // Gold dropped to the floor
+  });
+
+  it("a background caster keeps its heavy treasure (it is not fighting hand-to-hand)", () => {
+    const s = clone(fightS({
+      party: [
+        { creatureId: 5, status: 0, dragonKills: 0, treasure: [] },      // Man (front)
+        { creatureId: 4, status: 0, dragonKills: 0, treasure: [1] },     // Priest (background) carrying Gold
+      ],
+      strangers: [3], seed: 5,
+      areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+    }));
+    resolvePlannedRound(s, { matches: [{ front: [0], backers: [1], strangers: [0] }] });
+    expect(s.party[1]!.treasure).toEqual([1]);             // Priest kept its Gold (background)
+    expect(s.areas[0]!.contents).not.toContain(200 + 1);
+  });
+});

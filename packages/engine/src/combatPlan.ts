@@ -1,5 +1,6 @@
 import { rollDie } from "./rng";
 import { CREATURES } from "./data/creatures";
+import { TREASURES } from "./data/treasures";
 import { frontStrength, casterMP, partyRollBonus } from "./combat";
 import { eyeActive, ringInvincible } from "./effects";
 import type { GameState, PartyMember, BattlePlan } from "./state";
@@ -99,6 +100,20 @@ export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEve
 
   // 1) working copy of the plan's matches
   const matches = plan.matches.map((mt) => ({ front: [...mt.front], backers: [...(mt.backers ?? [])], strangers: [...mt.strangers] }));
+
+  // §387: members fighting hand-to-hand drop heavy treasure onto the area floor for the duration — kept
+  // off them so it is not lost if they fall (reclaimed into the pickup on a win, left behind on retreat).
+  const area = state.areas[state.partyArea]!;
+  for (const mt of matches) {
+    for (const i of mt.front) {
+      const m = state.party[i]!;
+      const heavy = m.treasure.filter((t) => TREASURES[t]!.kind === "heavy");
+      if (heavy.length) {
+        area.contents.push(...heavy.map((t) => 200 + t));
+        m.treasure = m.treasure.filter((t) => TREASURES[t]!.kind !== "heavy");
+      }
+    }
+  }
 
   // 2) out-numbered → form the strangers' strongest combination (§395): add one extra hand-to-hand foe
   //    to each lone-fighter corporeal match, and fold leftover enemy caster MP into the first such match.
