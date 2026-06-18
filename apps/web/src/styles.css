@@ -1223,7 +1223,7 @@
 .scv-match { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px; border: 1px dashed var(--line-strong); border-radius: 12px; background: rgba(201,161,78,.04); min-width: 150px; }
 .scv-match-vs { font-family: var(--display); font-weight: 700; font-size: 14px; }
 .scv-match-vs .me { color: #7fae6f; } .scv-match-vs .them { color: #e7a59c; }
-.scv-match-front { min-height: 96px; min-width: 120px; display: flex; gap: 10px; align-items: center; justify-content: center; padding: 6px; border: 1px dashed var(--line); border-radius: 9px; }
+.scv-match-front { min-height: 172px; min-width: 150px; display: flex; gap: 10px; align-items: center; justify-content: center; padding: 6px; border: 1px dashed var(--line); border-radius: 9px; }
 .scv-match-front:focus-visible, .scv-match-bg:focus-visible { outline: 2px solid var(--brass-bright); }
 .scv-match-hint { font-family: var(--body); font-style: italic; font-size: 12px; color: var(--stone-dim); }
 .scv-match-bg { font-family: var(--body); font-style: italic; font-size: 12px; color: var(--arcane); border: 1px dashed var(--line); border-radius: 999px; padding: 4px 10px; cursor: pointer; }
@@ -1238,17 +1238,17 @@
 .scv-retreat { position: relative; } .scv-retreat-menu { position: absolute; bottom: 110%; left: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px; background: rgba(15,15,20,.96); border: 1px solid var(--line-strong); border-radius: 10px; }
 
 /* a fight card */
-.scv-fc { width: 84px; }
-.scv-fc-frame { position: relative; width: 84px; cursor: pointer; }
-.scv-fc-art { width: 84px; aspect-ratio: 63/88; object-fit: cover; border-radius: 7px; border: 1px solid var(--line-strong); background: #0c0c10; display: block; }
+.scv-fc { width: 116px; }
+.scv-fc-frame { position: relative; width: 116px; cursor: pointer; }
+.scv-fc-art { width: 116px; aspect-ratio: 63/88; object-fit: cover; border-radius: 8px; border: 1px solid var(--line-strong); background: #0c0c10; display: block; }
 .scv-fc-blank { display: flex; align-items: center; justify-content: center; font-family: var(--black); font-size: 12px; color: var(--parchment); text-align: center; }
 .scv-fc-ally .scv-fc-art { border-color: #b9a05a; } .scv-fc-caster .scv-fc-art { border-color: var(--arcane); } .scv-fc-foe .scv-fc-art { border-color: rgba(168,68,58,.6); }
 .scv-fc.is-sel .scv-fc-art { outline: 2px solid var(--brass-bright); outline-offset: 1px; }
 .scv-fc.is-dim { opacity: .45; }
 .scv-fc-badge { position: absolute; top: -8px; right: -8px; min-width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-family: var(--display); font-weight: 700; font-size: 12px; background: #2b2310; color: var(--brass-bright); border: 1px solid var(--brass); }
 .scv-fc-foe .scv-fc-badge { background: #2a1014; color: #e7a59c; border-color: rgba(168,68,58,.7); }
-.scv-fc-wield { position: absolute; right: -9px; bottom: -10px; display: flex; }
-.scv-fc-relic { width: 32px; aspect-ratio: 63/88; object-fit: cover; border-radius: 4px; border: 1px solid var(--brass); margin-left: -14px; box-shadow: 0 3px 8px -3px rgba(0,0,0,.8); }
+.scv-fc-wield { position: absolute; right: -10px; bottom: -12px; display: flex; }
+.scv-fc-relic { width: 44px; aspect-ratio: 63/88; object-fit: cover; border-radius: 5px; border: 1px solid var(--brass); margin-left: -18px; box-shadow: 0 3px 8px -3px rgba(0,0,0,.8); }
 .scv-fc-relic:first-child { margin-left: 0; }
-.scv-fc-cap { text-align: center; margin-top: 7px; font-family: var(--ui); font-size: 10.5px; color: var(--stone); }
-.scv-fc-cap b { display: block; font-family: var(--black); font-weight: 500; font-size: 12px; color: var(--parchment); }
+.scv-fc-cap { text-align: center; margin-top: 8px; font-family: var(--ui); font-size: 11.5px; color: var(--stone); }
+.scv-fc-cap b { display: block; font-family: var(--black); font-weight: 500; font-size: 13.5px; color: var(--parchment); }
