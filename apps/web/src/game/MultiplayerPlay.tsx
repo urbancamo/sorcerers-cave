@@ -9,6 +9,8 @@ import type { ArtTables } from "../view/projection";
 import { CaveCanvas, type OtherPartyToken } from "../view/CaveCanvas";
 import { EncounterPanel } from "./EncounterPanel";
 import { ExplorePanel } from "./ExplorePanel";
+import { FightSurface } from "./FightSurface";
+import { useManifestCards } from "../data/useManifestCards";
 import { PartyPanel } from "./PartyPanel";
 import { DiceRoll } from "./DiceRoll";
 import { rollFromEvents, type RollView } from "./rollView";
@@ -27,6 +29,7 @@ import { DEFAULT_PARTY_COLOR, PARTY_COLOR_HEX, type PartyColor } from "./partyCo
  */
 export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExit: () => void }) {
   const view = useQuery(api.multiplayer.playView, { gameId });
+  const cards = useManifestCards();
   const actMut = useMutation(api.multiplayer.act);
   const [art, setArt] = useState<ArtTables | null>(null);
   const [roll, setRoll] = useState<RollView | null>(null);
@@ -167,6 +170,7 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
         ))}
       </div>
       {yourTurn && <EncounterPanel state={state} dispatch={dispatch} />}
+      {yourTurn && state.phase === "fight" && cards && <FightSurface state={state} dispatch={dispatch} cards={cards} />}
       {yourTurn && <ExplorePanel state={state} dispatch={dispatch} />}
       {showParty && <PartyPanel state={state} dispatch={dispatch} onClose={() => setShowParty(false)} />}
       {roll && <DiceRoll title={roll.title} lanes={roll.lanes} message={roll.message} tone={roll.tone} onContinue={() => setRoll(null)} />}

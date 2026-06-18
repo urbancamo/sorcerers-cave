@@ -13,6 +13,8 @@ import { GameOverScreen } from "./GameOverScreen";
 import type { LeaderboardRow } from "./HighScores";
 import { EncounterPanel } from "./EncounterPanel";
 import { ExplorePanel } from "./ExplorePanel";
+import { FightSurface } from "./FightSurface";
+import { useManifestCards } from "../data/useManifestCards";
 import { DiceRoll } from "./DiceRoll";
 import { rollFromEvents, type RollView } from "./rollView";
 import { NoticeModal } from "./NoticeModal";
@@ -46,6 +48,7 @@ export default function GameScreen() {
     if (view) setRoll(view);
   }, []);
   const { engine, loading, state, color, dispatch } = useCaveGame(gameId, onMoveResolved);
+  const cards = useManifestCards();
   // Leaderboard for the post-game screen; only subscribed once a game has ended.
   const gameOver = !!state && state.gs !== GS_PLAYING;
   const leaderboard = useQuery(api.highScores.list, gameOver ? {} : "skip") as
@@ -148,6 +151,7 @@ export default function GameScreen() {
     <div className="relative h-screen w-screen">
       <CaveCanvas key={gameId} engine={engine} state={state} color={color} onPartyClick={() => setShowParty(true)} onSave={handleSave} />
       <EncounterPanel state={state} dispatch={dispatchWithRolls} />
+      {state.phase === "fight" && cards && <FightSurface state={state} dispatch={dispatchWithRolls} cards={cards} />}
       <ExplorePanel state={state} dispatch={dispatchWithRolls} />
       {showParty && <PartyPanel state={state} dispatch={dispatch} onClose={() => setShowParty(false)} />}
       {overlay}

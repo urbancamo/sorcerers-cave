@@ -29,4 +29,10 @@ describe("EncounterPanel", () => {
     fireEvent.click(screen.getByRole("button", { name: /leave/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "leaveTreasure" });
   });
+
+  it("renders nothing in the fight phase (the FightSurface owns it)", () => {
+    const s: GameState = { ...newGame(1, [0]), phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, strangers: [3] };
+    const { container } = render(<EncounterPanel state={s} dispatch={() => {}} />);
+    expect(container).toBeEmptyDOMElement();
+  });
 });

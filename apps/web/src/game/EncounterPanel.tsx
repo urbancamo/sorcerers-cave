@@ -1,6 +1,7 @@
 import { CREATURES, TREASURES, legalActions, type GameState, type GameAction } from "@sorcerers-cave/engine";
 
-const ACTIVE = new Set<GameState["phase"]>(["encounter", "fight", "pickup"]);
+// The `fight` phase is owned by the FightSurface (drag-card pairing); this panel keeps encounter + pickup.
+const ACTIVE = new Set<GameState["phase"]>(["encounter", "pickup"]);
 
 const RETREAT_DIR: Record<number, string> = { 1: "north", 2: "east", 3: "south", 4: "west", 5: "up the stair", 6: "down the stair" };
 
