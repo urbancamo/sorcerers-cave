@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Sorcerer's Cave — Fight UI Mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=EB+Garamond:ital@0;1&family=Grenze+Gotisch:wght@500;700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --void:#070709; --panel:#15151b; --panel-2:#1d1d24;
+  --stone:#b8b1a2; --stone-dim:#6f6a5f;
+  --parchment:#e8dbbb; --parchment-2:#d7c599; --cream:#f6efce; --ink:#211b12;
+  --iron:#33333a; --brass:#c9a14e; --brass-bright:#e6c578;
+  --crimson:#a8443a; --arcane:#5f8f8a; --good:#7fae6f;
+  --line:rgba(232,219,187,.13); --line-strong:rgba(232,219,187,.26);
+  --display:'Cinzel',serif; --black:'Grenze Gotisch',serif; --body:'EB Garamond',serif;
+  --ui:ui-sans-serif,system-ui,-apple-system,sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{
+  background:radial-gradient(1400px 900px at 50% 0%, #14151c 0%, #0a0a0e 55%, var(--void) 100%) fixed;
+  color:var(--parchment); font-family:var(--ui); line-height:1.5; padding:40px 20px 80px;
+}
+.wrap{max-width:1080px;margin:0 auto;}
+h1{font-family:var(--display);font-weight:700;font-size:30px;color:var(--cream);letter-spacing:.04em;}
+h1 .sub{display:block;font-family:var(--body);font-style:italic;font-size:16px;color:var(--stone);letter-spacing:0;margin-top:6px;}
+h2{font-family:var(--display);font-weight:600;font-size:15px;letter-spacing:.18em;text-transform:uppercase;
+   color:var(--brass-bright);margin:46px 0 6px;}
+.note{font-family:var(--body);font-size:15px;color:var(--stone);max-width:760px;margin-bottom:14px;}
+.note b{color:var(--parchment);font-weight:400;font-style:italic;}
+
+/* ---- the fight surface (the actual overlay we'd build) ---- */
+.surface{
+  position:relative;border:1px solid var(--line-strong);border-radius:16px;overflow:hidden;
+  background:linear-gradient(180deg,rgba(21,21,27,.92),rgba(10,10,14,.96));
+  box-shadow:0 30px 70px -30px rgba(0,0,0,.9);
+}
+.surface::before{ /* faint cave behind the overlay */
+  content:"";position:absolute;inset:0;z-index:0;opacity:.5;
+  background:radial-gradient(700px 380px at 50% -10%, #1c1d27 0%, transparent 60%);
+}
+.surface > *{position:relative;z-index:1;}
+.fhead{display:flex;align-items:center;justify-content:space-between;gap:12px;
+  padding:12px 18px;border-bottom:1px solid var(--line);background:rgba(201,161,78,.05);}
+.fhead .ttl{font-family:var(--display);font-weight:700;font-size:14px;letter-spacing:.14em;text-transform:uppercase;color:var(--cream);}
+.banner{font-family:var(--body);font-style:italic;font-size:13.5px;padding:3px 11px;border-radius:999px;}
+.banner.bad{color:#e7a59c;border:1px solid rgba(168,68,58,.5);background:rgba(46,18,16,.6);}
+.banner.good{color:#bfe0ad;border:1px solid rgba(127,174,111,.5);background:rgba(22,34,18,.6);}
+
+.lane{padding:16px 18px;}
+.lane .cap{font-family:var(--ui);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--stone-dim);margin-bottom:10px;}
+.row{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start;}
+
+/* a creature card (the tabletop card-laying metaphor) */
+.card{width:104px;border-radius:9px;padding:9px 9px 8px;position:relative;border:1px solid;user-select:none;}
+.card .nm{font-family:var(--black);font-size:15px;line-height:1.05;}
+.card .meta{font-family:var(--ui);font-size:10px;letter-spacing:.04em;color:var(--stone-dim);margin-top:2px;text-transform:uppercase;}
+.card .badge{position:absolute;top:-9px;right:-9px;min-width:24px;height:24px;border-radius:50%;
+  display:flex;align-items:center;justify-content:center;font-family:var(--display);font-weight:700;font-size:13px;
+  border:1px solid var(--line-strong);}
+.card.foe{background:linear-gradient(180deg,#241317,#1a0e12);border-color:rgba(168,68,58,.5);color:#f0d9d3;}
+.card.foe .badge{background:#2a1014;color:#e7a59c;border-color:rgba(168,68,58,.6);}
+.card.ally{background:linear-gradient(180deg,#efe3c4,#d8c393);border-color:#b9a05a;color:var(--ink);}
+.card.ally .nm{color:var(--ink);} .card.ally .meta{color:#6b5a36;}
+.card.ally .badge{background:#efe3c4;color:#5e4f33;border-color:#b9a05a;}
+.card.caster{background:linear-gradient(180deg,#dfe6e2,#c3d2cd);border-color:#5f8f8a;color:#163230;}
+.card.caster .nm{color:#163230;} .card.caster .meta{color:#3d6b66;}
+.card.caster .badge{background:#dfe6e2;color:#2d5a55;border-color:#5f8f8a;}
+.card.lift{transform:rotate(-4deg) scale(1.04);box-shadow:0 16px 30px -12px rgba(0,0,0,.8);outline:2px solid var(--brass-bright);}
+.card.dim{opacity:.4;filter:grayscale(.3);}
+
+/* a match: one stranger (or two) with the party fighters set against it */
+.match{border:1px dashed var(--line-strong);border-radius:12px;padding:12px 12px 10px;min-width:150px;
+  background:rgba(201,161,78,.04);display:flex;flex-direction:column;gap:10px;align-items:center;}
+.match .tag{font-family:var(--ui);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone-dim);}
+.match .foes,.match .mine{display:flex;gap:10px;}
+.match .vs{display:flex;align-items:center;gap:8px;font-family:var(--display);font-weight:700;font-size:13px;color:var(--parchment);}
+.match .vs .me{color:var(--good);} .match .vs .them{color:#e7a59c;} .match .vs .x{color:var(--stone-dim);}
+.match .bg{display:flex;align-items:center;gap:7px;font-family:var(--body);font-style:italic;font-size:12.5px;color:var(--arcane);}
+.match.drop{border-color:var(--brass-bright);background:rgba(201,161,78,.12);}
+.match.win{border-color:rgba(127,174,111,.55);background:rgba(22,34,18,.35);}
+.match.lose{border-color:rgba(168,68,58,.55);background:rgba(46,18,16,.4);}
+.slot{font-family:var(--ui);font-size:11px;color:var(--brass);border:1px dashed var(--line-strong);
+  border-radius:999px;padding:4px 12px;background:rgba(95,143,138,.08);}
+.slot .star{color:var(--arcane);}
+
+/* dice chips for the resolving state */
+.die{width:34px;height:34px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;
+  font-family:var(--display);font-weight:700;font-size:17px;border:1px solid var(--line-strong);background:#15151b;}
+.die.me{color:var(--good);border-color:rgba(127,174,111,.5);} .die.them{color:#e7a59c;border-color:rgba(168,68,58,.5);}
+
+.tray{border:1px dashed var(--line);border-radius:12px;padding:12px;min-height:64px;display:flex;gap:12px;align-items:center;
+  background:rgba(0,0,0,.18);}
+.tray .empty{font-family:var(--body);font-style:italic;color:var(--stone-dim);font-size:13.5px;}
+
+.drop-treasure{display:flex;align-items:center;gap:8px;font-family:var(--body);font-style:italic;font-size:13px;
+  color:#e7c07a;padding:0 18px 4px;}
+.drop-treasure .ic{color:var(--brass);}
+
+.foot{display:flex;gap:10px;flex-wrap:wrap;padding:14px 18px 16px;border-top:1px solid var(--line);background:rgba(0,0,0,.18);}
+.btn{font-family:var(--ui);font-size:13.5px;border-radius:9px;padding:10px 16px;border:1px solid var(--line-strong);
+  color:var(--parchment);background:rgba(201,161,78,.06);cursor:pointer;}
+.btn.primary{border-color:var(--brass);color:var(--cream);background:rgba(201,161,78,.16);font-weight:600;}
+.btn.disabled{opacity:.4;}
+.btn.ghost{background:transparent;}
+.hintline{font-family:var(--body);font-style:italic;font-size:13px;color:var(--stone-dim);margin:8px 2px 0;}
+.callout{display:flex;gap:8px;align-items:flex-start;font-family:var(--body);font-size:14px;color:var(--stone);
+  border-left:2px solid var(--brass);padding:2px 0 2px 12px;margin:10px 0 0;max-width:820px;}
+.legend{display:flex;gap:18px;flex-wrap:wrap;margin-top:10px;font-family:var(--ui);font-size:12px;color:var(--stone);}
+.legend .sw{display:inline-block;width:13px;height:13px;border-radius:3px;vertical-align:-2px;margin-right:6px;border:1px solid var(--line-strong);}
+hr{border:none;border-top:1px solid var(--line);margin:34px 0 0;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>Sorcerer's Cave — Fight UI
+    <span class="sub">Mockup of the player-driven, drag-to-pair combat surface (design spec 2026-06-18). Static mockup — nothing is interactive.</span>
+  </h1>
+
+  <div class="legend">
+    <span><span class="sw" style="background:#d8c393;border-color:#b9a05a"></span>Party fighter</span>
+    <span><span class="sw" style="background:#c3d2cd;border-color:#5f8f8a"></span>Caster (Priest / Wizard)</span>
+    <span><span class="sw" style="background:#1a0e12;border-color:rgba(168,68,58,.6)"></span>Stranger (foe)</span>
+    <span><span class="sw" style="background:rgba(201,161,78,.12);border-color:var(--brass-bright)"></span>Match / drop zone</span>
+  </div>
+
+  <!-- ============================================================= -->
+  <h2>1 · Setting up the round — pairing off</h2>
+  <p class="note">The strangers are laid out in a line. You <b>drag each party card onto a foe</b> to form a match; drop a
+  second fighter on the same foe to send two-against-one; drop a Priest/Wizard onto a match's <b>✦ background slot</b> to
+  lend its magical power instead of fighting hand-to-hand. Live strength totals update as you build. <b>“Roll the round”</b>
+  stays disabled until the plan is legal. This mirrors the book example (§A Round of Fighting).</p>
+
+  <div class="surface">
+    <div class="fhead">
+      <span class="ttl">⚔ Fight · Round 1</span>
+      <span class="banner bad">The strangers surprised you — −1 to your rolls this round</span>
+    </div>
+
+    <div class="lane">
+      <div class="cap">Strangers — drag your fighters onto a foe</div>
+      <div class="row">
+        <div class="match">
+          <span class="tag">Match A</span>
+          <div class="foes"><div class="card foe"><span class="badge">5</span><div class="nm">Ogre</div><div class="meta">FS 5</div></div></div>
+          <div class="vs"><span class="me">7</span><span class="x">vs</span><span class="them">5</span></div>
+          <div class="mine"><div class="card ally"><span class="badge">7</span><div class="nm">Hero</div><div class="meta">FS 5 + sword 2</div></div></div>
+          <div class="slot"><span class="star">✦</span> background: empty</div>
+        </div>
+
+        <div class="match">
+          <span class="tag">Match B</span>
+          <div class="foes"><div class="card foe"><span class="badge">4</span><div class="nm">Troll</div><div class="meta">FS 4</div></div></div>
+          <div class="vs"><span class="me">5</span><span class="x">vs</span><span class="them">4</span></div>
+          <div class="mine">
+            <div class="card ally"><span class="badge">2</span><div class="nm">Woman</div><div class="meta">FS 2</div></div>
+            <div class="card ally"><span class="badge">1</span><div class="nm">Dwarf</div><div class="meta">FS 1</div></div>
+          </div>
+          <div class="bg">✦ Priest in background — +2 magic</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="lane">
+      <div class="cap">Your party — unassigned</div>
+      <div class="tray"><span class="empty">All fighters assigned. Drag any card back here to free it.</span></div>
+    </div>
+
+    <div class="drop-treasure"><span class="ic">▾</span> Heavy treasure dropped to fight: <b>&nbsp;Gold (Hero)</b> &nbsp;— left on the floor; lost if you retreat, reclaimable if you win.</div>
+
+    <div class="foot">
+      <button class="btn primary">Roll the round ⚔</button>
+      <button class="btn">Retreat ▾</button>
+      <button class="btn ghost">Reset pairing</button>
+    </div>
+  </div>
+  <div class="callout">This is the §417 worked example: Hero+sword (7) vs Ogre (5); Woman (2) + Dwarf (1) hand-to-hand with the
+  Priest backing them (+2) = 5 vs Troll (4). The Priest could instead be dragged onto Match A to fight as 4.</div>
+
+  <!-- ============================================================= -->
+  <h2>2 · Out-numbered — engine forms the strangers' strongest combination</h2>
+  <p class="note">When you can't engage every foe, you assign who you can; the <b>engine auto-forms the strongers' strongest
+  combination</b> against your fighter (§395) and shows it. Foes you can't reach this round are dimmed “unengaged”.</p>
+
+  <div class="surface">
+    <div class="fhead"><span class="ttl">⚔ Fight · Round 1</span><span class="banner good">You took them by surprise — +1 this round</span></div>
+    <div class="lane">
+      <div class="cap">Strangers</div>
+      <div class="row">
+        <div class="match">
+          <span class="tag">Match A · strongest combination</span>
+          <div class="foes">
+            <div class="card foe"><span class="badge">4</span><div class="nm">Troll</div><div class="meta">FS 4</div></div>
+            <div class="card foe"><span class="badge">3</span><div class="nm">Man</div><div class="meta">FS 3</div></div>
+          </div>
+          <div class="vs"><span class="me">5</span><span class="x">vs</span><span class="them">9</span></div>
+          <div class="mine"><div class="card ally"><span class="badge">5</span><div class="nm">Hero</div><div class="meta">FS 5</div></div></div>
+          <div class="bg">✦ enemy Priest backs the foes — +2 magic (auto)</div>
+        </div>
+        <div class="match" style="border-style:solid;opacity:.55">
+          <span class="tag">Unengaged this round</span>
+          <div class="foes"><div class="card foe dim"><span class="badge">1</span><div class="nm">Dwarf</div><div class="meta">FS 1</div></div></div>
+          <div class="hintline" style="margin:0">No fighter free to face it.</div>
+        </div>
+      </div>
+    </div>
+    <div class="foot">
+      <button class="btn primary">Roll the round ⚔</button>
+      <button class="btn">Retreat ▾</button>
+      <button class="btn ghost">Reset pairing</button>
+    </div>
+  </div>
+  <div class="callout">The single Hero (5) must face Troll (4) + Man (3) hand-to-hand with the enemy Priest in the
+  background (+2) = 9 — exactly the §395 example. The engine computes the foes' grouping; you only choose your own side.</div>
+
+  <!-- ============================================================= -->
+  <h2>3 · Mid-drag — valid vs invalid drop targets</h2>
+  <p class="note">While dragging, legal drop zones glow; illegal ones (e.g. a non-caster onto a background slot, or a Spectre
+  match for an ordinary fighter) stay inert and snap back with a one-line reason.</p>
+
+  <div class="surface">
+    <div class="fhead"><span class="ttl">⚔ Fight · Round 2</span><span class="banner" style="color:var(--stone)">Re-pair freely each round</span></div>
+    <div class="lane">
+      <div class="cap">Strangers</div>
+      <div class="row">
+        <div class="match drop">
+          <span class="tag">Match A · drop to add 2nd fighter</span>
+          <div class="foes"><div class="card foe"><span class="badge">6</span><div class="nm">Dragon</div><div class="meta">FS 6</div></div></div>
+          <div class="vs"><span class="me">7</span><span class="x">vs</span><span class="them">6</span></div>
+          <div class="mine"><div class="card ally"><span class="badge">7</span><div class="nm">Giant</div><div class="meta">FS 7</div></div></div>
+          <div class="slot"><span class="star">✦</span> background: empty</div>
+        </div>
+        <div class="match">
+          <span class="tag">Match B · Spectre (magic only)</span>
+          <div class="foes"><div class="card foe"><span class="badge">5</span><div class="nm">Spectre</div><div class="meta">MP 5</div></div></div>
+          <div class="vs"><span class="me">5</span><span class="x">vs</span><span class="them">5</span></div>
+          <div class="mine"><div class="card caster"><span class="badge">5</span><div class="nm">Wizard</div><div class="meta">MP 5</div></div></div>
+        </div>
+      </div>
+    </div>
+    <div class="lane">
+      <div class="cap">Dragging…</div>
+      <div class="tray">
+        <div class="card ally lift"><span class="badge">5</span><div class="nm">Man</div><div class="meta">FS 5</div></div>
+        <span class="empty">⟶ drop on <b style="color:var(--brass-bright)">Match A</b> (glowing) to gang the Dragon · ✦ slot rejects a non-caster · Spectre rejects a non-magic fighter</span>
+      </div>
+    </div>
+    <div class="foot"><button class="btn primary">Roll the round ⚔</button><button class="btn">Retreat ▾</button><button class="btn ghost">Reset pairing</button></div>
+  </div>
+
+  <!-- ============================================================= -->
+  <h2>4 · Resolving — a die per match</h2>
+  <p class="note">On “Roll”, each match resolves in turn with the existing dice overlay: both d6 shown with each side's total
+  (strength + roll + surprise/ring − curses). Winner slays the loser; a tie spares both.</p>
+
+  <div class="surface">
+    <div class="fhead"><span class="ttl">⚔ Fight · Round 1 — resolving</span></div>
+    <div class="lane">
+      <div class="row">
+        <div class="match win">
+          <span class="tag">Match A — Ogre slain ✓</span>
+          <div class="vs"><span class="die me">4</span><span class="me">11</span><span class="x">vs</span><span class="them">9</span><span class="die them">3</span></div>
+          <div class="hintline" style="margin:0">Hero 5 + sword 2 + roll 4 = 11 · Ogre 5 + roll 3 + surprise 1 = 9</div>
+        </div>
+        <div class="match lose">
+          <span class="tag">Match B — you lost the match ✗</span>
+          <div class="vs"><span class="die me">3</span><span class="me">8</span><span class="x">vs</span><span class="them">10</span><span class="die them">5</span></div>
+          <div class="hintline" style="margin:0">Woman 2 + Dwarf 1 + Priest 2 + roll 3 = 8 · Troll 4 + roll 5 + surprise 1 = 10</div>
+        </div>
+      </div>
+    </div>
+    <div class="foot"><button class="btn primary">Continue →</button></div>
+  </div>
+
+  <!-- ============================================================= -->
+  <h2>5 · Casualty choice — when a two-fighter match is lost</h2>
+  <p class="note">If a pair loses (and both are mortal), you pick who falls; a d6 then decides — <b>4–6 grants your
+  preference</b> (§A Round of Fighting). Background casters are never vulnerable.</p>
+
+  <div class="surface">
+    <div class="fhead"><span class="ttl">⚔ Fight · Round 1 — who falls?</span></div>
+    <div class="lane">
+      <div class="hintline" style="margin:0 0 12px">The Troll overcame your front line. Choose which creature is lost — you'll roll for your preference.</div>
+      <div class="row">
+        <div class="card ally" style="cursor:pointer;outline:2px solid var(--brass-bright)"><span class="badge">2</span><div class="nm">Woman</div><div class="meta">choose</div></div>
+        <div class="card ally" style="cursor:pointer"><span class="badge">1</span><div class="nm">Dwarf</div><div class="meta">choose</div></div>
+        <div class="card caster dim"><span class="badge">2</span><div class="nm">Priest</div><div class="meta">safe (background)</div></div>
+      </div>
+    </div>
+    <div class="foot"><button class="btn primary">Let the Woman fall — roll for it</button></div>
+  </div>
+
+  <!-- ============================================================= -->
+  <h2>6 · Between turns &amp; retreat</h2>
+  <p class="note">A round ends your turn (multiplayer): other parties act, then your fight resumes — you re-pair freely from
+  scratch. You may <b>retreat by any doorway/stair</b> after one round; a dead-end forces another round this turn, and any
+  treasure dropped in the area is left behind.</p>
+
+  <div class="row" style="gap:18px">
+    <div class="surface" style="flex:1;min-width:300px">
+      <div class="fhead"><span class="ttl">⚔ Fight · Round 2 — your turn again</span><span class="banner" style="color:var(--stone)">Foes remaining: Troll</span></div>
+      <div class="lane">
+        <div class="cap">Survivors back in your tray — pair them again</div>
+        <div class="tray">
+          <div class="card ally"><span class="badge">1</span><div class="nm">Dwarf</div><div class="meta">FS 1</div></div>
+          <div class="card caster"><span class="badge">2</span><div class="nm">Priest</div><div class="meta">MP 2 / FS 2</div></div>
+        </div>
+      </div>
+      <div class="foot"><button class="btn primary disabled">Roll the round ⚔</button><button class="btn">Retreat ▾</button></div>
+    </div>
+
+    <div class="surface" style="width:280px">
+      <div class="fhead"><span class="ttl">Retreat — choose an exit</span></div>
+      <div class="lane" style="display:flex;flex-direction:column;gap:8px">
+        <button class="btn ghost" style="text-align:left">↑ North doorway</button>
+        <button class="btn ghost" style="text-align:left">→ East doorway</button>
+        <button class="btn ghost" style="text-align:left">↓ Down the stair</button>
+        <div class="hintline" style="margin-top:4px">A dead end means you turn and fight another round this turn. Dropped treasure stays behind.</div>
+      </div>
+    </div>
+  </div>
+
+  <hr />
+  <p class="note" style="margin-top:18px"><b>Accessibility / mobile:</b> every drag has a tap equivalent — tap a fighter to
+  pick it up, tap a foe (or a match's ✦) to place it; tap again to send two, or tap the tray to free it. So the surface is
+  fully usable without a pointer (this was the runner-up “tap-to-assign” UI, kept as the keyboard/touch path).</p>
+
+</div>
+</body>
+</html>
