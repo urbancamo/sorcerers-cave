@@ -1,6 +1,6 @@
 import { decodeArea } from "./decode";
 import { DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, unpackCoord, packCoord } from "./coords";
-import { GS_PLAYING, type GameState } from "./state";
+import { GS_PLAYING, AF_DESTROYED, type GameState } from "./state";
 import type { GameAction } from "./actions";
 import { canCarry } from "./pickup";
 
@@ -65,8 +65,11 @@ export function legalActions(state: GameState): GameAction[] {
   if (state.gs !== GS_PLAYING) return [];
 
   if (state.phase === "encounter") {
-    // No retreat back up a trap the party fell through (prev is the unreachable level above).
-    const actions: GameAction[] = state.fellThroughTrap ? [{ type: "attack" }] : [{ type: "withdraw" }, { type: "attack" }];
+    // Withdraw retreats to the area the party came from — but not back up a trap it fell through, nor
+    // into an area an earthquake has since collapsed (§Earthquake): both leave no way back.
+    const prevGone = ((state.areas[state.prev]?.flags ?? 0) & AF_DESTROYED) !== 0;
+    const canWithdraw = !state.fellThroughTrap && !prevGone;
+    const actions: GameAction[] = canWithdraw ? [{ type: "withdraw" }, { type: "attack" }] : [{ type: "attack" }];
     if ((state.indiffStreak ?? 0) < 3) actions.push({ type: "test" });
     actions.push(...artifactActions(state));
     return actions; // quitting is via the HUD Quit button, not an in-menu action

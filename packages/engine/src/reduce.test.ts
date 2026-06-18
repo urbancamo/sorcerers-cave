@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
-import { GS_QUIT, GS_ESCAPED, GS_DEAD } from "./state";
+import { GS_QUIT, GS_ESCAPED, GS_DEAD, AF_DESTROYED } from "./state";
 import { DIR_S, DIR_E, DIR_N, packCoord } from "./coords";
 import { makeState } from "./testkit";
 import { legalActions } from "./selectors";
@@ -577,6 +577,19 @@ describe("reduce — treasure redistribution (party panel)", () => {
     expect(events).toContainEqual({ type: "strangerKilled", creatureId: 7 });
     expect(events).toContainEqual({ type: "fightWon" });
     expect(state.phase).toBe("explore");
+  });
+
+  it("withdraw is blocked when an earthquake has collapsed the way back (§Earthquake)", () => {
+    // The party came from A (now earthquake-rubble) into B, where strangers wait. Withdraw would walk
+    // back into the collapsed area — it must be refused and not offered.
+    const A = { card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: AF_DESTROYED, indiffCount: 0 };
+    const B = { card: 31, coord: packCoord(1, 50, 49), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };
+    const s = makeState({
+      phase: "encounter", areas: [A, B], partyArea: 1, prev: 0, level: 1,
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }], strangers: [3],
+    });
+    expect(legalActions(s).some((a) => a.type === "withdraw")).toBe(false);
+    expect(reduce(s, { type: "withdraw" }).events).toContainEqual({ type: "blocked" });
   });
 
   it("resolveRound: blocked when not fighting", () => {
