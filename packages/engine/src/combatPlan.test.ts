@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { validatePlan, resolvePlannedRound } from "./combatPlan";
+import { validatePlan, resolvePlannedRound, previewPlan } from "./combatPlan";
 import { makeState } from "./testkit";
 import type { BattlePlan } from "./state";
 import type { GameEvent } from "./actions";
@@ -146,6 +146,18 @@ describe("resolvePlannedRound — Sorcerer magic (card)", () => {
     const eye = clone(fightS({ party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [13] }], strangers: [11], seed: 5 }));
     const r2 = rolls(resolvePlannedRound(eye, { matches: [{ front: [0], backers: [], strangers: [0] }] }));
     expect(r2[0]!.enemyTotal - r2[0]!.enemyRoll).toBe(11); // 13 − 2
+  });
+});
+
+describe("previewPlan — strongest-combination preview (§395)", () => {
+  it("shows two foes ganging a lone fighter when out-numbered; the weakest stands idle", () => {
+    const s = clone(fightS({ party: [member(0)], strangers: [4, 3, 5, 7], seed: 5 })); // Hero vs Priest, Troll, Man, Dwarf
+    const pv = previewPlan(s, { matches: [{ front: [0], backers: [], strangers: [1] }] }); // the player engages the Troll
+    expect(pv.matches).toHaveLength(1);
+    expect(pv.matches[0]!.strangers).toEqual([1, 2]); // Troll + the next-strongest hand-to-hand foe (Man)
+    expect(pv.matches[0]!.attached).toEqual([2]);      // the Man was ganged on by the engine, not the player
+    expect(pv.matches[0]!.enemyStr).toBe(9);           // Troll 4 + Man 3 + Priest's magic 2 (folded into the focus)
+    expect(pv.idle).toContain(3);                      // the Dwarf stands idle this round
   });
 });
 

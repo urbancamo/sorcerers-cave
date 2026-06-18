@@ -1221,6 +1221,8 @@
 .scv-fight-banner.good { color: #bfe0ad; border: 1px solid rgba(127,174,111,.5); background: rgba(22,34,18,.6); }
 .scv-fight-strangers { display: flex; gap: 22px; flex-wrap: wrap; }
 .scv-match { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px; border: 1px dashed var(--line-strong); border-radius: 12px; background: rgba(201,161,78,.04); min-width: 150px; }
+.scv-match-foes { display: flex; gap: 8px; align-items: flex-start; }
+.scv-match-idle { opacity: .82; border-style: solid; }
 .scv-match-vs { font-family: var(--display); font-weight: 700; font-size: 14px; }
 .scv-match-vs .me { color: #7fae6f; } .scv-match-vs .them { color: #e7a59c; }
 .scv-match-front { min-height: 172px; min-width: 150px; display: flex; gap: 10px; align-items: center; justify-content: center; padding: 6px; border: 1px dashed var(--line); border-radius: 9px; }

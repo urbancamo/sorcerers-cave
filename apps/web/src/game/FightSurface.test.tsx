@@ -62,6 +62,15 @@ describe("FightSurface", () => {
     expect(screen.getByTestId("front-0").textContent ?? "").toMatch(/drop a fighter/i); // pairing reset
   });
 
+  it("shows a second stranger ganging up on a lone fighter when out-numbered", () => {
+    // One Man vs a Troll + a Man-stranger: engaging the Troll leaves the other to gang up (§395).
+    const s: GameState = { ...newGame(1, [5]), phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, strangers: [3, 5] };
+    render(<FightSurface state={s} dispatch={() => {}} cards={cards} />);
+    fireEvent.click(screen.getByTestId("tray-0"));  // pick the Man
+    fireEvent.click(screen.getByTestId("front-0")); // engage the Troll (stranger 0)
+    expect(screen.getByText(/gangs up/i)).toBeInTheDocument(); // the leftover Man-stranger joins the match
+  });
+
   it("offers retreat after round 1", () => {
     const dispatch = vi.fn();
     // The gateway (card 175) has all four doorways, so legalActions offers N/E/S/W retreats at round > 1.

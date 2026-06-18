@@ -86,6 +86,67 @@ function enemyMP(state: GameState, sid: number): number {
   return eyeActive(state) ? 0 : CREATURES[sid]!.mp;
 }
 
+/** A match as it will actually be fought: the player's front + backers, the foe(s) it faces (the
+ *  player's target plus any auto-attached strongest-combination foes), and the resolved strengths. */
+export interface PreviewMatch {
+  front: number[];     // party indices fighting hand-to-hand
+  backers: number[];   // caster party indices in the background
+  strangers: number[]; // foe indices: the player's target first, then any auto-attached foes
+  attached: number[];  // the subset of `strangers` the engine ganged on (not chosen by the player)
+  partyStr: number;
+  enemyStr: number;
+}
+export interface PlanPreview {
+  matches: PreviewMatch[];
+  idle: number[]; // foe indices left unengaged this round (out-numbered leftovers / un-fightable spectres)
+}
+
+const isSpectreIdx = (state: GameState, sIdx: number) => state.strangers[sIdx] === C_SPECTRE;
+
+/**
+ * Work out how a battle plan will actually be fought: apply the §395 strongest-combination for an
+ * out-numbered party (one extra hand-to-hand foe per lone fighter, strongest first; leftover enemy
+ * caster MP folded into the focus match) and compute each side's strength. Pure — used both by the
+ * resolver and by the fight UI so the screen shows exactly what the round will do.
+ */
+export function previewPlan(state: GameState, plan: BattlePlan): PlanPreview {
+  const spectreMatch = (ss: number[]) => ss.some((si) => isSpectreIdx(state, si));
+  const base = plan.matches.map((mt) => ({
+    front: [...mt.front], backers: [...(mt.backers ?? [])], strangers: [...mt.strangers], attached: [] as number[],
+  }));
+
+  // Out-numbered: gang leftover foes onto lone-fighter corporeal matches (strongest first).
+  const engaged = new Set<number>(base.flatMap((mt) => mt.strangers));
+  const leftover = state.strangers.map((_, i) => i).filter((i) => !engaged.has(i) && !isSpectreIdx(state, i));
+  const extraHand = leftover.filter((i) => enemyMP(state, state.strangers[i]!) === 0)
+    .sort((a, b) => CREATURES[state.strangers[b]!]!.fs - CREATURES[state.strangers[a]!]!.fs);
+  const leftoverCasterMP = leftover.filter((i) => enemyMP(state, state.strangers[i]!) > 0)
+    .reduce((sum, i) => sum + enemyMP(state, state.strangers[i]!), 0);
+  let ei = 0;
+  for (const mt of base) {
+    if (spectreMatch(mt.strangers)) continue;
+    if (mt.front.length === 1 && mt.strangers.length === 1 && ei < extraHand.length) {
+      const x = extraHand[ei++]!;
+      mt.strangers.push(x);
+      mt.attached.push(x);
+    }
+  }
+  const focus = base.find((mt) => !spectreMatch(mt.strangers));
+
+  const matches: PreviewMatch[] = base.map((mt) => {
+    const spectre = spectreMatch(mt.strangers);
+    const memberStr = (i: number) => (spectre && casterMP(state.party[i]!, state) > 0 ? casterMP(state.party[i]!, state) : frontStrength(state.party[i]!, state));
+    const partyStr = mt.front.reduce((s, i) => s + memberStr(i), 0) + mt.backers.reduce((s, i) => s + casterMP(state.party[i]!, state), 0);
+    let enemyStr = mt.strangers.reduce((s, si) => s + CREATURES[state.strangers[si]!]!.fs + enemyMP(state, state.strangers[si]!), 0);
+    if (mt === focus) enemyStr += leftoverCasterMP;
+    return { front: mt.front, backers: mt.backers, strangers: mt.strangers, attached: mt.attached, partyStr, enemyStr };
+  });
+
+  const inMatch = new Set<number>(matches.flatMap((m) => m.strangers));
+  const idle = state.strangers.map((_, i) => i).filter((i) => !inMatch.has(i));
+  return { matches, idle };
+}
+
 /** Resolve one round of fighting from a validated battle plan. Mutates `state`; returns events. */
 export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEvent[] {
   const fight = state.fight!;
@@ -95,16 +156,11 @@ export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEve
   const surpriseEnemy = fight.round === 1 && fight.surprise === -1 ? 1 : 0;
   const killedStrangerIdx: number[] = [];
   const pendingCasualties: number[][] = [];
-  const isSpectre = (sIdx: number) => state.strangers[sIdx] === C_SPECTRE;
-  const spectreMatch = (strangers: number[]) => strangers.some(isSpectre);
-
-  // 1) working copy of the plan's matches
-  const matches = plan.matches.map((mt) => ({ front: [...mt.front], backers: [...(mt.backers ?? [])], strangers: [...mt.strangers] }));
 
   // §387: members fighting hand-to-hand drop heavy treasure onto the area floor for the duration — kept
   // off them so it is not lost if they fall (reclaimed into the pickup on a win, left behind on retreat).
   const area = state.areas[state.partyArea]!;
-  for (const mt of matches) {
+  for (const mt of plan.matches) {
     for (const i of mt.front) {
       const m = state.party[i]!;
       const heavy = m.treasure.filter((t) => TREASURES[t]!.kind === "heavy");
@@ -115,25 +171,11 @@ export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEve
     }
   }
 
-  // 2) out-numbered → form the strangers' strongest combination (§395): add one extra hand-to-hand foe
-  //    to each lone-fighter corporeal match, and fold leftover enemy caster MP into the first such match.
-  const engaged = new Set<number>(matches.flatMap((mt) => mt.strangers));
-  const leftover = state.strangers.map((_, i) => i).filter((i) => !engaged.has(i) && !isSpectre(i));
-  const extraHand = leftover.filter((i) => enemyMP(state, state.strangers[i]!) === 0)
-    .sort((a, b) => CREATURES[state.strangers[b]!]!.fs - CREATURES[state.strangers[a]!]!.fs);
-  const leftoverCasterMP = leftover.filter((i) => enemyMP(state, state.strangers[i]!) > 0)
-    .reduce((sum, i) => sum + enemyMP(state, state.strangers[i]!), 0);
-  let ei = 0;
-  for (const mt of matches) {
-    if (spectreMatch(mt.strangers)) continue;
-    if (mt.front.length === 1 && mt.strangers.length === 1 && ei < extraHand.length) mt.strangers.push(extraHand[ei++]!);
-  }
-  const focusCorporeal = matches.find((mt) => !spectreMatch(mt.strangers));
+  // The matches as they will be fought (strongest-combination + strengths).
+  const { matches, idle } = previewPlan(state, plan);
 
-  // 3) an un-fightable, unengaged Spectre slays the strongest member (§Spectre)
-  const engagedNow = new Set<number>(matches.flatMap((mt) => mt.strangers));
-  const spectreLoose = state.strangers.some((_, i) => isSpectre(i) && !engagedNow.has(i));
-  if (spectreLoose) {
+  // An un-fightable, unengaged Spectre slays the strongest member (§Spectre).
+  if (idle.some((i) => isSpectreIdx(state, i))) {
     const party = state.party.filter((m) => m.status === 0 || m.status === 1);
     const canEngage = party.some((m) => casterMP(m, state) > 0 || canSwordSpectre(state, m));
     if (!canEngage) {
@@ -146,24 +188,16 @@ export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEve
     }
   }
 
-  // 4) resolve each match (one die per side)
+  // Resolve each match (one die per side).
   for (const mt of matches) {
-    const spectre = spectreMatch(mt.strangers);
     const front = mt.front.map((i) => state.party[i]!);
-    const backers = mt.backers.map((i) => state.party[i]!);
-    // Casters fighting a Spectre contribute MP; everyone else contributes front strength.
-    const memberStr = (m: PartyMember) => (spectre && casterMP(m, state) > 0 ? casterMP(m, state) : frontStrength(m, state));
-    const partyStr = front.reduce((s, m) => s + memberStr(m), 0) + backers.reduce((s, m) => s + casterMP(m, state), 0);
-    let enemyStr = mt.strangers.reduce((s, si) => s + CREATURES[state.strangers[si]!]!.fs + enemyMP(state, state.strangers[si]!), 0);
-    if (mt === focusCorporeal) enemyStr += leftoverCasterMP;
-
     const pr = rollDie(state.seed); state.seed = pr.seed;
     const er = rollDie(state.seed); state.seed = er.seed;
-    const partyTotal = partyStr + pr.value + rollBonus + surpriseParty;
-    const enemyTotal = enemyStr + er.value + surpriseEnemy;
+    const partyTotal = mt.partyStr + pr.value + rollBonus + surpriseParty;
+    const enemyTotal = mt.enemyStr + er.value + surpriseEnemy;
     events.push({
       type: "combatRoll",
-      party: front.concat(backers).map((m) => CREATURES[m.creatureId]!.name).join(" + "),
+      party: mt.front.concat(mt.backers).map((i) => CREATURES[state.party[i]!.creatureId]!.name).join(" + "),
       enemy: mt.strangers.map((si) => CREATURES[state.strangers[si]!]!.name).join(" + "),
       partyRoll: pr.value, enemyRoll: er.value, partyTotal, enemyTotal,
       result: partyTotal > enemyTotal ? "partyWon" : enemyTotal > partyTotal ? "enemyWon" : "tie",
