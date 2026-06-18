@@ -22,6 +22,9 @@ leader — this matches the printed rules, §345). Party-vs-party fights remain 
 | Reaction model | **Keep leader-based** (no change to `reaction.ts`) |
 | Pairing UI | **Drag cards** — drag party fighters onto stranger cards |
 | Control depth | **Full manual** — player sets front-line vs background per caster, forms every 2-v-1 / 1-v-2 group, confirms before rolling |
+| Outnumbered enemy grouping | **Auto strongest-combination** — when the party can't engage every stranger, the engine forms the strangers' strongest combination against the available fighter (per the book example §395) |
+| Between-rounds re-pairing | **Free re-pair every round** — no locked matches; the player rebuilds the pairing each round. Reinforced by one-round-per-turn (rounds are separated by other parties' turns) |
+| Turn structure | **One round per turn** — already shipped: a resolved fight round ends the seat's turn; the battle resumes on its next turn |
 | Delivery | **Phased** — one design doc, then a phased implementation plan |
 
 ## Gap analysis (current `combat.ts` vs. the rules)
@@ -36,8 +39,8 @@ The current `resolveRound` does everything automatically and must be reworked:
    stack their MP on a single enemy.
 3. **No heavy-treasure drop.** Rules (§387): hand-to-hand fighters drop heavy treasure onto the area for
    the duration (kept off so it is not lost on death); artefacts are retained; retreat leaves it behind.
-4. **No between-rounds re-pairing.** Rules (§419): on continuing, the player may shift forces *not*
-   engaged hand-to-hand; engaged pairs stay locked unless their opponent died.
+4. **No between-rounds re-pairing.** Rules (§419) let the player shift forces between rounds; we go
+   further and let the player re-pair freely each round (chosen over hard-locking — see decisions).
 5. **Retreat partial.** Directional retreat + dead-end re-fight exist; need to confirm "leave dropped
    treasure (and artefacts on the slain) behind" (§426) and the blocked→re-fight-same-turn rule (§422).
 
@@ -54,8 +57,7 @@ fight: {
   round: number;
   retreatBlocked?: boolean;    // a dead-end retreat forces another round this turn
   casualtyQueue?: number[][];  // unchanged: 2-loser matches awaiting the player's choice
-  // NEW — the committed pairing carried between rounds so engaged matches stay locked:
-  locked?: Match[];            // matches whose front fighter(s) AND stranger(s) both survived last round
+  // No carried-over pairing: the player re-pairs freely each round (each round is its own turn).
 }
 
 interface Match {
@@ -84,9 +86,13 @@ submitted as **one action** (server stays authoritative; the optimistic mirror r
 3. **Backers must be casters** (MP > 0) and may stack without limit on one match (§391).
 4. **Engage-all rule:** if the party can engage every stranger (enough fighters for ≥1 match each, or
    1-v-2 coverage), it must; leftover strangers are allowed only when the party is too small ("fight the
-   strongest", §389). Front-line members locked from a prior round must be re-submitted unchanged.
+   strongest", §389). When out-numbered, the engine auto-forms the strangers' **strongest combination**
+   against the engaged fighter (§395) rather than leaving extras idle.
 5. A Spectre's match must contain only its valid engagers (caster MP, or a Magic-Sword-bearing
    Man/Woman/Hero) — reuses the rule already implemented in `combat.ts`.
+
+The player re-pairs freely each round (no carried-over locking) — natural now that each round is a
+separate turn.
 
 ### Round resolution (per match, §405)
 
@@ -100,8 +106,8 @@ higher wins; loser slain (background casters are NOT vulnerable); tie = no death
 
 - On a **2-fighter loss**, push to `casualtyQueue`; the player picks via the existing preference die.
 - On a **win**, remove the stranger(s); credit a single-handed dragon-slayer.
-- After all matches: `round++`; rebuild `locked` from surviving both-sides matches; if `casualtyQueue`
-  is non-empty the round pauses for the choice (existing flow).
+- After all matches: `round++`; if `casualtyQueue` is non-empty the round pauses for the choice
+  (existing flow). Surviving fighters return to the tray for fresh re-pairing next round.
 
 ### Heavy treasure on fighting (§387, §426)
 
@@ -113,9 +119,11 @@ higher wins; loser slain (background casters are NOT vulnerable); tie = no death
 
 ### Between rounds (§419)
 
-- Matches whose front fighter(s) **and** stranger(s) all survived become `locked` and re-appear paired
-  for the next round; the player may **only** re-assign freed/idle fighters and background casters.
-- The UI presents locked matches as fixed; everything else returns to the unassigned tray.
+- The player **re-pairs freely** at the start of each round — all fighters return to the tray and the
+  whole plan is rebuilt. (We chose this over hard-locking surviving hand-to-hand pairs; with one round
+  per turn, the player is already setting up afresh on each of their turns, so free re-pairing is the
+  natural, lower-friction model.)
+- Surviving strangers and party members carry over (in the engine state); only the *pairing* is rebuilt.
 
 ## UI interaction (drag-card fight surface)
 
@@ -149,7 +157,7 @@ strangers for 1-v-2, and drops a priest/wizard onto a match's **background slot*
   (e.g. "A Spectre can only be fought with magic or the Magic Sword").
 - **Resolution:** on Roll, the existing per-match dice overlay (`DiceRoll`) plays for each match in turn;
   2-loser matches then prompt the casualty choice.
-- **Between rounds:** locked matches are shown greyed/fixed; freed fighters return to the tray.
+- **Between rounds:** every fighter returns to the tray; the player rebuilds the pairing each round.
 - **Accessibility fallback:** every drag has a keyboard/tap equivalent (select fighter → select target),
   so the surface is usable without a pointer. (Tap-to-assign was the runner-up UI; we get it for free as
   the a11y path.)
@@ -163,34 +171,35 @@ strangers for 1-v-2, and drops a priest/wizard onto a match's **background slot*
 ## Phasing
 
 **Phase 1 — Engine: battle-plan model + round resolution.** New `Match`/`BattlePlan` types,
-`resolveRound({matches})` with full validation, player-driven per-match resolution, `locked` carry-over,
-casualty preference die retained. Headless tests only. Reaction unchanged. *Deliverable: the engine
-resolves any legal player pairing; comprehensive vitest coverage of pairing rules.*
+`resolveRound({matches})` with full validation (incl. auto strongest-combination for out-numbered
+fighters), player-driven per-match resolution, casualty preference die retained. Headless tests only.
+Reaction unchanged. *Deliverable: the engine resolves any legal player pairing; comprehensive vitest
+coverage of pairing rules.*
 
 **Phase 2 — UI: drag-card fight surface.** New fight layer, drag/drop pairing, background slots, live
 totals, validation gating, dice overlay per match, keyboard/tap fallback; wired in solo + multiplayer.
 *Deliverable: fully playable manual fights in the browser.*
 
-**Phase 3 — Treasure, retreat & re-pairing fidelity.** Heavy-treasure auto-drop on front assignment;
-left-behind on retreat (incl. artefacts on the slain); blocked-retreat → re-fight same turn; outnumbered
-"strongest combination" enemy grouping; between-rounds locking polish. *Deliverable: full §FIGHTS
-fidelity.*
+**Phase 3 — Treasure & retreat fidelity.** Heavy-treasure auto-drop on front assignment; left-behind on
+retreat (incl. artefacts on the slain); blocked-retreat → re-fight same turn. (Outnumbered
+strongest-combination grouping lands in Phase 1 with the engine; free re-pairing needs no extra work.)
+*Deliverable: full §FIGHTS fidelity.*
 
 ## Testing strategy
 
 - **Engine (vitest):** plan validation (each constraint above, with rejection reasons); the book worked
   example (§417: hero+sword/woman/dwarf/priest vs ogre+troll → exact totals 9/11 and 10/8); 2-v-1 and
-  1-v-2 resolution; background MP stacking; locked carry-over between rounds; Spectre constraints;
+  1-v-2 resolution; background MP stacking; auto strongest-combination when out-numbered; Spectre constraints;
   treasure drop on front assignment and left-behind on retreat; surprise round-1 only.
 - **Frontend (vitest + RTL):** plan builder reducer (assign/unassign/background/reset), validation
   gating of the Roll button, dice overlay sequencing, keyboard/tap fallback parity with drag.
 - **Manual:** solo and multiplayer full fights end-to-end, including retreat and wipe paths.
 
-## Open questions for review
+## Resolved decisions (were open questions)
 
-1. **Enemy grouping when outnumbered:** the player controls *their* assignment; should the engine
-   auto-form the strangers' *strongest combination* against an out-numbered fighter (as in §395), or
-   should leftover strangers simply stand idle that round? (Recommend: auto strongest-combination, per
-   the book example.)
-2. **Locked matches:** hard-lock surviving hand-to-hand pairs (strict §419), or let the player freely
-   re-pair every round for simpler UX? (Recommend: hard-lock — it is the rule and keeps fights tense.)
+1. **Enemy grouping when outnumbered → auto strongest-combination.** When the party can't engage every
+   stranger, the engine forms the strangers' strongest combination against the engaged fighter (§395),
+   rather than leaving extras idle.
+2. **Between-rounds pairing → free re-pair every round.** No hard-locking of surviving hand-to-hand
+   pairs; the player rebuilds the plan each round. This is reinforced by one-round-per-turn (already
+   shipped): rounds are separated by other parties' turns, so re-setup each turn is the natural model.
