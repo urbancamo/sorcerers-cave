@@ -10,6 +10,7 @@ import { unpackCoord, packCoord, targetCoord, DIR_UP, DIR_DOWN } from "./coords"
 import type { GameAction, GameEvent } from "./actions";
 import { reactionRoll } from "./reaction";
 import { resolveRound, frontStrength } from "./combat";
+import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import { wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls } from "./effects";
 import { rollDie } from "./rng";
 import { CREATURES } from "./data/creatures";
@@ -477,6 +478,19 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       if (next.fight) next.fight.retreatBlocked = false; // a round was fought — retreat is open again next turn
       // If the round left a casualty for the player to decide, pause for chooseCasualty.
       if (next.fight?.casualtyQueue?.length) return { state: next, events };
+      events.push(...finalizeRound(next));
+      return { state: next, events };
+    }
+
+    case "resolveRound": {
+      if (state.phase !== "fight") return { state, events: [{ type: "blocked" }] };
+      if (state.fight?.casualtyQueue?.length) return { state, events: [{ type: "blocked" }] }; // finish the choice first
+      const check = validatePlan(state, { matches: action.matches });
+      if (!check.ok) return { state, events: [{ type: "planRejected", reason: check.reason }] };
+      const next = structuredClone(state);
+      const events = resolvePlannedRound(next, { matches: action.matches });
+      if (next.fight) next.fight.retreatBlocked = false; // a round was fought — retreat opens again
+      if (next.fight?.casualtyQueue?.length) return { state: next, events }; // pause for chooseCasualty
       events.push(...finalizeRound(next));
       return { state: next, events };
     }

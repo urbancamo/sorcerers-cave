@@ -563,6 +563,28 @@ describe("reduce — treasure redistribution (party panel)", () => {
     expect(moved.state.party[1]!.treasure).toEqual([13]);
   });
 
+  it("resolveRound: an illegal plan is rejected with a reason, no state change", () => {
+    const s = makeState({ phase: "fight", fight: { surprise: 0, round: 1, focus: 0 },
+      party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [] }], strangers: [9] }); // Man vs Spectre
+    const { state, events } = reduce(s, { type: "resolveRound", matches: [{ front: [0], backers: [], strangers: [0] }] });
+    expect(events).toContainEqual({ type: "planRejected", reason: "spectreNeedsMagic" });
+    expect(state).toBe(s); // unchanged
+  });
+
+  it("resolveRound: a legal plan resolves a round and clears the chamber", () => {
+    const s = makeState({ phase: "fight", fight: { surprise: 1, round: 1, focus: 0 }, seed: 5,
+      party: [{ creatureId: 12, status: 0, dragonKills: 0, treasure: [] }], strangers: [7], // Giant vs Dwarf
+      areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }] });
+    const { state, events } = reduce(s, { type: "resolveRound", matches: [{ front: [0], backers: [], strangers: [0] }] });
+    expect(events).toContainEqual({ type: "strangerKilled", creatureId: 7 });
+    expect(events).toContainEqual({ type: "fightWon" });
+    expect(state.phase).toBe("explore");
+  });
+
+  it("resolveRound: blocked when not fighting", () => {
+    expect(reduce(makeState({ phase: "explore" }), { type: "resolveRound", matches: [] }).events).toContainEqual({ type: "blocked" });
+  });
+
   it("opening the Treasure Chest on a curse roll lays a permanent curse on the party", () => {
     // seed 2 rolls a 1 (Curse) on the chest d6. The Giant that opened it carries the curse home.
     const s = makeState({
