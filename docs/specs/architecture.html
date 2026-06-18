@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Sorcerer's Cave — Architecture</title>
+<style>
+  :root {
+    --bg: #14130f; --panel: #1c1b16; --line: #322f26; --line-strong: #4a4636;
+    --ink: #ece4d2; --dim: #b3aa95; --faint: #8a8270; --brass: #c9a14e; --brass-bright: #e6c463;
+    --accent: #6ea0d8; --good: #6bbf73; --bad: #d8635a; --mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink);
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; line-height: 1.6; }
+  .wrap { max-width: 940px; margin: 0 auto; padding: 48px 24px 96px; }
+  h1 { font-size: 34px; margin: 0 0 4px; color: var(--brass-bright); letter-spacing: 0.01em; }
+  .sub { color: var(--dim); margin: 0 0 8px; }
+  .meta { color: var(--faint); font-size: 13px; margin: 0 0 36px; }
+  h2 { font-size: 22px; margin: 48px 0 12px; padding-bottom: 6px; border-bottom: 1px solid var(--line-strong); color: var(--brass); }
+  h3 { font-size: 16px; margin: 26px 0 8px; color: var(--brass-bright); }
+  p, li { color: var(--ink); }
+  .dim { color: var(--dim); }
+  code { font-family: var(--mono); font-size: 0.86em; background: #25241d; border: 1px solid var(--line); border-radius: 4px; padding: 1px 5px; color: var(--brass-bright); }
+  pre { background: #100f0c; border: 1px solid var(--line-strong); border-radius: 10px; padding: 16px 18px; overflow-x: auto; font-family: var(--mono); font-size: 12.5px; line-height: 1.5; color: var(--dim); }
+  pre b { color: var(--brass-bright); font-weight: 600; }
+  pre .c { color: var(--faint); font-style: italic; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 14px; }
+  th, td { text-align: left; padding: 8px 10px; border-top: 1px solid var(--line); vertical-align: top; }
+  th { color: var(--faint); font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; }
+  td code { white-space: nowrap; }
+  .note { border-left: 3px solid var(--brass); background: #201e17; border-radius: 0 8px 8px 0; padding: 10px 14px; margin: 16px 0; }
+  .note .tag { display: inline-block; font-size: 11px; text-transform: uppercase; letter-spacing: 0.1em; color: var(--brass-bright); margin-right: 8px; }
+  ul.toc { columns: 2; gap: 28px; list-style: none; padding: 0; margin: 8px 0 0; }
+  ul.toc a { color: var(--accent); text-decoration: none; }
+  ul.toc a:hover { text-decoration: underline; }
+  .lede { color: var(--dim); font-size: 16px; }
+  hr { border: 0; border-top: 1px solid var(--line); margin: 32px 0; }
+  .pill { font-size: 11px; background: #2a2820; border: 1px solid var(--line-strong); border-radius: 20px; padding: 1px 9px; color: var(--brass-bright); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>The Sorcerer's Cave</h1>
+  <p class="sub">Technical Architecture — backend ⇄ frontend communication, and the structure of each side.</p>
+  <p class="meta">High-level design overview · single-page web application · TypeScript throughout.</p>
+
+  <nav>
+    <ul class="toc">
+      <li><a href="#overview">1. System overview</a></li>
+      <li><a href="#engine">2. The shared engine</a></li>
+      <li><a href="#backend">3. Backend architecture</a></li>
+      <li><a href="#frontend">4. Frontend architecture</a></li>
+      <li><a href="#comms">5. Frontend ⇄ backend</a></li>
+      <li><a href="#build">6. Build &amp; deployment</a></li>
+    </ul>
+  </nav>
+
+  <!-- ============================= OVERVIEW ============================= -->
+  <h2 id="overview">1. System overview</h2>
+  <p class="lede">
+    The Sorcerer's Cave is a browser game with a server-authoritative backend. Three pieces, in one
+    pnpm monorepo, share a single rules engine written once in TypeScript.
+  </p>
+
+  <pre>
+sorcerers-cave/                          <span class="c">— pnpm workspace</span>
+├─ <b>packages/engine</b>  (@sorcerers-cave/engine)   <span class="c">Pure, deterministic game rules</span>
+├─ <b>packages/assets</b>  (@sorcerers-cave/assets)   <span class="c">Card/tile manifest types</span>
+└─ <b>apps/web</b>                                     <span class="c">The deployable app:</span>
+   ├─ <b>src/</b>      React + Vite frontend (the browser client)
+   └─ <b>convex/</b>   Convex backend (serverless functions + reactive DB)</pre>
+
+  <table>
+    <thead><tr><th>Layer</th><th>Technology</th><th>Responsibility</th></tr></thead>
+    <tbody>
+      <tr><td>Engine</td><td>TypeScript (pure functions)</td><td>Every game rule. No I/O, no randomness source but a seeded LCG. Runs on <em>both</em> server and client.</td></tr>
+      <tr><td>Backend</td><td>Convex (functions + reactive document store)</td><td>System of record &amp; rules <em>authority</em>; auth, persistence, multiplayer coordination, live subscriptions.</td></tr>
+      <tr><td>Frontend</td><td>React + Vite, Three.js (vanilla)</td><td>Rendering, input, and an optimistic local mirror of the engine for instant feedback.</td></tr>
+    </tbody>
+  </table>
+
+  <p>
+    The defining idea: <strong>the engine is the single source of truth for rules, and it is shared by
+    both tiers</strong>. The backend imports it to resolve every action authoritatively; the frontend
+    imports the very same code to predict the outcome locally so the 3D view responds instantly. Because
+    the engine is pure and deterministic (a seeded random-number generator, no wall-clock), the two
+    always agree.
+  </p>
+
+  <!-- ============================= ENGINE ============================= -->
+  <h2 id="engine">2. The shared engine</h2>
+  <p>
+    <code>packages/engine</code> is a dependency-free TypeScript library. It exposes an immutable-ish
+    <em>reducer</em> at its heart:
+  </p>
+  <pre><b>reduce</b>(state: GameState, action: GameAction): { state: GameState; events: GameEvent[] }</pre>
+  <ul>
+    <li><code>GameState</code> (<code>state.ts</code>) — the entire game as a plain, JSON-serializable object: the placed areas, both card decks + their draw indices, the party, the live encounter/fight, the RNG <code>seed</code>, score, curses, etc.</li>
+    <li><code>GameAction</code> (<code>actions.ts</code>) — every player decision: <code>move</code>, <code>test</code>, <code>attack</code>, <code>fightOn</code>, <code>retreat</code>, <code>takeTreasure</code>, <code>useArtifact</code>, <code>quit</code>…</li>
+    <li><code>GameEvent</code> — what happened (<code>combatRoll</code>, <code>memberDied</code>, <code>drewChamber</code>, <code>eyeForsaken</code>…). The reducer is the <em>only</em> producer; the UI never infers game facts, it just renders events.</li>
+    <li><code>legalActions(state)</code> (<code>selectors.ts</code>) — the set of currently valid actions, so the UI offers exactly what the rules allow.</li>
+  </ul>
+  <p class="dim">
+    Rule modules behind the reducer: <code>map</code>/<code>coords</code>/<code>decode</code> (the tile
+    grid), <code>chamber</code>/<code>decks</code> (drawing), <code>reaction</code>/<code>combat</code>
+    (encounters &amp; fights), <code>hazards</code>, <code>special</code> (Deep Pool / Viper Pit),
+    <code>pickup</code>, <code>effects</code> (artefacts), <code>score</code>, and <code>rng</code> (the
+    seeded LCG that makes everything reproducible).
+  </p>
+
+  <h3>Multiplayer core — compose / decompose</h3>
+  <p>
+    <code>multi.ts</code> adds multiplayer <em>without forking the rules</em>. One game holds a single
+    shared <code>CaveState</code> (the map + both decks + the RNG stream) plus an array of per-seat
+    <code>PartyState</code>. To apply a seat's action it <strong>composes</strong> a single-party
+    <code>GameState</code> (cave ⊕ that party), runs the <em>same</em> <code>reduce()</code>, then
+    <strong>splits</strong> the result back. The engine therefore remains the sole rules authority, and
+    anything stored on a party (curses, permanent indifference, retreat-hostility) is naturally
+    per-party.
+  </p>
+  <pre><b>mpReduce</b>(mp: MpGameState, seat, action): { state: MpGameState; events }
+   <span class="c">// turn-gated: rejects an action from a seat whose turn it isn't</span></pre>
+
+  <div class="note"><span class="tag">Why it matters</span> One implementation of the rules, exercised by hundreds of unit tests, runs identically server-side (authority) and client-side (prediction). No rule logic is duplicated in React or in Convex.</div>
+
+  <!-- ============================= BACKEND ============================= -->
+  <h2 id="backend">3. Backend architecture</h2>
+  <p>
+    The backend is <a href="https://convex.dev" target="_blank" rel="noreferrer">Convex</a>: a reactive
+    document database with serverless <strong>queries</strong> (read, cached, live) and
+    <strong>mutations</strong> (transactional writes). Functions live in <code>apps/web/convex/</code>
+    and are written in TypeScript against a typed schema; <code>npx convex codegen</code> generates a
+    fully-typed client API (<code>convex/_generated/api</code>).
+  </p>
+
+  <h3>Data model (<code>schema.ts</code>)</h3>
+  <table>
+    <thead><tr><th>Table</th><th>Holds</th></tr></thead>
+    <tbody>
+      <tr><td><code>games</code></td><td>One row per game (solo or multi): the serialized engine state (<code>state: any</code> — the engine owns its shape), a four-letter resume/join <code>code</code>, mode, lobby status, host.</td></tr>
+      <tr><td><code>players</code></td><td>Multiplayer seats: one per player in a game (seat index, party name, colour, ready).</td></tr>
+      <tr><td><code>messages</code></td><td>The multiplayer feed: chat lines, system lines, and auto-narrated <code>action</code> broadcasts.</td></tr>
+      <tr><td><code>highScores</code></td><td>The shared leaderboard — solo and multiplayer entries, kept separate.</td></tr>
+      <tr><td><code>authTables</code></td><td>Sessions / accounts from Convex Auth.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Functions</h3>
+  <table>
+    <thead><tr><th>Module</th><th>Surface</th></tr></thead>
+    <tbody>
+      <tr><td><code>game.ts</code> <span class="pill">solo</span></td><td><code>get</code> (reactive query for one game), <code>applyAction</code> (mutation), <code>save</code>.</td></tr>
+      <tr><td><code>multiplayer.ts</code> <span class="pill">multi</span></td><td>Lobby (<code>createMultiplayer</code>, <code>joinByCode</code>, <code>setColor/Ready</code>, <code>startGame</code>), draft (<code>pickParty</code>), play (<code>act</code>), reactive views (<code>gameState</code>, <code>playView</code>, <code>spectateView</code>), chat (<code>sendMessage</code>, <code>messages</code>).</td></tr>
+      <tr><td><code>highScores.ts</code></td><td><code>save</code> + <code>list</code> (solo board; multiplayer results filtered out).</td></tr>
+      <tr><td><code>auth.ts</code>, <code>http.ts</code></td><td>Convex Auth wiring.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>The authority pattern</h3>
+  <p>Every mutation that changes a game follows the same shape — load, run the shared engine, persist:</p>
+  <pre><span class="c">// solo: game.applyAction</span>
+const game = await ctx.db.get(id);
+const { state, events } = <b>reduce</b>(game.state, action);   <span class="c">// the shared engine</span>
+await ctx.db.patch(id, { state });
+return { events };
+
+<span class="c">// multi: multiplayer.act — turn-gated, then broadcast</span>
+const { state, events } = <b>mpReduce</b>(mp, me.seat, action);
+await ctx.db.patch(gameId, { state });
+<span class="c">// derive + post narration/finish lines to `messages`; record finished parties to highScores</span></pre>
+  <p>
+    The client's request only ever <em>names an action</em>; the server decides the outcome. Read access
+    is <strong>membership-gated</strong> — multiplayer queries return <code>null</code> to non-members,
+    and project the state per seat so a player sees the shared cave plus their own party.
+  </p>
+
+  <!-- ============================= FRONTEND ============================= -->
+  <h2 id="frontend">4. Frontend architecture</h2>
+  <p>
+    A Vite + React single-page app (<code>apps/web/src</code>). It splits cleanly into a
+    <strong>view layer</strong> (rendering the cave) and a <strong>game-UI layer</strong> (panels,
+    dialogs, flows), bound together by a small set of hooks and a single rendering <em>port</em>.
+  </p>
+
+  <h3>Composition root &amp; navigation</h3>
+  <pre><b>main.tsx</b> → ConvexProvider(client) → <b>App.tsx</b> → <b>GameScreen.tsx</b>
+   ├─ SplashScreen           <span class="c">title, resume-by-code, multiplayer entry, link to /manual.html</span>
+   ├─ (solo) CaveCanvas + panels
+   └─ (multi) MultiplayerSetup / MultiplayerLobby / MultiplayerGame</pre>
+
+  <h3>The rendering seam — <code>ports.ts</code></h3>
+  <p>
+    The 3D renderer is deliberately decoupled from the engine by an interface, <code>CaveEngine</code>
+    (<code>view/ports.ts</code>). It exposes a render-friendly view (placed <code>Area</code>s, the
+    current tile, <code>openMoves()</code>, <code>state()</code>) and the few imperative calls the
+    renderer makes (<code>tryMove</code>, <code>exit</code>, <code>quit</code>). The golden rule, stated
+    in the file: <em>the engine owns every rule; the renderer only draws and forwards intent.</em>
+  </p>
+  <table>
+    <thead><tr><th>Module</th><th>Role</th></tr></thead>
+    <tbody>
+      <tr><td><code>view/cave3d.js</code></td><td>The vanilla <strong>Three.js</strong> renderer — scene, tiles, party token, camera, level isolation, floor cards, markers. Imperative and framework-agnostic; driven through the <code>CaveEngine</code> port.</td></tr>
+      <tr><td><code>view/CaveCanvas.tsx</code></td><td>React wrapper that boots <code>cave3d</code> into a mounted <code>&lt;div&gt;</code>, hands it the engine + art, and re-syncs on state change.</td></tr>
+      <tr><td><code>view/CaveHud.tsx</code></td><td>The React HUD shell (stats bar, roster, prompts, dock) overlaid on the canvas.</td></tr>
+      <tr><td><code>view/engineAdapter.ts</code></td><td>Adapts a <code>GameState</code> to the <code>CaveEngine</code> port. Holds a local mirror and runs the shared <code>reduce()</code> for <strong>optimistic</strong> moves, forwarding accepted actions to the server and reconciling via <code>sync()</code>.</td></tr>
+      <tr><td><code>view/projection.ts</code></td><td>Pure <code>GameState</code> → render model (tile art, lane cards, floor contents) used by the adapter.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>Game-UI layer (<code>src/game</code>)</h3>
+  <ul>
+    <li><strong>Action panels</strong> — <code>EncounterPanel</code>, <code>ExplorePanel</code>, <code>PartyPanel</code>: render <code>legalActions(state)</code> as buttons and dispatch them.</li>
+    <li><strong>Feedback</strong> — <code>DiceRoll</code>, <code>NoticeModal</code>, and the pure event-to-UI mappers <code>rollView.ts</code> (events → a dice overlay) and <code>eventNotices.ts</code> (events → notices).</li>
+    <li><strong>End / records</strong> — <code>GameOverScreen</code>, <code>HighScores</code>.</li>
+    <li><strong>Multiplayer</strong> — <code>MultiplayerSetup/Lobby/Game</code>, <code>PartyDraft</code>, <code>MultiplayerPlay</code> (turn-gated play + toasts), <code>Scoreboard</code>/<code>ScoreboardPanel</code> (live standings), <code>SpectateView</code> (follow another party), <code>ChatPanel</code>.</li>
+    <li><strong>Hook</strong> — <code>useCaveGame.ts</code> binds a Convex game to an <code>engineAdapter</code> for solo play; <code>MultiplayerPlay</code> does the equivalent for a seat.</li>
+  </ul>
+
+  <!-- ============================= COMMS ============================= -->
+  <h2 id="comms">5. Frontend ⇄ backend communication</h2>
+  <p class="lede">
+    There is no bespoke API or socket code. The frontend reads through Convex's reactive
+    <strong>queries</strong> (live subscriptions) and writes through <strong>mutations</strong> — and
+    keeps a local engine mirror so the 3D view never waits on the network.
+  </p>
+
+  <h3>Reactive reads, transactional writes</h3>
+  <ul>
+    <li><strong>Subscriptions.</strong> Components call <code>useQuery(api.…)</code>. Convex pushes a fresh result over a websocket whenever any data the query touched changes — so every client re-renders automatically. In multiplayer, one player's <code>act</code> updates the shared <code>games</code> row and <em>all</em> seats' <code>playView</code>/<code>gameState</code> subscriptions update.</li>
+    <li><strong>Mutations.</strong> Actions are sent with <code>useMutation(api.…)</code>. The server runs the engine and returns the resulting <code>events</code> (used to drive dice/notice overlays).</li>
+  </ul>
+
+  <h3>Server authority + optimistic mirror</h3>
+  <p>
+    The renderer needs an instant answer when you click a doorway, but the server is the authority. The
+    adapter resolves this by running the <em>same engine</em> locally first, then reconciling:
+  </p>
+  <pre>click doorway ──▶ <b>engineAdapter.tryMove</b>(dir)
+                   │  local <b>reduce()</b>  ──▶ scene updates immediately (optimistic)
+                   └─ onAction ──▶ <b>useMutation</b> act/applyAction ─▶ server <b>reduce()</b> (authority)
+                                                                          │ persists state
+reactive <b>useQuery</b> ◀── new authoritative snapshot ◀──────────────────┘
+   └─ adapter.<b>sync</b>(state)   <span class="c">reconcile the local mirror to the server's truth</span></pre>
+  <p>
+    Because the engine is deterministic and the RNG seed travels inside the state, the optimistic result
+    and the authoritative result match — reconciliation is normally a no-op. Move-triggered dice (e.g.
+    ghouls fighting on entry) are surfaced from the mutation's returned events.
+  </p>
+
+  <h3>Multiplayer specifics</h3>
+  <ul>
+    <li><strong>Turn-gating.</strong> <code>act</code> rejects an action from a seat whose turn it isn't (the engine's <code>mpReduce</code> enforces it); the UI only enables controls on your turn.</li>
+    <li><strong>Per-seat projection.</strong> <code>playView</code> returns the composed state for <em>your</em> seat plus every party's position/colour; <code>spectateView</code> returns any seat's view so you can follow along; <code>gameState</code> feeds the live scoreboard. All are membership-gated.</li>
+    <li><strong>The feed.</strong> Chat and auto-narrated action broadcasts (defeats, pickups, descents, finishes) are rows in <code>messages</code>; clients subscribe and render them as the chat log and as transient toasts.</li>
+    <li><strong>Identity.</strong> Players are authenticated via Convex Auth; a four-letter game <code>code</code> is the shareable handle to join or resume.</li>
+  </ul>
+
+  <!-- ============================= BUILD ============================= -->
+  <h2 id="build">6. Build &amp; deployment</h2>
+  <ul>
+    <li><strong>Monorepo</strong> — pnpm workspaces; the engine/assets packages are consumed from TypeScript source, so a single typecheck spans the whole repo.</li>
+    <li><strong>Frontend</strong> — Vite builds <code>apps/web</code> to static assets; the Convex deployment URL is injected at build time as <code>VITE_CONVEX_URL</code>, and feature flags (e.g. <code>VITE_MULTIPLAYER</code>) gate optional surfaces.</li>
+    <li><strong>Backend</strong> — <code>npx convex deploy</code> bundles the functions (and the imported engine) and pushes the schema to the Convex deployment. On Vercel this runs inside the build command, so a single deploy ships both tiers in lock-step.</li>
+    <li><strong>Tests</strong> — Vitest: the engine carries the bulk (rules), with Convex function tests (<code>convex-test</code>) and React component tests (Testing Library) in <code>apps/web</code>.</li>
+  </ul>
+
+  <hr />
+  <p class="meta">Generated as a high-level overview. Source of truth is the code in <code>packages/engine</code>, <code>apps/web/convex</code>, and <code>apps/web/src</code>.</p>
+
+</div>
+</body>
+</html>
