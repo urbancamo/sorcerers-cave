@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
   CREATURES, legalActions, validatePlan, frontStrength, casterMP,
   type GameState, type GameAction,
@@ -25,6 +25,10 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
   const [draft, setDraft] = useState<PlanDraft>(emptyDraft());
   const [sel, setSel] = useState<number | null>(null); // tap-selected tray member
   const [retreatOpen, setRetreatOpen] = useState(false);
+  // Re-pair from scratch each round (§Between rounds): clear the draft whenever a new round begins, so
+  // last round's pairing — and any member slain in it — never lingers on the surface.
+  const round = state.fight?.round;
+  useEffect(() => { setDraft(emptyDraft()); setSel(null); setRetreatOpen(false); }, [round]);
   if (state.phase !== "fight" || !state.fight) return null;
 
   // Casualty choice takes over the surface until resolved.

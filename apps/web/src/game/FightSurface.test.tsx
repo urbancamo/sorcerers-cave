@@ -44,6 +44,24 @@ describe("FightSurface", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "chooseCasualty", idx: expect.any(Number) });
   });
 
+  it("clears the pairing when a new round begins, so a slain member doesn't linger", () => {
+    const { rerender } = render(<FightSurface state={fightState()} dispatch={() => {}} cards={cards} />);
+    fireEvent.click(screen.getByTestId("tray-0")); // pick the Woman
+    fireEvent.click(screen.getByTestId("front-0")); // place her against the Troll
+    expect(screen.getByTestId("front-0").textContent ?? "").not.toMatch(/drop a fighter/i); // now occupied
+
+    // Next round: the Woman (idx 0) was slain in the last round.
+    const s2 = fightState({
+      fight: { surprise: 0, round: 2, focus: 0 },
+      party: [
+        { creatureId: 6, status: 3, dragonKills: 0, treasure: [] }, // slain Woman
+        { creatureId: 4, status: 0, dragonKills: 0, treasure: [] }, // living Priest
+      ],
+    });
+    rerender(<FightSurface state={s2} dispatch={() => {}} cards={cards} />);
+    expect(screen.getByTestId("front-0").textContent ?? "").toMatch(/drop a fighter/i); // pairing reset
+  });
+
   it("offers retreat after round 1", () => {
     const dispatch = vi.fn();
     // The gateway (card 175) has all four doorways, so legalActions offers N/E/S/W retreats at round > 1.
