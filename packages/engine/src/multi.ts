@@ -70,14 +70,24 @@ function splitCave(g: GameState): { cave: CaveState; rest: PartyCore } {
 }
 
 /**
- * A turn ends (the seat passes) only when the party is back at rest, i.e. its phase has returned to
- * "explore" — or the party has left/wiped/quit. The active seat therefore keeps acting until any
- * encounter is fully resolved: a reaction test, every round of a multi-round fight, casualty choices,
- * and treasure pickup all happen within the one turn and never spill onto later turns.
+ * A turn ends (the seat passes) when the party is back at rest ("explore"), has left/wiped/quit, OR
+ * has just completed one round of a continuing fight. Per the rules a fight may last several rounds,
+ * "each round ending a turn of play" (§FIGHTS) — so a multi-round battle is fought one round per turn,
+ * with other parties acting in between, rather than the whole battle resolving in a single turn.
+ *
+ * Starting a fight (an `attack`, or a `test` that turns hostile) does not yet fight a round, and a
+ * pending casualty choice means the round is not finished — so only a resolved round (`fightOn`, or the
+ * `chooseCasualty` that completes it) passes the turn. A reaction test that stays in the encounter, a
+ * blocked retreat (which must fight again this turn, §Retreat), and treasure pickup after a won round
+ * all remain within the one turn.
  */
-function turnEnds(_action: MpAction, next: GameState): boolean {
+function turnEnds(action: MpAction, next: GameState): boolean {
   if (next.gs !== GS_PLAYING) return true;             // party left / wiped / quit
-  return next.phase === "explore";                     // at rest (encounter/fight/pickup fully resolved)
+  if (next.phase === "explore") return true;           // back at rest
+  if (next.phase === "fight" && !next.fight?.casualtyQueue?.length) {
+    return action.type === "fightOn" || action.type === "chooseCasualty"; // one round fought → pass the turn
+  }
+  return false;                                        // encounter decision, mid-round, or looting — same turn
 }
 
 /** Advance to the next seat (in play order) whose party is still exploring; finish if none remain. */

@@ -85,30 +85,50 @@ describe("mpReduce (turn-gated play)", () => {
     expect(r.state.parties[1]!.partyArea).toBe(0); // the other party is untouched
   });
 
-  it("a fight is fully resolved within the one turn, then the turn passes", () => {
+  it("fights one round per turn — the turn passes after each round (§FIGHTS)", () => {
     // card 17 (N+chamber) drawn south; level-1 draw of one Dragon (110) → an encounter.
     const mp = playing({ largePack: [17], smallPack: [110] }, [partyAt(0), partyAt(1)]);
     const r = mpReduce(mp, 0, { type: "move", dir: 3 });
-    expect(r.state.active).toBe(0); // still seat 0 — must resolve the encounter this turn
+    expect(r.state.active).toBe(0); // entered the chamber — still seat 0's turn to decide
     expect(r.state.parties[0]!.phase).toBe("encounter");
     expect(r.state.parties[0]!.strangers).toEqual([10]);
     // the other seat can't jump in
     expect(mpReduce(r.state, 1, { type: "attack" }).events).toEqual([{ type: "blocked" }]);
 
-    // Hero (FS 5) vs Dragon (FS 6): the first round does not settle it, so the fight continues and
-    // the turn stays with seat 0 — it no longer passes mid-fight.
-    let s = mpReduce(r.state, 0, { type: "attack" }).state;
-    expect(s.parties[0]!.phase).toBe("fight");
-    expect(s.active).toBe(0);
+    // Attacking starts the fight but does NOT yet fight a round — the turn stays with seat 0.
+    const a = mpReduce(r.state, 0, { type: "attack" }).state;
+    expect(a.parties[0]!.phase).toBe("fight");
+    expect(a.active).toBe(0);
 
-    // Keep fighting until the chamber is cleared (or the party is wiped); only then is the turn handed off.
-    let guard = 0;
-    while (s.parties[0]!.status === "exploring" && s.parties[0]!.phase !== "explore" && guard++ < 30) {
-      expect(s.active).toBe(0); // throughout the whole fight, it remains seat 0's turn
-      s = mpReduce(s, 0, { type: "fightOn" }).state;
+    // One round of fighting ends the turn: it passes to seat 1 even if the battle continues.
+    const b = mpReduce(a, 0, { type: "fightOn" }).state;
+    expect(b.active).toBe(1);
+    // seat 0 cannot act again until its next turn comes round.
+    expect(mpReduce(b, 0, { type: "fightOn" }).events).toEqual([{ type: "blocked" }]);
+
+    // If the battle is still going, seat 0 resumes it on its NEXT turn — not all in one go.
+    if (b.parties[0]!.phase === "fight" && b.parties[0]!.status === "exploring") {
+      const c = mpReduce(b, 1, { type: "endTurn" }).state; // seat 1 (at rest) passes back
+      expect(c.active).toBe(0);
+      expect(mpReduce(c, 0, { type: "fightOn" }).events).not.toContainEqual({ type: "blocked" });
     }
-    expect(s.parties[0]!.phase === "explore" || s.parties[0]!.status !== "exploring").toBe(true);
-    expect(s.active).toBe(1); // resolved → next seat
+  });
+
+  it("a casualty choice mid-round does not pass the turn until the round is finished", () => {
+    // Two members both lose their match → a casualty choice is queued; the turn must NOT pass yet.
+    const m0 = { creatureId: 6, status: 0 as const, dragonKills: 0, treasure: [] }; // Woman FS 2
+    const m1 = { creatureId: 7, status: 0 as const, dragonKills: 0, treasure: [] }; // Dwarf FS 1
+    const mp = playing({ seed: 5 }, [
+      partyAt(0, { phase: "fight", fight: { surprise: -1, round: 1, focus: 0 }, party: [m0, m1], strangers: [10] }), // Dragon
+      partyAt(1),
+    ]);
+    const r = mpReduce(mp, 0, { type: "fightOn" });
+    if (r.state.parties[0]!.fight?.casualtyQueue?.length) {
+      expect(r.state.active).toBe(0); // still seat 0 — must resolve the casualty choice first
+      const done = mpReduce(r.state, 0, { type: "chooseCasualty", idx: 0 });
+      // choosing completes the round → the turn passes (unless the party was wiped, also a handoff)
+      expect(done.state.active).toBe(1);
+    }
   });
 
   it("shares the area deck across seats", () => {
