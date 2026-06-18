@@ -34,6 +34,22 @@ describe("viperCrossing (spec §10.1)", () => {
     }
     expect(s.seed).not.toBe(4); // dice were rolled
   });
+
+  it("emits a viperPit event with a d6 per living member (for the dice display)", () => {
+    const s = makeState({ party: [member(5, [1]), member(2), member(5)], seed: 4 });
+    const events = viperCrossing(s);
+    const pit = events.find((e) => e.type === "viperPit") as Extract<typeof events[number], { type: "viperPit" }>;
+    expect(pit).toBeDefined();
+    expect(pit.rolls).toHaveLength(3); // one per living member
+    for (const r of pit.rolls) {
+      expect(r.roll).toBeGreaterThanOrEqual(1);
+      expect(r.roll).toBeLessThanOrEqual(6);
+      expect(r.died).toBe(r.roll === 1); // a 1 is the fatal fall
+    }
+    // Every member that the rolls marked as died is dead in state, with its treasure lost.
+    const deadIds = pit.rolls.filter((r) => r.died).length;
+    expect(s.party.filter((m) => m.status === 3)).toHaveLength(deadIds);
+  });
 });
 
 describe("deepPoolCrossing (spec §10.2)", () => {

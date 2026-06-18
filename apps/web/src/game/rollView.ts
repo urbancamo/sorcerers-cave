@@ -110,7 +110,22 @@ function medusaView(events: GameEvent[]): RollView | null {
   return { title: "Medusa's gaze", lanes, message, tone: stoned > 0 ? "bad" : "good" };
 }
 
-/** Build the dice overlay (if any) for the events an action produced — reaction, chest, casualty, Medusa, else combat. */
+/** Turn the Viper Pit crossing into a die-per-member overlay (a roll of 1 is a fatal fall). */
+function viperView(events: GameEvent[]): RollView | null {
+  const pit = events.find((e): e is Extract<GameEvent, { type: "viperPit" }> => e.type === "viperPit");
+  if (!pit) return null;
+  const lanes: Lane[] = pit.rolls.map((r) => ({
+    enemy: { name: CREATURES[r.creatureId]?.name ?? "?", value: r.roll, outcome: r.died ? "lose" : "win" },
+  }));
+  const lost = pit.rolls.filter((r) => r.died).length;
+  const wipedOut = events.some((e) => e.type === "gameOver");
+  const message = wipedOut
+    ? "The vipers take the last of the party…"
+    : lost > 0 ? `The vipers strike — ${lost} fall into the pit.` : "The party picks its way across — all safe.";
+  return { title: "The Viper Pit", lanes, message, tone: lost > 0 ? "bad" : "good" };
+}
+
+/** Build the dice overlay (if any) for the events an action produced — reaction, chest, casualty, Medusa, Viper, else combat. */
 export function rollFromEvents(events: GameEvent[]): RollView | null {
   const reaction = events.find((e): e is Extract<GameEvent, { type: "reaction" }> => e.type === "reaction");
   if (reaction) {
@@ -118,5 +133,5 @@ export function rollFromEvents(events: GameEvent[]): RollView | null {
     const pacified = events.some((e) => e.type === "pacified");
     return reactionView(reaction, joined, pacified);
   }
-  return chestView(events) ?? casualtyView(events) ?? medusaView(events) ?? combatView(events);
+  return chestView(events) ?? casualtyView(events) ?? medusaView(events) ?? viperView(events) ?? combatView(events);
 }
