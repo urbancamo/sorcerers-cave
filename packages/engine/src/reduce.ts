@@ -20,10 +20,10 @@ const T_EYE_OF_GOD = 13; // treasure id — must stay with its bearer or the par
 function findBearer(state: GameState, artifact: number): number {
   return state.party.findIndex((m: PartyMember) => {
     if (!(m.status === 0 || m.status === 1) || !m.treasure.includes(artifact)) return false;
-    if (artifact === 6) return m.creatureId === 6 || m.creatureId === 4 || m.creatureId === 8; // Balm: Woman/Priest/Wizard
+    if (artifact === 6) return m.creatureId === 6 || m.creatureId === 1 || m.creatureId === 4 || m.creatureId === 8; // Balm: Woman/W-Hero/Priest/Wizard
     if (artifact === 9) return m.creatureId === 8; // Staff reanimation: Wizard
     if (artifact === 4) return m.creatureId === 4 || m.creatureId === 8; // Magic Carpet: Priest/Wizard
-    if (artifact === 12) return m.creatureId === 0 || m.creatureId === 4 || m.creatureId === 5 || m.creatureId === 6 || m.creatureId === 8; // Charmed Flute: Hero/Priest/Man/Woman/Wizard
+    if (artifact === 12) return m.creatureId === 0 || m.creatureId === 1 || m.creatureId === 4 || m.creatureId === 5 || m.creatureId === 6 || m.creatureId === 8; // Charmed Flute: Hero/W-Hero/Priest/Man/Woman/Wizard
     return true;
   });
 }

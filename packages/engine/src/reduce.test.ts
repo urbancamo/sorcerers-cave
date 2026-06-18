@@ -559,4 +559,18 @@ describe("reduce — treasure redistribution (party panel)", () => {
     const chamber = state.areas.find((a) => a.coord === packCoord(3, 50, 51))!;
     expect(chamber.contents).toEqual(expect.arrayContaining([100 + 5, 200 + 1])); // left behind in the chamber
   });
+
+  it("the Woman-Hero can use the Healing Balm (she has all a woman's capabilities)", () => {
+    const s = makeState({
+      phase: "explore",
+      party: [
+        { creatureId: 1, status: 0, dragonKills: 0, treasure: [6] }, // Woman-Hero holding the Balm
+        { creatureId: 0, status: 3, dragonKills: 0, treasure: [] },  // fallen Hero
+      ],
+      areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+    });
+    expect(legalActions(s)).toContainEqual({ type: "useArtifact", artifact: 6, target: 1 });
+    const { state } = reduce(s, { type: "useArtifact", artifact: 6, target: 1 });
+    expect(state.party[1]!.status).toBe(0); // revived
+  });
 });
