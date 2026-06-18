@@ -19,6 +19,7 @@ export * from "./pickup";
 export * from "./score";
 export * from "./reaction";
 export * from "./combat";
+export * from "./combatPlan";
 export * from "./special";
 export * from "./effects";
 export * from "./multi";
