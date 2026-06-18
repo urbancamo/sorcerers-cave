@@ -1252,7 +1252,3 @@
 .scv-fc-relic:first-child { margin-left: 0; }
 .scv-fc-cap { text-align: center; margin-top: 7px; font-family: var(--ui); font-size: 10.5px; color: var(--stone); }
 .scv-fc-cap b { display: block; font-family: var(--black); font-weight: 500; font-size: 12px; color: var(--parchment); }
-
-/* zoom overlay */
-.scv-cardzoom { position: fixed; inset: 0; z-index: 80; display: flex; align-items: center; justify-content: center; pointer-events: none; background: rgba(7,7,9,.55); }
-.scv-cardzoom img { width: min(320px, 70vw); aspect-ratio: 63/88; object-fit: contain; border-radius: 12px; box-shadow: 0 30px 80px -20px rgba(0,0,0,.9); }
