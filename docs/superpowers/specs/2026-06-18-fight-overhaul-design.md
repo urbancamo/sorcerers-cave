@@ -158,6 +158,9 @@ strangers for 1-v-2, and drops a priest/wizard onto a match's **background slot*
 - **Resolution:** on Roll, the existing per-match dice overlay (`DiceRoll`) plays for each match in turn;
   2-loser matches then prompt the casualty choice.
 - **Between rounds:** every fighter returns to the tray; the player rebuilds the pairing each round.
+- **Card zoom:** hovering (desktop) or tap-and-hold (touch) any card — creature **or** wielded artefact —
+  pops an enlarged, fully-legible version (real art + effect text) so stats/rules can be read without
+  leaving the fight; dismiss on mouse-leave / release / tap-away.
 - **Accessibility fallback:** every drag has a keyboard/tap equivalent (select fighter → select target),
   so the surface is usable without a pointer. (Tap-to-assign was the runner-up UI; we get it for free as
   the a11y path.)
@@ -177,7 +180,8 @@ Reaction unchanged. *Deliverable: the engine resolves any legal player pairing; 
 coverage of pairing rules.*
 
 **Phase 2 — UI: drag-card fight surface.** New fight layer, drag/drop pairing, background slots, live
-totals, validation gating, dice overlay per match, keyboard/tap fallback; wired in solo + multiplayer.
+totals, validation gating, dice overlay per match, hover/tap card zoom (creature + artefact), keyboard/tap
+fallback; wired in solo + multiplayer.
 *Deliverable: fully playable manual fights in the browser.*
 
 **Phase 3 — Treasure & retreat fidelity.** Heavy-treasure auto-drop on front assignment; left-behind on
