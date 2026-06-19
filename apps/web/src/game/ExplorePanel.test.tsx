@@ -25,6 +25,16 @@ describe("ExplorePanel", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "openChest" });
   });
 
+  it("condenses the Magic Carpet's directions into a single dropdown", () => {
+    const dispatch = vi.fn();
+    const s = newGame(1, [4]); // a Priest can command the carpet
+    s.party[0]!.treasure.push(4); // Magic Carpet (many directions on level 1)
+    render(<ExplorePanel state={s} dispatch={dispatch} />);
+    const select = screen.getByLabelText(/use magic carpet/i);
+    fireEvent.change(select, { target: { value: "0" } });
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "useArtifact", artifact: 4 }));
+  });
+
   it("offers a named artifact use and dispatches it with its target", () => {
     const dispatch = vi.fn();
     const s = newGame(1, [6, 5]); // Woman + Man

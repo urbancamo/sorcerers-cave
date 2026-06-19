@@ -105,17 +105,22 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
         <div className="scv-enc-assign">
           {[...takeByTi].map(([ti, mis]) => {
             const labels = dedupeLabels(mis.map(memberName));
+            const tname = TREASURES[state.treasures[ti]!]!.name;
+            // The Lost Ruby (id 11) is set in a strength-8 statue that must be beaten — taking it is a
+            // fight, not a free pickup, so word the options as wresting it from the guardian (§16).
+            const guarded = state.treasures[ti] === 11;
+            const optText = (lbl: string) => (guarded ? `${lbl} wrests it from the statue` : `Give to ${lbl}`);
             return (
               <label key={`t${ti}`} className="scv-enc-row">
-                <span className="scv-enc-row-nm">{TREASURES[state.treasures[ti]!]!.name}</span>
+                <span className="scv-enc-row-nm">{tname}{guarded && <span className="scv-enc-guard"> · guarded by a statue</span>}</span>
                 <select
                   className="scv-enc-select"
-                  aria-label={`Assign ${TREASURES[state.treasures[ti]!]!.name}`}
+                  aria-label={`${guarded ? "Wrest" : "Assign"} ${tname}`}
                   value=""
                   onChange={(e) => { if (e.target.value !== "") dispatch({ type: "takeTreasure", ti, mi: mis[Number(e.target.value)]! }); }}
                 >
                   <option value="">Leave in chamber</option>
-                  {labels.map((lbl, k) => <option key={mis[k]} value={k}>Give to {lbl}</option>)}
+                  {labels.map((lbl, k) => <option key={mis[k]} value={k}>{optText(lbl)}</option>)}
                 </select>
               </label>
             );

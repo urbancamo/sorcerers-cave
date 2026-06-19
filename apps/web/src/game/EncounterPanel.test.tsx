@@ -40,6 +40,15 @@ describe("EncounterPanel", () => {
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "takeTreasure", ti: 0 }));
   });
 
+  it("words the Lost Ruby as wresting it from the guardian statue, not a free pickup", () => {
+    const pickup: GameState = { ...newGame(1, [0]), phase: "pickup", treasures: [11] }; // Lost Ruby (guarded)
+    render(<EncounterPanel state={pickup} dispatch={() => {}} />);
+    const select = screen.getByLabelText(/wrest lost ruby/i) as HTMLSelectElement;
+    const opts = [...select.options].map((o) => o.textContent ?? "");
+    expect(opts.some((t) => /wrests it from the statue/i.test(t))).toBe(true);
+    expect(opts.some((t) => /^give to/i.test(t))).toBe(false); // never the plain "Give to" wording
+  });
+
   it("lists an artefact once with a target dropdown", () => {
     const dispatch = vi.fn();
     const s: GameState = { ...newGame(1, [5, 6]), phase: "encounter", strangers: [3] }; // vs a Troll
