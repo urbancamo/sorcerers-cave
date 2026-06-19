@@ -71,6 +71,18 @@ describe("FightSurface", () => {
     expect(screen.getByText(/gangs up/i)).toBeInTheDocument(); // the leftover Man-stranger joins the match
   });
 
+  it("keeps the fighters in place after a drawn round (no one slain)", () => {
+    const { rerender } = render(<FightSurface state={fightState()} dispatch={() => {}} cards={cards} />);
+    fireEvent.click(screen.getByTestId("tray-0"));  // pick the Woman
+    fireEvent.click(screen.getByTestId("front-0")); // place her against the Troll
+    expect(screen.getByTestId("front-0").textContent ?? "").not.toMatch(/drop a fighter/i); // occupied
+
+    // A drawn round: the round advances but the party and foes are unchanged.
+    const s2 = fightState({ fight: { surprise: 0, round: 2, focus: 0 } });
+    rerender(<FightSurface state={s2} dispatch={() => {}} cards={cards} />);
+    expect(screen.getByTestId("front-0").textContent ?? "").not.toMatch(/drop a fighter/i); // still placed
+  });
+
   it("offers retreat after round 1", () => {
     const dispatch = vi.fn();
     // The gateway (card 175) has all four doorways, so legalActions offers N/E/S/W retreats at round > 1.

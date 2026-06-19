@@ -1219,16 +1219,19 @@
 .scv-fight-banner { font-family: var(--body); font-style: italic; font-size: 13px; padding: 3px 11px; border-radius: 999px; }
 .scv-fight-banner.bad { color: #e7a59c; border: 1px solid rgba(168,68,58,.5); background: rgba(46,18,16,.6); }
 .scv-fight-banner.good { color: #bfe0ad; border: 1px solid rgba(127,174,111,.5); background: rgba(22,34,18,.6); }
-.scv-fight-strangers { display: flex; gap: 22px; flex-wrap: wrap; }
-.scv-match { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 10px; border: 1px dashed var(--line-strong); border-radius: 12px; background: rgba(201,161,78,.04); min-width: 150px; }
+/* Battles are laid out horizontally and stacked: foes face the front line, with a magic slot behind it. */
+.scv-fight-strangers { display: flex; flex-direction: column; gap: 14px; }
+.scv-match { display: flex; flex-direction: row; align-items: center; gap: 16px; flex-wrap: wrap; padding: 10px 14px; border: 1px dashed var(--line-strong); border-radius: 12px; background: rgba(201,161,78,.04); }
 .scv-match-foes { display: flex; gap: 8px; align-items: flex-start; }
 .scv-match-idle { opacity: .82; border-style: solid; }
-.scv-match-vs { font-family: var(--display); font-weight: 700; font-size: 14px; }
-.scv-match-vs .me { color: #7fae6f; } .scv-match-vs .them { color: #e7a59c; }
-.scv-match-front { min-height: 172px; min-width: 150px; display: flex; gap: 10px; align-items: center; justify-content: center; padding: 6px; border: 1px dashed var(--line); border-radius: 9px; }
+.scv-match-vs { display: flex; flex-direction: column; align-items: center; min-width: 44px; font-family: var(--display); font-weight: 700; font-size: 16px; line-height: 1.1; }
+.scv-match-vs .them { color: #e7a59c; } .scv-match-vs .me { color: #7fae6f; }
+.scv-match-vs .x { font-family: var(--ui); font-weight: 400; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--stone-dim); margin: 1px 0; }
+.scv-match-front { min-height: 178px; min-width: 132px; display: flex; gap: 10px; align-items: center; justify-content: center; padding: 6px; border: 1px dashed var(--line); border-radius: 9px; }
+.scv-match-bg { min-height: 178px; min-width: 104px; display: flex; flex-direction: column; gap: 6px; align-items: center; justify-content: center; padding: 8px; border: 1px dashed var(--arcane); border-radius: 9px; background: rgba(95,143,138,.06); }
 .scv-match-front:focus-visible, .scv-match-bg:focus-visible { outline: 2px solid var(--brass-bright); }
 .scv-match-hint { font-family: var(--body); font-style: italic; font-size: 12px; color: var(--stone-dim); }
-.scv-match-bg { font-family: var(--body); font-style: italic; font-size: 12px; color: var(--arcane); border: 1px dashed var(--line); border-radius: 999px; padding: 4px 10px; cursor: pointer; }
+.scv-match-slotlbl { font-family: var(--ui); font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--arcane); }
 .scv-fight-tray { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; border: 1px dashed var(--line); border-radius: 12px; padding: 10px; background: rgba(0,0,0,.18); }
 .scv-fight-reason { font-family: var(--body); font-style: italic; font-size: 13px; color: #e7c07a; }
 .scv-fight-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
