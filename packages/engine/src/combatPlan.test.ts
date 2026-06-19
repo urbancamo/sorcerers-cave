@@ -43,6 +43,10 @@ describe("validatePlan (§FIGHTS pairing rules)", () => {
     const s = fightS({ party: [member(0), member(2)], strangers: [3, 5] });
     expect(reason(s, { matches: [{ front: [0, 1], backers: [], strangers: [0, 1] }] })).toBe("twoVsTwo");
   });
+  it("rejects a backer with no front fighter (placement is visible but not yet legal)", () => {
+    const s = fightS({ party: [member(8)], strangers: [3] }); // a lone Wizard set behind, no front
+    expect(reason(s, { matches: [{ front: [], backers: [0], strangers: [0] }] })).toBe("backerNoFront");
+  });
   it("rejects a non-caster placed in the background", () => {
     const s = fightS({ party: [member(0), member(2)], strangers: [3] });
     expect(reason(s, { matches: [{ front: [0], backers: [1], strangers: [0] }] })).toBe("backerNotCaster");

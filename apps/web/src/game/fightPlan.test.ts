@@ -27,9 +27,9 @@ describe("fightPlan draft reducer", () => {
     expect(toMatches(d)).toEqual([{ front: [0], backers: [1], strangers: [2] }]);
   });
 
-  it("drops backer-only matches (a match needs a front fighter)", () => {
+  it("keeps a backer-only match so the placement is visible (engine then flags it as needing a front)", () => {
     const d = place(emptyDraft(), 1, 2, "backer");
-    expect(toMatches(d)).toEqual([]);
+    expect(toMatches(d)).toEqual([{ front: [], backers: [1], strangers: [2] }]);
   });
 
   it("unplace frees a member back to the tray", () => {

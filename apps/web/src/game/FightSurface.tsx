@@ -11,6 +11,7 @@ const DIR_NAME: Record<number, string> = { 1: "North", 2: "East", 3: "South", 4:
 const REASON: Record<string, string> = {
   twoVsTwo: "Two against two isn't allowed — send two against one, or one against two.",
   backerNotCaster: "Only a Priest or Wizard may fight from the background.",
+  backerNoFront: "Put a fighter in front for your caster to support.",
   spectreNeedsMagic: "A Spectre can only be fought with magic or the Magic Sword.",
   mustEngageAll: "Engage every stranger you can before rolling.",
   emptyPlan: "Set at least one fighter against a foe.",

@@ -136,6 +136,13 @@ describe("FightSurface", () => {
     expect(screen.getByTestId("fight-surface")).toBeInTheDocument();
   });
 
+  it("shows a caster dropped behind a foe immediately, before any front fighter is placed", () => {
+    render(<FightSurface state={fightState()} dispatch={() => {}} cards={cards} />); // Woman, Priest vs Troll, Spectre
+    fireEvent.click(screen.getByTestId("tray-1"));  // pick the Priest (a caster)
+    fireEvent.click(screen.getByTestId("bg-0"));    // place behind the first foe — no front fighter yet
+    expect(screen.getByTestId("bg-0").textContent ?? "").toContain("Priest"); // visible right away
+  });
+
   it("dropping a caster into the background slot places it via dataTransfer (first drop works)", () => {
     render(<FightSurface state={fightState()} dispatch={() => {}} cards={cards} />); // Woman(0), Priest(1) vs Troll, Spectre
     fireEvent.click(screen.getByTestId("tray-0"));  // pick the Woman

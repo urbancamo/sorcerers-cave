@@ -16,7 +16,7 @@ const T_THE_RING = 10;
 export type PlanError =
   | "notFighting" | "emptyPlan" | "badIndex" | "deadMember" | "memberReused"
   | "strangerReused" | "groupTooBig" | "twoVsTwo" | "backerNotCaster"
-  | "spectreNeedsMagic" | "mustEngageAll";
+  | "backerNoFront" | "spectreNeedsMagic" | "mustEngageAll";
 
 const living = (state: GameState, i: number): boolean => {
   const m = state.party[i];
@@ -52,6 +52,7 @@ export function validatePlan(state: GameState, plan: BattlePlan): { ok: true } |
 
   for (const mt of matches) {
     const front = mt.front ?? [], backers = mt.backers ?? [], strangers = mt.strangers ?? [];
+    if (front.length === 0 && backers.length > 0) return { ok: false, reason: "backerNoFront" };
     if (front.length < 1 || front.length > 2) return { ok: false, reason: "groupTooBig" };
     if (strangers.length < 1 || strangers.length > 2) return { ok: false, reason: "groupTooBig" };
     if (front.length === 2 && strangers.length === 2) return { ok: false, reason: "twoVsTwo" };

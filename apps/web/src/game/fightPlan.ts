@@ -45,10 +45,12 @@ export function place(draft: PlanDraft, memberIdx: number, strangerIdx: number, 
   return { byStranger: { ...moved.byStranger, [strangerIdx]: next } };
 }
 
-/** Serialize to the engine's BattlePlan matches — only matches that have at least one front fighter. */
+/** Serialize to the engine's BattlePlan matches. A match is kept once it has any fighter OR a backing
+ *  caster, so a caster dropped behind a foe shows immediately (the plan is then invalid until a front
+ *  fighter joins — validatePlan reports "needs a front fighter" — but the placement is visible). */
 export function toMatches(draft: PlanDraft): PlanMatch[] {
   return Object.entries(draft.byStranger)
-    .filter(([, g]) => g.front.length > 0)
+    .filter(([, g]) => g.front.length > 0 || g.backers.length > 0)
     .map(([s, g]) => ({ front: [...g.front], backers: [...g.backers], strangers: [Number(s)] }));
 }
 
