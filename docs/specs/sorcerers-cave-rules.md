@@ -224,6 +224,7 @@ This is the full set of cards, with the encoded string in column 1.
 |----------------|---------|-------------|----------|
 | `WIZARD`       | 1       | 2-5         | 6        |
 | `SPECTRE`      | 1-5     | 6           |          |
+| `DRAGON`       | 1-4     | 5-6         |          |
 | `THE SORCEROR` | 1-6     |             |          |
 | `OGRE`         | 1-4     | 5           | 6        |
 | `TROLL`        | 1-3     | 4           | 5-6      | 

@@ -13,9 +13,22 @@ describe("findLeader (spec §8.2 leader-priority)", () => {
 
 describe("reactionRoll (spec §8.3, Appendix B)", () => {
   it("classifies the roll against the leader's thresholds", () => {
-    // Dragon (hostileMax 6) is always hostile regardless of roll.
-    const s = makeState({ strangers: [10] });
+    // The Sorcerer (hostileMax 6) is always hostile regardless of roll.
+    const s = makeState({ strangers: [11] });
     expect(reactionRoll(s).outcome).toBe("hostile");
+  });
+
+  it("a Dragon is 1-4 hostile, 5-6 indifferent, never friendly", () => {
+    // No-charisma party (a Man) so the raw die equals the effective roll. Sweep seeds to cover every face.
+    const seen = new Map<number, string>();
+    for (let seed = 1; seed <= 200; seed++) {
+      const s = makeState({ strangers: [10], party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [] }], seed });
+      const { roll, outcome } = reactionRoll(s);
+      seen.set(roll, outcome);
+    }
+    expect(seen.size).toBe(6); // all faces seen
+    for (const [roll, outcome] of seen) expect(outcome).toBe(roll <= 4 ? "hostile" : "indifferent");
+    expect([...seen.values()]).not.toContain("friendly"); // a Dragon is never befriended
   });
 
   it("a natural 1 is always hostile for a potentially-unfriendly leader, ignoring bonuses", () => {

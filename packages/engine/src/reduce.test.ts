@@ -139,8 +139,8 @@ describe("reduce — stranger encounters (C-2 §8)", () => {
     expect(events).toContainEqual({ type: "fightStarted", surprise: 0 });
   });
 
-  it("testing a Dragon (always hostile) starts a fight with surprise to the strangers", () => {
-    const s = makeState({ phase: "encounter", strangers: [10], areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }] });
+  it("testing an always-hostile leader (the Sorcerer) starts a fight with surprise to the strangers", () => {
+    const s = makeState({ phase: "encounter", strangers: [11], areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }] });
     const { state, events } = reduce(s, { type: "test" });
     expect(state.phase).toBe("fight");
     expect(state.fight!.surprise).toBe(-1);

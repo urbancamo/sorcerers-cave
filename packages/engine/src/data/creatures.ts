@@ -30,7 +30,7 @@ export const CREATURES: readonly Creature[] = [
   { id: 7, name: "Dwarf", fs: 1, mp: 0, carry: 25, cost: 1, points: 2, flags: FLAG_INHUMAN | FLAG_GUIDES_PAST_TRAP, hostileMax: 0, indiffMax: 4, leaderPri: 1 },
   { id: 8, name: "Wizard", fs: 2, mp: 5, carry: 0, cost: null, points: 15, flags: FLAG_HUMAN, hostileMax: 1, indiffMax: 5, leaderPri: 8 },
   { id: 9, name: "Spectre", fs: 0, mp: 5, carry: 0, cost: null, points: 0, flags: 0, hostileMax: 5, indiffMax: 6, leaderPri: 10 },
-  { id: 10, name: "Dragon", fs: 6, mp: 0, carry: 0, cost: null, points: 0, flags: FLAG_INHUMAN, hostileMax: 6, indiffMax: 6, leaderPri: 9 },
+  { id: 10, name: "Dragon", fs: 6, mp: 0, carry: 0, cost: null, points: 0, flags: FLAG_INHUMAN, hostileMax: 4, indiffMax: 6, leaderPri: 9 }, // 1-4 hostile, 5-6 indifferent, never friendly
   { id: 11, name: "Sorcerer", fs: 4, mp: 9, carry: 0, cost: null, points: 0, flags: 0, hostileMax: 6, indiffMax: 6, leaderPri: 11 },
   { id: 12, name: "Giant", fs: 7, mp: 0, carry: 150, cost: null, points: 7, flags: FLAG_INHUMAN, hostileMax: 3, indiffMax: 5, leaderPri: 4 },
   { id: 13, name: "Unicorn", fs: 0, mp: 4, carry: 0, cost: null, points: 4, flags: FLAG_BEFRIENDS_UNICORN, hostileMax: 0, indiffMax: 0, leaderPri: 0 },
