@@ -72,10 +72,11 @@ export function DiceRoll({
         <div className={"scv-dice-lanes" + (versus ? " versus" : "")}>
           {lanes.map((lane, i) =>
             lane.party ? (
+              // Foe on the left, party on the right — matching the fight matchup panel's "them vs me".
               <div className="scv-dice-lane" key={i}>
-                {die(lane.party, false)}
-                <span className="scv-dice-vs">vs</span>
                 {die(lane.enemy, false)}
+                <span className="scv-dice-vs">vs</span>
+                {die(lane.party, false)}
               </div>
             ) : (
               <div className="scv-dice-lane" key={i}>

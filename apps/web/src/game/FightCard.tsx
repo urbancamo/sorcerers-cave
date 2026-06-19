@@ -7,11 +7,12 @@ export type CardKind = "ally" | "caster" | "foe";
  *  party members) drag + click to assign. `strength` is the value shown in the badge. */
 export function FightCard({
   creatureId, kind, strength, caption, treasure = [], cards, state,
-  draggable, onPick, dim, selected, testId,
+  draggable, onPick, dim, selected, testId, onRelicClick,
 }: {
   creatureId: number; kind: CardKind; strength: number; caption?: string;
   treasure?: number[]; cards: CardArt[]; state: GameState;
   draggable?: boolean; onPick?: () => void; dim?: boolean; selected?: boolean; testId?: string;
+  onRelicClick?: (relic: { id: number; file: string; name: string }) => void;
 }) {
   const art = resolveCardVariant("creature", creatureId, creatureId, cards) ?? resolveCard("creature", creatureId, cards);
   const name = CREATURES[creatureId]?.name ?? "?";
@@ -34,7 +35,8 @@ export function FightCard({
         {relics.length > 0 && (
           <div className="scv-fc-wield">
             {relics.map((r, i) => r.art
-              ? <img key={i} className="scv-fc-relic" src={r.art.file} alt={r.name} title={r.name} />
+              ? <img key={i} className={"scv-fc-relic" + (onRelicClick ? " is-clickable" : "")} src={r.art.file} alt={r.name} title={r.name}
+                     onClick={onRelicClick ? (e) => { e.stopPropagation(); onRelicClick({ id: r.id, file: r.art!.file, name: r.name }); } : undefined} />
               : null)}
           </div>
         )}

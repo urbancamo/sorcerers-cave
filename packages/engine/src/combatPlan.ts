@@ -10,6 +10,8 @@ const C_SPECTRE = 9;
 const C_DRAGON = 10;
 const C_SORCERER = 11;
 const T_MAGIC_SWORD = 3;
+const T_MAGIC_STAFF = 9;
+const T_THE_RING = 10;
 
 export type PlanError =
   | "notFighting" | "emptyPlan" | "badIndex" | "deadMember" | "memberReused"
@@ -88,6 +90,10 @@ function enemyMP(state: GameState, sid: number): number {
 
 /** A match as it will actually be fought: the player's front + backers, the foe(s) it faces (the
  *  player's target plus any auto-attached strongest-combination foes), and the resolved strengths. */
+/** A named adjustment in play this round (an artefact bonus, a curse, surprise). `value` is signed;
+ *  `roll` true means it's added to the die roll (Ring/curse/surprise) rather than baked into strength. */
+export interface MatchModifier { label: string; value: number; side: "party" | "enemy"; roll: boolean; }
+
 export interface PreviewMatch {
   front: number[];     // party indices fighting hand-to-hand
   backers: number[];   // caster party indices in the background
@@ -95,6 +101,7 @@ export interface PreviewMatch {
   attached: number[];  // the subset of `strangers` the engine ganged on (not chosen by the player)
   partyStr: number;
   enemyStr: number;
+  modifiers: MatchModifier[]; // artefact/curse/surprise modifiers affecting this matchup
 }
 export interface PlanPreview {
   matches: PreviewMatch[];
@@ -141,13 +148,44 @@ export function previewPlan(state: GameState, plan: BattlePlan): PlanPreview {
   }
   const focus = base.find((mt) => !spectreMatch(mt.strangers));
 
+  const eye = eyeActive(state);
+  const round1 = state.fight?.round === 1;
+  const named = (i: number) => CREATURES[state.party[i]!.creatureId]!.name;
+
   const matches: PreviewMatch[] = base.map((mt) => {
     const spectre = spectreMatch(mt.strangers);
     const memberStr = (i: number) => (spectre && casterMP(state.party[i]!, state) > 0 ? casterMP(state.party[i]!, state) : frontStrength(state.party[i]!, state));
     const partyStr = mt.front.reduce((s, i) => s + memberStr(i), 0) + mt.backers.reduce((s, i) => s + casterMP(state.party[i]!, state), 0);
     let enemyStr = mt.strangers.reduce((s, si) => s + CREATURES[state.strangers[si]!]!.fs + enemyMP(state, state.strangers[si]!), 0);
     if (mt === focus) enemyStr += leftoverCasterMP;
-    return { front: mt.front, backers: mt.backers, strangers: mt.strangers, attached: mt.attached, partyStr, enemyStr };
+
+    // Modifiers in play for this matchup — artefact strength bonuses (already in the totals) plus the
+    // roll-time adjustments (Ring / curse / surprise) that get added to the die.
+    const modifiers: MatchModifier[] = [];
+    for (const i of mt.front) {
+      const m = state.party[i]!, c = m.creatureId;
+      if (!eye && m.treasure.includes(T_MAGIC_SWORD)) {
+        const v = c === 0 || c === 1 ? 2 : c === 5 || c === 6 ? 1 : 0; // Hero/W-Hero +2, Man/Woman +1
+        if (v) modifiers.push({ label: `Magic Sword · ${named(i)}`, value: v, side: "party", roll: false });
+      }
+      if (m.potionActive) modifiers.push({ label: `Strength Potion · ${named(i)}`, value: 2, side: "party", roll: false });
+    }
+    for (const i of mt.backers) {
+      const m = state.party[i]!, c = m.creatureId;
+      if (!eye && m.treasure.includes(T_MAGIC_STAFF)) {
+        const v = c === 4 ? 1 : c === 8 ? 2 : 0; // Priest +1, Wizard +2
+        if (v) modifiers.push({ label: `Magic Staff · ${named(i)}`, value: v, side: "party", roll: false });
+      }
+    }
+    if (!eye && state.party.some((m) => (m.status === 0 || m.status === 1) && m.treasure.includes(T_THE_RING))) {
+      modifiers.push({ label: "The Ring", value: 1, side: "party", roll: true });
+    }
+    if (state.curses > 0) modifiers.push({ label: state.curses > 1 ? `Curse ×${state.curses}` : "Curse", value: -state.curses, side: "party", roll: true });
+    if (round1 && state.fight?.surprise === 1) modifiers.push({ label: "Surprise", value: 1, side: "party", roll: true });
+    if (round1 && state.fight?.surprise === -1) modifiers.push({ label: "Surprise", value: 1, side: "enemy", roll: true });
+    if (eye) modifiers.push({ label: "Eye of God — magic & artefacts nullified", value: 0, side: "party", roll: false });
+
+    return { front: mt.front, backers: mt.backers, strangers: mt.strangers, attached: mt.attached, partyStr, enemyStr, modifiers };
   });
 
   const inMatch = new Set<number>(matches.flatMap((m) => m.strangers));

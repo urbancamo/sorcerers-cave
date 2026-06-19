@@ -41,8 +41,8 @@ describe("DiceRoll", () => {
 
     const dice = screen.getAllByTestId("die");
     expect(dice).toHaveLength(2);
-    expect(dice[0]).toHaveTextContent("5"); // party
-    expect(dice[1]).toHaveTextContent("2"); // enemy
+    expect(dice[0]).toHaveTextContent("2"); // foe on the left (matches the matchup panel)
+    expect(dice[1]).toHaveTextContent("5"); // party on the right
     expect(screen.getByText("Man")).toBeInTheDocument();
     expect(screen.getByText("Goblin")).toBeInTheDocument();
     expect(screen.getByText("vs")).toBeInTheDocument();

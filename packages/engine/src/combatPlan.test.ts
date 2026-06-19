@@ -160,6 +160,18 @@ describe("previewPlan — strongest-combination preview (§395)", () => {
     expect(pv.idle).toContain(3);                      // the Dwarf stands idle this round
   });
 
+  it("lists the artefact and round modifiers in play for a matchup", () => {
+    const s = clone(fightS({
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [3, 10] }], // Hero with the Magic Sword + The Ring
+      strangers: [3], fight: { surprise: 1, round: 1, focus: 0 }, // a Troll; the party has surprise
+    }));
+    const pv = previewPlan(s, { matches: [{ front: [0], backers: [], strangers: [0] }] });
+    const mods = pv.matches[0]!.modifiers;
+    expect(mods.find((m) => m.label === "Magic Sword · Hero")).toMatchObject({ value: 2, roll: false });
+    expect(mods.find((m) => m.label === "The Ring")).toMatchObject({ value: 1, roll: true });
+    expect(mods.find((m) => m.label === "Surprise")).toMatchObject({ value: 1, side: "party", roll: true });
+  });
+
   it("does not gang foes up while the party still has a free fighter (2-v-2 stays two 1-v-1)", () => {
     const s = clone(fightS({ party: [member(0), member(2)], strangers: [3, 5], seed: 5 })); // Hero, Ogre vs Troll, Man
     // Only the Hero is committed so far — the Ogre is still free, so the Man must NOT be ganged on.

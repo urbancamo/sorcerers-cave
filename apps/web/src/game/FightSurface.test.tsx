@@ -48,7 +48,7 @@ describe("FightSurface", () => {
     const { rerender } = render(<FightSurface state={fightState()} dispatch={() => {}} cards={cards} />);
     fireEvent.click(screen.getByTestId("tray-0")); // pick the Woman
     fireEvent.click(screen.getByTestId("front-0")); // place her against the Troll
-    expect(screen.getByTestId("front-0").textContent ?? "").not.toMatch(/drop a fighter/i); // now occupied
+    expect(screen.getByTestId("front-0").textContent ?? "").toContain("Woman"); // the Woman is now in the match
 
     // Next round: the Woman (idx 0) was slain in the last round.
     const s2 = fightState({
@@ -59,7 +59,7 @@ describe("FightSurface", () => {
       ],
     });
     rerender(<FightSurface state={s2} dispatch={() => {}} cards={cards} />);
-    expect(screen.getByTestId("front-0").textContent ?? "").toMatch(/drop a fighter/i); // pairing reset
+    expect(screen.getByTestId("front-0").textContent ?? "").not.toContain("Woman"); // pairing reset — she's gone
   });
 
   it("shows a second stranger ganging up on a lone fighter when out-numbered", () => {
@@ -75,12 +75,21 @@ describe("FightSurface", () => {
     const { rerender } = render(<FightSurface state={fightState()} dispatch={() => {}} cards={cards} />);
     fireEvent.click(screen.getByTestId("tray-0"));  // pick the Woman
     fireEvent.click(screen.getByTestId("front-0")); // place her against the Troll
-    expect(screen.getByTestId("front-0").textContent ?? "").not.toMatch(/drop a fighter/i); // occupied
+    expect(screen.getByTestId("front-0").textContent ?? "").toContain("Woman"); // placed
 
     // A drawn round: the round advances but the party and foes are unchanged.
     const s2 = fightState({ fight: { surprise: 0, round: 2, focus: 0 } });
     rerender(<FightSurface state={s2} dispatch={() => {}} cards={cards} />);
-    expect(screen.getByTestId("front-0").textContent ?? "").not.toMatch(/drop a fighter/i); // still placed
+    expect(screen.getByTestId("front-0").textContent ?? "").toContain("Woman"); // still placed
+  });
+
+  it("shows a fighter's artefact modifier in the matchup", () => {
+    const s: GameState = { ...newGame(1, [0]), phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, strangers: [3],
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [3] }] }; // Hero with the Magic Sword vs a Troll
+    render(<FightSurface state={s} dispatch={() => {}} cards={cards} />);
+    fireEvent.click(screen.getByTestId("tray-0"));  // pick the Hero
+    fireEvent.click(screen.getByTestId("front-0")); // engage the Troll
+    expect(screen.getByText(/Magic Sword/i)).toBeInTheDocument();
   });
 
   it("offers retreat after round 1", () => {
