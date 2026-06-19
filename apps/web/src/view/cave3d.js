@@ -414,7 +414,7 @@ function makeStoneCard(file){
     new THREE.MeshBasicMaterial({map:loadPlainTexture(file),color:0x6a6a72,transparent:true,depthWrite:false})); // greyed = stone
   face.rotation.x=-Math.PI/2; face.position.y=0.001; face.renderOrder=6;
   const marker=new THREE.Mesh(new THREE.PlaneGeometry(CARD_W*0.92,CARD_H*0.92),
-    new THREE.MeshBasicMaterial({map:loadPlainTexture(STONE_MARKER),transparent:true,depthWrite:false}));
+    new THREE.MeshBasicMaterial({map:loadPlainTexture(STONE_MARKER),transparent:true,opacity:0.5,depthWrite:false})); // half-transparent so the member shows through
   marker.rotation.x=-Math.PI/2; marker.position.y=0.02; marker.renderOrder=8;
   regMat(mat.material);regMat(face.material);regMat(marker.material);
   g.add(mat,face,marker);

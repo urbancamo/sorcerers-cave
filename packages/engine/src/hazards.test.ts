@@ -171,6 +171,8 @@ describe("applyHazards (spec §7.2)", () => {
     });
     const { events } = applyHazards(s);
     expect(s.party.every((m) => m.status === 0)).toBe(true);          // no one is turned to stone
-    expect(events.some((e) => e.type === "medusaGaze")).toBe(false);   // the gaze never fires
+    expect(events.some((e) => e.type === "medusaGaze")).toBe(false);   // the gaze never lands
+    expect(events).toContainEqual({ type: "medusaAverted" });          // the player is told the staff turned it aside
+    expect(events.some((e) => e.type === "hazardFired" && e.hazard === HAZARD_MEDUSA)).toBe(false); // not the "turned to stone" message
   });
 });

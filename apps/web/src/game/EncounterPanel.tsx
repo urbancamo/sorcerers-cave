@@ -13,6 +13,7 @@ function label(a: GameAction, state: GameState): string {
     case "withdraw": return "Withdraw";
     case "retreat": return `Retreat ${RETREAT_DIR[a.dir] ?? ""}`.trim();
     case "leaveTreasure": return "Leave the treasure";
+    case "retakeDropped": return "Retake dropped treasure (as before)";
     case "chooseCasualty": {
       const m = state.party[a.idx]!;
       const carried = m.treasure.length;

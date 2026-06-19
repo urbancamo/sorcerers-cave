@@ -8,6 +8,7 @@ export type GameAction =
   | { type: "withdraw" }
   | { type: "takeTreasure"; ti: number; mi: number }
   | { type: "leaveTreasure" }
+  | { type: "retakeDropped" } // (pickup, after a win) give each fighter back the heavy treasure it dropped to fight
   // Redistribute carried treasure (spec §"keep holdings… A player may redistribute treasure"):
   | { type: "moveTreasure"; from: number; to: number; idx: number } // give party[from].treasure[idx] to party[to]
   | { type: "dropTreasure"; mi: number; idx: number }               // drop party[mi].treasure[idx] onto the floor
@@ -71,6 +72,8 @@ export type GameEvent =
   | { type: "statueAttacked" }
   | { type: "wardedOff"; creatureId: number }
   | { type: "ghoulsWarded" } // a party member's Talisman turned the Ghouls away (card)
+  | { type: "medusaAverted" } // a Wizard's Magic Staff turned Medusa's gaze aside — no one stoned (card)
+  | { type: "droppedRetaken"; count: number } // fighters reclaimed the heavy treasure they dropped to fight
   | { type: "annihilated"; creatureId: number }
   | { type: "statuePowerless" }
   | { type: "deathPrevented"; creatureId: number }

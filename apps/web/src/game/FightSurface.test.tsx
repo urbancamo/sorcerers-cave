@@ -102,6 +102,15 @@ describe("FightSurface", () => {
     expect(screen.getByTestId("fight-surface")).toBeInTheDocument();
   });
 
+  it("dropping a caster into the background slot places it via dataTransfer (first drop works)", () => {
+    render(<FightSurface state={fightState()} dispatch={() => {}} cards={cards} />); // Woman(0), Priest(1) vs Troll, Spectre
+    fireEvent.click(screen.getByTestId("tray-0"));  // pick the Woman
+    fireEvent.click(screen.getByTestId("front-0")); // engage the Troll → the match gets a ✦ background slot
+    const dataTransfer = { getData: (t: string) => (t === "application/x-scv-member" ? "1" : ""), setData: () => {} };
+    fireEvent.drop(screen.getByTestId("bg-0"), { dataTransfer }); // drag the Priest (member 1) into the background
+    expect(screen.getByTestId("bg-0").textContent ?? "").toContain("Priest"); // the caster is shown behind, no error
+  });
+
   it("offers retreat after round 1", () => {
     const dispatch = vi.fn();
     // The gateway (card 175) has all four doorways, so legalActions offers N/E/S/W retreats at round > 1.

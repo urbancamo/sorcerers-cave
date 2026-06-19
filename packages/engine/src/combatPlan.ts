@@ -213,6 +213,7 @@ export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEve
       if (heavy.length) {
         area.contents.push(...heavy.map((t) => 200 + t));
         m.treasure = m.treasure.filter((t) => TREASURES[t]!.kind !== "heavy");
+        state.fightDrops = [...(state.fightDrops ?? []), ...heavy.map((t) => ({ mi: i, tid: t }))]; // remember who dropped what
       }
     }
   }

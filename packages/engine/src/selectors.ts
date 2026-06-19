@@ -106,6 +106,13 @@ export function legalActions(state: GameState): GameAction[] {
         }
       }
     }
+    // After a win, offer to retake the heavy treasure dropped to fight, in its prior distribution —
+    // when at least one dropped item is still on the floor and its dropper can carry it back.
+    const canRetake = (state.fightDrops ?? []).some(({ mi, tid }) => {
+      const m = state.party[mi];
+      return !!m && (m.status === 0 || m.status === 1) && state.treasures.includes(tid) && canCarry(m, tid);
+    });
+    if (canRetake) actions.push({ type: "retakeDropped" });
     actions.push({ type: "leaveTreasure" });
     actions.push(...artifactActions(state)); // e.g. Healing Balm to revive the fallen before moving on
     return actions;

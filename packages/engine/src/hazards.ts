@@ -20,6 +20,11 @@ function livingHolds(state: GameState, treasureId: number): boolean {
   return living(state).some((m) => m.treasure.includes(treasureId));
 }
 
+/** A living Wizard bearing the Magic Staff — makes Medusa powerless over the whole party (card). */
+function hasStaffWizard(state: GameState): boolean {
+  return state.party.some((m) => (m.status === 0 || m.status === 1) && m.creatureId === C_WIZARD && m.treasure.includes(T_MAGIC_STAFF));
+}
+
 /** Resolve every hazard in the working set, in priority order (spec §7.2). */
 export function applyHazards(state: GameState): { events: GameEvent[]; fell: boolean } {
   const events: GameEvent[] = [];
@@ -29,6 +34,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
   for (const hz of order) {
     if (!state.hazards.includes(hz)) continue;
     if (hz === HAZARD_GHOULS && livingHolds(state, T_TALISMAN)) { events.push({ type: "ghoulsWarded" }); continue; } // the Talisman wards off Ghouls (card)
+    if (hz === HAZARD_MEDUSA && hasStaffWizard(state)) { events.push({ type: "medusaAverted" }); continue; } // the staff averts her gaze — no one stoned
     events.push({ type: "hazardFired", hazard: hz });
     switch (hz) {
       case HAZARD_EARTHQUAKE: {
@@ -42,10 +48,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         break;
       }
       case HAZARD_MEDUSA: {
-        // While a living Wizard bearing the Magic Staff is in the room, Medusa is powerless — the staff
-        // wards (and reanimates) the whole party, so no one is gazed (§Medusa / Magic Staff).
-        const staffWizard = state.party.some((m) => (m.status === 0 || m.status === 1) && m.creatureId === C_WIZARD && m.treasure.includes(T_MAGIC_STAFF));
-        if (staffWizard) break;
+        // (A staff-Wizard's aversion is handled above, before the gaze fires.)
         const rolls: { creatureId: number; roll: number; petrified: boolean }[] = [];
         for (const m of state.party) {
           if (m.status !== 0 && m.status !== 1) continue;

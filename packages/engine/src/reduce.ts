@@ -46,6 +46,7 @@ function persistAndExplore(state: GameState): void {
   state.hazards = [];
   state.sleeping = [];
   state.lulled = [];
+  state.fightDrops = []; // moving on — the drop record no longer applies
   state.phase = "explore";
 }
 
@@ -65,6 +66,7 @@ function startFight(state: GameState, surprise: number): GameEvent[] {
   state.fight = { surprise, round: 1, focus: strongestStranger(state) };
   state.phase = "fight";
   state.surpriseReady = false; // the surprise (if any) is now baked into the fight
+  state.fightDrops = []; // fresh fight — forget any earlier drop record
   return [{ type: "fightStarted", surprise }];
 }
 
@@ -397,6 +399,31 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       const next = structuredClone(state);
       persistAndExplore(next);
       return { state: next, events: [] };
+    }
+
+    case "retakeDropped": {
+      // After a won fight: give each fighter back the heavy treasure it set down to fight (§387), in the
+      // distribution it had before — skipping any whose dropper fell or who can no longer carry it.
+      if (state.phase !== "pickup") return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      const remaining: { mi: number; tid: number }[] = [];
+      let count = 0;
+      for (const drop of next.fightDrops ?? []) {
+        const m = next.party[drop.mi];
+        const ti = next.treasures.indexOf(drop.tid);
+        if (m && (m.status === 0 || m.status === 1) && ti >= 0 && canCarry(m, drop.tid)) {
+          m.treasure.push(drop.tid);
+          next.treasures.splice(ti, 1);
+          count += 1;
+        } else {
+          remaining.push(drop);
+        }
+      }
+      if (count === 0) return { state, events: [{ type: "blocked" }] };
+      next.fightDrops = remaining;
+      const events: GameEvent[] = [{ type: "droppedRetaken", count }];
+      if (next.treasures.length === 0) persistAndExplore(next);
+      return { state: next, events };
     }
 
     case "moveTreasure": {

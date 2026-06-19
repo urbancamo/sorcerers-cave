@@ -640,6 +640,25 @@ describe("reduce — treasure redistribution (party panel)", () => {
     expect(state.areas[0]!.contents).not.toContain(200 + 1);
   });
 
+  it("retakeDropped returns each fighter's dropped treasure, as distributed before", () => {
+    const s = makeState({
+      phase: "pickup", treasures: [1, 2], // Gold + Gems reclaimed onto the floor after the win
+      party: [
+        { creatureId: 12, status: 0, dragonKills: 0, treasure: [] }, // Giant — dropped the Gold
+        { creatureId: 5, status: 0, dragonKills: 0, treasure: [] },  // Man  — dropped the Gems
+      ],
+      fightDrops: [{ mi: 0, tid: 1 }, { mi: 1, tid: 2 }],
+      areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+    });
+    expect(legalActions(s)).toContainEqual({ type: "retakeDropped" });
+    const { state, events } = reduce(s, { type: "retakeDropped" });
+    expect(state.party[0]!.treasure).toEqual([1]); // Giant got the Gold back
+    expect(state.party[1]!.treasure).toEqual([2]); // Man got the Gems back
+    expect(state.treasures).toEqual([]);           // floor cleared
+    expect(events).toContainEqual({ type: "droppedRetaken", count: 2 });
+    expect(state.phase).toBe("explore");           // nothing left to pick up → moved on
+  });
+
   it("retreat leaves a slain member's treasure behind; the living keep theirs (§426)", () => {
     // Two pre-placed chamber tiles (card 31 = NESW) so the party can flee north into the known tile.
     const s = makeState({

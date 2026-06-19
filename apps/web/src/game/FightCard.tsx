@@ -7,16 +7,20 @@ export type CardKind = "ally" | "caster" | "foe";
  *  party members) drag + click to assign. `strength` is the value shown in the badge. */
 export function FightCard({
   creatureId, kind, strength, caption, treasure = [], cards, state,
-  draggable, onPick, dim, selected, testId, onRelicClick,
+  draggable, onPick, dim, selected, testId, onRelicClick, artifactsOnly, dragId,
 }: {
   creatureId: number; kind: CardKind; strength: number; caption?: string;
   treasure?: number[]; cards: CardArt[]; state: GameState;
   draggable?: boolean; onPick?: () => void; dim?: boolean; selected?: boolean; testId?: string;
   onRelicClick?: (relic: { id: number; file: string; name: string }) => void;
+  artifactsOnly?: boolean; // in a matchup, heavy treasure is dropped to fight — show only kept artefacts
+  dragId?: number; // the party-member index this card carries when dragged (read by the drop targets)
 }) {
   const art = resolveCardVariant("creature", creatureId, creatureId, cards) ?? resolveCard("creature", creatureId, cards);
   const name = CREATURES[creatureId]?.name ?? "?";
-  const relics = treasure.map((t) => ({ id: t, art: resolveCard("treasure", t, cards), name: TREASURES[t]?.name ?? "artefact" }));
+  const relics = treasure
+    .filter((t) => !artifactsOnly || TREASURES[t]?.kind === "artifact")
+    .map((t) => ({ id: t, art: resolveCard("treasure", t, cards), name: TREASURES[t]?.name ?? "artefact" }));
 
   return (
     <div className={`scv-fc scv-fc-${kind}${dim ? " is-dim" : ""}${selected ? " is-sel" : ""}`}>
@@ -24,7 +28,7 @@ export function FightCard({
         className="scv-fc-frame"
         data-testid={testId}
         draggable={draggable}
-        onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; onPick?.(); }}
+        onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; if (dragId !== undefined) e.dataTransfer.setData("application/x-scv-member", String(dragId)); }}
         onClick={onPick}
         role={onPick ? "button" : undefined}
         tabIndex={onPick ? 0 : undefined}

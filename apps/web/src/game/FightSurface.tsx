@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { type DragEvent, useEffect, useRef, useState } from "react";
 import {
   CREATURES, legalActions, validatePlan, previewPlan, frontStrength, casterMP,
   type GameState, type GameAction,
@@ -77,6 +77,16 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
     setDraft((d) => place(d, sel, strangerIdx, role));
     setSel(null);
   };
+  // Drop: the dragged member rides in the dataTransfer (decoupled from the tap selection, so the first
+  // drop and dragging an already-placed card both land the right member). Falls back to a tap selection.
+  const dropOn = (e: DragEvent, strangerIdx: number, role: "front" | "backer") => {
+    e.preventDefault();
+    const raw = e.dataTransfer.getData("application/x-scv-member");
+    const mi = raw !== "" ? Number(raw) : sel;
+    if (mi === null || mi === undefined || Number.isNaN(mi)) return;
+    setDraft((d) => place(d, mi, strangerIdx, role));
+    setSel(null);
+  };
   const memberStrength = (i: number, spectre: boolean) => (spectre && isCaster(state, i) ? casterMP(state.party[i]!, state) : frontStrength(state.party[i]!, state));
 
   return (
@@ -113,22 +123,22 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
                 <div className="scv-match-line">
                   <div className="scv-match-front" data-testid={`front-${primary}`} role="button" tabIndex={0}
                        onClick={() => placeOn(primary, "front")} onKeyDown={(e) => { if (e.key === "Enter") placeOn(primary, "front"); }}
-                       onDragOver={(e) => e.preventDefault()} onDrop={() => placeOn(primary, "front")}>
+                       onDragOver={(e) => e.preventDefault()} onDrop={(e) => dropOn(e, primary, "front")}>
                     {[0, 1].map((slot) => {
                       const i = pm.front[slot];
                       return i !== undefined ? (
                         <FightCard key={slot} creatureId={state.party[i]!.creatureId} kind={kindOf(state, i)} strength={memberStrength(i, spectre)}
-                                   treasure={state.party[i]!.treasure} cards={cards} state={state} onRelicClick={showRelic} onPick={() => setDraft((d) => unplace(d, i))} />
+                                   treasure={state.party[i]!.treasure} artifactsOnly cards={cards} state={state} draggable dragId={i} onRelicClick={showRelic} onPick={() => setDraft((d) => unplace(d, i))} />
                       ) : <span key={slot} className="scv-slot-empty">drop a fighter</span>;
                     })}
                   </div>
                   <div className="scv-match-bg" data-testid={`bg-${primary}`} role="button" tabIndex={0}
                        onClick={() => placeOn(primary, "backer")} onKeyDown={(e) => { if (e.key === "Enter") placeOn(primary, "backer"); }}
-                       onDragOver={(e) => e.preventDefault()} onDrop={() => placeOn(primary, "backer")}>
+                       onDragOver={(e) => e.preventDefault()} onDrop={(e) => dropOn(e, primary, "backer")}>
                     <span className="scv-match-slotlbl">✦ behind</span>
                     {pm.backers.length ? pm.backers.map((i) => (
                       <FightCard key={i} creatureId={state.party[i]!.creatureId} kind="caster" strength={casterMP(state.party[i]!, state)}
-                                 treasure={state.party[i]!.treasure} cards={cards} state={state} onRelicClick={showRelic} onPick={() => setDraft((d) => unplace(d, i))} />
+                                 treasure={state.party[i]!.treasure} cards={cards} state={state} draggable dragId={i} onRelicClick={showRelic} onPick={() => setDraft((d) => unplace(d, i))} />
                     )) : <span className="scv-match-hint">magic user</span>}
                   </div>
                 </div>
@@ -164,12 +174,12 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
               <div className="scv-match-line">
                 <div className="scv-match-front" data-testid={`front-${si}`} role="button" tabIndex={0}
                      onClick={() => placeOn(si, "front")} onKeyDown={(e) => { if (e.key === "Enter") placeOn(si, "front"); }}
-                     onDragOver={(e) => e.preventDefault()} onDrop={() => placeOn(si, "front")}>
+                     onDragOver={(e) => e.preventDefault()} onDrop={(e) => dropOn(e, si, "front")}>
                   {[0, 1].map((slot) => <span key={slot} className="scv-slot-empty">drop a fighter</span>)}
                 </div>
                 <div className="scv-match-bg" data-testid={`bg-${si}`} role="button" tabIndex={0}
                      onClick={() => placeOn(si, "backer")} onKeyDown={(e) => { if (e.key === "Enter") placeOn(si, "backer"); }}
-                     onDragOver={(e) => e.preventDefault()} onDrop={() => placeOn(si, "backer")}>
+                     onDragOver={(e) => e.preventDefault()} onDrop={(e) => dropOn(e, si, "backer")}>
                   <span className="scv-match-slotlbl">✦ behind</span>
                   <span className="scv-match-hint">magic user</span>
                 </div>
@@ -183,7 +193,7 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
         <span className="scv-fight-cap">Your party — tap a fighter then a foe (or drag):</span>
         {tray.length ? tray.map((i) => (
           <FightCard key={i} testId={`tray-${i}`} creatureId={state.party[i]!.creatureId} kind={kindOf(state, i)} strength={frontStrength(state.party[i]!, state)}
-                     treasure={state.party[i]!.treasure} cards={cards} state={state} draggable selected={sel === i}
+                     treasure={state.party[i]!.treasure} cards={cards} state={state} draggable dragId={i} selected={sel === i}
                      onPick={() => setSel(sel === i ? null : i)} />
         )) : <span className="scv-fight-hint">all fighters assigned</span>}
       </div>

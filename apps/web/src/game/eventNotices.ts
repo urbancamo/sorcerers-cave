@@ -103,6 +103,12 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "ghoulsWarded":
         out.push({ text: "The party's Talisman wards off the Ghouls — they slink away unfought.", tone: "good" });
         break;
+      case "medusaAverted":
+        out.push({ text: "Medusa's gaze sweeps the party — but the Wizard's Magic Staff turns it aside; no one is stoned.", tone: "good" });
+        break;
+      case "droppedRetaken":
+        out.push({ text: `Your fighters reclaim ${plural(e.count, "treasure")} they set down for the fight.`, tone: "good" });
+        break;
       case "annihilated":
         out.push({ text: `The Eye of God annihilates ${name(e.creatureId)}!`, tone: "good" });
         break;

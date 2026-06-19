@@ -119,4 +119,7 @@ export interface GameState {
   // Areas this party retreated from: those strangers stay hostile to it for the rest of the game
   // (§Retreat) and attack on sight if the party returns. Per-party; other parties are unaffected.
   hostileAreas?: number[];
+  // Heavy treasure dropped to the floor by front-line fighters this fight (§387), with the member that
+  // dropped each — lets the won-fight pickup offer "retake as distributed before" in one step.
+  fightDrops?: { mi: number; tid: number }[];
 }
