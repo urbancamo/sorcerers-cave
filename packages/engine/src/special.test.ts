@@ -23,7 +23,7 @@ describe("viperCrossing (spec §10.1)", () => {
     expect(s.seed).not.toBe(4); // dice were rolled
   });
 
-  it("rolls a d6 per living member; a 1 means falling in (death, treasure lost)", () => {
+  it("rolls a d6 per living member; a 1 or 2 means falling in (death, treasure lost)", () => {
     // Roll outcomes are seed-driven; assert the mechanism: every member ends up alive (0) or fallen (3),
     // and any fallen member has lost its treasure.
     const s = makeState({ party: [member(5, [1]), member(5, [0])], seed: 4 });
@@ -44,7 +44,7 @@ describe("viperCrossing (spec §10.1)", () => {
     for (const r of pit.rolls) {
       expect(r.roll).toBeGreaterThanOrEqual(1);
       expect(r.roll).toBeLessThanOrEqual(6);
-      expect(r.died).toBe(r.roll === 1); // a 1 is the fatal fall
+      expect(r.died).toBe(r.roll <= 2); // a 1 or 2 is the fatal fall
     }
     // Every member that the rolls marked as died is dead in state, with its treasure lost.
     const deadIds = pit.rolls.filter((r) => r.died).length;

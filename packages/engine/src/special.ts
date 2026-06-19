@@ -10,19 +10,19 @@ function living(state: GameState): PartyMember[] {
   return state.party.filter((m) => m.status === 0 || m.status === 1);
 }
 
-/** Cross the Viper Pit (§10.1). Each living member risks a fatal fall (roll of 1); the
+/** Cross the Viper Pit (§10.1). Each living member risks a fatal fall (a roll of 1 or 2); the
  *  Charmed Flute lulls the vipers so the whole party crosses safely. Threads the seed. */
 export function viperCrossing(state: GameState): GameEvent[] {
   const events: GameEvent[] = [];
   const members = living(state);
   // The Charmed Flute (played by an eligible member) lulls the vipers — the party crosses unharmed.
   if (fluteLulls(state)) return [{ type: "vipersLulled" }];
-  // Roll a d6 per member so the UI can show the crossing (a 1 is a fatal fall into the pit).
+  // Roll a d6 per member so the UI can show the crossing (a 1 or 2 is a fatal fall into the pit).
   const rolls: { creatureId: number; roll: number; died: boolean }[] = [];
   for (const m of members) {
     const r = rollDie(state.seed);
     state.seed = r.seed;
-    const died = r.value === 1;
+    const died = r.value <= 2;
     rolls.push({ creatureId: m.creatureId, roll: r.value, died });
     if (died) {
       m.status = 3;
