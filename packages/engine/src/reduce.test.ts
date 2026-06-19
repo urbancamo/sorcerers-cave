@@ -238,7 +238,7 @@ describe("reduce — stranger encounters (C-2 §8)", () => {
       phase: "pickup", treasures: [1],
       party: [
         { creatureId: 8, status: 0, dragonKills: 0, treasure: [9] }, // Wizard holding the Magic Staff
-        { creatureId: 0, status: 2, dragonKills: 0, treasure: [] },  // petrified Hero
+        { creatureId: 0, status: 2, dragonKills: 0, treasure: [], stoneArea: 0 },  // petrified Hero (stoned in this area)
       ],
       areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
     });
@@ -577,6 +577,39 @@ describe("reduce — treasure redistribution (party panel)", () => {
     expect(events).toContainEqual({ type: "strangerKilled", creatureId: 7 });
     expect(events).toContainEqual({ type: "fightWon" });
     expect(state.phase).toBe("explore");
+  });
+
+  it("returning to a chamber with a Wizard + Magic Staff frees the members left as stone there (§Medusa)", () => {
+    // Two connected chambers; a Man is stone in area A (index 0). The party (with a Wizard holding the
+    // Magic Staff) is in B (index 1) and moves back south into A.
+    const A = { card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };
+    const B = { card: 31, coord: packCoord(1, 50, 49), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };
+    const s = makeState({
+      phase: "explore", areas: [A, B], partyArea: 1, prev: 0, level: 1,
+      party: [
+        { creatureId: 8, status: 0, dragonKills: 0, treasure: [9] },            // Wizard with the Magic Staff
+        { creatureId: 5, status: 2, dragonKills: 0, treasure: [], stoneArea: 0 }, // Man, left as stone in A
+      ],
+    });
+    const { state, events } = reduce(s, { type: "move", dir: DIR_S }); // B(50,49) → A(50,50)
+    expect(state.partyArea).toBe(0);
+    expect(state.party[1]!.status).toBe(0);            // revived
+    expect(state.party[1]!.stoneArea).toBeUndefined(); // pin cleared
+    expect(events).toContainEqual({ type: "memberRevived", creatureId: 5 });
+  });
+
+  it("without a Wizard + Magic Staff, stone members left in a chamber stay stone on return", () => {
+    const A = { card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };
+    const B = { card: 31, coord: packCoord(1, 50, 49), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };
+    const s = makeState({
+      phase: "explore", areas: [A, B], partyArea: 1, prev: 0, level: 1,
+      party: [
+        { creatureId: 0, status: 0, dragonKills: 0, treasure: [] },             // a Hero, no staff
+        { creatureId: 5, status: 2, dragonKills: 0, treasure: [], stoneArea: 0 }, // Man, stone in A
+      ],
+    });
+    const { state } = reduce(s, { type: "move", dir: DIR_S });
+    expect(state.party[1]!.status).toBe(2); // still stone
   });
 
   it("withdraw is blocked when an earthquake has collapsed the way back (§Earthquake)", () => {

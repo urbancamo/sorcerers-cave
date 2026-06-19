@@ -23,6 +23,8 @@ export interface PartyMember {
   dragonKills: number;
   treasure: number[]; // treasure ids carried
   potionActive?: boolean; // Strength Potion drunk this fight (+2 frontStrength until it ends)
+  stoneArea?: number; // when petrified (status 2): the area index where Medusa struck — the member is
+                      // left there until a Wizard with the Magic Staff returns to free it (§Medusa).
 }
 
 export interface PlacedArea {

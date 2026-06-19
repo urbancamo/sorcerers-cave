@@ -10,12 +10,14 @@ export interface ViewItem {
 }
 export interface ViewPartyMember {
   sig: string; name: string; lead?: boolean;
+  card: string | null; // the member's creature small-card art (used to lay petrified members in the chamber)
   items: ViewItem[];
   carry: number;  // capacity (kg)
   load: number;   // carried heavy weight (kg)
   fs: number; mp: number; charisma: boolean;
   ally: boolean;      // befriended stranger (status 1), not an original recruit
   petrified: boolean; // turned to stone (status 2) — incapacitated until cured
+  stoneArea: number | null; // when petrified, the area index it was left in (for the in-chamber display)
 }
 export interface BootOptions {
   mount: HTMLElement;

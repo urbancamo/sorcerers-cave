@@ -49,7 +49,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
           const r = rollDie(state.seed);
           state.seed = r.seed;
           const petrified = r.value <= 2; // a 1 or 2 turns that creature to stone (§Medusa)
-          if (petrified) m.status = 2;
+          if (petrified) { m.status = 2; m.stoneArea = state.partyArea; } // left as stone in this chamber
           rolls.push({ creatureId: m.creatureId, roll: r.value, petrified });
         }
         if (rolls.length) events.push({ type: "medusaGaze", rolls });

@@ -52,6 +52,9 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "spectreSlew":
         out.push({ text: `A Spectre's touch slays ${name(e.creatureId)}!`, tone: "bad" });
         break;
+      case "memberRevived":
+        out.push({ text: `The Magic Staff frees ${name(e.creatureId)} from stone — they rejoin the party.`, tone: "good" });
+        break;
       case "petrifiedOut":
         out.push({ text: "No party members have been left alive by Medusa's gaze.", tone: "bad" });
         break;

@@ -72,10 +72,10 @@ describe("legalActions — usable artifacts (E-1)", () => {
   });
 
   it("offers Healing Balm (Priest) and Magic Staff (Wizard) on downed members while exploring", () => {
-    const s = makeState({ phase: "explore", areas: [A], party: [M(4, [6]), M(8, [9]), M(5, [], 3), M(2, [], 2)] });
+    const s = makeState({ phase: "explore", areas: [A], party: [M(4, [6]), M(8, [9]), M(5, [], 3), { ...M(2, [], 2), stoneArea: 0 }] });
     const acts = legalActions(s);
     expect(acts).toContainEqual({ type: "useArtifact", artifact: 6, target: 2 }); // revive the dead Man
-    expect(acts).toContainEqual({ type: "useArtifact", artifact: 9, target: 3 }); // un-stone the Ogre
+    expect(acts).toContainEqual({ type: "useArtifact", artifact: 9, target: 3 }); // un-stone the Ogre (stoned in this area)
   });
 
   it("does not offer artifacts that no living bearer holds", () => {

@@ -36,11 +36,18 @@ describe("useArtifact — Healing Balm (§16)", () => {
 });
 
 describe("useArtifact — Magic Staff reanimation (§16)", () => {
-  it("a Wizard restores a stoned member and the staff is NOT consumed", () => {
-    const s = makeState({ phase: "explore", areas: [area], party: [member(8, [9]), member(5, [], 2)] }); // Wizard with staff + stoned Man
+  it("a Wizard restores a stoned member left in this area and the staff is NOT consumed", () => {
+    // The stoned Man was left to stone in this very area (stoneArea 0 = the party's tile).
+    const s = makeState({ phase: "explore", areas: [area], party: [member(8, [9]), { ...member(5, [], 2), stoneArea: 0 }] });
     const { state } = reduce(s, { type: "useArtifact", artifact: 9, target: 1 });
     expect(state.party[1]!.status).toBe(0); // un-stoned
+    expect(state.party[1]!.stoneArea).toBeUndefined(); // pin cleared
     expect(state.party[0]!.treasure).toEqual([9]); // staff kept (permanent)
+  });
+
+  it("the staff cannot reach a member stoned in a DIFFERENT chamber", () => {
+    const s = makeState({ phase: "explore", areas: [area], partyArea: 0, party: [member(8, [9]), { ...member(5, [], 2), stoneArea: 7 }] });
+    expect(reduce(s, { type: "useArtifact", artifact: 9, target: 1 }).events).toContainEqual({ type: "blocked" });
   });
 });
 

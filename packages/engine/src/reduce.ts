@@ -97,9 +97,29 @@ function finalizeRound(state: GameState): GameEvent[] {
   return events;
 }
 
+/** Free any party members left as stone in the party's CURRENT area, if a living Wizard bearing the
+ *  Magic Staff is present (§Medusa). They rejoin the party and leave the chamber's stone display. */
+function reviveStoned(state: GameState): GameEvent[] {
+  const events: GameEvent[] = [];
+  const wizardWithStaff = state.party.some(
+    (m) => (m.status === 0 || m.status === 1) && m.creatureId === 8 && m.treasure.includes(9),
+  );
+  if (!wizardWithStaff) return events;
+  for (const m of state.party) {
+    if (m.status === 2 && m.stoneArea === state.partyArea) {
+      m.status = 0;
+      m.stoneArea = undefined;
+      events.push({ type: "memberRevived", creatureId: m.creatureId });
+    }
+  }
+  return events;
+}
+
 /** Resolve the area just entered: special markers, then chamber draw + hazards + phase (spec §4/§7). */
 function resolveArea(state: GameState): GameEvent[] {
   const events: GameEvent[] = [{ type: "moved", area: state.partyArea, level: state.level }];
+  // Returning to a chamber with our petrified members + a Wizard's Magic Staff frees them on arrival.
+  events.push(...reviveStoned(state));
 
   for (;;) {
     const dec = decodeArea(state.areas[state.partyArea]!.card);
@@ -579,11 +599,12 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
           consume();
           return ok;
         }
-        case 9: { // Magic Staff reanimation — at rest or while looting, target a stoned member; NOT consumed
+        case 9: { // Magic Staff reanimation — at rest or while looting, free a stoned member IN THIS area; NOT consumed
           if ((next.phase !== "explore" && next.phase !== "pickup") || action.target === undefined) return { state, events: [{ type: "blocked" }] };
           const sm = next.party[action.target];
-          if (!sm || sm.status !== 2) return { state, events: [{ type: "blocked" }] };
+          if (!sm || sm.status !== 2 || sm.stoneArea !== next.partyArea) return { state, events: [{ type: "blocked" }] };
           sm.status = 0;
+          sm.stoneArea = undefined;
           return ok;
         }
         case 5: { // Lotus Dust — encounter or fight, target a stranger (put to sleep)

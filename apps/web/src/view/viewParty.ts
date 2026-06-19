@@ -24,6 +24,7 @@ export function viewParty(state: GameState, cards: CardArt[] = []): ViewPartyMem
       sig: c.name[0]!.toUpperCase(),
       name: c.name,
       lead: i === 0,
+      card: resolveCard("creature", m.creatureId, cards)?.file ?? null,
       items,
       carry: c.carry,
       load,
@@ -32,6 +33,7 @@ export function viewParty(state: GameState, cards: CardArt[] = []): ViewPartyMem
       charisma: (c.flags & FLAG_CHARISMA) !== 0,
       ally: m.status === 1,
       petrified: m.status === 2,
+      stoneArea: m.status === 2 ? (m.stoneArea ?? null) : null,
     };
   });
 }

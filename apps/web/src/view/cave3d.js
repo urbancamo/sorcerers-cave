@@ -69,7 +69,8 @@ function doorTexture(idx){
 /* ---- groups ---- */
 const platformGroup=new THREE.Group(),tileGroup=new THREE.Group(),stairGroup=new THREE.Group(),
       fxGroup=new THREE.Group(),exitGroup=new THREE.Group(),contentGroup=new THREE.Group(),
-      secretGroup=new THREE.Group(),otherGroup=new THREE.Group(); // otherGroup: other parties' tokens (multiplayer)
+      secretGroup=new THREE.Group(),otherGroup=new THREE.Group(), // otherGroup: other parties' tokens (multiplayer)
+      petrifiedGroup=new THREE.Group(); // members turned to stone, laid greyed-out on the party's tile
 const tileMeshes=[]; const exitMarkers=[]; const spawnAnims=[]; const stairDashes=[];
 const pendingTiles=new Set(); // coords whose mesh is mid-build (guards against duplicate laying)
 const contentMeshes=[]; const cardAnims=[];
@@ -289,7 +290,7 @@ function reconcileTiles(){
   if(changed){ rebuildPlatforms(); rebuildStairs(); rebuildSecretDoors(); rebuildLevelButtons(); }
 }
 function refresh(){
-  updateHUD(); selectCurrent(); refreshExitMarkers(); reconcileTiles();
+  updateHUD(); selectCurrent(); refreshExitMarkers(); reconcileTiles(); layPetrified();
   // Re-lay every chamber whose on-floor cards changed (e.g. a treasure was picked up);
   // layContents is a no-op when an area's contents are unchanged.
   engine.areas.forEach(a=>layContents(a,false));
@@ -398,6 +399,48 @@ function layContents(area, animated){
   });
   grp.userData.lvl=area.level; contentGroup.add(grp);
   contentGroups.set(key,{group:grp,sig,faces});
+}
+
+/* Members turned to stone by Medusa: their creature card laid greyed-out on the party's tile with the
+   stone marker card on top (docs/assets/tokens/markers/marker-02.png). Rebuilt whenever the party or
+   its position changes; they remain until cured by the Magic Staff. */
+const STONE_MARKER='/assets/tokens/markers/marker-02.png';
+function makeStoneCard(file){
+  const g=new THREE.Group();
+  const mat=new THREE.Mesh(new THREE.PlaneGeometry(CARD_W*1.16,CARD_H*1.12),
+    new THREE.MeshBasicMaterial({color:0x05050a,transparent:true,opacity:0.55,depthWrite:false}));
+  mat.rotation.x=-Math.PI/2; mat.position.y=-0.012; mat.renderOrder=4;
+  const face=new THREE.Mesh(new THREE.PlaneGeometry(CARD_W,CARD_H),
+    new THREE.MeshBasicMaterial({map:loadPlainTexture(file),color:0x6a6a72,transparent:true,depthWrite:false})); // greyed = stone
+  face.rotation.x=-Math.PI/2; face.position.y=0.001; face.renderOrder=6;
+  const marker=new THREE.Mesh(new THREE.PlaneGeometry(CARD_W*0.92,CARD_H*0.92),
+    new THREE.MeshBasicMaterial({map:loadPlainTexture(STONE_MARKER),transparent:true,depthWrite:false}));
+  marker.rotation.x=-Math.PI/2; marker.position.y=0.02; marker.renderOrder=8;
+  regMat(mat.material);regMat(face.material);regMat(marker.material);
+  g.add(mat,face,marker);
+  return g;
+}
+function layPetrified(){
+  if(!petrifiedGroup) return;
+  for(let i=petrifiedGroup.children.length-1;i>=0;i--){const o=petrifiedGroup.children[i];o.traverse?.(x=>{x.geometry?.dispose?.();x.material?.dispose?.();});petrifiedGroup.remove(o);}
+  const stoned=PARTY.filter(m=>m.petrified&&m.card&&m.stoneArea!=null);
+  if(!stoned.length||!engine) return;
+  const areas=engine.areas;
+  // Group the stoned by the chamber they were left in, and lay each group on that tile.
+  const byArea=new Map();
+  stoned.forEach(m=>{ const a=byArea.get(m.stoneArea)||[]; a.push(m); byArea.set(m.stoneArea,a); });
+  byArea.forEach((members,ai)=>{
+    const area=areas[ai]; if(!area) return;
+    const grp=new THREE.Group(); grp.position.copy(worldPos(area));
+    const n=members.length, center=(n-1)/2, dx=0.27, fanStep=n>1?Math.min(0.17,0.62/(n-1)):0;
+    members.forEach((m,i)=>{
+      const off=i-center;
+      const o=makeStoneCard(m.card); o.rotation.y=-off*fanStep;
+      o.position.set(TILE_W*0.16 + off*dx, 0.07 + i*0.016, TILE_D*0.19 + Math.abs(off)*0.045); // lower-right, clear of the content lanes
+      grp.add(o);
+    });
+    petrifiedGroup.add(grp);
+  });
 }
 const goal={pos:new THREE.Vector3(),target:new THREE.Vector3(),fov:45,active:false};
 function flyTo(pos,target,fov){goal.pos.copy(pos);goal.target.copy(target);goal.fov=fov??camera.fov;goal.active=true;controls.enabled=false;}
@@ -627,9 +670,9 @@ function setParty(p){
   const leaving=removed.map(i=>rows[i]).filter(Boolean);
   if(leaving.length){
     leaving.forEach(r=>r.classList.add('mbr-leaving'));
-    rosterAnimTimer=setTimeout(()=>{ rosterAnimTimer=null; PARTY=p; renderRoster(); updateHUD(); }, 520);
+    rosterAnimTimer=setTimeout(()=>{ rosterAnimTimer=null; PARTY=p; renderRoster(); updateHUD(); layPetrified(); }, 520);
   } else {
-    PARTY=p; renderRoster(); updateHUD();
+    PARTY=p; renderRoster(); updateHUD(); layPetrified();
   }
 }
 /* ---- other parties' tokens (multiplayer): small coloured pins at each party's tile ---- */
@@ -740,10 +783,10 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
   controls.zoomSpeed=1.7; controls.zoomToCursor=true; // snappier wheel zoom, toward the pointer
   controls.minDistance=4; controls.maxDistance=95; controls.maxPolarAngle=Math.PI*0.97;
   maxAniso=renderer.capabilities.getMaxAnisotropy();
-  scene.add(platformGroup,tileGroup,stairGroup,fxGroup,exitGroup,contentGroup,secretGroup,otherGroup);
+  scene.add(platformGroup,tileGroup,stairGroup,fxGroup,exitGroup,contentGroup,secretGroup,otherGroup,petrifiedGroup);
 
   // reset accumulated scene state so a new game (boot re-runs after dispose) starts from a clean map
-  [platformGroup,tileGroup,stairGroup,fxGroup,exitGroup,contentGroup,secretGroup,otherGroup].forEach(g=>{
+  [platformGroup,tileGroup,stairGroup,fxGroup,exitGroup,contentGroup,secretGroup,otherGroup,petrifiedGroup].forEach(g=>{
     for(let i=g.children.length-1;i>=0;i--){const o=g.children[i];o.traverse?.(x=>{x.geometry?.dispose?.();x.material?.dispose?.();});g.remove(o);}
   });
   tileMeshes.length=0;exitMarkers.length=0;spawnAnims.length=0;stairDashes.length=0;contentMeshes.length=0;cardAnims.length=0;pendingTiles.clear();

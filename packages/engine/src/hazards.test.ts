@@ -31,7 +31,10 @@ describe("applyHazards (spec §7.2)", () => {
       seed: 3,
     });
     applyHazards(s);
-    for (const m of s.party) expect([0, 2]).toContain(m.status);
+    for (const m of s.party) {
+      expect([0, 2]).toContain(m.status);
+      if (m.status === 2) expect(m.stoneArea).toBe(s.partyArea); // stone members are pinned to this chamber
+    }
   });
 
   it("Medusa and Ghouls lurk — re-parked into the chamber so they reload on re-entry", () => {

@@ -41,6 +41,7 @@ export type GameEvent =
   | { type: "memberDied"; creatureId: number }
   | { type: "strangerKilled"; creatureId: number }
   | { type: "spectreSlew"; creatureId: number }
+  | { type: "memberRevived"; creatureId: number } // a stoned member freed by a returning Wizard's Magic Staff
   | { type: "reaction"; outcome: "hostile" | "indifferent" | "friendly"; roll: number }
   | { type: "pacified" } // a 3rd indifferent test — the strangers are now permanently indifferent to this party
   | { type: "strangersJoined"; count: number }

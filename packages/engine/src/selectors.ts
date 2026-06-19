@@ -36,8 +36,8 @@ function artifactActions(state: GameState): GameAction[] {
   if (atRestOrLooting && has(6, (id) => id === 6 || id === 1 || id === 4 || id === 8)) { // Healing Balm -> Woman/W-Hero/Priest/Wizard, per dead member
     state.party.forEach((m, idx) => { if (m.status === 3) actions.push({ type: "useArtifact", artifact: 6, target: idx }); });
   }
-  if (atRestOrLooting && has(9, (id) => id === 8)) { // Magic Staff (Wizard) -> each stoned member
-    state.party.forEach((m, idx) => { if (m.status === 2) actions.push({ type: "useArtifact", artifact: 9, target: idx }); });
+  if (atRestOrLooting && has(9, (id) => id === 8)) { // Magic Staff (Wizard) -> each stoned member left in THIS area
+    state.party.forEach((m, idx) => { if (m.status === 2 && m.stoneArea === state.partyArea) actions.push({ type: "useArtifact", artifact: 9, target: idx }); });
   }
   if (state.phase === "explore") {
     if (has(4, (id) => id === 4 || id === 8)) { // Magic Carpet -> teleport in each available direction
