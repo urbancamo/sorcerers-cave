@@ -2,7 +2,22 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { PartySelect } from "./PartySelect";
 
+// Give every creature card a stub art file so the cards are zoomable in tests.
+vi.mock("../data/manifest", () => ({
+  loadManifest: () => Promise.resolve({ cards: [] }),
+  resolveCard: (_cat: string, id: number) => ({ file: `/c${id}.png` }),
+}));
+
 describe("PartySelect", () => {
+  it("zooms a card when its art is clicked, and closes again", async () => {
+    render(<PartySelect onConfirm={() => {}} />);
+    const art = await screen.findByRole("button", { name: /zoom the woman card/i });
+    fireEvent.click(art);
+    expect(screen.getByTestId("card-zoom")).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("card-zoom")); // click anywhere closes
+    expect(screen.queryByTestId("card-zoom")).toBeNull();
+  });
+
   it("confirms a budget-valid party and reports the picks", () => {
     const onConfirm = vi.fn();
     render(<PartySelect onConfirm={onConfirm} />);

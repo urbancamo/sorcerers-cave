@@ -25,6 +25,16 @@ export function PartySelect({
   const [counts, setCounts] = useState<Record<number, number>>({});
   const [color, setColor] = useState<PartyColor>(lockedColor ?? DEFAULT_PARTY_COLOR);
   const [cardFile, setCardFile] = useState<Record<number, string>>({});
+  // Click a card to read its printed attributes full-size (a dismissable lightbox).
+  const [zoom, setZoom] = useState<{ file: string; name: string } | null>(null);
+
+  // Esc closes the zoom.
+  useEffect(() => {
+    if (!zoom) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setZoom(null); };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [zoom]);
 
   // Card art is a progressive enhancement: if the manifest can't be fetched
   // (e.g. under test), the cards fall back to a name placeholder.
@@ -64,7 +74,15 @@ export function PartySelect({
           const file = cardFile[c.id];
           return (
             <div key={c.id} className={"scv-card" + (n > 0 ? " sel" : "") + (avail === 0 ? " gone" : "")}>
-              <div className="scv-card-art">
+              <div
+                className="scv-card-art"
+                role={file ? "button" : undefined}
+                tabIndex={file ? 0 : undefined}
+                title={file ? `View the ${c.name} card` : undefined}
+                aria-label={file ? `Zoom the ${c.name} card` : undefined}
+                onClick={() => file && setZoom({ file, name: c.name })}
+                onKeyDown={(e) => { if (file && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setZoom({ file, name: c.name }); } }}
+              >
                 {file ? <img src={file} alt={c.name} /> : <span className="ph">{c.name}</span>}
               </div>
               <div className="scv-card-nm">{c.name}</div>
@@ -99,6 +117,14 @@ export function PartySelect({
       <button className="scv-primary" disabled={!valid} onClick={() => onConfirm(picks, lockedColor ?? color)}>
         {confirmLabel(picks.length)}
       </button>
+
+      {zoom && (
+        <div className="scv-card-zoom" role="dialog" aria-label={zoom.name} data-testid="card-zoom"
+             onClick={() => setZoom(null)}>
+          <img src={zoom.file} alt={zoom.name} />
+          <span className="scv-card-zoom-cap">{zoom.name} — click anywhere or press Esc to close</span>
+        </div>
+      )}
     </section>
   );
 }
