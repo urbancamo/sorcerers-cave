@@ -1,5 +1,6 @@
 import { rollDie } from "./rng";
 import { CREATURES, FLAG_CHARISMA } from "./data/creatures";
+import { activeCurses } from "./effects";
 import type { GameState } from "./state";
 
 export type Reaction = "hostile" | "indifferent" | "friendly";
@@ -23,7 +24,7 @@ export function reactionRoll(state: GameState): { seed: number; outcome: Reactio
     (m) => (m.status === 0 || m.status === 1) && (CREATURES[m.creatureId]!.flags & FLAG_CHARISMA) !== 0,
   );
   if (hasCharisma) roll += 1;
-  roll -= state.curses;
+  roll -= activeCurses(state);
   roll = Math.max(1, Math.min(6, roll));
   if (natural1) roll = 1; // a natural 1 always counts as 1 (spec §8.3)
 

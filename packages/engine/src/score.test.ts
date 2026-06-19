@@ -23,17 +23,36 @@ describe("scoreGame (spec §12)", () => {
     expect(scoreGame(s)).toBe(30);
   });
 
-  it("excludes stone/dead members, adds sorcerer bonus, subtracts 30 per curse", () => {
+  it("excludes stone/dead members and subtracts 30 per curse", () => {
     const s = makeState({
       gs: GS_ESCAPED,
-      sorcererKilled: true,
-      curses: 1,
+      curses: 2,
       party: [
         { creatureId: 0, status: 0, dragonKills: 0, treasure: [] }, // Hero 10
         { creatureId: 5, status: 2, dragonKills: 0, treasure: [2] }, // STONE -> excluded
       ],
     });
-    expect(scoreGame(s)).toBe(10 + 30 - 30); // 10
+    expect(scoreGame(s)).toBe(0); // 10 - 60 clamped at 0
+  });
+
+  it("adds the 30-point Sorcerer bounty", () => {
+    const s = makeState({
+      gs: GS_ESCAPED,
+      sorcererKilled: true,
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }], // Hero 10
+    });
+    expect(scoreGame(s)).toBe(40); // 10 + 30
+  });
+
+  it("lifts every curse penalty once the Sorcerer is slain (§Curse)", () => {
+    const cursed = {
+      gs: GS_ESCAPED,
+      curses: 2,
+      party: [{ creatureId: 0, status: 0 as const, dragonKills: 0, treasure: [] }], // Hero 10
+    };
+    expect(scoreGame(makeState(cursed))).toBe(0);                       // 10 - 60, clamped
+    expect(scoreGame(makeState({ ...cursed, sorcererKilled: true }))).toBe(40); // +30, no curse penalty
+    expect(scoreBreakdown(makeState({ ...cursed, sorcererKilled: true })).cursePenalty).toBe(0);
   });
 
   it("a wiped party scores zero, clamped at 0", () => {

@@ -2,7 +2,7 @@ import { rollDie } from "./rng";
 import { CREATURES } from "./data/creatures";
 import { TREASURES } from "./data/treasures";
 import { frontStrength, casterMP, partyRollBonus } from "./combat";
-import { eyeActive, ringInvincible } from "./effects";
+import { eyeActive, ringInvincible, activeCurses } from "./effects";
 import type { GameState, PartyMember, BattlePlan } from "./state";
 import type { GameEvent } from "./actions";
 
@@ -180,7 +180,8 @@ export function previewPlan(state: GameState, plan: BattlePlan): PlanPreview {
     if (!eye && state.party.some((m) => (m.status === 0 || m.status === 1) && m.treasure.includes(T_THE_RING))) {
       modifiers.push({ label: "The Ring", value: 1, side: "party", roll: true });
     }
-    if (state.curses > 0) modifiers.push({ label: state.curses > 1 ? `Curse ×${state.curses}` : "Curse", value: -state.curses, side: "party", roll: true });
+    const curses = activeCurses(state); // a curse has no effect once the Sorcerer is dead (§Curse)
+    if (curses > 0) modifiers.push({ label: curses > 1 ? `Curse ×${curses}` : "Curse", value: -curses, side: "party", roll: true });
     if (round1 && state.fight?.surprise === 1) modifiers.push({ label: "Surprise", value: 1, side: "party", roll: true });
     if (round1 && state.fight?.surprise === -1) modifiers.push({ label: "Surprise", value: 1, side: "enemy", roll: true });
     if (eye) modifiers.push({ label: "Eye of God — magic & artefacts nullified", value: 0, side: "party", roll: false });
@@ -258,6 +259,9 @@ export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEve
       killedStrangerIdx.push(victim);
       if (sid === C_DRAGON && front.length === 1 && mt.strangers.length === 1) front[0]!.dragonKills += 1;
       events.push({ type: "strangerKilled", creatureId: sid });
+      // Felling the Sorcerer himself is the campaign's crowning feat: record it (worth 30 at scoring)
+      // and announce it so the UI can give the party a hero's congratulations (§"The Sorcerer").
+      if (sid === C_SORCERER) { state.sorcererKilled = true; events.push({ type: "sorcererSlain" }); }
     } else if (enemyTotal > partyTotal) {
       const mortal = front.filter((m) => !ringInvincible(m, state));
       if (mortal.length === 0) events.push({ type: "deathPrevented", creatureId: front[0]!.creatureId });

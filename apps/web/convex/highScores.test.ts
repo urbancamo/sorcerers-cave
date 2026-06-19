@@ -28,8 +28,8 @@ async function seedScore(t: ReturnType<typeof convexTest>, over: { rows?: Logged
     };
     const gameId = await ctx.db.insert("games", { state, status: "finished", createdAt: now, updatedAt: now });
     const rows = over.rows ?? [
-      { action: { type: "fightOn" }, events: [{ type: "combatRoll" }, { type: "strangerKilled", creatureId: 5 }] },
-      { action: { type: "fightOn" }, events: [{ type: "strangerKilled" }, { type: "strangerKilled" }, { type: "fightWon" }] },
+      { action: { type: "resolveRound" }, events: [{ type: "combatRoll" }, { type: "strangerKilled", creatureId: 5 }] },
+      { action: { type: "resolveRound" }, events: [{ type: "combatRoll" }, { type: "strangerKilled" }, { type: "strangerKilled" }, { type: "fightWon" }] },
       { action: { type: "useArtifact", artifact: 6 }, events: [{ type: "artifactUsed", artifact: 6 }] },
       { action: { type: "useArtifact", artifact: 4 }, events: [{ type: "artifactUsed", artifact: 4 }, { type: "carpetUsed", dir: 1 }] },
     ];
@@ -51,7 +51,7 @@ test("stats derives expedition figures from the state and the event log", async 
     maxDepth: 4,        // deepest area level
     turns: 23,
     areasMapped: 3,
-    roundsFought: 2,    // two fightOn actions
+    roundsFought: 2,    // two action-rows produced combat rolls
     enemiesSlain: 3,    // three strangerKilled events across the log
     artifactsUsed: 2,   // two artifactUsed events
     dragonsSlain: 1,

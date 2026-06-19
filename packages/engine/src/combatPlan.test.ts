@@ -99,6 +99,17 @@ describe("resolvePlannedRound (§A Round of Fighting)", () => {
     expect(s.strangers).toEqual([]);
     expect(s.party[0]!.dragonKills).toBe(1);
   });
+  it("slaying the Sorcerer records the kill and announces the feat", () => {
+    // Giant+Magic Sword front, Wizard+Magic Staff backer, surprise & Lotus weakening the Sorcerer.
+    const s = clone(fightS({
+      fight: { surprise: 1, round: 1, focus: 0 }, lotusOnSorcerer: true,
+      party: [member(12, [3]), member(8, [9])], strangers: [11], seed: 1,
+    }));
+    const ev = resolvePlannedRound(s, { matches: [{ front: [0], backers: [1], strangers: [0] }] });
+    expect(s.strangers).toEqual([]);
+    expect(s.sorcererKilled).toBe(true);
+    expect(ev.some((e) => e.type === "sorcererSlain")).toBe(true);
+  });
   it("queues a casualty choice when two front fighters lose together", () => {
     const s = clone(fightS({ fight: { surprise: -1, round: 1, focus: 0 }, party: [member(6), member(7)], strangers: [10], seed: 5 }));
     resolvePlannedRound(s, { matches: [{ front: [0, 1], backers: [], strangers: [0] }] });

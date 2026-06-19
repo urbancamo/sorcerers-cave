@@ -39,6 +39,15 @@ export function eyeActive(state: GameState): boolean {
   return partyHolds(state, T_EYE_OF_GOD);
 }
 
+/**
+ * Curses currently in force against the party. A curse normally subtracts 1 from every die roll and
+ * 30 from the final score, but "a curse has no effect if the Sorcerer is dead" (§Curse) — slaying him
+ * lifts every curse at once. So once the Sorcerer is slain this is 0 regardless of how many were taken.
+ */
+export function activeCurses(state: GameState): number {
+  return state.sorcererKilled ? 0 : state.curses;
+}
+
 /** The Talisman wards off Spectres on the 4th level or deeper (this edition's deck has no Zombies/Ghouls). */
 export function talismanWardsSpectres(state: GameState): boolean {
   return state.level >= 4 && partyHolds(state, T_TALISMAN);

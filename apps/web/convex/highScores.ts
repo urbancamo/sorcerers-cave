@@ -89,7 +89,9 @@ export const stats = query({
     // Some figures aren't kept in the state, so derive them from the per-action event log:
     //  - enemies slain  → strangerKilled events
     //  - artifacts used → artifactUsed events
-    //  - rounds fought  → fightOn actions (each resolves exactly one combat round)
+    //  - rounds fought  → action-rows that actually produced combat rolls. A resolved round emits
+    //    one combatRoll per matchup, so we count rows (not events) that contain any; rejected plans
+    //    emit planRejected with no combatRoll and are correctly ignored.
     const eventRows = await ctx.db
       .query("gameEvents")
       .withIndex("by_game", (q) => q.eq("gameId", hs.gameId))
@@ -99,7 +101,7 @@ export const stats = query({
       const evs = row.events as GameEvent[];
       enemiesSlain += evs.filter((e) => e.type === "strangerKilled").length;
       artifactsUsed += evs.filter((e) => e.type === "artifactUsed").length;
-      if ((row.action as { type?: string } | null)?.type === "fightOn") roundsFought += 1;
+      if (evs.some((e) => e.type === "combatRoll")) roundsFought += 1;
     }
 
     return {

@@ -1,6 +1,6 @@
 import { CREATURES } from "./data/creatures";
 import type { GameState, PartyMember } from "./state";
-import { eyeActive } from "./effects";
+import { eyeActive, activeCurses } from "./effects";
 
 const T_MAGIC_SWORD = 3;
 const T_MAGIC_STAFF = 9;
@@ -42,5 +42,5 @@ export function casterMP(member: PartyMember, state?: GameState): number {
 /** Bonus added to every PARTY die roll this fight: +1 if any living member holds The Ring (Eye negates it), minus curses. */
 export function partyRollBonus(state: GameState): number {
   const ring = !eyeActive(state) && state.party.some((m) => (m.status === 0 || m.status === 1) && holds(m, T_THE_RING));
-  return (ring ? 1 : 0) - state.curses;
+  return (ring ? 1 : 0) - activeCurses(state);
 }

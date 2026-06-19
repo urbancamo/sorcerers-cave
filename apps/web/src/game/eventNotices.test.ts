@@ -66,6 +66,14 @@ describe("eventNotices", () => {
     expect(eventNotices(handled)).toHaveLength(0);
   });
 
+  it("gives a celebratory congratulations when the Sorcerer is slain", () => {
+    const out = eventNotices([{ type: "sorcererSlain" }]);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.tone).toBe("good");
+    expect(out[0]!.text).toContain("Sorcerer");
+    expect(out[0]!.text).toContain("Congratulations");
+  });
+
   it("noticeTone prefers bad, then good, then neutral", () => {
     expect(noticeTone([{ text: "", tone: "neutral" }, { text: "", tone: "good" }, { text: "", tone: "bad" }])).toBe("bad");
     expect(noticeTone([{ text: "", tone: "neutral" }, { text: "", tone: "good" }])).toBe("good");

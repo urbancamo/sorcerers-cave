@@ -76,13 +76,14 @@ export function GameOverScreen({
         })}
       </ul>
 
-      {/* Bonuses / penalties, then the grand total. */}
-      <dl className="scv-rc-totals">
+      {/* Awards and penalties NOT tied to a surviving member's creature/treasure points — the
+          Sorcerer bounty and the Treasure Chest loot banked at scoring, less the curse penalty. */}
+      <dl className="scv-rc-totals" data-testid="score-awards">
         {breakdown.sorcererBonus > 0 && (
-          <div><dt>Sorcerer slain</dt><dd className="scv-rc-pts">{breakdown.sorcererBonus}</dd></div>
+          <div><dt>Sorcerer slain</dt><dd className="scv-rc-pts">+{breakdown.sorcererBonus}</dd></div>
         )}
         {breakdown.bonusScore > 0 && (
-          <div><dt>Banked treasure</dt><dd className="scv-rc-pts">{breakdown.bonusScore}</dd></div>
+          <div><dt>Treasure Chest loot</dt><dd className="scv-rc-pts">+{breakdown.bonusScore}</dd></div>
         )}
         {breakdown.cursePenalty > 0 && (
           <div><dt>Curses</dt><dd className="scv-rc-pts">−{breakdown.cursePenalty}</dd></div>

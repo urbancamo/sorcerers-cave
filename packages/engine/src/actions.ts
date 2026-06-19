@@ -41,6 +41,7 @@ export type GameEvent =
   | { type: "trapAvoided" } // a dwarf guided the party safely past a trap
   | { type: "memberDied"; creatureId: number }
   | { type: "strangerKilled"; creatureId: number }
+  | { type: "sorcererSlain" } // the Sorcerer himself has been defeated — the cave's master is no more
   | { type: "spectreSlew"; creatureId: number }
   | { type: "memberRevived"; creatureId: number } // a stoned member freed by a returning Wizard's Magic Staff
   | { type: "reaction"; outcome: "hostile" | "indifferent" | "friendly"; roll: number }

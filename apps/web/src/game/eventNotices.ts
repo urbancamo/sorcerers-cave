@@ -109,6 +109,12 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "droppedRetaken":
         out.push({ text: `Your fighters reclaim ${plural(e.count, "treasure")} they set down for the fight.`, tone: "good" });
         break;
+      case "sorcererSlain":
+        out.push({
+          text: "🏆 The Sorcerer falls! You have vanquished the master of the cave — a feat few adventurers ever achieve. Congratulations, hero! (+30 to your final score)",
+          tone: "good",
+        });
+        break;
       case "annihilated":
         out.push({ text: `The Eye of God annihilates ${name(e.creatureId)}!`, tone: "good" });
         break;

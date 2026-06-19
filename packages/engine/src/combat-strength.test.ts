@@ -31,4 +31,11 @@ describe("combat strength (spec §9.3)", () => {
     const cursed = makeState({ party: [member(0, { treasure: [10] })], curses: 2 });
     expect(partyRollBonus(cursed)).toBe(-1); // +1 ring - 2 curses
   });
+
+  it("a slain Sorcerer lifts the curse penalty on party rolls (§Curse)", () => {
+    const cursed = makeState({ party: [member(0)], curses: 2 });
+    expect(partyRollBonus(cursed)).toBe(-2);
+    const sorcererDead = makeState({ party: [member(0)], curses: 2, sorcererKilled: true });
+    expect(partyRollBonus(sorcererDead)).toBe(0); // curses no longer bite
+  });
 });

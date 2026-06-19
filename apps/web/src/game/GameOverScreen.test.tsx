@@ -37,6 +37,24 @@ describe("GameOverScreen", () => {
     expect(screen.getByText("Gold")).toBeInTheDocument();
   });
 
+  it("lists awards not tied to a member — Sorcerer bounty and Treasure Chest loot — on the manifest", () => {
+    const base = newGame(1, [0]);
+    const escaped: GameState = {
+      ...base,
+      gs: GS_ESCAPED,
+      sorcererKilled: true, // +30
+      bonusScore: 80,       // gems from a Treasure Chest
+    };
+    render(<GameOverScreen state={escaped} onNewGame={() => {}} />);
+    const awards = screen.getByTestId("score-awards");
+    expect(awards).toHaveTextContent("Sorcerer slain");
+    expect(awards).toHaveTextContent("+30");
+    expect(awards).toHaveTextContent("Treasure Chest loot");
+    expect(awards).toHaveTextContent("+80");
+    // Hero 10 + 30 + 80 = 120 grand total.
+    expect(screen.getByText("120")).toBeInTheDocument();
+  });
+
   it("records the score under the trimmed name, then shows the leaderboard", async () => {
     const base = newGame(1, [0]);
     const escaped: GameState = { ...base, gs: GS_ESCAPED };
