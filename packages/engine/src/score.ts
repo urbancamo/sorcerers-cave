@@ -28,7 +28,7 @@ export interface ScoreBreakdown {
   members: ScoredMember[];
   sorcererBonus: number; // 30 if the Sorcerer was slain, else 0
   bonusScore: number; // banked points (e.g. Treasure Chest loot)
-  cursePenalty: number; // 30 per curse deducted — but 0 once the Sorcerer is slain (curses are lifted)
+  cursePenalty: number; // flat 30 if under any curse, else 0 — and 0 once the Sorcerer is slain (curses lifted)
   total: number; // final score (matches scoreGame)
 }
 
@@ -57,8 +57,9 @@ export function scoreBreakdown(state: GameState): ScoreBreakdown {
   });
   const sorcererBonus = state.sorcererKilled ? 30 : 0;
   const bonusScore = state.bonusScore;
-  // 30 points per curse — but a slain Sorcerer lifts every curse, so no penalty then (§Curse, §Scoring).
-  const cursePenalty = 30 * activeCurses(state);
+  // A flat 30-point penalty if the party is under any curse (§Scoring: "under a curse deducts 30
+  // points" — not per-curse). A slain Sorcerer lifts every curse, so there is no penalty then (§Curse).
+  const cursePenalty = activeCurses(state) > 0 ? 30 : 0;
   const raw = members.reduce((sum, m) => sum + m.subtotal, 0) + sorcererBonus + bonusScore - cursePenalty;
   // A wiped party (GS_DEAD) scores 0; otherwise clamp at 0.
   const total = state.gs === GS_DEAD ? 0 : Math.max(0, raw);
