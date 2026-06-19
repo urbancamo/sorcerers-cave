@@ -193,15 +193,6 @@ export function CaveHud({ mountRef, onPartyClick, onSave, turnLabel, turnColor, 
               </div>
             </div>
           </div>
-
-          <div className="selinfo" id="selinfo">
-            <div className="nm" id="sel-nm">
-              Dragon's Lair
-            </div>
-            <div className="sub" id="sel-sub">
-              Level 3 · party is here
-            </div>
-          </div>
         </div>
       </div>
 

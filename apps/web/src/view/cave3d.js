@@ -522,19 +522,14 @@ function showCard(card,where){
   cardPanel.classList.add('show');
 }
 function hideCard(){ cardPanel.classList.remove('show'); } // nothing on the floor → no card at all
-function areaPanel(area, useLevel){
+function areaPanel(area){
+  // Highlight the selected tile and show the focused card; the text readout panel was removed as clutter.
   selectRing.position.copy(worldPos(area));selectRing.position.y+=0.02;selectRing.visible=true;
-  document.getElementById('sel-nm').textContent=area.name;
-  const stair=area.up&&area.down?' · stairs up & down':area.down?' · stair down':area.up?' · stair up':'';
-  const counts=[]; if(area.strangers.length)counts.push(area.strangers.length+' stranger'+(area.strangers.length>1?'s':''));
-  if(area.treasure.length)counts.push(area.treasure.length+' treasure');
-  const base=useLevel?('Level '+area.level):(area.type[0].toUpperCase()+area.type.slice(1));
-  document.getElementById('sel-sub').textContent= base+' · '+(counts.length?counts.join(' · '):('exits '+(area.exits||'—')))+stair;
   const focus=area.strangers[0]||area.treasure[0];
   if(focus) showCard(focus,area.name); else hideCard();
 }
-function selectCurrent(){ areaPanel(engine.current,false); }
-function inspectArea(a){ areaPanel(a,true); }
+function selectCurrent(){ areaPanel(engine.current); }
+function inspectArea(a){ areaPanel(a); }
 function hexA(hex,a){const n=parseInt(hex.replace('#',''),16);return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';}
 
 /* ============================================================
