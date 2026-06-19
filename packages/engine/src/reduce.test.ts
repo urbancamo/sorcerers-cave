@@ -186,7 +186,7 @@ describe("reduce — stranger encounters (C-2 §8)", () => {
     expect(reduce(s, { type: "test" }).events).toContainEqual({ type: "blocked" });
   });
 
-  it("a pacified chamber stays indifferent on re-entry (no encounter, treasure still guarded)", () => {
+  it("a pacified chamber re-entry still offers Attack (not Test); treasure stays guarded", () => {
     // Tunnel A (exit E) → chamber B (card 31), already pacified for this party with a guarded stranger+treasure.
     const A = { card: 2, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };
     const B = { card: 31, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents: [100 + 6, 200 + 1], flags: 0, indiffCount: 0 };
@@ -196,9 +196,12 @@ describe("reduce — stranger encounters (C-2 §8)", () => {
     });
     const r = reduce(s, { type: "move", dir: DIR_E });
     expect(r.state.partyArea).toBe(1);
-    expect(r.state.phase).toBe("explore"); // walked straight in, no encounter
-    expect(legalActions(r.state).some((a) => a.type === "takeTreasure")).toBe(false);
-    expect(r.state.areas[1]!.contents).toEqual(expect.arrayContaining([200 + 1, 100 + 6])); // still guarded
+    expect(r.state.phase).toBe("encounter");          // a proper encounter, not a free walk-through
+    expect(r.state.strangers).toEqual([6]);           // the guard is present, ready to be fought
+    const acts = legalActions(r.state);
+    expect(acts.some((a) => a.type === "attack")).toBe(true);        // can still attack
+    expect(acts.some((a) => a.type === "test")).toBe(false);         // but testing is futile (permanently indifferent)
+    expect(acts.some((a) => a.type === "takeTreasure")).toBe(false); // treasure stays guarded unless they're beaten
   });
 
   it("Medusa turning the whole party to stone ends the game (petrifiedOut + gameOver)", () => {

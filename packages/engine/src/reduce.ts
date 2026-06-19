@@ -180,10 +180,14 @@ function resolveArea(state: GameState): GameEvent[] {
       state.strangers = state.strangers.filter((id) => id !== 10);
       if (freshEntry) events.push({ type: "dragonsLulled", count: dragons.length });
     }
-    // Already permanently indifferent to this party: the strangers ignore it and it ignores them —
-    // pass straight through (any exit), treasure stays guarded. Other parties are unaffected.
-    if (state.pacifiedAreas?.includes(state.partyArea)) {
-      persistAndExplore(state);
+    // Permanently indifferent to this party (§Reactions): testing again is futile (they stay
+    // indifferent), but the party may still ATTACK them or withdraw — and the guarded treasure stays
+    // out of reach unless they're beaten. Present the encounter (Attack/Withdraw, no Test) rather than
+    // walking straight through. Other parties are unaffected.
+    if (state.pacifiedAreas?.includes(state.partyArea) && state.strangers.length > 0) {
+      state.phase = "encounter";
+      state.indiffStreak = 3; // they stay indifferent — the Test option is withheld
+      state.surpriseReady = false; // a re-entered chamber was already visited — never a surprise
       return events;
     }
     if (state.strangers.length > 0) {
