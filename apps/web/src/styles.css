@@ -1222,7 +1222,9 @@
 /* Battles are laid out horizontally and stacked: foes face the front line, with a magic slot behind it. */
 .scv-fight-strangers { display: flex; flex-direction: column; gap: 14px; }
 .scv-match { position: relative; display: flex; flex-direction: row; align-items: center; gap: 16px; flex-wrap: wrap; padding: 10px 14px; border: 1px dashed var(--line-strong); border-radius: 12px; background: rgba(201,161,78,.04); }
-.scv-match-foes { display: flex; gap: 8px; align-items: flex-start; }
+/* Foes wrap two-across so a third card (a ganged foe or a background caster) stacks within the foes
+   cell rather than widening the match and pushing the party line onto a new row (keeps each match a row). */
+.scv-match-foes { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; max-width: 240px; }
 .scv-match-idle { opacity: .82; border-style: solid; }
 .scv-match-vs { display: flex; flex-direction: column; align-items: center; min-width: 44px; font-family: var(--display); font-weight: 700; font-size: 16px; line-height: 1.1; }
 .scv-match-vs .them { color: #e7a59c; } .scv-match-vs .me { color: #7fae6f; }
