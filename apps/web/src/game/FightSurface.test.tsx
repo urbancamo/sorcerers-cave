@@ -83,6 +83,16 @@ describe("FightSurface", () => {
     expect(screen.getByText(/gangs up/i)).toBeInTheDocument(); // the leftover Man-stranger joins the match
   });
 
+  it("keeps strangers in their original order when a fighter is assigned to a lower one", () => {
+    // Two members vs Troll (foe 0) + Ogre (foe 1). Engaging the SECOND foe must not lift it above the first.
+    const s: GameState = { ...newGame(1, [5, 6]), phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, strangers: [3, 2] };
+    render(<FightSurface state={s} dispatch={() => {}} cards={cards} />);
+    fireEvent.click(screen.getByTestId("tray-0"));  // pick a fighter
+    fireEvent.click(screen.getByTestId("front-1")); // engage the second foe (the Ogre)
+    const order = [...document.querySelectorAll('[data-testid^="front-"]')].map((el) => el.getAttribute("data-testid"));
+    expect(order).toEqual(["front-0", "front-1"]); // foe 0 still listed above foe 1
+  });
+
   it("shows a leftover enemy caster lending magic from the background, not a mystery total", () => {
     // A lone Man vs a Troll + an enemy Priest: the Priest can't be engaged hand-to-hand, so it lends
     // its magical power from the background (§395). It must be shown — not silently folded into the total.

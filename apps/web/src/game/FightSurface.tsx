@@ -97,6 +97,107 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
   };
   const memberStrength = (i: number, spectre: boolean) => (spectre && isCaster(state, i) ? casterMP(state.party[i]!, state) : frontStrength(state.party[i]!, state));
 
+  // One row per engaged match (keyed by its primary foe). Pulled out so engaged and idle rows can be
+  // rendered in a single list ordered by the foe's position — assigning a fighter must never reorder
+  // the strangers top-to-bottom (a matched foe used to jump above still-idle foes).
+  const renderMatch = (pm: typeof preview.matches[number]) => {
+    const primary = pm.strangers[0]!;
+    const spectre = pm.strangers.some((si) => state.strangers[si] === C_SPECTRE);
+    const key = `m${primary}`;
+    const showRelic = (r: { id: number; file: string; name: string }) => setZoom({ key, file: r.file, name: r.name });
+    return (
+      <div key={key} className="scv-match">
+        <div className="scv-match-foes">
+          {pm.strangers.map((si) => (
+            <FightCard key={si} creatureId={state.strangers[si]!} kind="foe" strength={enemyStrOf(si)}
+                       caption={state.strangers[si] === C_SPECTRE ? "magic only" : pm.attached.includes(si) ? "gangs up" : undefined}
+                       dim={pm.attached.includes(si)} cards={cards} state={state} />
+          ))}
+          {/* Leftover enemy casters lending magical power from the background (§395) — shown so the
+              enemy total reflects who is actually in the fight, not a mystery number. */}
+          {pm.enemyBackers.map((si) => (
+            <FightCard key={`b${si}`} creatureId={state.strangers[si]!} kind="foe" strength={enemyMpOf(si)}
+                       caption="lends magic" dim cards={cards} state={state} />
+          ))}
+        </div>
+        <div className="scv-match-vs"><span className="them">{pm.enemyStr}</span><span className="x">vs</span><span className="me">{pm.partyStr}</span></div>
+        <div className="scv-match-party">
+          <div className="scv-match-line">
+            <div className="scv-match-front" data-testid={`front-${primary}`} role="button" tabIndex={0}
+                 onClick={() => placeOn(primary, "front")} onKeyDown={(e) => { if (e.key === "Enter") placeOn(primary, "front"); }}
+                 onDragOver={(e) => e.preventDefault()} onDrop={(e) => dropOn(e, primary, "front")}>
+              {[0, 1].map((slot) => {
+                const i = pm.front[slot];
+                return i !== undefined ? (
+                  <FightCard key={slot} creatureId={state.party[i]!.creatureId} kind={kindOf(state, i)} strength={memberStrength(i, spectre)}
+                             treasure={state.party[i]!.treasure} artifactsOnly cards={cards} state={state} draggable dragId={i} onRelicClick={showRelic} onPick={() => setDraft((d) => unplace(d, i))} />
+                ) : <span key={slot} className="scv-slot-empty">drop a fighter</span>;
+              })}
+            </div>
+            <div className="scv-match-bg" data-testid={`bg-${primary}`} role="button" tabIndex={0}
+                 onClick={() => placeOn(primary, "backer")} onKeyDown={(e) => { if (e.key === "Enter") placeOn(primary, "backer"); }}
+                 onDragOver={(e) => e.preventDefault()} onDrop={(e) => dropOn(e, primary, "backer")}>
+              <span className="scv-match-slotlbl">✦ behind</span>
+              {pm.backers.length ? pm.backers.map((i) => (
+                <FightCard key={i} creatureId={state.party[i]!.creatureId} kind="caster" strength={casterMP(state.party[i]!, state)}
+                           treasure={state.party[i]!.treasure} cards={cards} state={state} draggable dragId={i} onRelicClick={showRelic} onPick={() => setDraft((d) => unplace(d, i))} />
+              )) : <span className="scv-match-hint">magic user</span>}
+            </div>
+          </div>
+          {pm.modifiers.length > 0 && (
+            <div className="scv-match-mods" data-testid={`mods-${primary}`}>
+              {pm.modifiers.map((mod, k) => (
+                <span key={k} className={`scv-mod scv-mod-${mod.side}${mod.roll ? " is-roll" : ""}`} title={mod.roll ? "applied to the die roll" : "included in the strength"}>
+                  {mod.label}{mod.value !== 0 ? ` ${mod.value > 0 ? "+" : "−"}${Math.abs(mod.value)}` : ""}
+                </span>
+              ))}
+            </div>
+          )}
+        </div>
+        {zoom?.key === key && (
+          <div className="scv-match-zoom" role="button" tabIndex={0} title={zoom.name}
+               onClick={() => setZoom(null)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") setZoom(null); }}>
+            <img src={zoom.file} alt={zoom.name} />
+            <span className="scv-match-zoom-cap">{zoom.name} — tap to close</span>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  // One row per still-unengaged foe — drop a fighter on it to take it on.
+  const renderIdle = (si: number) => (
+    <div key={`i${si}`} className="scv-match scv-match-idle">
+      <div className="scv-match-foes">
+        <FightCard creatureId={state.strangers[si]!} kind="foe" strength={enemyStrOf(si)}
+                   caption={state.strangers[si] === C_SPECTRE ? "magic only" : "unengaged"} dim cards={cards} state={state} />
+      </div>
+      <div className="scv-match-vs"><span className="them">{enemyStrOf(si)}</span><span className="x">vs</span><span className="me">0</span></div>
+      <div className="scv-match-party">
+        <div className="scv-match-line">
+          <div className="scv-match-front" data-testid={`front-${si}`} role="button" tabIndex={0}
+               onClick={() => placeOn(si, "front")} onKeyDown={(e) => { if (e.key === "Enter") placeOn(si, "front"); }}
+               onDragOver={(e) => e.preventDefault()} onDrop={(e) => dropOn(e, si, "front")}>
+            {[0, 1].map((slot) => <span key={slot} className="scv-slot-empty">drop a fighter</span>)}
+          </div>
+          <div className="scv-match-bg" data-testid={`bg-${si}`} role="button" tabIndex={0}
+               onClick={() => placeOn(si, "backer")} onKeyDown={(e) => { if (e.key === "Enter") placeOn(si, "backer"); }}
+               onDragOver={(e) => e.preventDefault()} onDrop={(e) => dropOn(e, si, "backer")}>
+            <span className="scv-match-slotlbl">✦ behind</span>
+            <span className="scv-match-hint">magic user</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+
+  // Engaged and idle foes interleaved in their original top-to-bottom order (by stranger index), so a
+  // foe keeps its place whether or not a fighter is assigned to it.
+  const strangerRows = [
+    ...preview.matches.map((pm) => ({ idx: pm.strangers[0]!, render: () => renderMatch(pm) })),
+    ...preview.idle.map((si) => ({ idx: si, render: () => renderIdle(si) })),
+  ].sort((a, b) => a.idx - b.idx);
+
   return (
     <div className="scv-fight" data-testid="fight-surface">
       <div className="scv-fight-top">
@@ -111,96 +212,9 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
       <div className="scv-fight-strangers">
         {/* Each battle reads left-to-right: the foe(s), the strength tally, the front line facing them,
             then a slot BEHIND the front line for a magic user (caster) to support from. Foes the engine
-            ganged on (§395) appear in the same row when the party is out-numbered. */}
-        {preview.matches.map((pm) => {
-          const primary = pm.strangers[0]!;
-          const spectre = pm.strangers.some((si) => state.strangers[si] === C_SPECTRE);
-          const key = `m${primary}`;
-          const showRelic = (r: { id: number; file: string; name: string }) => setZoom({ key, file: r.file, name: r.name });
-          return (
-            <div key={key} className="scv-match">
-              <div className="scv-match-foes">
-                {pm.strangers.map((si) => (
-                  <FightCard key={si} creatureId={state.strangers[si]!} kind="foe" strength={enemyStrOf(si)}
-                             caption={state.strangers[si] === C_SPECTRE ? "magic only" : pm.attached.includes(si) ? "gangs up" : undefined}
-                             dim={pm.attached.includes(si)} cards={cards} state={state} />
-                ))}
-                {/* Leftover enemy casters lending magical power from the background (§395) — shown so the
-                    enemy total reflects who is actually in the fight, not a mystery number. */}
-                {pm.enemyBackers.map((si) => (
-                  <FightCard key={`b${si}`} creatureId={state.strangers[si]!} kind="foe" strength={enemyMpOf(si)}
-                             caption="lends magic" dim cards={cards} state={state} />
-                ))}
-              </div>
-              <div className="scv-match-vs"><span className="them">{pm.enemyStr}</span><span className="x">vs</span><span className="me">{pm.partyStr}</span></div>
-              <div className="scv-match-party">
-                <div className="scv-match-line">
-                  <div className="scv-match-front" data-testid={`front-${primary}`} role="button" tabIndex={0}
-                       onClick={() => placeOn(primary, "front")} onKeyDown={(e) => { if (e.key === "Enter") placeOn(primary, "front"); }}
-                       onDragOver={(e) => e.preventDefault()} onDrop={(e) => dropOn(e, primary, "front")}>
-                    {[0, 1].map((slot) => {
-                      const i = pm.front[slot];
-                      return i !== undefined ? (
-                        <FightCard key={slot} creatureId={state.party[i]!.creatureId} kind={kindOf(state, i)} strength={memberStrength(i, spectre)}
-                                   treasure={state.party[i]!.treasure} artifactsOnly cards={cards} state={state} draggable dragId={i} onRelicClick={showRelic} onPick={() => setDraft((d) => unplace(d, i))} />
-                      ) : <span key={slot} className="scv-slot-empty">drop a fighter</span>;
-                    })}
-                  </div>
-                  <div className="scv-match-bg" data-testid={`bg-${primary}`} role="button" tabIndex={0}
-                       onClick={() => placeOn(primary, "backer")} onKeyDown={(e) => { if (e.key === "Enter") placeOn(primary, "backer"); }}
-                       onDragOver={(e) => e.preventDefault()} onDrop={(e) => dropOn(e, primary, "backer")}>
-                    <span className="scv-match-slotlbl">✦ behind</span>
-                    {pm.backers.length ? pm.backers.map((i) => (
-                      <FightCard key={i} creatureId={state.party[i]!.creatureId} kind="caster" strength={casterMP(state.party[i]!, state)}
-                                 treasure={state.party[i]!.treasure} cards={cards} state={state} draggable dragId={i} onRelicClick={showRelic} onPick={() => setDraft((d) => unplace(d, i))} />
-                    )) : <span className="scv-match-hint">magic user</span>}
-                  </div>
-                </div>
-                {pm.modifiers.length > 0 && (
-                  <div className="scv-match-mods" data-testid={`mods-${primary}`}>
-                    {pm.modifiers.map((mod, k) => (
-                      <span key={k} className={`scv-mod scv-mod-${mod.side}${mod.roll ? " is-roll" : ""}`} title={mod.roll ? "applied to the die roll" : "included in the strength"}>
-                        {mod.label}{mod.value !== 0 ? ` ${mod.value > 0 ? "+" : "−"}${Math.abs(mod.value)}` : ""}
-                      </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-              {zoom?.key === key && (
-                <div className="scv-match-zoom" role="button" tabIndex={0} title={zoom.name}
-                     onClick={() => setZoom(null)} onKeyDown={(e) => { if (e.key === "Enter" || e.key === "Escape") setZoom(null); }}>
-                  <img src={zoom.file} alt={zoom.name} />
-                  <span className="scv-match-zoom-cap">{zoom.name} — tap to close</span>
-                </div>
-              )}
-            </div>
-          );
-        })}
-        {/* Foes not yet engaged — drop a fighter on one to take it on. */}
-        {preview.idle.map((si) => (
-          <div key={`i${si}`} className="scv-match scv-match-idle">
-            <div className="scv-match-foes">
-              <FightCard creatureId={state.strangers[si]!} kind="foe" strength={enemyStrOf(si)}
-                         caption={state.strangers[si] === C_SPECTRE ? "magic only" : "unengaged"} dim cards={cards} state={state} />
-            </div>
-            <div className="scv-match-vs"><span className="them">{enemyStrOf(si)}</span><span className="x">vs</span><span className="me">0</span></div>
-            <div className="scv-match-party">
-              <div className="scv-match-line">
-                <div className="scv-match-front" data-testid={`front-${si}`} role="button" tabIndex={0}
-                     onClick={() => placeOn(si, "front")} onKeyDown={(e) => { if (e.key === "Enter") placeOn(si, "front"); }}
-                     onDragOver={(e) => e.preventDefault()} onDrop={(e) => dropOn(e, si, "front")}>
-                  {[0, 1].map((slot) => <span key={slot} className="scv-slot-empty">drop a fighter</span>)}
-                </div>
-                <div className="scv-match-bg" data-testid={`bg-${si}`} role="button" tabIndex={0}
-                     onClick={() => placeOn(si, "backer")} onKeyDown={(e) => { if (e.key === "Enter") placeOn(si, "backer"); }}
-                     onDragOver={(e) => e.preventDefault()} onDrop={(e) => dropOn(e, si, "backer")}>
-                  <span className="scv-match-slotlbl">✦ behind</span>
-                  <span className="scv-match-hint">magic user</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        ))}
+            ganged on (§395) appear in the same row when the party is out-numbered. Engaged and idle foes
+            keep their original top-to-bottom order so assigning a fighter never reshuffles the list. */}
+        {strangerRows.map((row) => row.render())}
       </div>
 
       <div className="scv-fight-tray" data-testid="fight-tray">
