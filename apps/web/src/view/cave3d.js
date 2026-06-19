@@ -474,8 +474,11 @@ function doMove(dir){
       : null;
     const showTrap = ev.trap
       ? () => {
+          // The trap itself is one-way, but if the chamber below happens to have its own ascending
+          // staircase the party can still climb back out — so only warn of no return when there isn't one.
+          const noWayBack = ev.area.up ? '' : ' There is no way back up.';
           const c = ev.trap==='sprung'
-            ? ['Trap sprung!','The floor gives way — the party plunges to <b>'+ev.area.name+'</b> on level '+ev.area.level+'. There is no way back up.','bad']
+            ? ['Trap sprung!','The floor gives way — the party plunges to <b>'+ev.area.name+'</b> on level '+ev.area.level+'.'+noWayBack,'bad']
             : ['Trap avoided','Your dwarf spots a hidden trap and guides the party safely across.','good'];
           return showConfirm(c[0],c[1],c[2]);
         }
