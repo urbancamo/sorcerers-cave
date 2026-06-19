@@ -14,6 +14,7 @@ export interface Notice {
 
 const name = (cid: number): string => CREATURES[cid]?.name ?? "a creature";
 const plural = (n: number, s: string) => `${n} ${s}${n === 1 ? "" : "s"}`;
+const DIR_WORD: Record<number, string> = { 1: "north", 2: "east", 3: "south", 4: "west", 5: "up the stair", 6: "down the stair" };
 
 /** A short notice for a fired hazard's effect. Mutiny and Trap are surfaced elsewhere
  *  (the `mutinied` event and the trap confirm modal), so they produce nothing here. */
@@ -48,6 +49,14 @@ export function eventNotices(events: GameEvent[]): Notice[] {
         break;
       case "memberDied":
         if (!hasViper) out.push({ text: `${name(e.creatureId)} is slain!`, tone: "bad" });
+        break;
+      case "deadEnd":
+        // A retreat that hit a dead end — the party is bounced straight back into the fight, so say so
+        // explicitly (otherwise it's not obvious the chosen exit was blocked).
+        out.push({
+          text: `The way ${DIR_WORD[e.dir] ?? "out"} is a dead end — the party can't escape and must fight another round.`,
+          tone: "bad",
+        });
         break;
       case "spectreSlew":
         out.push({ text: `A Spectre's touch slays ${name(e.creatureId)}!`, tone: "bad" });

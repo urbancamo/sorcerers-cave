@@ -53,6 +53,15 @@ describe("eventNotices", () => {
     expect(eventNotices([{ type: "artifactUsed", artifact: 4 }, { type: "carpetUsed", dir: DIR_DOWN }])).toHaveLength(1);
   });
 
+  it("warns when a retreat hits a dead end and the party is forced back to fight", () => {
+    const out = eventNotices([{ type: "deadEnd", dir: 1 }]);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.tone).toBe("bad");
+    expect(out[0]!.text).toMatch(/dead end/i);
+    expect(out[0]!.text).toMatch(/north/i);
+    expect(out[0]!.text).toMatch(/fight another round/i);
+  });
+
   it("stays silent for events that already have dedicated UI", () => {
     const handled: GameEvent[] = [
       { type: "reaction", outcome: "hostile", roll: 1 },
