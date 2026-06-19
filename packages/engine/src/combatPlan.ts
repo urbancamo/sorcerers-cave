@@ -37,7 +37,15 @@ const engageable = (state: GameState, sIdx: number): boolean => {
 export function validatePlan(state: GameState, plan: BattlePlan): { ok: true } | { ok: false; reason: PlanError } {
   if (state.phase !== "fight") return { ok: false, reason: "notFighting" };
   const matches = plan.matches ?? [];
-  if (matches.length === 0) return { ok: false, reason: "emptyPlan" };
+  if (matches.length === 0) {
+    // A forced round with nothing to engage: every remaining stranger is an un-fightable Spectre and the
+    // party has no magic to pit against it. The round is still fought — the strongest member is matched
+    // against the Spectre and automatically slain (§Spectre). Allowing the empty plan lets the player
+    // proceed instead of deadlocking when retreat is also blocked.
+    const mustSufferSpectre = state.strangers.length > 0 && state.strangers.every((_, s) => !engageable(state, s));
+    if (mustSufferSpectre) return { ok: true };
+    return { ok: false, reason: "emptyPlan" };
+  }
 
   const usedParty = new Set<number>();
   const usedStranger = new Set<number>();

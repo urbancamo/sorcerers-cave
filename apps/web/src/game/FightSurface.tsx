@@ -70,6 +70,13 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
   const enemyStrOf = (si: number) => CREATURES[state.strangers[si]!]!.fs + CREATURES[state.strangers[si]!]!.mp;
   const enemyMpOf = (si: number) => CREATURES[state.strangers[si]!]!.mp;
   const reason = valid.ok ? null : (REASON[valid.reason] ?? "That pairing isn't legal yet.");
+  // Forced no-magic-vs-Spectre round (§Spectre): the only foe left is an un-fightable Spectre and no one
+  // wields magic, so the plan is empty-but-valid. The round must be fought and the strongest member is
+  // automatically slain — warn the player and name who falls so the outcome isn't a mystery.
+  const forcedSpectre = valid.ok && matches.length === 0 && livingIdx.length > 0;
+  const doomedIdx = forcedSpectre
+    ? livingIdx.reduce((best, i) => (frontStrength(state.party[i]!, state) > frontStrength(state.party[best]!, state) ? i : best), livingIdx[0]!)
+    : null;
   const retreats = legalActions(state).filter((a): a is Extract<GameAction, { type: "retreat" }> => a.type === "retreat");
   const artifacts = legalActions(state).filter((a): a is Extract<GameAction, { type: "useArtifact" }> => a.type === "useArtifact");
 
@@ -206,10 +213,16 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
       </div>
 
       {reason && <p className="scv-fight-reason">{reason}</p>}
+      {forcedSpectre && doomedIdx !== null && (
+        <p className="scv-fight-reason scv-fight-doom" data-testid="forced-spectre">
+          No one can fight the Spectre and no magic remains — {CREATURES[state.party[doomedIdx]!.creatureId]!.name},
+          your strongest, will be slain this round (§Spectre). Retreat if you can; otherwise you must face it.
+        </p>
+      )}
 
       <div className="scv-fight-actions">
         <button className="scv-fight-btn primary" disabled={!valid.ok} onClick={() => dispatch({ type: "resolveRound", matches })}>
-          Roll the round ⚔
+          {forcedSpectre ? "Face the Spectre — lose your strongest ☠" : "Roll the round ⚔"}
         </button>
         {retreats.length > 0 && (
           <div className="scv-retreat">

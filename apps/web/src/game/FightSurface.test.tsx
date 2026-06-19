@@ -35,6 +35,18 @@ describe("FightSurface", () => {
     ]));
   });
 
+  it("offers a forced round (no deadlock) when only an un-fightable Spectre remains", () => {
+    const dispatch = vi.fn();
+    // A lone Man (no magic) facing a single Spectre: nothing can be placed, but the round must be fought.
+    const s: GameState = { ...newGame(1, [5]), phase: "fight", fight: { surprise: 0, round: 2, focus: 0 }, strangers: [9] };
+    render(<FightSurface state={s} dispatch={dispatch} cards={cards} />);
+    expect(screen.getByTestId("forced-spectre")).toBeInTheDocument();
+    const roll = screen.getByRole("button", { name: /face the spectre/i });
+    expect(roll).not.toBeDisabled();
+    fireEvent.click(roll);
+    expect(dispatch).toHaveBeenCalledWith({ type: "resolveRound", matches: [] });
+  });
+
   it("shows the casualty chooser when a casualty is queued", () => {
     const dispatch = vi.fn();
     const s = fightState({ fight: { surprise: 0, round: 2, focus: 0, casualtyQueue: [[0, 1]] } });

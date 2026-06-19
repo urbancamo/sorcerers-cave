@@ -1251,6 +1251,7 @@
 .scv-match-zoom-cap { font-family: var(--body); font-style: italic; font-size: 12px; color: var(--stone); }
 .scv-fight-tray { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; border: 1px dashed var(--line); border-radius: 12px; padding: 10px; background: rgba(0,0,0,.18); }
 .scv-fight-reason { font-family: var(--body); font-style: italic; font-size: 13px; color: #e7c07a; }
+.scv-fight-doom { color: #e7a59c; font-weight: 600; }
 .scv-fight-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .scv-fight-row { display: flex; gap: 12px; }
 .scv-fight-btn { font-family: var(--ui); font-size: 13.5px; padding: 9px 14px; border-radius: 9px; border: 1px solid var(--line-strong); color: var(--parchment); background: rgba(201,161,78,.06); cursor: pointer; }

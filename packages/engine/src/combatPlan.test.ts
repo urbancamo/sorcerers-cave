@@ -138,6 +138,21 @@ describe("resolvePlannedRound — Spectres (§Spectre)", () => {
     const r = resolvePlannedRound(s, { matches: [{ front: [0], backers: [], strangers: [1] }] }); // Hero vs Troll only
     expect(r.some((e) => e.type === "spectreSlew")).toBe(true);
   });
+  it("validates an EMPTY plan when only an un-fightable Spectre remains (no deadlock)", () => {
+    // No magic, a lone Spectre: the player can place no one, but the round must still be fought —
+    // an empty plan is legal and the strongest member is automatically slain (§Spectre).
+    const s = fightS({ party: [member(2), member(7)], strangers: [9] }); // Ogre + Dwarf vs a Spectre, no magic
+    expect(validatePlan(s, { matches: [] }).ok).toBe(true);
+    const c = clone(s);
+    const r = resolvePlannedRound(c, { matches: [] });
+    expect(r.some((e) => e.type === "spectreSlew")).toBe(true);
+    expect(c.party[0]!.status).toBe(3); // the Ogre (strongest, fs 5) falls; the Dwarf survives
+    expect(c.party[1]!.status).toBe(0);
+  });
+  it("still rejects an empty plan when a foe COULD be engaged", () => {
+    const s = fightS({ party: [member(2)], strangers: [3] }); // Ogre vs Troll — engageable
+    expect(validatePlan(s, { matches: [] })).toEqual({ ok: false, reason: "emptyPlan" });
+  });
 });
 
 describe("resolvePlannedRound — out-numbered (§395)", () => {
