@@ -8,15 +8,13 @@ import {
 import { eventNotices, noticeTone } from "./eventNotices";
 
 describe("eventNotices", () => {
-  it("reports a Viper Pit crossing and names each member slain", () => {
+  it("produces no text notices for a Viper Pit crossing (its dice overlay shows the outcome)", () => {
     const events: GameEvent[] = [
       { type: "crossedSpecial", special: SPECIAL_VIPER_PIT },
-      { type: "memberDied", creatureId: 0 }, // Hero
+      { type: "viperPit", rolls: [{ creatureId: 0, roll: 1, died: true }] },
+      { type: "memberDied", creatureId: 0 }, // Hero — shown by the dice, not as a duplicate notice
     ];
-    const n = eventNotices(events);
-    expect(n).toHaveLength(2);
-    expect(n[0]!.text).toMatch(/viper pit/i);
-    expect(n[1]!).toEqual({ text: "Hero is slain!", tone: "bad" });
+    expect(eventNotices(events)).toEqual([]);
   });
 
   it("reports Deep Pool treasure being dropped and reclaimed", () => {

@@ -1,7 +1,7 @@
 import {
   CREATURES,
   HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_MUTINY, HAZARD_TRAP,
-  SPECIAL_VIPER_PIT, SPECIAL_DEEP_POOL,
+  SPECIAL_DEEP_POOL,
   DIR_DOWN,
   type GameEvent,
 } from "@sorcerers-cave/engine";
@@ -36,15 +36,18 @@ function hazardNotice(hz: number): Notice | null {
  * skipped so nothing is double-reported.
  */
 export function eventNotices(events: GameEvent[]): Notice[] {
+  // The Viper Pit crossing has its own die-per-member overlay (see rollView), which shows the crossing
+  // and any fatal falls — so suppress the duplicate text notices for it.
+  const hasViper = events.some((e) => e.type === "viperPit");
   const out: Notice[] = [];
   for (const e of events) {
     switch (e.type) {
       case "crossedSpecial":
-        if (e.special === SPECIAL_VIPER_PIT) out.push({ text: "The party edges across the Viper Pit…", tone: "neutral" });
-        else if (e.special === SPECIAL_DEEP_POOL) out.push({ text: "The party wades through the Deep Pool…", tone: "neutral" });
+        // The Viper Pit crossing is shown by its dice overlay; only the Deep Pool needs a notice.
+        if (e.special === SPECIAL_DEEP_POOL) out.push({ text: "The party wades through the Deep Pool…", tone: "neutral" });
         break;
       case "memberDied":
-        out.push({ text: `${name(e.creatureId)} is slain!`, tone: "bad" });
+        if (!hasViper) out.push({ text: `${name(e.creatureId)} is slain!`, tone: "bad" });
         break;
       case "spectreSlew":
         out.push({ text: `A Spectre's touch slays ${name(e.creatureId)}!`, tone: "bad" });
