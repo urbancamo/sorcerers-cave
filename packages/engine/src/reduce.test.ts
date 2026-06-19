@@ -334,6 +334,21 @@ describe("reduce — fight dispatch (C-2 §9.5)", () => {
     expect(legalActions(state).some((a) => a.type === "retreat")).toBe(false);
   });
 
+  it("retreating when no tile can be drawn (deck exhausted) also fails with a notice, not a silent bounce", () => {
+    const s = arena({
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }],
+      strangers: [3],
+      areas: [{ card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+      partyArea: 0, prev: 0,
+      fight: { surprise: 0, round: 2, focus: 0 },
+      largePack: [], largeIdx: 0, // nothing left to draw — the way north can't open
+    });
+    const { state, events } = reduce(s, { type: "retreat", dir: DIR_N });
+    expect(events).toContainEqual({ type: "deadEnd", dir: DIR_N }); // a notice fires (was a silent "blocked")
+    expect(state.fight!.retreatBlocked).toBe(true);                 // and retreat is locked, not left dangling
+    expect(legalActions(state).some((a) => a.type === "retreat")).toBe(false);
+  });
+
   it("chooseCasualty falls on the player's pick with a 4-6, otherwise the other (§9)", () => {
     const s = arena({
       party: [

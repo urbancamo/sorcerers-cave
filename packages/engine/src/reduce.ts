@@ -563,11 +563,14 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       const fromIdx = state.partyArea;
       const res = tryMove(state, action.dir);
       if (!res.moved) {
-        // The way is a dead end (§Retreat): the party must fight another round this turn — no more
-        // retreat attempts. Keep any tile drawn onto the frontier; flag the fight so only Fight remains.
-        // (tryMove clones the state for a dead end; the no-exit guard returns the original untouched.)
-        if (res.deadEnd && res.state.fight) res.state.fight = { ...res.state.fight, retreatBlocked: true };
-        return { state: res.state, events: [{ type: res.deadEnd ? "deadEnd" : "blocked", dir: action.dir }] };
+        // The retreat failed — a dead-end tile, or no tile left to draw (pack exhausted). Either way the
+        // party can't escape this round and must fight on (§Retreat): lock out further retreats AND tell
+        // the player (always a deadEnd event, so the bounce-back to the fight is never silent).
+        // tryMove clones the state for a dead end but returns the original for a no-tile way, so clone
+        // before flagging the latter to avoid mutating the input state.
+        const next = res.deadEnd ? res.state : structuredClone(state);
+        if (next.fight) next.fight = { ...next.fight, retreatBlocked: true };
+        return { state: next, events: [{ type: "deadEnd", dir: action.dir }] };
       }
       // Retreat succeeds: the strangers and any dropped treasure are LEFT BEHIND in the chamber we fled.
       const fled = res.state.areas[fromIdx]!;
