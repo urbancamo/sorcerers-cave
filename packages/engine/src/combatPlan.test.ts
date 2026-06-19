@@ -167,8 +167,10 @@ describe("previewPlan — strongest-combination preview (§395)", () => {
     expect(pv.matches).toHaveLength(1);
     expect(pv.matches[0]!.strangers).toEqual([1, 2]); // Troll + the next-strongest hand-to-hand foe (Man)
     expect(pv.matches[0]!.attached).toEqual([2]);      // the Man was ganged on by the engine, not the player
+    expect(pv.matches[0]!.enemyBackers).toEqual([0]);  // the Priest lends magic from the background (foe index 0)
     expect(pv.matches[0]!.enemyStr).toBe(9);           // Troll 4 + Man 3 + Priest's magic 2 (folded into the focus)
     expect(pv.idle).toContain(3);                      // the Dwarf stands idle this round
+    expect(pv.idle).not.toContain(0);                  // the Priest is NOT idle — it's a background combatant
   });
 
   it("lists the artefact and round modifiers in play for a matchup", () => {

@@ -68,6 +68,7 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
   // (so two foes ganging one fighter, and folded enemy magic, are shown before rolling).
   const preview = previewPlan(state, { matches });
   const enemyStrOf = (si: number) => CREATURES[state.strangers[si]!]!.fs + CREATURES[state.strangers[si]!]!.mp;
+  const enemyMpOf = (si: number) => CREATURES[state.strangers[si]!]!.mp;
   const reason = valid.ok ? null : (REASON[valid.reason] ?? "That pairing isn't legal yet.");
   const retreats = legalActions(state).filter((a): a is Extract<GameAction, { type: "retreat" }> => a.type === "retreat");
   const artifacts = legalActions(state).filter((a): a is Extract<GameAction, { type: "useArtifact" }> => a.type === "useArtifact");
@@ -116,6 +117,12 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
                   <FightCard key={si} creatureId={state.strangers[si]!} kind="foe" strength={enemyStrOf(si)}
                              caption={state.strangers[si] === C_SPECTRE ? "magic only" : pm.attached.includes(si) ? "gangs up" : undefined}
                              dim={pm.attached.includes(si)} cards={cards} state={state} />
+                ))}
+                {/* Leftover enemy casters lending magical power from the background (§395) — shown so the
+                    enemy total reflects who is actually in the fight, not a mystery number. */}
+                {pm.enemyBackers.map((si) => (
+                  <FightCard key={`b${si}`} creatureId={state.strangers[si]!} kind="foe" strength={enemyMpOf(si)}
+                             caption="lends magic" dim cards={cards} state={state} />
                 ))}
               </div>
               <div className="scv-match-vs"><span className="them">{pm.enemyStr}</span><span className="x">vs</span><span className="me">{pm.partyStr}</span></div>

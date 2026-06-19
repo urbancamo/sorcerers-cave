@@ -99,6 +99,7 @@ export interface PreviewMatch {
   backers: number[];   // caster party indices in the background
   strangers: number[]; // foe indices: the player's target first, then any auto-attached foes
   attached: number[];  // the subset of `strangers` the engine ganged on (not chosen by the player)
+  enemyBackers: number[]; // leftover enemy caster indices lending magical power from the background (§395)
   partyStr: number;
   enemyStr: number;
   modifiers: MatchModifier[]; // artefact/curse/surprise modifiers affecting this matchup
@@ -119,7 +120,8 @@ const isSpectreIdx = (state: GameState, sIdx: number) => state.strangers[sIdx] =
 export function previewPlan(state: GameState, plan: BattlePlan): PlanPreview {
   const spectreMatch = (ss: number[]) => ss.some((si) => isSpectreIdx(state, si));
   const base = plan.matches.map((mt) => ({
-    front: [...mt.front], backers: [...(mt.backers ?? [])], strangers: [...mt.strangers], attached: [] as number[],
+    front: [...mt.front], backers: [...(mt.backers ?? [])], strangers: [...mt.strangers],
+    attached: [] as number[], enemyBackers: [] as number[],
   }));
 
   // Strangers gang up only once the party is OUT of fighters (§395 "if he is still unable to engage
@@ -128,14 +130,15 @@ export function previewPlan(state: GameState, plan: BattlePlan): PlanPreview {
   const usedParty = new Set<number>(base.flatMap((mt) => [...mt.front, ...mt.backers]));
   const hasFreeFighter = state.party.some((m, i) => (m.status === 0 || m.status === 1) && !usedParty.has(i));
 
-  let leftoverCasterMP = 0;
+  let leftoverCasterIdx: number[] = [];
   if (!hasFreeFighter) {
     const engaged = new Set<number>(base.flatMap((mt) => mt.strangers));
     const leftover = state.strangers.map((_, i) => i).filter((i) => !engaged.has(i) && !isSpectreIdx(state, i));
     const extraHand = leftover.filter((i) => enemyMP(state, state.strangers[i]!) === 0)
       .sort((a, b) => CREATURES[state.strangers[b]!]!.fs - CREATURES[state.strangers[a]!]!.fs);
-    leftoverCasterMP = leftover.filter((i) => enemyMP(state, state.strangers[i]!) > 0)
-      .reduce((sum, i) => sum + enemyMP(state, state.strangers[i]!), 0);
+    // Leftover enemy casters lend their magical power from the background, strongest first (§395).
+    leftoverCasterIdx = leftover.filter((i) => enemyMP(state, state.strangers[i]!) > 0)
+      .sort((a, b) => enemyMP(state, state.strangers[b]!) - enemyMP(state, state.strangers[a]!));
     let ei = 0;
     for (const mt of base) {
       if (spectreMatch(mt.strangers)) continue;
@@ -147,6 +150,7 @@ export function previewPlan(state: GameState, plan: BattlePlan): PlanPreview {
     }
   }
   const focus = base.find((mt) => !spectreMatch(mt.strangers));
+  if (focus) focus.enemyBackers = leftoverCasterIdx; // the folded magic shows on the focus match
 
   const eye = eyeActive(state);
   const round1 = state.fight?.round === 1;
@@ -156,8 +160,8 @@ export function previewPlan(state: GameState, plan: BattlePlan): PlanPreview {
     const spectre = spectreMatch(mt.strangers);
     const memberStr = (i: number) => (spectre && casterMP(state.party[i]!, state) > 0 ? casterMP(state.party[i]!, state) : frontStrength(state.party[i]!, state));
     const partyStr = mt.front.reduce((s, i) => s + memberStr(i), 0) + mt.backers.reduce((s, i) => s + casterMP(state.party[i]!, state), 0);
-    let enemyStr = mt.strangers.reduce((s, si) => s + CREATURES[state.strangers[si]!]!.fs + enemyMP(state, state.strangers[si]!), 0);
-    if (mt === focus) enemyStr += leftoverCasterMP;
+    const enemyStr = mt.strangers.reduce((s, si) => s + CREATURES[state.strangers[si]!]!.fs + enemyMP(state, state.strangers[si]!), 0)
+      + mt.enemyBackers.reduce((s, si) => s + enemyMP(state, state.strangers[si]!), 0);
 
     // Modifiers in play for this matchup — artefact strength bonuses (already in the totals) plus the
     // roll-time adjustments (Ring / curse / surprise) that get added to the die.
@@ -186,10 +190,10 @@ export function previewPlan(state: GameState, plan: BattlePlan): PlanPreview {
     if (round1 && state.fight?.surprise === -1) modifiers.push({ label: "Surprise", value: 1, side: "enemy", roll: true });
     if (eye) modifiers.push({ label: "Eye of God — magic & artefacts nullified", value: 0, side: "party", roll: false });
 
-    return { front: mt.front, backers: mt.backers, strangers: mt.strangers, attached: mt.attached, partyStr, enemyStr, modifiers };
+    return { front: mt.front, backers: mt.backers, strangers: mt.strangers, attached: mt.attached, enemyBackers: mt.enemyBackers, partyStr, enemyStr, modifiers };
   });
 
-  const inMatch = new Set<number>(matches.flatMap((m) => m.strangers));
+  const inMatch = new Set<number>(matches.flatMap((m) => [...m.strangers, ...m.enemyBackers]));
   const idle = state.strangers.map((_, i) => i).filter((i) => !inMatch.has(i));
   return { matches, idle };
 }

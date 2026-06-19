@@ -71,6 +71,18 @@ describe("FightSurface", () => {
     expect(screen.getByText(/gangs up/i)).toBeInTheDocument(); // the leftover Man-stranger joins the match
   });
 
+  it("shows a leftover enemy caster lending magic from the background, not a mystery total", () => {
+    // A lone Man vs a Troll + an enemy Priest: the Priest can't be engaged hand-to-hand, so it lends
+    // its magical power from the background (§395). It must be shown — not silently folded into the total.
+    const s: GameState = { ...newGame(1, [5]), phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, strangers: [3, 4] };
+    render(<FightSurface state={s} dispatch={() => {}} cards={cards} />);
+    fireEvent.click(screen.getByTestId("tray-0"));  // pick the Man
+    fireEvent.click(screen.getByTestId("front-0")); // engage the Troll (stranger 0)
+    expect(screen.getByText(/lends magic/i)).toBeInTheDocument(); // the Priest is shown as a background combatant
+    // Enemy total reflects the combatants actually in play: Troll 4 + Priest magic 2 = 6.
+    expect(screen.getByText("6")).toBeInTheDocument();
+  });
+
   it("keeps the fighters in place after a drawn round (no one slain)", () => {
     const { rerender } = render(<FightSurface state={fightState()} dispatch={() => {}} cards={cards} />);
     fireEvent.click(screen.getByTestId("tray-0"));  // pick the Woman
