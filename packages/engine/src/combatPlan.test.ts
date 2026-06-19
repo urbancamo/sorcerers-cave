@@ -186,6 +186,15 @@ describe("resolvePlannedRound — Sorcerer magic (card)", () => {
   });
 });
 
+describe("previewPlan — front-line casters (§FIGHTS total strength)", () => {
+  it("a party Wizard fighting hand-to-hand matches an enemy Wizard's strength (both FS+MP = 7)", () => {
+    const s = fightS({ party: [member(8)], strangers: [8] }); // party Wizard vs a stranger Wizard
+    const pv = previewPlan(s, { matches: [{ front: [0], backers: [], strangers: [0] }] });
+    expect(pv.matches[0]!.partyStr).toBe(7);  // FS 2 + MP 5 — not 2
+    expect(pv.matches[0]!.enemyStr).toBe(7);  // the enemy Wizard is the same
+  });
+});
+
 describe("previewPlan — strongest-combination preview (§395)", () => {
   it("shows two foes ganging a lone fighter when out-numbered; the weakest stands idle", () => {
     const s = clone(fightS({ party: [member(0)], strangers: [4, 3, 5, 7], seed: 5 })); // Hero vs Priest, Troll, Man, Dwarf

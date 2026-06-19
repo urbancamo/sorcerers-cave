@@ -15,6 +15,17 @@ describe("combat strength (spec §9.3)", () => {
     expect(frontStrength(member(3, { treasure: [3] }))).toBe(4); // Troll FS 4, sword gives inhuman +0
   });
 
+  it("a caster fighting hand-to-hand uses its TOTAL strength (FS + magical power)", () => {
+    expect(frontStrength(member(8))).toBe(7);                 // Wizard: FS 2 + MP 5
+    expect(frontStrength(member(4))).toBe(4);                 // Priest: FS 2 + MP 2
+    expect(frontStrength(member(8, { treasure: [9] }))).toBe(9); // Wizard: FS 2 + MP 5 + Magic Staff +2
+  });
+
+  it("the Eye nullifies a front caster's magical power but leaves its fighting strength", () => {
+    const s = makeState({ party: [member(8, { treasure: [13] })] }); // Wizard holding the Eye of God
+    expect(frontStrength(s.party[0]!, s)).toBe(2); // FS 2 only — magic is powerless
+  });
+
   it("casterMP is MP + Magic Staff bonus, and isCaster flags MP>0 creatures", () => {
     expect(isCaster(member(8))).toBe(true); // Wizard
     expect(isCaster(member(0))).toBe(false); // Hero

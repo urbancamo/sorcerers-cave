@@ -14,10 +14,13 @@ function holds(member: PartyMember, treasureId: number): boolean {
   return member.treasure.includes(treasureId);
 }
 
-/** Front-line fighting strength: FS + dragon-kills + Magic Sword bonus (spec §9.3). The Eye nullifies artefacts. */
+/** Front-line fighting strength: FS + dragon-kills + a caster's magical power + Magic Sword bonus (spec §9.3).
+ *  A Priest or Wizard fighting hand-to-hand uses its TOTAL strength — fighting strength PLUS magical power
+ *  (§FIGHTS) — just as an enemy caster does. The Eye nullifies magic & artefacts. */
 export function frontStrength(member: PartyMember, state?: GameState): number {
   const c = CREATURES[member.creatureId]!;
-  let s = c.fs + member.dragonKills;
+  // A caster in the front line adds its magical power (staff-boosted, nullified by the Eye); 0 for non-casters.
+  let s = c.fs + member.dragonKills + casterMP(member, state);
   const artefactsPowerless = state ? eyeActive(state) : false;
   if (!artefactsPowerless && holds(member, T_MAGIC_SWORD)) {
     if (member.creatureId === 0 || member.creatureId === 1) s += 2; // Hero / W-Hero
