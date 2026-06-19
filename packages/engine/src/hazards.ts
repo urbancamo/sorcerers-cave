@@ -28,7 +28,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
 
   for (const hz of order) {
     if (!state.hazards.includes(hz)) continue;
-    if (hz === HAZARD_GHOULS && livingHolds(state, T_TALISMAN)) continue; // the Talisman wards off Ghouls (card)
+    if (hz === HAZARD_GHOULS && livingHolds(state, T_TALISMAN)) { events.push({ type: "ghoulsWarded" }); continue; } // the Talisman wards off Ghouls (card)
     events.push({ type: "hazardFired", hazard: hz });
     switch (hz) {
       case HAZARD_EARTHQUAKE: {

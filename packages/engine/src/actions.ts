@@ -70,6 +70,7 @@ export type GameEvent =
   | { type: "statueAroused" }
   | { type: "statueAttacked" }
   | { type: "wardedOff"; creatureId: number }
+  | { type: "ghoulsWarded" } // a party member's Talisman turned the Ghouls away (card)
   | { type: "annihilated"; creatureId: number }
   | { type: "statuePowerless" }
   | { type: "deathPrevented"; creatureId: number }

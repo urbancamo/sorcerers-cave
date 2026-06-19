@@ -157,6 +157,7 @@ describe("applyHazards (spec §7.2)", () => {
     const { events } = applyHazards(s);
     expect(s.party.every((m) => m.status === 0)).toBe(true); // nobody harmed
     expect(events.some((e) => e.type === "hazardFired")).toBe(false); // Ghouls driven off before they engage
+    expect(events).toContainEqual({ type: "ghoulsWarded" }); // ...and the player is told why
   });
 
   it("a Wizard bearing the Magic Staff makes Medusa powerless over the whole party (card)", () => {

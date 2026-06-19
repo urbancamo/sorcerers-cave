@@ -100,6 +100,9 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "wardedOff":
         out.push({ text: `The Talisman wards off ${name(e.creatureId)}.`, tone: "good" });
         break;
+      case "ghoulsWarded":
+        out.push({ text: "The party's Talisman wards off the Ghouls — they slink away unfought.", tone: "good" });
+        break;
       case "annihilated":
         out.push({ text: `The Eye of God annihilates ${name(e.creatureId)}!`, tone: "good" });
         break;
