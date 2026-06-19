@@ -274,7 +274,8 @@ export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEve
       const victim = mt.strangers.reduce((best, si) => (weight(si) > weight(best) ? si : best), mt.strangers[0]!);
       const sid = state.strangers[victim]!;
       killedStrangerIdx.push(victim);
-      if (sid === C_DRAGON && front.length === 1 && mt.strangers.length === 1) front[0]!.dragonKills += 1;
+      // Single-handed = one front fighter, the lone Dragon, and NO caster backer lending magic.
+      if (sid === C_DRAGON && front.length === 1 && mt.backers.length === 0 && mt.strangers.length === 1) front[0]!.dragonKills += 1;
       events.push({ type: "strangerKilled", creatureId: sid });
       // Felling the Sorcerer himself is the campaign's crowning feat: record it (worth 30 at scoring)
       // and announce it so the UI can give the party a hero's congratulations (§"The Sorcerer").

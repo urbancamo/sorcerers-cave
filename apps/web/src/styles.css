@@ -340,18 +340,30 @@
 }
 
 /* Treasure / artefact assignment: one row per item with a dropdown of targets (collapses the
-   take-per-member / use-per-target action explosion into a compact menu). */
+   take-per-member / use-per-target action explosion into a compact menu). Styled to match the
+   brass-on-parchment HUD controls — each row reads as a framed menu entry. */
 .scv-enc-assign { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
-.scv-enc-row { display: flex; align-items: center; gap: 10px; font-family: var(--ui); font-size: 13px; }
-.scv-enc-row-nm { flex: 1 1 auto; color: var(--cream); font-weight: 600; }
+.scv-enc-row {
+  display: flex; align-items: center; gap: 10px; font-family: var(--ui); font-size: 13px;
+  padding: 7px 10px 7px 12px; border-radius: 10px;
+  border: 1px solid var(--line-strong); background: rgba(201, 161, 78, 0.05);
+}
+.scv-enc-row-nm { flex: 1 1 auto; color: var(--cream); font-weight: 600; letter-spacing: 0.01em; }
 .scv-enc-select {
   flex: 0 0 auto; max-width: 60%;
-  font-family: var(--ui); font-size: 13px; padding: 7px 10px; border-radius: 9px;
-  border: 1px solid var(--line-strong); color: var(--parchment); background: rgba(201, 161, 78, 0.06);
-  cursor: pointer;
+  font-family: var(--ui); font-size: 13px; font-weight: 600;
+  padding: 7px 30px 7px 12px; border-radius: 8px;
+  border: 1px solid var(--brass); color: var(--cream); background-color: rgba(201, 161, 78, 0.12);
+  /* custom brass chevron so the native OS arrow doesn't clash with the theme */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%23e6c578' stroke-width='1.6' d='M1 1.5 6 6.5 11 1.5'/%3E%3C/svg%3E");
+  background-repeat: no-repeat; background-position: right 10px center; background-size: 11px 8px;
+  appearance: none; -webkit-appearance: none; -moz-appearance: none;
+  cursor: pointer; transition: border-color 0.15s, background-color 0.15s, color 0.15s, box-shadow 0.15s;
 }
-.scv-enc-select:hover { border-color: var(--brass); color: var(--cream); }
-.scv-enc-select option { color: #15151b; }
+.scv-enc-select:hover { background-color: rgba(201, 161, 78, 0.2); border-color: var(--brass-bright); }
+.scv-enc-select:focus-visible { outline: none; border-color: var(--brass-bright); box-shadow: 0 0 0 2px rgba(230, 197, 120, 0.3); }
+/* The popped-open option list is OS-drawn; give it readable dark-on-parchment colours. */
+.scv-enc-select option { color: #1b1b22; background: var(--parchment); }
 
 /* Dice-roll overlay: a modal die that tumbles, settles, then reports the outcome. */
 .scv-dice-overlay {

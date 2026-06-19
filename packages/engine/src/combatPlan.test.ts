@@ -99,6 +99,13 @@ describe("resolvePlannedRound (§A Round of Fighting)", () => {
     expect(s.strangers).toEqual([]);
     expect(s.party[0]!.dragonKills).toBe(1);
   });
+  it("does NOT credit the slayer when a caster backed the kill (not single-handed)", () => {
+    // Giant front + Wizard backer fell the Dragon together — no dragon-slayer credit.
+    const s = clone(fightS({ fight: { surprise: 1, round: 1, focus: 0 }, party: [member(12), member(8)], strangers: [10], seed: 5 }));
+    resolvePlannedRound(s, { matches: [{ front: [0], backers: [1], strangers: [0] }] });
+    expect(s.strangers).toEqual([]);
+    expect(s.party[0]!.dragonKills).toBe(0);
+  });
   it("slaying the Sorcerer records the kill and announces the feat", () => {
     // Giant+Magic Sword front, Wizard+Magic Staff backer, surprise & Lotus weakening the Sorcerer.
     const s = clone(fightS({
