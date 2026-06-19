@@ -159,6 +159,18 @@ describe("previewPlan — strongest-combination preview (§395)", () => {
     expect(pv.matches[0]!.enemyStr).toBe(9);           // Troll 4 + Man 3 + Priest's magic 2 (folded into the focus)
     expect(pv.idle).toContain(3);                      // the Dwarf stands idle this round
   });
+
+  it("does not gang foes up while the party still has a free fighter (2-v-2 stays two 1-v-1)", () => {
+    const s = clone(fightS({ party: [member(0), member(2)], strangers: [3, 5], seed: 5 })); // Hero, Ogre vs Troll, Man
+    // Only the Hero is committed so far — the Ogre is still free, so the Man must NOT be ganged on.
+    const pv1 = previewPlan(s, { matches: [{ front: [0], backers: [], strangers: [0] }] });
+    expect(pv1.matches[0]!.strangers).toEqual([0]); // just the Troll
+    expect(pv1.idle).toContain(1);                  // the Man stays idle, ready to be engaged
+    // With both fighters committed, the foes are engaged as two separate 1-v-1 matches.
+    const pv2 = previewPlan(s, { matches: [{ front: [0], backers: [], strangers: [0] }, { front: [1], backers: [], strangers: [1] }] });
+    expect(pv2.matches).toHaveLength(2);
+    expect(pv2.idle).toEqual([]);
+  });
 });
 
 describe("resolvePlannedRound — heavy treasure (§387)", () => {

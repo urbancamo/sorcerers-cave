@@ -115,20 +115,28 @@ export function previewPlan(state: GameState, plan: BattlePlan): PlanPreview {
     front: [...mt.front], backers: [...(mt.backers ?? [])], strangers: [...mt.strangers], attached: [] as number[],
   }));
 
-  // Out-numbered: gang leftover foes onto lone-fighter corporeal matches (strongest first).
-  const engaged = new Set<number>(base.flatMap((mt) => mt.strangers));
-  const leftover = state.strangers.map((_, i) => i).filter((i) => !engaged.has(i) && !isSpectreIdx(state, i));
-  const extraHand = leftover.filter((i) => enemyMP(state, state.strangers[i]!) === 0)
-    .sort((a, b) => CREATURES[state.strangers[b]!]!.fs - CREATURES[state.strangers[a]!]!.fs);
-  const leftoverCasterMP = leftover.filter((i) => enemyMP(state, state.strangers[i]!) > 0)
-    .reduce((sum, i) => sum + enemyMP(state, state.strangers[i]!), 0);
-  let ei = 0;
-  for (const mt of base) {
-    if (spectreMatch(mt.strangers)) continue;
-    if (mt.front.length === 1 && mt.strangers.length === 1 && ei < extraHand.length) {
-      const x = extraHand[ei++]!;
-      mt.strangers.push(x);
-      mt.attached.push(x);
+  // Strangers gang up only once the party is OUT of fighters (§395 "if he is still unable to engage
+  // all the strangers"). While a living member is still free, leftover foes stay separate so the player
+  // can pair one fighter to each (e.g. 2-v-2 = two 1-v-1 matches, not one fighter facing both).
+  const usedParty = new Set<number>(base.flatMap((mt) => [...mt.front, ...mt.backers]));
+  const hasFreeFighter = state.party.some((m, i) => (m.status === 0 || m.status === 1) && !usedParty.has(i));
+
+  let leftoverCasterMP = 0;
+  if (!hasFreeFighter) {
+    const engaged = new Set<number>(base.flatMap((mt) => mt.strangers));
+    const leftover = state.strangers.map((_, i) => i).filter((i) => !engaged.has(i) && !isSpectreIdx(state, i));
+    const extraHand = leftover.filter((i) => enemyMP(state, state.strangers[i]!) === 0)
+      .sort((a, b) => CREATURES[state.strangers[b]!]!.fs - CREATURES[state.strangers[a]!]!.fs);
+    leftoverCasterMP = leftover.filter((i) => enemyMP(state, state.strangers[i]!) > 0)
+      .reduce((sum, i) => sum + enemyMP(state, state.strangers[i]!), 0);
+    let ei = 0;
+    for (const mt of base) {
+      if (spectreMatch(mt.strangers)) continue;
+      if (mt.front.length === 1 && mt.strangers.length === 1 && ei < extraHand.length) {
+        const x = extraHand[ei++]!;
+        mt.strangers.push(x);
+        mt.attached.push(x);
+      }
     }
   }
   const focus = base.find((mt) => !spectreMatch(mt.strangers));
