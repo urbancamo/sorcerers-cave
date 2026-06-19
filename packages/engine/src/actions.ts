@@ -69,8 +69,7 @@ export type GameEvent =
   | { type: "artifactUsed"; artifact: number }
   | { type: "chestOpened"; result: number }
   | { type: "rubyTaken" }
-  | { type: "statueAroused" }
-  | { type: "statueAttacked" }
+  | { type: "statueAroused" } // the Lost-Ruby statue slew the member who tried to wrest it (labels the dice overlay)
   | { type: "wardedOff"; creatureId: number }
   | { type: "ghoulsWarded" } // a party member's Talisman turned the Ghouls away (card)
   | { type: "medusaAverted" } // a Wizard's Magic Staff turned Medusa's gaze aside — no one stoned (card)

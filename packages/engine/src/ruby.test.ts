@@ -7,8 +7,8 @@ const member = (creatureId: number, treasure: number[] = [], status = 0) => ({ c
 const area = (flags = 0) => ({ card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [] as number[], flags, indiffCount: 0 });
 
 describe("Lost Ruby statue (spec §16)", () => {
-  it("taking the Lost Ruby fights the statue: win -> ruby; loss -> slain + statue aroused", () => {
-    const s = makeState({ phase: "pickup", areas: [area()], treasures: [11], party: [member(5)], seed: 4 }); // Man (FS 3)
+  it("taking the Lost Ruby fights the statue: win -> ruby; loss -> slain, but the statue does NOT stay aroused", () => {
+    const s = makeState({ phase: "pickup", areas: [area()], treasures: [11], party: [member(5), member(0)], seed: 4 }); // Man (FS 3) + Hero
     const { state, events } = reduce(s, { type: "takeTreasure", ti: 0, mi: 0 });
     if (state.party[0]!.treasure.includes(11)) {
       expect(events).toContainEqual({ type: "rubyTaken" });
@@ -16,9 +16,9 @@ describe("Lost Ruby statue (spec §16)", () => {
       expect(state.treasures).toEqual([]);
     } else {
       expect(state.party[0]!.status).toBe(3);
-      expect(state.areas[0]!.flags & 32).toBe(32);
+      expect(state.areas[0]!.flags & 32).toBe(0); // no persistent arousal — re-entry won't strike the party
       expect(events).toContainEqual({ type: "statueAroused" });
-      expect(state.treasures).toEqual([11]); // ruby stays
+      expect(state.treasures).toEqual([11]); // ruby stays, attemptable again
     }
   });
 
@@ -35,27 +35,21 @@ describe("Lost Ruby statue (spec §16)", () => {
     expect(events).toContainEqual(expect.objectContaining({ type: "combatRoll", enemy: "Statue", result: "partyWon" }));
   });
 
-  it("entering an aroused-statue area makes the statue attack first", () => {
-    // seed=3: party roll pr=4, statue roll sr=2 → 8+2=10 > 5+4=9 → Hero (FS 5) dies.
-    // Party is then empty → gameOver(GS_DEAD). Events: memberDied, statueAttacked, gameOver.
+  it("re-entering the ruby chamber does NOT attack the party — the statue only strikes an explicit wrestler", () => {
+    // seed=3 is the seed that used to kill a lone Hero on entry; with the on-entry attack removed it must not.
     const s = makeState({
       areas: [
         { card: 175, coord: packCoord(1, 50, 49), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
-        area(32), // index 1: aroused statue, at (50,50)
+        area(32), // index 1: a chamber left with the legacy "aroused" flag, at (50,50)
       ],
       partyArea: 0, prev: 0,
-      party: [member(0)], // Hero (creatureId=0, FS=5)
+      party: [member(0)], // a lone Hero
       seed: 3,
     });
     s.areas[1]!.coord = packCoord(1, 50, 50);
-    const { state, events } = reduce(s, { type: "move", dir: 3 }); // DIR_S into the aroused area
+    const { state, events } = reduce(s, { type: "move", dir: 3 }); // DIR_S into the chamber
     expect(state.partyArea).toBe(1);
-    // Statue fires (confirmed by pinned seed=3: statue beats Hero)
-    expect(events).toContainEqual({ type: "statueAttacked" });
-    // Hero is slain — deterministic at this seed
-    expect(state.party[0]!.status).toBe(3);
-    expect(events).toContainEqual({ type: "memberDied", creatureId: 0 });
-    // Whole party dead → gameOver
-    expect(events).toContainEqual({ type: "gameOver", gs: 2 });
+    expect(state.party[0]!.status).toBe(0); // Hero survives — no passive statue attack on entry
+    expect(events.some((e) => e.type === "memberDied")).toBe(false);
   });
 });

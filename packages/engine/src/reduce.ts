@@ -125,32 +125,6 @@ function resolveArea(state: GameState): GameEvent[] {
 
   for (;;) {
     const dec = decodeArea(state.areas[state.partyArea]!.card);
-    const here = state.areas[state.partyArea]!;
-    if ((here.flags & 32) !== 0) { // an aroused Lost-Ruby statue strikes the strongest member (§16)
-      if (eyeActive(state)) {
-        events.push({ type: "statuePowerless" }); // the Eye renders the statue powerless to attack
-      } else {
-        let strongest: typeof state.party[number] | undefined;
-        for (const m of state.party) {
-          if ((m.status === 0 || m.status === 1) && (!strongest || frontStrength(m) > frontStrength(strongest))) strongest = m;
-        }
-        if (strongest) {
-          const pr = rollDie(state.seed); state.seed = pr.seed;
-          const sr = rollDie(state.seed); state.seed = sr.seed;
-          if (8 + sr.value > frontStrength(strongest) + pr.value) {
-            strongest.status = 3;
-            events.push({ type: "memberDied", creatureId: strongest.creatureId });
-          }
-          events.push({ type: "statueAttacked" });
-          if (!state.party.some((m) => m.status === 0 || m.status === 1)) {
-            state.gs = GS_DEAD;
-            state.phase = "gameOver";
-            events.push({ type: "gameOver", gs: GS_DEAD });
-            return events;
-          }
-        }
-      }
-    }
     if (dec.special === SPECIAL_DEEP_POOL) {
       const area = state.areas[state.partyArea]!;
       if (area.dropped && area.dropped.length > 0) {
@@ -173,7 +147,7 @@ function resolveArea(state: GameState): GameEvent[] {
       state.phase = "explore";
       return events;
     }
-    const freshEntry = !here.visited; // first visit by this (unused) doorway → eligible for surprise
+    const freshEntry = !state.areas[state.partyArea]!.visited; // first visit by this (unused) doorway → eligible for surprise
     events.push(...enterChamber(state));
     events.push(...annihilateWithEye(state)); // the Eye destroys Spectres on sight (§ Eye of God)
     events.push(...wardOffSpectres(state)); // the Talisman drives off Spectres on level >= 4 (§ Talisman)
@@ -375,8 +349,11 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
           next.treasures.splice(action.ti, 1);
           events.push({ type: "rubyTaken" });
         } else {
+          // The wrestler is slain, but the statue does NOT stay aroused: it only ever strikes the
+          // member who explicitly tries to take the Ruby — never the party on a passive re-entry.
+          // The Ruby is left in place (not spliced) so it can be attempted again later. statueAroused
+          // here just labels this wrestle's dice overlay (§16).
           fighter.status = 3;
-          next.areas[next.partyArea]!.flags |= 32; // statue aroused
           events.push({ type: "memberDied", creatureId: fighter.creatureId });
           events.push({ type: "statueAroused" });
           if (!next.party.some((m) => m.status === 0 || m.status === 1)) {
