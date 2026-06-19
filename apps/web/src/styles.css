@@ -339,6 +339,20 @@
   background: rgba(201, 161, 78, 0.14);
 }
 
+/* Treasure / artefact assignment: one row per item with a dropdown of targets (collapses the
+   take-per-member / use-per-target action explosion into a compact menu). */
+.scv-enc-assign { display: flex; flex-direction: column; gap: 6px; margin-bottom: 6px; }
+.scv-enc-row { display: flex; align-items: center; gap: 10px; font-family: var(--ui); font-size: 13px; }
+.scv-enc-row-nm { flex: 1 1 auto; color: var(--cream); font-weight: 600; }
+.scv-enc-select {
+  flex: 0 0 auto; max-width: 60%;
+  font-family: var(--ui); font-size: 13px; padding: 7px 10px; border-radius: 9px;
+  border: 1px solid var(--line-strong); color: var(--parchment); background: rgba(201, 161, 78, 0.06);
+  cursor: pointer;
+}
+.scv-enc-select:hover { border-color: var(--brass); color: var(--cream); }
+.scv-enc-select option { color: #15151b; }
+
 /* Dice-roll overlay: a modal die that tumbles, settles, then reports the outcome. */
 .scv-dice-overlay {
   position: fixed;
@@ -863,8 +877,13 @@
 }
 .scv-pp-card img { width: 100%; height: 100%; object-fit: cover; }
 .scv-pp-card .ph { color: var(--stone); font-family: var(--display); font-size: 13px; }
-.scv-pp-name { font-size: 14px; font-weight: 600; color: var(--parchment); }
+.scv-pp-name { font-size: 14px; font-weight: 600; color: var(--parchment); display: inline-flex; align-items: center; gap: 6px; }
 .scv-pp-status { color: var(--stone-dim); font-weight: 400; }
+/* Status pills mirror the in-cave roster badges (view/cave.css .mbr .badge) so both views match. */
+.scv-pp-badge { flex: none; font-size: 8.5px; font-weight: 700; letter-spacing: .07em; text-transform: uppercase; padding: 1px 6px; border-radius: 999px; line-height: 1.55; }
+.scv-pp-badge.ally { color: #bfe6c0; background: rgba(120,200,130,.15); border: 1px solid rgba(120,200,130,.42); }
+.scv-pp-badge.stone { color: #d3cec1; background: rgba(180,175,160,.16); border: 1px solid rgba(180,175,160,.42); }
+.scv-pp-badge.fallen { color: #e7a59c; background: rgba(168,68,58,.14); border: 1px solid rgba(168,68,58,.42); }
 .scv-pp-cap { display: flex; flex-direction: column; gap: 3px; }
 .scv-pp-cap-bar { height: 6px; border-radius: 3px; background: rgba(232, 219, 187, 0.12); overflow: hidden; }
 .scv-pp-cap-bar i { display: block; height: 100%; background: linear-gradient(90deg, var(--brass-bright), var(--brass)); }

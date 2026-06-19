@@ -30,6 +30,26 @@ describe("EncounterPanel", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "leaveTreasure" });
   });
 
+  it("lists a treasure once with a member dropdown (Leave in chamber default)", () => {
+    const dispatch = vi.fn();
+    const pickup: GameState = { ...newGame(1, [5, 6]), phase: "pickup", treasures: [1] }; // Gold
+    render(<EncounterPanel state={pickup} dispatch={dispatch} />);
+    const select = screen.getByLabelText(/assign gold/i) as HTMLSelectElement;
+    expect(select.options[0]!.textContent).toBe("Leave in chamber"); // first option leaves it
+    fireEvent.change(select, { target: { value: "0" } });            // give to the first eligible member
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "takeTreasure", ti: 0 }));
+  });
+
+  it("lists an artefact once with a target dropdown", () => {
+    const dispatch = vi.fn();
+    const s: GameState = { ...newGame(1, [5, 6]), phase: "encounter", strangers: [3] }; // vs a Troll
+    s.party[0]!.treasure.push(5); // the Man carries Lotus Dust
+    render(<EncounterPanel state={s} dispatch={dispatch} />);
+    const select = screen.getByLabelText(/use lotus dust/i);
+    fireEvent.change(select, { target: { value: "0" } }); // apply to the only stranger
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "useArtifact", artifact: 5 }));
+  });
+
   it("renders nothing in the fight phase (the FightSurface owns it)", () => {
     const s: GameState = { ...newGame(1, [0]), phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, strangers: [3] };
     const { container } = render(<EncounterPanel state={s} dispatch={() => {}} />);

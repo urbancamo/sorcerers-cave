@@ -1,6 +1,6 @@
 import { type DragEvent, useEffect, useRef, useState } from "react";
 import {
-  CREATURES, legalActions, validatePlan, previewPlan, frontStrength, casterMP,
+  CREATURES, TREASURES, legalActions, validatePlan, previewPlan, frontStrength, casterMP,
   type GameState, type GameAction,
 } from "@sorcerers-cave/engine";
 import type { CardArt } from "../data/manifest";
@@ -237,9 +237,19 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
           </div>
         )}
         <button className="scv-fight-btn ghost" onClick={() => { setDraft(emptyDraft()); setSel(null); }}>Reset</button>
-        {artifacts.map((a, i) => (
-          <button key={i} className="scv-fight-btn" onClick={() => dispatch(a)}>Use artefact</button>
-        ))}
+        {artifacts.map((a, i) => {
+          // Name the artefact and its target so each option is distinct — Lotus Dust (5) targets a
+          // stranger, Strength Potion (8) a party member (§ artefacts).
+          const nm = TREASURES[a.artifact]?.name ?? "artefact";
+          const tgt = a.target === undefined ? null
+            : a.artifact === 5 ? CREATURES[state.strangers[a.target]!]!.name
+            : CREATURES[state.party[a.target]!.creatureId]!.name;
+          return (
+            <button key={i} className="scv-fight-btn" onClick={() => dispatch(a)}>
+              {tgt ? `${nm} → ${tgt}` : `Use ${nm}`}
+            </button>
+          );
+        })}
       </div>
     </div>
   );

@@ -61,6 +61,15 @@ describe("PartyPanel", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "dropTreasure", mi: 1, idx: 0 });
   });
 
+  it("shows a befriended member with the same 'ally' badge as the roster", () => {
+    const s = newGame(1, [5, 7]);
+    s.party[1]!.status = 1; // Dwarf befriended → ally
+    render(<PartyPanel state={s} dispatch={() => {}} onClose={() => {}} />);
+    const badge = document.querySelector(".scv-pp-badge.ally");
+    expect(badge).not.toBeNull();
+    expect(badge!.textContent).toBe("ally");
+  });
+
   it("is view-only during a fight", () => {
     const s = partyState();
     s.phase = "fight";

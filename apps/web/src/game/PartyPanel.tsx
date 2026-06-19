@@ -5,7 +5,14 @@ import {
 } from "@sorcerers-cave/engine";
 import { loadManifest, resolveCard, resolveCardVariant, type CardArt } from "../data/manifest";
 
-const STATUS_LABEL: Record<number, string> = { 0: "", 1: "ally", 2: "petrified", 3: "fallen" };
+// Status badges mirror the in-cave roster (see view/cave3d.js renderRoster): a befriended member
+// shows the same green "ally" pill, a petrified one the grey "stone" pill, so the detailed party
+// view and the summary roster read identically.
+const STATUS_BADGE: Record<number, { label: string; cls: string }> = {
+  1: { label: "ally", cls: "ally" },
+  2: { label: "stone", cls: "stone" },
+  3: { label: "fallen", cls: "fallen" },
+};
 
 /** Expanded party view: each member as their card, what they carry as cards, a carry-weight
  *  bar, and (outside combat) controls to move treasure between members or drop it. */
@@ -82,7 +89,9 @@ export function PartyPanel({
                 </div>
                 <div className="scv-pp-name">
                   {c.name}
-                  {STATUS_LABEL[m.status] && <span className="scv-pp-status"> · {STATUS_LABEL[m.status]}</span>}
+                  {STATUS_BADGE[m.status] && (
+                    <span className={"scv-pp-badge " + STATUS_BADGE[m.status]!.cls}>{STATUS_BADGE[m.status]!.label}</span>
+                  )}
                 </div>
                 <div className="scv-pp-cap">
                   <div className="scv-pp-cap-bar"><i style={{ width: pct + "%" }} /></div>
