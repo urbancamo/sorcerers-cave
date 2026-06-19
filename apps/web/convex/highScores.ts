@@ -1,7 +1,7 @@
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
-import { scoreGame, unpackCoord, GS_PLAYING, type GameState, type GameEvent } from "@sorcerers-cave/engine";
+import { scoreGame, unpackCoord, GS_PLAYING, GS_ESCAPED, type GameState, type GameEvent } from "@sorcerers-cave/engine";
 
 const MAX_NAME = 40;
 const LEADERBOARD_LIMIT = 100;
@@ -31,6 +31,9 @@ export const save = mutation({
 
     const state = game.state as GameState;
     if (state.gs === GS_PLAYING) throw new Error("Game is still in progress");
+    // Only a party that climbed back to the surface earns a recordable score — an abandoned or
+    // wiped-out expedition is not valid for the leaderboard (§Scoring).
+    if (state.gs !== GS_ESCAPED) throw new Error("Only a party that escapes the cave can record a score");
     const cleanName = name.trim().slice(0, MAX_NAME) || "Anonymous";
     const score = scoreGame(state); // authoritative — never trust a client score
 

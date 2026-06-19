@@ -1,6 +1,6 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import { newGame, GS_ESCAPED, GS_DEAD, type GameState } from "@sorcerers-cave/engine";
+import { newGame, GS_ESCAPED, GS_DEAD, GS_QUIT, type GameState } from "@sorcerers-cave/engine";
 import { GameOverScreen } from "./GameOverScreen";
 import type { LeaderboardRow } from "./HighScores";
 
@@ -70,6 +70,15 @@ describe("GameOverScreen", () => {
     await waitFor(() => expect(onSaveScore).toHaveBeenCalledWith("Gandalf"));
     expect(await screen.findByTestId("high-scores")).toBeInTheDocument();
     expect(screen.getByText("Gandalf")).toBeInTheDocument();
+  });
+
+  it("shows the tally but no save form for an abandoned expedition (not a valid score)", () => {
+    const base = newGame(1, [0]);
+    const quit: GameState = { ...base, gs: GS_QUIT };
+    render(<GameOverScreen state={quit} onNewGame={() => {}} onSaveScore={vi.fn()} />);
+    expect(screen.getAllByText("10").length).toBeGreaterThanOrEqual(1); // the tally is still shown
+    expect(screen.queryByPlaceholderText(/your name/i)).toBeNull(); // but no save form
+    expect(screen.getByTestId("no-record")).toHaveTextContent(/can record a score/i);
   });
 
   it("offers no name entry when saving is unavailable", () => {

@@ -27,6 +27,9 @@ export function GameOverScreen({
   leaderboard?: LeaderboardRow[];
 }) {
   const breakdown = scoreBreakdown(state);
+  // Only a party that climbs back to the surface earns a recordable score (§Scoring). An abandoned or
+  // wiped-out expedition still shows its tally, but it can't be saved to the high-score table.
+  const canRecord = state.gs === GS_ESCAPED;
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
@@ -92,8 +95,17 @@ export function GameOverScreen({
       <p className="scv-score">{breakdown.total}</p>
       <p className="scv-points">total points</p>
 
+      {/* Only an escaped party may record a score; others see why they can't. */}
+      {onSaveScore && !canRecord && (
+        <p className="scv-hs-status scv-muted" data-testid="no-record">
+          {state.gs === GS_QUIT
+            ? "Abandoned in the cave — only a party that climbs back to the surface can record a score."
+            : "The party never made it out — only a party that escapes the cave can record a score."}
+        </p>
+      )}
+
       {/* Name entry → save → leaderboard. */}
-      {onSaveScore && !saved && (
+      {onSaveScore && canRecord && !saved && (
         <form
           className="scv-hs-entry"
           onSubmit={(e) => { e.preventDefault(); void save(); }}
