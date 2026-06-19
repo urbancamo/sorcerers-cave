@@ -42,10 +42,13 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         break;
       }
       case HAZARD_MEDUSA: {
+        // While a living Wizard bearing the Magic Staff is in the room, Medusa is powerless — the staff
+        // wards (and reanimates) the whole party, so no one is gazed (§Medusa / Magic Staff).
+        const staffWizard = state.party.some((m) => (m.status === 0 || m.status === 1) && m.creatureId === C_WIZARD && m.treasure.includes(T_MAGIC_STAFF));
+        if (staffWizard) break;
         const rolls: { creatureId: number; roll: number; petrified: boolean }[] = [];
         for (const m of state.party) {
           if (m.status !== 0 && m.status !== 1) continue;
-          if (m.creatureId === C_WIZARD && m.treasure.includes(T_MAGIC_STAFF)) continue; // a Wizard bearing the Magic Staff is immune (card)
           const r = rollDie(state.seed);
           state.seed = r.seed;
           const petrified = r.value <= 2; // a 1 or 2 turns that creature to stone (§Medusa)

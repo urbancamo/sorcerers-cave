@@ -159,16 +159,17 @@ describe("applyHazards (spec §7.2)", () => {
     expect(events.some((e) => e.type === "hazardFired")).toBe(false); // Ghouls driven off before they engage
   });
 
-  it("a Wizard bearing the Magic Staff is immune to Medusa (card)", () => {
+  it("a Wizard bearing the Magic Staff makes Medusa powerless over the whole party (card)", () => {
     const s = makeState({
       party: [
         { creatureId: 8, status: 0, dragonKills: 0, treasure: [9] }, // Wizard with the Magic Staff (id 9)
-        { creatureId: 5, status: 0, dragonKills: 0, treasure: [] },  // Man, vulnerable
+        { creatureId: 5, status: 0, dragonKills: 0, treasure: [] },  // Man — would be vulnerable, but the staff wards
       ],
       hazards: [HAZARD_MEDUSA],
       seed: 1,
     });
-    applyHazards(s);
-    expect(s.party[0]!.status).toBe(0); // the staff-bearing Wizard is never turned to stone
+    const { events } = applyHazards(s);
+    expect(s.party.every((m) => m.status === 0)).toBe(true);          // no one is turned to stone
+    expect(events.some((e) => e.type === "medusaGaze")).toBe(false);   // the gaze never fires
   });
 });
