@@ -200,6 +200,16 @@ describe("previewPlan — strongest-combination preview (§395)", () => {
     expect(mods.find((m) => m.label === "Surprise")).toMatchObject({ value: 1, side: "party", roll: true });
   });
 
+  it("shows a dragon-slayer's fighting-strength bonus as a matchup modifier", () => {
+    const s = clone(fightS({
+      party: [{ creatureId: 0, status: 0, dragonKills: 2, treasure: [] }], // Hero who has felled 2 dragons
+      strangers: [3], // a Troll
+    }));
+    const pv = previewPlan(s, { matches: [{ front: [0], backers: [], strangers: [0] }] });
+    expect(pv.matches[0]!.modifiers.find((m) => m.label === "Dragon-slayer · Hero")).toMatchObject({ value: 2, side: "party", roll: false });
+    expect(pv.matches[0]!.partyStr).toBe(7); // Hero 5 + 2 dragon-slayer baked into the total
+  });
+
   it("does not gang foes up while the party still has a free fighter (2-v-2 stays two 1-v-1)", () => {
     const s = clone(fightS({ party: [member(0), member(2)], strangers: [3, 5], seed: 5 })); // Hero, Ogre vs Troll, Man
     // Only the Hero is committed so far — the Ogre is still free, so the Man must NOT be ganged on.

@@ -98,7 +98,7 @@ export function PartyPanel({
                   <span className="scv-pp-cap-tx">{cap > 0 ? `${load} / ${cap} kg` : "no capacity"}</span>
                 </div>
                 <div className="scv-pp-items">
-                  {m.treasure.length === 0 && <span className="scv-pp-empty">empty-handed</span>}
+                  {m.treasure.length === 0 && m.dragonKills === 0 && <span className="scv-pp-empty">empty-handed</span>}
                   {m.treasure.map((tid, idx) => {
                     const t = TREASURES[tid]!;
                     const timg = imgOf("treasure", tid);
@@ -119,6 +119,22 @@ export function PartyPanel({
                       >
                         {timg ? <img src={timg} alt={t.name} /> : <span className="ph">{t.name[0]}</span>}
                       </button>
+                    );
+                  })}
+                  {/* Dragon-slayer: one inverted Dragon card per dragon felled single-handed, shown
+                      alongside the loot (mirrors the boxed game's upside-down dragon card). +1 FS each. */}
+                  {Array.from({ length: m.dragonKills }).map((_, k) => {
+                    const dimg = imgOf("creature", 10); // the Dragon card
+                    return (
+                      <span
+                        key={`dragon-${k}`}
+                        className="scv-pp-item dragon-slain"
+                        title="Dragon-slayer — +1 fighting strength"
+                        onMouseEnter={() => setPreview(dimg)}
+                        onMouseLeave={() => setPreview((p) => (p === dimg ? null : p))}
+                      >
+                        {dimg ? <img src={dimg} alt="Dragon slain" /> : <span className="ph">🐉</span>}
+                      </span>
                     );
                   })}
                 </div>

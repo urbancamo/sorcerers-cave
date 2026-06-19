@@ -902,6 +902,10 @@
 .scv-pp-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .scv-pp-item .ph { display: grid; place-items: center; height: 100%; font-size: 13px; color: var(--parchment); font-family: var(--display); }
 .scv-pp-item.art { border-color: var(--brass); }
+/* Dragon-slayer trophy: the Dragon card laid upside-down (as in the boxed game), non-interactive. */
+.scv-pp-item.dragon-slain { border-color: var(--crimson); cursor: help; }
+.scv-pp-item.dragon-slain img { transform: rotate(180deg); }
+.scv-pp-item.dragon-slain .ph { transform: rotate(180deg); }
 .scv-pp-item.sel { outline: 2px solid var(--brass-bright); outline-offset: 2px; box-shadow: 0 0 14px -2px var(--brass-bright); z-index: 4; }
 /* Large floating card preview — fixed to the viewport, above the panel, never clipped. */
 .scv-pp-preview {

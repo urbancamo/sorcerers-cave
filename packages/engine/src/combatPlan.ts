@@ -181,6 +181,11 @@ export function previewPlan(state: GameState, plan: BattlePlan): PlanPreview {
         if (v) modifiers.push({ label: `Magic Sword · ${named(i)}`, value: v, side: "party", roll: false });
       }
       if (m.potionActive) modifiers.push({ label: `Strength Potion · ${named(i)}`, value: 2, side: "party", roll: false });
+      // Dragon-slayer: +1 fighting strength per dragon felled single-handed (baked into the total) —
+      // shown unless this member is fighting a Spectre with magic only (where FS doesn't apply).
+      if (m.dragonKills > 0 && !(spectre && casterMP(m, state) > 0)) {
+        modifiers.push({ label: `Dragon-slayer · ${named(i)}`, value: m.dragonKills, side: "party", roll: false });
+      }
     }
     for (const i of mt.backers) {
       const m = state.party[i]!, c = m.creatureId;

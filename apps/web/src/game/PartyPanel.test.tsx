@@ -70,6 +70,15 @@ describe("PartyPanel", () => {
     expect(badge!.textContent).toBe("ally");
   });
 
+  it("shows an inverted Dragon card for each dragon slain single-handed", () => {
+    const s = newGame(1, [0]); // a lone Hero
+    s.party[0]!.dragonKills = 2;
+    render(<PartyPanel state={s} dispatch={() => {}} onClose={() => {}} />);
+    const trophies = document.querySelectorAll(".scv-pp-item.dragon-slain");
+    expect(trophies).toHaveLength(2);
+    expect(trophies[0]!.getAttribute("title")).toMatch(/dragon-slayer/i);
+  });
+
   it("is view-only during a fight", () => {
     const s = partyState();
     s.phase = "fight";
