@@ -92,6 +92,16 @@ describe("FightSurface", () => {
     expect(screen.getByText(/Magic Sword/i)).toBeInTheDocument();
   });
 
+  it("re-renders without crashing after a foe is slain (stale stranger index)", () => {
+    const { rerender } = render(<FightSurface state={fightState()} dispatch={() => {}} cards={cards} />); // Troll(0), Spectre(1)
+    fireEvent.click(screen.getByTestId("tray-1"));  // pick the Priest (a caster)
+    fireEvent.click(screen.getByTestId("front-1")); // engage the Spectre (stranger index 1)
+    // The Spectre is slain — strangers shrink to just [Troll], so index 1 in the old draft is now gone.
+    const s2 = fightState({ fight: { surprise: 0, round: 2, focus: 0 }, strangers: [3] });
+    expect(() => rerender(<FightSurface state={s2} dispatch={() => {}} cards={cards} />)).not.toThrow();
+    expect(screen.getByTestId("fight-surface")).toBeInTheDocument();
+  });
+
   it("offers retreat after round 1", () => {
     const dispatch = vi.fn();
     // The gateway (card 175) has all four doorways, so legalActions offers N/E/S/W retreats at round > 1.

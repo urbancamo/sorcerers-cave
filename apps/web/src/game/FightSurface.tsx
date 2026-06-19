@@ -31,10 +31,15 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
   // either side) leaves the composition untouched, so the fighters stay exactly where they were placed.
   const composition = state.party.map((m) => m.status).join(",") + "|" + state.strangers.join(",");
   const prevComposition = useRef(composition);
+  // When the line-up changes (a foe slain / a member fell), last round's draft references indices that
+  // no longer exist — so render from a fresh draft THIS pass (avoids a stale-index crash) and reset the
+  // stored draft for subsequent renders. A drawn round leaves the composition (and the pairing) intact.
+  const stale = prevComposition.current !== composition;
   useEffect(() => {
     if (prevComposition.current !== composition) { setDraft(emptyDraft()); setSel(null); setRetreatOpen(false); setZoom(null); }
     prevComposition.current = composition;
   }, [composition]);
+  const draftNow = stale ? emptyDraft() : draft;
   if (state.phase !== "fight" || !state.fight) return null;
 
   // Casualty choice takes over the surface until resolved.
@@ -56,8 +61,8 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
   }
 
   const livingIdx = living(state);
-  const tray = freeMembers(draft, livingIdx);
-  const matches = toMatches(draft);
+  const tray = freeMembers(draftNow, livingIdx);
+  const matches = toMatches(draftNow);
   const valid = validatePlan(state, { matches });
   // How the round will actually be fought: the engine's strongest-combination for an out-numbered party
   // (so two foes ganging one fighter, and folded enemy magic, are shown before rolling).
