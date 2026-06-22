@@ -1,6 +1,6 @@
 import { type DragEvent, useEffect, useRef, useState } from "react";
 import {
-  CREATURES, TREASURES, legalActions, validatePlan, previewPlan, frontStrength, casterMP,
+  CREATURES, TREASURES, legalActions, validatePlan, previewPlan, frontStrength, casterMP, enemyMP,
   type GameState, type GameAction,
 } from "@sorcerers-cave/engine";
 import type { CardArt } from "../data/manifest";
@@ -19,7 +19,8 @@ const REASON: Record<string, string> = {
 
 const C_SPECTRE = 9;
 const living = (s: GameState) => s.party.map((_, i) => i).filter((i) => { const m = s.party[i]!; return m.status === 0 || m.status === 1; });
-const isCaster = (s: GameState, i: number) => casterMP(s.party[i]!, s) > 0;
+// A Priest/Wizard is a caster by creature type — even when an active Eye of God has zeroed its power.
+const isCaster = (s: GameState, i: number) => CREATURES[s.party[i]!.creatureId]!.mp > 0;
 const kindOf = (s: GameState, i: number): CardKind => (isCaster(s, i) ? "caster" : "ally");
 
 export function FightSurface({ state, dispatch, cards }: { state: GameState; dispatch: (a: GameAction) => void; cards: CardArt[] }) {
@@ -68,8 +69,10 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
   // How the round will actually be fought: the engine's strongest-combination for an out-numbered party
   // (so two foes ganging one fighter, and folded enemy magic, are shown before rolling).
   const preview = previewPlan(state, { matches });
-  const enemyStrOf = (si: number) => CREATURES[state.strangers[si]!]!.fs + CREATURES[state.strangers[si]!]!.mp;
-  const enemyMpOf = (si: number) => CREATURES[state.strangers[si]!]!.mp;
+  // Show the EFFECTIVE foe strength the resolver fights with: an active Eye of God zeroes a stranger's
+  // magic (and only reduces the Sorcerer), so a stranger Wizard reads 2, not 7, while the Eye is held.
+  const enemyStrOf = (si: number) => CREATURES[state.strangers[si]!]!.fs + enemyMP(state, state.strangers[si]!);
+  const enemyMpOf = (si: number) => enemyMP(state, state.strangers[si]!);
   const reason = valid.ok ? null : (REASON[valid.reason] ?? "That pairing isn't legal yet.");
   // Forced no-magic-vs-Spectre round (§Spectre): the only foe left is an un-fightable Spectre and no one
   // wields magic, so the plan is empty-but-valid. The round must be fought and the strongest member is
