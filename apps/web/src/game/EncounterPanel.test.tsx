@@ -59,6 +59,13 @@ describe("EncounterPanel", () => {
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "useArtifact", artifact: 5 }));
   });
 
+  it("puts 'Retake dropped treasure' first, ahead of the per-item dropdowns", () => {
+    const base = newGame(1, [0]); // Hero
+    const pickup: GameState = { ...base, phase: "pickup", treasures: [1], fightDrops: [{ mi: 0, tid: 1 }] }; // Hero dropped Gold to fight
+    render(<EncounterPanel state={pickup} dispatch={() => {}} />);
+    expect(screen.getAllByRole("button")[0]!).toHaveTextContent(/retake dropped treasure/i);
+  });
+
   it("renders nothing in the fight phase (the FightSurface owns it)", () => {
     const s: GameState = { ...newGame(1, [0]), phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, strangers: [3] };
     const { container } = render(<EncounterPanel state={s} dispatch={() => {}} />);

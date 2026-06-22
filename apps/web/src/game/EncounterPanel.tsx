@@ -70,9 +70,13 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
   const takeByTi = new Map<number, number[]>();        // treasure index -> member indices that can carry it
   const artByArtifact = new Map<number, GameAction[]>(); // artefact id -> its target actions
   const simple: GameAction[] = [];
+  // "Retake dropped treasure (as before)" is the one-tap shortcut after a won fight — surface it FIRST,
+  // ahead of the per-item assignment dropdowns.
+  let retake: GameAction | null = null;
   for (const a of actions) {
     if (a.type === "takeTreasure") (takeByTi.get(a.ti) ?? takeByTi.set(a.ti, []).get(a.ti)!).push(a.mi);
     else if (a.type === "useArtifact") (artByArtifact.get(a.artifact) ?? artByArtifact.set(a.artifact, []).get(a.artifact)!).push(a);
+    else if (a.type === "retakeDropped") retake = a;
     else simple.push(a);
   }
 
@@ -99,6 +103,13 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
       {state.fight?.casualtyQueue?.length ? (
         <p className="scv-enc-line scv-enc-strangers">Two fell together — choose who is lost.</p>
       ) : null}
+
+      {/* One-tap shortcut first: give every fighter back the heavy treasure it dropped to fight. */}
+      {retake && (
+        <div className="scv-enc-actions">
+          <button className="scv-enc-btn" onClick={() => dispatch(retake!)}>{label(retake, state)}</button>
+        </div>
+      )}
 
       {/* Treasure: one row per item; pick a member to give it to, or leave it. */}
       {takeByTi.size > 0 && (
