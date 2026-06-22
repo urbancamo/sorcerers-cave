@@ -75,6 +75,7 @@ describe("rollFromEvents", () => {
     expect(w.title).toBe("The guardian statue");
     expect(w.lanes[0]!.enemy.name).toBe("Statue");
     expect(w.message).toMatch(/wrest the lost ruby/i);
+    expect(w.message).toMatch(/\+20 points/i); // the Ruby's worth is shown on the win
     expect(w.tone).toBe("good");
 
     const loss: GameEvent[] = [
