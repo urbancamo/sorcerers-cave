@@ -11,7 +11,7 @@ import type { GameAction, GameEvent } from "./actions";
 import { reactionRoll } from "./reaction";
 import { frontStrength } from "./combat";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
-import { wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls } from "./effects";
+import { wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath } from "./effects";
 import { rollDie } from "./rng";
 import { CREATURES } from "./data/creatures";
 
@@ -535,6 +535,7 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       const events: GameEvent[] = [
         { type: "casualtyChosen", creatureId: next.party[victim]!.creatureId, roll: r.value, gotPreference: victim === preferred },
         { type: "memberDied", creatureId: next.party[victim]!.creatureId },
+        ...eyeForsakenByDeath(next, next.party[victim]!),
       ];
       queue.shift();
       if (queue.length === 0) {

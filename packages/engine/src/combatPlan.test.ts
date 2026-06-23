@@ -125,6 +125,14 @@ describe("resolvePlannedRound (§A Round of Fighting)", () => {
     expect(s.sorcererKilled).toBe(true);
     expect(ev.some((e) => e.type === "sorcererSlain")).toBe(true);
   });
+  it("curses the party when the Eye of God's bearer is slain (gem left on the body, §Eye of God)", () => {
+    const s = clone(fightS({ party: [member(7, [13])], strangers: [10], seed: 5 })); // Dwarf holding the Eye vs a Dragon
+    const ev = resolvePlannedRound(s, { matches: [{ front: [0], backers: [], strangers: [0] }] });
+    expect(s.party[0]!.status).toBe(3);              // the Dwarf falls
+    expect(ev).toContainEqual({ type: "eyeForsaken" });
+    expect(s.curses).toBe(1);                         // the party is now cursed
+  });
+
   it("queues a casualty choice when two front fighters lose together", () => {
     const s = clone(fightS({ fight: { surprise: -1, round: 1, focus: 0 }, party: [member(6), member(7)], strangers: [10], seed: 5 }));
     resolvePlannedRound(s, { matches: [{ front: [0, 1], backers: [], strangers: [0] }] });
