@@ -186,7 +186,7 @@ describe("reduce — stranger encounters (C-2 §8)", () => {
     expect(reduce(s, { type: "test" }).events).toContainEqual({ type: "blocked" });
   });
 
-  it("a pacified chamber re-entry still offers Attack (not Test); treasure stays guarded", () => {
+  it("a pacified chamber re-entry lets you traverse (explore) AND offers Attack; treasure stays guarded", () => {
     // Tunnel A (exit E) → chamber B (card 31), already pacified for this party with a guarded stranger+treasure.
     const A = { card: 2, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };
     const B = { card: 31, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents: [100 + 6, 200 + 1], flags: 0, indiffCount: 0 };
@@ -196,12 +196,19 @@ describe("reduce — stranger encounters (C-2 §8)", () => {
     });
     const r = reduce(s, { type: "move", dir: DIR_E });
     expect(r.state.partyArea).toBe(1);
-    expect(r.state.phase).toBe("encounter");          // a proper encounter, not a free walk-through
-    expect(r.state.strangers).toEqual([6]);           // the guard is present, ready to be fought
+    expect(r.state.phase).toBe("explore");            // free to traverse through any exit
     const acts = legalActions(r.state);
-    expect(acts.some((a) => a.type === "attack")).toBe(true);        // can still attack
-    expect(acts.some((a) => a.type === "test")).toBe(false);         // but testing is futile (permanently indifferent)
-    expect(acts.some((a) => a.type === "takeTreasure")).toBe(false); // treasure stays guarded unless they're beaten
+    expect(acts.some((a) => a.type === "move")).toBe(true);          // can move on through (traversal)
+    expect(acts.some((a) => a.type === "attack")).toBe(true);        // can also attack the guards
+    expect(acts.some((a) => a.type === "test")).toBe(false);         // testing is futile (permanently indifferent)
+    expect(acts.some((a) => a.type === "takeTreasure")).toBe(false); // treasure stays guarded
+    expect(r.state.areas[1]!.contents).toEqual(expect.arrayContaining([100 + 6, 200 + 1])); // guards + loot parked on the tile
+
+    // Choosing Attack un-parks the guards and starts the fight.
+    const f = reduce(r.state, { type: "attack" });
+    expect(f.state.phase).toBe("fight");
+    expect(f.state.strangers).toEqual([6]);
+    expect(f.state.treasures).toEqual([1]); // the guarded treasure is in play to be won
   });
 
   it("Medusa turning the whole party to stone ends the game (petrifiedOut + gameOver)", () => {

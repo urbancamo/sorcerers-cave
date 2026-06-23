@@ -131,6 +131,12 @@ export function legalActions(state: GameState): GameAction[] {
     else actions.push({ type: "move", dir: DIR_UP });
   }
   if (state.party.some((m) => (m.status === 0 || m.status === 1) && m.treasure.includes(14))) actions.push({ type: "openChest" });
+  // A permanently-indifferent chamber is traversed in the explore phase, but the party may still choose
+  // to attack its guards (to win the treasure they guard) — offer it while they're parked on the tile.
+  if (state.pacifiedAreas?.includes(state.partyArea) &&
+      state.areas[state.partyArea]!.contents.some((c) => c >= 100 && c < 200)) {
+    actions.push({ type: "attack" });
+  }
   actions.push(...artifactActions(state));
   return actions; // quitting is via the HUD Quit button, not an in-menu action
 }
