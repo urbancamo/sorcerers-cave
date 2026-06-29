@@ -233,15 +233,24 @@ function chevronTexture(){
   if(_chevTex) return _chevTex;
   const s=128, cv=document.createElement('canvas'); cv.width=cv.height=s;
   const cx=cv.getContext('2d');
-  // chevron points UP; generous transparent padding around it widens the tap target
-  cx.strokeStyle='#ffffff'; cx.lineWidth=14; cx.lineCap='round'; cx.lineJoin='round';
-  cx.shadowColor='rgba(0,0,0,0.55)'; cx.shadowBlur=10;
-  cx.beginPath(); cx.moveTo(34,78); cx.lineTo(64,44); cx.lineTo(94,78); cx.stroke();
+  // Dark "coin" backing so the marker reads against light stone from ANY angle — including the
+  // near-overhead default view, where a bare gold chevron washed out on the corridor floor between
+  // two laid tiles. The SpriteMaterial tint multiplies RGB, so this black disc stays neutral-dark
+  // (0 × tint = 0) while the white chevron below picks up the brass tint.
+  cx.beginPath(); cx.arc(64,64,52,0,Math.PI*2); cx.fillStyle='rgba(0,0,0,0.62)'; cx.fill();
+  // chevron points UP; the transparent padding around the coin widens the tap target
+  cx.strokeStyle='#ffffff'; cx.lineWidth=13; cx.lineCap='round'; cx.lineJoin='round';
+  cx.shadowColor='rgba(0,0,0,0.6)'; cx.shadowBlur=6;
+  cx.beginPath(); cx.moveTo(36,76); cx.lineTo(64,46); cx.lineTo(92,76); cx.stroke();
   _chevTex=new THREE.CanvasTexture(cv); _chevTex.colorSpace=THREE.SRGBColorSpace; return _chevTex;
 }
 function chevronSprite(color){
-  const m=new THREE.SpriteMaterial({map:chevronTexture(),color,transparent:true,opacity:0.95,depthTest:true,depthWrite:false});
+  const m=new THREE.SpriteMaterial({map:chevronTexture(),color,transparent:true,opacity:0.95,depthTest:false,depthWrite:false});
   const s=new THREE.Sprite(m); s.scale.set(1.1,1.1,1); // big quad = big tap target; glyph sits in the centre
+  // Draw markers ON TOP of the tiles/content (which have renderOrder 2-7). Without this the floor
+  // tile is drawn after the depthWrite:false sprite and paints over it — the marker then only shows
+  // when the camera tilts enough for parallax to lift it off the floor beneath it.
+  s.renderOrder=20;
   return s;
 }
 function ringFlat(color,r0,r1){
@@ -261,7 +270,7 @@ function refreshExitMarkers(){
     if(m.dir==='N'||m.dir==='S'||m.dir==='E'||m.dir==='W'){
       const edge=0.15; // gap beyond the tile edge — markers hug the doorway tightly
       const off={N:[0,0,-(TILE_D/2+edge)],S:[0,0,TILE_D/2+edge],E:[TILE_W/2+edge,0,0],W:[-(TILE_W/2+edge),0,0]}[m.dir];
-      const ring=ringFlat(col,0.34,0.46);ring.rotation.x=-Math.PI/2;ring.position.set(0,0.06,0);
+      const ring=ringFlat(col,0.34,0.46);ring.rotation.x=-Math.PI/2;ring.position.set(0,0.06,0);ring.material.depthTest=false;ring.renderOrder=19;
       const spr=chevronSprite(col); spr.position.set(0,0.5,0);
       grp.add(ring,spr);
       grp.position.set(p.x+off[0],p.y,p.z+off[2]);
@@ -269,7 +278,7 @@ function refreshExitMarkers(){
     } else {
       // stair marker near a corner of the tile
       const corner=m.dir==='D'?[TILE_W*0.30,TILE_D*0.30]:[-TILE_W*0.30,-TILE_D*0.30];
-      const ring=ringFlat(col,0.3,0.44);ring.rotation.x=-Math.PI/2;ring.position.y=0.06;
+      const ring=ringFlat(col,0.3,0.44);ring.rotation.x=-Math.PI/2;ring.position.y=0.06;ring.material.depthTest=false;ring.renderOrder=19;
       const spr=chevronSprite(col); spr.position.y=0.5;
       grp.add(ring,spr);
       grp.position.set(p.x+corner[0],p.y+0.02,p.z+corner[1]);
