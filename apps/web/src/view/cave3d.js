@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Reveal } from './reveal.js';
 import { spriteRotationForScreenVector } from './billboard.js';
+import { fitDistance } from './camera-fit.js';
 
 /* ============================================================
    Sorcerer's Cave — 3D viewer + interactive navigation
@@ -461,8 +462,19 @@ function flyFollow(newTarget){ // keep relative view, shift to new target
   flyTo(camera.position.clone().add(delta),newTarget,camera.fov);
 }
 function sceneCenter(){const c=new THREE.Vector3();engine.areas.forEach(a=>c.add(worldPos(a)));return c.multiplyScalar(1/engine.areas.length);}
-function viewFreeOrbit(){setMode('orbit','Free orbit');setIsolation(null);const c=sceneCenter();flyTo(c.clone().add(new THREE.Vector3(TILE_W*2.4,13,16)),c,45);}
-function viewSnapTile(){const a=engine.current;setMode('snap','Overhead · '+a.name);setIsolation(a.level);flyTo(worldPos(a).clone().add(new THREE.Vector3(0,9.5,2.6)),worldPos(a),30);}
+function viewFreeOrbit(){lastSnapArea=null;setMode('orbit','Free orbit');setIsolation(null);const c=sceneCenter();flyTo(c.clone().add(new THREE.Vector3(TILE_W*2.4,13,16)),c,45);}
+// Snap (overhead) view: fit the chamber + its doorway markers to the viewport, so all exits stay framed
+// in portrait or landscape. SNAP_RADIUS covers the tile half-width plus a one-tile doorway margin.
+const SNAP_RADIUS=TILE_W*0.78;
+let lastSnapArea=null; // remembered so onResize can re-fit on a portrait/landscape flip
+function frameSnap(area){
+  lastSnapArea=area;
+  const fov=30, dist=fitDistance(SNAP_RADIUS,fov,camera.aspect);
+  const wp=worldPos(area);
+  // look slightly from the south so North reads "up" the screen; height ≈ dist, small forward bias
+  flyTo(wp.clone().add(new THREE.Vector3(0,dist*0.96,dist*0.27)),wp,fov);
+}
+function viewSnapTile(){const a=engine.current;setMode('snap','Overhead · '+a.name);setIsolation(a.level);frameSnap(a);}
 function focusArea(a){ // a: {col,row,level} — fly the camera to that area (free-roam spectating)
   if(a==null) return;
   setMode('orbit','Spectating'); setIsolation(a.level);
@@ -470,7 +482,7 @@ function focusArea(a){ // a: {col,row,level} — fly the camera to that area (fr
   flyTo(wp.clone().add(new THREE.Vector3(TILE_W*1.6,11,12)),wp,40);
 }
 let activeLevel=null;
-function viewLevel(lvl){activeLevel=lvl;setMode('level','Level '+lvl);setIsolation(lvl);const b=levelBounds[lvl];const c=new THREE.Vector3(b.cx,b.y,b.cz);flyTo(c.clone().add(new THREE.Vector3(TILE_W*1.4,10,12)),c,40);}
+function viewLevel(lvl){lastSnapArea=null;activeLevel=lvl;setMode('level','Level '+lvl);setIsolation(lvl);const b=levelBounds[lvl];const c=new THREE.Vector3(b.cx,b.y,b.cz);flyTo(c.clone().add(new THREE.Vector3(TILE_W*1.4,10,12)),c,40);}
 
 /* ============================================================
    navigation
@@ -788,7 +800,13 @@ function onKeyDown(e){
   const map={arrowup:'N',arrowright:'E',arrowdown:'S',arrowleft:'W',n:'N',e:'E',s:'S',w:'W',u:'U',d:'D'};
   if(map[k]){e.preventDefault();doMove(map[k]);}
 }
-function onResize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}
+function onResize(){
+  camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);
+  // Re-fit the snap view to the new aspect so a portrait/landscape flip keeps the chamber + exits framed.
+  // Orbit/level views are user-controlled; leave them be.
+  const orbitBtn=document.getElementById('orbitBtn');
+  if(lastSnapArea && orbitBtn && !orbitBtn.classList.contains('active')) frameSnap(lastSnapArea);
+}
 
 export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr, tileAR, partyColor, onQuit, multiplayer }){
   engine=eng; startLevel=eng.startLevel; tiles=tileMap; PARTY=partyArr; TILE_D=TILE_W/tileAR; partyColorHex=partyColor; isMultiplayer=!!multiplayer;
@@ -849,9 +867,7 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
   Reveal.init({
     party:revealParty,
     focusCard:(card)=>showCard(card, engine.current.name),
-    snapToTile:(area)=>{ setIsolation(area.level);
-      flyTo(worldPos(area).clone().add(new THREE.Vector3(0.2,9.0,2.4)), worldPos(area), 30);
-      setMode('snap','Overhead · '+area.name); },
+    snapToTile:(area)=>{ setIsolation(area.level); frameSnap(area); setMode('snap','Overhead · '+area.name); },
     markStrangers:()=>{},
     markTreasure:()=>{},
     onResolved:(a)=>{ setPrompt('You finish exploring <b>'+a.name+'</b>. Choose a doorway to continue.','event'); refreshExitMarkers(); },
@@ -862,10 +878,9 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
   renderRoster();updateHUD();selectCurrent();
   // default to an overhead 'snap to tile' view of the start tile, North up the screen
   setMode('snap','Overhead · '+engine.current.name);
-  const ap=worldPos(engine.current);
-  camera.up.set(0,1,0); camera.fov=30; camera.updateProjectionMatrix();
-  camera.position.copy(ap.clone().add(new THREE.Vector3(0,9.5,2.6)));
-  controls.target.copy(ap); controls.update();
+  camera.up.set(0,1,0); camera.updateProjectionMatrix();
+  frameSnap(engine.current); // fit the start chamber + its exits to the viewport
+  controls.update();
   setPrompt('Your party stands in <b>'+engine.current.name+'</b>. Click a glowing doorway, or press N/E/S/W.','event');
   window.__cave={scene,camera,controls,renderer,THREE,engine,tileMeshes,exitMarkers,doMove,worldPos,layContents,contentGroup,setParty,setOtherParties,focusArea};
   document.getElementById('loader').classList.add('hide');animate();
