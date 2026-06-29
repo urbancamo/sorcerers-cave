@@ -208,11 +208,72 @@ canvas{display:block;touch-action:none;}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
 .toast b{color:var(--brass-bright);font-weight:600;}
 
-@media(max-width:720px){
-  .hint{display:none;}
-  .cardpanel{width:180px;}
-  .stats .chip:nth-child(n+4){display:none;}
-  .dock{flex-wrap:wrap;max-width:92vw;justify-content:center;}
+@media (max-width: 720px) {
+  .hint { display: none; }
+
+  /* compact brand */
+  .brand { top: 12px; left: 14px; }
+  .brand .title { font-size: 15px; }
+  .brand .mode { font-size: 9.5px; letter-spacing: .18em; }
+
+  /* stats: smaller chips, drop the lowest-priority ones */
+  .stats { top: 12px; gap: 6px; }
+  .chip { padding: 5px 9px; min-width: 0; }
+  .chip .k { font-size: 8px; } .chip .v { font-size: 13px; }
+  .stats .chip:nth-child(n+4) { display: none; }
+
+  /* roster collapses to a tappable handle (tap opens the full party panel) */
+  .roster { top: auto; bottom: calc(78px + env(safe-area-inset-bottom)); left: 14px; width: auto; }
+  .roster .roster-body { display: none; }
+  .roster-hd { border-bottom: none; border-radius: 11px; padding: 8px 13px; }
+
+  /* fluid prompt that never collides with the stats row */
+  .prompt { top: 58px; max-width: 92vw; font-size: 12.5px; padding: 8px 15px; }
+
+  /* inspect card: hidden until a card is selected (cave3d toggles .show); compact, top-right */
+  .cardpanel { right: 10px; top: 56px; width: 150px; }
+  .cardpanel .frame { transform: none; }
+  .cardpanel .meta .nm { font-size: 17px; }
+
+  /* dock wraps and pins to the safe-area bottom */
+  .dock { flex-wrap: wrap; max-width: 94vw; justify-content: center; gap: 6px;
+    bottom: calc(12px + env(safe-area-inset-bottom)); padding: 8px 9px; }
+  .btn { font-size: 11.5px; padding: 8px 11px; }
+  .dock .lbl { display: none; } /* "Levels" label — drop to save width */
+}
+
+/* very narrow: tighten further */
+@media (max-width: 420px) {
+  .brand .mode { display: none; }
+  .prompt { max-width: 96vw; }
+}
+
+/* short viewports (landscape phones: wide but < ~520px tall). Keep the corner
+   panels of the desktop layout, but compact them and cap the roster so it can
+   never collide with the bottom dock; pull the prompt clear of the left roster. */
+@media (max-height: 520px) {
+  .hint { display: none; }
+  .brand { top: 10px; left: 14px; }
+  .brand .title { font-size: 14px; }
+  .brand .mode { font-size: 9px; letter-spacing: .16em; }
+
+  .stats { top: 10px; gap: 6px; }
+  .chip { padding: 5px 9px; }
+  .chip .k { font-size: 8px; } .chip .v { font-size: 13px; }
+
+  .roster { top: 56px; left: 14px; width: 184px; max-height: calc(100dvh - 132px); overflow-y: auto; }
+  .roster-hd { padding: 7px 12px; }
+  .mbr { padding: 6px 11px; }
+
+  .prompt { top: 50px; max-width: 44vw; font-size: 12px; padding: 7px 14px; }
+
+  .cardpanel { top: 56px; right: 12px; width: 150px; }
+  .cardpanel .frame { transform: none; }
+
+  .dock { bottom: calc(8px + env(safe-area-inset-bottom)); padding: 7px 9px;
+    flex-wrap: wrap; max-width: 96vw; justify-content: center; gap: 6px; }
+  .btn { font-size: 11.5px; padding: 7px 10px; }
+  .dock .lbl { display: none; }
 }
 
 /* ===================== Discovery overlay ===================== */
