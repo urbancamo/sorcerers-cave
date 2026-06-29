@@ -255,7 +255,9 @@ function refreshExitMarkers(){
   engine.openMoves().forEach(m=>{
     const grp=new THREE.Group(); grp.userData.move=m.dir;
     const known=m.kind==='known';
-    const col=(m.kind==='stair'||m.kind==='exit')?COLOR.brassBright:(known?COLOR.stone:COLOR.brass);
+    // Explored ("known") doorways still read as gold (brass) — the old muted stone-grey vanished
+    // between already-laid stone tiles; new frontiers + stairs get the brighter brass to stand out more.
+    const col=known?COLOR.brass:COLOR.brassBright;
     if(m.dir==='N'||m.dir==='S'||m.dir==='E'||m.dir==='W'){
       const edge=0.15; // gap beyond the tile edge — markers hug the doorway tightly
       const off={N:[0,0,-(TILE_D/2+edge)],S:[0,0,TILE_D/2+edge],E:[TILE_W/2+edge,0,0],W:[-(TILE_W/2+edge),0,0]}[m.dir];
