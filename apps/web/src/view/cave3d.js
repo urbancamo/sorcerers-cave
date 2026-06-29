@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Reveal } from './reveal.js';
+import { spriteRotationForScreenVector } from './billboard.js';
 
 /* ============================================================
    Sorcerer's Cave — 3D viewer + interactive navigation
@@ -224,9 +225,23 @@ function buildSelectRing(){
 }
 
 /* ---- exit markers (the navigation affordance) ---- */
-function chevron(color){
-  const c=new THREE.Mesh(new THREE.ConeGeometry(0.26,0.5,4),new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.95}));
-  return c;
+// Camera-facing chevron sprite: never goes edge-on (the old cone did in portrait),
+// and its glyph is rotated each frame to point screen-outward through the doorway.
+let _chevTex=null;
+function chevronTexture(){
+  if(_chevTex) return _chevTex;
+  const s=128, cv=document.createElement('canvas'); cv.width=cv.height=s;
+  const cx=cv.getContext('2d');
+  // chevron points UP; generous transparent padding around it widens the tap target
+  cx.strokeStyle='#ffffff'; cx.lineWidth=14; cx.lineCap='round'; cx.lineJoin='round';
+  cx.shadowColor='rgba(0,0,0,0.55)'; cx.shadowBlur=10;
+  cx.beginPath(); cx.moveTo(34,78); cx.lineTo(64,44); cx.lineTo(94,78); cx.stroke();
+  _chevTex=new THREE.CanvasTexture(cv); _chevTex.colorSpace=THREE.SRGBColorSpace; return _chevTex;
+}
+function chevronSprite(color){
+  const m=new THREE.SpriteMaterial({map:chevronTexture(),color,transparent:true,opacity:0.95,depthTest:true,depthWrite:false});
+  const s=new THREE.Sprite(m); s.scale.set(1.1,1.1,1); // big quad = big tap target; glyph sits in the centre
+  return s;
 }
 function ringFlat(color,r0,r1){
   return new THREE.Mesh(new THREE.RingGeometry(r0,r1,32),
@@ -244,21 +259,18 @@ function refreshExitMarkers(){
       const edge=0.15; // gap beyond the tile edge — markers hug the doorway tightly
       const off={N:[0,0,-(TILE_D/2+edge)],S:[0,0,TILE_D/2+edge],E:[TILE_W/2+edge,0,0],W:[-(TILE_W/2+edge),0,0]}[m.dir];
       const ring=ringFlat(col,0.34,0.46);ring.rotation.x=-Math.PI/2;ring.position.set(0,0.06,0);
-      const ch=chevron(col);ch.position.set(0,0.32,0);
-      // point chevron outward (flat, lying down toward dir)
-      if(m.dir==='N')ch.rotation.x=-Math.PI/2;
-      if(m.dir==='S')ch.rotation.x=Math.PI/2;
-      if(m.dir==='E')ch.rotation.z=-Math.PI/2;
-      if(m.dir==='W')ch.rotation.z=Math.PI/2;
-      grp.add(ring,ch);
+      const spr=chevronSprite(col); spr.position.set(0,0.5,0);
+      grp.add(ring,spr);
       grp.position.set(p.x+off[0],p.y,p.z+off[2]);
+      grp.userData.spr=spr; grp.userData.outward=true; grp.userData.center=p.clone();
     } else {
       // stair marker near a corner of the tile
       const corner=m.dir==='D'?[TILE_W*0.30,TILE_D*0.30]:[-TILE_W*0.30,-TILE_D*0.30];
       const ring=ringFlat(col,0.3,0.44);ring.rotation.x=-Math.PI/2;ring.position.y=0.06;
-      const ch=chevron(col);ch.position.y=0.42; if(m.dir==='D')ch.rotation.x=Math.PI; // point down
-      grp.add(ring,ch);
+      const spr=chevronSprite(col); spr.position.y=0.5;
+      grp.add(ring,spr);
       grp.position.set(p.x+corner[0],p.y+0.02,p.z+corner[1]);
+      grp.userData.spr=spr; grp.userData.outward=false; grp.userData.stairDir=m.dir; // U up, D down (screen-space)
     }
     grp.scale.setScalar(0.5); // direction markers reduced by 50% (bob/flash animate position only)
     grp.userData.base=grp.position.y; grp.userData.kind=m.kind;
@@ -703,6 +715,7 @@ function rebuildLevelButtons(){const grp=document.getElementById('levelGrp');con
    input
    ============================================================ */
 const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();let downXY=null;
+const _v0=new THREE.Vector3(), _v1=new THREE.Vector3(); // scratch for billboard outward-angle projection
 
 /* ============================================================
    loop
@@ -732,11 +745,21 @@ function animate(){
   if(partyToken){partyToken.userData.gem.rotation.y=tt*1.1;partyToken.userData.gem.position.y=1.12+Math.sin(tt*2)*0.05;
     const sc=1+Math.sin(tt*2.4)*0.06;partyToken.userData.halo.scale.set(sc,sc,sc);partyToken.userData.halo.material.opacity=0.4+Math.sin(tt*2.4)*0.18;}
   if(selectRing&&selectRing.visible)selectRing.material.opacity=0.55+Math.sin(tt*3)*0.25;
-  // exit markers pulse + hover bob
+  // exit markers pulse + hover bob + billboard the chevron to point screen-outward
   exitMarkers.forEach(g=>{const f=g.userData.flash;let amp=0.07;
     if(f){const kk=(tt-f.t0);if(kk>0.6){g.userData.flash=null;}amp=0.18;}
     g.position.y=g.userData.base+Math.sin(tt*3+g.position.x)*amp;
-    g.children.forEach(c=>{if(c.material)c.material.opacity=0.7+Math.sin(tt*3)*0.25;});});
+    g.children.forEach(c=>{if(c.material)c.material.opacity=0.7+Math.sin(tt*3)*0.25;});
+    const spr=g.userData.spr;
+    if(spr){
+      if(g.userData.outward){
+        _v0.copy(g.userData.center).project(camera);                 // tile centre → NDC
+        _v1.copy(g.position).project(camera);                        // marker → NDC
+        spr.material.rotation=spriteRotationForScreenVector(_v1.x-_v0.x, _v1.y-_v0.y);
+      } else {
+        spr.material.rotation = g.userData.stairDir==='D' ? Math.PI : 0; // stairs: down / up
+      }
+    }});
   const az=controls.getAzimuthalAngle();needle.style.transform='translate(-50%,-100%) rotate('+(-az)+'rad)';
   controls.update();renderer.render(scene,camera);
 }
