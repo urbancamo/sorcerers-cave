@@ -1328,3 +1328,32 @@
 .scv-fc-relic.is-clickable:hover { outline: 1px solid var(--brass-bright); }
 .scv-fc-cap { text-align: center; margin-top: 8px; font-family: var(--ui); font-size: 11.5px; color: var(--stone); }
 .scv-fc-cap b { display: block; font-family: var(--black); font-weight: 500; font-size: 13.5px; color: var(--parchment); }
+
+/* ===== Mobile: dock action panels to the bottom as full-width sheets ===== */
+@media (max-width: 720px) {
+  /* encounter + fight: full-width bottom sheets that scroll instead of clipping */
+  .scv-enc, .scv-fight {
+    left: 0; right: 0; bottom: 0; transform: none;
+    width: 100%; max-width: 100%;
+    max-height: 82vh;
+    border-radius: 18px 18px 0 0;
+    padding-bottom: calc(14px + env(safe-area-inset-bottom));
+  }
+
+  /* fight matchups: let cards shrink and wrap so two fit across a phone */
+  .scv-match { gap: 10px; padding: 8px 10px; }
+  .scv-match-front { min-width: 0; min-height: 0; }
+  .scv-match-bg { min-width: 0; min-height: 0; }
+  .scv-match-foes { max-width: 100%; }
+  .scv-fc, .scv-fc-frame, .scv-fc-art { width: 92px; }
+  .scv-slot-empty { width: 92px; }
+  .scv-fc-relic { width: 34px; }
+
+  /* party panel: rise as a full-width bottom-sheet drawer */
+  .scv-pp-overlay { align-items: end; padding: 0; }
+  .scv-pp {
+    width: 100%; max-width: 100%; max-height: 86vh;
+    border-radius: 18px 18px 0 0;
+    padding-bottom: calc(8px + env(safe-area-inset-bottom));
+  }
+}
