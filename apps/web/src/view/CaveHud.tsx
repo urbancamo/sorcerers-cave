@@ -106,7 +106,7 @@ export function CaveHud({ mountRef, onPartyClick, onSave, turnLabel, turnColor, 
           <div className="toast" id="toast"></div>
 
           <div className="dock">
-            <button className="btn primary" id="snapBtn">
+            <button className="btn primary" id="snapBtn" title="Snap to current tile" aria-label="Snap to current tile">
               <svg
                 className="ic"
                 viewBox="0 0 24 24"
@@ -118,9 +118,9 @@ export function CaveHud({ mountRef, onPartyClick, onSave, turnLabel, turnColor, 
                 <path d="M5 8v11h14V8" />
                 <path d="M9 19v-6h6v6" />
               </svg>
-              Snap to current tile
+              <span className="btn-tx">Snap to current tile</span>
             </button>
-            <button className="btn active" id="orbitBtn">
+            <button className="btn active" id="orbitBtn" title="Free orbit" aria-label="Free orbit">
               <svg
                 className="ic"
                 viewBox="0 0 24 24"
@@ -131,14 +131,14 @@ export function CaveHud({ mountRef, onPartyClick, onSave, turnLabel, turnColor, 
                 <ellipse cx="12" cy="12" rx="10" ry="4.3" />
                 <ellipse cx="12" cy="12" rx="4.3" ry="10" />
               </svg>
-              Free orbit
+              <span className="btn-tx">Free orbit</span>
             </button>
             <div className="sep"></div>
             <span className="lbl">Levels</span>
             <div className="grp" id="levelGrp"></div>
             <div className="sep"></div>
             {onSave && (
-              <button className="btn" onClick={onSave} title="Save and return to the menu">
+              <button className="btn" onClick={onSave} title="Save and return to the menu" aria-label="Save and return to the menu">
                 <svg
                   className="ic"
                   viewBox="0 0 24 24"
@@ -150,10 +150,10 @@ export function CaveHud({ mountRef, onPartyClick, onSave, turnLabel, turnColor, 
                   <path d="M17 21v-8H7v8" />
                   <path d="M7 3v5h8" />
                 </svg>
-                Save &amp; exit
+                <span className="btn-tx">Save &amp; exit</span>
               </button>
             )}
-            <button className="btn" id="resetBtn">
+            <button className="btn" id="resetBtn" title="Quit" aria-label="Quit">
               <svg
                 className="ic"
                 viewBox="0 0 24 24"
@@ -165,7 +165,7 @@ export function CaveHud({ mountRef, onPartyClick, onSave, turnLabel, turnColor, 
                 <path d="M16 17l5-5-5-5" />
                 <path d="M21 12H9" />
               </svg>
-              Quit
+              <span className="btn-tx">Quit</span>
             </button>
           </div>
 

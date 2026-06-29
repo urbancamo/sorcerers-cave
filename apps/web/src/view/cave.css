@@ -235,11 +235,16 @@ canvas{display:block;touch-action:none;}
   .cardpanel .frame { transform: none; }
   .cardpanel .meta .nm { font-size: 17px; }
 
-  /* dock wraps and pins to the safe-area bottom */
-  .dock { flex-wrap: wrap; max-width: 94vw; justify-content: center; gap: 6px;
-    bottom: calc(12px + env(safe-area-inset-bottom)); padding: 8px 9px; }
-  .btn { font-size: 11.5px; padding: 8px 11px; }
-  .dock .lbl { display: none; } /* "Levels" label — drop to save width */
+  /* dock collapses to icon-only buttons (one row) pinned to the safe-area bottom.
+     width:max-content keeps it a single line — an abs-positioned flex-wrap box would
+     otherwise shrink-to-fit narrow and wrap; it still wraps if levels overflow 96vw. */
+  .dock { flex-wrap: wrap; width: max-content; max-width: 96vw; justify-content: center; gap: 6px;
+    bottom: calc(12px + env(safe-area-inset-bottom)); padding: 7px 8px; }
+  .dock .btn-tx { display: none; }       /* hide labels — icons carry the meaning (title/aria-label kept) */
+  .dock .btn { padding: 9px; }
+  .dock .btn .ic { width: 19px; height: 19px; }
+  .dock .lbl { display: none; }          /* "Levels" label — drop to save width */
+  .dock .sep { display: none; }          /* separators not needed once compact */
 }
 
 /* very narrow: tighten further */
@@ -270,10 +275,13 @@ canvas{display:block;touch-action:none;}
   .cardpanel { top: 56px; right: 12px; width: 150px; }
   .cardpanel .frame { transform: none; }
 
-  .dock { bottom: calc(8px + env(safe-area-inset-bottom)); padding: 7px 9px;
-    flex-wrap: wrap; max-width: 96vw; justify-content: center; gap: 6px; }
-  .btn { font-size: 11.5px; padding: 7px 10px; }
+  .dock { bottom: calc(8px + env(safe-area-inset-bottom)); padding: 7px 8px;
+    flex-wrap: wrap; width: max-content; max-width: 96vw; justify-content: center; gap: 6px; }
+  .dock .btn-tx { display: none; }
+  .dock .btn { padding: 9px; }
+  .dock .btn .ic { width: 18px; height: 18px; }
   .dock .lbl { display: none; }
+  .dock .sep { display: none; }
 }
 
 /* ===================== Discovery overlay ===================== */
