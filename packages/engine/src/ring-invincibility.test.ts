@@ -72,4 +72,13 @@ describe("Ring invincibility extends to the Lost-Ruby statue (§16 / SC-11-25)",
     expect(withRing.events).toContainEqual({ type: "deathPrevented", creatureId: 5 });
     expect(withRing.events.some((e) => e.type === "memberDied")).toBe(false);
   });
+
+  it("below level 4 the Ring does NOT protect against the statue (level-gated)", () => {
+    const seed = seedWhereStatueSlays(); // rolls are level-independent, so this seed is lethal at level 3 too
+    const withRing = takeRuby([man([RING])], seed, 3);
+    expect(withRing.state.party[0]!.status).toBe(3); // level 3: slain despite holding the Ring
+    expect(withRing.state.treasures).toEqual([11]); // ruby left in place
+    expect(withRing.events.some((e) => e.type === "memberDied")).toBe(true);
+    expect(withRing.events.some((e) => e.type === "deathPrevented")).toBe(false);
+  });
 });
