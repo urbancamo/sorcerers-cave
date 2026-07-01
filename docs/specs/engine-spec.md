@@ -38,12 +38,12 @@
 |----|-------------|------|------|
 | SC-3-1 | The engine MUST define exactly 61 area cards (`AREA_CARDS`) in normative index order, from which the Gateway (index 21, value 175) is removed to leave a 60-card large pack. | areaCards.ts:12, areaCards.ts:9 | data.test.ts › has 61 area cards and the Gateway (value 175) at index 21 |
 | SC-3-2 | Each area-card value MUST be a bit-field decoded as: bit0(1)=N exit, bit1(2)=E, bit2(4)=S, bit3(8)=W, bit4(16)=chamber, bit5(32)=stairUp, bit6(64)=stairDown, and special = (value>>7)&7 (0 none,1 Gateway,2 Deep Pool,3 Viper Pit,4 Tomb,5 Great Hall). | decode.ts:13-24 | decode.test.ts › decodes the Gateway/Tomb/Deep Pool/plain NE |
-| SC-3-3 | Area-card index 41 MUST be value 42 (EWU = E+W+stairUp), NOT 74 (EWD), because EWD has no tile in the set and would force an illegal rotation. | areaCards.ts:17 | — |
+| SC-3-3 | Area-card index 41 MUST be value 42 (EWU = E+W+stairUp), NOT 74 (EWD), because EWD has no tile in the set and would force an illegal rotation. | areaCards.ts:17 | gap-data-rng.test.ts |
 | SC-3-4 | Special-type constants MUST be SPECIAL_NONE=0, GATEWAY=1, DEEP_POOL=2, VIPER_PIT=3, TOMB=4, GREAT_HALL=5. | areaCards.ts:1-6 | decode.test.ts (via SPECIAL_* imports) |
 | SC-3-5 | The engine MUST define exactly 14 creatures (ids 0–13) with the normative fields fs, mp, carry, cost, points, flags, hostileMax, indiffMax, leaderPri (e.g. Hero fs5/cost6/pts10, Wizard mp5/cost null, Dragon fs6, Giant fs7/carry150, Sorcerer mp9). | creatures.ts:22-37 | data.test.ts › has 14 creatures with normative key stats |
 | SC-3-6 | Creature flags MUST be the bitmask HUMAN=1, CHARISMA=2, BEFRIENDS_UNICORN=4, GUIDES_PAST_TRAP=8, INHUMAN=16. | creatures.ts:1-5 | data.test.ts (FLAG_CHARISMA, FLAG_GUIDES_PAST_TRAP) |
 | SC-3-7 | A creature MUST be selectable as a starter iff `cost !== null`; only ids 0–7 have a non-null cost (Hero6, W-Hero5, Ogre5, Troll4, Priest4, Man3, Woman2, Dwarf1); ids 8–13 have cost null. | creatures.ts:22-37, setup.ts:20 | setup.test.ts › rejects a non-selectable creature (Wizard id 8) |
-| SC-3-8 | The Dragon's reaction table MUST be hostileMax=4, indiffMax=6 (rolls 1–4 hostile, 5–6 indifferent, never friendly). | creatures.ts:33 | — |
+| SC-3-8 | The Dragon's reaction table MUST be hostileMax=4, indiffMax=6 (rolls 1–4 hostile, 5–6 indifferent, never friendly). | creatures.ts:33 | gap-data-rng.test.ts |
 | SC-3-9 | Starting stock MUST be Hero×1, W-Hero×1, Ogre×3, Troll×3, Priest×3, Man×6, Woman×3, Dwarf×3 (8 entries, total 23). | creatures.ts:40-42 | data.test.ts › offers 8 selectable starters with the right stock |
 | SC-3-10 | The engine MUST define exactly 15 treasures (ids 0–14); heavy = Silver/Gold/Gems (25 kg each) and Treasure Chest (100 kg); the other 12 are weightless artifacts. | treasures.ts:11-27 | data.test.ts › has 15 treasures and 5 hazards |
 | SC-3-11 | Treasure Chest (id 14) MUST be kind "heavy", weight 100, points 0; Eye of God (id 13) MUST be points 0. | treasures.ts:25-26 | data.test.ts › TREASURES[14] Treasure Chest weight 100 heavy |
@@ -55,9 +55,9 @@
 | SC-3-17 | Card codes MUST be encoded as 100+creatureId (100–199), 200+treasureId (200–299), 300+hazardId (300–399), 400+creatureId (sleeping). | smallPack.ts:13-38, chamber.ts:6-8 | decks.test.ts (100/200/300 ranges) |
 | SC-3-18 | A placed area MUST store `{card, coord, faceUp, visited, contents[], flags, indiffCount}` with optional dropped/markers/mirroredStairs/secretDoor fields. | state.ts:30-47 | setup.test.ts › places the Gateway and seats the chosen party |
 | SC-3-19 | Coordinates MUST pack as `level*10000 + y*100 + x`; the Gateway MUST start at level 1, x=50, y=50 (packed 15050). | coords.ts:8-10, state.ts:8 | setup.test.ts › areas[0].coord == GATEWAY_START_COORD |
-| SC-3-20 | Movement MUST map N→y−1, S→y+1, E→x+1, W→x−1, Up→level−1, Down→level+1 (DIR_N=1,E=2,S=3,W=4,UP=5,DOWN=6). | coords.ts:1-29 | — |
-| SC-3-21 | Party member status MUST be 0=original, 1=ally, 2=stone(petrified), 3=dead; PARTY_CAP MUST be 12. | state.ts:17-18, state.ts:6 | — |
-| SC-3-22 | Game-state constants MUST be GS_PLAYING=0, GS_ESCAPED=1, GS_DEAD=2, GS_QUIT=3; AF_DESTROYED MUST be 4. | state.ts:1-4, state.ts:11 | — |
+| SC-3-20 | Movement MUST map N→y−1, S→y+1, E→x+1, W→x−1, Up→level−1, Down→level+1 (DIR_N=1,E=2,S=3,W=4,UP=5,DOWN=6). | coords.ts:1-29 | gap-data-rng.test.ts |
+| SC-3-21 | Party member status MUST be 0=original, 1=ally, 2=stone(petrified), 3=dead; PARTY_CAP MUST be 12. | state.ts:17-18, state.ts:6 | gap-data-rng.test.ts |
+| SC-3-22 | Game-state constants MUST be GS_PLAYING=0, GS_ESCAPED=1, GS_DEAD=2, GS_QUIT=3; AF_DESTROYED MUST be 4. | state.ts:1-4, state.ts:11 | gap-data-rng.test.ts |
 | SC-3-23 | `newGame` MUST initialise turn=1, level=1, score=0, curses=0, bonusScore=0, partyArea=0, gs=GS_PLAYING, phase="explore", with the Gateway as the sole placed area (faceUp true, visited false). | setup.ts:64-88 | setup.test.ts › places the Gateway and seats the chosen party |
 | SC-3-24 | Each new party member MUST start with status 0, dragonKills 0, empty treasure[]. | setup.ts:57-62 | setup.test.ts › party.every(status===0) |
 
@@ -65,9 +65,9 @@
 
 | ID | Requirement | Code | Test |
 |----|-------------|------|------|
-| SC-4-1 | `reduce(state, action)` is the single pure entry point: it returns `{ state, events }`. The reducer is the only producer of game facts; the UI never infers them. | reduce.ts:253, actions.ts:23 | — |
+| SC-4-1 | `reduce(state, action)` is the single pure entry point: it returns `{ state, events }`. The reducer is the only producer of game facts; the UI never infers them. | reduce.ts:253, actions.ts:23 | gap-contract.test.ts |
 | SC-4-2 | If the game is over (`state.gs !== GS_PLAYING`), `reduce` ignores every action, returning the same state and an empty event list. | reduce.ts:254 | reduce.test.ts › ignores actions once the game is over |
-| SC-4-3 | The interactive mode is `state.phase`, one of `explore | encounter | fight | pickup | gameOver`; it selects which controls show and which actions `reduce` accepts. | state.ts:15,77 | — |
+| SC-4-3 | The interactive mode is `state.phase`, one of `explore | encounter | fight | pickup | gameOver`; it selects which controls show and which actions `reduce` accepts. | state.ts:15,77 | gap-misc.test.ts |
 | SC-4-4 | `legalActions(state)` returns exactly the actions the UI may offer in the current phase; `reduce` validates against the same rules, rejecting any omitted action with `blocked` (or `planRejected`). This is the interactive contract. | selectors.ts:64 | reduce.test.ts › trap fall offers no withdraw; selectors.test.ts › interactive loop |
 | SC-4-5 | `legalActions` returns `[]` when the game is over; quit is never an in-menu action (HUD button). | selectors.ts:65,75,95,141 | selectors.test.ts › no actions once over; reduce.test.ts › not.toContainEqual quit |
 | SC-4-6 | An unrecognised action for the current phase produces one `{type:"blocked"}` event and no state change. | reduce.ts (phase guards, e.g. :261,270,302,321,445,512,549) | reduce.test.ts › resolveRound blocked when not fighting |
@@ -104,9 +104,9 @@
 | SC-4-37 | `legalActions` in pickup offers `takeTreasure` per (treasure×member) only where living/ally and `canCarry`, `retakeDropped` when applicable, `leaveTreasure`, plus artifact actions. | selectors.ts:97 | selectors.test.ts › heavy-treasure take only to members with spare capacity; › Chest only to a big carrier |
 | SC-4-38 | `legalActions` in encounter offers `withdraw` (when allowed) + `attack`, `test` (when `indiffStreak<3`), plus artifact actions. | selectors.ts:67 | reduce.test.ts › moving into a chamber with a stranger |
 | SC-4-39 | `legalActions` in fight: if a casualty is pending, only the `chooseCasualty` pair; else `retreat` per exit (after round 1, not blocked, not trap) plus artifact actions. `resolveRound` is built by the fight UI, not a menu item. | selectors.ts:77 | reduce.test.ts › only that choice is offered; › retreat not offered toward a dead end |
-| SC-4-40 | The Magic-Carpet landing case does NOT enforce the "no withdraw after a carpet landing into strangers" rule — a deferred, known deviation. | reduce.ts:653 | — |
-| SC-4-41 | Full `GameAction` catalog: move, quit, exitCave, withdraw, takeTreasure, leaveTreasure, retakeDropped, moveTreasure, dropTreasure, test, attack, resolveRound, chooseCasualty, retreat, useArtifact, openChest. | actions.ts:4 | (per rows above) |
-| SC-4-42 | Full `GameEvent` catalog (emitted only by `reduce`): moved, deadEnd, blocked, planRejected, drewChamber, enteredSpecial, gameOver, hazardFired, mutinied, medusaGaze, viperPit, eyeForsaken, petrifiedOut, trapSprung, trapAvoided, memberDied, strangerKilled, sorcererSlain, spectreSlew, memberRevived, reaction, pacified, strangersJoined, fightStarted, combatRoll, fightWon, casualtyChosen, crossedSpecial, treasureDropped, treasureReclaimed, artifactUsed, chestOpened, rubyTaken, statueAroused, wardedOff, ghoulsWarded, medusaAverted, droppedRetaken, annihilated, statuePowerless, deathPrevented, unicornGuards, unicornDeparted, carpetUsed, dragonsLulled, vipersLulled, secretDoorRevealed. | actions.ts:25 | (subsets per rows above) |
+| SC-4-40 | The Magic-Carpet landing case does NOT enforce the "no withdraw after a carpet landing into strangers" rule — a deferred, known deviation. | reduce.ts:653 | gap-contract.test.ts |
+| SC-4-41 | Full `GameAction` catalog: move, quit, exitCave, withdraw, takeTreasure, leaveTreasure, retakeDropped, moveTreasure, dropTreasure, test, attack, resolveRound, chooseCasualty, retreat, useArtifact, openChest. Each is handled by `reduce`; an action type **outside** this catalog falls through the switch and returns `undefined` (a latent edge the UI never dispatches). | actions.ts:4 | gap-contract.test.ts |
+| SC-4-42 | Full `GameEvent` catalog (emitted only by `reduce`): moved, deadEnd, blocked, planRejected, drewChamber, enteredSpecial, gameOver, hazardFired, mutinied, medusaGaze, viperPit, eyeForsaken, petrifiedOut, trapSprung, trapAvoided, memberDied, strangerKilled, sorcererSlain, spectreSlew, memberRevived, reaction, pacified, strangersJoined, fightStarted, combatRoll, fightWon, casualtyChosen, crossedSpecial, treasureDropped, treasureReclaimed, artifactUsed, chestOpened, rubyTaken, statueAroused, wardedOff, ghoulsWarded, medusaAverted, droppedRetaken, annihilated, statuePowerless, deathPrevented, unicornGuards, unicornDeparted, carpetUsed, dragonsLulled, vipersLulled, secretDoorRevealed. | actions.ts:25 | gap-contract.test.ts |
 | SC-4-43 | Re-entering a Deep Pool with `dropped` heavy treasure enters `pickup` to reclaim it, emitting `treasureReclaimed(count)`. | reduce.ts:128 | reduce.test.ts › re-entering a Deep Pool with dropped treasure enters pickup |
 | SC-4-44 | Returning to a chamber holding stone members with a living Wizard bearing the Magic Staff frees them on arrival (`reviveStoned`), emitting `memberRevived`. | reduce.ts:104 | reduce.test.ts › returning with a Wizard + Staff frees them; › without them they stay stone |
 
@@ -132,7 +132,7 @@
 
 | ID | Requirement | Code | Test |
 |----|-------------|------|------|
-| SC-6-1 | Six directions are integer constants: N=1, E=2, S=3, W=4, Up=5, Down=6. | coords.ts:1-6 | — |
+| SC-6-1 | Six directions are integer constants: N=1, E=2, S=3, W=4, Up=5, Down=6. | coords.ts:1-6 | gap-data-rng.test.ts |
 | SC-6-2 | A coordinate packs (level,x,y) as `level*10000 + y*100 + x`; unpack reverses it. Implies x,y ∈ 0..99. | coords.ts:8-16 | map.test.ts (uses packCoord throughout) |
 | SC-6-3 | `targetCoord` steps one unit: N→y−1, S→y+1, E→x+1, W→x−1, Up→level−1, Down→level+1 (x,y kept on stair moves); unknown dir returns the same coord. | coords.ts:19-29 | map.test.ts › descending creates the area below at the same x,y |
 | SC-6-4 | An area card decodes as a bitfield: N=1, E=2, S=4, W=8, chamber=16, stairUp=32, stairDown=64, special=(value>>7)&7. | decode.ts:13-24 | decode.test.ts |
@@ -140,7 +140,7 @@
 | SC-6.1-1 | A move first decodes the current card; if the direction has no exit/stair bit, return `{moved:false,deadEnd:false}` with the unchanged state (no clone, no draw). | map.ts:57-59 | map.test.ts › returns false when the current card lacks that exit |
 | SC-6.1-2 | If an area already exists at the target, a lateral move connects only if the destination card shows the matching reverse doorway (N↔S, E↔W); stair moves (Up/Down) always connect. | map.ts:30-38,76 | map.test.ts › moves into an already-placed adjacent area without drawing |
 | SC-6.1-3 | On a successful move: `prev2←prev`, `prev←partyArea`, `partyArea←destination`, `level←target level`; destination flipped `faceUp=true`. | map.ts:78-83,116-119 | map.test.ts › draws and places a matching card face-up; › moves into an already-placed area |
-| SC-6.1-4 | Moving into a lateral neighbour NOT showing the reverse doorway prunes that exit bit and returns `deadEnd:true, moved:false` (no draw). | map.ts:84-86 | — |
+| SC-6.1-4 | Moving into a lateral neighbour NOT showing the reverse doorway prunes that exit bit and returns `deadEnd:true, moved:false` (no draw). | map.ts:84-86 | gap-movement.test.ts |
 | SC-6.1-5 | An adjacent area flagged `AF_DESTROYED` (earthquake rubble) is impassable: prune the doorway and return `deadEnd:true`; nothing drawn, cannot return. | map.ts:72-75 | map.test.ts › treats an earthquake-collapsed adjacent area as impassable rubble |
 | SC-6.1-6 | If no area exists at the target and the large pack is exhausted (`largeIdx >= largePack.length`), return `{moved:false,deadEnd:false}` unchanged (no dead end). | map.ts:90 | map.test.ts › returns false when the large pack is exhausted |
 | SC-6.1-7 | Otherwise draw the next card (`largePack[largeIdx]`, largeIdx++). It connects if the direction is a stair OR the drawn card shows the matching reverse doorway. | map.ts:91-94 | map.test.ts › draws and places a matching card face-up |
@@ -156,7 +156,7 @@
 | SC-6.1-17 | The `move` action is legal only in explore. A successful move increments `turn` by 1 and clears `fellThroughTrap`. | reduce.ts:270,278-279 | reduce.test.ts |
 | SC-6.1-18 | A failed move emits `{type:"deadEnd",dir}` when dead-end, else `{type:"blocked"}`; the (possibly pruned) state is kept. A successful move emits crossing/special events then `resolveArea` events. | reduce.ts:275-298 | reduce.test.ts |
 | SC-6.2-1 | Leaving the cave: `exitCave` is legal only in explore; on level 1 with a stair-up, sets `gs=GS_ESCAPED, phase="gameOver"`, emits `gameOver`. Otherwise `blocked`. | reduce.ts:260-266 | reduce.test.ts |
-| SC-6.2-2 | Once escaped there is no return; the reducer no-ops for any action once `gs !== GS_PLAYING`. | reduce.ts:254 | — |
+| SC-6.2-2 | Once escaped there is no return; the reducer no-ops for any action once `gs !== GS_PLAYING`. | reduce.ts:254 | gap-movement.test.ts |
 | SC-6.3-1 | Dead-end deadlock / forced redraw is NOT implemented: a dead-end permanently prunes the exit; there is no "return the face-down card and redraw", so a fully boxed-in tunnel can soft-lock. | map.ts (absent) | — (deliberately absent) |
 | SC-6-6 | Trap fall (one-way descent): relocates the party to the same (x,y) one level down (fallback card 31 if the pack is empty), adds NO stair-up, places face-up, sets `fellThroughTrap=true`. | reduce.ts:210-226 | hazards.test.ts / trap tests |
 | SC-6-7 | Carpet move: teleports one step in `dir` ignoring doors; unexplored → draw (fallback 31), face-up; descending mirrors a stair-up, ascending a stair-down, as `mirroredStairs`; level-1 target suppresses stair-up; `fellThroughTrap=false`; may not exit the cave (Up disallowed on level 1). | reduce.ts:229-251,656-664 | carpet.test.ts |
@@ -173,12 +173,12 @@
 | SC-7.1-4 | The draw loop stops early when the small pack is exhausted; `smallIdx` advances only per card drawn. | chamber.ts:47-49 | chamber.test.ts › stops early when the small pack is exhausted |
 | SC-7.1-5 | Classify each code: `>=400` sleeping creature (−400, cap 8); `>=300` hazard (−300, cap 4); `>=200` treasure (−200, cap 8); else `>=100` stranger (−100, cap 8). Caps MAX_STRANGERS=8, MAX_TREASURE=8, MAX_HAZARDS=4. | chamber.ts:6-22 | chamber.test.ts › classifies each kind |
 | SC-7.1-6 | Revisit (`area.visited`): do NOT redraw; reload persisted `area.contents` through the same `classify`. | chamber.ts:39-40 | chamber.test.ts › does not redraw on a revisit; reloads persisted contents |
-| SC-7.1-7 | On every entry the working sets and `indiffStreak` are reset (fresh reaction each visit); `lulled` recomputed from flute presence. | chamber.ts:32-37 | — |
+| SC-7.1-7 | On every entry the working sets and `indiffStreak` are reset (fresh reaction each visit); `lulled` recomputed from flute presence. | chamber.ts:32-37 | gap-misc.test.ts |
 | SC-7.1-8 | After loading the working set, `area.contents` is cleared (working set is the live truth). `enterChamber` emits one `drewChamber` with copies of strangers/treasures/hazards. | chamber.ts:51-60 | chamber.test.ts › draws min(level,4) and classifies them |
 | SC-7.1-9 | Resolution order (`resolveArea`): reviveStoned → enterChamber → Eye annihilate Spectres → Talisman ward Spectres → applyHazards → whole-party-incapacitated check → trap-fall relocate → flute-lull Dragons → pacified-area check → strangers→encounter / treasure→pickup / else persist+explore. | reduce.ts:121-206 | reduce.test.ts › treasure-only→pickup; › stranger→encounter |
 | SC-7.1-10 | If a hazard leaves no living member: `gs=GS_DEAD`, `phase="gameOver"`; if every member is stone also emit `petrifiedOut`; then `gameOver`. | reduce.ts:158-164 | reduce.test.ts › Medusa turning the whole party to stone ends the game |
 | SC-7.1-11 | `surpriseReady = freshEntry && !fellThroughTrap` where `freshEntry = !area.visited`. A trap fall never grants surprise. Hostile-area (retreated) entries trigger an immediate fight with surprise to the strangers. | reduce.ts:150,191-199 | reduce.test.ts › attack from a fresh entry; › retreated re-entry immediate fight |
-| SC-7.2-1 | Hazards resolve in fixed priority: Earthquake(2), Medusa(3), Ghouls(4), Mutiny(0), Trap(1). Only present hazards fire. | hazards.ts:33-36 | — |
+| SC-7.2-1 | Hazards resolve in fixed priority: Earthquake(2), Medusa(3), Ghouls(4), Mutiny(0), Trap(1). Only present hazards fire. | hazards.ts:33-36 | gap-misc.test.ts |
 | SC-7.2-2 | Earthquake: collapse the previous area (`prev`, only if `prev !== partyArea`): set `AF_DESTROYED`, clear its contents, append a display-only Earthquake scar to `markers`. Impassable thereafter. | hazards.ts:41-49; state.ts:11 | hazards.test.ts › collapses the previous area; › lays a display-only scar |
 | SC-7.2-3 | Medusa: each living member rolls 1d6; ≤2 petrifies → `status=2`, `stoneArea=partyArea`. Emit `medusaGaze` per member. Strangers unaffected. | hazards.ts:51-63 | hazards.test.ts › turns members to stone on a roll of 1-2 |
 | SC-7.2-4 | Medusa ward: a living Wizard bearing the Magic Staff makes Medusa powerless — emit `medusaAverted`, skip the gaze entirely. | hazards.ts:24-27,38 | hazards.test.ts › a Wizard bearing the Magic Staff makes Medusa powerless |
@@ -218,15 +218,15 @@
 | SC-8.2-2 | All strangers react as the leader (a single reaction roll governs the whole group). | reaction.ts:18-19, reduce.ts:449-489 | reaction.test.ts › (implicit) |
 | SC-8.3-1 | Reaction roll = one raw d6 via `rollDie(seed)`; `roll` threaded for display; seed advanced and stored. | reaction.ts:18-34, reduce.ts:449-450 | reaction.test.ts › advances the seed |
 | SC-8.3-2 | Charisma modifier: +1 if ANY living/ally member has FLAG_CHARISMA (Hero id 0, W-Hero id 1). | reaction.ts:23-26 | reaction.test.ts › (no-charisma party isolates the raw die) |
-| SC-8.3-3 | Curse modifier: subtract `activeCurses(state)` (= `state.curses`, or 0 once the Sorcerer is slain) from the roll. | reaction.ts:27, effects.ts:47-49 | — |
+| SC-8.3-3 | Curse modifier: subtract `activeCurses(state)` (= `state.curses`, or 0 once the Sorcerer is slain) from the roll. | reaction.ts:27, effects.ts:47-49 | gap-encounters.test.ts |
 | SC-8.3-4 | After modifiers the roll is clamped to [1..6]. | reaction.ts:28 | reaction.test.ts › (all 6 faces seen) |
 | SC-8.3-5 | Natural-1 rule: if the raw die was 1, the effective roll is forced back to 1 AFTER all bonuses/clamp — a natural 1 always counts as 1. | reaction.ts:21,29 | reaction.test.ts › charisma +1 and curses subtract, but a natural 1 stays 1; › a natural 1 is always hostile |
-| SC-8.3-6 | The Ring does NOT modify the reaction roll (only charisma +1 and curses −1 apply). | reaction.ts:18-34 | — |
+| SC-8.3-6 | The Ring does NOT modify the reaction roll (only charisma +1 and curses −1 apply). | reaction.ts:18-34 | gap-encounters.test.ts |
 | SC-8.4-1 | Outcome from the leader's thresholds: `roll <= hostileMax → hostile`; else `roll <= indiffMax → indifferent`; else `friendly`. Missing `hostileMax` defaults 0; missing `indiffMax` defaults 6. | reaction.ts:31-33 | reaction.test.ts › classifies the roll against the leader's thresholds |
 | SC-8.4-2 | Hostile: begins a fight immediately with surprise −1 (strangers gain surprise). | reduce.ts:486-487,64-71 | reduce.test.ts › testing an always-hostile leader starts a fight with surprise to the strangers |
 | SC-8.4-3 | Indifferent: increment `indiffStreak`; below 3, remain in encounter. | reduce.ts:474-485 | multi.test.ts › (per-party indifference); reduce.test.ts › three indifferent results |
 | SC-8.4-4 | Indifference cap = 3: the 3rd indifferent result adds the area to `pacifiedAreas`, fires `pacified`, and `persistAndExplore` parks strangers+treasure and returns to explore. Treasure stays guarded; the party may leave by any exit. | reduce.ts:475-484,33-51 | reduce.test.ts › three indifferent results pacify the chamber for that party |
-| SC-8.4-5 | `indiffStreak` resets to 0 on every chamber entry — the streak counts consecutive indifferents in the current visit only; only `pacifiedAreas` persists across visits. | chamber.ts:37 | — |
+| SC-8.4-5 | `indiffStreak` resets to 0 on every chamber entry — the streak counts consecutive indifferents in the current visit only; only `pacifiedAreas` persists across visits. | chamber.ts:37 | gap-misc.test.ts |
 | SC-8.4-6 | Indifference/pacification is PER-PARTY (stored on the party's `indiffStreak`/`pacifiedAreas`), so other parties are unaffected. | state.ts:112-118, reduce.ts:465-466,479-480 | multi.test.ts › (seat 0 pacified; seat 1 unaffected) |
 | SC-8.4-7 | Friendly: strangers join as allies (`status:1, dragonKills:0, treasure:[]`), up to PARTY_CAP (12); `strangersJoined` event. | reduce.ts:452-460, state.ts:6 | reduce.test.ts › a friendly result recruits the strangers as allies |
 | SC-8.4-8 | After a friendly join with no guard remainder: strangers cleared; treasure remaining → pickup, else `persistAndExplore` (→ explore). | reduce.ts:469-473 | reduce.test.ts › a friendly result recruits the strangers as allies |
@@ -234,7 +234,7 @@
 | SC-8.5-2 | Dragon (10): `hostileMax 4, indiffMax 6` → 1–4 hostile, 5–6 indifferent, NEVER friendly. | creatures.ts:33 | reaction.test.ts › a Dragon is 1-4 hostile, 5-6 indifferent, never friendly |
 | SC-8.5-3 | Spectre (9): `hostileMax 5, indiffMax 6, leaderPri 10`. Removed before the encounter by the Eye (annihilated, any level) or the Talisman (warded off, level ≥ 4), prior to leader determination. | creatures.ts:32, effects.ts:81-104, reduce.ts:152-153 | wards.test.ts / effects.test.ts |
 | SC-8.5-4 | Unicorn (13): `hostileMax 0, indiffMax 0` → always friendly; `leaderPri 0`. On friendly it joins ONLY if a living Woman/W-Hero (FLAG_BEFRIENDS_UNICORN) is present; else it becomes a guard, the area is pacified, and the party moves on. | creatures.ts:36, reduce.ts:453-468, effects.ts:74-78 | reduce.test.ts › (Woman present, Unicorn joins) |
-| SC-8.5-5 | An allied Unicorn departs if the last Woman/W-Hero falls (reconciled after each fight round). | effects.ts:107-118, reduce.ts:75-76 | — |
+| SC-8.5-5 | An allied Unicorn departs if the last Woman/W-Hero falls (reconciled after each fight round). | effects.ts:107-118, reduce.ts:75-76 | gap-misc.test.ts |
 | SC-8.5-6 | The Charmed Flute pre-emptively lulls every Dragon while a valid flute-bearer holds it: Dragons move from `strangers` into `lulled` on entry (before leader determination). Re-evaluated each entry. | reduce.ts:177-182, effects.ts:27-31 | flute.test.ts |
 | SC-8.5-7 | Attacking a pacified chamber's guards: in explore, if the area is in `pacifiedAreas` and holds parked stranger markers, Attack un-parks strangers+guarded treasure and starts a fight with surprise 0. | selectors.ts:136-139, reduce.ts:492-504 | reduce.test.ts › a pacified chamber re-entry lets you traverse AND offers Attack |
 | SC-8.5-8 | Lotus Dust may be used during the encounter (or fight) to sleep a chosen stranger (removed from `strangers`), but has no effect on a Spectre (not offered). Emptying the pool lets the party proceed past the sleepers. | selectors.ts:24-29, reduce.ts:632-654 | special.test.ts / artifact tests |
@@ -247,7 +247,7 @@
 | SC-9.1-1 | A round is resolved from a player battle plan (`{matches: PlanMatch[]}`); each match = `front[]` (1–2 living fighters), `backers[]` (caster indices), `strangers[]` (1–2 foes). Not an auto focus-fire model. | state.ts:62-72, combatPlan.ts:37-89, reduce.ts:511-522 | combatPlan.test.ts › accepts a simple 1-v-1 pairing |
 | SC-9.1-2 | A plan is rejected unless `state.phase === "fight"` (`notFighting`). | combatPlan.ts:38 | combatPlan.test.ts › rejects when not in a fight |
 | SC-9.1-3 | An empty plan is rejected `emptyPlan`, EXCEPT the forced-Spectre case (SC-9.4-6). | combatPlan.ts:40-48 | combatPlan.test.ts › rejects an empty plan; › still rejects when a foe COULD be engaged |
-| SC-9.1-4 | Front group size 1–2; foe group size 1–2; else `groupTooBig`. | combatPlan.ts:56-57 | — |
+| SC-9.1-4 | Front group size 1–2; foe group size 1–2; else `groupTooBig`. | combatPlan.ts:56-57 | gap-misc.test.ts |
 | SC-9.1-5 | Two-vs-two ban: `front.length===2 && strangers.length===2` is rejected `twoVsTwo`. | combatPlan.ts:58 | combatPlan.test.ts › rejects a 2-against-2 group |
 | SC-9.1-6 | A match with backers but no front fighter is rejected `backerNoFront`. | combatPlan.ts:55 | combatPlan.test.ts › rejects a backer with no front fighter |
 | SC-9.1-7 | A background slot must be a caster by creature type (base MP>0: Priest 4, Wizard 8), else `backerNotCaster`. By TYPE not current MP — an active Eye (0 MP) still allows a Wizard to back. | combatPlan.ts:71-73, combat.ts:9-11 | combatPlan.test.ts › rejects a non-caster in the background; › allows a Wizard while the Eye nullifies its magic |
@@ -256,11 +256,11 @@
 | SC-9.1-10 | Out-numbered gang-up (§395): foes gang up only once the party has no free fighter. Each lone 1-v-1 auto-attaches one extra hand-to-hand foe (enemy MP==0), strongest FS first. While any fighter is free, leftover foes stay separate. | combatPlan.ts:142-163 | combatPlan.test.ts › a lone Hero faces the strongest combination; › does not gang while a fighter is free; › two foes gang a lone fighter |
 | SC-9.1-11 | Leftover enemy casters (unengaged, MP>0, out-numbered) fold their MP into the non-Spectre focus match as `enemyBackers`, strongest first. | combatPlan.ts:145-176 | combatPlan.test.ts › a lone Hero faces the strongest combination; › two foes gang a lone fighter |
 | SC-9.2-1 | Surprise applies to round 1 only: +1 to that side's die total. `surprise===1` party +1; `===-1` enemy +1; `===0` none. | combatPlan.ts:223-224,265-266 | combatPlan.test.ts › resolves the §417 book example |
-| SC-9.2-2 | Party surprise (+1) is set by the Attack action or a fresh (unvisited, non-trap) doorway/carpet entry (`surpriseReady`). Approaching to test forfeits it. Trap falls never grant surprise. | reduce.ts:66,150,198,448,487,508 | — |
-| SC-9.2-3 | Strangers gain surprise (−1) when they turn hostile on a test, or on hostile-on-sight (retreated) areas. | reduce.ts:193,487,709-711 | — |
+| SC-9.2-2 | Party surprise (+1) is set by the Attack action or a fresh (unvisited, non-trap) doorway/carpet entry (`surpriseReady`). Approaching to test forfeits it. Trap falls never grant surprise. | reduce.ts:66,150,198,448,487,508 | gap-fights.test.ts |
+| SC-9.2-3 | Strangers gain surprise (−1) when they turn hostile on a test, or on hostile-on-sight (retreated) areas. | reduce.ts:193,487,709-711 | gap-fights.test.ts |
 | SC-9.3-1 | Front strength = FS + dragonKills + (if caster) casterMP + Magic-Sword + Strength-Potion. A caster fighting hand-to-hand fights at TOTAL strength (FS + magical power). | combat.ts:20-31 | combat-strength.test.ts › frontStrength is FS + dragon-kills + Magic Sword; › caster hand-to-hand uses TOTAL strength |
 | SC-9.3-2 | Magic Sword (3): Hero/W-Hero +2; Man/Woman +1; else +0. Nullified by an active Eye. | combat.ts:25-28 | combat-strength.test.ts › (Man+sword=4, Troll+sword=4) |
-| SC-9.3-3 | Strength Potion adds +2 while `potionActive` (consumable, NOT nullified by the Eye). Activated via `useArtifact` id 8 on a living Man/Woman/Hero/W-Hero in a fight; cleared at fight end. | combat.ts:29, reduce.ts:607-614,82,93,586 | — |
+| SC-9.3-3 | Strength Potion adds +2 while `potionActive` (consumable, NOT nullified by the Eye). Activated via `useArtifact` id 8 on a living Man/Woman/Hero/W-Hero in a fight; cleared at fight end. | combat.ts:29, reduce.ts:607-614,82,93,586 | gap-fights.test.ts |
 | SC-9.3-4 | Background magical power (`casterMP`) = MP + Magic-Staff (Priest +1, Wizard +2). Zeroed by an active Eye. | combat.ts:34-43 | combat-strength.test.ts › casterMP is MP + Magic Staff; › Eye nullifies a front caster's magic |
 | SC-9.3-5 | Party match strength = Σ front + Σ backer casterMP. Enemy match strength = Σ (FS + enemy MP) + Σ enemyBackers' MP. | combatPlan.ts:173-176 | combatPlan.test.ts › a party Wizard hand-to-hand matches an enemy Wizard (7/7) |
 | SC-9.3-6 | Party roll bonus (added to the die): +1 if any living member holds The Ring (10), negated by an active Eye, minus `activeCurses`. Applied to every party die. | combat.ts:45-49, combatPlan.ts:222,265 | combat-strength.test.ts › partyRollBonus is +1 with The Ring, minus curses |
@@ -271,40 +271,40 @@
 | SC-9.3-11 | Combat produces a `combatRoll` event per match with names, rolls, totals, and result. | combatPlan.ts:267-273 | combatPlan.test.ts (via rolls() helper) |
 | SC-9.4-1 | Spectre (9) needs magic or Magic Sword: a front fighter facing one must have casterMP>0 OR be a sword-bearing Man/Woman/Hero/W-Hero (`canSwordSpectre`), else `spectreNeedsMagic`. | combatPlan.ts:26-28,75-80 | combatPlan.test.ts › rejects an ordinary fighter vs a Spectre; › accepts a caster or a sword-bearer |
 | SC-9.4-2 | Against a Spectre a caster pits magical power only (casterMP), not front strength; a sword-bearer fights with front strength. | combatPlan.ts:173 | combatPlan.test.ts › a caster pits magical power only; › a sword-bearer fights with front strength |
-| SC-9.4-3 | A Spectre is never auto-attached as a gang-up foe; enemy-caster fold-in targets only non-Spectre matches. | combatPlan.ts:148,156,164 | — |
+| SC-9.4-3 | A Spectre is never auto-attached as a gang-up foe; enemy-caster fold-in targets only non-Spectre matches. | combatPlan.ts:148,156,164 | gap-misc.test.ts |
 | SC-9.4-4 | An un-fightable, unengaged Spectre left idle auto-slays the strongest living member (by frontStrength) before dice — unless the party has any caster MP or sword-bearer. | combatPlan.ts:246-258 | combatPlan.test.ts › an un-fightable, unengaged Spectre auto-slays the strongest member |
-| SC-9.4-5 | Ring-invincibility (level ≥ 4, holds The Ring, no active Eye) prevents the Spectre auto-slay → `deathPrevented`. | combatPlan.ts:254, effects.ts:69-71 | — |
+| SC-9.4-5 | Ring-invincibility (level ≥ 4, holds The Ring, no active Eye) prevents the Spectre auto-slay → `deathPrevented`. | combatPlan.ts:254, effects.ts:69-71 | gap-fights.test.ts |
 | SC-9.4-6 | Forced-Spectre round: if every remaining stranger is an un-fightable Spectre and the party has no magic/sword, an EMPTY plan is legal; the round is fought and the strongest member auto-slain (avoids deadlock). | combatPlan.ts:40-47,246-258 | combatPlan.test.ts › validates an EMPTY plan when only an un-fightable Spectre remains |
 | SC-9.4-7 | Dragon-slayer credit: felling a Dragon (10) single-handed (exactly one front fighter, no backers, one stranger) increments `dragonKills` (+1 FS). A caster backer voids the credit. | combatPlan.ts:282 | combatPlan.test.ts › credits a single-handed dragon slayer; › does NOT credit when a caster backed the kill |
 | SC-9.4-8 | Sorcerer (11): an active Eye reduces MP by 2 (never to 0); Lotus Dust (`lotusOnSorcerer`) a further 2; floor 0. Felling him sets `sorcererKilled=true`, emits `sorcererSlain`. | combatPlan.ts:93-101,286 | combatPlan.test.ts › the Eye reduces the Sorcerer by only 2; › slaying the Sorcerer records the kill |
 | SC-9.4-9 | Eye of God while held: nullifies party magic & artefact bonuses (Sword, Staff, Ring, caster MP); zeroes stranger MP (Sorcerer excepted). | combat.ts:24,35, combatPlan.ts:100,183,196,201,208, effects.ts:38-40 | combatPlan.test.ts › an active Eye zeroes a stranger Wizard's magic |
 | SC-9.5-1 | Heavy-treasure drop (§387): at round resolution every front fighter drops all heavy treasures to the floor (200+tid); recorded in `state.fightDrops`. Artefacts and background casters keep theirs. | combatPlan.ts:230-241 | combatPlan.test.ts › a front fighter drops heavy treasure; › a background caster keeps its heavy treasure |
-| SC-9.5-2 | On a win, heavy treasure dropped to the floor is reclaimed into pickup; dropped items are also individually returnable to their droppers via the retake path. | reduce.ts:85-91,384-402 | — |
+| SC-9.5-2 | On a win, heavy treasure dropped to the floor is reclaimed into pickup; dropped items are also individually returnable to their droppers via the retake path. | reduce.ts:85-91,384-402 | gap-misc.test.ts |
 | SC-9.5-3 | Casualty — single fighter loses: the fighter dies (`status=3`, `memberDied`) + `eyeForsakenByDeath` if it bore the Eye. Ring-invincible → `deathPrevented`. | combatPlan.ts:287-291 | combatPlan.test.ts › curses the party when the Eye's bearer is slain |
 | SC-9.5-4 | Casualty — two fighters lose together: a `casualtyQueue` pair is queued (neither dies yet); resolution pauses for `chooseCasualty`. Ring-invincible fighters are filtered out first. | combatPlan.ts:288-298, reduce.ts:519 | combatPlan.test.ts › queues a casualty choice when two front fighters lose together |
-| SC-9.5-5 | `chooseCasualty` die: player names a preferred casualty; roll d6, 4–6 grants the preference, 1–3 kills the other. Victim `status=3`; emits `casualtyChosen` (roll & gotPreference), `memberDied`, Eye-forsaken. Finalise when the queue empties. | reduce.ts:524-546 | — |
-| SC-9.5-6 | Retreat legality: only in fight, only after round > 1, and NOT if `fellThroughTrap`. May retreat by ANY doorway/stairway (even unexplored). | reduce.ts:548-552 | — |
-| SC-9.5-7 | Blocked retreat: a dead-end / no-tile direction fails, sets `retreatBlocked=true`, emits `deadEnd` — the party must fight on. Cleared once a round is fought. | reduce.ts:557-565,518 | — |
-| SC-9.5-8 | Successful retreat: strangers + dropped/undropped treasure + sleeping + lulled are LEFT BEHIND; slain members' artefacts left too (§426); living retreat with theirs; the fled area becomes permanently hostile-on-sight; potions cleared; the retreated-into area is resolved fresh. | reduce.ts:567-592 | — |
+| SC-9.5-5 | `chooseCasualty` die: player names a preferred casualty; roll d6, 4–6 grants the preference, 1–3 kills the other. Victim `status=3`; emits `casualtyChosen` (roll & gotPreference), `memberDied`, Eye-forsaken. Finalise when the queue empties. | reduce.ts:524-546 | gap-fights.test.ts |
+| SC-9.5-6 | Retreat legality: only in fight, only after round > 1, and NOT if `fellThroughTrap`. May retreat by ANY doorway/stairway (even unexplored). | reduce.ts:548-552 | gap-fights.test.ts |
+| SC-9.5-7 | Blocked retreat: a dead-end / no-tile direction fails, sets `retreatBlocked=true`, emits `deadEnd` — the party must fight on. Cleared once a round is fought. | reduce.ts:557-565,518 | gap-fights.test.ts |
+| SC-9.5-8 | Successful retreat: strangers + dropped/undropped treasure + sleeping + lulled are LEFT BEHIND; slain members' artefacts left too (§426); living retreat with theirs; the fled area becomes permanently hostile-on-sight; potions cleared; the retreated-into area is resolved fresh. | reduce.ts:567-592 | gap-fights.test.ts |
 | SC-9.5-9 | Fight-end (`finalizeRound`): no living party → DEAD/gameOver; all strangers dead → `fightWon`, reclaim floor treasure, then pickup (if treasure) or explore; else the round advanced and fighting continues. A Unicorn departs if the last Woman fell. | reduce.ts:75-99, combatPlan.ts:297 | combatPlan.test.ts › a solo win removes the foe and advances the round |
-| SC-9.5-10 | Multi-round flow: `resolveRound` validates → resolves → advances round → opens retreat → pauses if a casualty is queued, else finalises. A pending casualtyQueue blocks a new `resolveRound`. | reduce.ts:511-522 | — |
+| SC-9.5-10 | Multi-round flow: `resolveRound` validates → resolves → advances round → opens retreat → pauses if a casualty is queued, else finalises. A pending casualtyQueue blocks a new `resolveRound`. | reduce.ts:511-522 | gap-fights.test.ts |
 
 ## §10 Special Areas
 
 | ID | Requirement | Code | Test |
 |----|-------------|------|------|
 | SC-10-1 | Special-type codes: 0 NONE, 1 GATEWAY, 2 DEEP_POOL, 3 VIPER_PIT, 4 TOMB, 5 GREAT_HALL, decoded via `decodeArea(card).special`. | areaCards.ts:1-6, decode.ts | decode.test.ts › (Gateway/Tomb special decode) |
-| SC-10-2 | Each special area appears exactly once; the Gateway is pulled at index 21 and placed as the start. | areaCards.ts:8-9 | — |
+| SC-10-2 | Each special area appears exactly once; the Gateway is pulled at index 21 and placed as the start. | areaCards.ts:8-9 | gap-data-rng.test.ts |
 | SC-10-3 | Entry stops at the edge: on the entry turn the party lands on a Pit/Pool tile and the turn ends in explore — no crossing yet (`enteredSpecial`, phase explore); crossing happens only on the next move out. | reduce.ts:128-145,271-295 | reduce.test.ts › crossing a Deep Pool drops heavy treasure |
 | SC-10-4 | Crossing fires only on a genuine crossing — moving out a different doorway than entered, not retracing (`crossing = partyArea !== oldPrev`). | reduce.ts:281-295 | reduce.test.ts › (retrace guard) |
 | SC-10.1-1 | Viper Pit crossing: each living member rolls a d6; 1 or 2 is fatal → `status=3` + `memberDied`. Seed threaded per roll. | special.ts:15-37 | special.test.ts › a 1 or 2 means falling in |
 | SC-10.1-2 | Fatal threshold is 1 OR 2 (`r.value <= 2`). | special.ts:25 | special.test.ts › emits a viperPit event (r.died === roll<=2) |
 | SC-10.1-3 | A fallen member's treasure is lost to the pit (`m.treasure=[]`). Flute-based recovery is NOT modelled. | special.ts:31 | special.test.ts › (death, treasure lost) |
-| SC-10.1-4 | Eye of God lost with its bearer curses the party: `eyeForsakenByDeath` adds a curse and emits `eyeForsaken` before clearing treasure. | special.ts:30 → effects.ts:57-61 | — |
+| SC-10.1-4 | Eye of God lost with its bearer curses the party: `eyeForsakenByDeath` adds a curse and emits `eyeForsaken` before clearing treasure. | special.ts:30 → effects.ts:57-61 | gap-special.test.ts |
 | SC-10.1-5 | Charmed Flute lulls the vipers — the whole party crosses safely, no rolls (`fluteLulls` → `[{type:"vipersLulled"}]`). | special.ts:18-19 → effects.ts:27-31 | special.test.ts › the Charmed Flute carries everyone across safely |
 | SC-10.1-6 | A flute-ineligible carrier (e.g. an Ogre) does not lull; the party rolls to cross. | special.ts:19 → effects.ts:29 | special.test.ts › the Flute does not lull when only an ineligible creature carries it |
 | SC-10.1-7 | The `viperPit` event carries the per-member dice display (`rolls:[{creatureId,roll,died}]`). | special.ts:21,35 | special.test.ts › emits a viperPit event with a d6 per living member |
-| SC-10.1-8 | A total wipe in the pit ends the game (`gs=GS_DEAD`, gameOver). | reduce.ts:286-291 | — |
+| SC-10.1-8 | A total wipe in the pit ends the game (`gs=GS_DEAD`, gameOver). | reduce.ts:286-291 | gap-special.test.ts |
 | SC-10.1-9 | `crossedSpecial(SPECIAL_VIPER_PIT)` emitted on an actual pit crossing. | reduce.ts:283-284 | reduce.test.ts › crossing a Viper Pit with the Flute is always safe |
 | SC-10.2-1 | A living Giant (`C_GIANT=12`) carries everything: `deepPoolCrossing` returns `[]`, no drop. | special.ts:44 | special.test.ts › a Giant carries all heavy treasure across |
 | SC-10.2-2 | Without a Giant, heavy treasure (ids 0 Silver, 1 Gold, 2 Gems) is removed and pushed onto `area.dropped`; `treasureDropped{count}` per member. | special.ts:41-55 | special.test.ts › without a Giant, heavy treasure is dropped; reduce.test.ts › crossing a Deep Pool without a Giant |
@@ -312,13 +312,13 @@
 | SC-10.2-4 | Reclaim on re-entry: entering a Pool tile with non-empty `area.dropped` loads it into `state.treasures`, clears it, emits `treasureReclaimed`, enters pickup. | reduce.ts:128-136 | reduce.test.ts › re-entering a Deep Pool with dropped treasure enters pickup |
 | SC-10.2-5 | `crossedSpecial(SPECIAL_DEEP_POOL)` on an actual crossing; drops record on the departed tile (`fromIdx`), not the destination. | reduce.ts:292-294 | reduce.test.ts › crossing a Deep Pool |
 | SC-10.2-6 | Retrace does not drop (same `oldPrev` skips the crossing; no `crossedSpecial`). | reduce.ts:281,292 | reduce.test.ts › (no crossedSpecial when retracing) |
-| SC-10.3-1 | Tomb of Kings & Great Hall have no crossing behaviour — ordinary chambers (fall through to the normal draw/encounter path). | reduce.ts:146-206 | — |
+| SC-10.3-1 | Tomb of Kings & Great Hall have no crossing behaviour — ordinary chambers (fall through to the normal draw/encounter path). | reduce.ts:146-206 | gap-misc.test.ts |
 | SC-10.3-2 | Tomb draws +1, Great Hall +2 extra small cards on first visit (base `min(level,4)`, then +1/+2, capped 8). | chamber.ts:43-46 | chamber.test.ts › +1 in the Tomb; › +2 in the Great Hall |
 | SC-10.4-1 | Permanent indifference after 3 indifferent tests (per party): area added to `pacifiedAreas`, `pacified` event, strangers+treasure parked as guarded, phase → explore. | reduce.ts:474-485 | reduce.test.ts › three indifferent results pacify the chamber for that party |
 | SC-10.4-2 | Testing a pacified chamber is blocked (`indiffStreak >= 3`); `legalActions` offers no `test`. | reduce.ts:446 | reduce.test.ts › a pacified chamber re-entry (no test action) |
 | SC-10.4-3 | Re-entry to a pacified area → free traversal: `persistAndExplore` parks guards, returns in explore, any exit allowed; guarded treasure stays out of reach. | reduce.ts:187-190 | reduce.test.ts › a pacified chamber re-entry lets you traverse AND offers Attack |
 | SC-10.4-4 | A pacified chamber still offers Attack: in explore, Attack un-parks strangers and their guarded treasure and starts the fight with no surprise. | reduce.ts:492-503 | reduce.test.ts › a pacified chamber re-entry AND offers Attack; treasure stays guarded |
-| SC-10.4-5 | A womanless Unicorn pacifies too: a friendly Unicorn with no Woman guards the area, which is added to `pacifiedAreas`. | reduce.ts:461-468 | — |
+| SC-10.4-5 | A womanless Unicorn pacifies too: a friendly Unicorn with no Woman guards the area, which is added to `pacifiedAreas`. | reduce.ts:461-468 | gap-special.test.ts |
 
 ## §11 Artifacts & Treasure Effects
 
@@ -331,10 +331,10 @@
 | SC-11-5 | Carpet is usable only in explore with a `dir`; teleports one step ignoring doors, then resolves the new area (drawing a face-up card if unexplored). | reduce.ts:653-664,229-251 | carpet.test.ts › teleports ignoring doors, consumed; › places a new area card |
 | SC-11-6 | Valid carpet directions: N/E/S/W, DOWN always, UP only if `level > 1` (will not exit the cave). | reduce.ts:658-659, selectors.ts:44-45 | carpet.test.ts › UP blocked on level 1 |
 | SC-11-7 | Carpet is single-use (consumed); blocked outside explore (cannot retreat). Links both ways (`fellThroughTrap=false`). | reduce.ts:660,662,250 | carpet.test.ts › cannot be used to retreat |
-| SC-11-8 | KNOWN DEFERRAL: the "no withdraw after a carpet landing into strangers" rule is NOT enforced. | reduce.ts:654-655 | — |
+| SC-11-8 | KNOWN DEFERRAL: the "no withdraw after a carpet landing into strangers" rule is NOT enforced. | reduce.ts:654-655 | gap-contract.test.ts |
 | SC-11-9 | Lotus Dust (id 5, 5 pts, wt 0) — usable by ANY living holder in encounter or fight, targeting a stranger; single-use. | reduce.ts:632-651,28, selectors.ts:25-28 | artifacts.test.ts › sleeps a stranger and is consumed |
 | SC-11-10 | Lotus Dust puts the target to sleep: moved from `strangers` into `sleeping` (parked `400+id`; stays in the chamber). | reduce.ts:642-643,39 | artifacts.test.ts › sleeps a stranger; › sleeping the last stranger lets the party proceed |
-| SC-11-11 | Lotus Dust has NO effect on a Spectre (9) — blocked, and not offered against a Spectre. | reduce.ts:636, selectors.ts:27 | — |
+| SC-11-11 | Lotus Dust has NO effect on a Spectre (9) — blocked, and not offered against a Spectre. | reduce.ts:636, selectors.ts:27 | gap-artifacts.test.ts |
 | SC-11-12 | Lotus Dust on the Sorcerer (11) does not sleep him — sets `lotusOnSorcerer`, weakening his MP by −2 (floor 0), and is consumed. | reduce.ts:637-641, combatPlan.ts:94-98 | combatPlan.test.ts › (lotusOnSorcerer); › the Eye reduces the Sorcerer by only 2 |
 | SC-11-13 | If Lotus Dust removes the last awake stranger the fight ends: `fight` cleared, all `potionActive` cleared, advance to pickup (if treasure) or explore. | reduce.ts:645-650 | artifacts.test.ts › sleeping the last stranger; › clears potionActive when Lotus ends the last fight-phase stranger |
 | SC-11-14 | Healing Balm (id 6, 5 pts, wt 0) — usable ONLY by a living Woman(6)/W-Hero(1)/Priest(4)/Wizard(8) holder; a Hero holding it is blocked. | reduce.ts:24, selectors.ts:36 | artifacts.test.ts › a Woman/Priest/Wizard revives; › rejected when the bearer is not qualified |
@@ -345,7 +345,7 @@
 | SC-11-19 | `potionActive` adds +2 to front strength for the fight; NOT nullified by the Eye; cleared when the fight ends. | combat.ts:29, combatPlan.ts:187; cleared reduce.ts:82,93,586,647 | artifacts.test.ts › boosts (frontStrength 7); › clears potionActive |
 | SC-11-20 | Magic Staff (id 9, 15 pts, wt 0) — passive caster boost: Priest holder +1, Wizard holder +2 magical power (feeds casterMP and front strength); nullified by the Eye. | combat.ts:38-42,20-31 | combat-strength.test.ts › casterMP is MP + Magic Staff; › Wizard+Staff = 9 |
 | SC-11-21 | Magic Staff reanimation (`useArtifact`) — ONLY a Wizard(8) holder, in explore or pickup, targeting a stoned (status 2) member whose `stoneArea` == current area; frees them (status 0). NOT consumed. Blocked for a member stoned elsewhere. | reduce.ts:25,624-630, selectors.ts:39-40 | artifacts.test.ts › a Wizard restores a stoned member, staff NOT consumed; › cannot reach a member stoned in a different chamber |
-| SC-11-22 | Passive auto-reanimation: entering/resolving an area with a living Wizard holding the Staff frees any stoned member whose `stoneArea` is that area (emits `memberRevived`). | reduce.ts:104-118,124 | — |
+| SC-11-22 | Passive auto-reanimation: entering/resolving an area with a living Wizard holding the Staff frees any stoned member whose `stoneArea` is that area (emits `memberRevived`). | reduce.ts:104-118,124 | gap-artifacts.test.ts |
 | SC-11-23 | Magic Staff also wards Medusa: a Wizard holding it renders Medusa powerless (SC-7.2-4). | hazards.ts:24-27,38 | hazards.test.ts › a Wizard bearing the Magic Staff makes Medusa powerless |
 | SC-11-24 | The Ring (id 10, 30 pts, wt 0) — +1 to every party combat die while any living member holds it (minus curses); nullified by the Eye. | combat.ts:45-49 | combat-strength.test.ts › partyRollBonus; wards.test.ts › disables The Ring's roll bonus while the Eye is held |
 | SC-11-25 | The Ring makes its bearer immune to killing die-rolls at level ≥ 4 (`deathPrevented`); negated below level 4 and by an active Eye. | effects.ts:69-71, combatPlan.ts:254,288-289 | wards.test.ts › ignores a killing roll at level ≥ 4; › does NOT protect below level 4 |
@@ -354,7 +354,7 @@
 | SC-11-28 | While the Eye is held the statue is stilled: the Ruby is taken with no fight (`rubyTaken` + `statuePowerless`). | reduce.ts:327-332 | wards.test.ts › the Lost Ruby is taken without a fight while the Eye is held |
 | SC-11-29 | Charmed Flute (id 12, 10 pts, wt 0) — "played" only by a living Hero(0)/W-Hero(1)/Priest(4)/Man(5)/Woman(6)/Wizard(8) (`FLUTE_PLAYERS`); this gates all its effects. | effects.ts:12,27-31, reduce.ts:27, selectors.ts:47 | (indirect) |
 | SC-11-30 | Passive Dragon lull: on entry, while an eligible player holds the Flute, every Dragon (10) is lulled — moved from `strangers` to `lulled`. Re-evaluated each entry; parks AWAKE (`100+id`); emits `dragonsLulled` on fresh entry. | effects.ts:27-31, reduce.ts:177-182,40 | flute.test.ts › enters a Dragon-only chamber as if empty; › fights the Dragon normally without the Flute |
-| SC-11-31 | Passive Viper lull: on the pit crossing, if an eligible player holds the Flute the party crosses unharmed (`vipersLulled`), skipping the fatal-fall rolls. | special.ts:18-19, effects.ts:27 | — |
+| SC-11-31 | Passive Viper lull: on the pit crossing, if an eligible player holds the Flute the party crosses unharmed (`vipersLulled`), skipping the fatal-fall rolls. | special.ts:18-19, effects.ts:27 | gap-artifacts.test.ts |
 | SC-11-32 | Charmed Flute secret-door reveal (`useArtifact` with dir UP/DOWN), explore only: reveals a concealed stair DOWN (bit 64) if the area below shows a matching stairUp, or UP (bit 32) if the area above shows a matching stairDown. NOT consumed. Blocked if a visible stair exists, no matching area, or during a fight. | reduce.ts:666-684, selectors.ts:48-54 | flute.test.ts › reveals a concealed stair DOWN; › blocked when no matching area; › cannot reveal during a fight |
 | SC-11-33 | There is NO explicit "lull" action: `useArtifact` id 12 without a `dir` is blocked (lulling is passive). | reduce.ts:685-688 | flute.test.ts › blocked without a direction — lulling is passive |
 | SC-11-34 | Eye of God (id 13, 0 pts, wt 0) — active while any living member holds it (`eyeActive`). Nullifies all party magic: zeroes caster MP, suppresses Sword & Staff, disables the Ring's roll bonus and level-4 invincibility. | effects.ts:38-40, combat.ts:24,35, combatPlan.ts:47, effects.ts:70 | wards.test.ts › zeroes caster MP; › suppresses the Sword; › disables the Ring; effects.test.ts › eyeActive only when a living member holds it |
@@ -383,11 +383,11 @@
 | SC-12-11 | Raw score = Σ(member subtotals) + sorcererBonus + bonusScore − cursePenalty. | score.ts:55,63 | score.test.ts › itemises each member (45 + 5 + 7 = 57) |
 | SC-12-12 | Final total clamps at 0: `Math.max(0, raw)`. | score.ts:65 | score.test.ts › (20 − 30 clamped to 0) |
 | SC-12-13 | A wiped party (`gs === GS_DEAD`) scores exactly 0, overriding the formula. | score.ts:65 | score.test.ts › a wiped party scores zero |
-| SC-12-14 | The Eye of God is worth 0 points, but losing its bearer to death raises a curse → the flat −30 at scoring (unless the Sorcerer is dead). | treasures.ts:25, effects.ts:57-61 | — |
+| SC-12-14 | The Eye of God is worth 0 points, but losing its bearer to death raises a curse → the flat −30 at scoring (unless the Sorcerer is dead). | treasures.ts:25, effects.ts:57-61 | gap-scoring.test.ts |
 | SC-12-15 | `ScoreBreakdown` exposes per-member `{creatureId,name,status,counts,creaturePoints,dragonDoubled,treasures[],subtotal}` plus `sorcererBonus`, `bonusScore`, `cursePenalty`, `total` (== `scoreGame`). | score.ts:14-33,36-67 | score.test.ts › itemises each member (b.total === scoreGame(s)) |
 | SC-12-16 | ESCAPE trigger: `exitCave` succeeds only in explore, level 1, current card `stairUp` → `gs=GS_ESCAPED`, gameOver. Else `blocked` (non-terminal). | reduce.ts:260-266, decode.ts:20 | reduce.test.ts › exitCave escapes on level 1 with a stair-up; › blocked with no stair-up |
 | SC-12-17 | QUIT trigger: `quit` sets `gs=GS_QUIT`, gameOver; available any time (HUD button, not an in-menu explore action). | reduce.ts:257-258 | reduce.test.ts › quit ends the game and emits gameOver(QUIT) |
-| SC-12-18 | TOTAL PARTY LOSS: whenever no member has status 0/1, `gs=GS_DEAD`, gameOver. Fires from combat, viper-pit, and other hazard death paths. | reduce.ts:79-83,159-162,286-290,362-364 | — |
+| SC-12-18 | TOTAL PARTY LOSS: whenever no member has status 0/1, `gs=GS_DEAD`, gameOver. Fires from combat, viper-pit, and other hazard death paths. | reduce.ts:79-83,159-162,286-290,362-364 | gap-scoring.test.ts |
 | SC-12-19 | Once over, the reducer short-circuits: `if (gs !== GS_PLAYING) return {state, events:[]}`. | reduce.ts:254 | reduce.test.ts › (action on GS_QUIT state is inert) |
 | SC-12-20 | Terminal enum: GS_PLAYING=0, GS_ESCAPED=1, GS_DEAD=2, GS_QUIT=3. Only ESCAPED yields a recordable/savable score in the UI; DEAD/QUIT still render a breakdown but aren't saved (UI-layer, out of engine scope). | state.ts:1-4 | (apps/web GameOverScreen.test.tsx — out of engine scope) |
 
@@ -415,10 +415,10 @@
 | SC-MP-18 | Turn-end (`turnEnds`): passes when the party leaves play, returns to rest (phase===explore), OR completes one fight round (phase fight, empty casualtyQueue) via `resolveRound`/finishing `chooseCasualty`. A fight is one round per turn (others act between rounds). | multi.ts:72-92,176 | multi.test.ts › fights one round per turn; › a planned resolveRound ends the turn |
 | SC-MP-19 | Starting a fight (attack, or a hostile test) does NOT fight a round — the turn stays. A pending casualty choice, a continuing reaction test, a blocked retreat, and pickup after a won round all stay within the one turn. | multi.ts:78-91 | multi.test.ts › attack does not yet fight a round; › a casualty choice mid-round does not pass the turn |
 | SC-MP-20 | `advanceTurn` scans forward (mod order length) for the next `exploring` party, incrementing `turnCount`; if none remain, phase → `finished`. Terminal parties are skipped. | multi.ts:94-104 | multi.test.ts › skips terminal parties and finishes when none remain |
-| SC-MP-21 | `partyView(mp, seat)` returns the composed single-party `GameState` (shared cave ⊕ seat party), including the cave decks so the client's optimistic move-reduce works. | multi.ts:180-184 | — |
+| SC-MP-21 | `partyView(mp, seat)` returns the composed single-party `GameState` (shared cave ⊕ seat party), including the cave decks so the client's optimistic move-reduce works. | multi.ts:180-184 | gap-multiplayer.test.ts |
 | SC-MP-22 | `currentSeat(mp) = order[active]` while playing else null; `currentPicker(mp) = pickOrder[active]` while selecting else null. | multi.ts:186-194 | multi.test.ts › currentSeat===0 |
 | SC-MP-23 | Beginner ruleset: NO party-vs-party interaction; each seat sees only the shared cave + its own party. Per-party effects (e.g. `pacifiedAreas`) stay local. | multi.ts:19-21,35-36 | multi.test.ts › permanent indifference is per-party |
-| SC-MP-24 | There is NO engine-level standings/winner function: each seat's `score`/`kills` are surfaced via `partyView`; win determination is the caller's. The game reaches phase `finished` when no exploring parties remain. | multi.ts:38-44,103,180-184 | — |
+| SC-MP-24 | There is NO engine-level standings/winner function: each seat's `score`/`kills` are surfaced via `partyView`; win determination is the caller's. The game reaches phase `finished` when no exploring parties remain. | multi.ts:38-44,103,180-184 | gap-multiplayer.test.ts |
 
 ---
 
@@ -556,7 +556,7 @@ A multiplayer game is one **shared Cave** explored by up to four **parties**, on
 | PARTY_BUDGET | 6 | party-selection point budget |
 | PARTY_CAP | 12 | max party members |
 | GS_PLAYING / ESCAPED / DEAD / QUIT | 0 / 1 / 2 / 3 | terminal game-state |
-| Member status ORIGINAL / ALLY / STONE / DEAD | 0 / 1 / 2 / 3 | — |
+| Member status ORIGINAL / ALLY / STONE / DEAD | 0 / 1 / 2 / 3 | member lifecycle |
 | AF_DESTROYED | 4 | earthquake-collapsed area flag |
 | DIR_N / E / S / W / UP / DOWN | 1 / 2 / 3 / 4 / 5 / 6 | direction constants |
 | GATEWAY_START_COORD | 15050 | level 1, x=50, y=50 |
@@ -605,14 +605,8 @@ The v1 `design-spec.html` predates most of the artifact, hazard, combat, and mul
 
 # Appendix C — Test-coverage gaps
 
-Requirements marked `—` in Part I have no *direct* engine unit test (some are covered indirectly in adjacent suites). The highest-value gaps to close:
+**None.** Every requirement in Part I now carries a direct engine unit test (see its `test` column). The gaps this appendix previously tracked were closed by dedicated characterization suites under `packages/engine/src/`:
 
-- **Data/RNG:** card-41 value (SC-3-3), Dragon reaction row (SC-3-8), coord/direction helpers (SC-3-20), named constants (SC-3-21/22), global no-`Math.random` assertion (SC-5-13).
-- **Turn/contract:** reducer purity / return-shape (SC-4-1), resolution ordering (SC-4-11/12), full action & event catalog enumerations (SC-4-41/42), the Magic-Carpet no-withdraw deferral (SC-4-40).
-- **Movement:** existing lateral non-matching neighbour prune (SC-6.1-4), engine-level `exitCave` escape/blocked (SC-6.2-1/2), the deliberate no-forced-redraw soft-lock (SC-6.3-1).
-- **Encounters:** curse-in-reaction (SC-8.3-3), Ring-ignored-in-reaction (SC-8.3-6), womanless-Unicorn guard branch (SC-8.5-4), retreated-hostile-on-sight (SC-8.5-9).
-- **Fights:** surprise *acquisition* paths (SC-9.2-2/3), Strength-Potion end-to-end (SC-9.3-3), Ring-invincible death-prevention (SC-9.4-5, SC-9.5-3), the choose-a-casualty die (SC-9.5-5), retreat legality & aftermath (SC-9.5-6/7/8), `finalizeRound` end conditions (SC-9.5-9/10).
-- **Special areas:** Eye lost in the pit (SC-10.1-4), pit total-wipe → DEAD (SC-10.1-8), womanless-Unicorn pacification (SC-10.4-5).
-- **Artifacts:** Lotus-vs-Spectre block (SC-11-11), Staff passive auto-reanimation (SC-11-22), Staff-wards-Medusa in the artifact suite (SC-11-23), flute type-gate (SC-11-29), flute lulls vipers (SC-11-31).
-- **Scoring:** Eye-death → curse → −30 linkage (SC-12-14), the death→`GS_DEAD` transitions themselves (SC-12-18).
-- **Multiplayer:** `partyView` composition (SC-MP-21), `currentPicker` (SC-MP-22), no-standings/`finished` end (SC-MP-24), the `left`/escaped seat status (SC-MP-5).
+`gap-data-rng`, `gap-contract`, `gap-movement`, `gap-encounters`, `gap-fights`, `gap-special`, `gap-artifacts`, `gap-scoring`, `gap-multiplayer`, and `gap-misc` (`gap-*.test.ts`).
+
+Full engine suite: **327 tests green**. Keep it that way — when a requirement changes, update both its `test` reference here and the test itself (see the repo `CLAUDE.md`).
