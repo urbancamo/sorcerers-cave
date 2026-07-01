@@ -51,6 +51,10 @@ describe("validatePlan (§FIGHTS pairing rules)", () => {
     const s = fightS({ party: [member(0), member(2)], strangers: [3] });
     expect(reason(s, { matches: [{ front: [0], backers: [1], strangers: [0] }] })).toBe("backerNotCaster");
   });
+  it("still allows a Wizard in the background while the Eye of God nullifies its magic", () => {
+    const s = fightS({ party: [member(0), member(8, [13])], strangers: [3] }); // Hero + Wizard holding the Eye
+    expect(ok(s, { matches: [{ front: [0], backers: [1], strangers: [0] }] })).toBe(true); // a caster by type, even at 0 MP
+  });
   it("rejects an ordinary fighter set against a Spectre", () => {
     const s = fightS({ party: [member(5)], strangers: [9] });
     expect(reason(s, { matches: [{ front: [0], backers: [], strangers: [0] }] })).toBe("spectreNeedsMagic");
@@ -121,6 +125,14 @@ describe("resolvePlannedRound (§A Round of Fighting)", () => {
     expect(s.sorcererKilled).toBe(true);
     expect(ev.some((e) => e.type === "sorcererSlain")).toBe(true);
   });
+  it("curses the party when the Eye of God's bearer is slain (gem left on the body, §Eye of God)", () => {
+    const s = clone(fightS({ party: [member(7, [13])], strangers: [10], seed: 5 })); // Dwarf holding the Eye vs a Dragon
+    const ev = resolvePlannedRound(s, { matches: [{ front: [0], backers: [], strangers: [0] }] });
+    expect(s.party[0]!.status).toBe(3);              // the Dwarf falls
+    expect(ev).toContainEqual({ type: "eyeForsaken" });
+    expect(s.curses).toBe(1);                         // the party is now cursed
+  });
+
   it("queues a casualty choice when two front fighters lose together", () => {
     const s = clone(fightS({ fight: { surprise: -1, round: 1, focus: 0 }, party: [member(6), member(7)], strangers: [10], seed: 5 }));
     resolvePlannedRound(s, { matches: [{ front: [0, 1], backers: [], strangers: [0] }] });
@@ -192,6 +204,11 @@ describe("previewPlan — front-line casters (§FIGHTS total strength)", () => {
     const pv = previewPlan(s, { matches: [{ front: [0], backers: [], strangers: [0] }] });
     expect(pv.matches[0]!.partyStr).toBe(7);  // FS 2 + MP 5 — not 2
     expect(pv.matches[0]!.enemyStr).toBe(7);  // the enemy Wizard is the same
+  });
+  it("an active Eye of God zeroes a stranger Wizard's magic (strength 2, not 7)", () => {
+    const eye = fightS({ party: [member(0, [13])], strangers: [8] }); // Hero holding the Eye vs a stranger Wizard
+    const pv = previewPlan(eye, { matches: [{ front: [0], backers: [], strangers: [0] }] });
+    expect(pv.matches[0]!.enemyStr).toBe(2); // FS 2 + MP 0 (magic nullified)
   });
 });
 

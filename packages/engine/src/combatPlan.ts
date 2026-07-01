@@ -1,8 +1,8 @@
 import { rollDie } from "./rng";
 import { CREATURES } from "./data/creatures";
 import { TREASURES } from "./data/treasures";
-import { frontStrength, casterMP, partyRollBonus } from "./combat";
-import { eyeActive, ringInvincible, activeCurses } from "./effects";
+import { frontStrength, casterMP, partyRollBonus, isCaster } from "./combat";
+import { eyeActive, ringInvincible, activeCurses, eyeForsakenByDeath } from "./effects";
 import type { GameState, PartyMember, BattlePlan } from "./state";
 import type { GameEvent } from "./actions";
 
@@ -68,7 +68,9 @@ export function validatePlan(state: GameState, plan: BattlePlan): { ok: true } |
       if (usedStranger.has(s)) return { ok: false, reason: "strangerReused" };
       usedStranger.add(s);
     }
-    for (const i of backers) if (casterMP(state.party[i]!, state) <= 0) return { ok: false, reason: "backerNotCaster" };
+    // Background eligibility is by creature TYPE (a Priest or Wizard), not current magical power — an
+    // active Eye of God zeroes a caster's power but it is still a caster and may stand in the background.
+    for (const i of backers) if (!isCaster(state.party[i]!)) return { ok: false, reason: "backerNotCaster" };
 
     if (strangers.some((s) => state.strangers[s] === C_SPECTRE)) {
       for (const i of front) {
@@ -86,8 +88,9 @@ export function validatePlan(state: GameState, plan: BattlePlan): { ok: true } |
   return { ok: true };
 }
 
-/** Enemy magical power, mirroring combat.ts: the Eye zeroes magic, but the Sorcerer is only reduced. */
-function enemyMP(state: GameState, sid: number): number {
+/** Enemy magical power, mirroring combat.ts: the Eye zeroes magic, but the Sorcerer is only reduced.
+ *  Exported so the UI shows the same effective foe strength the resolver fights with. */
+export function enemyMP(state: GameState, sid: number): number {
   if (sid === C_SORCERER) {
     let mp = CREATURES[C_SORCERER]!.mp;
     if (eyeActive(state)) mp -= 2;
@@ -249,7 +252,7 @@ export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEve
       for (const m of party) if (!strongest || frontStrength(m, state) > frontStrength(strongest, state)) strongest = m;
       if (strongest) {
         if (ringInvincible(strongest, state)) events.push({ type: "deathPrevented", creatureId: strongest.creatureId });
-        else { strongest.status = 3; events.push({ type: "spectreSlew", creatureId: strongest.creatureId }); }
+        else { strongest.status = 3; events.push({ type: "spectreSlew", creatureId: strongest.creatureId }, ...eyeForsakenByDeath(state, strongest)); }
       }
     }
   }
@@ -284,7 +287,7 @@ export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEve
     } else if (enemyTotal > partyTotal) {
       const mortal = front.filter((m) => !ringInvincible(m, state));
       if (mortal.length === 0) events.push({ type: "deathPrevented", creatureId: front[0]!.creatureId });
-      else if (mortal.length === 1) { mortal[0]!.status = 3; events.push({ type: "memberDied", creatureId: mortal[0]!.creatureId }); }
+      else if (mortal.length === 1) { mortal[0]!.status = 3; events.push({ type: "memberDied", creatureId: mortal[0]!.creatureId }, ...eyeForsakenByDeath(state, mortal[0]!)); }
       else pendingCasualties.push(mortal.map((m) => state.party.indexOf(m)));
     }
     // tie: no death

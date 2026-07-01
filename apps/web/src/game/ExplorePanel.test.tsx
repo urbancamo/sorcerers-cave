@@ -25,6 +25,16 @@ describe("ExplorePanel", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "openChest" });
   });
 
+  it("offers 'Attack the guardians' when traversing a pacified chamber, and dispatches attack", () => {
+    const dispatch = vi.fn();
+    const base = newGame(1, [0]); // Hero
+    const s: GameState = { ...base, phase: "explore", pacifiedAreas: [base.partyArea] };
+    s.areas[base.partyArea]!.contents = [100 + 6, 200 + 1]; // a parked guard + the treasure it guards
+    render(<ExplorePanel state={s} dispatch={dispatch} />);
+    fireEvent.click(screen.getByRole("button", { name: /attack the guardians/i }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "attack" });
+  });
+
   it("condenses the Magic Carpet's directions into a single dropdown", () => {
     const dispatch = vi.fn();
     const s = newGame(1, [4]); // a Priest can command the carpet

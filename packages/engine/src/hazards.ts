@@ -7,6 +7,7 @@ import {
 import { AF_DESTROYED, type GameState, type PartyMember } from "./state";
 import type { GameEvent } from "./actions";
 import { frontStrength } from "./combat";
+import { eyeForsakenByDeath } from "./effects";
 
 const T_TALISMAN = 7;
 const T_MAGIC_STAFF = 9;
@@ -84,7 +85,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
             partyRoll: ours.value, enemyRoll: theirs.value, partyTotal, enemyTotal,
             result: partyTotal > enemyTotal ? "partyWon" : enemyTotal > partyTotal ? "enemyWon" : "tie",
           });
-          if (enemyTotal > partyTotal) m.status = 3;
+          if (enemyTotal > partyTotal) { m.status = 3; events.push(...eyeForsakenByDeath(state, m)); }
         }
         break;
       }

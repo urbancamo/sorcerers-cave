@@ -1,0 +1,731 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Sorcerer's Cave — Mobile UI Plan & Mockups</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@500;600;700&family=EB+Garamond:ital@0;1&family=Grenze+Gotisch:wght@500;700&display=swap" rel="stylesheet" />
+<style>
+  /* ===== Sorcerer's Cave real design tokens (mirror of apps/web/src/view/cave.css) ===== */
+  :root{
+    --void:#070709; --panel:#15151b; --panel-2:#1d1d24;
+    --stone:#b8b1a2; --stone-dim:#6f6a5f;
+    --parchment:#e8dbbb; --parchment-2:#d7c599; --cream:#f6efce; --ink:#211b12;
+    --iron:#33333a; --brass:#c9a14e; --brass-bright:#e6c578;
+    --crimson:#a8443a; --arcane:#5f8f8a;
+    --line:rgba(232,219,187,.13); --line-strong:rgba(232,219,187,.26);
+    --display:'Cinzel',serif; --black:'Grenze Gotisch',serif;
+    --body:'EB Garamond',serif; --ui:ui-sans-serif,system-ui,-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0;}
+  html{scroll-behavior:smooth;}
+  body{
+    background:
+      radial-gradient(1400px 900px at 50% -4%, #14151c 0%, #0a0a0e 52%, var(--void) 100%) fixed,
+      var(--void);
+    color:var(--parchment);font-family:var(--body);font-size:17px;line-height:1.6;
+    -webkit-font-smoothing:antialiased;min-height:100vh;
+  }
+  /* faint grain overlay for atmosphere */
+  body::before{
+    content:"";position:fixed;inset:0;z-index:0;pointer-events:none;opacity:.04;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+  .wrap{position:relative;z-index:1;max-width:1180px;margin:0 auto;padding:0 24px 120px;}
+
+  /* ===== Page header ===== */
+  header.hero{padding:84px 0 40px;text-align:center;}
+  .eyebrow{font-family:var(--ui);font-size:12px;letter-spacing:.34em;text-transform:uppercase;
+    color:var(--brass);margin-bottom:20px;}
+  h1{font-family:var(--display);font-weight:700;font-size:clamp(34px,6vw,62px);letter-spacing:.05em;
+    color:var(--cream);line-height:1.04;text-shadow:0 2px 40px rgba(201,161,78,.28);}
+  h1 .sub{display:block;font-family:var(--black);font-weight:500;font-size:clamp(16px,2.4vw,24px);
+    letter-spacing:.04em;color:var(--brass-bright);margin-top:14px;}
+  .lede{max-width:680px;margin:28px auto 0;font-size:19px;color:#c9bf9f;font-style:italic;}
+  .meta-row{margin-top:30px;display:flex;gap:10px;justify-content:center;flex-wrap:wrap;
+    font-family:var(--ui);font-size:11.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone-dim);}
+  .meta-row span{border:1px solid var(--line-strong);border-radius:999px;padding:7px 15px;background:rgba(15,15,20,.5);}
+
+  /* ===== Section scaffolding ===== */
+  section{margin-top:96px;}
+  .sec-head{display:flex;align-items:baseline;gap:18px;margin-bottom:34px;}
+  .sec-num{font-family:var(--display);font-weight:600;font-size:15px;color:var(--brass);
+    border:1px solid var(--brass);border-radius:50%;width:42px;height:42px;display:grid;place-items:center;flex:none;
+    box-shadow:0 0 22px -8px rgba(201,161,78,.7);}
+  h2{font-family:var(--display);font-weight:600;font-size:clamp(24px,3.4vw,34px);letter-spacing:.03em;color:var(--cream);}
+  .sec-head p{font-family:var(--body);font-style:italic;color:var(--stone);font-size:16px;margin-top:4px;}
+  .divider{height:1px;background:linear-gradient(90deg,transparent,var(--line-strong) 18%,var(--line-strong) 82%,transparent);}
+
+  /* ===== Problem cards ===== */
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));gap:18px;}
+  .card{background:linear-gradient(180deg,rgba(21,21,27,.8),rgba(13,13,17,.8));
+    border:1px solid var(--line-strong);border-radius:16px;padding:24px 24px 26px;
+    box-shadow:0 28px 70px -34px rgba(0,0,0,.85);}
+  .card .glyph{font-size:26px;margin-bottom:12px;filter:drop-shadow(0 0 10px rgba(168,68,58,.5));}
+  .card h3{font-family:var(--display);font-weight:600;font-size:17px;color:var(--cream);letter-spacing:.02em;margin-bottom:8px;}
+  .card p{font-size:15.5px;color:#bcb293;}
+  .card.fix .glyph{filter:drop-shadow(0 0 10px rgba(201,161,78,.6));}
+  .card.fix h3{color:var(--brass-bright);}
+  .card code{font-family:var(--ui);font-size:12.5px;background:rgba(0,0,0,.35);border:1px solid var(--line);
+    border-radius:5px;padding:1px 6px;color:var(--parchment-2);}
+
+  /* ===== Mockup layout: frame + annotations ===== */
+  .mock{display:grid;grid-template-columns:auto 1fr;gap:48px;align-items:start;margin-bottom:30px;}
+  .mock.rev{grid-template-columns:1fr auto;}
+  .mock.rev .stage-col{order:2;}
+  .mock.rev .notes-col{order:1;}
+  @media(max-width:880px){.mock,.mock.rev{grid-template-columns:1fr;gap:30px;}
+    .mock.rev .stage-col,.mock.rev .notes-col{order:initial;}
+    .stage-col{display:flex;justify-content:center;}}
+  .scene-label{font-family:var(--ui);font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--brass);
+    text-align:center;margin-bottom:14px;}
+
+  /* ===== Phone device frame ===== */
+  .phone{position:relative;background:#050507;border:2px solid #2a2a31;border-radius:40px;
+    padding:12px;box-shadow:0 50px 90px -40px rgba(0,0,0,.95),inset 0 0 0 2px rgba(255,255,255,.02),0 0 0 1px rgba(201,161,78,.08);}
+  .phone.portrait{width:330px;height:690px;}
+  .phone.landscape{width:690px;height:340px;}
+  .phone .notch{position:absolute;top:12px;left:50%;transform:translateX(-50%);width:120px;height:22px;
+    background:#050507;border-radius:0 0 14px 14px;z-index:40;}
+  .phone.landscape .notch{top:50%;left:12px;transform:translateY(-50%);width:22px;height:110px;border-radius:0 14px 14px 0;}
+  .screen{position:relative;width:100%;height:100%;border-radius:30px;overflow:hidden;
+    background:
+      radial-gradient(120% 80% at 50% 6%, #14151c 0%, #0a0a0e 55%, var(--void) 100%);
+    font-family:var(--ui);}
+
+  /* ===== The 3D cave (CSS isometric fake) ===== */
+  .scene3d{position:absolute;inset:0;overflow:hidden;}
+  .board-wrap{position:absolute;inset:0;display:grid;place-items:center;perspective:760px;}
+  .portrait .board-wrap{align-items:start;padding-top:128px;}
+  .landscape .board-wrap{place-items:center;padding-left:40px;}
+  .board{position:relative;width:188px;height:188px;transform-style:preserve-3d;
+    transform:rotateX(56deg);}
+  .landscape .board{width:166px;height:166px;}
+  .tile{position:absolute;width:60px;height:60px;border-radius:7px;
+    background:
+      linear-gradient(135deg,#5b5749 0%,#403c33 48%,#322f28 100%);
+    border:1.5px solid #6f6149;
+    box-shadow:inset 0 0 0 2px rgba(201,161,78,.18), inset 0 2px 10px rgba(0,0,0,.5), 0 4px 10px rgba(0,0,0,.4);}
+  .tile::after{content:"";position:absolute;inset:6px;border:1px solid rgba(201,161,78,.22);border-radius:4px;}
+  .tile.c{left:64px;top:64px;background:linear-gradient(135deg,#6b6552 0%,#4a4639 100%);}
+  .tile.n{left:64px;top:4px;} .tile.s{left:64px;top:124px;}
+  .tile.e{left:124px;top:64px;} .tile.w{left:4px;top:64px;}
+  /* parchment chamber card on the centre tile */
+  .chamber-card{position:absolute;left:62px;top:60px;width:64px;height:46px;border-radius:5px;
+    background:linear-gradient(180deg,#efe3c4,#d4bf8e);border:1px solid #b59a63;
+    box-shadow:0 6px 16px -6px rgba(0,0,0,.7),inset 0 1px 0 rgba(255,255,255,.4);
+    display:grid;place-items:center;transform:translateZ(2px);}
+  .chamber-card b{font-family:var(--black);font-size:10px;color:var(--ink);letter-spacing:.02em;text-align:center;line-height:1;}
+  /* glowing party token + path markers */
+  .token{position:absolute;left:84px;top:84px;width:20px;height:20px;border-radius:50%;transform:translateZ(10px);
+    background:radial-gradient(circle at 40% 35%,#bfe3ff,#3c78c8 70%,#21407a);
+    box-shadow:0 0 16px 4px rgba(90,150,230,.7),0 0 0 2px rgba(190,225,255,.5);}
+  .blip{position:absolute;width:11px;height:11px;border-radius:2px;transform:translateZ(3px) rotate(45deg);
+    background:radial-gradient(circle,#bfe3ff,#3c78c8);box-shadow:0 0 10px 2px rgba(90,150,230,.65);opacity:.92;}
+  .blip.n{left:88px;top:28px;} .blip.e{left:148px;top:88px;} .blip.w{left:28px;top:88px;}
+
+  /* ===== Billboarded chevron exit markers (screen-space, always upright) ===== */
+  .exits{position:absolute;inset:0;pointer-events:none;}
+  .chev{position:absolute;width:46px;height:46px;display:grid;place-items:center;pointer-events:auto;
+    transform:translate(-50%,-50%);}
+  .chev .hit{position:absolute;inset:-6px;border-radius:50%;}
+  .chev .ring{position:absolute;inset:5px;border-radius:50%;border:1.5px solid rgba(230,197,120,.55);
+    background:radial-gradient(circle,rgba(201,161,78,.22),rgba(201,161,78,0) 70%);
+    box-shadow:0 0 16px 2px rgba(201,161,78,.45);animation:pulse 2.4s ease-in-out infinite;}
+  .chev svg{position:relative;width:26px;height:26px;filter:drop-shadow(0 1px 3px rgba(0,0,0,.6));}
+  .chev svg polyline{fill:none;stroke:var(--brass-bright);stroke-width:3.4;stroke-linecap:round;stroke-linejoin:round;}
+  .chev .tag{position:absolute;bottom:-3px;font-family:var(--display);font-size:8px;font-weight:700;color:var(--brass-bright);
+    letter-spacing:.06em;text-shadow:0 1px 4px #000;}
+  .chev.s svg{transform:rotate(180deg);} .chev.e svg{transform:rotate(90deg);} .chev.w svg{transform:rotate(-90deg);}
+  /* stair markers, dimmer brass */
+  .chev.stair .ring{border-color:rgba(201,161,78,.4);box-shadow:0 0 12px 1px rgba(201,161,78,.3);animation:none;}
+  .chev.stair svg polyline{stroke:var(--brass);}
+  @keyframes pulse{0%,100%{box-shadow:0 0 14px 1px rgba(201,161,78,.35);opacity:.85;}50%{box-shadow:0 0 22px 4px rgba(201,161,78,.6);opacity:1;}}
+
+  /* ===== Floating translucent HUD panels (responsive variants) ===== */
+  .hud{position:absolute;inset:0;}
+  .glass{background:rgba(15,15,20,.72);border:1px solid var(--line-strong);backdrop-filter:blur(8px);
+    box-shadow:0 14px 34px -20px rgba(0,0,0,.85);}
+  /* status chips */
+  .statbar{position:absolute;top:34px;left:50%;transform:translateX(-50%);display:flex;gap:6px;}
+  .chip{border-radius:9px;padding:5px 10px;display:flex;flex-direction:column;gap:1px;align-items:center;min-width:46px;}
+  .chip .k{font-size:7.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--stone-dim);}
+  .chip .v{font-family:var(--display);font-size:13px;color:var(--cream);font-weight:600;line-height:1.1;}
+  .chip .v.warn{color:var(--brass-bright);}
+  /* collapsed party handle (top-left) */
+  .handle{position:absolute;border-radius:999px;padding:6px 11px;display:flex;align-items:center;gap:7px;
+    font-size:11.5px;color:var(--parchment);}
+  .handle .ic{color:var(--brass-bright);}
+  .handle .cv{display:flex;align-items:center;gap:3px;}
+  .handle .av{width:16px;height:16px;border-radius:5px;background:linear-gradient(180deg,var(--brass-bright),var(--brass));
+    display:grid;place-items:center;font-family:var(--display);font-size:8px;font-weight:700;color:#241a06;}
+  .handle .chevd{color:var(--stone-dim);font-size:9px;margin-left:2px;}
+  .party-handle{top:34px;left:14px;}
+  .menu-btn{position:absolute;top:34px;right:14px;width:34px;height:34px;border-radius:10px;display:grid;place-items:center;
+    color:var(--parchment);font-size:15px;}
+  /* inspect card collapsed tab (right edge) */
+  .inspect-tab{position:absolute;right:0;top:46%;transform:translateY(-50%);border-radius:11px 0 0 11px;
+    border-right:none;padding:11px 7px 11px 9px;writing-mode:vertical-rl;font-size:9.5px;letter-spacing:.18em;
+    text-transform:uppercase;color:var(--brass);display:flex;align-items:center;gap:6px;}
+  .inspect-tab .dot{width:8px;height:8px;border-radius:2px;background:var(--arcane);box-shadow:0 0 8px var(--arcane);}
+  /* prompt pill */
+  .prompt{position:absolute;left:50%;transform:translateX(-50%);display:flex;align-items:center;gap:8px;
+    border-radius:999px;padding:7px 15px;font-family:var(--body);font-size:12.5px;color:var(--parchment);max-width:84%;
+    border-color:rgba(201,161,78,.45);background:rgba(40,30,12,.8);}
+  .portrait .prompt{top:74px;} .landscape .prompt{top:14px;}
+  .prompt .p-ic{color:var(--brass-bright);font-size:11px;flex:none;}
+  .prompt b{color:var(--brass-bright);font-weight:600;}
+  /* bottom dock (wraps, translucent) */
+  .dock{position:absolute;bottom:16px;left:50%;transform:translateX(-50%);display:flex;flex-wrap:wrap;gap:6px;
+    justify-content:center;border-radius:14px;padding:8px 9px;max-width:92%;}
+  .btn{font-family:var(--ui);font-size:11px;border-radius:9px;padding:8px 11px;border:1px solid var(--line-strong);
+    color:var(--parchment);background:transparent;display:flex;align-items:center;gap:6px;white-space:nowrap;}
+  .btn .bi{opacity:.85;}
+  .btn.active{background:linear-gradient(180deg,rgba(201,161,78,.22),rgba(201,161,78,.08));border-color:var(--brass);color:var(--cream);}
+  .btn.lvl{width:30px;justify-content:center;font-family:var(--display);font-weight:600;padding:8px 0;}
+  .btn.danger{border-color:rgba(168,68,58,.5);color:#e6a39a;}
+
+  /* landscape corner panels: compact roster + inspect */
+  .roster-mini{position:absolute;top:58px;left:14px;width:150px;border-radius:11px;overflow:hidden;}
+  .roster-hd{font-family:var(--display);font-size:9.5px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--brass-bright);padding:6px 10px;border-bottom:1px solid var(--line);background:rgba(201,161,78,.07);}
+  .mbr{display:flex;align-items:center;gap:7px;padding:5px 10px;border-bottom:1px solid rgba(232,219,187,.06);}
+  .mbr:last-child{border-bottom:none;}
+  .mbr .sig{width:18px;height:18px;border-radius:5px;flex:none;display:grid;place-items:center;
+    font-family:var(--display);font-size:9px;font-weight:700;color:#241a06;background:linear-gradient(180deg,var(--brass-bright),var(--brass));}
+  .mbr.lead .sig{box-shadow:0 0 8px rgba(201,161,78,.6);}
+  .mbr .nm{font-size:11px;color:var(--parchment);}
+  .mbr .cap-bar{flex:1;height:3px;border-radius:2px;background:rgba(232,219,187,.12);overflow:hidden;margin-left:auto;max-width:30px;}
+  .mbr .cap-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--brass-bright),var(--brass));}
+  .inspect-card{position:absolute;top:50px;right:14px;width:118px;border-radius:11px;padding:8px;
+    background:linear-gradient(180deg,#efe3c4,#d8c393);border:1px solid #b59a63;transform:rotate(1.1deg);
+    box-shadow:0 24px 50px -24px rgba(0,0,0,.9);}
+  .inspect-card .pic{width:100%;height:78px;border-radius:6px;background:
+      linear-gradient(160deg,#7d6b54,#3e3527);display:grid;place-items:center;color:#d9c79c;font-family:var(--display);font-size:20px;}
+  .inspect-card .where{font-size:7.5px;letter-spacing:.16em;text-transform:uppercase;color:#9a7d3f;margin-top:6px;}
+  .inspect-card .nm{font-family:var(--black);font-size:15px;color:var(--ink);line-height:1.05;}
+  .inspect-card .kind{font-family:var(--body);font-style:italic;font-size:11px;color:#5e4f33;}
+
+  /* ===== Slide-up drawer (party / inventory) ===== */
+  .drawer{position:absolute;left:0;right:0;bottom:0;border-radius:20px 20px 0 0;padding:0 0 14px;
+    background:linear-gradient(180deg,rgba(24,24,30,.94),rgba(13,13,17,.97));border-top:1px solid var(--line-strong);
+    box-shadow:0 -30px 60px -30px rgba(0,0,0,.9);backdrop-filter:blur(10px);}
+  .drawer .grab{width:42px;height:4px;border-radius:3px;background:var(--line-strong);margin:9px auto 4px;}
+  .drawer .dh{font-family:var(--display);font-size:12px;font-weight:600;letter-spacing:.16em;text-transform:uppercase;
+    color:var(--brass-bright);padding:6px 18px 10px;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;align-items:center;}
+  .drawer .dh .cap{font-family:var(--ui);font-size:9.5px;letter-spacing:.1em;color:var(--stone-dim);}
+  .drow{display:flex;align-items:flex-start;gap:10px;padding:10px 18px;border-bottom:1px solid rgba(232,219,187,.06);}
+  .drow .sig{width:30px;height:30px;border-radius:8px;flex:none;display:grid;place-items:center;
+    font-family:var(--display);font-size:14px;font-weight:700;color:#241a06;background:linear-gradient(180deg,var(--brass-bright),var(--brass));}
+  .drow.lead .sig{box-shadow:0 0 12px rgba(201,161,78,.6);}
+  .drow .who{flex:1;min-width:0;}
+  .drow .nm-line{display:flex;align-items:center;gap:7px;}
+  .drow .nm{font-size:14px;color:var(--parchment);font-weight:600;}
+  .badge{font-size:8px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;padding:1px 6px;border-radius:999px;}
+  .badge.ally{color:#bfe6c0;background:rgba(120,200,130,.15);border:1px solid rgba(120,200,130,.42);}
+  .badge.stone{color:#d3cec1;background:rgba(180,175,160,.16);border:1px solid rgba(180,175,160,.42);}
+  .drow .cap{display:flex;align-items:center;gap:7px;margin-top:5px;}
+  .drow .cap-bar{flex:1;height:4px;border-radius:2px;background:rgba(232,219,187,.12);overflow:hidden;max-width:90px;}
+  .drow .cap-bar i{display:block;height:100%;background:linear-gradient(90deg,var(--brass-bright),var(--brass));}
+  .drow .cap-tx{font-size:9.5px;color:var(--stone-dim);}
+  .drow .carry{display:flex;gap:4px;margin-top:6px;}
+  .drow .tre{width:22px;height:30px;border-radius:3px;border:1px solid var(--line-strong);background:#0d0d11;
+    display:grid;place-items:center;font-size:10px;color:var(--parchment);font-family:var(--display);}
+  .drow .tre.art{border-color:var(--brass);box-shadow:0 0 7px -1px rgba(201,161,78,.55);}
+
+  /* ===== Action bottom-sheet (encounter / fight) ===== */
+  .sheet{position:absolute;left:0;right:0;bottom:0;border-radius:20px 20px 0 0;
+    background:linear-gradient(180deg,rgba(24,18,12,.96),rgba(13,11,9,.98));border-top:1px solid rgba(201,161,78,.4);
+    box-shadow:0 -30px 60px -30px rgba(0,0,0,.9);backdrop-filter:blur(10px);padding:0 14px 16px;}
+  .sheet .grab{width:42px;height:4px;border-radius:3px;background:var(--line-strong);margin:9px auto 8px;}
+  .sheet .sh-eyebrow{font-family:var(--ui);font-size:9px;letter-spacing:.26em;text-transform:uppercase;color:var(--brass);text-align:center;}
+  .sheet .sh-name{font-family:var(--display);font-weight:700;font-size:18px;color:var(--cream);text-align:center;
+    text-shadow:0 2px 18px rgba(201,161,78,.3);margin-top:2px;}
+  .sheet .sh-sub{font-family:var(--body);font-style:italic;font-size:12.5px;color:#c6bb9a;text-align:center;margin-top:2px;}
+  .matchup{display:flex;align-items:center;justify-content:center;gap:12px;margin:14px 0 12px;}
+  .fcard{width:78px;border-radius:8px;padding:6px;border:1px solid #b59a63;
+    background:linear-gradient(180deg,#efe3c4,#d4bf8e);box-shadow:0 8px 20px -8px rgba(0,0,0,.7);}
+  .fcard.foe{background:linear-gradient(180deg,#caa2a0,#a8443a);border-color:#7c2f2a;}
+  .fcard .pic{width:100%;height:62px;border-radius:5px;display:grid;place-items:center;font-size:26px;
+    background:rgba(0,0,0,.18);}
+  .fcard .nm{font-family:var(--black);font-size:12px;color:var(--ink);text-align:center;margin-top:4px;line-height:1;}
+  .fcard.foe .nm{color:#f6efce;}
+  .fcard .stat{text-align:center;font-family:var(--ui);font-size:9px;letter-spacing:.1em;color:#5e4f33;margin-top:2px;}
+  .fcard.foe .stat{color:#f0d9d6;}
+  .vs{display:flex;flex-direction:column;align-items:center;gap:6px;}
+  .vs .die{min-width:30px;height:30px;border-radius:7px;display:grid;place-items:center;font-family:var(--display);
+    font-weight:700;font-size:15px;color:#241a06;background:linear-gradient(180deg,#f0e4c6,#d3bd8e);border:1px solid #b59a63;}
+  .vs .die.foe{background:linear-gradient(180deg,#caa2a0,#a8443a);border-color:#7c2f2a;color:#f6efce;}
+  .vs .x{font-family:var(--display);color:var(--stone-dim);font-size:11px;}
+  .drop-hint{font-family:var(--ui);font-size:9.5px;letter-spacing:.06em;color:var(--stone-dim);text-align:center;
+    border:1px dashed var(--line-strong);border-radius:8px;padding:6px;margin-bottom:12px;}
+  .sheet-actions{display:flex;gap:9px;justify-content:center;flex-wrap:wrap;}
+  .reveal-btn{font-family:var(--ui);font-size:12px;padding:10px 16px;border-radius:9px;border:1px solid var(--line-strong);color:var(--parchment);background:transparent;}
+  .reveal-btn.gold{background:linear-gradient(180deg,var(--brass-bright),var(--brass));color:#241a06;border-color:var(--brass);font-weight:600;}
+  .reveal-btn.danger{border-color:rgba(168,68,58,.6);color:#e6a39a;}
+
+  /* ===== Numbered annotation callouts ===== */
+  .pin{position:absolute;width:22px;height:22px;border-radius:50%;display:grid;place-items:center;z-index:50;
+    font-family:var(--ui);font-weight:700;font-size:11px;color:#241a06;
+    background:linear-gradient(180deg,var(--brass-bright),var(--brass));border:1.5px solid #f0e0b0;
+    box-shadow:0 0 0 3px rgba(7,7,9,.7),0 4px 10px rgba(0,0,0,.6);}
+  .notes-col{padding-top:6px;}
+  .notes-col h3{font-family:var(--display);font-weight:600;font-size:20px;color:var(--cream);margin-bottom:4px;letter-spacing:.02em;}
+  .notes-col .tag{font-family:var(--ui);font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--brass);margin-bottom:18px;}
+  .note{display:flex;gap:14px;padding:13px 0;border-bottom:1px solid var(--line);}
+  .note:last-child{border-bottom:none;}
+  .note .n{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-family:var(--ui);
+    font-weight:700;font-size:12px;color:#241a06;background:linear-gradient(180deg,var(--brass-bright),var(--brass));margin-top:1px;}
+  .note .t b{font-family:var(--display);font-weight:600;color:var(--cream);font-size:15.5px;letter-spacing:.01em;}
+  .note .t p{font-size:14.5px;color:#bcb293;margin-top:2px;}
+  .note .t code{font-family:var(--ui);font-size:12px;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:var(--parchment-2);}
+
+  /* ===== Chevron explainer diagram ===== */
+  .explain{display:grid;grid-template-columns:1fr 1fr;gap:40px;align-items:center;}
+  @media(max-width:880px){.explain{grid-template-columns:1fr;}}
+  .diagram{position:relative;height:330px;border-radius:18px;border:1px solid var(--line-strong);overflow:hidden;
+    background:radial-gradient(120% 90% at 50% 10%,#14151c,#0a0a0e 60%,var(--void));}
+  .explain .prose p{margin-bottom:16px;color:#c9bf9f;}
+  .explain .prose p strong{color:var(--brass-bright);font-weight:400;font-style:normal;}
+  .coderef{font-family:var(--ui);font-size:12.5px;background:rgba(0,0,0,.4);border:1px solid var(--line);border-left:2px solid var(--brass);
+    border-radius:0 8px 8px 0;padding:10px 14px;margin:6px 0 18px;color:var(--parchment-2);line-height:1.8;}
+  .coderef b{color:var(--brass-bright);font-weight:600;}
+
+  /* ===== Responsive rules table ===== */
+  .rules{width:100%;border-collapse:collapse;font-size:14.5px;}
+  .rules th,.rules td{text-align:left;padding:13px 16px;border-bottom:1px solid var(--line);vertical-align:top;}
+  .rules thead th{font-family:var(--ui);font-size:11px;letter-spacing:.16em;text-transform:uppercase;color:var(--brass);border-bottom:1px solid var(--line-strong);}
+  .rules td:first-child{font-family:var(--display);color:var(--cream);font-size:14px;white-space:nowrap;}
+  .rules td b{color:var(--brass-bright);font-weight:600;}
+  .rules tbody tr:hover{background:rgba(201,161,78,.04);}
+
+  footer{margin-top:110px;text-align:center;font-family:var(--ui);font-size:12px;letter-spacing:.06em;color:var(--stone-dim);
+    border-top:1px solid var(--line);padding-top:34px;}
+  footer b{color:var(--brass);font-weight:600;}
+
+  /* staggered load reveal */
+  .reveal-up{opacity:0;transform:translateY(22px);animation:rise .7s cubic-bezier(.2,.7,.2,1) forwards;}
+  @keyframes rise{to{opacity:1;transform:none;}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="hero">
+    <div class="eyebrow reveal-up" style="animation-delay:.05s">Design Plan &amp; Interactive Mockups</div>
+    <h1 class="reveal-up" style="animation-delay:.12s">The Sorcerer's Cave
+      <span class="sub">A Mobile-Phone Experience</span>
+    </h1>
+    <p class="lede reveal-up" style="animation-delay:.2s">Keeping the signature 3D cave and floating-panel HUD —
+      but making both behave on a phone, in portrait and landscape, with nothing overlapping and every doorway reachable by thumb.</p>
+    <div class="meta-row reveal-up" style="animation-delay:.28s">
+      <span>2026 · 06 · 29</span><span>Scope · Plan + Mockup</span><span>Theme · Authentic in-game tokens</span>
+    </div>
+  </header>
+
+  <!-- ============ 1. THE PROBLEM ============ -->
+  <section>
+    <div class="sec-head"><div class="sec-num">I</div>
+      <div><h2>What breaks on a phone today</h2><p>Three concrete faults, drawn straight from the current build.</p></div>
+    </div>
+    <div class="cards">
+      <div class="card">
+        <div class="glyph">⛌</div>
+        <h3>Overlapping panels</h3>
+        <p>Every HUD region is pinned with hard pixel offsets — <code>top:84px</code>, <code>left:26px</code>,
+          <code>top:112px</code>. On a ~375px screen the brand, stats, roster and prompt collide in the centre. Nothing reflows.</p>
+      </div>
+      <div class="card">
+        <div class="glyph">⮂</div>
+        <h3>Invisible doorway arrows</h3>
+        <p>Exits are 3D cones rotated in world space. In portrait the camera squeezes the horizontal axis, so the
+          East/West chevrons turn edge-on and slide off-frame — you can't see where you may go.</p>
+      </div>
+      <div class="card">
+        <div class="glyph">⤡</div>
+        <h3>No orientation sense</h3>
+        <p>The layout assumes a wide landscape window (<code>h-screen w-screen</code>). Portrait clips the bottom
+          panels; rotating the device triggers no reflow. There is no mobile-first path at all.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 2. THE APPROACH ============ -->
+  <section>
+    <div class="sec-head"><div class="sec-num">II</div>
+      <div><h2>The approach — fix what's there</h2><p>Lightest touch that solves all three, true to the game's look.</p></div>
+    </div>
+    <div class="cards">
+      <div class="card fix">
+        <div class="glyph">◬</div>
+        <h3>Billboarded chevrons</h3>
+        <p>Doorway markers always face the camera and stay legible — never edge-on. Their <b>world position</b> at the
+          doorway still carries the direction, with a bigger invisible tap target for thumbs.</p>
+      </div>
+      <div class="card fix">
+        <div class="glyph">⊟</div>
+        <h3>Auto-framed camera</h3>
+        <p>The camera fits the active chamber and all its exits to whatever viewport it's in, per orientation — so the
+          full cross of arrows always sits comfortably inside the frame.</p>
+      </div>
+      <div class="card fix">
+        <div class="glyph">❖</div>
+        <h3>Fluid floating panels</h3>
+        <p>The translucent panels stay — but become width/orientation-driven, not pixel-pinned. They shrink, gain
+          transparency, collapse to handles, and reflow so they can never overlap each other or the map.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 3. MOCKUPS ============ -->
+  <section>
+    <div class="sec-head"><div class="sec-num">III</div>
+      <div><h2>The mockups</h2><p>How it looks — and how you play — across four key moments.</p></div>
+    </div>
+
+    <!-- 3a. PORTRAIT EXPLORING -->
+    <div class="scene-label">Portrait · Exploring the cave</div>
+    <div class="mock">
+      <div class="stage-col">
+        <div class="phone portrait">
+          <div class="notch"></div>
+          <div class="screen">
+            <div class="scene3d">
+              <div class="board-wrap">
+                <div class="board">
+                  <div class="tile n"></div><div class="tile w"></div>
+                  <div class="tile c"></div>
+                  <div class="tile e"></div><div class="tile s"></div>
+                  <div class="chamber-card"><b>The<br>Gateway</b></div>
+                  <div class="blip n"></div><div class="blip e"></div><div class="blip w"></div>
+                  <div class="token"></div>
+                </div>
+              </div>
+              <!-- billboarded, always-upright exit chevrons at the doorway edges -->
+              <div class="exits">
+                <div class="chev n" style="left:50%;top:182px"><span class="hit"></span><span class="ring"></span><svg viewBox="0 0 24 24"><polyline points="5,15 12,8 19,15"/></svg><span class="tag">N</span></div>
+                <div class="chev s" style="left:50%;top:286px"><span class="hit"></span><span class="ring"></span><svg viewBox="0 0 24 24"><polyline points="5,15 12,8 19,15"/></svg><span class="tag">S</span></div>
+                <div class="chev e" style="left:240px;top:226px"><span class="hit"></span><span class="ring"></span><svg viewBox="0 0 24 24"><polyline points="5,15 12,8 19,15"/></svg><span class="tag">E</span></div>
+                <div class="chev w" style="left:96px;top:226px"><span class="hit"></span><span class="ring"></span><svg viewBox="0 0 24 24"><polyline points="5,15 12,8 19,15"/></svg><span class="tag">W</span></div>
+              </div>
+            </div>
+            <div class="hud">
+              <div class="party-handle handle glass"><span class="ic"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6"/><path d="m16 16 4 4"/><path d="m19 21 2-2"/><path d="M14.5 6.5 18 3h3v3l-3.5 3.5"/><path d="m5 14 4 4"/><path d="m7 17-5 5"/><path d="m2 19 3 3"/></svg></span><span class="cv"><span class="av">M</span><span class="av">W</span><span class="av">D</span></span><span class="chevd">▸</span></div>
+              <div class="statbar">
+                <div class="chip glass"><span class="k">Level</span><span class="v">1</span></div>
+                <div class="chip glass"><span class="k">Depth</span><span class="v">3</span></div>
+                <div class="chip glass"><span class="k">Turn</span><span class="v warn">60</span></div>
+              </div>
+              <div class="menu-btn glass">⚙</div>
+              <div class="prompt glass"><span class="p-ic">◆</span><span>Your party stands in <b>The Gateway</b>. Tap a glowing doorway.</span></div>
+              <div class="inspect-tab glass"><span class="dot"></span>Inspect</div>
+              <div class="dock glass">
+                <div class="btn active"><span class="bi">⊙</span>Snap</div>
+                <div class="btn"><span class="bi">↻</span>Orbit</div>
+                <div class="btn lvl">1</div><div class="btn lvl">2</div>
+                <div class="btn"><span class="bi">▤</span>Save</div>
+                <div class="btn danger">Quit</div>
+              </div>
+            </div>
+            <span class="pin" style="left:262px;top:204px">1</span>
+            <span class="pin" style="left:226px;top:42px">2</span>
+            <span class="pin" style="left:92px;top:30px">3</span>
+            <span class="pin" style="right:40px;top:300px">4</span>
+            <span class="pin" style="left:92px;top:486px">5</span>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <h3>Exploring</h3><div class="tag">Portrait · the default play view</div>
+        <div class="note"><div class="n">1</div><div class="t"><b>World-anchored doorways</b>
+          <p>Glowing chevrons mark the legal exits at each doorway edge — N, E, S, W, plus stairs. Always upright and
+            on-screen, with a padded tap zone. Tapping one moves your party that way, full-stop.</p></div></div>
+        <div class="note"><div class="n">2</div><div class="t"><b>Compressed status</b>
+          <p>Level / Depth / Turn shrink to centred glass chips. The turn counter flares <code>warn</code> gold as the deck runs low.</p></div></div>
+        <div class="note"><div class="n">3</div><div class="t"><b>Party handle</b>
+          <p>The roster collapses to a tappable pill showing party initials. Tap to slide up the full drawer (next mockup).</p></div></div>
+        <div class="note"><div class="n">4</div><div class="t"><b>Inspect tab</b>
+          <p>The parchment card panel docks to the right edge as a slim tab; tap a tile or this tab to reveal the full card.</p></div></div>
+        <div class="note"><div class="n">5</div><div class="t"><b>Wrapping dock</b>
+          <p>Camera, level and game controls flow into a translucent dock that wraps to fit the width and pins to the safe bottom — clear of the map.</p></div></div>
+      </div>
+    </div>
+
+    <div class="divider" style="margin:60px 0"></div>
+
+    <!-- 3b. LANDSCAPE EXPLORING -->
+    <div class="scene-label">Landscape · Exploring the cave</div>
+    <div class="mock rev">
+      <div class="stage-col">
+        <div class="phone landscape">
+          <div class="notch"></div>
+          <div class="screen">
+            <div class="scene3d">
+              <div class="board-wrap">
+                <div class="board">
+                  <div class="tile n"></div><div class="tile w"></div>
+                  <div class="tile c"></div>
+                  <div class="tile e"></div><div class="tile s"></div>
+                  <div class="chamber-card"><b>The<br>Gateway</b></div>
+                  <div class="blip n"></div><div class="blip e"></div><div class="blip w"></div>
+                  <div class="token"></div>
+                </div>
+              </div>
+              <div class="exits">
+                <div class="chev n" style="left:calc(50% + 20px);top:118px"><span class="hit"></span><span class="ring"></span><svg viewBox="0 0 24 24"><polyline points="5,15 12,8 19,15"/></svg><span class="tag">N</span></div>
+                <div class="chev s" style="left:calc(50% + 20px);top:224px"><span class="hit"></span><span class="ring"></span><svg viewBox="0 0 24 24"><polyline points="5,15 12,8 19,15"/></svg><span class="tag">S</span></div>
+                <div class="chev e" style="left:calc(50% + 110px);top:172px"><span class="hit"></span><span class="ring"></span><svg viewBox="0 0 24 24"><polyline points="5,15 12,8 19,15"/></svg><span class="tag">E</span></div>
+                <div class="chev w" style="left:calc(50% - 70px);top:172px"><span class="hit"></span><span class="ring"></span><svg viewBox="0 0 24 24"><polyline points="5,15 12,8 19,15"/></svg><span class="tag">W</span></div>
+              </div>
+            </div>
+            <div class="hud">
+              <div class="prompt glass"><span class="p-ic">◆</span><span>Tap a glowing doorway to descend.</span></div>
+              <div class="roster-mini glass">
+                <div class="roster-hd">Party</div>
+                <div class="mbr lead"><span class="sig">M</span><span class="nm">Magus</span><span class="cap-bar"><i style="width:60%"></i></span></div>
+                <div class="mbr"><span class="sig">W</span><span class="nm">Warrior</span><span class="cap-bar"><i style="width:30%"></i></span></div>
+                <div class="mbr"><span class="sig">D</span><span class="nm">Dwarf</span><span class="cap-bar"><i style="width:85%"></i></span></div>
+              </div>
+              <div class="inspect-card">
+                <div class="pic">⌖</div>
+                <div class="where">◆ The Gateway</div>
+                <div class="nm">The Gateway</div>
+                <div class="kind">A passage winds onward.</div>
+              </div>
+              <div class="dock glass">
+                <div class="btn active"><span class="bi">⊙</span>Snap</div>
+                <div class="btn"><span class="bi">↻</span>Orbit</div>
+                <div class="btn lvl">1</div>
+                <div class="btn"><span class="bi">▤</span>Save</div>
+                <div class="btn danger">Quit</div>
+              </div>
+            </div>
+            <span class="pin" style="left:150px;top:62px">1</span>
+            <span class="pin" style="left:548px;top:58px">2</span>
+            <span class="pin" style="left:300px;top:150px">3</span>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <h3>Same game, wider</h3><div class="tag">Landscape · panels to the corners</div>
+        <div class="note"><div class="n">1</div><div class="t"><b>Roster returns</b>
+          <p>With width to spare, the party expands back into a compact corner roster with capacity bars — the desktop feel, scaled down and translucent.</p></div></div>
+        <div class="note"><div class="n">2</div><div class="t"><b>Inspect card, pinned</b>
+          <p>The parchment card sits open in the top-right, tilted just so, clear of the map and the dock.</p></div></div>
+        <div class="note"><div class="n">3</div><div class="t"><b>Camera re-fits</b>
+          <p>On rotate, the camera re-frames the chamber to the new aspect ratio, so the cross of exits stays centred and the panels tuck into corners — no overlap, no clipping.</p></div></div>
+        <div class="note"><div class="t"><b>One layout engine</b>
+          <p>Both orientations are driven by the same width + orientation rules (see §V) rather than a second hand-built layout.</p></div></div>
+      </div>
+    </div>
+
+    <div class="divider" style="margin:60px 0"></div>
+
+    <!-- 3c. PARTY DRAWER -->
+    <div class="scene-label">Portrait · Party &amp; inventory drawer</div>
+    <div class="mock">
+      <div class="stage-col">
+        <div class="phone portrait">
+          <div class="notch"></div>
+          <div class="screen">
+            <div class="scene3d">
+              <div class="board-wrap" style="padding-top:96px">
+                <div class="board" style="transform:rotateX(56deg) scale(.82)">
+                  <div class="tile n"></div><div class="tile w"></div>
+                  <div class="tile c"></div><div class="tile e"></div><div class="tile s"></div>
+                  <div class="chamber-card"><b>The<br>Gateway</b></div>
+                  <div class="token"></div>
+                </div>
+              </div>
+            </div>
+            <div class="hud">
+              <div class="party-handle handle glass" style="opacity:.5"><span class="ic"><svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6"/><path d="m16 16 4 4"/><path d="m19 21 2-2"/><path d="M14.5 6.5 18 3h3v3l-3.5 3.5"/><path d="m5 14 4 4"/><path d="m7 17-5 5"/><path d="m2 19 3 3"/></svg></span><span class="cv"><span class="av">M</span><span class="av">W</span></span><span class="chevd">▾</span></div>
+              <div class="statbar" style="opacity:.5">
+                <div class="chip glass"><span class="k">Level</span><span class="v">1</span></div>
+                <div class="chip glass"><span class="k">Depth</span><span class="v">3</span></div>
+                <div class="chip glass"><span class="k">Turn</span><span class="v warn">60</span></div>
+              </div>
+              <!-- slide-up drawer -->
+              <div class="drawer" style="height:430px">
+                <div class="grab"></div>
+                <div class="dh"><span>Your Party</span><span class="cap">Carrying 4 / 9</span></div>
+                <div class="drow lead">
+                  <span class="sig">M</span>
+                  <div class="who"><div class="nm-line"><span class="nm">Magus</span><span class="badge ally">Leader</span></div>
+                    <div class="cap"><span class="cap-bar"><i style="width:60%"></i></span><span class="cap-tx">3 / 5</span></div>
+                    <div class="carry"><span class="tre art">✦</span><span class="tre">◈</span></div>
+                  </div>
+                </div>
+                <div class="drow">
+                  <span class="sig">W</span>
+                  <div class="who"><div class="nm-line"><span class="nm">Warrior</span></div>
+                    <div class="cap"><span class="cap-bar"><i style="width:30%"></i></span><span class="cap-tx">1 / 4</span></div>
+                    <div class="carry"><span class="tre">◈</span></div>
+                  </div>
+                </div>
+                <div class="drow">
+                  <span class="sig">D</span>
+                  <div class="who"><div class="nm-line"><span class="nm">Dwarf</span><span class="badge stone">Stone</span></div>
+                    <div class="cap"><span class="cap-bar"><i style="width:0%"></i></span><span class="cap-tx">0 / 3</span></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <span class="pin" style="left:50%;top:260px">1</span>
+            <span class="pin" style="left:206px;top:320px">2</span>
+            <span class="pin" style="left:182px;top:360px">3</span>
+            <span class="pin" style="left:128px;top:400px">4</span>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <h3>The roster, in full</h3><div class="tag">Tap the party handle to open</div>
+        <div class="note"><div class="n">1</div><div class="t"><b>Slide-up sheet</b>
+          <p>The drawer rises over the dimmed map with a grab handle. Swipe down or tap the map to dismiss — the game underneath never moves.</p></div></div>
+        <div class="note"><div class="n">2</div><div class="t"><b>Member &amp; status</b>
+          <p>Each row keeps the gold sigil, leader glow and status badges (<code>Ally</code>, <code>Stone</code>) exactly as the desktop roster.</p></div></div>
+        <div class="note"><div class="n">3</div><div class="t"><b>Capacity bars</b>
+          <p>The carry-weight bar and <code>n / max</code> read-out come straight across, now with room to breathe on a touch target.</p></div></div>
+        <div class="note"><div class="n">4</div><div class="t"><b>Carried treasure</b>
+          <p>Held cards show as thumbnails — artifacts ringed in brass — tappable to inspect or hand off between members.</p></div></div>
+      </div>
+    </div>
+
+    <div class="divider" style="margin:60px 0"></div>
+
+    <!-- 3d. ACTION SHEET / FIGHT -->
+    <div class="scene-label">Portrait · Encounter &amp; fight bottom-sheet</div>
+    <div class="mock rev">
+      <div class="stage-col">
+        <div class="phone portrait">
+          <div class="notch"></div>
+          <div class="screen">
+            <div class="scene3d">
+              <div class="board-wrap" style="padding-top:80px">
+                <div class="board" style="transform:rotateX(56deg) scale(.78)">
+                  <div class="tile n"></div><div class="tile w"></div>
+                  <div class="tile c"></div><div class="tile e"></div><div class="tile s"></div>
+                  <div class="chamber-card"><b>Lair of<br>the Troll</b></div>
+                  <div class="token"></div>
+                </div>
+              </div>
+            </div>
+            <div class="hud">
+              <div class="statbar" style="opacity:.45">
+                <div class="chip glass"><span class="k">Level</span><span class="v">2</span></div>
+                <div class="chip glass"><span class="k">Depth</span><span class="v">7</span></div>
+                <div class="chip glass"><span class="k">Turn</span><span class="v">48</span></div>
+              </div>
+              <!-- action sheet -->
+              <div class="sheet" style="height:454px">
+                <div class="grab"></div>
+                <div class="sh-eyebrow">An Encounter</div>
+                <div class="sh-name">A Troll bars the way</div>
+                <div class="sh-sub">Pair your champions against the foe, then roll.</div>
+                <div class="matchup">
+                  <div class="fcard"><div class="pic">🛡️</div><div class="nm">Warrior</div><div class="stat">CBT 4</div></div>
+                  <div class="vs"><span class="die">5</span><span class="x">×</span><span class="die foe">3</span></div>
+                  <div class="fcard foe"><div class="pic">👹</div><div class="nm">Troll</div><div class="stat">CBT 3</div></div>
+                </div>
+                <div class="drop-hint">Drag a party member onto the foe to commit them — or tap to assign</div>
+                <div class="sheet-actions">
+                  <button class="reveal-btn gold"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-2px;margin-right:5px"><path d="M14.5 17.5 3 6V3h3l11.5 11.5"/><path d="m13 19 6-6"/><path d="m16 16 4 4"/><path d="m19 21 2-2"/><path d="M14.5 6.5 18 3h3v3l-3.5 3.5"/><path d="m5 14 4 4"/><path d="m7 17-5 5"/><path d="m2 19 3 3"/></svg>Fight</button>
+                  <button class="reveal-btn">↻ Re-roll</button>
+                  <button class="reveal-btn danger">Retreat</button>
+                </div>
+              </div>
+            </div>
+            <span class="pin" style="left:50%;top:150px">1</span>
+            <span class="pin" style="left:120px;top:352px">2</span>
+            <span class="pin" style="right:44px;top:360px">3</span>
+            <span class="pin" style="left:50%;top:520px">4</span>
+          </div>
+        </div>
+      </div>
+      <div class="notes-col">
+        <h3>Encounters &amp; fights</h3><div class="tag">A bottom-sheet, never a cut-off panel</div>
+        <div class="note"><div class="n">1</div><div class="t"><b>Context stays visible</b>
+          <p>The chamber dims but remains above the sheet, so you keep your bearings during the fight. Stats fade back, not away.</p></div></div>
+        <div class="note"><div class="n">2</div><div class="t"><b>Matchup, thumb-sized</b>
+          <p>Foe and committed champion sit side-by-side with their dice between them — the same parchment/crimson fight cards, sized for a phone.</p></div></div>
+        <div class="note"><div class="n">3</div><div class="t"><b>Drag or tap to commit</b>
+          <p>Drag a member onto the foe, or tap to assign — touch-first, with the old drag affordance preserved for wider screens.</p></div></div>
+        <div class="note"><div class="n">4</div><div class="t"><b>Scrolling sheet, fixed actions</b>
+          <p>Encounter, explore and fight all share one sheet with <code>max-height</code> + scroll, so long content never runs off-screen and Fight / Retreat stay reachable.</p></div></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 4. CHEVRON EXPLAINER ============ -->
+  <section>
+    <div class="sec-head"><div class="sec-num">IV</div>
+      <div><h2>Why billboarding is safe</h2><p>Direction is a property of the doorway — not of the screen.</p></div>
+    </div>
+    <div class="explain">
+      <div class="diagram">
+        <!-- mini tilted board with chevrons + a rotated camera badge -->
+        <div style="position:absolute;inset:0;display:grid;place-items:center;perspective:700px">
+          <div style="position:relative;width:150px;height:150px;transform:rotateX(54deg) rotateZ(18deg);transform-style:preserve-3d">
+            <div class="tile c" style="left:45px;top:45px;width:60px;height:60px"></div>
+            <div class="tile n" style="left:45px;top:-6px;width:60px;height:60px"></div>
+            <div class="tile s" style="left:45px;top:96px;width:60px;height:60px"></div>
+            <div class="tile e" style="left:96px;top:45px;width:60px;height:60px"></div>
+            <div class="tile w" style="left:-6px;top:45px;width:60px;height:60px"></div>
+          </div>
+        </div>
+        <div class="exits">
+          <div class="chev n" style="left:48%;top:64px"><span class="ring"></span><svg viewBox="0 0 24 24"><polyline points="5,15 12,8 19,15"/></svg><span class="tag">N</span></div>
+          <div class="chev s" style="left:52%;top:250px"><span class="ring"></span><svg viewBox="0 0 24 24"><polyline points="5,15 12,8 19,15"/></svg><span class="tag">S</span></div>
+          <div class="chev e" style="left:73%;top:148px"><span class="ring"></span><svg viewBox="0 0 24 24"><polyline points="5,15 12,8 19,15"/></svg><span class="tag">E</span></div>
+          <div class="chev w" style="left:27%;top:166px"><span class="ring"></span><svg viewBox="0 0 24 24"><polyline points="5,15 12,8 19,15"/></svg><span class="tag">W</span></div>
+        </div>
+        <div style="position:absolute;bottom:12px;left:12px;font-family:var(--ui);font-size:10px;letter-spacing:.14em;
+          text-transform:uppercase;color:var(--stone-dim)">Camera orbited 18° · arrows still upright &amp; correct</div>
+      </div>
+      <div class="prose">
+        <p>Today each marker already stores its <strong>semantic direction</strong> and the tap reads <em>that</em>, not a
+          screen position. So billboarding — rotating the glyph to face the camera — only changes how it <strong>looks</strong>,
+          never where it sits or what it does.</p>
+        <div class="coderef">
+          <b>cave3d.js:240</b> &nbsp;<code>grp.userData.move = m.dir</code> — marker carries N/E/S/W/U/D<br>
+          <b>cave3d.js:245</b> &nbsp;positioned by absolute world direction (art rotation is cosmetic)<br>
+          <b>cave3d.js:753</b> &nbsp;a tap raycasts the marker → reads its stored direction<br>
+          <b>cave3d.js:467 → 477</b> &nbsp;<code>doMove(dir)</code> → <code>engine.tryMove(dir)</code>
+        </div>
+        <p>Because the marker is anchored to the doorway in <strong>world space</strong>, orbiting the camera or rotating
+          a tile's art can't desync it — the right-edge arrow is always the East exit and always moves you East.</p>
+        <p>This is exactly why we <strong>did not</strong> use a screen-space D-pad: a D-pad's "up" drifts as the camera
+          orbits and would point the wrong way. Position carries the meaning; billboarding only carries the visibility.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ 5. RESPONSIVE RULES ============ -->
+  <section>
+    <div class="sec-head"><div class="sec-num">V</div>
+      <div><h2>One set of responsive rules</h2><p>What each region does as the viewport narrows or rotates.</p></div>
+    </div>
+    <table class="rules">
+      <thead><tr><th>Region</th><th>Landscape / wide</th><th>Portrait / narrow</th></tr></thead>
+      <tbody>
+        <tr><td>Exit chevrons</td><td>Billboarded, normal size, at doorway edges</td><td><b>Enlarged</b> glyph + padded tap target; camera auto-frames so all stay on-screen</td></tr>
+        <tr><td>Camera</td><td>Fits chamber to wide aspect</td><td><b>Re-fits</b> to tall aspect on orientation change</td></tr>
+        <tr><td>Party roster</td><td>Compact corner panel with capacity bars</td><td>Collapses to a <b>tappable handle</b> → slide-up drawer</td></tr>
+        <tr><td>Inspect card</td><td>Pinned open, top-right</td><td>Docked to a slim <b>edge tab</b> → expands on tap</td></tr>
+        <tr><td>Status chips</td><td>Full Level / Depth / Turn row</td><td>Compressed centred chips; overflow tucks into the ⚙ menu</td></tr>
+        <tr><td>Dock</td><td>Single translucent row</td><td><b>Wraps</b> to fit width, pinned to safe-area bottom</td></tr>
+        <tr><td>Encounter / fight</td><td>Centred floating panel</td><td><b>Bottom-sheet</b> with max-height + scroll; actions stay fixed</td></tr>
+        <tr><td>Positioning</td><td colspan="2" style="color:#bcb293">Driven by <code style="font-family:var(--ui);font-size:12px;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:var(--parchment-2)">dvh</code>/<code style="font-family:var(--ui);font-size:12px;background:rgba(0,0,0,.35);border:1px solid var(--line);border-radius:5px;padding:1px 6px;color:var(--parchment-2)">svh</code> units, safe-area insets, and an orientation/width breakpoint — replacing today's hard pixel offsets. No panel overlaps another or the map.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <footer>
+    <b>The Sorcerer's Cave</b> · Mobile UI plan &amp; mockups · 2026-06-29 · This file is a self-contained design artifact — no application code is changed.
+  </footer>
+
+</div>
+</body>
+</html>

@@ -1,5 +1,5 @@
 import { rollDie } from "./rng";
-import { fluteLulls } from "./effects";
+import { fluteLulls, eyeForsakenByDeath } from "./effects";
 import type { GameState, PartyMember } from "./state";
 import type { GameEvent } from "./actions";
 
@@ -26,6 +26,8 @@ export function viperCrossing(state: GameState): GameEvent[] {
     rolls.push({ creatureId: m.creatureId, roll: r.value, died });
     if (died) {
       m.status = 3;
+      // The Eye sinks into the pit with its bearer — the party is cursed for losing it (§Eye of God).
+      events.push(...eyeForsakenByDeath(state, m));
       m.treasure = []; // lost to the pit
       events.push({ type: "memberDied", creatureId: m.creatureId });
     }

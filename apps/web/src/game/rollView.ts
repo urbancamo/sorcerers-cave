@@ -1,4 +1,4 @@
-import { CREATURES, type GameEvent } from "@sorcerers-cave/engine";
+import { CREATURES, TREASURES, type GameEvent } from "@sorcerers-cave/engine";
 import type { Lane } from "./DiceRoll";
 
 export type Tone = "good" | "bad" | "neutral";
@@ -48,7 +48,7 @@ function combatView(events: GameEvent[]): RollView | null {
   // The Lost Ruby is guarded by a strength-8 statue (§16) — give that fight its own copy.
   if (rubyTaken || statue) {
     const message = rubyTaken
-      ? "You wrest the Lost Ruby from the statue!"
+      ? `You wrest the Lost Ruby from the statue! (+${TREASURES[11]!.points} points)`
       : over
         ? "The statue strikes — the party is slain…"
         : "The statue strikes your champion down!";

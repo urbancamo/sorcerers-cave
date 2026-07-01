@@ -48,6 +48,18 @@ export function activeCurses(state: GameState): number {
   return state.sorcererKilled ? 0 : state.curses;
 }
 
+/**
+ * When the Eye of God's bearer is slain, the gem is left behind involuntarily on the body and the party
+ * falls under a curse until it is taken up again (§Eye of God). Call with the member who just fell;
+ * mutates `state.curses` and returns the curse event (the Eye is the only one in the deck, so a slain
+ * bearer means no living member still holds it).
+ */
+export function eyeForsakenByDeath(state: GameState, fallen: PartyMember): GameEvent[] {
+  if (!fallen.treasure.includes(T_EYE_OF_GOD)) return [];
+  state.curses += 1;
+  return [{ type: "eyeForsaken" }];
+}
+
 /** The Talisman wards off Spectres on the 4th level or deeper (this edition's deck has no Zombies/Ghouls). */
 export function talismanWardsSpectres(state: GameState): boolean {
   return state.level >= 4 && partyHolds(state, T_TALISMAN);

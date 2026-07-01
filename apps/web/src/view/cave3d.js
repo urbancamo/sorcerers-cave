@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Reveal } from './reveal.js';
+import { spriteRotationForScreenVector } from './billboard.js';
+import { fitDistance } from './camera-fit.js';
 
 /* ============================================================
    Sorcerer's Cave — 3D viewer + interactive navigation
@@ -224,9 +226,32 @@ function buildSelectRing(){
 }
 
 /* ---- exit markers (the navigation affordance) ---- */
-function chevron(color){
-  const c=new THREE.Mesh(new THREE.ConeGeometry(0.26,0.5,4),new THREE.MeshBasicMaterial({color,transparent:true,opacity:0.95}));
-  return c;
+// Camera-facing chevron sprite: never goes edge-on (the old cone did in portrait),
+// and its glyph is rotated each frame to point screen-outward through the doorway.
+let _chevTex=null;
+function chevronTexture(){
+  if(_chevTex) return _chevTex;
+  const s=128, cv=document.createElement('canvas'); cv.width=cv.height=s;
+  const cx=cv.getContext('2d');
+  // Dark "coin" backing so the marker reads against light stone from ANY angle — including the
+  // near-overhead default view, where a bare gold chevron washed out on the corridor floor between
+  // two laid tiles. The SpriteMaterial tint multiplies RGB, so this black disc stays neutral-dark
+  // (0 × tint = 0) while the white chevron below picks up the brass tint.
+  cx.beginPath(); cx.arc(64,64,52,0,Math.PI*2); cx.fillStyle='rgba(0,0,0,0.62)'; cx.fill();
+  // chevron points UP; the transparent padding around the coin widens the tap target
+  cx.strokeStyle='#ffffff'; cx.lineWidth=13; cx.lineCap='round'; cx.lineJoin='round';
+  cx.shadowColor='rgba(0,0,0,0.6)'; cx.shadowBlur=6;
+  cx.beginPath(); cx.moveTo(36,76); cx.lineTo(64,46); cx.lineTo(92,76); cx.stroke();
+  _chevTex=new THREE.CanvasTexture(cv); _chevTex.colorSpace=THREE.SRGBColorSpace; return _chevTex;
+}
+function chevronSprite(color){
+  const m=new THREE.SpriteMaterial({map:chevronTexture(),color,transparent:true,opacity:0.95,depthTest:false,depthWrite:false});
+  const s=new THREE.Sprite(m); s.scale.set(1.1,1.1,1); // big quad = big tap target; glyph sits in the centre
+  // Draw markers ON TOP of the tiles/content (which have renderOrder 2-7). Without this the floor
+  // tile is drawn after the depthWrite:false sprite and paints over it — the marker then only shows
+  // when the camera tilts enough for parallax to lift it off the floor beneath it.
+  s.renderOrder=20;
+  return s;
 }
 function ringFlat(color,r0,r1){
   return new THREE.Mesh(new THREE.RingGeometry(r0,r1,32),
@@ -239,26 +264,25 @@ function refreshExitMarkers(){
   engine.openMoves().forEach(m=>{
     const grp=new THREE.Group(); grp.userData.move=m.dir;
     const known=m.kind==='known';
-    const col=(m.kind==='stair'||m.kind==='exit')?COLOR.brassBright:(known?COLOR.stone:COLOR.brass);
+    // Explored ("known") doorways still read as gold (brass) — the old muted stone-grey vanished
+    // between already-laid stone tiles; new frontiers + stairs get the brighter brass to stand out more.
+    const col=known?COLOR.brass:COLOR.brassBright;
     if(m.dir==='N'||m.dir==='S'||m.dir==='E'||m.dir==='W'){
       const edge=0.15; // gap beyond the tile edge — markers hug the doorway tightly
       const off={N:[0,0,-(TILE_D/2+edge)],S:[0,0,TILE_D/2+edge],E:[TILE_W/2+edge,0,0],W:[-(TILE_W/2+edge),0,0]}[m.dir];
-      const ring=ringFlat(col,0.34,0.46);ring.rotation.x=-Math.PI/2;ring.position.set(0,0.06,0);
-      const ch=chevron(col);ch.position.set(0,0.32,0);
-      // point chevron outward (flat, lying down toward dir)
-      if(m.dir==='N')ch.rotation.x=-Math.PI/2;
-      if(m.dir==='S')ch.rotation.x=Math.PI/2;
-      if(m.dir==='E')ch.rotation.z=-Math.PI/2;
-      if(m.dir==='W')ch.rotation.z=Math.PI/2;
-      grp.add(ring,ch);
+      const ring=ringFlat(col,0.34,0.46);ring.rotation.x=-Math.PI/2;ring.position.set(0,0.06,0);ring.material.depthTest=false;ring.renderOrder=19;
+      const spr=chevronSprite(col); spr.position.set(0,0.5,0);
+      grp.add(ring,spr);
       grp.position.set(p.x+off[0],p.y,p.z+off[2]);
+      grp.userData.spr=spr; grp.userData.outward=true; grp.userData.center=p.clone();
     } else {
       // stair marker near a corner of the tile
       const corner=m.dir==='D'?[TILE_W*0.30,TILE_D*0.30]:[-TILE_W*0.30,-TILE_D*0.30];
-      const ring=ringFlat(col,0.3,0.44);ring.rotation.x=-Math.PI/2;ring.position.y=0.06;
-      const ch=chevron(col);ch.position.y=0.42; if(m.dir==='D')ch.rotation.x=Math.PI; // point down
-      grp.add(ring,ch);
+      const ring=ringFlat(col,0.3,0.44);ring.rotation.x=-Math.PI/2;ring.position.y=0.06;ring.material.depthTest=false;ring.renderOrder=19;
+      const spr=chevronSprite(col); spr.position.y=0.5;
+      grp.add(ring,spr);
       grp.position.set(p.x+corner[0],p.y+0.02,p.z+corner[1]);
+      grp.userData.spr=spr; grp.userData.outward=false; grp.userData.stairDir=m.dir; // U up, D down (screen-space)
     }
     grp.scale.setScalar(0.5); // direction markers reduced by 50% (bob/flash animate position only)
     grp.userData.base=grp.position.y; grp.userData.kind=m.kind;
@@ -449,8 +473,19 @@ function flyFollow(newTarget){ // keep relative view, shift to new target
   flyTo(camera.position.clone().add(delta),newTarget,camera.fov);
 }
 function sceneCenter(){const c=new THREE.Vector3();engine.areas.forEach(a=>c.add(worldPos(a)));return c.multiplyScalar(1/engine.areas.length);}
-function viewFreeOrbit(){setMode('orbit','Free orbit');setIsolation(null);const c=sceneCenter();flyTo(c.clone().add(new THREE.Vector3(TILE_W*2.4,13,16)),c,45);}
-function viewSnapTile(){const a=engine.current;setMode('snap','Overhead · '+a.name);setIsolation(a.level);flyTo(worldPos(a).clone().add(new THREE.Vector3(0,9.5,2.6)),worldPos(a),30);}
+function viewFreeOrbit(){lastSnapArea=null;setMode('orbit','Free orbit');setIsolation(null);const c=sceneCenter();flyTo(c.clone().add(new THREE.Vector3(TILE_W*2.4,13,16)),c,45);}
+// Snap (overhead) view: fit the chamber + its doorway markers to the viewport, so all exits stay framed
+// in portrait or landscape. SNAP_RADIUS covers the tile half-width plus a one-tile doorway margin.
+const SNAP_RADIUS=TILE_W*0.78;
+let lastSnapArea=null; // remembered so onResize can re-fit on a portrait/landscape flip
+function frameSnap(area){
+  lastSnapArea=area;
+  const fov=30, dist=fitDistance(SNAP_RADIUS,fov,camera.aspect);
+  const wp=worldPos(area);
+  // look slightly from the south so North reads "up" the screen; height ≈ dist, small forward bias
+  flyTo(wp.clone().add(new THREE.Vector3(0,dist*0.96,dist*0.27)),wp,fov);
+}
+function viewSnapTile(){const a=engine.current;setMode('snap','Overhead · '+a.name);setIsolation(a.level);frameSnap(a);}
 function focusArea(a){ // a: {col,row,level} — fly the camera to that area (free-roam spectating)
   if(a==null) return;
   setMode('orbit','Spectating'); setIsolation(a.level);
@@ -458,7 +493,7 @@ function focusArea(a){ // a: {col,row,level} — fly the camera to that area (fr
   flyTo(wp.clone().add(new THREE.Vector3(TILE_W*1.6,11,12)),wp,40);
 }
 let activeLevel=null;
-function viewLevel(lvl){activeLevel=lvl;setMode('level','Level '+lvl);setIsolation(lvl);const b=levelBounds[lvl];const c=new THREE.Vector3(b.cx,b.y,b.cz);flyTo(c.clone().add(new THREE.Vector3(TILE_W*1.4,10,12)),c,40);}
+function viewLevel(lvl){lastSnapArea=null;activeLevel=lvl;setMode('level','Level '+lvl);setIsolation(lvl);const b=levelBounds[lvl];const c=new THREE.Vector3(b.cx,b.y,b.cz);flyTo(c.clone().add(new THREE.Vector3(TILE_W*1.4,10,12)),c,40);}
 
 /* ============================================================
    navigation
@@ -703,6 +738,7 @@ function rebuildLevelButtons(){const grp=document.getElementById('levelGrp');con
    input
    ============================================================ */
 const ray=new THREE.Raycaster(),mouse=new THREE.Vector2();let downXY=null;
+const _v0=new THREE.Vector3(), _v1=new THREE.Vector3(); // scratch for billboard outward-angle projection
 
 /* ============================================================
    loop
@@ -732,11 +768,21 @@ function animate(){
   if(partyToken){partyToken.userData.gem.rotation.y=tt*1.1;partyToken.userData.gem.position.y=1.12+Math.sin(tt*2)*0.05;
     const sc=1+Math.sin(tt*2.4)*0.06;partyToken.userData.halo.scale.set(sc,sc,sc);partyToken.userData.halo.material.opacity=0.4+Math.sin(tt*2.4)*0.18;}
   if(selectRing&&selectRing.visible)selectRing.material.opacity=0.55+Math.sin(tt*3)*0.25;
-  // exit markers pulse + hover bob
+  // exit markers pulse + hover bob + billboard the chevron to point screen-outward
   exitMarkers.forEach(g=>{const f=g.userData.flash;let amp=0.07;
     if(f){const kk=(tt-f.t0);if(kk>0.6){g.userData.flash=null;}amp=0.18;}
     g.position.y=g.userData.base+Math.sin(tt*3+g.position.x)*amp;
-    g.children.forEach(c=>{if(c.material)c.material.opacity=0.7+Math.sin(tt*3)*0.25;});});
+    g.children.forEach(c=>{if(c.material)c.material.opacity=0.7+Math.sin(tt*3)*0.25;});
+    const spr=g.userData.spr;
+    if(spr){
+      if(g.userData.outward){
+        _v0.copy(g.userData.center).project(camera);                 // tile centre → NDC
+        _v1.copy(g.position).project(camera);                        // marker → NDC
+        spr.material.rotation=spriteRotationForScreenVector(_v1.x-_v0.x, _v1.y-_v0.y);
+      } else {
+        spr.material.rotation = g.userData.stairDir==='D' ? Math.PI : 0; // stairs: down / up
+      }
+    }});
   const az=controls.getAzimuthalAngle();needle.style.transform='translate(-50%,-100%) rotate('+(-az)+'rad)';
   controls.update();renderer.render(scene,camera);
 }
@@ -765,7 +811,13 @@ function onKeyDown(e){
   const map={arrowup:'N',arrowright:'E',arrowdown:'S',arrowleft:'W',n:'N',e:'E',s:'S',w:'W',u:'U',d:'D'};
   if(map[k]){e.preventDefault();doMove(map[k]);}
 }
-function onResize(){camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);}
+function onResize(){
+  camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight);
+  // Re-fit the snap view to the new aspect so a portrait/landscape flip keeps the chamber + exits framed.
+  // Orbit/level views are user-controlled; leave them be.
+  const orbitBtn=document.getElementById('orbitBtn');
+  if(lastSnapArea && orbitBtn && !orbitBtn.classList.contains('active')) frameSnap(lastSnapArea);
+}
 
 export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr, tileAR, partyColor, onQuit, multiplayer }){
   engine=eng; startLevel=eng.startLevel; tiles=tileMap; PARTY=partyArr; TILE_D=TILE_W/tileAR; partyColorHex=partyColor; isMultiplayer=!!multiplayer;
@@ -826,9 +878,7 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
   Reveal.init({
     party:revealParty,
     focusCard:(card)=>showCard(card, engine.current.name),
-    snapToTile:(area)=>{ setIsolation(area.level);
-      flyTo(worldPos(area).clone().add(new THREE.Vector3(0.2,9.0,2.4)), worldPos(area), 30);
-      setMode('snap','Overhead · '+area.name); },
+    snapToTile:(area)=>{ setIsolation(area.level); frameSnap(area); setMode('snap','Overhead · '+area.name); },
     markStrangers:()=>{},
     markTreasure:()=>{},
     onResolved:(a)=>{ setPrompt('You finish exploring <b>'+a.name+'</b>. Choose a doorway to continue.','event'); refreshExitMarkers(); },
@@ -839,10 +889,9 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
   renderRoster();updateHUD();selectCurrent();
   // default to an overhead 'snap to tile' view of the start tile, North up the screen
   setMode('snap','Overhead · '+engine.current.name);
-  const ap=worldPos(engine.current);
-  camera.up.set(0,1,0); camera.fov=30; camera.updateProjectionMatrix();
-  camera.position.copy(ap.clone().add(new THREE.Vector3(0,9.5,2.6)));
-  controls.target.copy(ap); controls.update();
+  camera.up.set(0,1,0); camera.updateProjectionMatrix();
+  frameSnap(engine.current); // fit the start chamber + its exits to the viewport
+  controls.update();
   setPrompt('Your party stands in <b>'+engine.current.name+'</b>. Click a glowing doorway, or press N/E/S/W.','event');
   window.__cave={scene,camera,controls,renderer,THREE,engine,tileMeshes,exitMarkers,doMove,worldPos,layContents,contentGroup,setParty,setOtherParties,focusArea};
   document.getElementById('loader').classList.add('hide');animate();

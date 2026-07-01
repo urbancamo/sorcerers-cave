@@ -11,7 +11,7 @@ import type { GameAction, GameEvent } from "./actions";
 import { reactionRoll } from "./reaction";
 import { frontStrength } from "./combat";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
-import { wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls } from "./effects";
+import { wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath } from "./effects";
 import { rollDie } from "./rng";
 import { CREATURES } from "./data/creatures";
 
@@ -180,14 +180,12 @@ function resolveArea(state: GameState): GameEvent[] {
       state.strangers = state.strangers.filter((id) => id !== 10);
       if (freshEntry) events.push({ type: "dragonsLulled", count: dragons.length });
     }
-    // Permanently indifferent to this party (§Reactions): testing again is futile (they stay
-    // indifferent), but the party may still ATTACK them or withdraw — and the guarded treasure stays
-    // out of reach unless they're beaten. Present the encounter (Attack/Withdraw, no Test) rather than
-    // walking straight through. Other parties are unaffected.
-    if (state.pacifiedAreas?.includes(state.partyArea) && state.strangers.length > 0) {
-      state.phase = "encounter";
-      state.indiffStreak = 3; // they stay indifferent — the Test option is withheld
-      state.surpriseReady = false; // a re-entered chamber was already visited — never a surprise
+    // Permanently indifferent to this party (§Reactions): the party may walk freely through (any exit)
+    // — so park the guards to the tile and go to explore for full traversal — but it may also still
+    // CHOOSE to attack them (selectors offers an Attack action; the guarded treasure stays out of reach
+    // unless they're beaten). Other parties are unaffected.
+    if (state.pacifiedAreas?.includes(state.partyArea)) {
+      persistAndExplore(state);
       return events;
     }
     if (state.strangers.length > 0) {
@@ -492,6 +490,18 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
     }
 
     case "attack": {
+      // Attacking the guards of a permanently-indifferent chamber: the party is traversing it (explore
+      // phase) with the guards parked on the tile — un-park them (and the treasure they guard) into the
+      // working set, then fight. No surprise: the chamber was already visited (§Surprise).
+      if (state.phase === "explore" && state.pacifiedAreas?.includes(state.partyArea) &&
+          state.areas[state.partyArea]!.contents.some((c) => c >= 100 && c < 200)) {
+        const next = structuredClone(state);
+        const area = next.areas[next.partyArea]!;
+        next.strangers = area.contents.filter((c) => c >= 100 && c < 200).map((c) => c - 100);
+        next.treasures = area.contents.filter((c) => c >= 200 && c < 300).map((c) => c - 200);
+        area.contents = area.contents.filter((c) => c < 100 || c >= 300); // keep display markers / sleeping
+        return { state: next, events: startFight(next, 0) };
+      }
       if (state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
       // Surprise only on an immediate attack from a fresh, non-trap entry (§Surprise).
@@ -525,6 +535,7 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       const events: GameEvent[] = [
         { type: "casualtyChosen", creatureId: next.party[victim]!.creatureId, roll: r.value, gotPreference: victim === preferred },
         { type: "memberDied", creatureId: next.party[victim]!.creatureId },
+        ...eyeForsakenByDeath(next, next.party[victim]!),
       ];
       queue.shift();
       if (queue.length === 0) {

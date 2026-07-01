@@ -45,8 +45,11 @@ const isExploreAction = (a: GameAction): a is ExploreAction =>
  *  An artifact with several targets/directions (e.g. the Magic Carpet) collapses to one dropdown. */
 export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: (a: GameAction) => void }) {
   if (state.phase !== "explore") return null;
-  const actions = legalActions(state).filter(isExploreAction);
-  if (actions.length === 0) return null;
+  const all = legalActions(state);
+  // A permanently-indifferent chamber is traversed in explore, but the party may still attack its guards.
+  const attack = all.find((a) => a.type === "attack") ?? null;
+  const actions = all.filter(isExploreAction);
+  if (actions.length === 0 && !attack) return null;
 
   // Group artifact uses by artifact; openChest (and any single-option artifact) stays a plain button.
   const artByArtifact = new Map<number, UseArtifact[]>();
@@ -64,6 +67,12 @@ export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: 
   return (
     <div className="scv-enc" data-testid="explore-panel">
       <h3 className="scv-enc-hd">Actions</h3>
+
+      {attack && (
+        <div className="scv-enc-actions">
+          <button className="scv-enc-btn" onClick={() => dispatch(attack)}>Attack the guardians</button>
+        </div>
+      )}
 
       {dropdowns.length > 0 && (
         <div className="scv-enc-assign">
