@@ -5,6 +5,7 @@ import {
 } from "@sorcerers-cave/engine";
 import type { CardArt } from "../data/manifest";
 import { FightCard, type CardKind } from "./FightCard";
+import { memberLabels } from "./memberLabels";
 import { emptyDraft, place, unplace, toMatches, freeMembers, type PlanDraft } from "./fightPlan";
 
 const DIR_NAME: Record<number, string> = { 1: "North", 2: "East", 3: "South", 4: "West", 5: "Up the stair", 6: "Down the stair" };
@@ -44,6 +45,9 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
   const draftNow = stale ? emptyDraft() : draft;
   if (state.phase !== "fight" || !state.fight) return null;
 
+  // Party-wide "#N" labels so duplicate classes are told apart on every card and in the casualty prompt.
+  const labels = memberLabels(state.party);
+
   // Casualty choice takes over the surface until resolved.
   const pair = state.fight.casualtyQueue?.[0];
   if (pair) {
@@ -54,7 +58,7 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
         <div className="scv-fight-row">
           {pair.map((idx) => (
             <button key={idx} className="scv-fight-btn" onClick={() => dispatch({ type: "chooseCasualty", idx })}>
-              Let {CREATURES[state.party[idx]!.creatureId]!.name} fall
+              Let {labels[idx] ?? CREATURES[state.party[idx]!.creatureId]!.name} fall
             </button>
           ))}
         </div>
@@ -133,7 +137,7 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
               {[0, 1].map((slot) => {
                 const i = pm.front[slot];
                 return i !== undefined ? (
-                  <FightCard key={slot} creatureId={state.party[i]!.creatureId} kind={kindOf(state, i)} strength={memberStrength(i, spectre)}
+                  <FightCard key={slot} creatureId={state.party[i]!.creatureId} label={labels[i]} kind={kindOf(state, i)} strength={memberStrength(i, spectre)}
                              treasure={state.party[i]!.treasure} artifactsOnly cards={cards} state={state} draggable dragId={i} onRelicClick={showRelic} onPick={() => setDraft((d) => unplace(d, i))} />
                 ) : <span key={slot} className="scv-slot-empty">drop a fighter</span>;
               })}
@@ -143,7 +147,7 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
                  onDragOver={(e) => e.preventDefault()} onDrop={(e) => dropOn(e, primary, "backer")}>
               <span className="scv-match-slotlbl">✦ behind</span>
               {pm.backers.length ? pm.backers.map((i) => (
-                <FightCard key={i} creatureId={state.party[i]!.creatureId} kind="caster" strength={casterMP(state.party[i]!, state)}
+                <FightCard key={i} creatureId={state.party[i]!.creatureId} label={labels[i]} kind="caster" strength={casterMP(state.party[i]!, state)}
                            treasure={state.party[i]!.treasure} cards={cards} state={state} draggable dragId={i} onRelicClick={showRelic} onPick={() => setDraft((d) => unplace(d, i))} />
               )) : <span className="scv-match-hint">magic user</span>}
             </div>
@@ -224,7 +228,7 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
       <div className="scv-fight-tray" data-testid="fight-tray">
         <span className="scv-fight-cap">Your party — tap a fighter then a foe (or drag):</span>
         {tray.length ? tray.map((i) => (
-          <FightCard key={i} testId={`tray-${i}`} creatureId={state.party[i]!.creatureId} kind={kindOf(state, i)} strength={frontStrength(state.party[i]!, state)}
+          <FightCard key={i} testId={`tray-${i}`} creatureId={state.party[i]!.creatureId} label={labels[i]} kind={kindOf(state, i)} strength={frontStrength(state.party[i]!, state)}
                      treasure={state.party[i]!.treasure} cards={cards} state={state} draggable dragId={i} selected={sel === i}
                      onPick={() => setSel(sel === i ? null : i)} />
         )) : <span className="scv-fight-hint">all fighters assigned</span>}
@@ -233,7 +237,7 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
       {reason && <p className="scv-fight-reason">{reason}</p>}
       {forcedSpectre && doomedIdx !== null && (
         <p className="scv-fight-reason scv-fight-doom" data-testid="forced-spectre">
-          No one can fight the Spectre and no magic remains — {CREATURES[state.party[doomedIdx]!.creatureId]!.name},
+          No one can fight the Spectre and no magic remains — {labels[doomedIdx] ?? CREATURES[state.party[doomedIdx]!.creatureId]!.name},
           your strongest, will be slain this round (§Spectre). Retreat if you can; otherwise you must face it.
         </p>
       )}
@@ -261,7 +265,7 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
           const nm = TREASURES[a.artifact]?.name ?? "artefact";
           const tgt = a.target === undefined ? null
             : a.artifact === 5 ? CREATURES[state.strangers[a.target]!]!.name
-            : CREATURES[state.party[a.target]!.creatureId]!.name;
+            : (labels[a.target] ?? CREATURES[state.party[a.target]!.creatureId]!.name);
           return (
             <button key={i} className="scv-fight-btn" onClick={() => dispatch(a)}>
               {tgt ? `${nm} → ${tgt}` : `Use ${nm}`}

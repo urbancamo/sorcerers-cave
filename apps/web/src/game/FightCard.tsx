@@ -7,9 +7,10 @@ export type CardKind = "ally" | "caster" | "foe";
  *  party members) drag + click to assign. `strength` is the value shown in the badge. */
 export function FightCard({
   creatureId, kind, strength, caption, treasure = [], cards, state,
-  draggable, onPick, dim, selected, testId, onRelicClick, artifactsOnly, dragId,
+  draggable, onPick, dim, selected, testId, onRelicClick, artifactsOnly, dragId, label,
 }: {
   creatureId: number; kind: CardKind; strength: number; caption?: string;
+  label?: string; // party members: the party-wide "#N" display name (foes keep the creature name)
   treasure?: number[]; cards: CardArt[]; state: GameState;
   draggable?: boolean; onPick?: () => void; dim?: boolean; selected?: boolean; testId?: string;
   onRelicClick?: (relic: { id: number; file: string; name: string }) => void;
@@ -45,7 +46,7 @@ export function FightCard({
           </div>
         )}
       </div>
-      <div className="scv-fc-cap"><b>{name}</b>{caption ? <span>{caption}</span> : null}</div>
+      <div className="scv-fc-cap"><b>{label ?? name}</b>{caption ? <span>{caption}</span> : null}</div>
     </div>
   );
 }

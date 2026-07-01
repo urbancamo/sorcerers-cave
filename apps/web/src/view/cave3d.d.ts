@@ -9,7 +9,7 @@ export interface ViewItem {
   artifact: boolean;
 }
 export interface ViewPartyMember {
-  sig: string; name: string; lead?: boolean;
+  sig: string; name: string; label: string; lead?: boolean;
   card: string | null; // the member's creature small-card art (used to lay petrified members in the chamber)
   items: ViewItem[];
   carry: number;  // capacity (kg)

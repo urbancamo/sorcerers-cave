@@ -1,4 +1,5 @@
 import { CREATURES, TREASURES, carriedWeight, legalActions, type GameState, type GameAction } from "@sorcerers-cave/engine";
+import { memberLabel } from "./memberLabels";
 
 // The `fight` phase is owned by the FightSurface (drag-card pairing); this panel keeps encounter + pickup.
 const ACTIVE = new Set<GameState["phase"]>(["encounter", "pickup"]);
@@ -33,12 +34,12 @@ function label(a: GameAction, state: GameState): string {
       const m = state.party[a.idx]!;
       const carried = m.treasure.length;
       // Name + carried-count so two same-creature members can be told apart when choosing.
-      return `Let ${CREATURES[m.creatureId]!.name} fall` + (carried ? ` (carrying ${carried})` : "");
+      return `Let ${memberLabel(state.party, a.idx)} fall` + (carried ? ` (carrying ${carried})` : "");
     }
     case "takeTreasure": {
       const tid = state.treasures[a.ti]!;
       const tname = TREASURES[tid]?.name ?? "treasure";
-      const member = CREATURES[state.party[a.mi]!.creatureId]!.name;
+      const member = memberLabel(state.party, a.mi);
       // The Lost Ruby (id 11) is guarded by a strength-8 statue that must be beaten to claim it (§16).
       return tid === 11
         ? `Seize the ${tname} — ${member} must defeat the guardian statue`
@@ -48,8 +49,8 @@ function label(a: GameAction, state: GameState): string {
       const tname = TREASURES[a.artifact]?.name ?? `artifact ${a.artifact}`;
       // Member-targeting revives — name the member so each option is distinct.
       if (a.target !== undefined) {
-        if (a.artifact === 6) return `${tname} — revive ${CREATURES[state.party[a.target]!.creatureId]!.name}`;
-        if (a.artifact === 9) return `${tname} — free ${CREATURES[state.party[a.target]!.creatureId]!.name} from stone`;
+        if (a.artifact === 6) return `${tname} — revive ${memberLabel(state.party, a.target)}`;
+        if (a.artifact === 9) return `${tname} — free ${memberLabel(state.party, a.target)} from stone`;
       }
       return `Use ${tname}`;
     }
@@ -82,13 +83,14 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
 
   const memberName = (mi: number) => {
     const m = state.party[mi]!, c = CREATURES[m.creatureId]!;
-    return c.carry > 0 ? `${c.name} (${carriedWeight(m)}/${c.carry}kg)` : c.name;
+    const base = memberLabel(state.party, mi); // party-wide "#N" for duplicate classes
+    return c.carry > 0 ? `${base} (${carriedWeight(m)}/${c.carry}kg)` : base;
   };
   // An artefact action's target, named: Lotus Dust (5) targets a stranger; the others a party member.
   const artTargetName = (a: Extract<GameAction, { type: "useArtifact" }>) =>
     a.target === undefined ? "the party"
       : a.artifact === 5 ? CREATURES[state.strangers[a.target]!]!.name
-      : CREATURES[state.party[a.target]!.creatureId]!.name;
+      : memberLabel(state.party, a.target);
 
   return (
     <div className="scv-enc" data-testid="encounter-panel">
