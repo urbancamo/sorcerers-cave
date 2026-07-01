@@ -7,7 +7,7 @@ import {
 import { AF_DESTROYED, type GameState, type PartyMember } from "./state";
 import type { GameEvent } from "./actions";
 import { frontStrength } from "./combat";
-import { eyeForsakenByDeath } from "./effects";
+import { eyeForsakenByDeath, ringInvincible } from "./effects";
 
 const T_TALISMAN = 7;
 const T_MAGIC_STAFF = 9;
@@ -85,7 +85,11 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
             partyRoll: ours.value, enemyRoll: theirs.value, partyTotal, enemyTotal,
             result: partyTotal > enemyTotal ? "partyWon" : enemyTotal > partyTotal ? "enemyWon" : "tie",
           });
-          if (enemyTotal > partyTotal) { m.status = 3; events.push(...eyeForsakenByDeath(state, m)); }
+          if (enemyTotal > partyTotal) {
+            // The Ring makes its bearer immune to a killing die-roll at level >= 4 (negated by the Eye) — §Ring.
+            if (ringInvincible(m, state)) events.push({ type: "deathPrevented", creatureId: m.creatureId });
+            else { m.status = 3; events.push(...eyeForsakenByDeath(state, m)); }
+          }
         }
         break;
       }

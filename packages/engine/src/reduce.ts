@@ -11,7 +11,7 @@ import type { GameAction, GameEvent } from "./actions";
 import { reactionRoll } from "./reaction";
 import { frontStrength } from "./combat";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
-import { wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath } from "./effects";
+import { wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, ringInvincible } from "./effects";
 import { rollDie } from "./rng";
 import { CREATURES } from "./data/creatures";
 
@@ -350,6 +350,11 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
           fighter.treasure.push(11);
           next.treasures.splice(action.ti, 1);
           events.push({ type: "rubyTaken" });
+        } else if (ringInvincible(fighter, next)) {
+          // The Ring shrugs off the statue's killing blow at level >= 4 (§Ring). The wrestle was still
+          // lost, so the Ruby stays in place (not spliced) and can be attempted again later.
+          events.push({ type: "deathPrevented", creatureId: fighter.creatureId });
+          events.push({ type: "statueAroused" });
         } else {
           // The wrestler is slain, but the statue does NOT stay aroused: it only ever strikes the
           // member who explicitly tries to take the Ruby — never the party on a passive re-entry.
