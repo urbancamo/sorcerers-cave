@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "f=$(jq -r '.tool_input.file_path // empty'); case \"$f\" in *packages/engine/src/*) printf '%s' '{\"hookSpecificOutput\":{\"hookEventName\":\"PostToolUse\",\"additionalContext\":\"Engine source changed (packages/engine/src). Update docs/specs/engine-spec.md to match: the affected Part I requirement(s) (statement + file:line + test refs; add a new SC-<section>-<n> row for a new rule), the Part II narrative, and Appendix B/C if behaviour or test coverage changed.\"}}' ;; esac"
+          }
+        ]
+      }
+    ]
+  }
+}
