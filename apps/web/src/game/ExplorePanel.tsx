@@ -1,8 +1,9 @@
 import {
-  CREATURES, TREASURES, legalActions,
+  TREASURES, legalActions,
   DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN,
   type GameState, type GameAction,
 } from "@sorcerers-cave/engine";
+import { memberLabel } from "./memberLabels";
 
 // Explore-phase actions that aren't movement (movement lives on the 3D exit markers / keys, and
 // the Cave exit on the up-stair marker). These need a real menu — this is it.
@@ -12,10 +13,8 @@ const DIR_NAME: Record<number, string> = {
   [DIR_N]: "north", [DIR_E]: "east", [DIR_S]: "south", [DIR_W]: "west", [DIR_UP]: "up", [DIR_DOWN]: "down",
 };
 
-const memberName = (state: GameState, target: number | undefined): string => {
-  const m = target !== undefined ? state.party[target] : undefined;
-  return m ? CREATURES[m.creatureId]!.name : "a companion";
-};
+const memberName = (state: GameState, target: number | undefined): string =>
+  target !== undefined ? memberLabel(state.party, target) : "a companion";
 
 type UseArtifact = Extract<GameAction, { type: "useArtifact" }>;
 

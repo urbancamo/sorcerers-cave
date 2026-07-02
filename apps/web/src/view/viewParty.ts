@@ -1,5 +1,6 @@
 import { CREATURES, TREASURES, FLAG_CHARISMA, type GameState } from "@sorcerers-cave/engine";
 import { resolveCard, type CardArt } from "../data/manifest";
+import { memberLabels } from "../game/memberLabels";
 import type { ViewPartyMember } from "./cave3d";
 
 const isAlive = (status: number) => status === 0 || status === 1; // original or ally (not stone/dead)
@@ -9,10 +10,14 @@ const isAlive = (status: number) => status === 0 || status === 1; // original or
  *  the fallen — remains in the engine state and the expanded party panel). Living members
  *  (status 0/1) are listed before the petrified. */
 export function viewParty(state: GameState, cards: CardArt[] = []): ViewPartyMember[] {
+  // Disambiguation numbers are assigned by the authoritative party order, then carried through the
+  // roster's own filter/sort so a member's "#N" is stable (and matches the party panel + dropdowns).
+  const labels = memberLabels(state.party);
   return state.party
-    .filter((m) => m.status !== 3)
-    .sort((a, b) => Number(isAlive(b.status)) - Number(isAlive(a.status))) // alive first; stable otherwise
-    .map((m, i) => {
+    .map((m, origIdx) => ({ m, origIdx }))
+    .filter(({ m }) => m.status !== 3)
+    .sort((a, b) => Number(isAlive(b.m.status)) - Number(isAlive(a.m.status))) // alive first; stable otherwise
+    .map(({ m, origIdx }, i) => {
     const c = CREATURES[m.creatureId]!;
     const items = m.treasure.map((tid) => {
       const t = TREASURES[tid]!;
@@ -22,7 +27,8 @@ export function viewParty(state: GameState, cards: CardArt[] = []): ViewPartyMem
     const load = m.treasure.reduce((sum, tid) => sum + TREASURES[tid]!.weight, 0);
     return {
       sig: c.name[0]!.toUpperCase(),
-      name: c.name,
+      name: c.name,               // plain creature name — kept stable for the desertion-diff (by name)
+      label: labels[origIdx]!,    // display name with a party-wide "#N" when the class is duplicated
       lead: i === 0,
       card: resolveCard("creature", m.creatureId, cards)?.file ?? null,
       items,

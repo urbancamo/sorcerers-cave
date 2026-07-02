@@ -685,7 +685,7 @@ function renderRoster(){const b=document.getElementById('rosterBody');b.innerHTM
       : '<div class="carry"><span class="empty">empty-handed</span></div>';
     const badge=m.petrified?'<span class="badge stone" title="Turned to stone — cure with a Magic Staff">stone</span>'
       :m.ally?'<span class="badge ally" title="Befriended ally">ally</span>':'';
-    row.innerHTML='<div class="sig">'+escAttr(m.sig)+'</div><div class="who"><div class="nm-line"><span class="nm">'+escAttr(m.name)+'</span>'+badge+'</div>'+cap+carryRow+'</div>';
+    row.innerHTML='<div class="sig">'+escAttr(m.sig)+'</div><div class="who"><div class="nm-line"><span class="nm">'+escAttr(m.label||m.name)+'</span>'+badge+'</div>'+cap+carryRow+'</div>';
     b.appendChild(row);});}
 let rosterAnimTimer=null;
 /** Indices in `oldP` whose members are gone from `newP` (matched greedily by name). */

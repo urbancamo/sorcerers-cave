@@ -3,6 +3,7 @@ import {
   CREATURES, TREASURES, carriedWeight, canCarry,
   type GameState, type GameAction,
 } from "@sorcerers-cave/engine";
+import { memberLabels } from "./memberLabels";
 import { loadManifest, resolveCard, resolveCardVariant, type CardArt } from "../data/manifest";
 
 // Status badges mirror the in-cave roster (see view/cave3d.js renderRoster): a befriended member
@@ -57,6 +58,8 @@ export function PartyPanel({
   party.forEach((m, i) => { const k = tally.get(m.creatureId) ?? 0; copyIdx.set(i, k); tally.set(m.creatureId, k + 1); });
   const creatureImgOf = (creatureId: number, mi: number) =>
     resolveCardVariant("creature", creatureId, copyIdx.get(mi) ?? 0, cards)?.file ?? null;
+  // Party-wide "#N" labels so duplicate classes (e.g. two Priests) read the same here as in the dropdowns.
+  const labels = memberLabels(party);
 
   return (
     <div className="scv-pp-overlay" role="dialog" aria-label="party" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
@@ -88,7 +91,7 @@ export function PartyPanel({
                   {cimg ? <img src={cimg} alt={c.name} /> : <span className="ph">{c.name}</span>}
                 </div>
                 <div className="scv-pp-name">
-                  {c.name}
+                  {labels[mi] ?? c.name}
                   {STATUS_BADGE[m.status] && (
                     <span className={"scv-pp-badge " + STATUS_BADGE[m.status]!.cls}>{STATUS_BADGE[m.status]!.label}</span>
                   )}
