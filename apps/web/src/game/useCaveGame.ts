@@ -27,6 +27,9 @@ export function useCaveGame(id: Id<"games"> | null, onResolved?: (events: GameEv
 
   const state = (game as { state?: GameState } | null | undefined)?.state ?? null;
   const color = (game as { color?: PartyColor } | null | undefined)?.color ?? DEFAULT_PARTY_COLOR;
+  // The four-letter resume code, shown in the HUD so the player can note it and resume at any time
+  // (assigned at game creation; the game is authoritatively persisted on every action — no Save needed).
+  const code = (game as { code?: string } | null | undefined)?.code ?? null;
 
   // Reconcile the adapter mirror to the authoritative snapshot DURING render, not in an
   // effect: child effects (e.g. CaveCanvas's refresh) run before this hook's effects would,
@@ -54,5 +57,5 @@ export function useCaveGame(id: Id<"games"> | null, onResolved?: (events: GameEv
   // Returns the action's result ({ state, events }) so callers can react to events
   // (e.g. animate a reaction roll); null when there is no game.
   const dispatch = (action: GameAction) => (id ? apply({ id, action }) : Promise.resolve(null));
-  return { engine: adapterRef.current, loading: !art || game === undefined, state, color, dispatch };
+  return { engine: adapterRef.current, loading: !art || game === undefined, state, color, code, dispatch };
 }

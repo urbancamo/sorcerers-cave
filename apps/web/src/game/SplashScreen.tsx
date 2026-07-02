@@ -93,7 +93,7 @@ export function SplashScreen({
         <button className="scv-primary" onClick={onStartSolitaire}>Start Solitaire Game</button>
 
         <div className="scv-resume" data-testid="resume">
-          <label className="scv-resume-label" htmlFor="scv-resume-code">Resume a saved game</label>
+          <label className="scv-resume-label" htmlFor="scv-resume-code">Resume a game</label>
           <div className="scv-resume-row">
             <input
               id="scv-resume-code"
