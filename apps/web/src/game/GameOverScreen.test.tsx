@@ -1,8 +1,13 @@
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { newGame, GS_ESCAPED, GS_DEAD, GS_QUIT, type GameState } from "@sorcerers-cave/engine";
+
+const { downloadLogMock } = vi.hoisted(() => ({ downloadLogMock: vi.fn() }));
+vi.mock("./gameLog", () => ({ downloadLog: (...a: unknown[]) => downloadLogMock(...a) }));
+
 import { GameOverScreen } from "./GameOverScreen";
 import type { LeaderboardRow } from "./HighScores";
+import type { GameLog } from "./gameLog";
 
 describe("GameOverScreen", () => {
   it("shows the escape outcome and final score", () => {
@@ -12,6 +17,22 @@ describe("GameOverScreen", () => {
     expect(screen.getByText(/escaped/i)).toBeInTheDocument();
     // Hero (10) appears as both the member's points and the grand total.
     expect(screen.getAllByText("10").length).toBeGreaterThanOrEqual(1);
+  });
+
+  it("offers .txt and .log downloads when a log is supplied, and skips them otherwise", () => {
+    const escaped: GameState = { ...newGame(1, [0]), gs: GS_ESCAPED };
+    const log = { game: { code: "ABCD", seed: 1, picks: [0], color: null, status: "finished", createdAt: 0 }, moves: [] } as GameLog;
+
+    // Without a log, no download controls.
+    const { rerender } = render(<GameOverScreen state={escaped} onNewGame={() => {}} />);
+    expect(screen.queryByTestId("download-log")).toBeNull();
+
+    // With a log, both formats are offered and delegate to downloadLog.
+    rerender(<GameOverScreen state={escaped} onNewGame={() => {}} log={log} />);
+    fireEvent.click(screen.getByRole("button", { name: /readable log \(\.txt\)/i }));
+    expect(downloadLogMock).toHaveBeenCalledWith(log, "human");
+    fireEvent.click(screen.getByRole("button", { name: /printer log \(\.log\)/i }));
+    expect(downloadLogMock).toHaveBeenCalledWith(log, "printer");
   });
 
   it("shows perished + score 0 for a dead party and fires onNewGame", () => {

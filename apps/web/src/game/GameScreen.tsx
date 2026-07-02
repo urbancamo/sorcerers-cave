@@ -20,6 +20,7 @@ import { rollFromEvents, type RollView } from "./rollView";
 import { NoticeModal } from "./NoticeModal";
 import { SaveGameModal } from "./SaveGameModal";
 import { GameLogModal } from "./GameLogModal";
+import type { GameLog } from "./gameLog";
 import { eventNotices, type Notice } from "./eventNotices";
 import { MULTIPLAYER_ENABLED } from "./featureFlags";
 import { MultiplayerSetup } from "./MultiplayerSetup";
@@ -56,6 +57,8 @@ export default function GameScreen() {
   const leaderboard = useQuery(api.highScores.list, gameOver ? {} : "skip") as
     | LeaderboardRow[]
     | undefined;
+  // The finished game's move log, for the post-game .txt / .log downloads (fetched only at game over).
+  const gameLog = useQuery(api.game.log, gameOver && gameId ? { id: gameId } : "skip") as GameLog | null | undefined;
 
   const dispatchWithRolls = useCallback(
     async (action: GameAction) => {
@@ -143,6 +146,7 @@ export default function GameScreen() {
           onNewGame={() => { setRoll(null); setNotices(null); setGameId(null); setStarted(false); }}
           onSaveScore={(name) => saveScore({ gameId, name })}
           leaderboard={leaderboard}
+          log={gameLog ?? null}
         />
         {overlay}
       </>

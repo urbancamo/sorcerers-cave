@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { scoreBreakdown, GS_ESCAPED, GS_DEAD, GS_QUIT, type GameState } from "@sorcerers-cave/engine";
 import { HighScores, type LeaderboardRow } from "./HighScores";
+import { downloadLog, type GameLog } from "./gameLog";
 
 const OUTCOME: Record<number, string> = {
   [GS_ESCAPED]: "Your party escaped the cave!",
@@ -16,6 +17,7 @@ export function GameOverScreen({
   onSaveScore,
   leaderboard,
   newGameLabel,
+  log,
 }: {
   state: GameState;
   onNewGame: () => void;
@@ -25,6 +27,8 @@ export function GameOverScreen({
   onSaveScore?: (name: string) => Promise<string | void>;
   /** Leaderboard rows for the post-save table (undefined = loading). */
   leaderboard?: LeaderboardRow[];
+  /** This game's move log, if available — enables the .txt / .log downloads. */
+  log?: GameLog | null;
 }) {
   const breakdown = scoreBreakdown(state);
   // Only a party that climbs back to the surface earns a recordable score (§Scoring). An abandoned or
@@ -133,6 +137,17 @@ export function GameOverScreen({
         <div className="scv-hs-wrap">
           <h3 className="scv-hs-heading">High Scores</h3>
           <HighScores rows={leaderboard} highlightId={savedId || undefined} />
+        </div>
+      )}
+
+      {/* Keep a copy of the game — a readable narrative (.txt) or a wide-carriage printer report (.log). */}
+      {log && (
+        <div className="scv-hs-entry" data-testid="download-log">
+          <span className="scv-hs-label">Download this game&rsquo;s log</span>
+          <div className="scv-hs-entryrow">
+            <button type="button" className="scv-primary" onClick={() => downloadLog(log, "human")}>Readable log (.txt)</button>
+            <button type="button" className="scv-primary" onClick={() => downloadLog(log, "printer")}>Printer log (.log)</button>
+          </div>
         </div>
       )}
 
