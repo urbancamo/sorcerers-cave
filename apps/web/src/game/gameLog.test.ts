@@ -23,6 +23,19 @@ function sampleLog(over: Partial<GameLog["game"]> = {}): GameLog {
   };
 }
 
+/** Drive a real game through `script` and package it as a log (as the DB would record it). */
+function drive(script: GameAction[], over: Partial<GameLog["game"]> = {}): GameLog {
+  let s = newGame(SEED, PICKS);
+  const moves: GameLog["moves"] = [];
+  let seq = 0;
+  for (const action of script) {
+    const r = reduce(s, action);
+    moves.push({ seq: seq++, action, events: r.events });
+    s = r.state;
+  }
+  return { game: { code: "ABCD", seed: SEED, picks: PICKS, color: "green", status: "finished", createdAt: 0, ...over }, moves };
+}
+
 describe("actionLabel", () => {
   it("labels the common actions readably", () => {
     expect(actionLabel({ type: "move", dir: 1 })).toBe("Move north");
@@ -155,6 +168,41 @@ describe("logReport (132-col wide-carriage line-printer report)", () => {
     const text = logReport(log);
     for (const line of text.split("\n")) expect(line.length).toBeLessThanOrEqual(132);
     expect(text).not.toMatch(/CBT HER \d+ V TRL$/m); // a CBT record is never left dangling at a line end
+  });
+});
+
+describe("score summary section", () => {
+  it("appends a readable Score breakdown, total, and 'valid final score' when the party escaped", () => {
+    const text = formatLog(drive([{ type: "exitCave" }])); // Hero exits the gateway → escaped
+    expect(text).toMatch(/── Score ──/);
+    expect(text).toMatch(/Hero — \d+/);          // the surviving Hero's creature points
+    expect(text).toMatch(/Total: \d+/);
+    expect(text).toMatch(/✓ Valid final score — the party escaped the cave \(recordable on the leaderboard\)\./);
+  });
+
+  it("marks an abandoned game as not a valid final score", () => {
+    const text = formatLog(drive([{ type: "quit" }]));
+    expect(text).toMatch(/✗ Not a valid final score — the expedition was abandoned in the cave\./);
+  });
+
+  it("shows a provisional verdict while the game is unfinished", () => {
+    const text = formatLog(drive([])); // no moves → still on the surface, game not over
+    expect(text).toMatch(/✗ Not a valid final score — the game is not yet finished\./);
+  });
+
+  it("notes the score is unavailable for a game that predates initial-condition logging", () => {
+    expect(formatLog(sampleLog({ seed: null, picks: null }))).toMatch(/Score ──\nUnavailable — this game predates/);
+    expect(logReport(sampleLog({ seed: null, picks: null }))).toMatch(/SCORE UNAVAILABLE - GAME PREDATES/);
+  });
+
+  it("appends a SCORE SUMMARY with TOTAL and STATUS to the printer report, staying ASCII/uppercase/≤132", () => {
+    const text = logReport(drive([{ type: "exitCave" }]));
+    expect(text).toMatch(/S C O R E   S U M M A R Y/);
+    expect(text).toMatch(/^TOTAL SCORE\s+\d+$/m);
+    expect(text).toMatch(/^STATUS\s+VALID FINAL SCORE - THE PARTY ESCAPED THE CAVE \(RECORDABLE\)$/m);
+    for (const line of text.split("\n")) expect(line.length).toBeLessThanOrEqual(132);
+    expect(text).toMatch(/^[\x00-\x7F]*$/); // pure ASCII (line-printer safe)
+    expect(text).not.toMatch(/[a-z]/);      // uppercase throughout
   });
 });
 

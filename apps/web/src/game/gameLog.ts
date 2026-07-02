@@ -1,7 +1,8 @@
 import {
-  CREATURES, TREASURES, replay, decodeArea,
+  CREATURES, TREASURES, replay, decodeArea, scoreBreakdown,
   SPECIAL_GATEWAY, SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_TOMB, SPECIAL_GREAT_HALL,
   HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_MUTINY, HAZARD_TRAP,
+  GS_ESCAPED, GS_DEAD, GS_QUIT,
   type GameAction, type GameEvent, type GameState,
 } from "@sorcerers-cave/engine";
 
@@ -158,6 +159,80 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
   }
 }
 
+// --- Score summary (shared by the .txt and .log downloads) ---------------------------------------
+// The final score is derived by replaying the log to its last frame and scoring that state (§Scoring),
+// so it always matches what the leaderboard would record. A total is only a *valid, recordable* score
+// when the party escaped the cave — a wiped, abandoned, or still-running game shows its tally but can
+// never be banked. Games that predate initial-condition logging can't be replayed, so no total is shown.
+
+const STATUS_WORD: Record<number, string> = { 2: "petrified", 3: "fallen" };
+
+/** Terminal game-state → the score's validity verdict (only an escaped party earns a recordable score). */
+function scoreValidity(gs: number): { valid: boolean; reason: string } {
+  switch (gs) {
+    case GS_ESCAPED: return { valid: true, reason: "the party escaped the cave" };
+    case GS_DEAD: return { valid: false, reason: "the party was wiped out" };
+    case GS_QUIT: return { valid: false, reason: "the expedition was abandoned in the cave" };
+    default: return { valid: false, reason: "the game is not yet finished" };
+  }
+}
+
+/** The readable score breakdown appended to the .txt log. */
+function scoreLinesHuman(state: GameState | null): string[] {
+  const out = ["", "── Score ──"];
+  if (!state) {
+    out.push("Unavailable — this game predates initial-condition logging and cannot be replayed.");
+    return out;
+  }
+  const b = scoreBreakdown(state);
+  for (const m of b.members) {
+    if (m.counts) out.push(`  ${m.name}${m.dragonDoubled ? " (dragon-slayer ×2)" : ""} — ${m.creaturePoints}`);
+    else out.push(`  ${m.name} (${STATUS_WORD[m.status] ?? "lost"}) — scored nothing`);
+    for (const t of m.treasures) {
+      out.push(`      ${t.name}${t.kind === "artifact" ? " (artifact)" : ""} — ${m.counts ? t.points : 0}`);
+    }
+  }
+  if (b.sorcererBonus) out.push(`  Sorcerer slain — +${b.sorcererBonus}`);
+  if (b.bonusScore) out.push(`  Treasure Chest loot — +${b.bonusScore}`);
+  if (b.cursePenalty) out.push(`  Curses — −${b.cursePenalty}`);
+  out.push(`  Total: ${b.total}`);
+  const v = scoreValidity(state.gs);
+  out.push(v.valid
+    ? `  ✓ Valid final score — ${v.reason} (recordable on the leaderboard).`
+    : `  ✗ Not a valid final score — ${v.reason}.`);
+  return out;
+}
+
+/** Left label + right value on one 132-column line, both forced to uppercase 7-bit ASCII. */
+function scoreRow(label: string, value: string): string {
+  const l = label.toUpperCase(), r = value.toUpperCase();
+  const gap = 132 - l.length - r.length;
+  return gap > 0 ? l + " ".repeat(gap) + r : `${l} ${r}`.slice(0, 132);
+}
+
+/** The 3-letter-coded score breakdown appended to the .log printer report (decoded by the KEY legend). */
+function scoreLinesPrinter(state: GameState | null): string[] {
+  const THIN = "-".repeat(132);
+  const out = [centre("S C O R E   S U M M A R Y").replace(/\s+$/, ""), THIN];
+  if (!state) {
+    out.push("SCORE UNAVAILABLE - GAME PREDATES INITIAL-CONDITION LOGGING (CANNOT REPLAY)");
+    return out;
+  }
+  const b = scoreBreakdown(state);
+  for (const m of b.members) {
+    if (m.counts) out.push(scoreRow(cr3(m.creatureId) + (m.dragonDoubled ? "  DRAGON-SLAYER X2" : ""), String(m.creaturePoints)));
+    else out.push(scoreRow(cr3(m.creatureId) + "  " + (STATUS_WORD[m.status] ?? "lost").toUpperCase(), "SCORED NOTHING"));
+    for (const t of m.treasures) out.push(scoreRow("    " + tr3(t.id) + (t.kind === "artifact" ? " ARTIFACT" : ""), String(m.counts ? t.points : 0)));
+  }
+  if (b.sorcererBonus) out.push(scoreRow("SORCERER SLAIN", "+" + b.sorcererBonus));
+  if (b.bonusScore) out.push(scoreRow("TREASURE CHEST LOOT", "+" + b.bonusScore));
+  if (b.cursePenalty) out.push(scoreRow("CURSES", "-" + b.cursePenalty));
+  out.push(THIN, scoreRow("TOTAL SCORE", String(b.total)));
+  const v = scoreValidity(state.gs);
+  out.push(scoreRow("STATUS", (v.valid ? "VALID FINAL SCORE" : "NOT A VALID SCORE") + " - " + v.reason.toUpperCase() + (v.valid ? " (RECORDABLE)" : "")));
+  return out;
+}
+
 /** Render the whole log as a human-readable text document (for the .txt download). */
 export function formatLog(log: GameLog): string {
   const { game, moves } = log;
@@ -184,6 +259,8 @@ export function formatLog(log: GameLog): string {
     lines.push(`#${m.seq + 1}  ${actionLabel(m.action, pre)}`);
     for (const ev of m.events) lines.push(`      → ${describeEvent(ev, post)}`);
   }
+  // Final score breakdown + validity (from the last replayed frame; null when the game can't be replayed).
+  lines.push(...scoreLinesHuman(frames ? frames[frames.length - 1]!.state : null));
   return lines.join("\n") + "\n";
 }
 
@@ -375,6 +452,8 @@ export function logReport(log: GameLog, printed = ""): string {
     for (let k = 1; k < ev.length; k++) out.push(" ".repeat(lead) + ev[k]!);
   }
   out.push(THIN, centre(`* * *   E N D   O F   L O G   -   ${moves.length}   M O V E S   * * *`).replace(/\s+$/, ""), THIN);
+  // Final score breakdown + validity (from the last replayed frame; null when the game can't be replayed).
+  out.push(...scoreLinesPrinter(frames ? frames[frames.length - 1]!.state : null), THIN);
   out.push(...legend(), RULE);
   return out.join("\n") + "\n";
 }

@@ -68,3 +68,21 @@ test("stats reports zeros when the log has no combat or artifact use", async () 
   expect(s?.roundsFought).toBe(0);
   expect(s?.artifactsUsed).toBe(0);
 });
+
+test("log returns a recorded score's game log (public — any viewer can download it)", async () => {
+  const t = convexTest(schema, modules);
+  const id = await seedScore(t);
+  // Public query: no identity — a leaderboard entry's log is downloadable by anyone.
+  const log = await t.query(api.highScores.log, { id });
+  expect(log?.game.status).toBe("finished");
+  expect(log?.moves.map((m) => m.seq)).toEqual([0, 1, 2, 3]); // ordered by seq
+  expect(log?.moves[0]!.action).toEqual({ type: "resolveRound" });
+  expect(log?.moves[3]!.events).toContainEqual({ type: "carpetUsed", dir: 1 });
+});
+
+test("log returns null for an unknown score id", async () => {
+  const t = convexTest(schema, modules);
+  const id = await seedScore(t);
+  await t.run(async (ctx) => ctx.db.delete(id)); // valid id shape, no longer present
+  expect(await t.query(api.highScores.log, { id })).toBeNull();
+});

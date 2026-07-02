@@ -4,6 +4,7 @@ import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { CREATURES, TREASURES, GS_ESCAPED, GS_DEAD, GS_QUIT, type PartyMember } from "@sorcerers-cave/engine";
 import { loadManifest, resolveCard, resolveCardVariant, type CardArt } from "../data/manifest";
+import { downloadLog, type GameLog } from "./gameLog";
 
 export interface LeaderboardRow {
   _id: string;
@@ -35,6 +36,9 @@ function ScoreDetail({ row, rank, onBack }: { row: LeaderboardRow; rank?: number
 
   // Expedition stats are derived on demand from the stored state + event log (see highScores.stats).
   const stats = useQuery(api.highScores.stats, { id: row._id as Id<"highScores"> });
+  // This score's full move log, for the .txt / .log downloads (same cost as `stats` — both read the
+  // game's event rows). `undefined` while loading, `null` if the game/log is gone.
+  const log = useQuery(api.highScores.log, { id: row._id as Id<"highScores"> }) as GameLog | null | undefined;
 
   const left = row.party.filter(survived);
   const artifacts = left.flatMap((m) => m.treasure).filter((t) => TREASURES[t]?.kind === "artifact").length;
@@ -107,6 +111,16 @@ function ScoreDetail({ row, rank, onBack }: { row: LeaderboardRow; rank?: number
           );
         })}
       </ul>
+      {/* Download this expedition's log — a readable narrative (.txt) or a wide-carriage printer report (.log). */}
+      {log && (
+        <div className="scv-hs-entry" data-testid="download-log">
+          <span className="scv-hs-label">Download this game&rsquo;s log</span>
+          <div className="scv-hs-entryrow">
+            <button type="button" className="scv-primary" onClick={() => downloadLog(log, "human")}>Readable log (.txt)</button>
+            <button type="button" className="scv-primary" onClick={() => downloadLog(log, "printer")}>Printer log (.log)</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

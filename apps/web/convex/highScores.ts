@@ -120,3 +120,34 @@ export const stats = query({
     };
   },
 });
+
+/**
+ * The full move log behind one recorded score, in the same shape as `game.log` (initial conditions +
+ * ordered move records). Public — a recorded high score is already published (its party, final state
+ * and derived `stats` are all visible), so its game log is downloadable too; unlike `game.log`, this
+ * is keyed by the leaderboard entry rather than owner-scoped.
+ */
+export const log = query({
+  args: { id: v.id("highScores") },
+  handler: async (ctx, { id }) => {
+    const hs = await ctx.db.get(id);
+    if (!hs) return null;
+    const game = await ctx.db.get(hs.gameId);
+    if (!game) return null;
+    const rows = await ctx.db
+      .query("gameEvents")
+      .withIndex("by_game", (q) => q.eq("gameId", hs.gameId))
+      .collect(); // index order = seq ascending
+    return {
+      game: {
+        code: game.code ?? null,
+        seed: game.seed ?? null,   // null for games created before initial conditions were persisted
+        picks: game.picks ?? null,
+        color: game.color ?? null,
+        status: game.status,
+        createdAt: game.createdAt,
+      },
+      moves: rows.map((r) => ({ seq: r.seq, action: r.action, events: r.events })),
+    };
+  },
+});

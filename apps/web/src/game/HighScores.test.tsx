@@ -2,11 +2,22 @@ import { render, screen, fireEvent, within } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GS_ESCAPED, GS_DEAD } from "@sorcerers-cave/engine";
 import { HighScores, type LeaderboardRow } from "./HighScores";
+import type { GameLog } from "./gameLog";
 
-// The detail view subscribes to highScores.stats via Convex's useQuery; mock it (no provider in unit tests).
+// The detail view subscribes to highScores.stats and highScores.log via Convex's useQuery; mock it
+// (no provider in unit tests). Stub the generated api so a test can tell the two queries apart by their
+// (string) reference.
+vi.mock("../../convex/_generated/api", () => ({
+  api: { highScores: { stats: "highScores:stats", log: "highScores:log" } },
+}));
 const { useQueryMock } = vi.hoisted(() => ({ useQueryMock: vi.fn() }));
 vi.mock("convex/react", () => ({ useQuery: (...args: unknown[]) => useQueryMock(...args) }));
-beforeEach(() => useQueryMock.mockReturnValue(undefined)); // stats still loading by default
+
+// downloadLog performs a real DOM/Blob download; stub it so the test can assert delegation instead.
+const { downloadLogMock } = vi.hoisted(() => ({ downloadLogMock: vi.fn() }));
+vi.mock("./gameLog", () => ({ downloadLog: (...a: unknown[]) => downloadLogMock(...a) }));
+
+beforeEach(() => useQueryMock.mockReturnValue(undefined)); // stats & log still loading by default
 
 const row = (over: Partial<LeaderboardRow>): LeaderboardRow => ({
   _id: "x",
@@ -88,5 +99,28 @@ describe("HighScores", () => {
     expect(within(stats).getByText(/artifacts used/i)).toBeInTheDocument();
     expect(within(stats).getByText("5")).toBeInTheDocument();
     expect(within(stats).getByText(/sorcerer/i)).toBeInTheDocument();
+  });
+
+  it("offers .txt and .log downloads of a score's game log, delegating to downloadLog", () => {
+    const log = { game: { code: "ABCD", seed: 1, picks: [0], color: null, status: "finished", createdAt: 0 }, moves: [] } as GameLog;
+    // Log resolves; stats still loading — the downloads are independent of the stats panel.
+    useQueryMock.mockImplementation((q: unknown) => (q === "highScores:log" ? log : undefined));
+    const rows = [row({ _id: "a", name: "Alice", party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }] })];
+    render(<HighScores rows={rows} />);
+    fireEvent.click(screen.getByText("Alice"));
+
+    const dl = screen.getByTestId("download-log");
+    fireEvent.click(within(dl).getByRole("button", { name: /readable log \(\.txt\)/i }));
+    expect(downloadLogMock).toHaveBeenCalledWith(log, "human");
+    fireEvent.click(within(dl).getByRole("button", { name: /printer log \(\.log\)/i }));
+    expect(downloadLogMock).toHaveBeenCalledWith(log, "printer");
+  });
+
+  it("omits the log downloads until the log query resolves", () => {
+    useQueryMock.mockReturnValue(undefined); // both stats and log still loading
+    const rows = [row({ _id: "a", name: "Alice", party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }] })];
+    render(<HighScores rows={rows} />);
+    fireEvent.click(screen.getByText("Alice"));
+    expect(screen.queryByTestId("download-log")).toBeNull();
   });
 });
