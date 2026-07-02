@@ -49,7 +49,7 @@ export default function GameScreen() {
     const view = rollFromEvents(events);
     if (view) setRoll(view);
   }, []);
-  const { engine, loading, state, color, dispatch } = useCaveGame(gameId, onMoveResolved);
+  const { engine, loading, state, color, code, dispatch } = useCaveGame(gameId, onMoveResolved);
   const cards = useManifestCards();
   // Leaderboard for the post-game screen; only subscribed once a game has ended.
   const gameOver = !!state && state.gs !== GS_PLAYING;
@@ -151,7 +151,7 @@ export default function GameScreen() {
 
   return (
     <div className="relative h-screen w-screen">
-      <CaveCanvas key={gameId} engine={engine} state={state} color={color} onPartyClick={() => setShowParty(true)} onSave={handleSave} onLog={() => setShowLog(true)} />
+      <CaveCanvas key={gameId} engine={engine} state={state} color={color} code={code ?? undefined} onPartyClick={() => setShowParty(true)} onSave={handleSave} onLog={() => setShowLog(true)} />
       <EncounterPanel state={state} dispatch={dispatchWithRolls} />
       {state.phase === "fight" && cards && <FightSurface state={state} dispatch={dispatchWithRolls} cards={cards} />}
       <ExplorePanel state={state} dispatch={dispatchWithRolls} />

@@ -7,7 +7,7 @@ import "./cave.css";
  * discovery overlay (`reveal.js`) is preserved verbatim. The `#scene` div
  * receives the React container ref so `boot` can append its WebGL canvas there.
  */
-export function CaveHud({ mountRef, onPartyClick, onSave, onLog, turnLabel, turnColor, curses }: { mountRef: RefObject<HTMLDivElement | null>; onPartyClick?: () => void; onSave?: () => void; onLog?: () => void; turnLabel?: string; turnColor?: string; curses?: number }) {
+export function CaveHud({ mountRef, onPartyClick, onSave, onLog, code, turnLabel, turnColor, curses }: { mountRef: RefObject<HTMLDivElement | null>; onPartyClick?: () => void; onSave?: () => void; onLog?: () => void; code?: string; turnLabel?: string; turnColor?: string; curses?: number }) {
   return (
     <>
       <div id="bg"></div>
@@ -24,6 +24,12 @@ export function CaveHud({ mountRef, onPartyClick, onSave, onLog, turnLabel, turn
           </div>
 
           <div className="stats">
+            {code && (
+              <div className="chip scv-codechip" title="Your game code — note it down to resume this game at any time">
+                <span className="k">Code</span>
+                <span className="v scv-code">{code}</span>
+              </div>
+            )}
             {turnLabel && (
               <div className="chip scv-turnchip" title="Whose turn it is now">
                 <span className="k">Now</span>

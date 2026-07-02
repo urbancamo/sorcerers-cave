@@ -19,3 +19,16 @@ describe("CaveHud — game-log button", () => {
     expect(screen.queryByRole("button", { name: /game log/i })).toBeNull();
   });
 });
+
+describe("CaveHud — game code chip", () => {
+  it("shows the CODE box with the game's resume code when provided", () => {
+    render(<CaveHud mountRef={ref()} code="ABCD" />);
+    expect(screen.getByText("Code")).toBeInTheDocument();
+    expect(screen.getByText("ABCD")).toBeInTheDocument();
+  });
+
+  it("hides the CODE box when no code is given", () => {
+    render(<CaveHud mountRef={ref()} />);
+    expect(screen.queryByText("Code")).toBeNull();
+  });
+});
