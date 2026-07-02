@@ -9,6 +9,11 @@ export default defineSchema({
     // Short, human-typable resume handle: four uppercase letters, unique across games. Optional so
     // games created before this feature still validate; every new game is allocated one.
     code: v.optional(v.string()),
+    // Initial conditions of the game. With the gameEvents action log, `seed` + `picks` let the engine's
+    // replay() reconstruct the whole game from scratch (move-by-move). Optional so rows created before
+    // this feature still validate — their downloaded log notes the initial conditions are unavailable.
+    seed: v.optional(v.number()),
+    picks: v.optional(v.array(v.number())),
     state: v.any(), // serialized engine GameState (engine owns the shape; Milestone B)
     status: v.union(v.literal("active"), v.literal("finished")),
     // party marker colour (optional for games created before colours existed); multiplayer will

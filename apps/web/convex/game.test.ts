@@ -43,7 +43,7 @@ test("newGame rejects an illegal party selection", async () => {
 // ---------------------------------------------------------------------------
 // Task 2: applyAction round-trip + query authority
 // ---------------------------------------------------------------------------
-import { reduce } from "@sorcerers-cave/engine";
+import { reduce, replay } from "@sorcerers-cave/engine";
 // `asUser` and `createGameState` are defined above (Task 1).
 
 test("applyAction matches the local engine and logs the event", async () => {
@@ -170,4 +170,47 @@ test("resumeByCode returns null for an unknown code", async () => {
   const t = convexTest(schema, modules);
   const { as } = await asUser(t);
   expect(await as.mutation(api.game.resumeByCode, { code: "ZZZZ" })).toBeNull();
+});
+
+// ---------------------------------------------------------------------------
+// game-move-log: initial conditions persisted + downloadable move log
+// ---------------------------------------------------------------------------
+
+test("newGame persists the seed and picks so the game can be replayed from scratch", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 123, picks: [6, 4] }); // Woman + Priest
+  const game = await as.query(api.game.get, { id });
+  expect(game?.seed).toBe(123);
+  expect(game?.picks).toEqual([6, 4]);
+});
+
+test("log returns the game's initial conditions and its ordered, self-contained move records", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 7, picks: [0] });
+  await as.mutation(api.game.applyAction, { id, action: { type: "move", dir: 1 } }); // North — logged
+  await as.mutation(api.game.applyAction, { id, action: { type: "attack" } });        // illegal → blocked, NOT logged
+
+  const log = await as.query(api.game.log, { id });
+  expect(log?.game.seed).toBe(7);
+  expect(log?.game.picks).toEqual([0]);
+  expect(log?.game.code).toBeTruthy();
+  expect(log?.moves.length).toBe(1);                                  // only the non-blocked move
+  expect(log?.moves[0]!.seq).toBe(0);
+  expect(log?.moves[0]!.action).toEqual({ type: "move", dir: 1 });
+  expect(Array.isArray(log?.moves[0]!.events)).toBe(true);
+
+  // The log is self-contained: seed + picks + actions replay to the authoritative state.
+  const frames = replay(7, [0], log!.moves.map((m) => m.action));
+  const game = await as.query(api.game.get, { id });
+  expect(frames[frames.length - 1]!.state).toEqual(game?.state);
+});
+
+test("log is owner-scoped (IDOR guard)", async () => {
+  const t = convexTest(schema, modules);
+  const owner = await asUser(t);
+  const id = await owner.as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+  const intruder = await asUser(t);
+  expect(await intruder.as.query(api.game.log, { id })).toBeNull();
 });

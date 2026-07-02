@@ -58,7 +58,9 @@ export const newGame = mutation({
     const state = createGameState(seed, picks);
     const now = Date.now();
     const code = await uniqueCode(ctx);
-    return await ctx.db.insert("games", { ownerId, code, state, status: "active", color, createdAt: now, updatedAt: now });
+    // Persist the initial conditions (seed + picks) alongside the state so the full game is replayable
+    // from scratch via the engine's replay() over the gameEvents action log.
+    return await ctx.db.insert("games", { ownerId, code, seed, picks, state, status: "active", color, createdAt: now, updatedAt: now });
   },
 });
 
@@ -129,6 +131,34 @@ export const get = query({
     const game = await ctx.db.get(id);
     if (!game || game.ownerId !== callerId) return null; // owner-scoped (IDOR guard)
     return game;
+  },
+});
+
+/** The full move log for one of YOUR games: the initial conditions (`seed` + `picks`) plus every
+ *  recorded action and its consequences (events), in `seq` order. This is self-contained — feeding
+ *  `replay(seed, picks, moves.map(m => m.action))` reconstructs the game move-by-move, forwards and
+ *  backwards. Owner-scoped (IDOR guard); returns null for a non-owner or unknown game. */
+export const log = query({
+  args: { id: v.id("games") },
+  handler: async (ctx, { id }) => {
+    const callerId = await getAuthUserId(ctx);
+    const game = await ctx.db.get(id);
+    if (!game || game.ownerId !== callerId) return null; // owner-scoped (IDOR guard)
+    const rows = await ctx.db
+      .query("gameEvents")
+      .withIndex("by_game", (q) => q.eq("gameId", id))
+      .collect(); // index order = seq ascending
+    return {
+      game: {
+        code: game.code ?? null,
+        seed: game.seed ?? null,   // null for games created before initial conditions were persisted
+        picks: game.picks ?? null,
+        color: game.color ?? null,
+        status: game.status,
+        createdAt: game.createdAt,
+      },
+      moves: rows.map((r) => ({ seq: r.seq, action: r.action, events: r.events })),
+    };
   },
 });
 
