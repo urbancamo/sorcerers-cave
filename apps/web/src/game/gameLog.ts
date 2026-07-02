@@ -1,4 +1,8 @@
-import { CREATURES, TREASURES, replay, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
+import {
+  CREATURES, TREASURES, replay, decodeArea,
+  SPECIAL_GATEWAY, SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_TOMB, SPECIAL_GREAT_HALL,
+  type GameAction, type GameEvent, type GameState,
+} from "@sorcerers-cave/engine";
 
 /** The shape returned by the `game.log` Convex query: initial conditions + the ordered move records.
  *  Self-contained — `replay(game.seed, game.picks, moves.map(m => m.action))` rebuilds the whole game. */
@@ -68,11 +72,35 @@ export function actionLabel(a: GameAction, state?: GameState | null): string {
   }
 }
 
+const SPECIAL_NAME: Record<number, string> = {
+  [SPECIAL_GATEWAY]: "the Gateway",
+  [SPECIAL_DEEP_POOL]: "Deep Pool",
+  [SPECIAL_VIPER_PIT]: "Viper Pit",
+  [SPECIAL_TOMB]: "Tomb of Kings",
+  [SPECIAL_GREAT_HALL]: "Great Hall",
+};
+
+/** Human description of a tile's type and layout from its card value: kind (special / chamber / tunnel),
+ *  exits (N E S W), and any staircases — e.g. "chamber · exits N E S W · stair down". */
+export function describeTile(card: number): string {
+  const d = decodeArea(card);
+  const parts = [SPECIAL_NAME[d.special] ?? (d.chamber ? "chamber" : "tunnel")];
+  const exits = [d.n && "N", d.e && "E", d.s && "S", d.w && "W"].filter(Boolean).join(" ");
+  parts.push(exits ? `exits ${exits}` : "no exits");
+  const stairs = [d.stairUp && "up", d.stairDown && "down"].filter(Boolean).join(" & ");
+  if (stairs) parts.push(`stair ${stairs}`);
+  return parts.join(" · ");
+}
+
 /** A short human description of one game event. Every event type is covered; anything unmapped falls
- *  back to its raw `type` so the log never silently drops a consequence (it is a debugging record). */
-export function describeEvent(e: GameEvent): string {
+ *  back to its raw `type` so the log never silently drops a consequence (it is a debugging record).
+ *  `state` is the state AFTER the event's action — used to describe the tile a `moved` event landed on. */
+export function describeEvent(e: GameEvent, state?: GameState | null): string {
   switch (e.type) {
-    case "moved": return `moved to area ${e.area} (level ${e.level})`;
+    case "moved": {
+      const card = state?.areas[e.area]?.card;
+      return `moved to area ${e.area} (level ${e.level})` + (card != null ? ` — ${describeTile(card)}` : "");
+    }
     case "deadEnd": return `dead end to the ${dir(e.dir)} — bounced back`;
     case "blocked": return "action blocked (no effect)";
     case "planRejected": return `battle plan rejected (${e.reason})`;
@@ -150,8 +178,10 @@ export function formatLog(log: GameLog): string {
     : null;
   for (let i = 0; i < moves.length; i++) {
     const m = moves[i]!;
-    lines.push(`#${m.seq + 1}  ${actionLabel(m.action, frames?.[i]?.state ?? null)}`);
-    for (const ev of m.events) lines.push(`      → ${describeEvent(ev)}`);
+    const pre = frames?.[i]?.state ?? null;   // state BEFORE the action (names its treasure/member indices)
+    const post = frames?.[i + 1]?.state ?? null; // state AFTER the action (describes the tile a move landed on)
+    lines.push(`#${m.seq + 1}  ${actionLabel(m.action, pre)}`);
+    for (const ev of m.events) lines.push(`      → ${describeEvent(ev, post)}`);
   }
   return lines.join("\n") + "\n";
 }

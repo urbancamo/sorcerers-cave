@@ -57,6 +57,22 @@ describe("describeEvent", () => {
     // Unknown event type → raw fallback (nothing is silently dropped).
     expect(describeEvent({ type: "somethingNew" } as unknown as GameEvent)).toBe("somethingNew");
   });
+
+  it("appends the tile type + layout (exits, stairs, special) to a moved event when the state is given", () => {
+    // 31 = NSEW chamber (all four exits, no stairs, not special).
+    const chamber = { areas: [{ card: 31 }] } as unknown as GameState;
+    expect(describeEvent({ type: "moved", area: 0, level: 1 }, chamber)).toBe("moved to area 0 (level 1) — chamber · exits N E S W");
+    // 175 = the Gateway: NSEW + stair up + special.
+    const gateway = { areas: [{ card: 175 }] } as unknown as GameState;
+    expect(describeEvent({ type: "moved", area: 0, level: 1 }, gateway)).toBe("moved to area 0 (level 1) — the Gateway · exits N E S W · stair up");
+    // 71 = NESD tunnel (N,E,S doors + stair down, no chamber bit).
+    const tunnel = { areas: [{ card: 71 }] } as unknown as GameState;
+    expect(describeEvent({ type: "moved", area: 0, level: 2 }, tunnel)).toBe("moved to area 0 (level 2) — tunnel · exits N E S · stair down");
+  });
+
+  it("omits tile info when no state is available (a game that predates logging)", () => {
+    expect(describeEvent({ type: "moved", area: 0, level: 1 })).toBe("moved to area 0 (level 1)");
+  });
 });
 
 describe("formatLog", () => {
@@ -67,7 +83,8 @@ describe("formatLog", () => {
     expect(text).toMatch(/Seed: 7/);
     expect(text).toMatch(/Party: Hero/);
     expect(text).toMatch(/#1\s+Move north/);
-    expect(text).toMatch(/→ moved to area/);
+    // The moved line carries the tile's type and layout (kind · exits [· stair …]).
+    expect(text).toMatch(/→ moved to area \d+ \(level 1\) — (chamber|tunnel|the Gateway|Deep Pool|Viper Pit|Tomb of Kings|Great Hall) · exits [NESW ]/);
   });
 
   it("names a picked-up treasure in the log by reconstructing the pre-move state", () => {
