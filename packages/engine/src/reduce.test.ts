@@ -28,6 +28,18 @@ describe("reduce (spec §4 turn dispatch)", () => {
     expect(events).toContainEqual({ type: "blocked" });
   });
 
+  it("a stair-up card DRAWN onto level 1 is a valid cave exit (not just the Gateway)", () => {
+    // Rule: "any stairway leading up from the first level is an exit from the Cave." Move north off the
+    // Gateway onto a freshly-drawn NESU card (39) — its stair-up survives, so the party can exit there.
+    const s = makeState({ largePack: [39], largeIdx: 0, turn: 1 });
+    const moved = reduce(s, { type: "move", dir: DIR_N }).state; // draws card 39 onto level 1
+    expect(moved.level).toBe(1);
+    expect(legalActions(moved)).toContainEqual({ type: "exitCave" });
+    const { state, events } = reduce(moved, { type: "exitCave" });
+    expect(state.gs).toBe(GS_ESCAPED);
+    expect(events).toContainEqual({ type: "gameOver", gs: GS_ESCAPED });
+  });
+
   it("a successful move increments the turn and emits moved + drewChamber", () => {
     // Draw 31 (NSEWC, a chamber) moving South from the Gateway.
     const s = makeState({ largePack: [31], largeIdx: 0, turn: 1 });

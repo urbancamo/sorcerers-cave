@@ -90,7 +90,10 @@ export function tryMove(state: GameState, dir: number): MoveResult {
   if (next.largeIdx >= next.largePack.length) return { state, moved: false, deadEnd: false };
   let drawn = next.largePack[next.largeIdx]!;
   next.largeIdx += 1;
-  if (targetLevel === 1) drawn = drawn & ~STAIR_UP_BIT; // only the Gateway exits level 1
+  // A printed stair-up on a level-1 card is a *cave exit*, not a stair to a level above (§ level-1 exits:
+  // "any stairway leading up from the first level is an exit from the Cave"). It is kept — exiting is the
+  // `exitCave` action (a DIR_UP move stays blocked on level 1), so several cards, not only the Gateway,
+  // can let a party escape. Without this a party whose Gateway is destroyed can be trapped forever.
   const connects = dir === DIR_UP || dir === DIR_DOWN || hasReverseDoor(decodeArea(drawn), dir);
 
   if (connects) {

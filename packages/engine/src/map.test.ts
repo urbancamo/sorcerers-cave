@@ -118,13 +118,14 @@ describe("tryMove (spec §6)", () => {
     expect(r.state.areas[1]!.mirroredStairs ?? 0).toBe(0); // printed stair renders normally
   });
 
-  it("suppresses a stair-up on a freshly drawn level-1 card", () => {
-    // Card 39 = NESU: it has a South door (so it connects when we move North) AND a
-    // stair-up (which must be suppressed because the destination is on level 1).
+  it("keeps a stair-up on a freshly drawn level-1 card (it is a cave exit)", () => {
+    // Card 39 = NESU: it has a South door (so it connects when we move North) AND a stair-up.
+    // Per the rules — "any stairway leading up from the first level is an exit from the Cave" — that
+    // stair-up MUST survive on level 1, so the party isn't trapped if the Gateway is destroyed.
     const s = makeState({ largePack: [39], largeIdx: 0 });
     const r = tryMove(s, DIR_N); // target is level 1
     expect(r.moved).toBe(true);
-    expect(decodeArea(r.state.areas[1]!.card).stairUp).toBe(false);
+    expect(decodeArea(r.state.areas[1]!.card).stairUp).toBe(true);
   });
 
   it("returns false when the large pack is exhausted", () => {
