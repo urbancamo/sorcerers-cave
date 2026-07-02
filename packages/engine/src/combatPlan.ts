@@ -80,10 +80,16 @@ export function validatePlan(state: GameState, plan: BattlePlan): { ok: true } |
     }
   }
 
-  // Engage-all: every engageable stranger must be engaged unless every living fighter is already committed.
-  const allCommitted = state.party.every((_, i) => !living(state, i) || usedParty.has(i));
-  const unengagedEngageable = state.strangers.some((_, s) => !usedStranger.has(s) && engageable(state, s));
-  if (unengagedEngageable && !allCommitted) return { ok: false, reason: "mustEngageAll" };
+  // Engage-all: you must engage every stranger that a still-free, CAPABLE fighter could fight. A Spectre
+  // needs a free caster or sword-bearer; any other foe, any free fighter. This is deliberately narrower
+  // than "every engageable stranger": if the only caster is already committed, a second Spectre may be
+  // left un-engaged — otherwise two Spectres against a lone caster would deadlock, since no plan engages
+  // both and retreat is blocked in round 1 (§Spectre, §FIGHTS).
+  const canFightWithFree = (s: number) =>
+    state.party.some((m, i) => living(state, i) && !usedParty.has(i) &&
+      (state.strangers[s] !== C_SPECTRE || casterMP(m, state) > 0 || canSwordSpectre(state, m)));
+  const unengagedFightable = state.strangers.some((_, s) => !usedStranger.has(s) && canFightWithFree(s));
+  if (unengagedFightable) return { ok: false, reason: "mustEngageAll" };
 
   return { ok: true };
 }

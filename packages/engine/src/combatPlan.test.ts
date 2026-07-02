@@ -75,6 +75,17 @@ describe("validatePlan (§FIGHTS pairing rules)", () => {
     const s = fightS({ party: [member(0), member(2), member(7)], strangers: [3] });
     expect(ok(s, { matches: [{ front: [0], backers: [], strangers: [0] }] })).toBe(true);
   });
+  it("lets the sole caster fight ONE Spectre and leave a second un-fightable one (no deadlock)", () => {
+    // Wizard + Man vs two Spectres: the Wizard engages one; only the Man is left, and a Man cannot fight
+    // a Spectre. Demanding both be engaged would be impossible AND retreat is blocked in round 1 — a hard
+    // lock. So leaving the second Spectre to a still-free but incapable fighter is a legal plan.
+    const s = fightS({ party: [member(8), member(5)], strangers: [9, 9] });
+    expect(ok(s, { matches: [{ front: [0], backers: [], strangers: [0] }] })).toBe(true);
+  });
+  it("still requires engaging a second Spectre when a second caster is free to fight it", () => {
+    const s = fightS({ party: [member(8), member(8)], strangers: [9, 9] }); // two Wizards vs two Spectres
+    expect(reason(s, { matches: [{ front: [0], backers: [], strangers: [0] }] })).toBe("mustEngageAll");
+  });
 });
 
 describe("resolvePlannedRound (§A Round of Fighting)", () => {
