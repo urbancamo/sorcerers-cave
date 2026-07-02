@@ -19,6 +19,7 @@ import { DiceRoll } from "./DiceRoll";
 import { rollFromEvents, type RollView } from "./rollView";
 import { NoticeModal } from "./NoticeModal";
 import { SaveGameModal } from "./SaveGameModal";
+import { GameLogModal } from "./GameLogModal";
 import { eventNotices, type Notice } from "./eventNotices";
 import { MULTIPLAYER_ENABLED } from "./featureFlags";
 import { MultiplayerSetup } from "./MultiplayerSetup";
@@ -35,6 +36,7 @@ export default function GameScreen() {
   const [started, setStarted] = useState(false); // dismissed the splash
   const [showParty, setShowParty] = useState(false); // expanded party panel
   const [savedCode, setSavedCode] = useState<string | null>(null); // shows the save modal when set
+  const [showLog, setShowLog] = useState(false); // shows the game-log download modal when true
   // Multiplayer flow (behind the production-off feature flag): create/join setup → reactive lobby.
   const [mp, setMp] = useState<{ view: "create" | "join" } | { view: "lobby"; code: string } | null>(null);
   // The dice overlay lives here (not in EncounterPanel) so a fatal round's roll
@@ -149,7 +151,7 @@ export default function GameScreen() {
 
   return (
     <div className="relative h-screen w-screen">
-      <CaveCanvas key={gameId} engine={engine} state={state} color={color} onPartyClick={() => setShowParty(true)} onSave={handleSave} />
+      <CaveCanvas key={gameId} engine={engine} state={state} color={color} onPartyClick={() => setShowParty(true)} onSave={handleSave} onLog={() => setShowLog(true)} />
       <EncounterPanel state={state} dispatch={dispatchWithRolls} />
       {state.phase === "fight" && cards && <FightSurface state={state} dispatch={dispatchWithRolls} cards={cards} />}
       <ExplorePanel state={state} dispatch={dispatchWithRolls} />
@@ -157,6 +159,7 @@ export default function GameScreen() {
       {overlay}
       {notices && <NoticeModal notices={notices} onClose={() => setNotices(null)} />}
       {savedCode && <SaveGameModal code={savedCode} onClose={goHome} />}
+      {showLog && <GameLogModal gameId={gameId} onClose={() => setShowLog(false)} />}
     </div>
   );
 }

@@ -7,7 +7,7 @@ import "./cave.css";
  * discovery overlay (`reveal.js`) is preserved verbatim. The `#scene` div
  * receives the React container ref so `boot` can append its WebGL canvas there.
  */
-export function CaveHud({ mountRef, onPartyClick, onSave, turnLabel, turnColor, curses }: { mountRef: RefObject<HTMLDivElement | null>; onPartyClick?: () => void; onSave?: () => void; turnLabel?: string; turnColor?: string; curses?: number }) {
+export function CaveHud({ mountRef, onPartyClick, onSave, onLog, turnLabel, turnColor, curses }: { mountRef: RefObject<HTMLDivElement | null>; onPartyClick?: () => void; onSave?: () => void; onLog?: () => void; turnLabel?: string; turnColor?: string; curses?: number }) {
   return (
     <>
       <div id="bg"></div>
@@ -151,6 +151,23 @@ export function CaveHud({ mountRef, onPartyClick, onSave, turnLabel, turnColor, 
                   <path d="M7 3v5h8" />
                 </svg>
                 <span className="btn-tx">Save &amp; exit</span>
+              </button>
+            )}
+            {onLog && (
+              <button className="btn" onClick={onLog} title="Game log — download for debugging or replay" aria-label="Game log">
+                <svg
+                  className="ic"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path d="M4 4h11l5 5v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V5a1 1 0 0 1 1-1z" />
+                  <path d="M9 8h2" />
+                  <path d="M8 12h8" />
+                  <path d="M8 16h8" />
+                </svg>
+                <span className="btn-tx">Log</span>
               </button>
             )}
             <button className="btn" id="resetBtn" title="Quit" aria-label="Quit">
