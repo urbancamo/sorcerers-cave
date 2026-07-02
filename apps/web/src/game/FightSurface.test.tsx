@@ -47,6 +47,23 @@ describe("FightSurface", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "resolveRound", matches: [] });
   });
 
+  it("still offers 'Face the Spectre' after a fighter is (illegally) placed on the un-fightable Spectre", () => {
+    // Reproduces the soft-lock: a lone Man vs a single Spectre in round 1 (no retreat yet). The player
+    // drags the Man onto the Spectre — an illegal plan (spectreNeedsMagic) — and must NOT get stuck: the
+    // forced-Spectre escape stays available and resolves with an empty plan.
+    const dispatch = vi.fn();
+    const s: GameState = { ...newGame(1, [5]), phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, strangers: [9] };
+    render(<FightSurface state={s} dispatch={dispatch} cards={cards} />);
+    fireEvent.click(screen.getByTestId("tray-0"));   // pick the Man
+    fireEvent.click(screen.getByTestId("front-0"));  // place him on the Spectre (illegal)
+    // The dead-end error must NOT be shown, and the escape button stays enabled.
+    expect(screen.queryByText(/only be fought with magic/i)).not.toBeInTheDocument();
+    const face = screen.getByRole("button", { name: /face the spectre/i });
+    expect(face).not.toBeDisabled();
+    fireEvent.click(face);
+    expect(dispatch).toHaveBeenCalledWith({ type: "resolveRound", matches: [] }); // resolves empty, not the illegal plan
+  });
+
   it("shows the casualty chooser when a casualty is queued", () => {
     const dispatch = vi.fn();
     const s = fightState({ fight: { surprise: 0, round: 2, focus: 0, casualtyQueue: [[0, 1]] } });

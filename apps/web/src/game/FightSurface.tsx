@@ -77,11 +77,18 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
   // magic (and only reduces the Sorcerer), so a stranger Wizard reads 2, not 7, while the Eye is held.
   const enemyStrOf = (si: number) => CREATURES[state.strangers[si]!]!.fs + enemyMP(state, state.strangers[si]!);
   const enemyMpOf = (si: number) => enemyMP(state, state.strangers[si]!);
-  const reason = valid.ok ? null : (REASON[valid.reason] ?? "That pairing isn't legal yet.");
-  // Forced no-magic-vs-Spectre round (§Spectre): the only foe left is an un-fightable Spectre and no one
-  // wields magic, so the plan is empty-but-valid. The round must be fought and the strongest member is
-  // automatically slain — warn the player and name who falls so the outcome isn't a mystery.
-  const forcedSpectre = valid.ok && matches.length === 0 && livingIdx.length > 0;
+  // Forced no-magic-vs-Spectre round (§Spectre): every remaining foe is an un-fightable Spectre and no one
+  // wields magic, so the ONLY legal plan is the empty one. This is a property of the STATE, not the current
+  // draft — derive it from an empty-plan check so a player who *tries* to place a fighter (and hits
+  // spectreNeedsMagic) still gets the escape instead of a disabled button + dead-end message. Without this
+  // the fight soft-locks: no legal placement, and round-1 retreat is not yet allowed (§Retreat).
+  const forcedSpectre = livingIdx.length > 0 && state.strangers.length > 0 && validatePlan(state, { matches: [] }).ok;
+  // The round can be rolled when the plan is legal, or when it's a forced-Spectre round (fought empty,
+  // ignoring any illegal placement). Suppress the pairing error in the forced case — the doom note explains.
+  const canResolve = valid.ok || forcedSpectre;
+  const resolveMatches = forcedSpectre ? [] : matches;
+  const reason = valid.ok || forcedSpectre ? null : (REASON[valid.reason] ?? "That pairing isn't legal yet.");
+  // The strongest member is automatically slain in a forced-Spectre round — name who falls so it isn't a mystery.
   const doomedIdx = forcedSpectre
     ? livingIdx.reduce((best, i) => (frontStrength(state.party[i]!, state) > frontStrength(state.party[best]!, state) ? i : best), livingIdx[0]!)
     : null;
@@ -243,7 +250,7 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
       )}
 
       <div className="scv-fight-actions">
-        <button className="scv-fight-btn primary" disabled={!valid.ok} onClick={() => dispatch({ type: "resolveRound", matches })}>
+        <button className="scv-fight-btn primary" disabled={!canResolve} onClick={() => dispatch({ type: "resolveRound", matches: resolveMatches })}>
           {forcedSpectre ? "Face the Spectre — lose your strongest ☠" : "Roll the round ⚔"}
         </button>
         {retreats.length > 0 && (
