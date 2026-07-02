@@ -1,4 +1,4 @@
-import { CREATURES, TREASURES, type GameAction, type GameEvent } from "@sorcerers-cave/engine";
+import { CREATURES, TREASURES, replay, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
 
 /** The shape returned by the `game.log` Convex query: initial conditions + the ordered move records.
  *  Self-contained — `replay(game.seed, game.picks, moves.map(m => m.action))` rebuilds the whole game. */
@@ -21,8 +21,26 @@ const dir = (d: number) => DIR_WORD[d] ?? `dir ${d}`;
 const creature = (id: number) => CREATURES[id]?.name ?? `creature ${id}`;
 const treasure = (id: number) => TREASURES[id]?.name ?? `treasure ${id}`;
 
-/** A short human label for one player action. */
-export function actionLabel(a: GameAction): string {
+/** Name the strangers vs fighters in a fight round, using the state the round was fought from. */
+function matchups(matches: readonly { front: number[]; backers: number[]; strangers: number[] }[], state: GameState | null): string {
+  if (!state) return `${matches.length} matchup${matches.length === 1 ? "" : "s"}`;
+  return matches
+    .map((m) => {
+      const ours = [...m.front, ...m.backers].map((i) => (state.party[i] ? creature(state.party[i]!.creatureId) : `#${i}`)).join(", ");
+      const foes = m.strangers.map((s) => (state.strangers[s] != null ? creature(state.strangers[s]!) : `#${s}`)).join(", ");
+      return `${ours || "—"} vs ${foes || "—"}`;
+    })
+    .join("; ");
+}
+
+/** A short human label for one player action. When the state the action was applied to is supplied,
+ *  index-based references (a treasure slot, a party member) are resolved to their actual type name —
+ *  "Take Gold → Hero" rather than "Take item #0 → member #1". */
+export function actionLabel(a: GameAction, state?: GameState | null): string {
+  const s = state ?? null;
+  const member = (i: number) => (s?.party[i] ? creature(s.party[i]!.creatureId) : `member #${i}`);
+  const held = (mi: number, idx: number) => { const t = s?.party[mi]?.treasure[idx]; return t != null ? treasure(t) : `item #${idx}`; };
+  const inChamber = (ti: number) => { const t = s?.treasures[ti]; return t != null ? treasure(t) : `item #${ti}`; };
   switch (a.type) {
     case "move": return `Move ${dir(a.dir)}`;
     case "retreat": return `Retreat ${dir(a.dir)}`;
@@ -31,14 +49,20 @@ export function actionLabel(a: GameAction): string {
     case "withdraw": return "Withdraw from the chamber";
     case "test": return "Test the strangers' reaction";
     case "attack": return "Attack the strangers";
-    case "resolveRound": return `Resolve a fight round (${a.matches.length} matchup${a.matches.length === 1 ? "" : "s"})`;
-    case "chooseCasualty": return `Choose the casualty (member #${a.idx})`;
-    case "takeTreasure": return `Take ${'ti' in a ? "treasure" : ""} (item #${a.ti} → member #${a.mi})`;
+    case "resolveRound": return `Resolve a fight round: ${matchups(a.matches, s)}`;
+    case "chooseCasualty": return `Let ${member(a.idx)} fall`;
+    case "takeTreasure": return `Take ${inChamber(a.ti)} → ${member(a.mi)}`;
     case "leaveTreasure": return "Leave the treasure";
     case "retakeDropped": return "Retake dropped treasure";
-    case "moveTreasure": return `Move treasure (member #${a.from} → #${a.to}, item #${a.idx})`;
-    case "dropTreasure": return `Drop treasure (member #${a.mi}, item #${a.idx})`;
-    case "useArtifact": return `Use ${treasure(a.artifact)}` + (a.target !== undefined ? ` on #${a.target}` : "") + (a.dir !== undefined ? ` (${dir(a.dir)})` : "");
+    case "moveTreasure": return `Give ${held(a.from, a.idx)} from ${member(a.from)} to ${member(a.to)}`;
+    case "dropTreasure": return `Drop ${held(a.mi, a.idx)} (${member(a.mi)})`;
+    case "useArtifact": {
+      // Lotus Dust (5) targets a stranger; every other artefact targets a party member.
+      const target = a.target === undefined ? ""
+        : a.artifact === 5 ? ` on ${s?.strangers[a.target] != null ? creature(s.strangers[a.target]!) : `#${a.target}`}`
+        : ` on ${member(a.target)}`;
+      return `Use ${treasure(a.artifact)}${target}` + (a.dir !== undefined ? ` (${dir(a.dir)})` : "");
+    }
     case "openChest": return "Open the treasure chest";
     default: return (a as { type: string }).type;
   }
@@ -119,8 +143,14 @@ export function formatLog(log: GameLog): string {
   if (game.seed == null || game.picks == null) {
     lines.push("⚠ This game predates initial-condition logging — it cannot be replayed from scratch.", "");
   }
-  for (const m of moves) {
-    lines.push(`#${m.seq + 1}  ${actionLabel(m.action)}`);
+  // Reconstruct the state BEFORE each move (frame i = state after i actions = before action i) so an
+  // action's treasure/member indices resolve to their type names. Only possible for replayable games.
+  const frames = game.seed != null && game.picks != null
+    ? replay(game.seed, game.picks, moves.map((m) => m.action))
+    : null;
+  for (let i = 0; i < moves.length; i++) {
+    const m = moves[i]!;
+    lines.push(`#${m.seq + 1}  ${actionLabel(m.action, frames?.[i]?.state ?? null)}`);
     for (const ev of m.events) lines.push(`      → ${describeEvent(ev)}`);
   }
   return lines.join("\n") + "\n";

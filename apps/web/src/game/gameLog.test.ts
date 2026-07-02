@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { newGame, reduce, replay, type GameAction, type GameEvent } from "@sorcerers-cave/engine";
+import { newGame, reduce, replay, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
 import { actionLabel, describeEvent, formatLog, machineLog, downloadLog, type GameLog } from "./gameLog";
 
 const SEED = 7;
@@ -28,8 +28,25 @@ describe("actionLabel", () => {
     expect(actionLabel({ type: "move", dir: 1 })).toBe("Move north");
     expect(actionLabel({ type: "retreat", dir: 4 })).toBe("Retreat west");
     expect(actionLabel({ type: "test" })).toMatch(/reaction/i);
-    expect(actionLabel({ type: "resolveRound", matches: [{ front: [0], backers: [], strangers: [0] }] })).toMatch(/1 matchup/);
     expect(actionLabel({ type: "exitCave" })).toBe("Exit the cave");
+  });
+
+  it("names the treasure and creature (not indices) when given the pre-move state", () => {
+    // Treasure ids: 0 Silver, 1 Gold, 3 Magic Sword. Creature ids: 0 Hero, 4 Priest, 5 Man.
+    const chamber = { treasures: [1], party: [{ creatureId: 0, treasure: [] }] } as unknown as GameState;
+    expect(actionLabel({ type: "takeTreasure", ti: 0, mi: 0 }, chamber)).toBe("Take Gold → Hero");
+
+    const carrying = { treasures: [], party: [{ creatureId: 0, treasure: [3] }, { creatureId: 5, treasure: [] }] } as unknown as GameState;
+    expect(actionLabel({ type: "moveTreasure", from: 0, to: 1, idx: 0 }, carrying)).toBe("Give Magic Sword from Hero to Man");
+    expect(actionLabel({ type: "dropTreasure", mi: 0, idx: 0 }, carrying)).toBe("Drop Magic Sword (Hero)");
+
+    const losing = { party: [{ creatureId: 4 }] } as unknown as GameState;
+    expect(actionLabel({ type: "chooseCasualty", idx: 0 }, losing)).toBe("Let Priest fall");
+  });
+
+  it("falls back to indices when no state is available (a game that predates logging)", () => {
+    expect(actionLabel({ type: "takeTreasure", ti: 2, mi: 1 })).toBe("Take item #2 → member #1");
+    expect(actionLabel({ type: "resolveRound", matches: [{ front: [0], backers: [], strangers: [0] }] })).toMatch(/1 matchup/);
   });
 });
 
@@ -51,6 +68,28 @@ describe("formatLog", () => {
     expect(text).toMatch(/Party: Hero/);
     expect(text).toMatch(/#1\s+Move north/);
     expect(text).toMatch(/→ moved to area/);
+  });
+
+  it("names a picked-up treasure in the log by reconstructing the pre-move state", () => {
+    // Find a seed whose first move south lands the (100 kg-carrying) Ogre in a treasure chamber.
+    const PICKS_OGRE = [2];
+    let seed = -1, tid = -1;
+    for (let s = 1; s < 4000 && seed < 0; s++) {
+      const r = reduce(newGame(s, PICKS_OGRE), { type: "move", dir: 3 });
+      if (r.state.phase === "pickup" && r.state.treasures.length > 0) { seed = s; tid = r.state.treasures[0]!; }
+    }
+    expect(seed).toBeGreaterThan(0); // sanity: such a seed exists
+
+    // Record the move + the pickup, exactly as the DB would.
+    const script: GameAction[] = [{ type: "move", dir: 3 }, { type: "takeTreasure", ti: 0, mi: 0 }];
+    let st = newGame(seed, PICKS_OGRE);
+    const moves: GameLog["moves"] = [];
+    let seq = 0;
+    for (const action of script) { const r = reduce(st, action); moves.push({ seq: seq++, action, events: r.events }); st = r.state; }
+    const log: GameLog = { game: { code: "OGRE", seed, picks: PICKS_OGRE, color: null, status: "active", createdAt: 0 }, moves };
+
+    const treasureName = { 0: "Silver", 1: "Gold", 2: "Gems", 14: "Treasure Chest" }[tid] ?? "?";
+    expect(formatLog(log)).toMatch(new RegExp(`Take ${treasureName} → Ogre`));
   });
 
   it("warns when the game predates initial-condition logging (no seed)", () => {
