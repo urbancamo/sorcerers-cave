@@ -31,6 +31,9 @@ export function GameLogModal({ gameId, onClose }: { gameId: Id<"games">; onClose
             <button className="scv-primary" data-testid="log-dl-machine" onClick={() => downloadLog(log, "machine")}>
               Download debug log (.json)
             </button>
+            <button className="scv-primary" data-testid="log-dl-printer" onClick={() => downloadLog(log, "printer")}>
+              Download printer log (.log)
+            </button>
           </>
         )}
         <button className="scv-primary" onClick={onClose}>Close</button>

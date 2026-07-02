@@ -1,0 +1,50 @@
+====================================================================================================================================
+                                                   S O R C E R E R ' S   C A V E
+                                                     A D V E N T U R E   L O G
+====================================================================================================================================
+GAME SOPH   SEED 48   PARTY WMN PRI   MOVES 22   PRINTED 1985-03-14 09:22:07
+------------------------------------------------------------------------------------------------------------------------------------
+ SEQ  TRN LVL  ARA ACT ARG          TYP EXT  STR EVENTS
+------------------------------------------------------------------------------------------------------------------------------------
+   1    2   1    1 MOV N            CHM N-SW     DRW S:MAN
+   2    2   1    1 TST                           RCT FRD R5  JOI 1
+   3    3   1    0 MOV S            GTW NESW U
+   4    4   1    2 MOV S            CHM N-SW     DRW H:1  HAZ GHL  CBT WMN 3 V GHL 3 TIE  CBT PRI 7 V GHL 6 WON
+                                                 CBT MAN 6 V GHL 3 WON
+   5    5   1    0 MOV N            GTW NESW U
+   6    6   1    1 MOV N            CHM N-SW     DRW -
+   7    6   1    1 MOV W                         DED W
+   8    7   1    4 MOV N            POL NESW     ESP POL
+   9    8   1    5 MOV W            TUN NE-W     XSP POL
+  10    8   1    5 MOV W                         DED W
+  11    9   1    4 MOV E            POL NESW     ESP POL
+  12   10   1    1 MOV S            CHM N-S-     XSP POL  DRW -
+  13   11   1    0 MOV S            GTW NESW U
+  14   12   1    1 MOV N            CHM N-S-     DRW -
+  15   13   1    0 MOV S            GTW NESW U
+  16   14   1    2 MOV S            CHM N-SW     DRW H:1  HAZ GHL  CBT WMN 3 V GHL 5 LOS  CBT PRI 7 V GHL 3 WON
+                                                 CBT MAN 4 V GHL 8 LOS
+  17   15   1    0 MOV N            GTW NESW U
+  18   16   1    1 MOV N            CHM N-S-     DRW -
+  19   17   1    0 MOV S            GTW NESW U
+  20   18   1    2 MOV S            CHM N-SW     DRW H:1  HAZ GHL  CBT PRI 10 V GHL 6 WON
+  21   19   1    7 MOV S            TMB NESW     DRW T:SLV,GLD
+  22   19   1    7 TAK SLV>PRI
+------------------------------------------------------------------------------------------------------------------------------------
+                                      * * *   E N D   O F   L O G   -   22   M O V E S   * * *
+------------------------------------------------------------------------------------------------------------------------------------
+KEY  CREATURE  HER=HERO  WHR=W-HERO  OGR=OGRE  TRL=TROLL  PRI=PRIEST  MAN=MAN  WMN=WOMAN  DWF=DWARF  WIZ=WIZARD  SPC=SPECTRE
+KEY            DRG=DRAGON  SOR=SORCERER  GNT=GIANT  UNI=UNICORN
+KEY  TREASURE  SLV=SILVER  GLD=GOLD  GEM=GEMS  SWD=MAGIC SWORD  CPT=MAGIC CARPET  LOT=LOTUS DUST  BLM=HEALING BALM  TAL=TALISMAN
+KEY            POT=STRENGTH POTION  STF=MAGIC STAFF  RNG=THE RING  RBY=LOST RUBY  FLT=CHARMED FLUTE  EYE=EYE OF GOD
+KEY            CHT=TREASURE CHEST
+KEY  TILE      CHM=CHAMBER  TUN=TUNNEL  GTW=GATEWAY  POL=DEEP POOL  VPT=VIPER PIT  TMB=TOMB  HAL=GREAT HALL
+KEY  TILE COLS EXT: N/E/S/W OPEN, - WALL  STR: U UP, D DOWN
+KEY  ACTION    MOV=MOVE  RET=RETREAT  OUT=EXIT CAVE  WDR=WITHDRAW  TST=TEST  ATK=ATTACK  FGT=FIGHT ROUND  TAK=TAKE  GIV=GIVE
+KEY            DRP=DROP  LVE=LEAVE  RTK=RETAKE  USE=USE ARTEFACT  OPN=OPEN CHEST  CAS=CASUALTY  QIT=QUIT
+KEY  EVENT     DRW=DREW (S:STRANGERS T:TREASURE H:HAZARDS)  RCT=REACTION (HOS/IND/FRD)  JOI=JOINED  PAC=PACIFIED  FGT SUP=FIGHT ON
+KEY            CBT=COMBAT (SIDE # V FOE # WON/LOS/TIE)  WON=PARTY WON  DIE=MEMBER DIED  KIL=STRANGER SLAIN  SLW=SPECTRE SLEW
+KEY            CAS=CASUALTY (R# DIE)
+KEY  EVENT     HAZ=HAZARD (GHL/MDA/ERQ/MUT/TRP)  TRP=TRAP  ESP/XSP=ENTER/CROSS SPECIAL  TDR/TRC=POOL DROP/RECOVER  RCL=RECLAIM
+KEY            END=GAME OVER (ESC/DED/QIT)  DED=DEAD END  SEC=SECRET DOOR  ANH=ANNIHILATE  WRD=WARD OFF  RVV=REVIVE  SAV=RING SAVE
+====================================================================================================================================

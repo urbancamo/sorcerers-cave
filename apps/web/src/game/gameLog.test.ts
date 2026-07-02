@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
 import { newGame, reduce, replay, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
-import { actionLabel, describeEvent, formatLog, machineLog, downloadLog, type GameLog } from "./gameLog";
+import { actionLabel, describeEvent, formatLog, machineLog, downloadLog, logReport, type GameLog } from "./gameLog";
 
 const SEED = 7;
 const PICKS = [0]; // Hero
@@ -113,6 +113,48 @@ describe("formatLog", () => {
     const text = formatLog(sampleLog({ seed: null, picks: null }));
     expect(text).toMatch(/predates.*logging/i);
     expect(text).toMatch(/Seed: unavailable/);
+  });
+});
+
+describe("logReport (132-col wide-carriage line-printer report)", () => {
+  it("never exceeds 132 columns and is 7-bit ASCII, uppercase-only", () => {
+    const text = logReport(sampleLog(), "1985-03-14 09:22:07");
+    for (const line of text.split("\n")) expect(line.length).toBeLessThanOrEqual(132);
+    expect(text).toMatch(/^[\x00-\x7F]*$/);   // pure ASCII (line-printer safe)
+    expect(text).not.toMatch(/[a-z]/);        // uppercase throughout
+  });
+
+  it("has the banner, column header, END marker and KEY legend", () => {
+    const text = logReport(sampleLog());
+    expect(text).toMatch(/S O R C E R E R/);        // spaced banner
+    expect(text).toMatch(/SEQ  TRN LVL  ARA ACT/);  // column header
+    expect(text).toMatch(/E N D   O F   L O G/);    // end marker
+    expect(text).toMatch(/KEY  CREATURE  HER=HERO/); // legend decodes the codes
+    expect(text).toMatch(/SLV=SILVER/);
+  });
+
+  it("encodes actions and tiles with 3-letter codes", () => {
+    const text = logReport(sampleLog()); // first action is Move north
+    expect(text).toMatch(/\bMOV N\b/);
+    expect(text).toMatch(/\b(CHM|TUN|GTW|POL|VPT|TMB|HAL)\b/); // a tile-type code appears
+  });
+
+  it("wraps the EVENTS column without splitting a record and keeps rows within 132", () => {
+    // A rich, multi-event move (a chamber draw + several combat rolls) forces continuation lines.
+    const log: GameLog = {
+      game: { code: "WRAP", seed: 1, picks: [0], color: null, status: "active", createdAt: 0 },
+      moves: [{
+        seq: 0,
+        action: { type: "move", dir: 3 },
+        events: Array.from({ length: 6 }, (_, k) => ({
+          type: "combatRoll" as const, party: "Hero", enemy: "Troll",
+          partyRoll: 3, enemyRoll: 2, partyTotal: 7 + k, enemyTotal: 5, result: "partyWon" as const,
+        })),
+      }],
+    };
+    const text = logReport(log);
+    for (const line of text.split("\n")) expect(line.length).toBeLessThanOrEqual(132);
+    expect(text).not.toMatch(/CBT HER \d+ V TRL$/m); // a CBT record is never left dangling at a line end
   });
 });
 

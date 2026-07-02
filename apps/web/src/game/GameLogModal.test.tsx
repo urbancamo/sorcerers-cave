@@ -40,6 +40,8 @@ describe("GameLogModal", () => {
     expect(downloadLogMock).toHaveBeenCalledWith(sampleLog, "human");
     fireEvent.click(screen.getByTestId("log-dl-machine"));
     expect(downloadLogMock).toHaveBeenCalledWith(sampleLog, "machine");
+    fireEvent.click(screen.getByTestId("log-dl-printer"));
+    expect(downloadLogMock).toHaveBeenCalledWith(sampleLog, "printer");
   });
 
   it("notes when a game predates full logging (no seed)", () => {

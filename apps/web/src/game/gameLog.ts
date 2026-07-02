@@ -1,6 +1,7 @@
 import {
   CREATURES, TREASURES, replay, decodeArea,
   SPECIAL_GATEWAY, SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_TOMB, SPECIAL_GREAT_HALL,
+  HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_MUTINY, HAZARD_TRAP,
   type GameAction, type GameEvent, type GameState,
 } from "@sorcerers-cave/engine";
 
@@ -186,17 +187,218 @@ export function formatLog(log: GameLog): string {
   return lines.join("\n") + "\n";
 }
 
+// --- Line-printer report (§ era-appropriate 132-column wide-carriage hardcopy) -------------------
+// Fixed-width, 7-bit ASCII, UPPERCASE, 3-letter codes. Every column holds the same kind of datum;
+// events that overflow the EVENTS column wrap onto continuation lines with the lead columns blank.
+
+const CR3: Record<number, string> = { 0: "HER", 1: "WHR", 2: "OGR", 3: "TRL", 4: "PRI", 5: "MAN", 6: "WMN", 7: "DWF", 8: "WIZ", 9: "SPC", 10: "DRG", 11: "SOR", 12: "GNT", 13: "UNI" };
+const TR3: Record<number, string> = { 0: "SLV", 1: "GLD", 2: "GEM", 3: "SWD", 4: "CPT", 5: "LOT", 6: "BLM", 7: "TAL", 8: "POT", 9: "STF", 10: "RNG", 11: "RBY", 12: "FLT", 13: "EYE", 14: "CHT" };
+const cr3 = (id: number) => CR3[id] ?? "???";
+const tr3 = (id: number) => TR3[id] ?? "???";
+// combatRoll carries creature NAMES, not ids — map them back to the 3-letter code (else first 3 letters).
+const NAME3: Record<string, string> = Object.fromEntries(CREATURES.map((c) => [c.name.toUpperCase(), CR3[c.id] ?? c.name.slice(0, 3).toUpperCase()]));
+const name3 = (s: string) => (s.toUpperCase() === "GHOULS" ? "GHL" : NAME3[s.toUpperCase()] ?? s.slice(0, 3).toUpperCase());
+const DIR1: Record<number, string> = { 1: "N", 2: "E", 3: "S", 4: "W", 5: "U", 6: "D" };
+const d1 = (d: number) => DIR1[d] ?? "?";
+const TYPE3: Record<number, string> = { [SPECIAL_GATEWAY]: "GTW", [SPECIAL_DEEP_POOL]: "POL", [SPECIAL_VIPER_PIT]: "VPT", [SPECIAL_TOMB]: "TMB", [SPECIAL_GREAT_HALL]: "HAL" };
+const REACT3: Record<string, string> = { hostile: "HOS", indifferent: "IND", friendly: "FRD" };
+const RESULT3: Record<string, string> = { partyWon: "WON", enemyWon: "LOS", tie: "TIE" };
+const GS3: Record<number, string> = { 0: "PLY", 1: "ESC", 2: "DED", 3: "QIT" };
+const HZ3: Record<number, string> = { [HAZARD_EARTHQUAKE]: "ERQ", [HAZARD_MEDUSA]: "MDA", [HAZARD_GHOULS]: "GHL", [HAZARD_MUTINY]: "MUT", [HAZARD_TRAP]: "TRP" };
+
+function tileCells(card: number): { typ: string; ext: string; str: string } {
+  const d = decodeArea(card);
+  return {
+    typ: TYPE3[d.special] ?? (d.chamber ? "CHM" : "TUN"),
+    ext: (d.n ? "N" : "-") + (d.e ? "E" : "-") + (d.s ? "S" : "-") + (d.w ? "W" : "-"),
+    str: (d.stairUp ? "U" : "") + (d.stairDown ? "D" : ""),
+  };
+}
+
+/** 3-letter ACT code + a compact ARG (treasure/member indices resolved to codes via `state`). */
+function actionCode(a: GameAction, state: GameState | null): { act: string; arg: string } {
+  const mem = (i: number) => (state?.party[i] ? cr3(state.party[i]!.creatureId) : `#${i}`);
+  const held = (mi: number, idx: number) => { const t = state?.party[mi]?.treasure[idx]; return t != null ? tr3(t) : `#${idx}`; };
+  const inCh = (ti: number) => { const t = state?.treasures[ti]; return t != null ? tr3(t) : `#${ti}`; };
+  const foe = (s: number) => (state?.strangers[s] != null ? cr3(state.strangers[s]!) : `#${s}`);
+  switch (a.type) {
+    case "move": return { act: "MOV", arg: d1(a.dir) };
+    case "retreat": return { act: "RET", arg: d1(a.dir) };
+    case "exitCave": return { act: "OUT", arg: "" };
+    case "withdraw": return { act: "WDR", arg: "" };
+    case "test": return { act: "TST", arg: "" };
+    case "attack": return { act: "ATK", arg: "" };
+    case "quit": return { act: "QIT", arg: "" };
+    case "leaveTreasure": return { act: "LVE", arg: "" };
+    case "retakeDropped": return { act: "RTK", arg: "" };
+    case "openChest": return { act: "OPN", arg: "" };
+    case "takeTreasure": return { act: "TAK", arg: `${inCh(a.ti)}>${mem(a.mi)}` };
+    case "dropTreasure": return { act: "DRP", arg: `${held(a.mi, a.idx)} ${mem(a.mi)}` };
+    case "moveTreasure": return { act: "GIV", arg: `${held(a.from, a.idx)} ${mem(a.from)}>${mem(a.to)}` };
+    case "chooseCasualty": return { act: "CAS", arg: mem(a.idx) };
+    case "useArtifact": return { act: "USE", arg: tr3(a.artifact) + (a.target !== undefined ? `>${a.artifact === 5 ? foe(a.target) : mem(a.target)}` : "") };
+    case "resolveRound": return { act: "FGT", arg: a.matches.map((m) => `${[...m.front, ...m.backers].map((i) => (state?.party[i] ? cr3(state.party[i]!.creatureId) : `#${i}`)).join("+") || "-"}>${m.strangers.map(foe).join("+") || "-"}`).join(",") };
+    default: return { act: (a as { type: string }).type.slice(0, 3).toUpperCase(), arg: "" };
+  }
+}
+
+/** A terse code for one event. The `moved` event is rendered in the position/tile columns, so it (and
+ *  the blocked no-op) return null here. Every other event type maps to a short uppercase code. */
+function eventCode(e: GameEvent): string | null {
+  switch (e.type) {
+    case "moved": case "blocked": return null;
+    case "drewChamber": {
+      const p: string[] = [];
+      if (e.strangers.length) p.push("S:" + e.strangers.map(cr3).join(","));
+      if (e.treasures.length) p.push("T:" + e.treasures.map(tr3).join(","));
+      if (e.hazards.length) p.push("H:" + e.hazards.length);
+      return "DRW" + (p.length ? " " + p.join(" ") : " -");
+    }
+    case "reaction": return `RCT ${REACT3[e.outcome]} R${e.roll}`;
+    case "strangersJoined": return `JOI ${e.count}`;
+    case "pacified": return "PAC";
+    case "fightStarted": return `FGT SUP${e.surprise}`;
+    case "combatRoll": return `CBT ${name3(e.party)} ${e.partyTotal} V ${name3(e.enemy)} ${e.enemyTotal} ${RESULT3[e.result]}`;
+    case "fightWon": return "WON";
+    case "casualtyChosen": return `CAS ${cr3(e.creatureId)} R${e.roll}`;
+    case "memberDied": return `DIE ${cr3(e.creatureId)}`;
+    case "strangerKilled": return `KIL ${cr3(e.creatureId)}`;
+    case "spectreSlew": return `SLW ${cr3(e.creatureId)}`;
+    case "memberRevived": return `RVV ${cr3(e.creatureId)}`;
+    case "sorcererSlain": return "SOR SLN";
+    case "treasureDropped": return `TDR ${e.count}`;
+    case "treasureReclaimed": return `TRC ${e.count}`;
+    case "droppedRetaken": return `RTK ${e.count}`;
+    case "crossedSpecial": return `XSP ${TYPE3[e.special] ?? "???"}`;
+    case "enteredSpecial": return `ESP ${TYPE3[e.special] ?? "???"}`;
+    case "hazardFired": return `HAZ ${HZ3[e.hazard] ?? "???"}`;
+    case "trapSprung": return `TRP L${e.level}`;
+    case "trapAvoided": return "TRP AVD";
+    case "medusaGaze": return `MED ${e.rolls.filter((r) => r.petrified).length}`;
+    case "viperPit": return `VIP ${e.rolls.filter((r) => r.died).length}`;
+    case "eyeForsaken": return "EYE FSK";
+    case "petrifiedOut": return "PTO";
+    case "gameOver": return `END ${GS3[e.gs] ?? "???"}`;
+    case "artifactUsed": return `USE ${tr3(e.artifact)}`;
+    case "chestOpened": return `CHT R${e.result}`;
+    case "rubyTaken": return "RBY GOT";
+    case "statueAroused": return "STA HIT";
+    case "statuePowerless": return "STA OFF";
+    case "deathPrevented": return `SAV ${cr3(e.creatureId)}`;
+    case "wardedOff": return `WRD ${cr3(e.creatureId)}`;
+    case "ghoulsWarded": return "WRD GHL";
+    case "medusaAverted": return "MED AVD";
+    case "annihilated": return `ANH ${cr3(e.creatureId)}`;
+    case "unicornGuards": return "UNI GRD";
+    case "unicornDeparted": return "UNI DEP";
+    case "carpetUsed": return `CPT ${d1(e.dir)}`;
+    case "dragonsLulled": return `LUL ${e.count}`;
+    case "vipersLulled": return "LUL VIP";
+    case "secretDoorRevealed": return `SEC ${d1(e.dir)}`;
+    case "deadEnd": return `DED ${d1(e.dir)}`;
+    case "mutinied": return `MUT ${e.deserters.length}`;
+    case "planRejected": return "REJ";
+    default: return (e as { type: string }).type.slice(0, 3).toUpperCase();
+  }
+}
+
+const padR = (s: string, w: number) => (s.length > w ? s.slice(0, w) : s.padStart(w)); // numbers, right
+const padL = (s: string, w: number) => (s.length > w ? s.slice(0, w) : s.padEnd(w));    // codes, left
+const centre = (s: string, w = 132) => " ".repeat(Math.max(0, Math.floor((w - s.length) / 2))) + s;
+
+/** Pack whole codes/pairs into lines up to width `w`, joined by two spaces so each record stays intact
+ *  (a CBT row is never split mid-record); a single item wider than the column is hard-truncated. */
+function packCodes(items: string[], w: number): string[] {
+  const out: string[] = [];
+  let line = "";
+  for (const raw of items) {
+    const item = raw.length > w ? raw.slice(0, w) : raw;
+    if (line && line.length + 2 + item.length > w) { out.push(line); line = item; }
+    else line = line ? `${line}  ${item}` : item;
+  }
+  if (line) out.push(line);
+  return out.length ? out : [""];
+}
+
+/** The KEY / legend block: decode the 3-letter codes so the hardcopy is self-documenting. Creature and
+ *  treasure rows are generated from the code maps (kept in sync); the rest is a curated crib. */
+function legend(): string[] {
+  const rows = (label: string, pairs: string[]): string[] => {
+    const bodyW = 132 - 5 - 9 - 1; // "KEY  " (5) + label field (9) + a space
+    return packCodes(pairs, bodyW).map((ln, i) => "KEY".padEnd(5) + (i === 0 ? label.padEnd(9) : " ".repeat(9)) + " " + ln);
+  };
+  const creatures = Object.entries(CR3).map(([id, c]) => `${c}=${(CREATURES[Number(id)]?.name ?? "?").toUpperCase()}`);
+  const treasures = Object.entries(TR3).map(([id, c]) => `${c}=${(TREASURES[Number(id)]?.name ?? "?").toUpperCase()}`);
+  return [
+    ...rows("CREATURE", creatures),
+    ...rows("TREASURE", treasures),
+    ...rows("TILE", ["CHM=CHAMBER", "TUN=TUNNEL", "GTW=GATEWAY", "POL=DEEP POOL", "VPT=VIPER PIT", "TMB=TOMB", "HAL=GREAT HALL"]),
+    ...rows("TILE COLS", ["EXT: N/E/S/W OPEN, - WALL", "STR: U UP, D DOWN"]),
+    ...rows("ACTION", ["MOV=MOVE", "RET=RETREAT", "OUT=EXIT CAVE", "WDR=WITHDRAW", "TST=TEST", "ATK=ATTACK", "FGT=FIGHT ROUND", "TAK=TAKE", "GIV=GIVE", "DRP=DROP", "LVE=LEAVE", "RTK=RETAKE", "USE=USE ARTEFACT", "OPN=OPEN CHEST", "CAS=CASUALTY", "QIT=QUIT"]),
+    ...rows("EVENT", ["DRW=DREW (S:STRANGERS T:TREASURE H:HAZARDS)", "RCT=REACTION (HOS/IND/FRD)", "JOI=JOINED", "PAC=PACIFIED", "FGT SUP=FIGHT ON", "CBT=COMBAT (SIDE # V FOE # WON/LOS/TIE)", "WON=PARTY WON", "DIE=MEMBER DIED", "KIL=STRANGER SLAIN", "SLW=SPECTRE SLEW", "CAS=CASUALTY (R# DIE)"]),
+    ...rows("EVENT", ["HAZ=HAZARD (GHL/MDA/ERQ/MUT/TRP)", "TRP=TRAP", "ESP/XSP=ENTER/CROSS SPECIAL", "TDR/TRC=POOL DROP/RECOVER", "RCL=RECLAIM", "END=GAME OVER (ESC/DED/QIT)", "DED=DEAD END", "SEC=SECRET DOOR", "ANH=ANNIHILATE", "WRD=WARD OFF", "RVV=REVIVE", "SAV=RING SAVE"]),
+  ];
+}
+
+/** Render the log as a fixed-width, uppercase, 3-letter-code report for a 132-column wide-carriage
+ *  line printer (the .log download). `printed` stamps the header; pass a formatted timestamp. */
+export function logReport(log: GameLog, printed = ""): string {
+  const { game, moves } = log;
+  const W = { seq: 4, trn: 4, lvl: 3, ara: 4, act: 3, arg: 12, typ: 3, ext: 4, str: 3 };
+  const lead = W.seq + 1 + W.trn + 1 + W.lvl + 1 + W.ara + 1 + W.act + 1 + W.arg + 1 + W.typ + 1 + W.ext + 1 + W.str + 1;
+  const EVT = 132 - lead; // 83 columns for the event codes
+  const RULE = "=".repeat(132), THIN = "-".repeat(132);
+  const party = (game.picks ?? []).map(cr3).join(" ") || "???";
+  const meta = `GAME ${game.code ?? "----"}   SEED ${game.seed ?? "------"}   PARTY ${party}   MOVES ${moves.length}   PRINTED ${printed || "----------------"}`.toUpperCase();
+  const head = [padR("SEQ", W.seq), padR("TRN", W.trn), padR("LVL", W.lvl), padR("ARA", W.ara), padL("ACT", W.act), padL("ARG", W.arg), padL("TYP", W.typ), padL("EXT", W.ext), padL("STR", W.str), "EVENTS"].join(" ");
+  const out = [RULE, centre("S O R C E R E R ' S   C A V E").replace(/\s+$/, ""), centre("A D V E N T U R E   L O G").replace(/\s+$/, ""), RULE, padL(meta, 132).replace(/\s+$/, ""), THIN, head, THIN];
+
+  const frames = game.seed != null && game.picks != null ? replay(game.seed, game.picks, moves.map((m) => m.action)) : null;
+  for (let i = 0; i < moves.length; i++) {
+    const m = moves[i]!;
+    const post = frames?.[i + 1]?.state ?? null;
+    const { act, arg } = actionCode(m.action, frames?.[i]?.state ?? null);
+    const moved = m.events.find((e) => e.type === "moved") as Extract<GameEvent, { type: "moved" }> | undefined;
+    const card = moved && post ? post.areas[moved.area]?.card : undefined;
+    const tile = card != null ? tileCells(card) : { typ: "", ext: "", str: "" };
+    const codes = m.events.map(eventCode).filter((c): c is string => c != null);
+    const ev = packCodes(codes, EVT);
+    const row = [
+      padR(String(m.seq + 1), W.seq),
+      padR(post ? String(post.turn) : "", W.trn),
+      padR(post ? String(post.level) : "", W.lvl),
+      padR(post ? String(post.partyArea) : "", W.ara),
+      padL(act, W.act), padL(arg, W.arg), padL(tile.typ, W.typ), padL(tile.ext, W.ext), padL(tile.str, W.str),
+      ev[0]!,
+    ].join(" ");
+    out.push(row.replace(/\s+$/, ""));
+    for (let k = 1; k < ev.length; k++) out.push(" ".repeat(lead) + ev[k]!);
+  }
+  out.push(THIN, centre(`* * *   E N D   O F   L O G   -   ${moves.length}   M O V E S   * * *`).replace(/\s+$/, ""), THIN);
+  out.push(...legend(), RULE);
+  return out.join("\n") + "\n";
+}
+
 /** Render the machine-readable log (for the .json download / offline replay). A superset of the query
  *  result, tagged with a format version so the shape can evolve. */
 export function machineLog(log: GameLog): string {
   return JSON.stringify({ version: CURRENT_VERSION, game: log.game, moves: log.moves }, null, 2);
 }
 
-/** Trigger a client-side file download of the log in the requested format. */
-export function downloadLog(log: GameLog, kind: "human" | "machine"): void {
+/** Local "YYYY-MM-DD HH:MM:SS" stamp for the printer report's PRINTED header. */
+function printedStamp(): string {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
+/** Trigger a client-side file download of the log in the requested format:
+ *  human (.txt narrative), machine (.json replayable), or printer (.log 132-col wide-carriage report). */
+export function downloadLog(log: GameLog, kind: "human" | "machine" | "printer"): void {
   const base = log.game.code ?? "game";
-  const { text, ext, mime } = kind === "machine"
-    ? { text: machineLog(log), ext: "json", mime: "application/json" }
+  const { text, ext, mime } =
+    kind === "machine" ? { text: machineLog(log), ext: "json", mime: "application/json" }
+    : kind === "printer" ? { text: logReport(log, printedStamp()), ext: "log", mime: "text/plain" }
     : { text: formatLog(log), ext: "txt", mime: "text/plain" };
   const url = URL.createObjectURL(new Blob([text], { type: mime }));
   const a = document.createElement("a");
