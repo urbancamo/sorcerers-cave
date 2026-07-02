@@ -157,6 +157,10 @@ canvas{display:block;touch-action:none;}
   color:#241a06;border-color:var(--brass);font-weight:600;box-shadow:0 6px 18px -6px rgba(201,161,78,.6);}
 .btn.primary:hover{filter:brightness(1.06);}
 .btn .ic{width:15px;height:15px;opacity:.9;flex:none;}
+/* The dock is icon-only — button labels were removed (each button keeps its title + aria-label
+   tooltip). Square the buttons and enlarge the glyph so they read as icons, not label-less pills. */
+.dock .btn{padding:9px;gap:0;}
+.dock .btn .ic{width:18px;height:18px;}
 .lvlbtn{width:38px;height:34px;justify-content:center;padding:0;font-family:var(--display);font-size:13px;font-weight:600;}
 
 /* card reveal panel right */

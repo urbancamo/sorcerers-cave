@@ -118,7 +118,6 @@ export function CaveHud({ mountRef, onPartyClick, onSave, onLog, turnLabel, turn
                 <path d="M5 8v11h14V8" />
                 <path d="M9 19v-6h6v6" />
               </svg>
-              <span className="btn-tx">Snap to current tile</span>
             </button>
             <button className="btn active" id="orbitBtn" title="Free orbit" aria-label="Free orbit">
               <svg
@@ -131,10 +130,8 @@ export function CaveHud({ mountRef, onPartyClick, onSave, onLog, turnLabel, turn
                 <ellipse cx="12" cy="12" rx="10" ry="4.3" />
                 <ellipse cx="12" cy="12" rx="4.3" ry="10" />
               </svg>
-              <span className="btn-tx">Free orbit</span>
             </button>
             <div className="sep"></div>
-            <span className="lbl">Levels</span>
             <div className="grp" id="levelGrp"></div>
             <div className="sep"></div>
             {onSave && (
@@ -150,7 +147,6 @@ export function CaveHud({ mountRef, onPartyClick, onSave, onLog, turnLabel, turn
                   <path d="M17 21v-8H7v8" />
                   <path d="M7 3v5h8" />
                 </svg>
-                <span className="btn-tx">Save &amp; exit</span>
               </button>
             )}
             {onLog && (
@@ -167,7 +163,6 @@ export function CaveHud({ mountRef, onPartyClick, onSave, onLog, turnLabel, turn
                   <path d="M8 12h8" />
                   <path d="M8 16h8" />
                 </svg>
-                <span className="btn-tx">Log</span>
               </button>
             )}
             <button className="btn" id="resetBtn" title="Quit" aria-label="Quit">
@@ -182,7 +177,6 @@ export function CaveHud({ mountRef, onPartyClick, onSave, onLog, turnLabel, turn
                 <path d="M16 17l5-5-5-5" />
                 <path d="M21 12H9" />
               </svg>
-              <span className="btn-tx">Quit</span>
             </button>
           </div>
 
