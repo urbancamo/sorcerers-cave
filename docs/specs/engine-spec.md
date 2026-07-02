@@ -18,7 +18,7 @@
 |---|--------|--------------|
 | 3 | Core data model | `state.ts`, `data/*`, `decode.ts`, `coords.ts` |
 | 4 | Turn lifecycle & action/event contract | `reduce.ts`, `actions.ts`, `selectors.ts` |
-| 5 | Randomness & shuffling | `rng.ts`, `decks.ts`, `setup.ts` |
+| 5 | Randomness, shuffling & replay | `rng.ts`, `decks.ts`, `setup.ts`, `replay.ts` |
 | 6 | Map, movement & levels | `map.ts`, `coords.ts`, `decode.ts` |
 | 7 | Chambers, draws, hazards & pickup | `chamber.ts`, `hazards.ts`, `pickup.ts` |
 | 8 | Stranger encounters | `reaction.ts`, `reduce.ts` |
@@ -127,6 +127,7 @@
 | SC-5-11 | `buildSmallPack` MUST shuffle all 71 template cards and return the advanced seed, preserving the multiset. | decks.ts:13-16 | decks.test.ts › preserves the template multiset |
 | SC-5-12 | `newGame` MUST consume RNG in order: large pack from the input seed → small pack from the large pack's advanced seed → store the small pack's advanced seed as `state.seed`; largeIdx/smallIdx start at 0. | setup.ts:35-36,80-85 | setup.test.ts › builds a 60-card large pack and small pack minus party |
 | SC-5-13 | The engine MUST be fully deterministic from `seed`: no Math.random/Date.now; RNG state lives only in `state.seed` (the seed is a caller-supplied parameter, not clock-derived). | rng.ts:1-3 | rng.test.ts (deterministic cases) |
+| SC-5-14 | `replay(seed, picks, actions)` MUST reconstruct a game move-by-move by folding `reduce` over the action log, returning `actions.length + 1` frames: frame 0 = `newGame(seed, picks)` (action null, no events); frame i = state after `actions[0..i-1]` with the i-th action + its events. Being a pure fold, it reproduces the exact states and consequences of the original play — the basis of the game log's from-scratch, forward/backward replay. | replay.ts:24-33 | replay.test.ts › reproduces the exact final state and per-move events from the action log alone; › frame 0 is the untouched initial state; › deterministic; › seed sweep |
 
 ## §6 Map, Movement & Levels
 
