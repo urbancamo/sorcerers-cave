@@ -110,9 +110,9 @@ describe("HighScores", () => {
     fireEvent.click(screen.getByText("Alice"));
 
     const dl = screen.getByTestId("download-log");
-    fireEvent.click(within(dl).getByRole("button", { name: /readable log \(\.txt\)/i }));
+    fireEvent.click(within(dl).getByRole("button", { name: /readable \(\.txt\)/i }));
     expect(downloadLogMock).toHaveBeenCalledWith(log, "human");
-    fireEvent.click(within(dl).getByRole("button", { name: /printer log \(\.log\)/i }));
+    fireEvent.click(within(dl).getByRole("button", { name: /printer \(\.log\)/i }));
     expect(downloadLogMock).toHaveBeenCalledWith(log, "printer");
   });
 

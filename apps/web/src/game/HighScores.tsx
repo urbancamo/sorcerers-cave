@@ -113,12 +113,10 @@ function ScoreDetail({ row, rank, onBack }: { row: LeaderboardRow; rank?: number
       </ul>
       {/* Download this expedition's log — a readable narrative (.txt) or a wide-carriage printer report (.log). */}
       {log && (
-        <div className="scv-hs-entry" data-testid="download-log">
-          <span className="scv-hs-label">Download this game&rsquo;s log</span>
-          <div className="scv-hs-entryrow">
-            <button type="button" className="scv-primary" onClick={() => downloadLog(log, "human")}>Readable log (.txt)</button>
-            <button type="button" className="scv-primary" onClick={() => downloadLog(log, "printer")}>Printer log (.log)</button>
-          </div>
+        <div className="scv-hsd-downloads" data-testid="download-log">
+          <span className="scv-hsd-dl-label">Download log</span>
+          <button type="button" className="scv-hsd-dl" onClick={() => downloadLog(log, "human")}>Readable (.txt)</button>
+          <button type="button" className="scv-hsd-dl" onClick={() => downloadLog(log, "printer")}>Printer (.log)</button>
         </div>
       )}
     </div>

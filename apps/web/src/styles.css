@@ -1237,6 +1237,42 @@
 .scv-hsd-thumb .ph { font-size: 10px; color: var(--parchment); font-family: var(--display); }
 .scv-hsd-item-nm { white-space: nowrap; }
 
+/* Log downloads — a compact, understated row (not the heavy brass primary buttons), matching the
+   detail panel's micro-label + subtle-outline aesthetic. */
+.scv-hsd-downloads {
+  margin-top: 4px;
+  padding-top: 10px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.scv-hsd-dl-label {
+  font-family: var(--ui);
+  font-size: 9.5px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--stone-dim);
+  margin-right: 2px;
+}
+.scv-hsd-dl {
+  font-family: var(--ui);
+  font-size: 12px;
+  color: var(--brass-bright);
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  padding: 5px 12px;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.scv-hsd-dl:hover {
+  border-color: var(--brass);
+  background: rgba(201, 161, 78, 0.08);
+  color: var(--cream);
+}
+
 /* ---- high-score modal (from splash) ---- */
 .scv-hs-overlay {
   position: fixed;
