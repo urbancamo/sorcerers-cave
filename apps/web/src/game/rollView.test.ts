@@ -21,9 +21,14 @@ describe("rollFromEvents", () => {
     expect(view.tone).toBe("good");
   });
 
-  it("reports a friendly reaction that does not recruit", () => {
-    const view = rollFromEvents([{ type: "reaction", outcome: "friendly", roll: 5 }])!;
-    expect(view.message).toMatch(/keep their distance/i);
+  it("reports a friendly womanless Unicorn staying to guard the chamber (no recruit)", () => {
+    const view = rollFromEvents([
+      { type: "reaction", outcome: "friendly", roll: 5 },
+      { type: "strangersJoined", count: 0 },
+      { type: "unicornGuards", creatureId: 13 },
+    ])!;
+    expect(view.message).toMatch(/guard the chamber/i);
+    expect(view.tone).toBe("good");
   });
 
   it("shows an opened Treasure Chest as a single-die loot view", () => {

@@ -860,11 +860,15 @@
   background: rgba(7, 7, 9, 0.62); backdrop-filter: blur(3px);
 }
 .scv-pp {
-  width: min(900px, 94vw); max-height: 88vh; overflow-y: auto;
+  width: min(900px, 94vw); max-height: 88vh;
+  /* Flex column so the header/bar stay pinned and only the members grid scrolls — a large
+     party (no size cap) can list many members without the close button scrolling away. */
+  display: flex; flex-direction: column; overflow: hidden;
   background: var(--panel); border: 1px solid var(--line-strong); border-radius: 16px;
   box-shadow: 0 30px 70px -24px rgba(0, 0, 0, 0.85); color: var(--parchment);
 }
 .scv-pp-hd {
+  flex: none;
   display: flex; align-items: center; justify-content: space-between;
   padding: 16px 22px; border-bottom: 1px solid var(--line);
 }
@@ -878,6 +882,7 @@
 }
 .scv-pp-close:hover { border-color: var(--brass); color: var(--cream); }
 .scv-pp-bar {
+  flex: none;
   display: flex; align-items: center; gap: 12px; flex-wrap: wrap;
   padding: 12px 22px; background: rgba(201, 161, 78, 0.08); border-bottom: 1px solid var(--line);
   font-family: var(--body); font-size: 15px;
@@ -890,6 +895,7 @@
 }
 .scv-pp-act.ghost { background: transparent; color: var(--parchment); border-color: var(--line-strong); }
 .scv-pp-members {
+  flex: 1 1 auto; min-height: 0; overflow-y: auto; /* the scroll region for a large party */
   display: grid; grid-template-columns: repeat(auto-fill, minmax(186px, 1fr));
   gap: 14px; padding: 18px 22px 24px;
 }
@@ -950,7 +956,7 @@
   background: rgba(201, 161, 78, 0.16); color: var(--cream); font-size: 12px; cursor: pointer;
 }
 .scv-pp-give:hover { background: rgba(201, 161, 78, 0.28); }
-.scv-pp-note { padding: 0 22px 18px; text-align: center; font-size: 12px; color: var(--stone-dim); font-style: italic; }
+.scv-pp-note { flex: none; padding: 0 22px 18px; text-align: center; font-size: 12px; color: var(--stone-dim); font-style: italic; }
 
 /* ---- two-button confirm dialog (e.g. "Leave the Cave?") ---- */
 .scv-dice-actions {

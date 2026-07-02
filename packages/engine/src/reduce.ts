@@ -1,4 +1,4 @@
-import { GS_PLAYING, GS_QUIT, GS_ESCAPED, GS_DEAD, PARTY_CAP, AF_DESTROYED, type GameState, type PartyMember } from "./state";
+import { GS_PLAYING, GS_QUIT, GS_ESCAPED, GS_DEAD, AF_DESTROYED, type GameState, type PartyMember } from "./state";
 import { tryMove } from "./map";
 import { decodeArea } from "./decode";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT } from "./data/areaCards";
@@ -456,13 +456,13 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       const events: GameEvent[] = [{ type: "reaction", outcome: roll.outcome, roll: roll.roll }];
       if (roll.outcome === "friendly") {
         const womanPresent = hasWoman(next);
-        const room = PARTY_CAP - next.party.length;
-        // A Womanless Unicorn (id 13) will not join — it stays behind guarding the area.
+        // A friendly group is added to the party in full — the original rules impose no party-size
+        // limit (§8, "the player immediately adds them to his party as allies"). The only stranger
+        // that won't join is a Womanless Unicorn (id 13), which stays behind guarding the area.
         const joinPool = next.strangers.filter((id) => !(id === 13 && !womanPresent));
         const guardPool = next.strangers.filter((id) => id === 13 && !womanPresent);
-        const joining = joinPool.slice(0, Math.max(0, room));
-        for (const id of joining) next.party.push({ creatureId: id, status: 1, dragonKills: 0, treasure: [] });
-        events.push({ type: "strangersJoined", count: joining.length });
+        for (const id of joinPool) next.party.push({ creatureId: id, status: 1, dragonKills: 0, treasure: [] });
+        events.push({ type: "strangersJoined", count: joinPool.length });
         if (guardPool.length > 0) {
           next.strangers = guardPool;
           for (const id of guardPool) events.push({ type: "unicornGuards", creatureId: id });

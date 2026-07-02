@@ -163,6 +163,23 @@ describe("reduce — stranger encounters (C-2 §8)", () => {
     expect(events).toContainEqual(expect.objectContaining({ type: "reaction", outcome: "friendly" }));
   });
 
+  it("a friendly result recruits EVERY stranger regardless of party size (original rules: no party cap)", () => {
+    // 13 living members already (more than the old 12-cap) + a friendly Unicorn with a Woman present.
+    // The original rules impose no party-size limit — a friendly group is always added in full.
+    const party = [
+      { creatureId: 6, status: 0 as const, dragonKills: 0, treasure: [] }, // living Woman (Unicorn loyalty)
+      ...Array.from({ length: 12 }, () => ({ creatureId: 0, status: 0 as const, dragonKills: 0, treasure: [] })), // 12 Heroes
+    ];
+    const s = makeState({
+      phase: "encounter", party, strangers: [13], treasures: [],
+      areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+    });
+    const { state, events } = reduce(s, { type: "test" });
+    expect(state.party.some((m) => m.creatureId === 13 && m.status === 1)).toBe(true); // the Unicorn still joins
+    expect(events).toContainEqual(expect.objectContaining({ type: "strangersJoined", count: 1 }));
+    expect(state.party.length).toBe(14); // no slot was refused
+  });
+
   it("three indifferent results pacify the chamber for that party: guarded treasure, free to leave", () => {
     // Woman-stranger (id 6): seed 9 with a no-charisma party (a Man) rolls indifferent three times.
     let s = makeState({

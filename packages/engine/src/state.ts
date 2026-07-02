@@ -3,7 +3,8 @@ export const GS_ESCAPED = 1;
 export const GS_DEAD = 2;
 export const GS_QUIT = 3;
 
-export const PARTY_CAP = 12;
+// No party-size cap: the original rules impose no maximum on how many creatures a party may hold
+// (a friendly group is always added in full). The only natural bound is the finite small pack.
 export const PARTY_BUDGET = 6;
 export const GATEWAY_START_COORD = 15050; // level 1, x=50, y=50
 

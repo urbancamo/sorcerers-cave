@@ -5,12 +5,14 @@ export type Tone = "good" | "bad" | "neutral";
 export type RollView = { title: string; lanes: Lane[]; message: string; tone: Tone };
 
 /** Turn a reaction event (+ any join) into a single-die overlay. */
-function reactionView(reaction: Extract<GameEvent, { type: "reaction" }>, joined: number, pacified: boolean): RollView {
+function reactionView(reaction: Extract<GameEvent, { type: "reaction" }>, joined: number, pacified: boolean, guarded: boolean): RollView {
   const message =
     reaction.outcome === "friendly"
       ? joined > 0
         ? "Friendly — they join your party!"
-        : "Friendly — but they keep their distance."
+        : guarded
+          ? "Friendly — but it stays to guard the chamber."
+          : "Friendly — they join your party!"
       : reaction.outcome === "indifferent"
         ? pacified
           ? "Indifferent again — they now ignore you for good. Go on your way."
@@ -131,7 +133,8 @@ export function rollFromEvents(events: GameEvent[]): RollView | null {
   if (reaction) {
     const joined = events.find((e): e is Extract<GameEvent, { type: "strangersJoined" }> => e.type === "strangersJoined")?.count ?? 0;
     const pacified = events.some((e) => e.type === "pacified");
-    return reactionView(reaction, joined, pacified);
+    const guarded = events.some((e) => e.type === "unicornGuards");
+    return reactionView(reaction, joined, pacified, guarded);
   }
   return chestView(events) ?? casualtyView(events) ?? medusaView(events) ?? viperView(events) ?? combatView(events);
 }

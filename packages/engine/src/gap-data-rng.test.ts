@@ -18,7 +18,6 @@ import {
   GS_DEAD,
   GS_QUIT,
   AF_DESTROYED,
-  PARTY_CAP,
   type MemberStatus,
 } from "./state";
 import { newGame } from "./setup";
@@ -90,14 +89,13 @@ describe("coords (§3)", () => {
 });
 
 describe("state constants (§3)", () => {
-  it("SC-3-21: member status ORIGINAL/ALLY/STONE/DEAD are 0/1/2/3 and PARTY_CAP===12", () => {
+  it("SC-3-21: member status ORIGINAL/ALLY/STONE/DEAD are 0/1/2/3 (no party-size cap)", () => {
     // MemberStatus is the exported union 0 | 1 | 2 | 3 (0 original, 1 ally, 2 stone, 3 dead).
     const original: MemberStatus = 0;
     const ally: MemberStatus = 1;
     const stone: MemberStatus = 2;
     const dead: MemberStatus = 3;
     expect([original, ally, stone, dead]).toEqual([0, 1, 2, 3]);
-    expect(PARTY_CAP).toBe(12);
   });
 
   it("SC-3-22: GS_PLAYING/ESCAPED/DEAD/QUIT===0/1/2/3 and AF_DESTROYED===4", () => {
