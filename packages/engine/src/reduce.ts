@@ -16,6 +16,16 @@ import { rollDie } from "./rng";
 import { CREATURES } from "./data/creatures";
 
 const T_EYE_OF_GOD = 13; // treasure id — must stay with its bearer or the party is cursed (§Eye of God)
+const C_GIANT = 12; // only a Giant can recover treasure cast into a Deep Pool (§Deep Pool)
+
+/** Can a living Giant fish at least one dropped item out of a Deep Pool right now? Recovery is a
+ *  Giant-only, capacity-limited pickup (§Deep Pool): a Man/Ogre/etc. can never lift pool treasure,
+ *  and a Giant already loaded to capacity can't either. Multiple Giants each count. */
+function giantCanRecover(state: GameState, dropped: readonly number[]): boolean {
+  return state.party.some(
+    (m) => (m.status === 0 || m.status === 1) && m.creatureId === C_GIANT && dropped.some((t) => canCarry(m, t)),
+  );
+}
 
 /** First living member who may bear+use `artifact` now (some artifacts need a specific creature). */
 function findBearer(state: GameState, artifact: number): number {
@@ -32,10 +42,16 @@ function findBearer(state: GameState, artifact: number): number {
 /** Persist the chamber working set back into the area, then return to exploring. */
 function persistAndExplore(state: GameState): void {
   const area = state.areas[state.partyArea]!;
+  // Heavy treasure left behind in a Deep Pool sinks back onto its `dropped` pile (recoverable only by
+  // a Giant on a later visit) rather than the ordinary floor contents.
+  const onDeepPool = decodeArea(area.card).special === SPECIAL_DEEP_POOL;
+  if (onDeepPool && state.treasures.length > 0) {
+    area.dropped = [...(area.dropped ?? []), ...state.treasures];
+  }
   area.contents = [
     ...area.contents,
     ...state.strangers.map((id) => 100 + id),
-    ...state.treasures.map((id) => 200 + id),
+    ...(onDeepPool ? [] : state.treasures.map((id) => 200 + id)),
     ...(state.sleeping ?? []).map((id) => 400 + id), // sleeping creatures stay (inert) in the chamber
     ...(state.lulled ?? []).map((id) => 100 + id), // flute-lulled dragons park AWAKE — re-lulled on re-entry only if the flute is still held
   ];
@@ -127,11 +143,14 @@ function resolveArea(state: GameState): GameEvent[] {
     const dec = decodeArea(state.areas[state.partyArea]!.card);
     if (dec.special === SPECIAL_DEEP_POOL) {
       const area = state.areas[state.partyArea]!;
-      if (area.dropped && area.dropped.length > 0) {
+      // Treasure cast into a Deep Pool is recoverable only by a Giant (§Deep Pool). Reclaim it into a
+      // Giant-only pickup only when a living Giant has the spare capacity to lift some of it; otherwise
+      // it stays sunk in the pool for a future visit.
+      if (area.dropped && area.dropped.length > 0 && giantCanRecover(state, area.dropped)) {
         state.treasures = area.dropped;
         area.dropped = [];
         events.push({ type: "treasureReclaimed", count: state.treasures.length });
-        state.phase = "pickup"; // reclaim dropped heavy treasure (weight-limited)
+        state.phase = "pickup"; // Giant-only, weight-limited (see legalActions / takeTreasure)
         return events;
       }
       events.push({ type: "enteredSpecial", special: dec.special });
@@ -319,6 +338,11 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
 
     case "takeTreasure": {
       if (state.phase !== "pickup") return { state, events: [{ type: "blocked" }] };
+      // Deep Pool recovery is Giant-only: no other creature may lift treasure out of the water.
+      if (decodeArea(state.areas[state.partyArea]!.card).special === SPECIAL_DEEP_POOL) {
+        const taker = state.party[action.mi];
+        if (!taker || taker.creatureId !== C_GIANT) return { state, events: [{ type: "blocked" }] };
+      }
       const next = structuredClone(state);
       if (next.treasures[action.ti] === 11) { // Lost Ruby — guarded by a strength-8 statue (§16)
         const fighter = next.party[action.mi];

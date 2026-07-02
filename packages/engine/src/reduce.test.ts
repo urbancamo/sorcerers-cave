@@ -471,22 +471,69 @@ describe("reduce — special-area crossings (C-3 §10)", () => {
     expect(events).not.toContainEqual({ type: "crossedSpecial", special: SPECIAL_DEEP_POOL });
   });
 
-  it("re-entering a Deep Pool with dropped treasure enters the pickup phase to reclaim it", () => {
-    const s = makeState({
-      areas: [
-        { card: 175, coord: packCoord(1, 50, 49), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
-        { card: 287, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0, dropped: [1, 2] },
-      ],
-      partyArea: 0, // start north of the pool
-      prev: 0,
-      party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [] }],
-    });
-    const { state, events } = reduce(s, { type: "move", dir: 3 }); // DIR_S into the pool (175 has a south door; 287 has a north door)
+  // Re-enter a Deep Pool (index 1, with `dropped` treasure) by moving SOUTH into it from the north tile.
+  const reenterPool = (party: object[], dropped: number[]) => makeState({
+    areas: [
+      { card: 175, coord: packCoord(1, 50, 49), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+      { card: 287, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0, dropped },
+    ],
+    partyArea: 0, prev: 0, party: party as any,
+  });
+
+  it("re-entering a Deep Pool WITH a capable Giant recovers the dropped treasure into pickup", () => {
+    const s = reenterPool([{ creatureId: 12, status: 0, dragonKills: 0, treasure: [] }], [1, 2]); // a Giant
+    const { state, events } = reduce(s, { type: "move", dir: 3 }); // DIR_S into the pool
     expect(state.partyArea).toBe(1);
     expect(state.phase).toBe("pickup");
     expect(state.treasures).toEqual([1, 2]);
     expect(state.areas[1]!.dropped).toEqual([]);
     expect(events).toContainEqual({ type: "treasureReclaimed", count: 2 });
+  });
+
+  it("re-entering a Deep Pool WITHOUT a Giant leaves the treasure in the pool (recoverable only by a Giant)", () => {
+    const s = reenterPool([{ creatureId: 5, status: 0, dragonKills: 0, treasure: [] }], [1, 2]); // a Man — no Giant
+    const { state, events } = reduce(s, { type: "move", dir: 3 });
+    expect(state.partyArea).toBe(1);
+    expect(state.phase).toBe("explore");
+    expect(state.treasures).toEqual([]);
+    expect(state.areas[1]!.dropped).toEqual([1, 2]); // untouched — sinks back into the pool
+    expect(events).not.toContainEqual(expect.objectContaining({ type: "treasureReclaimed" }));
+    expect(events).toContainEqual({ type: "enteredSpecial", special: SPECIAL_DEEP_POOL });
+  });
+
+  it("a Giant with no spare capacity cannot recover — the treasure stays in the pool", () => {
+    // Giant (150 kg) already full with six Silver (6×25) → no room to fish anything out.
+    const s = reenterPool([{ creatureId: 12, status: 0, dragonKills: 0, treasure: [0, 0, 0, 0, 0, 0] }], [1]);
+    const { state } = reduce(s, { type: "move", dir: 3 });
+    expect(state.phase).toBe("explore");
+    expect(state.areas[1]!.dropped).toEqual([1]);
+  });
+
+  it("a Deep Pool recovery is a Giant-only pickup: an ordinary member cannot take the treasure", () => {
+    const mid = reduce(reenterPool([
+      { creatureId: 12, status: 0, dragonKills: 0, treasure: [] }, // Giant (mi 0)
+      { creatureId: 5, status: 0, dragonKills: 0, treasure: [] },  // Man (mi 1)
+    ], [1]), { type: "move", dir: 3 }).state;
+    expect(mid.phase).toBe("pickup");
+    const acts = legalActions(mid);
+    expect(acts).toContainEqual({ type: "takeTreasure", ti: 0, mi: 0 });     // the Giant may take it
+    expect(acts).not.toContainEqual({ type: "takeTreasure", ti: 0, mi: 1 }); // the Man may not
+    expect(reduce(mid, { type: "takeTreasure", ti: 0, mi: 1 }).events).toContainEqual({ type: "blocked" });
+    const after = reduce(mid, { type: "takeTreasure", ti: 0, mi: 0 }).state;
+    expect(after.party[0]!.treasure).toEqual([1]);
+  });
+
+  it("treasure a Giant can't fit is left back in the pool on leaving", () => {
+    // Giant carrying five Silver (125 kg, 25 kg spare) can fish out only one of three dropped items.
+    const s = reenterPool([{ creatureId: 12, status: 0, dragonKills: 0, treasure: [0, 0, 0, 0, 0] }], [0, 1, 2]);
+    const mid = reduce(s, { type: "move", dir: 3 }).state;
+    expect(mid.phase).toBe("pickup");
+    expect(mid.treasures).toEqual([0, 1, 2]);
+    const took = reduce(mid, { type: "takeTreasure", ti: 0, mi: 0 }).state; // Giant takes one → full
+    expect(took.phase).toBe("pickup");
+    const done = reduce(took, { type: "leaveTreasure" }).state;
+    expect(done.phase).toBe("explore");
+    expect(done.areas[1]!.dropped).toEqual([1, 2]); // the two it couldn't carry sink back into the pool
   });
 
   it("crossing a Viper Pit with the Charmed Flute is always safe", () => {

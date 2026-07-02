@@ -1,8 +1,11 @@
 import { decodeArea } from "./decode";
 import { DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, unpackCoord, packCoord } from "./coords";
 import { GS_PLAYING, AF_DESTROYED, type GameState } from "./state";
+import { SPECIAL_DEEP_POOL } from "./data/areaCards";
 import type { GameAction } from "./actions";
 import { canCarry } from "./pickup";
+
+const C_GIANT = 12; // only a Giant may lift treasure out of a Deep Pool (§Deep Pool)
 
 function living(state: GameState) {
   return state.party.map((m, idx) => ({ m, idx })).filter(({ m }) => m.status === 0 || m.status === 1);
@@ -96,12 +99,15 @@ export function legalActions(state: GameState): GameAction[] {
   }
   if (state.phase === "pickup") {
     const actions: GameAction[] = [];
+    // Recovering treasure from a Deep Pool is a Giant-only pickup (§Deep Pool) — no other creature
+    // can lift it out of the water; ordinary chamber pickups are open to any member.
+    const giantOnly = decodeArea(state.areas[state.partyArea]!.card).special === SPECIAL_DEEP_POOL;
     for (let ti = 0; ti < state.treasures.length; ti++) {
       for (let mi = 0; mi < state.party.length; mi++) {
         const m = state.party[mi]!;
         // Only offer the take to living/ally members who have the spare capacity to carry it
         // (heavy treasure counts against carry weight; artifacts are weightless so always fit).
-        if ((m.status === 0 || m.status === 1) && canCarry(m, state.treasures[ti]!)) {
+        if ((m.status === 0 || m.status === 1) && canCarry(m, state.treasures[ti]!) && (!giantOnly || m.creatureId === C_GIANT)) {
           actions.push({ type: "takeTreasure", ti, mi });
         }
       }
