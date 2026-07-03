@@ -75,6 +75,7 @@ const platformGroup=new THREE.Group(),tileGroup=new THREE.Group(),stairGroup=new
       petrifiedGroup=new THREE.Group(); // members turned to stone, laid greyed-out on the party's tile
 const tileMeshes=[]; const exitMarkers=[]; const spawnAnims=[]; const stairDashes=[];
 const pendingTiles=new Set(); // coords whose mesh is mid-build (guards against duplicate laying)
+let lastStairSig=''; // last-rendered stair/secret-door topology (see reconcileTiles) — '' forces a rebuild
 const contentMeshes=[]; const cardAnims=[];
 let partyToken=null, selectRing=null, tokenMove=null;
 
@@ -311,6 +312,11 @@ function reconcileTiles(){
   for(const [k,a] of want){ if(!have.has(k)){ buildAreaMesh(a,true); changed=true; } }
   // Re-tint tiles whose destroyed state flipped (an earthquake collapses an already-placed area).
   for(const m of tileMeshes){ const a=m.userData.area&&want.get(akey(m.userData.area)); if(a&&m.material&&m.material.color) m.material.color.setHex(a.destroyed?DESTROYED_TINT:0xffffff); }
+  // A vertical move into an ALREADY-PLACED area can add a mirrored return-stair + secret-door marker
+  // to that existing tile (no new mesh), which the mesh reconciliation above won't notice. Track the
+  // stair/door topology so those connectors and markers rebuild when it changes.
+  const stairSig=engine.areas.map(a=>`${a.level},${a.col},${a.row},${a.down?1:0},${a.up?1:0},${a.secretDoor??'-'}`).join('|');
+  if(stairSig!==lastStairSig){ lastStairSig=stairSig; changed=true; }
   if(changed){ rebuildPlatforms(); rebuildStairs(); rebuildSecretDoors(); rebuildLevelButtons(); }
 }
 function refresh(){
@@ -841,7 +847,7 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
   [platformGroup,tileGroup,stairGroup,fxGroup,exitGroup,contentGroup,secretGroup,otherGroup,petrifiedGroup].forEach(g=>{
     for(let i=g.children.length-1;i>=0;i--){const o=g.children[i];o.traverse?.(x=>{x.geometry?.dispose?.();x.material?.dispose?.();});g.remove(o);}
   });
-  tileMeshes.length=0;exitMarkers.length=0;spawnAnims.length=0;stairDashes.length=0;contentMeshes.length=0;cardAnims.length=0;pendingTiles.clear();
+  tileMeshes.length=0;exitMarkers.length=0;spawnAnims.length=0;stairDashes.length=0;contentMeshes.length=0;cardAnims.length=0;pendingTiles.clear();lastStairSig='';
   contentGroups.clear();
   for(const k of Object.keys(levelBounds)) delete levelBounds[k];
   for(const k of Object.keys(isoAlpha)) delete isoAlpha[k];

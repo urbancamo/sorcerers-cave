@@ -60,6 +60,23 @@ describe("projectArea", () => {
     expect(projectArea(area({ flags: 4 }), 1, state, art).destroyed).toBe(true); // AF_DESTROYED
   });
 
+  it("exposes a mirrored return-stair + secret-door marker so the renderer can draw the connector", () => {
+    const state = newGame(1, [0]);
+    // A tile that gained a mirrored stair-down on an up-move into it (card 31 NSEWC | 64 stair-down),
+    // flagged mirroredStairs=64 with the second secret-door marker.
+    const mirrored = area({ card: 31 | 64, coord: packCoord(1, 50, 49), mirroredStairs: 64, secretDoor: 1 });
+    const a = projectArea(mirrored, 1, state, art);
+    // The stair connector and marker are driven by these ports, not by tile art.
+    expect(a.down).toBe(true);       // rebuildStairs draws a connector to the area below
+    expect(a.up).toBe(false);
+    expect(a.secretDoor).toBe(1);    // rebuildSecretDoors lays the lettered marker
+    // The mirrored stair is a connectivity link, not printed art (SC-6.1-16): tile selection ignores it,
+    // so the chosen tile is the same as the un-mirrored chamber's.
+    const plain = projectArea(area({ card: 31, coord: packCoord(1, 50, 49) }), 1, state, art);
+    expect(a.tileId).toBe(plain.tileId);
+    expect(a.rot).toBe(plain.rot);
+  });
+
   it("projects persisted floor contents into typed card lanes", () => {
     const state = newGame(1, [0]);
     // a chamber tile (bit16) with a creature (Dragon id10), a treasure (Magic Sword id3 = artifact), a hazard (id0)
