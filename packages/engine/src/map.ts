@@ -48,6 +48,22 @@ function pruneExit(card: number, dir: number): number {
 }
 
 /**
+ * Ensure the far end of a stair connection can be retraced (spec §"Secret Doors"). If `dest` lacks the
+ * matching stair (`bit`), mirror it onto the card, flag it as a link (not printed art), and lay the next
+ * lettered secret-door marker. A no-op when the stair is already pictured. Used when a vertical move
+ * lands on an ALREADY-PLACED area — the fresh-draw path below does the same for newly drawn cards.
+ */
+function mirrorReturnStair(next: GameState, dest: PlacedArea, bit: number): void {
+  if ((dest.card & bit) !== 0) return; // already has the return stair — nothing to mirror
+  dest.card |= bit;
+  dest.mirroredStairs = (dest.mirroredStairs ?? 0) | bit;
+  if (dest.secretDoor === undefined) {
+    dest.secretDoor = next.secretDoors ?? 0;
+    next.secretDoors = dest.secretDoor + 1;
+  }
+}
+
+/**
  * Attempt to move the party one step in `dir` (spec §6.1). Pure: returns a new state.
  * - Existing destination: stairs always connect; lateral moves need a matching reverse doorway.
  * - No destination: draw the next large-pack card; place face-up (move) if it connects,
@@ -75,6 +91,11 @@ export function tryMove(state: GameState, dir: number): MoveResult {
     }
     const connects = dir === DIR_UP || dir === DIR_DOWN || hasReverseDoor(decodeArea(dest.card), dir);
     if (connects) {
+      // A vertical move into an already-placed area still needs the matching stair at the far end so
+      // the party can retrace — mirror it (and lay a secret-door marker) just as a freshly drawn area
+      // does, otherwise climbing/descending into an existing tile leaves no way back (§"Secret Doors").
+      if (dir === DIR_UP) mirrorReturnStair(next, dest, STAIR_DOWN_BIT);
+      else if (dir === DIR_DOWN) mirrorReturnStair(next, dest, STAIR_UP_BIT);
       dest.faceUp = true;
       next.prev2 = next.prev;
       next.prev = next.partyArea;

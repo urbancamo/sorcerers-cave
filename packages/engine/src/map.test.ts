@@ -118,6 +118,62 @@ describe("tryMove (spec §6)", () => {
     expect(r.state.areas[1]!.mirroredStairs ?? 0).toBe(0); // printed stair renders normally
   });
 
+  it("ascending into an EXISTING area with no stair down mirrors one so the party can descend back", () => {
+    // The level-1 chamber (card 31 = NSEWC, no stairs) was explored earlier; the party is now on the
+    // level-2 area below it (card 39 = NESU, a printed stair up) and climbs UP into that existing tile.
+    const s = makeState({
+      level: 2,
+      areas: [
+        { card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+        { card: 39, coord: packCoord(2, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+      ],
+      partyArea: 1,
+    });
+    const r = tryMove(s, DIR_UP);
+    expect(r.moved).toBe(true);
+    expect(r.state.level).toBe(1);
+    expect(r.state.partyArea).toBe(0);
+    // The existing level-1 tile gains a mirrored stair down + a secret-door marker, so the party
+    // isn't stranded a level above with no way back.
+    expect(decodeArea(r.state.areas[0]!.card).stairDown).toBe(true);
+    expect(r.state.areas[0]!.mirroredStairs).toBe(64);
+    expect(r.state.areas[0]!.secretDoor).toBe(0);
+    expect(r.state.secretDoors).toBe(1);
+  });
+
+  it("descending into an EXISTING area with no stair up mirrors one so the party can climb back", () => {
+    const s = makeState({
+      level: 1,
+      areas: [
+        { card: 71, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }, // NESD (stair down)
+        { card: 31, coord: packCoord(2, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }, // NSEWC (no stairs)
+      ],
+      partyArea: 0,
+    });
+    const r = tryMove(s, DIR_DOWN);
+    expect(r.moved).toBe(true);
+    expect(r.state.partyArea).toBe(1);
+    expect(decodeArea(r.state.areas[1]!.card).stairUp).toBe(true);
+    expect(r.state.areas[1]!.mirroredStairs).toBe(32);
+    expect(r.state.areas[1]!.secretDoor).toBe(0);
+  });
+
+  it("ascending into an EXISTING area that already shows a stair down is not a secret door", () => {
+    const s = makeState({
+      level: 2,
+      areas: [
+        { card: 71, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }, // NESD already has a stair down
+        { card: 39, coord: packCoord(2, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+      ],
+      partyArea: 1,
+    });
+    const r = tryMove(s, DIR_UP);
+    expect(r.moved).toBe(true);
+    expect(r.state.areas[0]!.secretDoor).toBeUndefined();
+    expect(r.state.areas[0]!.mirroredStairs ?? 0).toBe(0);
+    expect(r.state.secretDoors ?? 0).toBe(0);
+  });
+
   it("keeps a stair-up on a freshly drawn level-1 card (it is a cave exit)", () => {
     // Card 39 = NESU: it has a South door (so it connects when we move North) AND a stair-up.
     // Per the rules — "any stairway leading up from the first level is an exit from the Cave" — that
