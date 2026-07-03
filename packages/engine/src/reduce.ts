@@ -163,6 +163,18 @@ function resolveArea(state: GameState): GameEvent[] {
       return events;
     }
     if (!dec.chamber) {
+      // A passage tile (tunnel / the Gateway) hosts no encounter, but the party may have LEFT treasure
+      // on its floor — dropTreasure and leaveTreasure park it as 200+tid on `area.contents` (§7.3-5/6).
+      // Reload any such floor treasure into a pickup so it can be reclaimed on return; without this,
+      // anything dropped in a tunnel would be stranded, since a passage tile never runs enterChamber.
+      const area = state.areas[state.partyArea]!;
+      const floor = area.contents.filter((c) => c >= 200 && c < 300);
+      if (floor.length > 0) {
+        state.treasures = floor.map((c) => c - 200);
+        area.contents = area.contents.filter((c) => c < 200 || c >= 300);
+        state.phase = "pickup";
+        return events;
+      }
       state.phase = "explore";
       return events;
     }

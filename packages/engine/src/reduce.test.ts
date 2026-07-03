@@ -601,6 +601,28 @@ describe("reduce — treasure redistribution (party panel)", () => {
     expect(state.areas[state.partyArea]!.contents).toContain(200 + 1); // Gold left on the floor
   });
 
+  it("re-offers treasure dropped in a tunnel when the party returns (not stranded)", () => {
+    // Card 5 = NS tunnel (north+south doors, no chamber bit). Man carrying Gold.
+    const s = makeState({
+      largePack: [5], largeIdx: 0, turn: 1,
+      party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [1] }],
+    });
+    // Enter the tunnel (explore — no encounter/pickup) and drop the Gold on its floor.
+    const inTunnel = reduce(s, { type: "move", dir: DIR_S }).state;
+    expect(inTunnel.phase).toBe("explore");
+    const dropped = reduce(inTunnel, { type: "dropTreasure", mi: 0, idx: 0 }).state;
+    expect(dropped.areas[dropped.partyArea]!.contents).toContain(201); // 200 + Gold(1)
+
+    // Leave north to the Gateway, then return south to the same tunnel.
+    const back = reduce(dropped, { type: "move", dir: DIR_N }).state;
+    const { state: reentered } = reduce(back, { type: "move", dir: DIR_S });
+
+    // The Gold must be reclaimable again — a pickup is offered, not left stranded on the floor.
+    expect(reentered.phase).toBe("pickup");
+    expect(reentered.treasures).toContain(1);
+    expect(legalActions(reentered)).toContainEqual({ type: "takeTreasure", ti: 0, mi: 0 });
+  });
+
   it("re-offers treasure dropped during pickup so a Giant can clear room for the Chest", () => {
     // Giant (carry 150) carrying Silver+Gold+Gems (75kg) can't also lift the 100kg Chest.
     const s = makeState({
