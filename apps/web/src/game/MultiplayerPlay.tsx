@@ -5,6 +5,7 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { GS_PLAYING, unpackCoord, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
 import { createCaveAdapter, type CaveAdapter } from "../view/engineAdapter";
 import { TradeModal } from "./TradeModal";
+import { UnionPanel, type UnionView } from "./UnionPanel";
 import { PvpFightSurface, type PvpUiAction, type PvpView } from "./PvpFightSurface";
 import { loadManifest } from "../data/manifest";
 import type { ArtTables } from "../view/projection";
@@ -177,6 +178,12 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   // presence IS your participation. Non-participants get nothing (the no-detail hint is areaMask-side).
   const pvpSession = view.session && view.session.kind === "pvp" ? view.session : null;
   const canDeclareAttack = !terminal && state.phase === "explore" && !view.session;
+  // Union surfaces (spec I-6/I-7): the formation handshake and your union, both playView-projected.
+  const unionProposal = view.session && view.session.kind === "unionProposal" ? view.session : null;
+  const yourUnion = (view.yourUnion ?? null) as UnionView | null;
+  const canProposeUnion = !terminal && state.phase === "explore" && !view.session && !yourUnion;
+  // Guarded loot (spec I-8/I-4): a rival rear-guard stands on your tile — its treasure is not free.
+  const guards = view.detachmentsHere ?? [];
 
   return (
     <div className="relative h-screen w-screen">
@@ -206,9 +213,37 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
                   Attack
                 </button>
               )}
+              {canProposeUnion && (
+                <button
+                  className="scv-mp-here-act"
+                  title={`Propose a union with ${p.name} under your command (§I-6)`}
+                  onClick={() => void dispatch({ type: "proposeUnion", commander: view.youSeat, invited: [p.seat] } as unknown as GameAction)}
+                >
+                  Unite
+                </button>
+              )}
             </span>
           ))}
         </div>
+      )}
+      {guards.length > 0 && !terminal && (
+        <div className="scv-mp-guard" data-testid="guard-ribbon">
+          Treasure here is guarded by {guards.map((d) => `${d.name} (${d.count})`).join(", ")}
+        </div>
+      )}
+      {(unionProposal || yourUnion) && !terminal && (
+        <UnionPanel
+          proposal={unionProposal}
+          union={yourUnion}
+          youSeat={view.youSeat}
+          parties={view.parties}
+          dispatch={{
+            respondUnion: (accept) => void dispatch({ type: "respondUnion", accept } as unknown as GameAction),
+            leaveUnion: () => void dispatch({ type: "leaveUnion" } as unknown as GameAction),
+            dissolveUnion: () => void dispatch({ type: "dissolveUnion" } as unknown as GameAction),
+            allocateRecruit: (recruit, to) => void dispatch({ type: "allocateRecruit", recruit, to } as unknown as GameAction),
+          }}
+        />
       )}
       {pvpSession && (
         <PvpFightSurface

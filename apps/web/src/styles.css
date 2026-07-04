@@ -741,6 +741,33 @@
 .scv-trade-item.member { border-left: 3px solid var(--teal); }
 .scv-trade-owner { color: var(--stone-dim); font-size: 11px; }
 .scv-trade-note { margin: 8px 0 0; font-size: 12px; color: var(--brass-bright); }
+/* Union surfaces (spec I-6/I-7): proposal countdown, the in-play union chip, ally allocation. */
+.scv-union-clock { margin: 0 0 10px; font-family: var(--ui); font-size: 12px; color: var(--brass-bright); }
+.scv-union-chip {
+  position: fixed; top: 46px; right: 14px; z-index: 59;
+  display: flex; align-items: center; gap: 7px;
+  font-family: var(--ui); font-size: 12px; color: var(--cream);
+  padding: 5px 12px; border-radius: 16px;
+  background: rgba(15, 15, 20, 0.82); border: 1px solid var(--line-strong); backdrop-filter: blur(8px);
+}
+.scv-union-cap { color: var(--stone-dim); letter-spacing: 0.1em; text-transform: uppercase; font-size: 10px; }
+.scv-union-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.scv-union-role { color: var(--stone-dim); font-size: 11px; }
+.scv-union-recruit { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+.scv-union-recruit-name { font-family: var(--ui); font-size: 13px; font-weight: 600; color: var(--cream); min-width: 90px; }
+.scv-union-seat {
+  padding: 4px 10px; border-radius: 9px; cursor: pointer; font-family: var(--ui); font-size: 12px;
+  color: var(--cream); background: rgba(0, 0, 0, 0.3); border: 1px solid var(--line-strong);
+}
+.scv-union-seat.pending { border-color: var(--brass-bright); background: rgba(201, 161, 78, 0.12); }
+.scv-union-seat:disabled { opacity: 0.55; cursor: default; }
+/* Guarded-loot ribbon (spec I-8/I-4): a rival rear-guard holds the treasure on this tile. */
+.scv-mp-guard {
+  position: fixed; top: 84px; left: 50%; transform: translateX(-50%); z-index: 58;
+  font-family: var(--ui); font-size: 12px; color: var(--cream);
+  padding: 5px 14px; border-radius: 16px;
+  background: rgba(90, 46, 38, 0.85); border: 1px solid #8a3a34; backdrop-filter: blur(8px);
+}
 /* Transient toasts under the depth bar: turn changes and mirrored chat, 3s each. */
 .scv-mp-toasts {
   position: fixed; top: 78px; left: 50%; transform: translateX(-50%); z-index: 60;

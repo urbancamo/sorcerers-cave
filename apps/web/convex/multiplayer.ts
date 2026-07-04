@@ -4,7 +4,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Id, Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { uniqueCode } from "./game";
-import { buildMpGame, choosePartyFor, mpReduce, partyView, scoreGame, occupants, areaInteractionMask, expireTrade, expirePvp, pvpView, PVP_WINDOW_MS, CREATURES, TREASURES, PARTY_BUDGET, type MpGameState, type MpAction, type PartyState, type GameEvent } from "@sorcerers-cave/engine";
+import { buildMpGame, choosePartyFor, mpReduce, partyView, scoreGame, occupants, areaInteractionMask, expireTrade, expirePvp, expireUnionProposal, pvpView, PVP_WINDOW_MS, CREATURES, TREASURES, PARTY_BUDGET, type MpGameState, type MpAction, type PartyState, type GameEvent } from "@sorcerers-cave/engine";
 
 // Permissive action shape; the engine (mpReduce) enforces semantics. Includes the lobby-level endTurn.
 const mpActionValidator = v.object({
@@ -31,10 +31,18 @@ const mpActionValidator = v.object({
     backers: v.array(v.number()),
     strangers: v.array(v.number()),
   }))),
+  // Union lifecycle (I-6/I-7): proposeUnion{commander,invited}, respondUnion{accept},
+  // allocateRecruit{recruit,to} (`to` and `members` are shared with the fields above).
+  commander: v.optional(v.number()),
+  invited: v.optional(v.array(v.number())),
+  accept: v.optional(v.boolean()),
+  recruit: v.optional(v.number()),
 });
 
 /** Trade offers wait 60 s on the other side before expiring (spec §1.3). */
 const TRADE_WINDOW_MS = 60_000;
+/** A union invitee gets 60 s to answer; silence is refusal (spec I-6, §1.3). */
+const UNION_WINDOW_MS = 60_000;
 /** A seat is "present" if its player row pinged within this window (pauses timeouts, spec §1.3). */
 const PRESENCE_FRESH_MS = 30_000;
 
@@ -376,6 +384,9 @@ export const playView = query({
 
     const current = mp.phase === "playing" ? mp.order[mp.active]! : null;
     const yourArea = mp.parties[me.seat]!.partyArea;
+    // Your union (active OR the dissolved residue awaiting the ally-allocation handshake, I-6/I-7),
+    // projected to names/colours so the HUD chip and allocation modal need no second lookup.
+    const yu = (mp.unions ?? []).find((u) => u.members.includes(me.seat)) ?? null;
     return {
       state: partyView(mp, me.seat),
       youSeat: me.seat,
@@ -390,10 +401,36 @@ export const playView = query({
       areaMask: areaInteractionMask(mp, yourArea),
       // The active interaction session — projected only to its participants (others see null).
       // Non-participants co-located with a PvP fight get only the no-detail hint via areaMask.
+      // A union proposal's participants are the commander + everyone invited or already accepted.
       session: mp.session && (
         ("a" in mp.session && (mp.session.a === me.seat || mp.session.b === me.seat)) ||
-        (mp.session.kind === "pvp" && (mp.session.attacker.includes(me.seat) || mp.session.defender.includes(me.seat)))
+        (mp.session.kind === "pvp" && (mp.session.attacker.includes(me.seat) || mp.session.defender.includes(me.seat))) ||
+        (mp.session.kind === "unionProposal" &&
+          (mp.session.commander === me.seat || mp.session.invited.includes(me.seat) || mp.session.accepted.includes(me.seat)))
       ) ? mp.session : null,
+      // Your union (I-6/I-7) — null when independent. `recruits[i].name` indexes the allocation
+      // handshake's recruit ids; `alloc` is the pending same-(recruit,to) confirm state.
+      yourUnion: yu ? {
+        id: yu.id,
+        commander: yu.commander,
+        commanderName: mp.parties[yu.commander]!.name,
+        youAreCommander: yu.commander === me.seat,
+        members: yu.members.map((s) => ({ seat: s, name: mp.parties[s]!.name, color: mp.parties[s]!.color })),
+        recruits: yu.recruits.map((r) => ({
+          name: CREATURES[mp.parties[r.seat]!.party[r.partyIdx]?.creatureId ?? -1]?.name ?? "ally",
+        })),
+        dissolved: !!yu.dissolved,
+        alloc: yu.alloc ?? null,
+      } : null,
+      // Rival rear-guards standing on YOUR tile (spec I-8/I-4): their loot here is guarded.
+      detachmentsHere: (mp.detachments ?? [])
+        .filter((d) => d.area === yourArea && d.ownerSeat !== me.seat)
+        .map((d) => ({
+          seat: d.ownerSeat,
+          name: mp.parties[d.ownerSeat]!.name,
+          color: mp.parties[d.ownerSeat]!.color,
+          count: d.members.length,
+        })),
       // Per-engagement strength preview for the fight surface (participants only).
       pvp: mp.session?.kind === "pvp" && (mp.session.attacker.includes(me.seat) || mp.session.defender.includes(me.seat))
         ? pvpView(mp.session, mp)
@@ -446,7 +483,9 @@ async function settleOverdueSession(
   if (!w || now < w.deadline) return mp;
   const seats = await seatsOf(ctx, gameId);
   const awaited = seats.find((p) => p.seat === w.seat);
-  const extendMs = mp.session?.kind === "pvp" ? PVP_WINDOW_MS : TRADE_WINDOW_MS;
+  const extendMs =
+    mp.session?.kind === "pvp" ? PVP_WINDOW_MS :
+    mp.session?.kind === "unionProposal" ? UNION_WINDOW_MS : TRADE_WINDOW_MS;
   if (awaited && now - awaited.lastSeen < PRESENCE_FRESH_MS) {
     // Present but pondering — extend rather than default (spec §1.3 presence pause).
     const extended: MpGameState = {
@@ -463,6 +502,17 @@ async function settleOverdueSession(
     if (fired) {
       await ctx.db.patch(gameId, { state: after, updatedAt: now });
       await postSystem(ctx, gameId, "The round was fought on — the delay forfeited the deployment", now);
+      await armSessionJob(ctx, gameId, after, now);
+    }
+    return after;
+  }
+  // A union proposal's overdue invitee auto-refuses (spec I-6, §1.3); the window may walk on to
+  // the next invitee, so re-arm the job for any window that remains.
+  if (mp.session?.kind === "unionProposal") {
+    const { state: after, fired } = expireUnionProposal(mp, now, UNION_WINDOW_MS);
+    if (fired) {
+      await ctx.db.patch(gameId, { state: after, updatedAt: now });
+      await postSystem(ctx, gameId, "A union invitation lapsed — silence is refusal", now);
       await armSessionJob(ctx, gameId, after, now);
     }
     return after;
@@ -526,6 +576,23 @@ export const act = mutation({
     // Narrate the completed action to the other parties (toasted on their screens).
     const frags = actionNarration(action as MpAction, events, mp.parties[me.seat]!, state.parties[me.seat]!);
     if (frags.length) await postAction(ctx, gameId, me.seat, me.partyName, me.color, frags.join(", "), now);
+
+    // Union / rear-guard system lines (I-6/I-7/I-8) — terse, like the lobby's system feed.
+    const kind = (action as MpAction).type;
+    if (kind === "respondUnion") {
+      // The final acceptance is what actually forms the union — announce it once, then.
+      const formed = (state.unions ?? []).find((u) => !u.dissolved && !(mp.unions ?? []).some((b) => b.id === u.id));
+      if (formed) {
+        const names = formed.members.map((s) => state.parties[s]!.name).join(", ");
+        await postSystem(ctx, gameId, `${names} formed a union under ${state.parties[formed.commander]!.name}`, now);
+      }
+    } else if (kind === "leaveUnion" || kind === "refuseMove") {
+      await postSystem(ctx, gameId, `${me.partyName} left the union`, now);
+    } else if (kind === "dissolveUnion") {
+      await postSystem(ctx, gameId, `${me.partyName} dissolved the union`, now);
+    } else if (kind === "divideParty") {
+      await postSystem(ctx, gameId, `${me.partyName} posted a rear-guard`, now);
+    }
 
     // If the acting party just reached a terminal state, record it to the multiplayer high-score
     // table (§8.4) — kept separate from solo records. Only the acting seat's party can transition.

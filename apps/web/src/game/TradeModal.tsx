@@ -1,8 +1,9 @@
 import { useEffect, useState } from "react";
 import { CREATURES, TREASURES, type TradeSession, type GameState } from "@sorcerers-cave/engine";
 
-/** Live countdown to a reaction-window deadline (spec §1.3) — re-renders once a second. */
-function useCountdown(deadline: number | null): number | null {
+/** Live countdown to a reaction-window deadline (spec §1.3) — re-renders once a second.
+ *  Shared with UnionPanel (the union proposal runs on the same reaction-window plumbing). */
+export function useCountdown(deadline: number | null): number | null {
   const [left, setLeft] = useState<number | null>(null);
   useEffect(() => {
     if (deadline == null) { setLeft(null); return; }

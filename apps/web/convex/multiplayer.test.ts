@@ -399,3 +399,48 @@ test("an overdue trade window expires via the lazy backstop on the next mutation
   const v = await seat0.query(api.multiplayer.playView, { gameId });
   expect(v?.session).toBeNull();
 });
+
+// ---- M5: unions over Convex (spec I-6/I-7, §1.3 windows) ---------------------------------------
+
+test("a union proposal is projected to the invitee with the reaction window (I-6)", async () => {
+  const t = convexTest(schema, modules);
+  const { gameId, bySeat } = await playingPair(t);
+  const seat0 = bySeat[0]!, seat1 = bySeat[1]!;
+
+  // Seat 0 proposes a union under its own command, inviting seat 1 (both start on the Gateway).
+  await seat0.mutation(api.multiplayer.act, { gameId, action: { type: "proposeUnion", commander: 0, invited: [1] } });
+
+  const v1 = (await seat1.query(api.multiplayer.playView, { gameId }))!;
+  expect(v1.session?.kind).toBe("unionProposal");
+  expect(v1.session?.window?.seat).toBe(1);       // the answer is awaited from the invitee
+  expect(v1.yourUnion).toBeNull();                // nothing formed yet
+  const v0 = (await seat0.query(api.multiplayer.playView, { gameId }))!;
+  expect(v0.session?.kind).toBe("unionProposal"); // the proposer is a participant too
+});
+
+test("respondUnion accept forms the union for both seats; leaveUnion returns them to null (I-6/I-7)", async () => {
+  const t = convexTest(schema, modules);
+  const { gameId, bySeat } = await playingPair(t);
+  const seat0 = bySeat[0]!, seat1 = bySeat[1]!;
+
+  await seat0.mutation(api.multiplayer.act, { gameId, action: { type: "proposeUnion", commander: 0, invited: [1] } });
+  await seat1.mutation(api.multiplayer.act, { gameId, action: { type: "respondUnion", accept: true } });
+
+  const u0 = (await seat0.query(api.multiplayer.playView, { gameId }))!.yourUnion;
+  const u1 = (await seat1.query(api.multiplayer.playView, { gameId }))!.yourUnion;
+  expect(u0).toMatchObject({ commander: 0, commanderName: "Alpha", youAreCommander: true, dissolved: false });
+  expect(u1).toMatchObject({ commander: 0, commanderName: "Alpha", youAreCommander: false });
+  expect(u1!.members.map((m: { seat: number }) => m.seat)).toEqual([0, 1]);
+  expect((await seat0.query(api.multiplayer.playView, { gameId }))!.session).toBeNull(); // handshake closed
+
+  // Formation is narrated to the table as a system line.
+  const feed = await seat0.query(api.multiplayer.messages, { gameId });
+  expect(feed.some((m) => m.seat === null && /formed a union under Alpha/.test(m.text))).toBe(true);
+
+  // The subordinate leaves — a two-member union dissolves entirely; both are independent again.
+  await seat1.mutation(api.multiplayer.act, { gameId, action: { type: "leaveUnion" } });
+  expect((await seat0.query(api.multiplayer.playView, { gameId }))!.yourUnion).toBeNull();
+  expect((await seat1.query(api.multiplayer.playView, { gameId }))!.yourUnion).toBeNull();
+  const after = await seat0.query(api.multiplayer.messages, { gameId });
+  expect(after.some((m) => m.seat === null && /Beta left the union/.test(m.text))).toBe(true);
+});
