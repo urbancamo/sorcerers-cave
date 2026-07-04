@@ -97,7 +97,7 @@ describe("declarePvp (I-9)", () => {
       { seat: 0, id: "0:0", tid: 1 },
       { seat: 1, id: "1:0", tid: 2 },
     ]);
-    expect(r.events.filter((e) => e.type === "treasureDropped")).toHaveLength(2);
+    expect(r.events.filter((e) => e.type === "heavyDownForFight")).toHaveLength(2);
   });
 });
 

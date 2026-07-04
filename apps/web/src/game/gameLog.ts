@@ -138,6 +138,7 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "casualtyChosen": return `${creature(e.creatureId)} fell (rolled ${e.roll}${e.gotPreference ? ", choice honoured" : ""})`;
     case "crossedSpecial": return `crossed a special area (type ${e.special})`;
     case "treasureDropped": return `${e.count} heavy treasure sank into the pool`;
+    case "heavyDownForFight": return `${e.count} heavy treasure cast down for the fight`;
     case "treasureReclaimed": return `recovered ${e.count} treasure from the pool`;
     case "artifactUsed": return `used ${treasure(e.artifact)}`;
     case "chestOpened": return `opened the treasure chest (rolled ${e.result})`;
@@ -347,6 +348,7 @@ function eventCode(e: GameEvent): string | null {
     case "memberRevived": return `RVV ${cr3(e.creatureId)}`;
     case "sorcererSlain": return "SOR SLN";
     case "treasureDropped": return `TDR ${e.count}`;
+    case "heavyDownForFight": return `FDR ${e.count}`;
     case "treasureReclaimed": return `TRC ${e.count}`;
     case "droppedRetaken": return `RTK ${e.count}`;
     case "crossedSpecial": return `XSP ${TYPE3[e.special] ?? "???"}`;
@@ -417,7 +419,7 @@ function legend(): string[] {
     ...rows("TILE COLS", ["EXT: N/E/S/W OPEN, - WALL", "STR: U UP, D DOWN"]),
     ...rows("ACTION", ["MOV=MOVE", "RET=RETREAT", "OUT=EXIT CAVE", "WDR=WITHDRAW", "TST=TEST", "ATK=ATTACK", "FGT=FIGHT ROUND", "TAK=TAKE", "GIV=GIVE", "DRP=DROP", "BER=BEAR", "STW=STOW", "LVE=LEAVE", "RTK=RETAKE", "USE=USE ARTEFACT", "OPN=OPEN CHEST", "CAS=CASUALTY", "QIT=QUIT"]),
     ...rows("EVENT", ["DRW=DREW (S:STRANGERS T:TREASURE H:HAZARDS)", "RCT=REACTION (HOS/IND/FRD)", "JOI=JOINED", "PAC=PACIFIED", "FGT SUP=FIGHT ON", "CBT=COMBAT (SIDE # V FOE # WON/LOS/TIE)", "WON=PARTY WON", "DIE=MEMBER DIED", "KIL=STRANGER SLAIN", "SLW=SPECTRE SLEW", "CAS=CASUALTY (R# DIE)"]),
-    ...rows("EVENT", ["HAZ=HAZARD (GHL/MDA/ERQ/MUT/TRP)", "TRP=TRAP", "ESP/XSP=ENTER/CROSS SPECIAL", "TDR/TRC=POOL DROP/RECOVER", "RCL=RECLAIM", "END=GAME OVER (ESC/DED/QIT)", "DED=DEAD END", "SEC=SECRET DOOR", "SPL=ITEMS SPILLED", "ANH=ANNIHILATE", "WRD=WARD OFF", "RVV=REVIVE", "SAV=RING SAVE"]),
+    ...rows("EVENT", ["HAZ=HAZARD (GHL/MDA/ERQ/MUT/TRP)", "TRP=TRAP", "ESP/XSP=ENTER/CROSS SPECIAL", "TDR/TRC=POOL DROP/RECOVER", "FDR=FIGHT DROP", "RCL=RECLAIM", "END=GAME OVER (ESC/DED/QIT)", "DED=DEAD END", "SEC=SECRET DOOR", "SPL=ITEMS SPILLED", "ANH=ANNIHILATE", "WRD=WARD OFF", "RVV=REVIVE", "SAV=RING SAVE"]),
   ];
 }
 

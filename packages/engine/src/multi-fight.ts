@@ -173,7 +173,7 @@ export function declarePvp(mp: MpGameState, attackerSeat: number, defenderSeat: 
       for (const tid of heavy) drops.push({ seat, id: mkId(seat, idx), tid });
       count += heavy.length;
     });
-    if (count) events.push({ type: "treasureDropped", count });
+    if (count) events.push({ type: "heavyDownForFight", count });
   }
 
   const session: PvpFightSession = {

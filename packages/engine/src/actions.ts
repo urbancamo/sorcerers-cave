@@ -88,4 +88,8 @@ export type GameEvent =
   | { type: "secretDoorRevealed"; dir: number }
   // A downed (slain or petrified) member's CARRIED items spilled onto the chamber floor — borne items
   // stay with the body (§Medusa "anything they were carrying can be taken", plan ④a / I-12).
-  | { type: "itemsSpilled"; creatureId: number; items: number[] };
+  | { type: "itemsSpilled"; creatureId: number; items: number[] }
+  // Heavy treasure cast down at a PvP declaration (§388 "left on the area card until the issue is
+  // decided", spec I-9). Distinct from treasureDropped, which is the DEEP POOL sinking — reusing
+  // that type made the UI announce a pool where there was only a brawl. Emitted only by multi-fight.
+  | { type: "heavyDownForFight"; count: number };
