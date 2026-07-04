@@ -270,6 +270,27 @@ describe("PvP wiring in mpReduce (M4b)", () => {
     expect(second.state.parties[0]!.fleeGrace).toBeUndefined();
   });
 
+  it("wiping the ACTIVE seat via PvP advances the parked cursor to the survivor (review P1)", () => {
+    // Seat 0 (ACTIVE, a lone Dwarf FS 1) is attacked by seat 1 (a Giant FS 7): the Giant's total
+    // (7+d6 ≥ 8) always beats the Dwarf's (1+d6 ≤ 7), so the round wipes seat 0 — the seat the
+    // strict-mode turn cursor is parked on. PvP actions bypass the solo tail's advanceTurn, so
+    // without repairTurnFlow the game would jam with the survivor unable to ever act again.
+    const mp = playing({}, [
+      partyAt(0, { party: [{ creatureId: 7, status: 0, dragonKills: 0, treasure: [] }] }),
+      partyAt(1, { party: [{ creatureId: 12, status: 0, dragonKills: 0, treasure: [] }], prev: 2 }),
+    ]);
+    const declared = mpReduce(mp, 1, { type: "declareAttack", to: 0 }, 1000).state;
+    const lined = mpReduce(declared, 0, { type: "pvpLine", line: ["0:0"] }, 1000).state;
+    const engaged = mpReduce(lined, 1, { type: "pvpEngage", engagements: [{ attackers: ["1:0"], defenders: ["0:0"] }], backers: [] }, 1000).state;
+    const done = mpReduce(engaged, 0, { type: "pvpCasters", backers: [] }, 1000).state; // resolves
+
+    expect(done.parties[0]!.status).toBe("wiped");
+    expect(done.session ?? null).toBeNull();
+    expect(done.order[done.active]).toBe(1); // the cursor moved OFF the wiped seat — no jam
+    // The survivor can act (its turn, at rest).
+    expect(mpReduce(done, 1, { type: "endTurn" }).events).not.toContainEqual({ type: "blocked" });
+  });
+
   it("meeting another party on the flight turn forfeits the grace", () => {
     const north = { card: 31, coord: packCoord(1, 50, 49), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };
     const mp = playing(

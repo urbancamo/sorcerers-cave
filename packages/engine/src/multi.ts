@@ -304,7 +304,25 @@ export function mpReduce(mp: MpGameState, seat: number, action: MpAction, now = 
   if (r.state === mp) return r; // blocked / no-op: nothing moved, nothing to record or sweep
   let state = recordSeenAreas(r.state);
   if (state.variants?.zombies === true) state = zombiePostSweep(state).state;
+  state = repairTurnFlow(state);
   return state === r.state ? r : { state, events: r.events };
+}
+
+/**
+ * Repair the turn flow after any transition that bypasses the solo tail's advanceTurn — PvP
+ * terminals (session actions return from the interaction layer) and window auto-resolves applied
+ * directly by the server. A wipe could otherwise park the strict-mode cursor on a non-exploring
+ * seat forever, and an all-terminal state could sit at phase "playing" with nobody able to act.
+ */
+export function repairTurnFlow(state: MpGameState): MpGameState {
+  if (state.phase === "playing" && state.concurrent !== true &&
+      state.parties[state.order[state.active]!]?.status !== "exploring") {
+    state = advanceTurn(state);
+  }
+  if (state.phase === "playing" && !state.parties.some((p) => p.status === "exploring")) {
+    state = { ...state, phase: "finished" };
+  }
+  return state;
 }
 
 /** Apply one seat's action in the playing phase. Solo actions are turn-gated (only the active seat

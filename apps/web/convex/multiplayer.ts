@@ -4,7 +4,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Id, Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { uniqueCode } from "./game";
-import { buildMpGame, choosePartyFor, mpReduce, partyView, fogFilter, distantFights, zombiePostSweep, mpScore, occupants, areaInteractionMask, expireTrade, expirePvp, expireUnionProposal, pvpView, PVP_WINDOW_MS, CREATURES, TREASURES, PARTY_BUDGET, type MpGameState, type MpAction, type PartyState, type GameEvent } from "@sorcerers-cave/engine";
+import { buildMpGame, choosePartyFor, mpReduce, partyView, fogFilter, distantFights, zombiePostSweep, repairTurnFlow, mpScore, occupants, areaInteractionMask, expireTrade, expirePvp, expireUnionProposal, pvpView, PVP_WINDOW_MS, CREATURES, TREASURES, PARTY_BUDGET, type MpGameState, type MpAction, type PartyState, type GameEvent } from "@sorcerers-cave/engine";
 
 // Permissive action shape; the engine (mpReduce) enforces semantics. Includes the lobby-level endTurn.
 const mpActionValidator = v.object({
@@ -565,7 +565,9 @@ async function settleOverdueSession(
     if (fired) {
       // The auto-resolved round bypassed mpReduce, so run the zombies sweep here too (M7): a wiped
       // living command rises, a zombie victor's floor reclaim is stripped back to the tile.
-      const { state: after, risen } = zombiePostSweep(expired);
+      const { state: swept, risen } = zombiePostSweep(expired);
+      // The auto-resolve bypassed mpReduce's wrapper: repair a parked cursor / all-terminal state.
+      const after = repairTurnFlow(swept);
       await ctx.db.patch(gameId, { state: after, updatedAt: now });
       await postSystem(ctx, gameId, "The round was fought on — the delay forfeited the deployment", now);
       for (const s of risen) await postSystem(ctx, gameId, `${after.parties[s]!.name} rise from the dead…`, now);
