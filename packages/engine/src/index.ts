@@ -27,3 +27,5 @@ export * from "./effects";
 export * from "./multi";
 export * from "./multi-session";
 export * from "./multi-trade";
+export * from "./multi-fight";
+export * from "./multi-union";

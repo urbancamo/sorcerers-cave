@@ -15,6 +15,17 @@ import {
   proposeTrade, updateBasket, confirmTrade, cancelTrade, sessionGuard, showSecretDoor,
   grantSecretDoors, secretStairGated, type TradeResult,
 } from "./multi-trade";
+import {
+  declarePvp, setDefenderLine, setAttackerEngage, setDefenderCasters, resolveRoundPvp,
+  retreatPvp, proposeStop, acceptStop, PVP_WINDOW_MS, type PvpResult,
+} from "./multi-fight";
+import {
+  proposeUnion, respondUnion, leaveUnion, refuseMove, dissolveUnion, allocateRecruit,
+  divideParty, activeUnionOf, unionPostAction,
+} from "./multi-union";
+
+/** Chain two PvP transitions (layout completion → immediate resolve), concatenating their events. */
+const mergePvp = (a: PvpResult, b: PvpResult): PvpResult => ({ state: b.state, events: [...a.events, ...b.events] });
 
 /**
  * Multi-party (multiplayer) engine core. Strategy: do NOT fork the single-party rules. One shared
@@ -52,6 +63,17 @@ export interface PartyState extends PartyCore {
   // seat has learnt. Strictly per seat: a mirrored (unprinted) stair is unusable until its area's
   // coord appears here. Grants: own traversal, co-located witness, showSecretDoor, Charmed Flute.
   knownDoors?: number[];
+  // Turns of pursuit-escape grace left after retreating from another party (§"Retreat from Another
+  // Party": "may take two turns in a row"). Consumed on a CLEAN flight turn (the seat keeps the
+  // turn once); cancelled by strangers/another party/a hazard/the pit or pool/stopping for loot.
+  fleeGrace?: number;
+  // Turns still owed as the union joining fee (spec I-6: each non-commander "forfeits a turn").
+  // advanceTurn consumes one per owed turn when the seat's slot comes round (skip-and-decrement).
+  forfeitTurnsOwed?: number;
+  // Sorcerer bounty sharing (spec I-19): when the Sorcerer fell to a UNION command, every member
+  // seat records the OTHER sharing seats here (with sorcererKilled=true). mpScore divides the 30
+  // equally among 1 + sorcererSharedWith.length seats at terminal scoring.
+  sorcererSharedWith?: number[];
 }
 
 export interface MpGameState {
@@ -78,7 +100,27 @@ export type MpAction =
   | { type: "updateBasket"; treasure: number[]; members: number[] }
   | { type: "confirmTrade" }
   | { type: "cancelTrade" }
-  | { type: "showSecretDoor"; to: number };
+  | { type: "showSecretDoor"; to: number }
+  // PvP fight session (spec I-9/I-10/I-11) — staged layout + resolution run beside the turn order,
+  // gated by the session's stage/window; participants answer off-turn (§1.3).
+  | { type: "declareAttack"; to: number }
+  | { type: "pvpLine"; line: string[] }
+  | { type: "pvpEngage"; engagements: { attackers: string[]; defenders: string[] }[]; backers: { caster: string; at: number }[] }
+  | { type: "pvpCasters"; backers: { caster: string; at: number }[] }
+  | { type: "pvpResolve" }
+  | { type: "pvpRetreat"; dir: number }
+  | { type: "pvpProposeStop" }
+  | { type: "pvpAcceptStop" }
+  // Union lifecycle (spec I-6/I-7) — proposal/answers/leave run BESIDE the turn order (a
+  // subordinate's own turn is skipped while united, so leave cannot be turn-gated); division
+  // (spec I-8) is an on-turn structural action. Rejoining a detachment is automatic on return.
+  | { type: "proposeUnion"; commander: number; invited: number[] }
+  | { type: "respondUnion"; accept: boolean }
+  | { type: "leaveUnion" }
+  | { type: "refuseMove" }
+  | { type: "dissolveUnion" }
+  | { type: "allocateRecruit"; recruit: number; to: number }
+  | { type: "divideParty"; members: number[] };
 
 const TERMINAL: Record<number, SeatStatus> = { [GS_ESCAPED]: "left", [GS_DEAD]: "wiped", [GS_QUIT]: "quit" };
 
@@ -115,16 +157,29 @@ function turnEnds(action: MpAction, next: GameState): boolean {
   return false;                                        // encounter decision, mid-round, or looting — same turn
 }
 
-/** Advance to the next seat (in play order) whose party is still exploring; finish if none remain. */
-function advanceTurn(mp: MpGameState): MpGameState {
+/** Advance to the next seat (in play order) whose party is still exploring; finish if none remain.
+ *  Union turn logic (spec I-6/I-7): a seat still owing its union joining fee has that turn silently
+ *  CONSUMED (skip-and-decrement), and a union subordinate's turn is skipped outright — the
+ *  commander plays for the combined force on his own slot. Exported for multi-union's formation
+ *  hand-off (forming a union during the new subordinate's own turn passes play on immediately). */
+export function advanceTurn(mp: MpGameState): MpGameState {
   const n = mp.order.length;
+  let parties = mp.parties;
   for (let step = 1; step <= n; step++) {
     const idx = (mp.active + step) % n;
-    if (mp.parties[mp.order[idx]!]!.status === "exploring") {
-      return { ...mp, active: idx, turnCount: mp.turnCount + 1 };
+    const seat = mp.order[idx]!;
+    const p = parties[seat]!;
+    if (p.status !== "exploring") continue;
+    if ((p.forfeitTurnsOwed ?? 0) > 0) {
+      // The forfeited turn is auto-consumed as it comes round (never a dead stop).
+      const left = (p.forfeitTurnsOwed ?? 0) - 1;
+      parties = parties.map((q, i) => (i === seat ? { ...q, forfeitTurnsOwed: left > 0 ? left : undefined } : q));
+      continue;
     }
+    if (mp.unions?.some((u) => !u.dissolved && u.commander !== seat && u.members.includes(seat))) continue;
+    return { ...mp, parties, active: idx, turnCount: mp.turnCount + 1 };
   }
-  return { ...mp, phase: "finished" };
+  return { ...mp, parties, phase: "finished" };
 }
 
 const blocked = (mp: MpGameState): { state: MpGameState; events: GameEvent[] } => ({ state: mp, events: [{ type: "blocked" }] });
@@ -188,16 +243,65 @@ export function mpReduce(mp: MpGameState, seat: number, action: MpAction, now = 
 
   // Interaction layer BEFORE the turn gate: trades (I-5) and door-sharing (I-18) are not turns.
   switch (action.type) {
-    case "proposeTrade": return lift(mp, proposeTrade(mp, seat, action.to, now, windowMs));
+    case "proposeTrade":
+      // Trading is barred while either side is united (I-6/I-7): a union member's creatures live
+      // in the commander's array (the loan model), and party arrays must stay append-only there.
+      if (activeUnionOf(mp, seat) || activeUnionOf(mp, action.to)) return blocked(mp);
+      return lift(mp, proposeTrade(mp, seat, action.to, now, windowMs));
     case "updateBasket": return lift(mp, updateBasket(mp, seat, { treasure: action.treasure, members: action.members }, now, windowMs));
     case "confirmTrade": return lift(mp, confirmTrade(mp, seat, now, windowMs));
     case "cancelTrade": return lift(mp, cancelTrade(mp, seat));
     case "showSecretDoor": return lift(mp, showSecretDoor(mp, seat, action.to));
+    // PvP session actions (I-9/I-10/I-11): stage/seat gating lives in multi-fight.ts.
+    case "declareAttack": return declarePvp(mp, seat, action.to, now, PVP_WINDOW_MS);
+    case "pvpLine": return setDefenderLine(mp, seat, action.line, now, PVP_WINDOW_MS);
+    case "pvpEngage": return setAttackerEngage(mp, seat, action.engagements, action.backers, now, PVP_WINDOW_MS);
+    case "pvpCasters": {
+      const r = setDefenderCasters(mp, seat, action.backers, now, PVP_WINDOW_MS);
+      // The layout is complete — resolve the round immediately (defender assigned last, §steps 1-3).
+      const done = r.state.session?.kind === "pvp" && r.state.session.stage === "resolved";
+      return done ? mergePvp(r, resolveRoundPvp(r.state, now, PVP_WINDOW_MS)) : r;
+    }
+    case "pvpResolve": return resolveRoundPvp(mp, now, PVP_WINDOW_MS);
+    case "pvpRetreat": {
+      const r = retreatPvp(mp, seat, action.dir, now);
+      // The two-turns-in-a-row flee grace (§"Retreat from Another Party") parks on the party and is
+      // consumed/cancelled by the turn logic below on its next turn.
+      if (r.fleeGrace) {
+        const parties = r.state.parties.map((p, i) => (i === r.fleeGrace!.seat ? { ...p, fleeGrace: r.fleeGrace!.turns } : p));
+        return { state: { ...r.state, parties }, events: r.events };
+      }
+      return { state: r.state, events: r.events };
+    }
+    case "pvpProposeStop": return proposeStop(mp, seat, now);
+    case "pvpAcceptStop": return acceptStop(mp, seat, now);
+    // Union lifecycle (I-6/I-7): proposal + answers are a windowed session (off-turn, §1.3);
+    // leave/refuse/dissolve/allocate run at boundaries beside the turn order (a subordinate's own
+    // turn is skipped while united, so none of these can be turn-gated — see multi-union.ts).
+    case "proposeUnion": return lift(mp, proposeUnion(mp, seat, action.commander, action.invited, now, windowMs));
+    case "respondUnion": return lift(mp, respondUnion(mp, seat, action.accept, now, windowMs));
+    case "leaveUnion": return lift(mp, leaveUnion(mp, seat, now));
+    case "refuseMove": return lift(mp, refuseMove(mp, seat, now));
+    case "dissolveUnion": return lift(mp, dissolveUnion(mp, seat, now));
+    case "allocateRecruit": return lift(mp, allocateRecruit(mp, seat, action.recruit, action.to));
   }
 
   if (mp.order[mp.active] !== seat) return blocked(mp); // not your turn
   const party = mp.parties[seat];
   if (!party || party.status !== "exploring") return blocked(mp);
+  // A union subordinate never plays a solo turn — the commander moves the combined force (I-6/I-7).
+  // (advanceTurn skips such seats; this guards the window between formation and the next hand-off.)
+  const inUnion = activeUnionOf(mp, seat);
+  if (inUnion && inUnion.commander !== seat) return blocked(mp);
+  // A combatant is locked in its PvP fight — no solo actions until it ends (retreat goes through
+  // pvpRetreat; the rest of the table is unaffected, spec §1.2 Tier C).
+  if (mp.session?.kind === "pvp" && (mp.session.attacker.includes(seat) || mp.session.defender.includes(seat))) {
+    return blocked(mp);
+  }
+
+  // Division (spec I-8) is an on-turn structural rearrangement: the guards step out here and now,
+  // the turn continues (the mobile part keeps the seat's turn and may still move this turn).
+  if (action.type === "divideParty") return lift(mp, divideParty(mp, seat, action.members));
 
   if (action.type === "endTurn") {
     if (party.phase !== "explore") return blocked(mp); // may only pass while at rest
@@ -247,8 +351,35 @@ export function mpReduce(mp: MpGameState, seat: number, action: MpAction, now = 
     }
   }
 
-  if (turnEnds(action, next)) out = advanceTurn(out);
-  return { state: out, events };
+  // Union / division post-action hook (spec I-6/I-7/I-8/I-19): auto-dissolve on a terminal
+  // commander, detachment auto-merge, guarded-loot re-park, recruit recording, Sorcerer bounty
+  // sharing, and the union travelling as one behind the commander (see multi-union.ts).
+  const hooked = unionPostAction(out, seat, events);
+  out = hooked.state;
+  const allEvents = [...events, ...hooked.events];
+
+  if (turnEnds(action, next)) {
+    // Pursuit-escape grace (§"Retreat from Another Party"): a party that fled a rival "may take two
+    // turns in a row … provided that in its first turn of retreat it does not encounter strangers,
+    // another party, a hazard, the viper pit, or the deep pool, and does not stop to pick up any
+    // unguarded treasure". A clean flight turn keeps the seat active once; anything on the proviso
+    // list forfeits the grace.
+    const grace = out.parties[seat]!.fleeGrace ?? 0;
+    if (grace > 0) {
+      const dirty =
+        events.some((e) =>
+          (e.type === "drewChamber" && (e.strangers.length > 0 || e.hazards.length > 0)) ||
+          e.type === "hazardFired" || e.type === "enteredSpecial" || e.type === "crossedSpecial" ||
+          e.type === "reaction" || e.type === "fightStarted") ||
+        action.type === "takeTreasure" || action.type === "retakeDropped" || action.type === "openChest" ||
+        occupants(out, out.parties[seat]!.partyArea).some((s) => s !== seat); // ran into another party
+      const remaining = dirty ? 0 : grace - 1;
+      out = { ...out, parties: out.parties.map((p, i) => (i === seat ? { ...p, fleeGrace: remaining > 0 ? remaining : undefined } : p)) };
+      if (!dirty && remaining > 0 && next.gs === GS_PLAYING) return { state: out, events: allEvents }; // second turn in a row
+    }
+    out = advanceTurn(out);
+  }
+  return { state: out, events: allEvents };
 }
 
 /** The single-party GameState view for one seat (shared cave ⊕ that seat's party) — what the

@@ -89,6 +89,14 @@ function pvpOf(mp: MpGameState): PvpFightSession | null {
   return mp.session && mp.session.kind === "pvp" ? (mp.session as PvpFightSession) : null;
 }
 
+/** The COMMAND a seat fights in (M5): its union's seats, commander FIRST (windows/layouts land on
+ *  index 0 — the commander speaks for the union), or just the seat itself. Kept local to avoid a
+ *  runtime import cycle with multi-union.ts. */
+function commandOf(mp: MpGameState, seat: number): number[] {
+  const u = mp.unions?.find((x) => !x.dissolved && x.members.includes(seat));
+  return u ? [u.commander, ...u.members.filter((m) => m !== u.commander)] : [seat];
+}
+
 const blocked = (mp: MpGameState): PvpResult => ({ state: mp, events: [{ type: "blocked" }] });
 const rejected = (mp: MpGameState, reason: string): PvpResult => ({ state: mp, events: [{ type: "planRejected", reason }] });
 
@@ -126,9 +134,16 @@ function reclaimContents(area: PlacedArea, party: PartyState): number {
 export function declarePvp(mp: MpGameState, attackerSeat: number, defenderSeat: number, now: number, windowMs: number): PvpResult {
   if (mp.phase !== "playing" || mp.session) return blocked(mp);
   if (attackerSeat === defenderSeat) return blocked(mp);
-  const att = mp.parties[attackerSeat], def = mp.parties[defenderSeat];
-  if (!att || !def) return blocked(mp);
-  if (att.status !== "exploring" || def.status !== "exploring") return blocked(mp);
+  // Union commands (M5): a command is the seat's whole union (commander first). Only the commander
+  // may declare for a union (subordinates' creatures are on loan in his array — they have no force
+  // of their own); attacking any member of a rival union engages that union entire; and a union
+  // cannot attack itself.
+  const attCmd = commandOf(mp, attackerSeat);
+  const defCmd = commandOf(mp, defenderSeat);
+  if (attCmd[0] !== attackerSeat) return blocked(mp);
+  if (attCmd.some((s) => defCmd.includes(s))) return blocked(mp);
+  if ([...attCmd, ...defCmd].some((s) => !mp.parties[s] || mp.parties[s]!.status !== "exploring")) return blocked(mp);
+  const att = mp.parties[attCmd[0]!]!, def = mp.parties[defCmd[0]!]!;
   if (att.phase !== "explore" || def.phase !== "explore") return blocked(mp);
   if (att.partyArea !== def.partyArea) return blocked(mp);
   const area = att.partyArea;
@@ -138,7 +153,7 @@ export function declarePvp(mp: MpGameState, attackerSeat: number, defenderSeat: 
   const events: GameEvent[] = [];
   const tile = next.cave.areas[area]!;
   const drops: PvpDrop[] = [];
-  for (const seat of [attackerSeat, defenderSeat]) {
+  for (const seat of [...attCmd, ...defCmd]) {
     let count = 0;
     next.parties[seat]!.party.forEach((m, idx) => {
       if (!alive(m)) return;
@@ -154,12 +169,12 @@ export function declarePvp(mp: MpGameState, attackerSeat: number, defenderSeat: 
 
   const session: PvpFightSession = {
     kind: "pvp", area,
-    attacker: [attackerSeat], defender: [defenderSeat],
+    attacker: attCmd, defender: defCmd,
     round: 1, activeSide: "attacker",
     surprise: pvpSurprise(att, def),
     stage: "defenderLine",
     defenderLine: [], engagements: [], attackerBackers: [], defenderBackers: [],
-    window: { seat: defenderSeat, deadline: now + windowMs, kind: "pvpLayout" },
+    window: { seat: defCmd[0]!, deadline: now + windowMs, kind: "pvpLayout" },
     stopProposedBy: null,
     drops,
   };
@@ -177,7 +192,9 @@ export function declarePvp(mp: MpGameState, attackerSeat: number, defenderSeat: 
  */
 export function setDefenderLine(mp: MpGameState, seat: number, line: string[], now: number, windowMs: number): PvpResult {
   const s = pvpOf(mp);
-  if (!s || s.stage !== "defenderLine" || !s.defender.includes(seat)) return blocked(mp);
+  // Only the command's LEAD seat (a union's commander) lays out — "the commander has complete
+  // control" (§Union). For a solo command the lead is the seat itself, as before.
+  if (!s || s.stage !== "defenderLine" || s.defender[0] !== seat) return blocked(mp);
   const defLiving = livingIds(mp, s.defender);
   const attCount = livingIds(mp, s.attacker).length;
   const inLine = new Set(line);
@@ -213,7 +230,7 @@ export function setAttackerEngage(
   now: number, windowMs: number,
 ): PvpResult {
   const s = pvpOf(mp);
-  if (!s || s.stage !== "attackerEngage" || !s.attacker.includes(seat)) return blocked(mp);
+  if (!s || s.stage !== "attackerEngage" || s.attacker[0] !== seat) return blocked(mp); // lead seat only
   const attLiving = livingIds(mp, s.attacker);
   const defLiving = livingIds(mp, s.defender);
 
@@ -247,6 +264,22 @@ export function setAttackerEngage(
   const unengagedLine = s.defenderLine.some((id) => !usedDef.has(id));
   if (unengagedLine && fighters.some((id) => !usedAtt.has(id))) return rejected(mp, "mustEngageAll");
 
+  // Union fairness (M5, §Union: "the principle of strongest fights strongest must apply"): a
+  // union's commander may not point a weak partner creature at the strongest foe while his own
+  // strong one takes a soft target. Across any two engagements, the one facing the stronger enemy
+  // spearhead must field an own-side spearhead at least as strong. Solo commands are unrestricted
+  // (a lone player may gamble with his own creatures as he pleases).
+  if (s.attacker.length > 1) {
+    const maxStr = (ids: string[]): number => Math.max(0, ...ids.map((id) => strengthOf(mp, id)));
+    for (const a of engagements) {
+      for (const b of engagements) {
+        if (maxStr(a.defenders) > maxStr(b.defenders) && maxStr(a.attackers) < maxStr(b.attackers)) {
+          return rejected(mp, "strongestFightsStrongest");
+        }
+      }
+    }
+  }
+
   const next = structuredClone(mp);
   const ns = pvpOf(next)!;
   ns.engagements = engagements.map((e) => ({ attackers: [...e.attackers], defenders: [...e.defenders] }));
@@ -262,7 +295,7 @@ export function setAttackerEngage(
  */
 export function setDefenderCasters(mp: MpGameState, seat: number, defenderBackers: PvpBacker[], _now: number, _windowMs: number): PvpResult {
   const s = pvpOf(mp);
-  if (!s || s.stage !== "defenderCasters" || !s.defender.includes(seat)) return blocked(mp);
+  if (!s || s.stage !== "defenderCasters" || s.defender[0] !== seat) return blocked(mp); // lead seat only
   const defLiving = livingIds(mp, s.defender);
   const seen = new Set<string>();
   for (const b of defenderBackers) {
@@ -421,7 +454,9 @@ export function resolveRoundPvp(mp: MpGameState, now: number, windowMs: number =
 export function retreatPvp(mp: MpGameState, seat: number, dir: number, _now: number): PvpResult & { fleeGrace?: { seat: number; turns: number } } {
   const s = pvpOf(mp);
   if (!s || s.stage !== "defenderLine" || s.round <= 1) return blocked(mp);
-  const side = sideOf(s, seat);
+  // Only the command's lead seat may order the retreat — it moves the WHOLE command (a union
+  // retreats together under its commander; a subordinate wanting out must leaveUnion afterwards).
+  const side = s.attacker[0] === seat ? "attacker" : s.defender[0] === seat ? "defender" : null;
   if (!side) return blocked(mp);
 
   const area = mp.cave.areas[s.area]!;

@@ -1400,6 +1400,38 @@
 .scv-fight-btn:hover:not(:disabled) { border-color: var(--brass); color: var(--cream); }
 .scv-retreat { position: relative; } .scv-retreat-menu { position: absolute; bottom: 110%; left: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px; background: rgba(15,15,20,.96); border: 1px solid var(--line-strong); border-radius: 10px; }
 
+/* ---- two-sided PvP fight surface (spec §I-10) — same shell as the solo fight ---- */
+.scv-pvp { z-index: 60; } /* over the canvas and any other panel, like the trade modal */
+.scv-pvp-round { font-family: var(--ui); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--brass-bright); white-space: nowrap; }
+.scv-pvp-rosters { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.scv-pvp-roster h4 { display: flex; align-items: center; gap: 7px; margin: 0 0 6px; font-family: var(--ui); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; }
+.scv-pvp-roster h4 i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.scv-pvp-chips { display: flex; gap: 7px; flex-wrap: wrap; }
+/* member chips: lighter than the solo FightCard — a rival's cards are never revealed, so both
+   sides read as name+strength tokens bordered in their party's colour */
+.scv-pvp-chip { display: inline-flex; align-items: center; gap: 6px; font-family: var(--ui); font-size: 12.5px; padding: 5px 10px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--parchment); background: rgba(201,161,78,.06); cursor: pointer; }
+.scv-pvp-chip:disabled { cursor: default; opacity: .8; }
+.scv-pvp-chip b { font-family: var(--display); font-weight: 700; font-size: 12px; color: var(--brass-bright); }
+.scv-pvp-chip i { font-family: var(--body); font-style: italic; font-size: 11px; color: var(--stone-dim); }
+.scv-pvp-chip.caster { background: rgba(95,143,138,.09); }
+.scv-pvp-chip.foe { background: rgba(46,18,16,.35); color: #e7c9c2; }
+.scv-pvp-chip.picked { outline: 2px solid var(--brass-bright); outline-offset: 1px; }
+.scv-pvp-stage { display: flex; flex-direction: column; gap: 10px; }
+.scv-pvp-rows { display: flex; flex-direction: column; gap: 10px; }
+.scv-pvp-row { padding: 8px 12px; }
+.scv-pvp-row-target { cursor: pointer; } .scv-pvp-row-target:hover { border-color: var(--brass); }
+.scv-pvp-zone { min-height: 44px; min-width: 180px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 6px 8px; border: 1px dashed var(--line); border-radius: 9px; }
+.scv-pvp-zone.back { border-color: var(--arcane); background: rgba(95,143,138,.06); min-width: 120px; }
+.scv-pvp-zone:focus-visible { outline: 2px solid var(--brass-bright); }
+.scv-pvp-zone[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
+.scv-pvp-zone .scv-slot-empty { width: auto; aspect-ratio: auto; padding: 4px 10px; }
+.scv-pvp-mini { font-family: var(--ui); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line-strong); background: transparent; color: var(--stone); cursor: pointer; }
+.scv-pvp-mini:hover { border-color: var(--brass); color: var(--cream); }
+.scv-pvp-wait { align-items: flex-start; }
+.scv-pvp-waittext { margin: 0; font-family: var(--body); font-style: italic; font-size: 14px; color: var(--stone); }
+.scv-pvp-waittext b { font-family: var(--display); font-style: normal; color: var(--brass-bright); }
+.scv-pvp-boundary { border-top: 1px dashed var(--line); padding-top: 10px; }
+
 /* a fight card */
 .scv-fc { width: 116px; }
 .scv-fc-frame { position: relative; width: 116px; cursor: pointer; }

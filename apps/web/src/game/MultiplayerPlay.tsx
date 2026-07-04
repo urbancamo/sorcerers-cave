@@ -5,6 +5,7 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { GS_PLAYING, unpackCoord, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
 import { createCaveAdapter, type CaveAdapter } from "../view/engineAdapter";
 import { TradeModal } from "./TradeModal";
+import { PvpFightSurface, type PvpUiAction, type PvpView } from "./PvpFightSurface";
 import { loadManifest } from "../data/manifest";
 import type { ArtTables } from "../view/projection";
 import { CaveCanvas, type OtherPartyToken } from "../view/CaveCanvas";
@@ -172,6 +173,10 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
     ? view.parties.find((p) => p.seat === (tradeSession.a === view.youSeat ? tradeSession.b : tradeSession.a))
     : null;
   const canOfferTrade = !terminal && state.phase === "explore" && !view.session && !view.areaMask?.fightInProgress;
+  // The PvP fight (spec I-9/I-10): playView only projects the session to its participants, so its
+  // presence IS your participation. Non-participants get nothing (the no-detail hint is areaMask-side).
+  const pvpSession = view.session && view.session.kind === "pvp" ? view.session : null;
+  const canDeclareAttack = !terminal && state.phase === "explore" && !view.session;
 
   return (
     <div className="relative h-screen w-screen">
@@ -191,9 +196,29 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
                   Trade
                 </button>
               )}
+              {canDeclareAttack && (
+                <button
+                  className="scv-mp-here-act"
+                  disabled={!view.areaMask?.pvpLegal}
+                  title={view.areaMask?.pvpLegal ? `Attack ${p.name} (§I-9)` : (view.areaMask?.reason ?? undefined)}
+                  onClick={() => void dispatch({ type: "declareAttack", to: p.seat } as unknown as GameAction)}
+                >
+                  Attack
+                </button>
+              )}
             </span>
           ))}
         </div>
+      )}
+      {pvpSession && (
+        <PvpFightSurface
+          session={pvpSession}
+          pvp={(view.pvp ?? null) as PvpView | null}
+          youSeat={view.youSeat}
+          parties={view.parties}
+          yourState={state}
+          dispatch={(a: PvpUiAction) => void dispatch(a as unknown as GameAction)}
+        />
       )}
       {tradeSession && tradePartner && (
         <TradeModal

@@ -84,6 +84,21 @@ export interface Union {
   // Allies recruited WHILE united (per §I-7 these are divided by agreement on dissolution; members'
   // original creatures never transfer). Each entry: which seat's party array currently hosts it.
   recruits: { seat: number; partyIdx: number }[];
+  // M5 loan bookkeeping: while united, each subordinate's LIVING members are moved into the
+  // commander's party array (the "loan"), so every existing code path — stranger fights, PvP,
+  // pickups — sees the combined force through the commander's composed view. Each entry records
+  // the owning seat and the member's index in the commander's array; the invariant that makes the
+  // indices stable is that solo play only ever APPENDS to a party array (allies joining) and never
+  // splices it (trading is blocked while united for exactly this reason). Loans are spliced back
+  // out (dead or alive — casualties are the owner's loss) on leave/dissolve.
+  onLoan: { fromSeat: number; idx: number }[];
+  // Dissolution residue (I-7): when a union with recruits dissolves, the record stays behind
+  // (dissolved=true, loans already returned) so the allocation handshake can settle who gets each
+  // jointly-won ally. `area` pins where the dissolution happened (neutral recruits park there);
+  // `alloc` is the pending commander-or-anyone proposal awaiting every member's matching confirm.
+  dissolved?: boolean;
+  area?: number;
+  alloc?: { recruit: number; to: number; approved: number[] } | null;
 }
 
 /** A guard detachment left behind by division (spec I-8): pinned to an area, defends, may only

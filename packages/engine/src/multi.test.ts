@@ -238,3 +238,47 @@ describe("awareness & interaction masks (spec I-1/I-9/I-13, plan WS-1)", () => {
     expect(flanked).toBe(1); // arrived by another way
   });
 });
+
+describe("PvP wiring in mpReduce (M4b)", () => {
+  it("declareAttack opens the session off-turn machinery and locks combatants out of solo actions", () => {
+    const mp = playing({}, [partyAt(0), partyAt(1)]);
+    const declared = mpReduce(mp, 0, { type: "declareAttack", to: 1 }, 1000).state;
+    expect(declared.session?.kind).toBe("pvp");
+    // Combatants may not dispatch solo actions while the fight runs (Tier C lock).
+    expect(mpReduce(declared, 0, { type: "move", dir: 1 }, 1000).events).toEqual([{ type: "blocked" }]);
+    // Layout proceeds via the staged pvp actions: defender lays the line first.
+    const lined = mpReduce(declared, 1, { type: "pvpLine", line: ["1:0"] }, 1000);
+    expect((lined.state.session as { stage?: string })?.stage).toBe("attackerEngage");
+  });
+
+  it("a clean flight turn keeps the fleeing seat active for its second turn in a row (§I-11)", () => {
+    // Two-tile map: gateway-ish chamber (0) and an EXPLORED empty chamber north (1) so the flight
+    // move draws nothing and meets nobody. Seat 0 has fleeGrace 2 (as if just fled).
+    const north = { card: 31, coord: packCoord(1, 50, 49), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };
+    const mp = playing(
+      { areas: [ { card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }, north ] },
+      [partyAt(0, { fleeGrace: 2 }), partyAt(1, { partyArea: 0 })],
+    );
+    // Seat 1 stands on tile 0; the flight goes NORTH to tile 1 — empty, no rivals: clean.
+    const fled = mpReduce(mp, 0, { type: "move", dir: 1 });
+    expect(fled.state.parties[0]!.partyArea).toBe(1);
+    expect(fled.state.order[fled.state.active]).toBe(0); // STILL seat 0's turn (second in a row)
+    expect(fled.state.parties[0]!.fleeGrace).toBe(1);
+    // The second turn passes normally.
+    const second = mpReduce(fled.state, 0, { type: "move", dir: 3 });
+    expect(second.state.order[second.state.active]).toBe(1); // now the rival moves
+    expect(second.state.parties[0]!.fleeGrace).toBeUndefined();
+  });
+
+  it("meeting another party on the flight turn forfeits the grace", () => {
+    const north = { card: 31, coord: packCoord(1, 50, 49), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };
+    const mp = playing(
+      { areas: [ { card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }, north ] },
+      [partyAt(0, { fleeGrace: 2 }), partyAt(1, { partyArea: 1 })], // the rival is WAITING on tile 1
+    );
+    const fled = mpReduce(mp, 0, { type: "move", dir: 1 });
+    expect(fled.state.parties[0]!.partyArea).toBe(1);
+    expect(fled.state.order[fled.state.active]).toBe(1); // grace forfeited — turn passes
+    expect(fled.state.parties[0]!.fleeGrace).toBeUndefined();
+  });
+});
