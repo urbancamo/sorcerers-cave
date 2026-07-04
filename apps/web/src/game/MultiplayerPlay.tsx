@@ -108,12 +108,20 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   // but the passive participant (and both sides on a timer-resolved round) would only notice the
   // fight surface vanish. When a PvP session involving you ends and no dice/notice dialog of your
   // own is up, announce the outcome from your own state's transition.
-  const wasInPvpRef = useRef(false);
+  const wasInPvpRef = useRef<{ rivals: number[] } | null>(null);
   useEffect(() => {
-    const inPvp = view?.session?.kind === "pvp";
+    const sess = view?.session;
+    const inPvp = sess?.kind === "pvp";
     if (wasInPvpRef.current && !inPvp && view) {
       const meNow = view.parties.find((p) => p.seat === view.youSeat);
       const st = view.state as GameState;
+      // Judge the outcome by what became of the RIVAL command, not only by whether spoils appeared
+      // — a wiped rival with empty pockets leaves no pickup, but it is still a victory.
+      const rivalParties = view.parties.filter((p) => wasInPvpRef.current!.rivals.includes(p.seat));
+      const rivalFell = rivalParties.length > 0 && rivalParties.every((p) => p.status !== "exploring" || p.zombie === true);
+      const rivalRose = rivalFell && rivalParties.some((p) => p.zombie === true);
+      const rivalNames = rivalParties.map((p) => p.name).join(" + ");
+      const fell = rivalParties.length > 1 ? "have fallen" : "has fallen";
       setNotices((open) => {
         if (open) return open; // the dispatcher's own dice/notices carry the outcome already
         if (meNow && meNow.status !== "exploring") {
@@ -122,13 +130,20 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
         if (meNow?.zombie) {
           return [{ text: "Your party fell in battle — and rises again as the dead…", tone: "bad" }];
         }
+        if (rivalFell) {
+          const spoils = st.phase === "pickup" ? " Gather the spoils from the floor." : "";
+          const rising = rivalRose ? " …and something stirs among the corpses." : "";
+          return [{ text: `Victory — ${rivalNames} ${fell} in battle!${spoils}${rising}`, tone: "good" }];
+        }
         if (st.phase === "pickup") {
           return [{ text: "Victory! Your rival is broken — gather the spoils from the floor.", tone: "good" }];
         }
         return [{ text: "The battle has ended.", tone: "neutral" }];
       });
     }
-    wasInPvpRef.current = !!inPvp;
+    wasInPvpRef.current = inPvp && view && sess
+      ? { rivals: sess.attacker.includes(view.youSeat) ? [...sess.defender] : [...sess.attacker] }
+      : null;
   }, [view]);
 
   const adapterRef = useRef<CaveAdapter | null>(null);
