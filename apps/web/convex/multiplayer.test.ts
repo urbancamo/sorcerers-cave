@@ -1,6 +1,7 @@
 import { convexTest } from "convex-test";
 import { expect, test } from "vitest";
-import type { PartyState } from "@sorcerers-cave/engine";
+import type { PartyState, MpGameState, GameState } from "@sorcerers-cave/engine";
+type GameStateLike = GameState;
 import { api } from "./_generated/api";
 import { actionNarration } from "./multiplayer";
 import schema from "./schema";
@@ -320,4 +321,81 @@ test("chat is membership-gated and includes system lines", async () => {
   const outsider = await asUser(t);
   expect(await outsider.query(api.multiplayer.messages, { gameId })).toEqual([]);
   await expect(outsider.mutation(api.multiplayer.sendMessage, { gameId, text: "intruder" })).rejects.toThrow();
+});
+
+// ---- M3: trade sessions over Convex (spec I-5, §1.3 windows) ----------------------------------
+
+/** Seat two players into a PLAYING game with hand-set parties co-located on the Gateway. */
+async function playingPair(t: ReturnType<typeof convexTest>) {
+  const host = await asUser(t);
+  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
+  const p2 = await asUser(t);
+  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await host.mutation(api.multiplayer.startGame, { gameId });
+  // Draft in pick order (whoever is current picks first).
+  const gs1 = await host.query(api.multiplayer.gameState, { gameId });
+  const firstPicker = gs1!.currentPicker!;
+  const seatOf = async (u: typeof host) => (await u.query(api.multiplayer.gameState, { gameId }))!.youSeat;
+  const bySeat: Record<number, typeof host> = { [await seatOf(host)]: host, [await seatOf(p2)]: p2 };
+  await bySeat[firstPicker]!.mutation(api.multiplayer.pickParty, { gameId, picks: [5] }); // a Man
+  const gs2 = await host.query(api.multiplayer.gameState, { gameId });
+  await bySeat[gs2!.currentPicker!]!.mutation(api.multiplayer.pickParty, { gameId, picks: [6] }); // a Woman
+  // Hand both parties a tradable item, directly in the stored state.
+  await t.run(async (ctx) => {
+    const game = await ctx.db.get(gameId);
+    const mp = game!.state as MpGameState;
+    mp.parties[0]!.party[0]!.treasure.push(1); // seat 0: Gold
+    mp.parties[1]!.party[0]!.treasure.push(7); // seat 1: Talisman
+    await ctx.db.patch(gameId, { state: mp });
+  });
+  return { t, host, p2, gameId, bySeat };
+}
+
+test("a full trade: propose → baskets → both confirm → atomic swap (I-5)", async () => {
+  const t = convexTest(schema, modules);
+  const { host, p2, gameId, bySeat } = await playingPair(t);
+  const seat0 = bySeat[0]!, seat1 = bySeat[1]!;
+
+  await seat0.mutation(api.multiplayer.act, { gameId, action: { type: "proposeTrade", to: 1 } });
+  let v0 = await seat0.query(api.multiplayer.playView, { gameId });
+  expect(v0?.session?.kind).toBe("trade");
+  expect(v0?.session?.window?.seat).toBe(1); // waiting on the other side
+
+  await seat0.mutation(api.multiplayer.act, { gameId, action: { type: "updateBasket", treasure: [1], members: [] } });
+  await seat1.mutation(api.multiplayer.act, { gameId, action: { type: "updateBasket", treasure: [7], members: [] } });
+  await seat0.mutation(api.multiplayer.act, { gameId, action: { type: "confirmTrade" } });
+  await seat1.mutation(api.multiplayer.act, { gameId, action: { type: "confirmTrade" } });
+
+  v0 = await seat0.query(api.multiplayer.playView, { gameId });
+  const v1 = await seat1.query(api.multiplayer.playView, { gameId });
+  expect(v0?.session).toBeNull(); // committed — session closed
+  expect((v0?.state as GameStateLike).party[0]!.treasure).toContain(7); // Gold ↔ Talisman swapped
+  expect((v1?.state as GameStateLike).party[0]!.treasure).toContain(1);
+
+  // A non-participant (none here) / the outsider never sees a session either way.
+  const outsider = await asUser(t);
+  expect(await outsider.query(api.multiplayer.playView, { gameId })).toBeNull();
+});
+
+test("an overdue trade window expires via the lazy backstop on the next mutation (§1.3)", async () => {
+  const t = convexTest(schema, modules);
+  const { gameId, bySeat } = await playingPair(t);
+  const seat0 = bySeat[0]!, seat1 = bySeat[1]!;
+  await seat0.mutation(api.multiplayer.act, { gameId, action: { type: "proposeTrade", to: 1 } });
+
+  // Force the deadline into the past AND the awaited seat's presence stale (else it would extend).
+  await t.run(async (ctx) => {
+    const game = (await ctx.db.query("games").collect()).find((g) => g._id === gameId)!;
+    const mp = game.state as MpGameState;
+    (mp.session as { window: { deadline: number } }).window.deadline = Date.now() - 120_000;
+    await ctx.db.patch(gameId, { state: mp });
+    for (const p of await ctx.db.query("players").withIndex("by_game", (q) => q.eq("gameId", gameId)).collect()) {
+      await ctx.db.patch(p._id, { lastSeen: Date.now() - 600_000 });
+    }
+  });
+
+  // Any later action settles the overdue window first: the offer has expired (declined).
+  await seat1.mutation(api.multiplayer.act, { gameId, action: { type: "endTurn" } });
+  const v = await seat0.query(api.multiplayer.playView, { gameId });
+  expect(v?.session).toBeNull();
 });

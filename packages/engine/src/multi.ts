@@ -9,7 +9,12 @@ import { buildLargePack, buildSmallPack } from "./decks";
 import { shuffle } from "./rng";
 import { AREA_CARDS, GATEWAY_INDEX, SPECIAL_VIPER_PIT, SPECIAL_DEEP_POOL } from "./data/areaCards";
 import { decodeArea } from "./decode";
+import { unpackCoord, packCoord, DIR_UP } from "./coords";
 import type { Session, Union, Detachment } from "./multi-session";
+import {
+  proposeTrade, updateBasket, confirmTrade, cancelTrade, sessionGuard, showSecretDoor,
+  grantSecretDoors, secretStairGated, type TradeResult,
+} from "./multi-trade";
 
 /**
  * Multi-party (multiplayer) engine core. Strategy: do NOT fork the single-party rules. One shared
@@ -43,6 +48,10 @@ export interface PartyState extends PartyCore {
   name: string;        // the required Party Name (identity)
   status: SeatStatus;
   kills: number;       // enemies slain this game (for the live scoreboard)
+  // Secret-door knowledge (spec I-18) — AREA COORDS (packed level/x/y) of secret-stair ends this
+  // seat has learnt. Strictly per seat: a mirrored (unprinted) stair is unusable until its area's
+  // coord appears here. Grants: own traversal, co-located witness, showSecretDoor, Charmed Flute.
+  knownDoors?: number[];
 }
 
 export interface MpGameState {
@@ -59,8 +68,17 @@ export interface MpGameState {
   detachments?: Detachment[];    // rear-guards left by division (spec I-8)
 }
 
-/** Multiplayer action = any engine action, plus the lobby-level "pass my turn". */
-export type MpAction = GameAction | { type: "endTurn" };
+/** Multiplayer action = any engine action, plus the lobby-level "pass my turn" and the
+ *  interaction-layer actions (trade session I-5, secret-door sharing I-18) which run BESIDE the
+ *  turn order — session participants answer off-turn, bounded by reaction windows (§1.3). */
+export type MpAction =
+  | GameAction
+  | { type: "endTurn" }
+  | { type: "proposeTrade"; to: number }
+  | { type: "updateBasket"; treasure: number[]; members: number[] }
+  | { type: "confirmTrade" }
+  | { type: "cancelTrade" }
+  | { type: "showSecretDoor"; to: number };
 
 const TERMINAL: Record<number, SeatStatus> = { [GS_ESCAPED]: "left", [GS_DEAD]: "wiped", [GS_QUIT]: "quit" };
 
@@ -157,9 +175,26 @@ export function choosePartyFor(mp: MpGameState, seat: number, picks: number[]): 
   return { state: out, ok: true };
 }
 
-/** Apply one seat's action in the playing phase. Turn-gated: only the active seat may act. */
-export function mpReduce(mp: MpGameState, seat: number, action: MpAction): { state: MpGameState; events: GameEvent[] } {
+/** Lift a multi-trade transition into mpReduce's `{ state, events }` shape. */
+const lift = (mp: MpGameState, r: TradeResult): { state: MpGameState; events: GameEvent[] } =>
+  r.ok ? { state: r.state, events: [] } : blocked(mp);
+
+/** Apply one seat's action in the playing phase. Solo actions are turn-gated (only the active seat
+ *  may act); interaction-layer actions run beside the turn order — session participants answer
+ *  off-turn (spec §1.2 Tier C). `now`/`windowMs` feed the reaction windows (§1.3); the engine never
+ *  reads the clock, so both are plain parameters (existing callers unaffected). */
+export function mpReduce(mp: MpGameState, seat: number, action: MpAction, now = 0, windowMs = 60000): { state: MpGameState; events: GameEvent[] } {
   if (mp.phase !== "playing") return blocked(mp);
+
+  // Interaction layer BEFORE the turn gate: trades (I-5) and door-sharing (I-18) are not turns.
+  switch (action.type) {
+    case "proposeTrade": return lift(mp, proposeTrade(mp, seat, action.to, now, windowMs));
+    case "updateBasket": return lift(mp, updateBasket(mp, seat, { treasure: action.treasure, members: action.members }, now, windowMs));
+    case "confirmTrade": return lift(mp, confirmTrade(mp, seat, now, windowMs));
+    case "cancelTrade": return lift(mp, cancelTrade(mp, seat));
+    case "showSecretDoor": return lift(mp, showSecretDoor(mp, seat, action.to));
+  }
+
   if (mp.order[mp.active] !== seat) return blocked(mp); // not your turn
   const party = mp.parties[seat];
   if (!party || party.status !== "exploring") return blocked(mp);
@@ -169,8 +204,15 @@ export function mpReduce(mp: MpGameState, seat: number, action: MpAction): { sta
     return { state: advanceTurn(mp), events: [] };
   }
 
+  // Secret-door gate (I-18): a stair that exists only as a mirrored link is invisible to a seat
+  // that hasn't learnt it — the vertical move is blocked as if the stair were not there.
+  if (action.type === "move" && secretStairGated(mp, seat, action.dir)) return blocked(mp);
+
   const { state: next, events } = reduce(compose(mp.cave, party), action);
   if (events.length === 1 && events[0]!.type === "blocked") return { state: mp, events }; // no-op, no handoff
+
+  // The action really dispatched: a participant wandering off abandons any trade it was in (I-5).
+  const base = sessionGuard(mp, seat);
 
   const { cave, rest } = splitCave(next);
   const slain = events.filter((e) => e.type === "strangerKilled" || e.type === "annihilated").length;
@@ -178,7 +220,33 @@ export function mpReduce(mp: MpGameState, seat: number, action: MpAction): { sta
     ...rest, seat: party.seat, color: party.color, name: party.name,
     status: TERMINAL[next.gs] ?? "exploring", kills: (party.kills ?? 0) + slain,
   };
-  let out: MpGameState = { ...mp, cave, parties: mp.parties.map((p, i) => (i === seat ? updated : p)) };
+  let out: MpGameState = { ...base, cave, parties: base.parties.map((p, i) => (i === seat ? updated : p)) };
+
+  // Secret-door knowledge grants (I-18). (a) A vertical move across a secret-stair end (either end
+  // mirrored) teaches the mover BOTH end coords — and every other exploring seat standing in the
+  // origin area (co-located witnesses see the door used). (b) A Charmed-Flute reveal
+  // (secretDoorRevealed) teaches the acting seat both end coords.
+  const originIdx = party.partyArea;
+  if (rest.partyArea !== originIdx) {
+    const origin = cave.areas[originIdx];
+    const dest = cave.areas[rest.partyArea];
+    if (origin && dest &&
+        unpackCoord(origin.coord).level !== unpackCoord(dest.coord).level &&
+        ((origin.mirroredStairs ?? 0) !== 0 || (dest.mirroredStairs ?? 0) !== 0)) {
+      const witnesses = mp.parties
+        .filter((p) => p.seat !== seat && p.status === "exploring" && p.partyArea === originIdx)
+        .map((p) => p.seat);
+      out = grantSecretDoors(out, [seat, ...witnesses], [origin.coord, dest.coord]);
+    }
+  }
+  for (const e of events) {
+    if (e.type === "secretDoorRevealed") {
+      const here = cave.areas[rest.partyArea]!;
+      const { level, x, y } = unpackCoord(here.coord);
+      out = grantSecretDoors(out, [seat], [here.coord, packCoord(e.dir === DIR_UP ? level - 1 : level + 1, x, y)]);
+    }
+  }
+
   if (turnEnds(action, next)) out = advanceTurn(out);
   return { state: out, events };
 }

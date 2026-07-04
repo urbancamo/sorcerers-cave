@@ -1,9 +1,10 @@
-import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
+import { mutation, query, internalMutation, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Id, Doc } from "./_generated/dataModel";
+import { internal } from "./_generated/api";
 import { uniqueCode } from "./game";
-import { buildMpGame, choosePartyFor, mpReduce, partyView, scoreGame, occupants, areaInteractionMask, CREATURES, TREASURES, PARTY_BUDGET, type MpGameState, type MpAction, type PartyState, type GameEvent } from "@sorcerers-cave/engine";
+import { buildMpGame, choosePartyFor, mpReduce, partyView, scoreGame, occupants, areaInteractionMask, expireTrade, CREATURES, TREASURES, PARTY_BUDGET, type MpGameState, type MpAction, type PartyState, type GameEvent } from "@sorcerers-cave/engine";
 
 // Permissive action shape; the engine (mpReduce) enforces semantics. Includes the lobby-level endTurn.
 const mpActionValidator = v.object({
@@ -16,6 +17,10 @@ const mpActionValidator = v.object({
   to: v.optional(v.number()),
   artifact: v.optional(v.number()),
   target: v.optional(v.number()),
+  borne: v.optional(v.boolean()), // setBorne: bear vs stow a Sword/Staff/Ring
+  // Trade-session baskets (I-5): treasure ids + party member indices offered.
+  treasure: v.optional(v.array(v.number())),
+  members: v.optional(v.array(v.number())),
   // resolveRound: the player's pairing for one fight round (front/background/strangers per match).
   matches: v.optional(v.array(v.object({
     front: v.array(v.number()),
@@ -23,6 +28,11 @@ const mpActionValidator = v.object({
     strangers: v.array(v.number()),
   }))),
 });
+
+/** Trade offers wait 60 s on the other side before expiring (spec §1.3). */
+const TRADE_WINDOW_MS = 60_000;
+/** A seat is "present" if its player row pinged within this window (pauses timeouts, spec §1.3). */
+const PRESENCE_FRESH_MS = 30_000;
 
 // Multiplayer lobby (Phase 1), the multi-party game state + turn-based party draft (Phase 2/3).
 // Inert until the client's production-off feature flag exposes it.
@@ -374,6 +384,12 @@ export const playView = query({
       // Awareness (spec I-1/I-3): who shares your tile, and what interaction is legal here right now.
       hereSeats: occupants(mp, yourArea).filter((s) => s !== me.seat),
       areaMask: areaInteractionMask(mp, yourArea),
+      // The active interaction session — projected only to its participants (others see null).
+      session: mp.session && "a" in mp.session && (mp.session.a === me.seat || mp.session.b === me.seat)
+        ? mp.session
+        : null,
+      // Secret-door knowledge (I-18): coords of secret-stair ends this seat may use / may share.
+      youKnowDoors: mp.parties[me.seat]!.knownDoors ?? [],
     };
   },
 });
@@ -407,6 +423,61 @@ export const spectateView = query({
   },
 });
 
+/**
+ * Reaction-window plumbing (spec §1.3). Whenever a session (re)arms a window we schedule the
+ * auto-default at its deadline (cancelling any prior job); a lazy check at the top of every mutation
+ * is the belt-and-braces backstop if a scheduled job is lost. Presence-aware: an awaited seat whose
+ * lastSeen is fresh gets the window extended rather than defaulted (they're here, just thinking).
+ */
+async function settleOverdueSession(
+  ctx: MutationCtx, gameId: Id<"games">, game: Doc<"games">, mp: MpGameState, now: number,
+): Promise<MpGameState> {
+  const w = mp.session?.window;
+  if (!w || now < w.deadline) return mp;
+  const seats = await seatsOf(ctx, gameId);
+  const awaited = seats.find((p) => p.seat === w.seat);
+  if (awaited && now - awaited.lastSeen < PRESENCE_FRESH_MS) {
+    // Present but pondering — extend rather than default (spec §1.3 presence pause).
+    const extended: MpGameState = {
+      ...mp, session: { ...mp.session!, window: { ...w, deadline: now + TRADE_WINDOW_MS } },
+    };
+    await ctx.db.patch(gameId, { state: extended, updatedAt: now });
+    await armSessionJob(ctx, gameId, extended, now);
+    return extended;
+  }
+  // Auto-default. Trade windows expire (declined); PvP/union defaults arrive with their milestones.
+  const { state: after, fired } = expireTrade(mp, now);
+  if (fired) {
+    await ctx.db.patch(gameId, { state: after, updatedAt: now });
+    await postSystem(ctx, gameId, "The trade offer expired", now);
+  }
+  return after;
+}
+
+/** (Re)schedule the auto-default job for the active session's window; cancel any stale job first. */
+async function armSessionJob(ctx: MutationCtx, gameId: Id<"games">, mp: MpGameState, now: number): Promise<void> {
+  const game = await ctx.db.get(gameId);
+  if (game?.sessionJobId) {
+    try { await ctx.scheduler.cancel(game.sessionJobId); } catch { /* already ran/cancelled */ }
+  }
+  const w = mp.session?.window;
+  const jobId = w
+    ? await ctx.scheduler.runAfter(Math.max(0, w.deadline - now), internal.multiplayer.resolveOverdue, { gameId })
+    : undefined;
+  await ctx.db.patch(gameId, { sessionJobId: jobId });
+}
+
+/** Scheduled auto-default: fires at a window's deadline (the lazy check covers lost jobs). */
+export const resolveOverdue = internalMutation({
+  args: { gameId: v.id("games") },
+  handler: async (ctx, { gameId }) => {
+    const game = await ctx.db.get(gameId);
+    const mp = game?.state as MpGameState | null;
+    if (!game || !mp) return;
+    await settleOverdueSession(ctx, gameId, game, mp, Date.now());
+  },
+});
+
 /** Apply one action in a multiplayer game, turn-gated by the engine. Persists the new shared state. */
 export const act = mutation({
   args: { gameId: v.id("games"), action: mpActionValidator },
@@ -416,15 +487,20 @@ export const act = mutation({
     const me = await mySeat(ctx, gameId, userId);
     if (!me) throw new Error("Not in this game");
     const game = await ctx.db.get(gameId);
-    const mp = game?.state as MpGameState | null;
+    let mp = game?.state as MpGameState | null;
     if (!game || game.mode !== "multi" || !mp) return { events: [{ type: "blocked" }] };
 
-    const { state, events } = mpReduce(mp, me.seat, action as MpAction);
+    const now = Date.now();
+    // Lazy backstop: settle any overdue reaction window before the action lands (spec §1.3).
+    mp = await settleOverdueSession(ctx, gameId, game, mp, now);
+
+    const { state, events } = mpReduce(mp, me.seat, action as MpAction, now, TRADE_WINDOW_MS);
     const blocked = events.length === 1 && events[0]!.type === "blocked";
     if (blocked) return { events };
 
-    const now = Date.now();
     await ctx.db.patch(gameId, { state, updatedAt: now });
+    // Re-arm (or clear) the window job whenever the session state may have changed.
+    if ((mp.session ?? null) !== (state.session ?? null)) await armSessionJob(ctx, gameId, state, now);
 
     // Narrate the completed action to the other parties (toasted on their screens).
     const frags = actionNarration(action as MpAction, events, mp.parties[me.seat]!, state.parties[me.seat]!);

@@ -4,6 +4,7 @@ import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import { GS_PLAYING, unpackCoord, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
 import { createCaveAdapter, type CaveAdapter } from "../view/engineAdapter";
+import { TradeModal } from "./TradeModal";
 import { loadManifest } from "../data/manifest";
 import type { ArtTables } from "../view/projection";
 import { CaveCanvas, type OtherPartyToken } from "../view/CaveCanvas";
@@ -162,10 +163,15 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
     .filter((x): x is OtherPartyToken => x !== null);
 
   // Awareness (spec I-1/I-3): rivals standing on YOUR tile, live from playView. Interaction is
-  // opt-in and never forced — this chip is presence only; Trade/Attack affordances arrive with M3/M4.
+  // opt-in and never forced — the chip offers Trade (I-5) when the area mask allows.
   const here = (view.hereSeats ?? [])
     .map((s: number) => view.parties.find((p) => p.seat === s))
     .filter((p): p is NonNullable<typeof p> => !!p);
+  const tradeSession = view.session && view.session.kind === "trade" ? view.session : null;
+  const tradePartner = tradeSession
+    ? view.parties.find((p) => p.seat === (tradeSession.a === view.youSeat ? tradeSession.b : tradeSession.a))
+    : null;
+  const canOfferTrade = !terminal && state.phase === "explore" && !view.session && !view.areaMask?.fightInProgress;
 
   return (
     <div className="relative h-screen w-screen">
@@ -176,9 +182,31 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
           {here.map((p) => (
             <span key={p.seat} className="scv-mp-here-chip" style={{ borderColor: PARTY_COLOR_HEX[p.color as PartyColor] }}>
               <i style={{ background: PARTY_COLOR_HEX[p.color as PartyColor] }} />{p.name}
+              {canOfferTrade && (
+                <button
+                  className="scv-mp-here-act"
+                  title={`Offer ${p.name} a trade`}
+                  onClick={() => void dispatch({ type: "proposeTrade", to: p.seat } as unknown as GameAction)}
+                >
+                  Trade
+                </button>
+              )}
             </span>
           ))}
         </div>
+      )}
+      {tradeSession && tradePartner && (
+        <TradeModal
+          session={tradeSession}
+          youSeat={view.youSeat}
+          yourState={state}
+          otherName={tradePartner.name}
+          dispatch={{
+            updateBasket: (treasure, members) => void dispatch({ type: "updateBasket", treasure, members } as unknown as GameAction),
+            confirm: () => void dispatch({ type: "confirmTrade" } as unknown as GameAction),
+            cancel: () => void dispatch({ type: "cancelTrade" } as unknown as GameAction),
+          }}
+        />
       )}
       <div className="scv-mp-toasts">
         {toasts.map((t) => (

@@ -24,6 +24,9 @@ export default defineSchema({
     hostId: v.optional(v.id("users")),        // the creator; only the host may start the game
     lobby: v.optional(v.union(v.literal("open"), v.literal("started"), v.literal("finished"))),
     maxSeats: v.optional(v.number()),
+    // The scheduled reaction-window job for the active interaction session (spec §1.3) — cancelled
+    // and re-armed whenever the session's window changes; also covered by a lazy overdue check.
+    sessionJobId: v.optional(v.id("_scheduled_functions")),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

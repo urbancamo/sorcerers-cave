@@ -715,6 +715,14 @@
   padding: 2px 9px; border-radius: 14px; border: 1px solid var(--line-strong); background: rgba(0, 0, 0, 0.35);
 }
 .scv-mp-here-chip i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.scv-mp-here { pointer-events: auto; } /* the chip hosts the Trade affordance */
+.scv-mp-here-act {
+  margin-left: 4px; padding: 1px 8px; border-radius: 10px; cursor: pointer;
+  font-family: var(--ui); font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em;
+  color: #241a06; background: linear-gradient(180deg, var(--brass-bright), var(--brass));
+  border: 1px solid var(--brass);
+}
+.scv-mp-here-act:hover { filter: brightness(1.08); }
 /* Trade modal (spec I-5): two-column both-confirm exchange between co-located parties. */
 .scv-trade { max-width: 620px; }
 .scv-trade-clock { margin: 0 0 10px; font-family: var(--ui); font-size: 12px; color: var(--brass-bright); }

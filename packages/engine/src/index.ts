@@ -26,3 +26,4 @@ export * from "./special";
 export * from "./effects";
 export * from "./multi";
 export * from "./multi-session";
+export * from "./multi-trade";
