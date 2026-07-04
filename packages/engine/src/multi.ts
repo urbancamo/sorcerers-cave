@@ -23,6 +23,7 @@ import {
   proposeUnion, respondUnion, leaveUnion, refuseMove, dissolveUnion, allocateRecruit,
   divideParty, activeUnionOf, unionPostAction,
 } from "./multi-union";
+import { isZombieParty, zombieActionGate, zombieAfterAction, zombiePostSweep } from "./multi-zombies";
 
 /** Chain two PvP transitions (layout completion → immediate resolve), concatenating their events. */
 const mergePvp = (a: PvpResult, b: PvpResult): PvpResult => ({ state: b.state, events: [...a.events, ...b.events] });
@@ -91,6 +92,17 @@ export interface PartyState extends PartyCore {
   // to solo (INV-2) and existing replays are unaffected. Derivation: nextSeed^(seat+1) of the
   // initial cave seed — see buildMpGame. Absent on pre-M6 states: consumers fall back to cave.seed.
   diceSeed?: number;
+  // Fog-of-war-lite ledger (M7, plan ⑦): indices of areas this seat has ENTERED. Recorded ALWAYS
+  // (cheap, on every mpReduce result — so union follow-moves, PvP retreats and trap falls count),
+  // APPLIED only when variants.fogLite is on (fogFilter masks everything not listed here). Seeded
+  // with the Gateway (area 0) for every seat at buildMpGame.
+  seenAreas?: number[];
+  // Zombies variant (M7, spec I-15, rulebook §Zombies): true once this seat's wiped party has
+  // risen as the walking dead. A zombie seat keeps status "exploring" (it moves, it can PvP) but
+  // is gated hard — no loot, no stranger fights, no water, no secret doors without the Sorcerer —
+  // see multi-zombies.ts. A zombie party wiped AGAIN (PvP, or the Sorcerer's death annihilating
+  // all zombies) is terminal for good: it does not rise twice.
+  zombie?: boolean;
 }
 
 export interface MpGameState {
@@ -113,6 +125,12 @@ export interface MpGameState {
   // contention rule (deck draws serialise on the shared cursors; a rival's live stranger-fight
   // bars entry to its area) and the fleeGrace/forfeit adaptations.
   concurrent?: boolean;
+  // Game variants (M7, plan WS-6), fixed at buildMpGame for the whole game. Absent = today's
+  // behaviour, byte-identical. zombies = the rulebook's §Zombies option (spec I-15): a wiped
+  // party rises as a spoiler zombie party (multi-zombies.ts). fogLite = plan ⑦ fog-of-war-lite:
+  // each seat's served view masks areas it has never entered (fogFilter) — vague hints, not the
+  // full hidden-cards variation.
+  variants?: { zombies?: boolean; fogLite?: boolean };
 }
 
 /** Multiplayer action = any engine action, plus the lobby-level "pass my turn" and the
@@ -210,8 +228,12 @@ export function advanceTurn(mp: MpGameState): MpGameState {
 const blocked = (mp: MpGameState): { state: MpGameState; events: GameEvent[] } => ({ state: mp, events: [{ type: "blocked" }] });
 
 /** Build a fresh multiplayer game in the party-selection phase: one shared cave, a party per seat
- *  on the Gateway, and a random play order (pick order is its reverse). */
-export function buildMpGame(seed: number, seats: { seat: number; color: string; name: string }[]): MpGameState {
+ *  on the Gateway, and a random play order (pick order is its reverse). `variants` (M7) opts the
+ *  whole game into the zombies option and/or fog-of-war-lite; omitted = exactly the old game. */
+export function buildMpGame(
+  seed: number, seats: { seat: number; color: string; name: string }[],
+  variants?: { zombies?: boolean; fogLite?: boolean },
+): MpGameState {
   const large = buildLargePack(seed);
   const small = buildSmallPack(large.seed);
   const ord = shuffle(small.seed, seats.map((s) => s.seat));
@@ -233,11 +255,13 @@ export function buildMpGame(seed: number, seats: { seat: number; color: string; 
     gs: GS_PLAYING, phase: "explore", turn: 1, score: 0, curses: 0, bonusScore: 0, sorcererKilled: false,
     partyArea: 0, level: 1, prev: 0, prev2: 0, party: [], strangers: [], treasures: [], hazards: [], fight: null,
     diceSeed: diceSeedFor(s.seat),
+    seenAreas: [0], // everyone starts on (and has therefore seen) the Gateway — fog-lite's seed
   }));
   return {
     phase: "partySelect",
     cave: { areas: [gateway], largePack: large.pack, largeIdx: 0, smallPack: small.pack, smallIdx: 0, seed: ord.seed },
     parties, order, pickOrder, active: 0, turnCount: 0,
+    ...(variants ? { variants } : {}),
   };
 }
 
@@ -270,11 +294,24 @@ export function choosePartyFor(mp: MpGameState, seat: number, picks: number[]): 
 const lift = (mp: MpGameState, r: TradeResult): { state: MpGameState; events: GameEvent[] } =>
   r.ok ? { state: r.state, events: [] } : blocked(mp);
 
+/** Apply one seat's action in the playing phase, then the always-on cross-cutting passes:
+ *  fog-of-war seen-area recording (M7 plan ⑦ — recorded regardless of the fogLite flag, it's
+ *  cheap) and the zombies-variant game sweep (rise-on-wipe, Sorcerer-death annihilation, treasure
+ *  stripping — multi-zombies.ts). The sweep runs on the WRAPPER so every route that can wipe a
+ *  party — solo hazards/fights, PvP resolution, union loan returns — is covered by one hook. */
+export function mpReduce(mp: MpGameState, seat: number, action: MpAction, now = 0, windowMs = 60000): { state: MpGameState; events: GameEvent[] } {
+  const r = mpReduceInner(mp, seat, action, now, windowMs);
+  if (r.state === mp) return r; // blocked / no-op: nothing moved, nothing to record or sweep
+  let state = recordSeenAreas(r.state);
+  if (state.variants?.zombies === true) state = zombiePostSweep(state).state;
+  return state === r.state ? r : { state, events: r.events };
+}
+
 /** Apply one seat's action in the playing phase. Solo actions are turn-gated (only the active seat
  *  may act); interaction-layer actions run beside the turn order — session participants answer
  *  off-turn (spec §1.2 Tier C). `now`/`windowMs` feed the reaction windows (§1.3); the engine never
  *  reads the clock, so both are plain parameters (existing callers unaffected). */
-export function mpReduce(mp: MpGameState, seat: number, action: MpAction, now = 0, windowMs = 60000): { state: MpGameState; events: GameEvent[] } {
+function mpReduceInner(mp: MpGameState, seat: number, action: MpAction, now = 0, windowMs = 60000): { state: MpGameState; events: GameEvent[] } {
   if (mp.phase !== "playing") return blocked(mp);
 
   // Interaction layer BEFORE the turn gate: trades (I-5) and door-sharing (I-18) are not turns.
@@ -283,6 +320,8 @@ export function mpReduce(mp: MpGameState, seat: number, action: MpAction, now = 
       // Trading is barred while either side is united (I-6/I-7): a union member's creatures live
       // in the commander's array (the loan model), and party arrays must stay append-only there.
       if (activeUnionOf(mp, seat) || activeUnionOf(mp, action.to)) return blocked(mp);
+      // …and with the risen (M7, §Zombies "cannot carry or use treasure" — nothing to trade).
+      if (isZombieParty(mp, seat) || isZombieParty(mp, action.to)) return blocked(mp);
       return lift(mp, proposeTrade(mp, seat, action.to, now, windowMs));
     case "updateBasket": return lift(mp, updateBasket(mp, seat, { treasure: action.treasure, members: action.members }, now, windowMs));
     case "confirmTrade": return lift(mp, confirmTrade(mp, seat, now, windowMs));
@@ -314,7 +353,15 @@ export function mpReduce(mp: MpGameState, seat: number, action: MpAction, now = 
     // Union lifecycle (I-6/I-7): proposal + answers are a windowed session (off-turn, §1.3);
     // leave/refuse/dissolve/allocate run at boundaries beside the turn order (a subordinate's own
     // turn is skipped while united, so none of these can be turn-gated — see multi-union.ts).
-    case "proposeUnion": return lift(mp, proposeUnion(mp, seat, action.commander, action.invited, now, windowMs));
+    case "proposeUnion": {
+      // Zombies may union only with other zombies (M7, §Zombies) — mixed proposals never open.
+      const involved = [seat, action.commander, ...action.invited];
+      if (mp.variants?.zombies === true &&
+          involved.some((s) => isZombieParty(mp, s)) && involved.some((s) => !isZombieParty(mp, s))) {
+        return blocked(mp);
+      }
+      return lift(mp, proposeUnion(mp, seat, action.commander, action.invited, now, windowMs));
+    }
     case "respondUnion": return lift(mp, respondUnion(mp, seat, action.accept, now, windowMs));
     case "leaveUnion": return lift(mp, leaveUnion(mp, seat, now));
     case "refuseMove": return lift(mp, refuseMove(mp, seat, now));
@@ -352,6 +399,13 @@ export function mpReduce(mp: MpGameState, seat: number, action: MpAction, now = 
       mp.parties.some((p) => p.seat !== seat && p.status === "exploring")) {
     return blocked(mp);
   }
+  // Zombie-party gates (M7, spec I-15, rulebook §Zombies): no loot, no chest, no attacking or
+  // testing strangers, no stepping into or across water, and no secret stairs unless the Sorcerer
+  // walks with the dead — each denial names its rule for the UI (see multi-zombies.ts).
+  if (isZombieParty(mp, seat)) {
+    const denial = zombieActionGate(mp, seat, action);
+    if (denial) return { state: mp, events: denial };
+  }
 
   // Division (spec I-8) is an on-turn structural rearrangement: the guards step out here and now,
   // the turn continues (the mobile part keeps the seat's turn and may still move this turn).
@@ -364,8 +418,10 @@ export function mpReduce(mp: MpGameState, seat: number, action: MpAction, now = 
   }
 
   // Secret-door gate (I-18): a stair that exists only as a mirrored link is invisible to a seat
-  // that hasn't learnt it — the vertical move is blocked as if the stair were not there.
-  if (action.type === "move" && secretStairGated(mp, seat, action.dir)) return blocked(mp);
+  // that hasn't learnt it — the vertical move is blocked as if the stair were not there. Zombie
+  // parties bypass this per-seat knowledge gate entirely: their all-or-nothing rule (Sorcerer
+  // aboard = every secret door, otherwise none) already ran in zombieActionGate above.
+  if (action.type === "move" && !isZombieParty(mp, seat) && secretStairGated(mp, seat, action.dir)) return blocked(mp);
 
   // Concurrent contention rule (M6, spec §1.2): free-roam seats act freely — the only
   // serialisation points are (i) deck draws, which simply consume the shared largeIdx/smallIdx
@@ -432,9 +488,23 @@ export function mpReduce(mp: MpGameState, seat: number, action: MpAction, now = 
   // sharing, and the union travelling as one behind the commander (see multi-union.ts).
   const hooked = unionPostAction(out, seat, events);
   out = hooked.state;
-  const allEvents = [...events, ...hooked.events];
 
-  if (turnEnds(action, next)) {
+  // Zombie post-action enforcement (M7, §Zombies; see multi-zombies.ts): hazard-immunity REPAIR
+  // (Medusa/vipers/Ghouls fire inside the composed reduce, so their effects on the risen are
+  // reverted after the fact and their events filtered), strangers parked back untested (they are
+  // indifferent to the dead and the dead will not attack), and any swept-up treasure returned to
+  // the floor. Settling an encounter/pickup back to explore ends the turn like any settled entry.
+  let actEvents = events;
+  let zombieSettled = false;
+  if (isZombieParty(out, seat)) {
+    const zr = zombieAfterAction(out, seat, party, events);
+    out = zr.state;
+    actEvents = zr.events;
+    zombieSettled = zr.settled;
+  }
+  const allEvents = [...actEvents, ...hooked.events];
+
+  if (turnEnds(action, next) || zombieSettled) {
     // Pursuit-escape grace (§"Retreat from Another Party"): a party that fled a rival "may take two
     // turns in a row … provided that in its first turn of retreat it does not encounter strangers,
     // another party, a hazard, the viper pit, or the deep pool, and does not stop to pick up any
@@ -490,6 +560,62 @@ export function partyView(mp: MpGameState, seat: number): GameState {
 /** The seat whose turn it is (null if not in the playing phase). */
 export function currentSeat(mp: MpGameState): number | null {
   return mp.phase === "playing" ? mp.order[mp.active]! : null;
+}
+
+// --- Fog-of-war-lite (M7, plan ⑦ — Peter's "face-down rectangles … no detail until you actually
+// go there"; vague hints, NOT the full hidden-cards variation) -----------------------------------
+
+/** Append each exploring party's current area to its own seenAreas ledger. Runs on every mpReduce
+ *  result (the wrapper), so union follow-moves, PvP retreats and trap falls are recorded exactly
+ *  like plain moves. Recorded ALWAYS — it is cheap — and applied only when variants.fogLite is on. */
+function recordSeenAreas(mp: MpGameState): MpGameState {
+  let parties: PartyState[] | null = null;
+  mp.parties.forEach((p, i) => {
+    if (p.status !== "exploring") return;
+    if ((p.seenAreas ?? []).includes(p.partyArea)) return;
+    if (!parties) parties = [...mp.parties];
+    parties[i] = { ...p, seenAreas: [...(p.seenAreas ?? []), p.partyArea] };
+  });
+  return parties ? { ...mp, parties } : mp;
+}
+
+/**
+ * The fog-of-war-lite render view for one seat (plan ⑦): partyView with every area the seat has
+ * never ENTERED reduced to a face-down stub — its existence and coordinate kept (the cave keeps
+ * its shape and every party's pawn stays visible: you see WHERE, not WHAT), all detail stripped.
+ * Contents, dropped Deep-Pool treasure, display markers, the secret-door letter and the
+ * mirrored-stair link are gone; faceUp/visited read false, so the tile renders as a card back —
+ * the same presentation as a solo dead-end tile (whose card id equally rides in the payload).
+ * RENDER-ONLY: the authoritative rules run on the full state in mpReduce, so a client cannot
+ * grant itself anything by fiddling with its filtered copy.
+ */
+export function fogFilter(mp: MpGameState, seat: number): GameState {
+  const p = mp.parties[seat]!;
+  const seen = new Set(p.seenAreas ?? []);
+  seen.add(p.partyArea); // wherever the party stands, it has self-evidently arrived
+  const view = compose(mp.cave, p);
+  return {
+    ...view,
+    areas: view.areas.map((a, i) => seen.has(i) ? a : {
+      card: a.card, coord: a.coord, faceUp: false, visited: false,
+      contents: [], flags: a.flags, indiffCount: 0,
+    }),
+  };
+}
+
+/** The no-detail fight hint (plan ⑦ item 4; spec I-9 "⚔ a fight has broken out nearby"): how many
+ *  OTHER seats are currently fighting — strangers (their phase is "fight") or a PvP session the
+ *  viewer is no part of. No location, no fortunes; with fog off it remains as flavour. */
+export function distantFights(mp: MpGameState, seat: number): number {
+  const fighting = new Set<number>();
+  for (const p of mp.parties) {
+    if (p.seat !== seat && p.status === "exploring" && p.phase === "fight") fighting.add(p.seat);
+  }
+  const s = mp.session;
+  if (s?.kind === "pvp" && !s.attacker.includes(seat) && !s.defender.includes(seat)) {
+    for (const x of [...s.attacker, ...s.defender]) fighting.add(x);
+  }
+  return fighting.size;
 }
 
 // --- Awareness & interaction masks (spec I-1/I-3/I-9/I-13/I-14; plan WS-1) ---------------------

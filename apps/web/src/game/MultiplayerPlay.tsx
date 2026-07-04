@@ -91,6 +91,16 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
     }
   }, [chatFeed, pushToast, view?.youSeat]);
 
+  // Fog-of-war-lite fight hint (plan ⑦ item 4): playView counts rival commands currently fighting
+  // (no location, no fortunes). Toast the 0→N transition — "a visual/audio hint that a fight is
+  // occurring … but again, no details".
+  const prevFightsRef = useRef(0);
+  useEffect(() => {
+    const n = view?.distantFights ?? 0;
+    if (prevFightsRef.current === 0 && n > 0) pushToast("⚔ Steel rings somewhere in the deep…", "turn");
+    prevFightsRef.current = n;
+  }, [view?.distantFights, pushToast]);
+
   useEffect(() => { void loadManifest().then(setArt); }, []);
 
   const adapterRef = useRef<CaveAdapter | null>(null);
@@ -173,7 +183,10 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   const tradePartner = tradeSession
     ? view.parties.find((p) => p.seat === (tradeSession.a === view.youSeat ? tradeSession.b : tradeSession.a))
     : null;
-  const canOfferTrade = !terminal && state.phase === "explore" && !view.session && !view.areaMask?.fightInProgress;
+  // Zombie seats (M7): the risen can't trade or join the living — hide those affordances (the
+  // engine blocks them anyway); Attack stays, a zombie party is exactly a PvP spoiler.
+  const meZombie = !!me?.zombie;
+  const canOfferTrade = !terminal && !meZombie && state.phase === "explore" && !view.session && !view.areaMask?.fightInProgress;
   // The PvP fight (spec I-9/I-10): playView only projects the session to its participants, so its
   // presence IS your participation. Non-participants get nothing (the no-detail hint is areaMask-side).
   const pvpSession = view.session && view.session.kind === "pvp" ? view.session : null;
@@ -181,7 +194,7 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   // Union surfaces (spec I-6/I-7): the formation handshake and your union, both playView-projected.
   const unionProposal = view.session && view.session.kind === "unionProposal" ? view.session : null;
   const yourUnion = (view.yourUnion ?? null) as UnionView | null;
-  const canProposeUnion = !terminal && state.phase === "explore" && !view.session && !yourUnion;
+  const canProposeUnion = !terminal && !meZombie && state.phase === "explore" && !view.session && !yourUnion;
   // Guarded loot (spec I-8/I-4): a rival rear-guard stands on your tile — its treasure is not free.
   const guards = view.detachmentsHere ?? [];
 
@@ -194,7 +207,8 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
           {here.map((p) => (
             <span key={p.seat} className="scv-mp-here-chip" style={{ borderColor: PARTY_COLOR_HEX[p.color as PartyColor] }}>
               <i style={{ background: PARTY_COLOR_HEX[p.color as PartyColor] }} />{p.name}
-              {canOfferTrade && (
+              {p.zombie && <em className="scv-mp-risen" title="This party walks as the dead (§Zombies)">risen</em>}
+              {canOfferTrade && !p.zombie && (
                 <button
                   className="scv-mp-here-act"
                   title={`Offer ${p.name} a trade`}
@@ -213,7 +227,7 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
                   Attack
                 </button>
               )}
-              {canProposeUnion && (
+              {canProposeUnion && !p.zombie && (
                 <button
                   className="scv-mp-here-act"
                   title={`Propose a union with ${p.name} under your command (§I-6)`}

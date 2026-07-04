@@ -3,6 +3,7 @@ import { PARTY_COLOR_HEX, type PartyColor } from "./partyColors";
 export interface ScoreboardParty {
   seat: number; name: string; color: string; status: string;
   members: number[]; score: number; depth: number; turns: number; kills: number;
+  zombie?: boolean; // M7 zombies option: this party walks as the risen dead
 }
 
 const OUTCOME: Record<string, { label: string; cls: string }> = {
@@ -54,6 +55,7 @@ export function Scoreboard({
                 <td>
                   <span className="scv-sb-chip" style={{ background: PARTY_COLOR_HEX[p.color as PartyColor] }} />
                   {p.name}{p.seat === youSeat && <em className="scv-sb-you"> (you)</em>}
+                  {p.zombie && <em className="scv-sb-risen" title="Risen as zombies (§Zombies) — a spoiler, out of the running"> ☠ risen</em>}
                 </td>
                 <td><span className={"scv-sb-badge " + o.cls}>{o.label}</span></td>
                 <td className="num">{live ? `L${p.depth}` : "—"}</td>

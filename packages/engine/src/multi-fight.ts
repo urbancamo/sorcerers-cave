@@ -106,9 +106,12 @@ function strengthOf(mp: MpGameState, id: string): number {
   return frontStrength(memberAt(mp, id)!, partyView(mp, parseId(id).seat));
 }
 
-/** A background caster's magical power through its own seat's view (Staff bonus, Eye nullification). */
+/** A background caster's magical power through its own seat's view (Staff bonus, Eye nullification).
+ *  Zombie commands (M7, §Zombies "no magical power … only normal physical strength") lend none. */
 function backerMP(mp: MpGameState, id: string): number {
-  return casterMP(memberAt(mp, id)!, partyView(mp, parseId(id).seat));
+  const seat = parseId(id).seat;
+  if (mp.variants?.zombies === true && mp.parties[seat]?.zombie === true) return 0;
+  return casterMP(memberAt(mp, id)!, partyView(mp, seat));
 }
 
 /** Pull every parked 200+tid item off the tile into `party`'s working treasure set (a pickup). */
@@ -380,10 +383,13 @@ export function resolveRoundPvp(mp: MpGameState, now: number, windowMs: number =
 
   for (let ei = 0; ei < s.engagements.length; ei++) {
     const eng = s.engagements[ei]!;
+    // Zombie commands lend no magical power (M7, §Zombies) — a risen caster backs for zero.
+    const zombieMP = (id: string): boolean =>
+      next.variants?.zombies === true && next.parties[parseId(id).seat]?.zombie === true;
     let attStr = 0; for (const id of eng.attackers) attStr += frontStrength(memberOf(id), viewOfId(id));
-    for (const b of s.attackerBackers) if (b.at === ei) attStr += casterMP(memberOf(b.caster), viewOfId(b.caster));
+    for (const b of s.attackerBackers) if (b.at === ei) attStr += zombieMP(b.caster) ? 0 : casterMP(memberOf(b.caster), viewOfId(b.caster));
     let defStr = 0; for (const id of eng.defenders) defStr += frontStrength(memberOf(id), viewOfId(id));
-    for (const b of s.defenderBackers) if (b.at === ei) defStr += casterMP(memberOf(b.caster), viewOfId(b.caster));
+    for (const b of s.defenderBackers) if (b.at === ei) defStr += zombieMP(b.caster) ? 0 : casterMP(memberOf(b.caster), viewOfId(b.caster));
 
     const ar = rollFor("attacker");
     const dr = rollFor("defender");

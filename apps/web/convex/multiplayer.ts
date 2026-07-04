@@ -4,7 +4,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Id, Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { uniqueCode } from "./game";
-import { buildMpGame, choosePartyFor, mpReduce, partyView, scoreGame, occupants, areaInteractionMask, expireTrade, expirePvp, expireUnionProposal, pvpView, PVP_WINDOW_MS, CREATURES, TREASURES, PARTY_BUDGET, type MpGameState, type MpAction, type PartyState, type GameEvent } from "@sorcerers-cave/engine";
+import { buildMpGame, choosePartyFor, mpReduce, partyView, fogFilter, distantFights, zombiePostSweep, scoreGame, occupants, areaInteractionMask, expireTrade, expirePvp, expireUnionProposal, pvpView, PVP_WINDOW_MS, CREATURES, TREASURES, PARTY_BUDGET, type MpGameState, type MpAction, type PartyState, type GameEvent } from "@sorcerers-cave/engine";
 
 // Permissive action shape; the engine (mpReduce) enforces semantics. Includes the lobby-level endTurn.
 const mpActionValidator = v.object({
@@ -57,6 +57,9 @@ const NAME_MAX = 24;
 const MSG_MAX = 280;
 
 const cleanName = (n: string) => n.trim().slice(0, NAME_MAX);
+
+// Game variants (M7, plan WS-6): the zombies option (spec I-15) and fog-of-war-lite (plan ⑦).
+const variantsV = v.object({ zombies: v.optional(v.boolean()), fogLite: v.optional(v.boolean()) });
 
 // How a finished party's outcome reads in the broadcast feed (keyed by terminal SeatStatus).
 const OUTCOME_VERB: Record<string, string> = {
@@ -131,10 +134,11 @@ async function postSystem(ctx: MutationCtx, gameId: Id<"games">, text: string, a
   await ctx.db.insert("messages", { gameId, seat: null, partyName: "", color: null, text, createdAt: at });
 }
 
-/** Create a multiplayer game: the host takes seat 0 with a required party name + colour. */
+/** Create a multiplayer game: the host takes seat 0 with a required party name + colour.
+ *  `variants` (M7) may be set here and/or toggled in the open lobby via setVariants. */
 export const createMultiplayer = mutation({
-  args: { partyName: v.string(), color: colorV },
-  handler: async (ctx, { partyName, color }) => {
+  args: { partyName: v.string(), color: colorV, variants: v.optional(variantsV) },
+  handler: async (ctx, { partyName, color, variants }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Unauthenticated");
     const name = cleanName(partyName);
@@ -144,6 +148,7 @@ export const createMultiplayer = mutation({
     const gameId = await ctx.db.insert("games", {
       ownerId: userId, hostId: userId, code, mode: "multi", lobby: "open", maxSeats: MAX_SEATS,
       state: null, status: "active", createdAt: now, updatedAt: now,
+      ...(variants ? { variants } : {}),
     });
     await ctx.db.insert("players", { gameId, userId, seat: 0, partyName: name, color, ready: false, lastSeen: now });
     await postSystem(ctx, gameId, `${name} created the game`, now);
@@ -165,6 +170,7 @@ export const lobby = query({
       code: game.code,
       lobby: game.lobby ?? "open",
       maxSeats: game.maxSeats ?? MAX_SEATS,
+      variants: game.variants ?? null, // M7 game variants — host toggles, everyone sees chips
       takenColors: seats.map((p) => p.color),
       youSeat: callerId ? seats.find((p) => p.userId === callerId)?.seat ?? null : null,
       isHost: callerId === game.hostId,
@@ -246,6 +252,22 @@ export const setColor = mutation({
   },
 });
 
+/** Host-only, open-lobby-only: choose the game variants (M7). Fixed for good once the game starts
+ *  (startGame hands them to buildMpGame; the engine reads them from state.variants thereafter). */
+export const setVariants = mutation({
+  args: { gameId: v.id("games"), variants: variantsV },
+  handler: async (ctx, { gameId, variants }) => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
+    const game = await ctx.db.get(gameId);
+    if (!game) throw new Error("Game not found");
+    if (game.hostId !== userId) return { ok: false as const, reason: "host_only" };
+    if ((game.lobby ?? "open") !== "open") return { ok: false as const, reason: "started" };
+    await ctx.db.patch(gameId, { variants, updatedAt: Date.now() });
+    return { ok: true as const };
+  },
+});
+
 export const setReady = mutation({
   args: { gameId: v.id("games"), ready: v.boolean() },
   handler: async (ctx, { gameId, ready }) => {
@@ -296,7 +318,7 @@ export const startGame = mutation({
     for (let i = 0; i < seats.length; i++) {
       if (seats[i]!.seat !== i) await ctx.db.patch(seats[i]!._id, { seat: i });
     }
-    const mp = buildMpGame(now, seats.map((p, i) => ({ seat: i, color: p.color, name: p.partyName })));
+    const mp = buildMpGame(now, seats.map((p, i) => ({ seat: i, color: p.color, name: p.partyName })), game.variants ?? undefined);
     await ctx.db.patch(gameId, { lobby: "started", state: mp, updatedAt: now });
     await postSystem(ctx, gameId, "The game has started — choose your parties", now);
     return { ok: true as const };
@@ -355,6 +377,7 @@ export const gameState = query({
       turnCount: mp.turnCount,
       parties: mp.parties.map((p) => ({
         seat: p.seat, name: p.name, color: p.color, status: p.status,
+        zombie: p.zombie === true, // M7 zombies option — the scoreboard's "risen" badge
         members: p.party.map((m) => m.creatureId),
         // running/final score per party (the engine computes it from the party's state)
         score: p.party.length ? scoreGame(partyView(mp, p.seat)) : 0,
@@ -388,14 +411,23 @@ export const playView = query({
     // projected to names/colours so the HUD chip and allocation modal need no second lookup.
     const yu = (mp.unions ?? []).find((u) => u.members.includes(me.seat)) ?? null;
     return {
-      state: partyView(mp, me.seat),
+      // Fog-of-war-lite (M7, plan ⑦): under the variant the served render state masks every area
+      // this seat has never entered (fogFilter) — pawns and cave shape stay, detail goes. The
+      // authoritative rules run on the FULL state inside act/mpReduce, so the filter leaks no
+      // agency, only information.
+      state: mp.variants?.fogLite === true ? fogFilter(mp, me.seat) : partyView(mp, me.seat),
       youSeat: me.seat,
       currentSeat: current,
       yourTurn: current === me.seat,
       parties: mp.parties.map((p) => ({
         seat: p.seat, name: p.name, color: p.color, status: p.status,
+        zombie: p.zombie === true, // M7: the "risen" badge on chips and rosters
         partyArea: p.partyArea, level: p.level,
       })),
+      // The no-detail fight hint (plan ⑦ item 4): how many rival commands are fighting right now
+      // — the client toasts "steel rings somewhere in the deep" on the 0→N transition.
+      distantFights: distantFights(mp, me.seat),
+      variants: mp.variants ?? null,
       // Awareness (spec I-1/I-3): who shares your tile, and what interaction is legal here right now.
       hereSeats: occupants(mp, yourArea).filter((s) => s !== me.seat),
       areaMask: areaInteractionMask(mp, yourArea),
@@ -458,12 +490,15 @@ export const spectateView = query({
     if (!mp || (mp.phase !== "playing" && mp.phase !== "finished")) return null;
     if (seat < 0 || seat >= mp.parties.length) return null;
     return {
-      state: partyView(mp, seat),
+      // Under fog-of-war-lite you follow THAT seat's screen — served with that seat's own fog,
+      // so spectating never reveals more of the cave than the followed party has seen.
+      state: mp.variants?.fogLite === true ? fogFilter(mp, seat) : partyView(mp, seat),
       seat,
       name: mp.parties[seat]!.name,
       color: mp.parties[seat]!.color,
       parties: mp.parties.map((p) => ({
         seat: p.seat, name: p.name, color: p.color, status: p.status,
+        zombie: p.zombie === true,
         partyArea: p.partyArea, level: p.level,
       })),
     };
@@ -498,13 +533,18 @@ async function settleOverdueSession(
   // Auto-default per session kind (§1.3): a trade offer expires (declined); a PvP layout auto-deploys
   // strongest-fights-strongest and the round resolves — a stalled side never blocks the fight.
   if (mp.session?.kind === "pvp") {
-    const { state: after, fired } = expirePvp(mp, now, PVP_WINDOW_MS);
+    const { state: expired, fired } = expirePvp(mp, now, PVP_WINDOW_MS);
     if (fired) {
+      // The auto-resolved round bypassed mpReduce, so run the zombies sweep here too (M7): a wiped
+      // living command rises, a zombie victor's floor reclaim is stripped back to the tile.
+      const { state: after, risen } = zombiePostSweep(expired);
       await ctx.db.patch(gameId, { state: after, updatedAt: now });
       await postSystem(ctx, gameId, "The round was fought on — the delay forfeited the deployment", now);
+      for (const s of risen) await postSystem(ctx, gameId, `${after.parties[s]!.name} rise from the dead…`, now);
       await armSessionJob(ctx, gameId, after, now);
+      return after;
     }
-    return after;
+    return expired;
   }
   // A union proposal's overdue invitee auto-refuses (spec I-6, §1.3); the window may walk on to
   // the next invitee, so re-arm the job for any window that remains.
@@ -594,20 +634,33 @@ export const act = mutation({
       await postSystem(ctx, gameId, `${me.partyName} posted a rear-guard`, now);
     }
 
-    // If the acting party just reached a terminal state, record it to the multiplayer high-score
-    // table (§8.4) — kept separate from solo records. Only the acting seat's party can transition.
-    const before = mp.parties[me.seat]!.status, after = state.parties[me.seat]!.status;
-    if (before === "exploring" && after !== "exploring") {
-      const view = partyView(state, me.seat);
-      const score = scoreGame(view);
-      await ctx.db.insert("highScores", {
-        gameId, ownerId: me.userId, name: state.parties[me.seat]!.name,
-        score, outcome: view.gs, party: view.party, state: view, createdAt: now,
-        mode: "multi", gameCode: game.code, partyName: state.parties[me.seat]!.name,
-      });
-      // Broadcast the outcome to everyone still in the cave.
-      const verb = OUTCOME_VERB[after] ?? "finished";
-      await postAction(ctx, gameId, me.seat, me.partyName, me.color, `${verb} (score ${score})`, now);
+    // Zombies option (M7): announce the risen — a wipe under the variant is NOT terminal, the
+    // seat walks again (auto-rise, no prompt; the flag flip is the tell).
+    for (const p of state.parties) {
+      if (p.zombie === true && mp.parties[p.seat]!.zombie !== true) {
+        await postSystem(ctx, gameId, `${p.name} rise from the dead…`, now);
+      }
+    }
+
+    // Record every party that just reached a terminal state to the multiplayer high-score table
+    // (§8.4) — kept separate from solo records. Not only the acting seat: a PvP resolution can
+    // wipe the opponent, and the Sorcerer's death annihilates every zombie party at once (M7).
+    const rows = await seatsOf(ctx, gameId);
+    for (const p of state.parties) {
+      const before = mp.parties[p.seat]!.status;
+      if (before === "exploring" && p.status !== "exploring") {
+        const row = rows.find((r) => r.seat === p.seat);
+        const view = partyView(state, p.seat);
+        const score = scoreGame(view); // a zombie's final wipe scores 0 (gs=GS_DEAD wipe-zero)
+        await ctx.db.insert("highScores", {
+          gameId, ownerId: row?.userId, name: p.name,
+          score, outcome: view.gs, party: view.party, state: view, createdAt: now,
+          mode: "multi", gameCode: game.code, partyName: p.name,
+        });
+        // Broadcast the outcome to everyone still in the cave.
+        const verb = OUTCOME_VERB[p.status] ?? "finished";
+        await postAction(ctx, gameId, p.seat, p.name, row?.color ?? me.color, `${verb} (score ${score})`, now);
+      }
     }
     return { events };
   },

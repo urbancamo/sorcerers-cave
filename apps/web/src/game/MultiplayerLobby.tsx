@@ -12,6 +12,7 @@ export function MultiplayerLobby({ code, onExit }: { code: string; onExit: () =>
   const setReady = useMutation(api.multiplayer.setReady);
   const leave = useMutation(api.multiplayer.leaveSeat);
   const start = useMutation(api.multiplayer.startGame);
+  const setVariants = useMutation(api.multiplayer.setVariants);
   const [err, setErr] = useState<string | null>(null);
 
   if (lob === undefined) {
@@ -44,6 +45,40 @@ export function MultiplayerLobby({ code, onExit }: { code: string; onExit: () =>
     <section className="scv-panel scv-mp scv-lobby">
       <h2 className="scv-hd">Multiplayer lobby</h2>
       <p className="scv-lobby-code">Game code <b>{lob.code}</b> <span className="scv-muted">— share it to invite players</span></p>
+
+      {/* Game variants (M7): the host chooses, everyone else reads the chips; locked at start. */}
+      <div className="scv-lobby-variants" data-testid="variants">
+        <span className="scv-muted">Variants:</span>
+        {lob.isHost ? (
+          <>
+            <label className="scv-lobby-variant">
+              <input
+                type="checkbox"
+                checked={!!lob.variants?.zombies}
+                onChange={(e) => void setVariants({ gameId, variants: { ...(lob.variants ?? {}), zombies: e.target.checked } })}
+              />
+              Zombies <span className="scv-muted">(the wiped rise as spoilers)</span>
+            </label>
+            <label className="scv-lobby-variant">
+              <input
+                type="checkbox"
+                checked={!!lob.variants?.fogLite}
+                onChange={(e) => void setVariants({ gameId, variants: { ...(lob.variants ?? {}), fogLite: e.target.checked } })}
+              />
+              Fog of war <span className="scv-muted">(rivals' tiles face-down until you go there)</span>
+            </label>
+          </>
+        ) : (
+          <>
+            <span className={"scv-lobby-varchip" + (lob.variants?.zombies ? " on" : "")}>
+              Zombies {lob.variants?.zombies ? "✓" : "—"}
+            </span>
+            <span className={"scv-lobby-varchip" + (lob.variants?.fogLite ? " on" : "")}>
+              Fog of war {lob.variants?.fogLite ? "✓" : "—"}
+            </span>
+          </>
+        )}
+      </div>
 
       <ul className="scv-lobby-seats">
         {lob.seats.map((s) => (

@@ -27,6 +27,10 @@ export default defineSchema({
     // The scheduled reaction-window job for the active interaction session (spec §1.3) — cancelled
     // and re-armed whenever the session's window changes; also covered by a lazy overdue check.
     sessionJobId: v.optional(v.id("_scheduled_functions")),
+    // Game variants (M7, plan WS-6), chosen in the lobby BEFORE the engine state exists (state is
+    // null until startGame) — hence a games field, handed into buildMpGame at start and riding in
+    // state.variants from then on. Absent = a plain game.
+    variants: v.optional(v.object({ zombies: v.optional(v.boolean()), fogLite: v.optional(v.boolean()) })),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

@@ -444,3 +444,66 @@ test("respondUnion accept forms the union for both seats; leaveUnion returns the
   const after = await seat0.query(api.multiplayer.messages, { gameId });
   expect(after.some((m) => m.seat === null && /Beta left the union/.test(m.text))).toBe(true);
 });
+
+// --- M7 game variants: the zombies option (spec I-15) & fog-of-war-lite (plan ⑦) ----------------
+
+test("variants are stored at creation, surfaced in the lobby, and host-toggleable until start", async () => {
+  const t = convexTest(schema, modules);
+  const host = await asUser(t);
+  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, {
+    partyName: "Alpha", color: "green", variants: { zombies: true },
+  });
+  expect((await host.query(api.multiplayer.lobby, { code }))!.variants).toEqual({ zombies: true });
+
+  const p2 = await asUser(t);
+  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  // Only the host may toggle; guests read the chips.
+  expect((await p2.mutation(api.multiplayer.setVariants, { gameId, variants: { fogLite: true } })).reason).toBe("host_only");
+  await host.mutation(api.multiplayer.setVariants, { gameId, variants: { zombies: true, fogLite: true } });
+  expect((await p2.query(api.multiplayer.lobby, { code }))!.variants).toEqual({ zombies: true, fogLite: true });
+
+  // startGame hands the variants to buildMpGame — they ride in the engine state from then on…
+  await host.mutation(api.multiplayer.startGame, { gameId });
+  const stored = await t.run(async (ctx) => (await ctx.db.get(gameId))!.state as MpGameState);
+  expect(stored.variants).toEqual({ zombies: true, fogLite: true });
+  // …and are locked once started.
+  expect((await host.mutation(api.multiplayer.setVariants, { gameId, variants: {} })).reason).toBe("started");
+});
+
+test("fog-of-war-lite: playView masks areas this seat has never entered (coords kept, detail gone)", async () => {
+  const t = convexTest(schema, modules);
+  const host = await asUser(t);
+  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, {
+    partyName: "Alpha", color: "green", variants: { fogLite: true },
+  });
+  const p2 = await asUser(t);
+  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await host.mutation(api.multiplayer.startGame, { gameId });
+  const bySeat: Record<number, typeof host> = {};
+  for (const u of [host, p2]) bySeat[(await u.query(api.multiplayer.gameState, { gameId }))!.youSeat] = u;
+  for (let i = 0; i < 2; i++) {
+    const picker = (await host.query(api.multiplayer.gameState, { gameId }))!.currentPicker!;
+    await bySeat[picker]!.mutation(api.multiplayer.pickParty, { gameId, picks: [5] });
+  }
+  // Drop a second, fully detailed area into the shared cave that NO seat has entered.
+  await t.run(async (ctx) => {
+    const game = await ctx.db.get(gameId);
+    const mp = game!.state as MpGameState;
+    mp.cave.areas.push({
+      card: 31, coord: 15049, faceUp: true, visited: true, contents: [112, 201],
+      flags: 0, indiffCount: 0, markers: [303], mirroredStairs: 64, secretDoor: 0,
+    });
+    await ctx.db.patch(gameId, { state: mp });
+  });
+  const pv = (await bySeat[0]!.query(api.multiplayer.playView, { gameId }))!;
+  expect(pv.variants).toEqual({ fogLite: true });
+  expect(pv.state.areas[0]!.faceUp).toBe(true); // the Gateway is in every seat's ledger
+  expect(pv.state.areas[1]).toEqual({           // the unseen area: a face-down stub, coord kept
+    card: 31, coord: 15049, faceUp: false, visited: false, contents: [], flags: 0, indiffCount: 0,
+  });
+  expect(typeof pv.distantFights).toBe("number"); // the no-detail fight hint rides along
+  // Spectating serves the FOLLOWED seat's fog — no more of the cave than they have seen.
+  const sv = (await bySeat[1]!.query(api.multiplayer.spectateView, { gameId, seat: 0 }))!;
+  expect(sv.state.areas[1]!.faceUp).toBe(false);
+  expect(sv.state.areas[1]!.contents).toEqual([]);
+});
