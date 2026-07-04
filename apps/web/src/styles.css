@@ -715,6 +715,24 @@
   padding: 2px 9px; border-radius: 14px; border: 1px solid var(--line-strong); background: rgba(0, 0, 0, 0.35);
 }
 .scv-mp-here-chip i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+/* Trade modal (spec I-5): two-column both-confirm exchange between co-located parties. */
+.scv-trade { max-width: 620px; }
+.scv-trade-clock { margin: 0 0 10px; font-family: var(--ui); font-size: 12px; color: var(--brass-bright); }
+.scv-trade-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.scv-trade-col h4 {
+  margin: 0 0 8px; font-family: var(--ui); font-size: 10.5px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--stone-dim);
+}
+.scv-trade-item {
+  display: block; width: 100%; text-align: left; margin: 0 0 6px; padding: 7px 10px;
+  border-radius: 8px; border: 1px solid var(--line-strong); background: rgba(0, 0, 0, 0.3);
+  color: var(--cream); font-family: var(--ui); font-size: 13px; cursor: pointer;
+}
+.scv-trade-item.offered { border-color: var(--brass-bright); background: rgba(201, 161, 78, 0.12); }
+.scv-trade-item.incoming { cursor: default; border-style: dashed; }
+.scv-trade-item.member { border-left: 3px solid var(--teal); }
+.scv-trade-owner { color: var(--stone-dim); font-size: 11px; }
+.scv-trade-note { margin: 8px 0 0; font-size: 12px; color: var(--brass-bright); }
 /* Transient toasts under the depth bar: turn changes and mirrored chat, 3s each. */
 .scv-mp-toasts {
   position: fixed; top: 78px; left: 50%; transform: translateX(-50%); z-index: 60;
