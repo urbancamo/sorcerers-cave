@@ -4,7 +4,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Id, Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { uniqueCode } from "./game";
-import { buildMpGame, choosePartyFor, mpReduce, partyView, fogFilter, distantFights, zombiePostSweep, scoreGame, occupants, areaInteractionMask, expireTrade, expirePvp, expireUnionProposal, pvpView, PVP_WINDOW_MS, CREATURES, TREASURES, PARTY_BUDGET, type MpGameState, type MpAction, type PartyState, type GameEvent } from "@sorcerers-cave/engine";
+import { buildMpGame, choosePartyFor, mpReduce, partyView, fogFilter, distantFights, zombiePostSweep, mpScore, occupants, areaInteractionMask, expireTrade, expirePvp, expireUnionProposal, pvpView, PVP_WINDOW_MS, CREATURES, TREASURES, PARTY_BUDGET, type MpGameState, type MpAction, type PartyState, type GameEvent } from "@sorcerers-cave/engine";
 
 // Permissive action shape; the engine (mpReduce) enforces semantics. Includes the lobby-level endTurn.
 const mpActionValidator = v.object({
@@ -380,7 +380,7 @@ export const gameState = query({
         zombie: p.zombie === true, // M7 zombies option — the scoreboard's "risen" badge
         members: p.party.map((m) => m.creatureId),
         // running/final score per party (the engine computes it from the party's state)
-        score: p.party.length ? scoreGame(partyView(mp, p.seat)) : 0,
+        score: p.party.length ? mpScore(mp, p.seat) : 0, // bounty-split aware (I-19)
         depth: p.level, turns: p.turn, kills: p.kills ?? 0, // live scoreboard stats
       })),
       draft: mp.phase === "partySelect" ? { remaining, budget: PARTY_BUDGET } : null,
@@ -506,6 +506,34 @@ export const spectateView = query({
 });
 
 /**
+ * Record every party that transitioned OUT of "exploring" between two states to the multiplayer
+ * high-score table (§8.4), with the bounty-split-aware score (I-19), and broadcast the outcome.
+ * Called from `act` AND from the window auto-resolve paths — a party wiped by an expired PvP
+ * deployment (or annihilated when the Sorcerer falls to a timer-resolved round) must be recorded
+ * exactly like one wiped by a player's action.
+ */
+async function recordTerminals(
+  ctx: MutationCtx, gameId: Id<"games">, game: Doc<"games">,
+  before: MpGameState, after: MpGameState, now: number,
+): Promise<void> {
+  const rows = await seatsOf(ctx, gameId);
+  for (const p of after.parties) {
+    const was = before.parties[p.seat]?.status;
+    if (was !== "exploring" || p.status === "exploring") continue;
+    const row = rows.find((r) => r.seat === p.seat);
+    const view = partyView(after, p.seat);
+    const score = mpScore(after, p.seat); // bounty-split aware; a wipe scores 0
+    await ctx.db.insert("highScores", {
+      gameId, ownerId: row?.userId, name: p.name,
+      score, outcome: view.gs, party: view.party, state: view, createdAt: now,
+      mode: "multi", gameCode: game.code, partyName: p.name,
+    });
+    const verb = OUTCOME_VERB[p.status] ?? "finished";
+    if (row) await postAction(ctx, gameId, p.seat, p.name, row.color, `${verb} (score ${score})`, now);
+  }
+}
+
+/**
  * Reaction-window plumbing (spec §1.3). Whenever a session (re)arms a window we schedule the
  * auto-default at its deadline (cancelling any prior job); a lazy check at the top of every mutation
  * is the belt-and-braces backstop if a scheduled job is lost. Presence-aware: an awaited seat whose
@@ -541,6 +569,9 @@ async function settleOverdueSession(
       await ctx.db.patch(gameId, { state: after, updatedAt: now });
       await postSystem(ctx, gameId, "The round was fought on — the delay forfeited the deployment", now);
       for (const s of risen) await postSystem(ctx, gameId, `${after.parties[s]!.name} rise from the dead…`, now);
+      // A timer-resolved round can wipe a command (or annihilate zombies): record those terminals
+      // here — the act-path recorder only sees transitions caused by the player's own action.
+      await recordTerminals(ctx, gameId, game, mp, after, now);
       await armSessionJob(ctx, gameId, after, now);
       return after;
     }
@@ -642,26 +673,8 @@ export const act = mutation({
       }
     }
 
-    // Record every party that just reached a terminal state to the multiplayer high-score table
-    // (§8.4) — kept separate from solo records. Not only the acting seat: a PvP resolution can
-    // wipe the opponent, and the Sorcerer's death annihilates every zombie party at once (M7).
-    const rows = await seatsOf(ctx, gameId);
-    for (const p of state.parties) {
-      const before = mp.parties[p.seat]!.status;
-      if (before === "exploring" && p.status !== "exploring") {
-        const row = rows.find((r) => r.seat === p.seat);
-        const view = partyView(state, p.seat);
-        const score = scoreGame(view); // a zombie's final wipe scores 0 (gs=GS_DEAD wipe-zero)
-        await ctx.db.insert("highScores", {
-          gameId, ownerId: row?.userId, name: p.name,
-          score, outcome: view.gs, party: view.party, state: view, createdAt: now,
-          mode: "multi", gameCode: game.code, partyName: p.name,
-        });
-        // Broadcast the outcome to everyone still in the cave.
-        const verb = OUTCOME_VERB[p.status] ?? "finished";
-        await postAction(ctx, gameId, p.seat, p.name, row?.color ?? me.color, `${verb} (score ${score})`, now);
-      }
-    }
+    // Record every party that just reached a terminal state (§8.4) — see recordTerminals.
+    await recordTerminals(ctx, gameId, game, mp, state, now);
     return { events };
   },
 });

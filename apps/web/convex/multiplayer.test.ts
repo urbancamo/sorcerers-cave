@@ -507,3 +507,56 @@ test("fog-of-war-lite: playView masks areas this seat has never entered (coords 
   expect(sv.state.areas[1]!.faceUp).toBe(false);
   expect(sv.state.areas[1]!.contents).toEqual([]);
 });
+
+test("a PvP wipe caused by window auto-resolve records the loser's high score (I-19/§8.4 fix)", async () => {
+  const t = convexTest(schema, modules);
+  const { gameId, bySeat } = await playingPair(t);
+  // Rig a decided fight: seat 0's Giant (FS 7) vs seat 1's lone Dwarf (FS 1) — the Giant's total
+  // (7 + d6 ≥ 8) always beats the Dwarf's (1 + d6 ≤ 7), so the auto-resolved round wipes seat 1
+  // regardless of dice. The session sits at defenderLine with its window long overdue.
+  await t.run(async (ctx) => {
+    const game = await ctx.db.get(gameId);
+    const mp = game!.state as MpGameState;
+    mp.parties[0]!.party = [{ creatureId: 12, status: 0, dragonKills: 0, treasure: [] }];
+    mp.parties[1]!.party = [{ creatureId: 7, status: 0, dragonKills: 0, treasure: [] }];
+    mp.session = {
+      kind: "pvp", area: 0, attacker: [0], defender: [1], round: 1, activeSide: "attacker",
+      surprise: 0, stage: "defenderLine", defenderLine: [], engagements: [],
+      attackerBackers: [], defenderBackers: [],
+      window: { seat: 1, deadline: Date.now() - 120_000, kind: "pvpLayout" },
+      stopProposedBy: null, drops: [],
+    } as unknown as MpGameState["session"];
+    await ctx.db.patch(gameId, { state: mp });
+    for (const p of await ctx.db.query("players").withIndex("by_game", (q) => q.eq("gameId", gameId)).collect()) {
+      await ctx.db.patch(p._id, { lastSeen: Date.now() - 600_000 }); // stale: no presence extension
+    }
+  });
+
+  // Each firing auto-defaults ONE stage (every stage gets its own window, §1.3): defender line →
+  // attacker engage → defender casters → resolve. Rewind the fresh window and fire until settled.
+  for (let i = 0; i < 4; i++) {
+    const open = await t.run(async (ctx) => {
+      const game = await ctx.db.get(gameId);
+      const mp = game!.state as MpGameState;
+      if (!mp.session) return false;
+      (mp.session as { window: { deadline: number } | null }).window = {
+        ...(mp.session as { window: { seat: number; kind: string } }).window ?? { seat: 1, kind: "pvpLayout" },
+        deadline: Date.now() - 120_000,
+      } as never;
+      await ctx.db.patch(gameId, { state: mp });
+      return true;
+    });
+    if (!open) break;
+    // Any mutation triggers the lazy settle; the caller's own action being blocked is irrelevant.
+    await bySeat[0]!.mutation(api.multiplayer.act, { gameId, action: { type: "endTurn" } });
+  }
+
+  const { wiped, scores } = await t.run(async (ctx) => {
+    const game = await ctx.db.get(gameId);
+    const mp = game!.state as MpGameState;
+    const rows = await ctx.db.query("highScores").withIndex("by_game", (q) => q.eq("gameId", gameId)).collect();
+    return { wiped: mp.parties[1]!.status, scores: rows.map((r) => ({ name: r.partyName, mode: r.mode })) };
+  });
+  expect(wiped).toBe("wiped");
+  expect(scores).toContainEqual({ name: "Beta", mode: "multi" }); // the timer-wiped party IS recorded
+});
