@@ -6,10 +6,10 @@ import type { GameAction, GameEvent } from "./actions";
 import { reduce } from "./reduce";
 import { validatePicks } from "./setup";
 import { buildLargePack, buildSmallPack } from "./decks";
-import { shuffle } from "./rng";
+import { shuffle, nextSeed } from "./rng";
 import { AREA_CARDS, GATEWAY_INDEX, SPECIAL_VIPER_PIT, SPECIAL_DEEP_POOL } from "./data/areaCards";
 import { decodeArea } from "./decode";
-import { unpackCoord, packCoord, DIR_UP } from "./coords";
+import { unpackCoord, packCoord, targetCoord, DIR_UP } from "./coords";
 import type { Session, Union, Detachment } from "./multi-session";
 import {
   proposeTrade, updateBasket, confirmTrade, cancelTrade, sessionGuard, showSecretDoor,
@@ -36,6 +36,15 @@ const mergePvp = (a: PvpResult, b: PvpResult): PvpResult => ({ state: b.state, e
  *
  * Beginner ruleset (per the plan): no party-vs-party interaction yet, so a seat only ever sees the
  * shared cave + its own party. Inter-party fights/unions/trading are a later phase.
+ *
+ * RNG SPLIT (M6, plan revision ②): cave.seed remains the ONE stream for every solo-composed action
+ * — reduce reads state.seed for both deck-ordering effects and dice, and a single move can both
+ * draw AND roll (hazards fire on entry), so splitting inside a composed action is impossible
+ * without editing reduce (frozen, INV-2). The honest boundary is therefore the MULTI layer itself:
+ * wherever THIS layer rolls dice (inter-party combat, multi-fight.ts), each side rolls from its
+ * own PartyState.diceSeed substream, so a PvP round never perturbs the shared cave stream and
+ * "it is always a player's privilege to roll the die for his own scores" holds where two players
+ * genuinely touch. Solo-composed draws and rolls interleave exactly as they always did.
  */
 
 export type SeatStatus = "selecting" | "exploring" | "left" | "wiped" | "quit";
@@ -74,6 +83,14 @@ export interface PartyState extends PartyCore {
   // seat records the OTHER sharing seats here (with sorcererKilled=true). mpScore divides the 30
   // equally among 1 + sorcererSharedWith.length seats at terminal scoring.
   sorcererSharedWith?: number[];
+  // Per-party dice substream (M6, plan revision ②; spec §0 principle 2 "it is always a player's
+  // privilege to roll the die for his own scores"). Consumed ONLY where the MULTI layer itself
+  // rolls dice — today that is multi-fight.ts's rollFor (each PvP side rolls from its own command
+  // lead's substream). Solo-composed actions keep rolling from the shared cave.seed: reduce reads
+  // state.seed for BOTH deck-ordering effects and dice, so their interleaving stays byte-identical
+  // to solo (INV-2) and existing replays are unaffected. Derivation: nextSeed^(seat+1) of the
+  // initial cave seed — see buildMpGame. Absent on pre-M6 states: consumers fall back to cave.seed.
+  diceSeed?: number;
 }
 
 export interface MpGameState {
@@ -88,6 +105,14 @@ export interface MpGameState {
   session?: Session | null;      // the one active interaction session (trade / pvp / union proposal)
   unions?: Union[];              // active unions (persist across turns, unlike sessions)
   detachments?: Detachment[];    // rear-guards left by division (spec I-8)
+  // Concurrent exploration (M6, plan revision ①; spec §1.2 Tier A), a per-game flag. false/absent
+  // = strict round-robin (all pre-M6 behaviour, byte-identical). true = free roam: any exploring
+  // seat may act at any time UNLESS it is a participant in the live session, owes union forfeits,
+  // or is a union subordinate; endTurn is a no-op (there are no turns to pass); turnCount still
+  // advances one per completed solo action so the HUD keeps a clock. See mpReduce for the
+  // contention rule (deck draws serialise on the shared cursors; a rival's live stranger-fight
+  // bars entry to its area) and the fleeGrace/forfeit adaptations.
+  concurrent?: boolean;
 }
 
 /** Multiplayer action = any engine action, plus the lobby-level "pass my turn" and the
@@ -193,10 +218,21 @@ export function buildMpGame(seed: number, seats: { seat: number; color: string; 
   const order = ord.result;
   const pickOrder = [...order].reverse();
   const gateway = { card: AREA_CARDS[GATEWAY_INDEX]!, coord: GATEWAY_START_COORD, faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 };
+  // Per-party dice substreams (M6, spec §0 principle 2): seat k's diceSeed is the initial cave
+  // seed advanced k+1 LCG steps — diceSeed(k) = nextSeed^(k+1)(ord.seed). DERIVED, never consumed:
+  // cave.seed itself remains ord.seed exactly as before, so the shared stream (deck-ordering and
+  // every solo-composed roll) is byte-identical to pre-M6 games. The derivation is a pure function
+  // of the game seed and the seat number, hence reproducible on any rebuild or replay.
+  const diceSeedFor = (seat: number): number => {
+    let d = ord.seed;
+    for (let i = 0; i <= seat; i++) d = nextSeed(d);
+    return d;
+  };
   const parties: PartyState[] = seats.map((s) => ({
     seat: s.seat, color: s.color, name: s.name, status: "selecting", kills: 0,
     gs: GS_PLAYING, phase: "explore", turn: 1, score: 0, curses: 0, bonusScore: 0, sorcererKilled: false,
     partyArea: 0, level: 1, prev: 0, prev2: 0, party: [], strangers: [], treasures: [], hazards: [], fight: null,
+    diceSeed: diceSeedFor(s.seat),
   }));
   return {
     phase: "partySelect",
@@ -286,16 +322,34 @@ export function mpReduce(mp: MpGameState, seat: number, action: MpAction, now = 
     case "allocateRecruit": return lift(mp, allocateRecruit(mp, seat, action.recruit, action.to));
   }
 
-  if (mp.order[mp.active] !== seat) return blocked(mp); // not your turn
+  const concurrent = mp.concurrent === true;
+  if (!concurrent && mp.order[mp.active] !== seat) return blocked(mp); // strict mode: not your turn
   const party = mp.parties[seat];
   if (!party || party.status !== "exploring") return blocked(mp);
   // A union subordinate never plays a solo turn — the commander moves the combined force (I-6/I-7).
   // (advanceTurn skips such seats; this guards the window between formation and the next hand-off.)
   const inUnion = activeUnionOf(mp, seat);
   if (inUnion && inUnion.commander !== seat) return blocked(mp);
-  // A combatant is locked in its PvP fight — no solo actions until it ends (retreat goes through
-  // pvpRetreat; the rest of the table is unaffected, spec §1.2 Tier C).
-  if (mp.session?.kind === "pvp" && (mp.session.attacker.includes(seat) || mp.session.defender.includes(seat))) {
+  // Session locks. Strict mode: only a PvP combatant is locked into its fight (retreat goes
+  // through pvpRetreat), while a trade participant may wander off (sessionGuard abandons the
+  // trade). Concurrent mode (M6): with no turn boundary to police the walk-away, the ONE live
+  // session locks EVERY participant (spec §1.2 Tier C — "only the session's participants are
+  // gated"); leaving is an explicit cancelTrade / respondUnion / pvpRetreat, never a silent stroll.
+  if (mp.session) {
+    const s = mp.session;
+    const participants =
+      s.kind === "pvp" ? [...s.attacker, ...s.defender] :
+      s.kind === "trade" ? [s.a, s.b] :
+      [s.commander, ...s.invited, ...s.accepted];
+    if ((concurrent || s.kind === "pvp") && participants.includes(seat)) return blocked(mp);
+  }
+  // Concurrent forfeit lockout (M6 mapping of the union joining fee, I-6): with no turn rotation
+  // to skip, a seat owing forfeits may not INITIATE actions; one owed forfeit is paid off each
+  // time any OTHER seat completes a solo action (see the tail below). If no rival explorer is
+  // left there is nobody to yield to, so the gate stands down rather than dead-stop the last
+  // seat (spec §1.3: auto-defaults never dead-stop).
+  if (concurrent && (party.forfeitTurnsOwed ?? 0) > 0 &&
+      mp.parties.some((p) => p.seat !== seat && p.status === "exploring")) {
     return blocked(mp);
   }
 
@@ -304,6 +358,7 @@ export function mpReduce(mp: MpGameState, seat: number, action: MpAction, now = 
   if (action.type === "divideParty") return lift(mp, divideParty(mp, seat, action.members));
 
   if (action.type === "endTurn") {
+    if (concurrent) return { state: mp, events: [] }; // no turns to pass — a harmless no-op (M6)
     if (party.phase !== "explore") return blocked(mp); // may only pass while at rest
     return { state: advanceTurn(mp), events: [] };
   }
@@ -311,6 +366,27 @@ export function mpReduce(mp: MpGameState, seat: number, action: MpAction, now = 
   // Secret-door gate (I-18): a stair that exists only as a mirrored link is invisible to a seat
   // that hasn't learnt it — the vertical move is blocked as if the stair were not there.
   if (action.type === "move" && secretStairGated(mp, seat, action.dir)) return blocked(mp);
+
+  // Concurrent contention rule (M6, spec §1.2): free-roam seats act freely — the only
+  // serialisation points are (i) deck draws, which simply consume the shared largeIdx/smallIdx
+  // cursors in action-arrival order (transactional at the Convex layer); (ii) same-area
+  // interactions, which are sessions (locked above); and (iii) a rival's LIVE stranger-fight,
+  // which bars entry: a seat may not move INTO an area where another seat is mid-fight — blocked
+  // with the I-13 mask's reason (the mask already bars loot/PvP/attack there for co-located seats).
+  if (concurrent && action.type === "move") {
+    const cur = mp.cave.areas[party.partyArea];
+    if (cur) {
+      const { level, x, y } = unpackCoord(cur.coord);
+      const destCoord = targetCoord(action.dir, level, x, y);
+      const destIdx = mp.cave.areas.findIndex((a) => a.coord === destCoord);
+      if (destIdx >= 0) {
+        const mask = areaInteractionMask(mp, destIdx);
+        if (mask.fightInProgress !== null && mask.fightInProgress !== seat) {
+          return { state: mp, events: [{ type: "planRejected", reason: mask.reason ?? "a fight with strangers is under way" }] };
+        }
+      }
+    }
+  }
 
   const { state: next, events } = reduce(compose(mp.cave, party), action);
   if (events.length === 1 && events[0]!.type === "blocked") return { state: mp, events }; // no-op, no handoff
@@ -363,8 +439,12 @@ export function mpReduce(mp: MpGameState, seat: number, action: MpAction, now = 
     // turns in a row … provided that in its first turn of retreat it does not encounter strangers,
     // another party, a hazard, the viper pit, or the deep pool, and does not stop to pick up any
     // unguarded treasure". A clean flight turn keeps the seat active once; anything on the proviso
-    // list forfeits the grace.
+    // list forfeits the grace. Concurrent mode (M6) has no consecutive turns to grant, so the grace
+    // degrades gracefully: while it lasts it shields the fleeing seat from declareAttack instead
+    // (multi-fight.ts's pursuit lockout), consumed/cancelled here on the SAME clean/dirty rules at
+    // the same turn-unit boundaries.
     const grace = out.parties[seat]!.fleeGrace ?? 0;
+    let cleanFlight = false;
     if (grace > 0) {
       const dirty =
         events.some((e) =>
@@ -375,9 +455,28 @@ export function mpReduce(mp: MpGameState, seat: number, action: MpAction, now = 
         occupants(out, out.parties[seat]!.partyArea).some((s) => s !== seat); // ran into another party
       const remaining = dirty ? 0 : grace - 1;
       out = { ...out, parties: out.parties.map((p, i) => (i === seat ? { ...p, fleeGrace: remaining > 0 ? remaining : undefined } : p)) };
-      if (!dirty && remaining > 0 && next.gs === GS_PLAYING) return { state: out, events: allEvents }; // second turn in a row
+      cleanFlight = !dirty && remaining > 0 && next.gs === GS_PLAYING;
     }
-    out = advanceTurn(out);
+    if (!concurrent) {
+      if (cleanFlight) return { state: out, events: allEvents }; // second turn in a row
+      out = advanceTurn(out);
+    }
+  }
+  if (concurrent) {
+    // No rotation drives the clock in free roam: turnCount advances one per completed solo action
+    // (the HUD's pulse), and each such action pays one owed forfeit off every OTHER seat — the
+    // time-boxed reading of the union joining fee (see the lockout gate above): the owing seat
+    // stays parked until every debt has been overtaken by rival activity.
+    out = {
+      ...out,
+      turnCount: out.turnCount + 1,
+      parties: out.parties.map((p, i) =>
+        i !== seat && (p.forfeitTurnsOwed ?? 0) > 0
+          ? { ...p, forfeitTurnsOwed: p.forfeitTurnsOwed! > 1 ? p.forfeitTurnsOwed! - 1 : undefined }
+          : p),
+    };
+    // advanceTurn never runs here, so detect the all-terminal finish directly.
+    if (!out.parties.some((p) => p.status === "exploring")) out = { ...out, phase: "finished" };
   }
   return { state: out, events: allEvents };
 }

@@ -144,7 +144,10 @@ function formUnion(mp: MpGameState, prop: UnionProposal): MpGameState {
   const id = 1 + (mp.unions ?? []).reduce((mx, u) => Math.max(mx, u.id), 0);
   mp.unions = [...(mp.unions ?? []), { id, commander: cmdSeat, members, recruits: [], onLoan }];
   // If the seat currently to move just became a subordinate, its turn belongs to the union now.
-  if (mp.phase === "playing") {
+  // Strict rotation only: in concurrent mode (M6) there is no cursor to hand off — and calling
+  // advanceTurn would wrongly eat the just-charged joining fees in its skip-and-decrement loop
+  // (concurrent forfeits are paid off by rival activity instead, see mpReduce).
+  if (mp.phase === "playing" && mp.concurrent !== true) {
     const activeSeat = mp.order[mp.active]!;
     if (members.includes(activeSeat) && activeSeat !== cmdSeat) return advanceTurn(mp);
   }

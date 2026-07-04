@@ -34,9 +34,10 @@ import type { PvpSession, ReactionWindow } from "./multi-session";
  * - The session object stored in `mp.session` is a `PvpFightSession` (a structural subtype of
  *   PvpSession) carrying `drops`: the §388 heavy-treasure pre-drop memory `{seat, id, tid}[]` used
  *   by the both-agree stop to hand each side back its OWN dropped items.
- * - TODO(M6): roll-your-own-dice. Every die here goes through ONE `rollFor(side)` indirection; both
- *   sides currently share `cave.seed` because the per-party `diceSeed` substream doesn't exist yet.
- *   When M6 lands, only `rollFor` changes.
+ * - Roll-your-own-dice (M6, spec §0 principle 2): every die here goes through ONE `rollFor(side)`
+ *   indirection, which rolls from that side's command lead's `PartyState.diceSeed` substream —
+ *   the shared `cave.seed` is never touched by an inter-party round. Parties without a diceSeed
+ *   (pre-M6 states, hand-built fixtures) fall back to `cave.seed` exactly as before M6.
  */
 
 export const PVP_WINDOW_MS = 45_000;
@@ -143,6 +144,11 @@ export function declarePvp(mp: MpGameState, attackerSeat: number, defenderSeat: 
   if (attCmd[0] !== attackerSeat) return blocked(mp);
   if (attCmd.some((s) => defCmd.includes(s))) return blocked(mp);
   if ([...attCmd, ...defCmd].some((s) => !mp.parties[s] || mp.parties[s]!.status !== "exploring")) return blocked(mp);
+  // Concurrent-mode pursuit lockout (M6, I-11 degraded gracefully): with no consecutive turns to
+  // grant, the two-turn flee grace instead shields the fleeing command from declareAttack until
+  // the grace clears — consumed/cancelled by mpReduce on the same clean/dirty flight rules.
+  // Strict mode keeps the original consecutive-turn tempo and needs no gate here.
+  if (mp.concurrent === true && defCmd.some((s) => (mp.parties[s]?.fleeGrace ?? 0) > 0)) return blocked(mp);
   const att = mp.parties[attCmd[0]!]!, def = mp.parties[defCmd[0]!]!;
   if (att.phase !== "explore" || def.phase !== "explore") return blocked(mp);
   if (att.partyArea !== def.partyArea) return blocked(mp);
@@ -343,12 +349,22 @@ export function resolveRoundPvp(mp: MpGameState, now: number, windowMs: number =
   const viewOfId = (id: string) => viewFor(parseId(id).seat);
   const memberOf = (id: string) => memberAt(next, id)!;
 
-  // TODO(M6): per-party diceSeed — each side must roll from its OWN substream ("it is always a
-  // player's privilege to roll the die for his own scores"). Until M6 both sides share cave.seed,
-  // but every roll routes through this ONE indirection so the switch is local.
-  const rollFor = (_side: "attacker" | "defender"): number => {
-    const r = rollDie(next.cave.seed);
-    next.cave.seed = r.seed;
+  // M6 roll-your-own-dice (spec §0 principle 2): each side rolls from its OWN command lead's
+  // diceSeed substream — attacker rolls consume the attacker lead's, defender rolls the
+  // defender's — so an inter-party round never perturbs the shared cave stream (deck order and
+  // solo-composed rolls are unaffected; mpReduce's determinism test pins this). States whose
+  // parties carry no diceSeed (pre-M6 games mid-flight, hand-built fixtures) fall back to the
+  // shared cave.seed exactly as before, keeping their pinned roll streams intact.
+  const rollFor = (side: "attacker" | "defender"): number => {
+    const lead = (side === "attacker" ? s.attacker : s.defender)[0]!;
+    const p = next.parties[lead]!;
+    if (p.diceSeed === undefined) {
+      const r = rollDie(next.cave.seed);
+      next.cave.seed = r.seed;
+      return r.value;
+    }
+    const r = rollDie(p.diceSeed);
+    p.diceSeed = r.seed;
     return r.value;
   };
 
