@@ -6,6 +6,7 @@ import {
 } from "@sorcerers-cave/engine";
 import { memberLabels } from "./memberLabels";
 import { PARTY_COLOR_HEX, type PartyColor } from "./partyColors";
+import { loadManifest, resolveCardVariant, type CardArt } from "../data/manifest";
 
 /**
  * Two-sided PvP fight surface (spec §I-10). Participants only — a non-participant never receives
@@ -76,6 +77,15 @@ export function PvpFightSurface({
     setHeldBack(new Set()); setRows(null); setSel(null); setCasterAt({}); setRetreatOpen(false);
   }, [session.stage, session.round]);
 
+  // Card art (progressive enhancement, like PartyPanel/ScoreDetail): chips show the actual creature
+  // card when the manifest loads, and fall back to the text label when it can't (e.g. in tests).
+  const [cardArt, setCardArt] = useState<CardArt[]>([]);
+  useEffect(() => {
+    let live = true;
+    loadManifest().then(({ cards }) => { if (live) setCardArt(cards); }).catch(() => {});
+    return () => { live = false; };
+  }, []);
+
   const left = useCountdown(session.window?.deadline ?? null);
 
   // Whose move the current stage is (the window's seat always sits on this side).
@@ -101,17 +111,34 @@ export function PvpFightSurface({
   const isMine = (id: string) => id.startsWith(`${youSeat}:`);
   const memberOf = (id: string) => yourState.party[idxOf(id)];
 
-  // Rival members are known only by what the session reveals: the pvpView names once an engagement
-  // exists, else the opaque line ids ("the rival deploys face-down" is a fair reading of §I-10).
+  // Rival identity comes from pvp.cards — the creature cards themselves are never concealed, even
+  // in serious play ("players need keep on display in their parties only their creature cards",
+  // rulebook §Hidden Cards). Engagement names remain the fallback for a mid-flight stale view.
   const rivalNames = new Map<string, string>();
   for (const e of pvp?.engagements ?? []) {
     e.attackers.forEach((id, i) => rivalNames.set(id, e.attackerNames[i] ?? "?"));
     e.defenders.forEach((id, i) => rivalNames.set(id, e.defenderNames[i] ?? "?"));
   }
-  const nameOf = (id: string): string =>
-    isMine(id)
-      ? (labels[idxOf(id)] ?? CREATURES[memberOf(id)?.creatureId ?? -1]?.name ?? "?")
-      : (rivalNames.get(id) ?? `Fighter ${idxOf(id) + 1}`);
+  const cardOf = (id: string): { creatureId: number; copy: number } | null => {
+    if (isMine(id)) {
+      const m = memberOf(id);
+      if (!m) return null;
+      let copy = 0;
+      for (let i = 0; i < idxOf(id); i++) if (yourState.party[i]!.creatureId === m.creatureId) copy++;
+      return { creatureId: m.creatureId, copy };
+    }
+    return pvp?.cards?.[id] ?? null;
+  };
+  const artOf = (id: string): string | null => {
+    const c = cardOf(id);
+    return c ? (resolveCardVariant("creature", c.creatureId, c.copy, cardArt)?.file ?? null) : null;
+  };
+  const nameOf = (id: string): string => {
+    if (isMine(id)) return labels[idxOf(id)] ?? CREATURES[memberOf(id)?.creatureId ?? -1]?.name ?? "?";
+    const c = pvp?.cards?.[id];
+    if (c) return (CREATURES[c.creatureId]?.name ?? "?") + (c.copy > 0 ? ` #${c.copy + 1}` : "");
+    return rivalNames.get(id) ?? `Fighter ${idxOf(id) + 1}`;
+  };
   // The rival roster this side can see right now: the laid-out line plus anyone named in an engagement.
   const rivalKnown = [...new Set([
     ...(youSide === "attacker" ? session.defenderLine : []),
@@ -132,6 +159,7 @@ export function PvpFightSurface({
         style={{ borderColor: seatColor(youSeat) }}
         disabled={opts.disabled} title={opts.title}
         onClick={opts.onPick}>
+        {artOf(id) && <span className="scv-pvp-thumb"><img src={artOf(id)!} alt="" /></span>}
         {caster ? "✦ " : ""}{nameOf(id)}
         <b>{caster ? casterMP(m, yourState) || frontStrength(m, yourState) : frontStrength(m, yourState)}</b>
         {opts.note && <i>{opts.note}</i>}
@@ -145,6 +173,7 @@ export function PvpFightSurface({
       style={{ borderColor: seatColor(Number(id.slice(0, id.indexOf(":")))) }}
       disabled={opts.disabled || !opts.onPick}
       onClick={opts.onPick}>
+      {artOf(id) && <span className="scv-pvp-thumb"><img src={artOf(id)!} alt="" /></span>}
       {nameOf(id)}
     </button>
   );

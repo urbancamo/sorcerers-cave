@@ -1,7 +1,15 @@
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import { DIR_N, newGame, type PvpSession } from "@sorcerers-cave/engine";
+import { DIR_N, newGame, type PvpSession, type PvpView } from "@sorcerers-cave/engine";
 import { PvpFightSurface } from "./PvpFightSurface";
+
+// Card art in jsdom: resolve every creature to a stub file so the art-chip test can assert real
+// <img> rendering (the other tests exercise the no-art text fallback via the loadManifest catch).
+vi.mock("../data/manifest", () => ({
+  loadManifest: () => Promise.resolve({ cards: [] }),
+  resolveCardVariant: (cat: string, id: number, copy: number) =>
+    cat === "creature" ? { file: `/c${id}-${copy}.png` } : null,
+}));
 
 // Two seats: Green Wyrms (seat 0) vs Red Talons (seat 1). The viewing seat's party is a
 // newGame(1, [6, 4]) — Woman (idx 0, a fighter) + Priest (idx 1, a caster), as in FightSurface tests.
@@ -137,5 +145,31 @@ describe("PvpFightSurface (spec I-10)", () => {
     expect(truce.textContent).toMatch(/accept truce/i);
     fireEvent.click(truce);
     expect(dispatch).toHaveBeenCalledWith({ type: "pvpAcceptStop" });
+  });
+});
+
+describe("card art on the fight chips (rulebook §Hidden Cards — creature cards are displayed)", () => {
+  it("renders both sides' creature card images: yours from your state, the rival's from pvp.cards", async () => {
+    const dispatch = vi.fn();
+    const pvp: PvpView = {
+      round: 1, activeSide: "attacker", stage: "attackerEngage", surprise: 0,
+      attackerName: "Green Wyrms", defenderName: "Red Talons",
+      engagements: [], window: null, stopProposedBy: null,
+      cards: { "1:0": { creatureId: 12, copy: 0, alive: true } }, // the rival line's Giant
+    };
+    render(
+      <PvpFightSurface
+        session={session({ attacker: [0], defender: [1], stage: "attackerEngage", defenderLine: ["1:0"],
+          window: { seat: 0, deadline: Date.now() + 45_000, kind: "pvpLayout" } })}
+        pvp={pvp} youSeat={0} parties={parties} yourState={newGame(1, [6, 4])} dispatch={dispatch} />,
+    );
+    // The manifest mock resolves async — the thumbs appear once card art lands. The rival chip is
+    // now NAMED by its card (it may appear in both the roster and the engagement builder).
+    const giants = await screen.findAllByText("Giant");
+    expect(giants.length).toBeGreaterThanOrEqual(1);
+    const imgs = document.querySelectorAll(".scv-pvp-thumb img");
+    expect(imgs.length).toBeGreaterThanOrEqual(2); // your Woman + Priest and/or the rival Giant
+    expect([...imgs].some((i) => i.getAttribute("src") === "/c12-0.png")).toBe(true); // the Giant's card
+    expect([...imgs].some((i) => i.getAttribute("src") === "/c6-0.png")).toBe(true);  // your Woman's card
   });
 });

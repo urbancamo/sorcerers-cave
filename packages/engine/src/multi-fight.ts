@@ -634,10 +634,24 @@ export interface PvpView {
   engagements: PvpEngagementView[];
   window: ReactionWindow | null;
   stopProposedBy: number | null;
+  // Card identity for EVERY member of both commands, keyed by "seat:idx". Rules-legitimate even in
+  // serious play: "players need keep on display in their parties only their creature cards"
+  // (§Hidden Cards) — the cards themselves are never concealed, only what they carry. `copy` is the
+  // member's ordinal among same-creature members of ITS OWN party, for per-copy card art.
+  cards: Record<string, { creatureId: number; copy: number; alive: boolean }>;
 }
 
 /** Per-engagement totals preview for the two-sided fight surface. Pure read. */
 export function pvpView(session: PvpSession, mp: MpGameState): PvpView {
+  const cards: PvpView["cards"] = {};
+  for (const seat of [...session.attacker, ...session.defender]) {
+    const tally = new Map<number, number>();
+    mp.parties[seat]!.party.forEach((m, idx) => {
+      const copy = tally.get(m.creatureId) ?? 0;
+      tally.set(m.creatureId, copy + 1);
+      cards[`${seat}:${idx}`] = { creatureId: m.creatureId, copy, alive: m.status === 0 || m.status === 1 };
+    });
+  }
   const nameOf = (id: string) => CREATURES[memberAt(mp, id)!.creatureId]!.name;
   const engagements: PvpEngagementView[] = session.engagements.map((eng, ei) => {
     let a = 0; for (const id of eng.attackers) a += strengthOf(mp, id);
@@ -658,6 +672,7 @@ export function pvpView(session: PvpSession, mp: MpGameState): PvpView {
     attackerName: session.attacker.map((x) => mp.parties[x]!.name).join(" + "),
     defenderName: session.defender.map((x) => mp.parties[x]!.name).join(" + "),
     engagements,
+    cards,
     window: session.window,
     stopProposedBy: session.stopProposedBy,
   };
