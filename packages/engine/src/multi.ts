@@ -130,7 +130,7 @@ export interface MpGameState {
   // party rises as a spoiler zombie party (multi-zombies.ts). fogLite = plan ⑦ fog-of-war-lite:
   // each seat's served view masks areas it has never entered (fogFilter) — vague hints, not the
   // full hidden-cards variation.
-  variants?: { zombies?: boolean; fogLite?: boolean };
+  variants?: { zombies?: boolean; fogLite?: boolean; concurrent?: boolean };
 }
 
 /** Multiplayer action = any engine action, plus the lobby-level "pass my turn" and the
@@ -232,7 +232,7 @@ const blocked = (mp: MpGameState): { state: MpGameState; events: GameEvent[] } =
  *  whole game into the zombies option and/or fog-of-war-lite; omitted = exactly the old game. */
 export function buildMpGame(
   seed: number, seats: { seat: number; color: string; name: string }[],
-  variants?: { zombies?: boolean; fogLite?: boolean },
+  variants?: { zombies?: boolean; fogLite?: boolean; concurrent?: boolean },
 ): MpGameState {
   const large = buildLargePack(seed);
   const small = buildSmallPack(large.seed);
@@ -262,6 +262,9 @@ export function buildMpGame(
     cave: { areas: [gateway], largePack: large.pack, largeIdx: 0, smallPack: small.pack, smallIdx: 0, seed: ord.seed },
     parties, order, pickOrder, active: 0, turnCount: 0,
     ...(variants ? { variants } : {}),
+    // Concurrent exploration (M6, plan revision ①): chosen in the lobby like the other variants —
+    // free-roam seats act any time, the strict round-robin remains the fallback when unchecked.
+    ...(variants?.concurrent === true ? { concurrent: true } : {}),
   };
 }
 

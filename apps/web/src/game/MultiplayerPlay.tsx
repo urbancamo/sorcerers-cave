@@ -153,10 +153,15 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   const myColor = (me?.color as PartyColor) ?? DEFAULT_PARTY_COLOR;
   const terminal = state.gs !== GS_PLAYING;
   const yourTurn = view.yourTurn && !terminal;
-  const gameOver = view.currentSeat === null; // playView reports no current seat once finished
-  // Permanent turn marker (left of Depth): whose turn is in progress.
+  // Concurrent mode has no table turn, so "no current seat" no longer implies the game ended —
+  // use the explicit phase (with the old heuristic as a fallback for mid-flight games).
+  const concurrent = view.concurrent === true;
+  const gameOver = view.gamePhase ? view.gamePhase === "finished" : (!concurrent && view.currentSeat === null);
+  // Permanent turn marker (left of Depth): whose turn is in progress (or free exploration).
   const currentParty = view.parties.find((p) => p.seat === view.currentSeat);
-  const turnLabel = gameOver ? "Game over" : yourTurn ? "You" : (currentParty?.name ?? "…");
+  const turnLabel = gameOver ? "Game over"
+    : concurrent ? (yourTurn ? "Explore freely" : "…")
+    : yourTurn ? "You" : (currentParty?.name ?? "…");
   const turnColor = currentParty ? PARTY_COLOR_HEX[currentParty.color as PartyColor] : undefined;
   // Don't pop the scoreboard over the final combat roll / death notice from your last action —
   // wait until that outcome dialog is dismissed (otherwise a wipe hides how it happened).

@@ -560,3 +560,35 @@ test("a PvP wipe caused by window auto-resolve records the loser's high score (I
   expect(wiped).toBe("wiped");
   expect(scores).toContainEqual({ name: "Beta", mode: "multi" }); // the timer-wiped party IS recorded
 });
+
+test("the concurrent variant frees both seats to act at once (M6 wiring, plan ①)", async () => {
+  const t = convexTest(schema, modules);
+  const host = await asUser(t);
+  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, {
+    partyName: "Alpha", color: "green", variants: { concurrent: true },
+  });
+  const p2 = await asUser(t);
+  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await host.mutation(api.multiplayer.startGame, { gameId });
+  const gs1 = await host.query(api.multiplayer.gameState, { gameId });
+  const seatOf = async (u: typeof host) => (await u.query(api.multiplayer.gameState, { gameId }))!.youSeat;
+  const bySeat: Record<number, typeof host> = { [await seatOf(host)]: host, [await seatOf(p2)]: p2 };
+  await bySeat[gs1!.currentPicker!]!.mutation(api.multiplayer.pickParty, { gameId, picks: [5] });
+  const gs2 = await host.query(api.multiplayer.gameState, { gameId });
+  await bySeat[gs2!.currentPicker!]!.mutation(api.multiplayer.pickParty, { gameId, picks: [6] });
+
+  // No table turn: BOTH threads are live, and the HUD gets the explicit signals.
+  const v0 = await bySeat[0]!.query(api.multiplayer.playView, { gameId });
+  const v1 = await bySeat[1]!.query(api.multiplayer.playView, { gameId });
+  expect(v0?.concurrent).toBe(true);
+  expect(v0?.currentSeat).toBeNull();
+  expect(v0?.gamePhase).toBe("playing");
+  expect(v0?.yourTurn).toBe(true);
+  expect(v1?.yourTurn).toBe(true); // simultaneously — the whole point
+
+  // And both can actually act back-to-back with no hand-off (moves off the Gateway).
+  const a = await bySeat[0]!.mutation(api.multiplayer.act, { gameId, action: { type: "move", dir: 3 } });
+  const b = await bySeat[1]!.mutation(api.multiplayer.act, { gameId, action: { type: "move", dir: 1 } });
+  expect((a as { events: { type: string }[] }).events).not.toContainEqual({ type: "blocked" });
+  expect((b as { events: { type: string }[] }).events).not.toContainEqual({ type: "blocked" });
+});

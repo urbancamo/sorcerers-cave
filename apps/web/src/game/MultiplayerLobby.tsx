@@ -67,6 +67,14 @@ export function MultiplayerLobby({ code, onExit }: { code: string; onExit: () =>
               />
               Fog of war <span className="scv-muted">(rivals' tiles face-down until you go there)</span>
             </label>
+            <label className="scv-lobby-variant">
+              <input
+                type="checkbox"
+                checked={!!lob.variants?.concurrent}
+                onChange={(e) => void setVariants({ gameId, variants: { ...(lob.variants ?? {}), concurrent: e.target.checked } })}
+              />
+              Concurrent exploration <span className="scv-muted">(explore freely — no waiting for turns; fights still pause their combatants)</span>
+            </label>
           </>
         ) : (
           <>
@@ -75,6 +83,9 @@ export function MultiplayerLobby({ code, onExit }: { code: string; onExit: () =>
             </span>
             <span className={"scv-lobby-varchip" + (lob.variants?.fogLite ? " on" : "")}>
               Fog of war {lob.variants?.fogLite ? "✓" : "—"}
+            </span>
+            <span className={"scv-lobby-varchip" + (lob.variants?.concurrent ? " on" : "")}>
+              Concurrent {lob.variants?.concurrent ? "✓" : "—"}
             </span>
           </>
         )}

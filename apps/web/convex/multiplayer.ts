@@ -59,7 +59,7 @@ const MSG_MAX = 280;
 const cleanName = (n: string) => n.trim().slice(0, NAME_MAX);
 
 // Game variants (M7, plan WS-6): the zombies option (spec I-15) and fog-of-war-lite (plan ⑦).
-const variantsV = v.object({ zombies: v.optional(v.boolean()), fogLite: v.optional(v.boolean()) });
+const variantsV = v.object({ zombies: v.optional(v.boolean()), fogLite: v.optional(v.boolean()), concurrent: v.optional(v.boolean()) });
 
 // How a finished party's outcome reads in the broadcast feed (keyed by terminal SeatStatus).
 const OUTCOME_VERB: Record<string, string> = {
@@ -417,8 +417,14 @@ export const playView = query({
       // agency, only information.
       state: mp.variants?.fogLite === true ? fogFilter(mp, me.seat) : partyView(mp, me.seat),
       youSeat: me.seat,
-      currentSeat: current,
-      yourTurn: current === me.seat,
+      // Concurrent exploration (M6, plan ①): there is no table turn — every free seat's thread is
+      // live. currentSeat null tells the HUD to show "free exploration" instead of a name.
+      concurrent: mp.concurrent === true,
+      gamePhase: mp.phase,
+      currentSeat: mp.concurrent === true ? null : current,
+      yourTurn: mp.concurrent === true
+        ? mp.phase === "playing" && mp.parties[me.seat]!.status === "exploring"
+        : current === me.seat,
       parties: mp.parties.map((p) => ({
         seat: p.seat, name: p.name, color: p.color, status: p.status,
         zombie: p.zombie === true, // M7: the "risen" badge on chips and rosters

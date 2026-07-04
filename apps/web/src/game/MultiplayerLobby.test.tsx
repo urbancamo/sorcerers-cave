@@ -37,11 +37,11 @@ beforeEach(() => {
   mutationSpy.mockClear();
 });
 
-test("the host sees two variant toggles reflecting the stored state", () => {
+test("the host sees the three variant toggles reflecting the stored state", () => {
   (useQuery as Mock).mockReturnValue(lobbyFixture());
   render(<MultiplayerLobby code="ABCD" onExit={() => {}} />);
   const boxes = screen.getAllByRole("checkbox");
-  expect(boxes).toHaveLength(2);
+  expect(boxes).toHaveLength(3); // zombies, fog of war, concurrent exploration
   expect(screen.getByLabelText(/Zombies/)).toBeChecked();
   expect(screen.getByLabelText(/Fog of war/)).not.toBeChecked();
 });
