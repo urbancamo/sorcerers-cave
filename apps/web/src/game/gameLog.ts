@@ -62,6 +62,7 @@ export function actionLabel(a: GameAction, state?: GameState | null): string {
     case "retakeDropped": return "Retake dropped treasure";
     case "moveTreasure": return `Give ${held(a.from, a.idx)} from ${member(a.from)} to ${member(a.to)}`;
     case "dropTreasure": return `Drop ${held(a.mi, a.idx)} (${member(a.mi)})`;
+    case "setBorne": return `${a.borne ? "Bear" : "Stow"} ${held(a.mi, a.idx)} (${member(a.mi)})`;
     case "useArtifact": {
       // Lotus Dust (5) targets a stranger; every other artefact targets a party member.
       const target = a.target === undefined ? ""
@@ -155,6 +156,7 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "dragonsLulled": return `the Charmed Flute lulled ${e.count} dragon(s)`;
     case "vipersLulled": return "the Charmed Flute lulled the vipers";
     case "secretDoorRevealed": return `a secret stairway was revealed (${dir(e.dir)})`;
+    case "itemsSpilled": return `${creature(e.creatureId)}'s carried items spilled to the floor: ${e.items.map(treasure).join(", ")}`;
     default: return (e as { type: string }).type;
   }
 }
@@ -311,6 +313,7 @@ function actionCode(a: GameAction, state: GameState | null): { act: string; arg:
     case "openChest": return { act: "OPN", arg: "" };
     case "takeTreasure": return { act: "TAK", arg: `${inCh(a.ti)}>${mem(a.mi)}` };
     case "dropTreasure": return { act: "DRP", arg: `${held(a.mi, a.idx)} ${mem(a.mi)}` };
+    case "setBorne": return { act: a.borne ? "BER" : "STW", arg: `${held(a.mi, a.idx)} ${mem(a.mi)}` };
     case "moveTreasure": return { act: "GIV", arg: `${held(a.from, a.idx)} ${mem(a.from)}>${mem(a.to)}` };
     case "chooseCasualty": return { act: "CAS", arg: mem(a.idx) };
     case "useArtifact": return { act: "USE", arg: tr3(a.artifact) + (a.target !== undefined ? `>${a.artifact === 5 ? foe(a.target) : mem(a.target)}` : "") };
@@ -372,6 +375,7 @@ function eventCode(e: GameEvent): string | null {
     case "dragonsLulled": return `LUL ${e.count}`;
     case "vipersLulled": return "LUL VIP";
     case "secretDoorRevealed": return `SEC ${d1(e.dir)}`;
+    case "itemsSpilled": return `SPL ${cr3(e.creatureId)} ${e.items.map(tr3).join(",")}`;
     case "deadEnd": return `DED ${d1(e.dir)}`;
     case "mutinied": return `MUT ${e.deserters.length}`;
     case "planRejected": return "REJ";
@@ -411,9 +415,9 @@ function legend(): string[] {
     ...rows("TREASURE", treasures),
     ...rows("TILE", ["CHM=CHAMBER", "TUN=TUNNEL", "GTW=GATEWAY", "POL=DEEP POOL", "VPT=VIPER PIT", "TMB=TOMB", "HAL=GREAT HALL"]),
     ...rows("TILE COLS", ["EXT: N/E/S/W OPEN, - WALL", "STR: U UP, D DOWN"]),
-    ...rows("ACTION", ["MOV=MOVE", "RET=RETREAT", "OUT=EXIT CAVE", "WDR=WITHDRAW", "TST=TEST", "ATK=ATTACK", "FGT=FIGHT ROUND", "TAK=TAKE", "GIV=GIVE", "DRP=DROP", "LVE=LEAVE", "RTK=RETAKE", "USE=USE ARTEFACT", "OPN=OPEN CHEST", "CAS=CASUALTY", "QIT=QUIT"]),
+    ...rows("ACTION", ["MOV=MOVE", "RET=RETREAT", "OUT=EXIT CAVE", "WDR=WITHDRAW", "TST=TEST", "ATK=ATTACK", "FGT=FIGHT ROUND", "TAK=TAKE", "GIV=GIVE", "DRP=DROP", "BER=BEAR", "STW=STOW", "LVE=LEAVE", "RTK=RETAKE", "USE=USE ARTEFACT", "OPN=OPEN CHEST", "CAS=CASUALTY", "QIT=QUIT"]),
     ...rows("EVENT", ["DRW=DREW (S:STRANGERS T:TREASURE H:HAZARDS)", "RCT=REACTION (HOS/IND/FRD)", "JOI=JOINED", "PAC=PACIFIED", "FGT SUP=FIGHT ON", "CBT=COMBAT (SIDE # V FOE # WON/LOS/TIE)", "WON=PARTY WON", "DIE=MEMBER DIED", "KIL=STRANGER SLAIN", "SLW=SPECTRE SLEW", "CAS=CASUALTY (R# DIE)"]),
-    ...rows("EVENT", ["HAZ=HAZARD (GHL/MDA/ERQ/MUT/TRP)", "TRP=TRAP", "ESP/XSP=ENTER/CROSS SPECIAL", "TDR/TRC=POOL DROP/RECOVER", "RCL=RECLAIM", "END=GAME OVER (ESC/DED/QIT)", "DED=DEAD END", "SEC=SECRET DOOR", "ANH=ANNIHILATE", "WRD=WARD OFF", "RVV=REVIVE", "SAV=RING SAVE"]),
+    ...rows("EVENT", ["HAZ=HAZARD (GHL/MDA/ERQ/MUT/TRP)", "TRP=TRAP", "ESP/XSP=ENTER/CROSS SPECIAL", "TDR/TRC=POOL DROP/RECOVER", "RCL=RECLAIM", "END=GAME OVER (ESC/DED/QIT)", "DED=DEAD END", "SEC=SECRET DOOR", "SPL=ITEMS SPILLED", "ANH=ANNIHILATE", "WRD=WARD OFF", "RVV=REVIVE", "SAV=RING SAVE"]),
   ];
 }
 

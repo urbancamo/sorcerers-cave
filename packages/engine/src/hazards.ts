@@ -8,6 +8,7 @@ import { AF_DESTROYED, type GameState, type PartyMember } from "./state";
 import type { GameEvent } from "./actions";
 import { frontStrength } from "./combat";
 import { eyeForsakenByDeath, ringInvincible } from "./effects";
+import { spillCarried, sweepFallen } from "./loot";
 
 const T_TALISMAN = 7;
 const T_MAGIC_STAFF = 9;
@@ -56,7 +57,18 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
           const r = rollDie(state.seed);
           state.seed = r.seed;
           const petrified = r.value <= 2; // a 1 or 2 turns that creature to stone (§Medusa)
-          if (petrified) { m.status = 2; m.stoneArea = state.partyArea; } // left as stone in this chamber
+          if (petrified) {
+            m.status = 2; m.stoneArea = state.partyArea; // left as stone in this chamber
+            // Turn-to-stone affects only the living flesh (plan ④a): the member's CARRIED items drop
+            // onto the chamber floor to be picked up like any find ("anything they were carrying can be
+            // taken from them", §Medusa); a BORNE Sword/Staff/Ring is petrified with the body and only
+            // returns when the member is revived. The party can't cart a stone comrade's goods away.
+            const items = spillCarried(m);
+            if (items.length) {
+              state.treasures.push(...items);
+              events.push({ type: "itemsSpilled", creatureId: m.creatureId, items });
+            }
+          }
           rolls.push({ creatureId: m.creatureId, roll: r.value, petrified });
         }
         if (rolls.length) events.push({ type: "medusaGaze", rolls });
@@ -91,6 +103,9 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
             else { m.status = 3; events.push(...eyeForsakenByDeath(state, m)); }
           }
         }
+        // The ghoul-slain spill their carried artifacts onto the floor with the dropped heavy treasure
+        // ("this may be picked up at the end of the turn", §Ghouls); borne items are lost with the body.
+        events.push(...sweepFallen(state, "working"));
         break;
       }
       case HAZARD_MUTINY: {

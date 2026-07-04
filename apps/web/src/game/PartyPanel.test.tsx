@@ -18,6 +18,33 @@ function partyState(): GameState {
 }
 
 describe("PartyPanel", () => {
+  it("offers Bear for a borneable item, Stow once borne, and neither for plain treasure", () => {
+    const dispatch = vi.fn();
+    const s = partyState();
+    s.party[0]!.treasure.push(3); // Magic Sword — borneable
+    const { rerender } = render(<PartyPanel state={s} dispatch={dispatch} onClose={() => {}} />);
+
+    // Plain Gold: no bear/stow control.
+    fireEvent.click(screen.getByRole("button", { name: /^gold$/i }));
+    expect(screen.queryByRole("button", { name: /bear \(wield\)/i })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+
+    // The Sword offers Bear; dispatch carries the setBorne action.
+    fireEvent.click(screen.getByRole("button", { name: /^magic sword$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /bear \(wield\)/i }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "setBorne", mi: 0, idx: 1, borne: true });
+
+    // Once borne it is marked and offers Stow instead.
+    const borneState = structuredClone(s);
+    borneState.party[0]!.borne = [3];
+    rerender(<PartyPanel state={borneState} dispatch={dispatch} onClose={() => {}} />);
+    const sword = screen.getByRole("button", { name: /magic sword \(borne\)/i });
+    expect(sword.className).toContain("borne");
+    fireEvent.click(sword);
+    fireEvent.click(screen.getByRole("button", { name: /stow \(carry\)/i }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "setBorne", mi: 0, idx: 1, borne: false });
+  });
+
   it("moves a carried treasure to another member", () => {
     const dispatch = vi.fn();
     render(<PartyPanel state={partyState()} dispatch={dispatch} onClose={() => {}} />);

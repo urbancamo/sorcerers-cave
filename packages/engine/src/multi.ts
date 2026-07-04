@@ -7,7 +7,9 @@ import { reduce } from "./reduce";
 import { validatePicks } from "./setup";
 import { buildLargePack, buildSmallPack } from "./decks";
 import { shuffle } from "./rng";
-import { AREA_CARDS, GATEWAY_INDEX } from "./data/areaCards";
+import { AREA_CARDS, GATEWAY_INDEX, SPECIAL_VIPER_PIT, SPECIAL_DEEP_POOL } from "./data/areaCards";
+import { decodeArea } from "./decode";
+import type { Session, Union, Detachment } from "./multi-session";
 
 /**
  * Multi-party (multiplayer) engine core. Strategy: do NOT fork the single-party rules. One shared
@@ -51,6 +53,10 @@ export interface MpGameState {
   pickOrder: number[];   // seats in PICK order (= order reversed → first pick is last to move)
   active: number;        // index into pickOrder (partySelect) or order (playing)
   turnCount: number;
+  // --- Interaction layer (spec §1.2 Tier C; plan WS-2/3/4) — all optional & additive (INV-3). ---
+  session?: Session | null;      // the one active interaction session (trade / pvp / union proposal)
+  unions?: Union[];              // active unions (persist across turns, unlike sessions)
+  detachments?: Detachment[];    // rear-guards left by division (spec I-8)
 }
 
 /** Multiplayer action = any engine action, plus the lobby-level "pass my turn". */
@@ -186,6 +192,53 @@ export function partyView(mp: MpGameState, seat: number): GameState {
 /** The seat whose turn it is (null if not in the playing phase). */
 export function currentSeat(mp: MpGameState): number | null {
   return mp.phase === "playing" ? mp.order[mp.active]! : null;
+}
+
+// --- Awareness & interaction masks (spec I-1/I-3/I-9/I-13/I-14; plan WS-1) ---------------------
+
+/** Seats whose parties are standing in `areaIdx` and still exploring (Tier-B shared occupancy). */
+export function occupants(mp: MpGameState, areaIdx: number): number[] {
+  return mp.parties.filter((p) => p.status === "exploring" && p.partyArea === areaIdx).map((p) => p.seat);
+}
+
+/** What inter-party interaction is legal in this area right now (evaluated fresh on every read). */
+export interface AreaInteractionMask {
+  /** A PvP attack may be declared here (§I-9): not the pit/pool, no strangers parked or live, no
+   *  co-located party mid-fight. `reason` names the first failing rule for the disabled-button UI. */
+  pvpLegal: boolean;
+  reason: string | null;
+  /** Seat currently fighting strangers in this area — blocks rival loot/pass/attack (§I-13). */
+  fightInProgress: number | null;
+}
+
+/** Compute the interaction mask for one area. Pure; derived from the shared cave + all seats. */
+export function areaInteractionMask(mp: MpGameState, areaIdx: number): AreaInteractionMask {
+  const area = mp.cave.areas[areaIdx];
+  if (!area) return { pvpLegal: false, reason: "no such area", fightInProgress: null };
+  const here = mp.parties.filter((p) => p.status === "exploring" && p.partyArea === areaIdx);
+  const fighter = here.find((p) => p.phase === "fight");
+  if (fighter) return { pvpLegal: false, reason: "a fight with strangers is under way", fightInProgress: fighter.seat };
+
+  const dec = decodeArea(area.card);
+  if (dec.special === SPECIAL_VIPER_PIT || dec.special === SPECIAL_DEEP_POOL) {
+    return { pvpLegal: false, reason: "no fighting across the pit or pool", fightInProgress: null };
+  }
+  // Strangers "in the chamber": parked on the tile (100+cid) or live in a co-located working set.
+  const parkedStrangers = area.contents.some((c) => c >= 100 && c < 200);
+  const liveStrangers = here.some((p) => p.strangers.length > 0 || (p.sleeping ?? []).length > 0);
+  if (parkedStrangers || liveStrangers) {
+    return { pvpLegal: false, reason: "clear the strangers first", fightInProgress: null };
+  }
+  return { pvpLegal: true, reason: null, fightInProgress: null };
+}
+
+/**
+ * Surprise for a PvP attack (§I-9): +1 only when the attacker arrived by another way than the
+ * defender entered — "you cannot gain the advantage over a party which you are following". Each
+ * party's `prev` records the area it last entered from, which is exactly that doorway proxy.
+ */
+export function pvpSurprise(attacker: PartyState, defender: PartyState): number {
+  return attacker.prev !== defender.prev ? 1 : 0;
 }
 
 /** The seat whose pick it is (null if not selecting). */

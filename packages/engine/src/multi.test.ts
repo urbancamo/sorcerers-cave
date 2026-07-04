@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildMpGame, choosePartyFor, mpReduce, currentSeat, type CaveState, type PartyState, type MpGameState } from "./multi";
+import { buildMpGame, choosePartyFor, mpReduce, currentSeat, occupants, areaInteractionMask, pvpSurprise, type CaveState, type PartyState, type MpGameState } from "./multi";
 import { packCoord } from "./coords";
 
 const member = (creatureId: number, treasure: number[] = []) => ({ creatureId, status: 0 as const, dragonKills: 0, treasure });
@@ -195,5 +195,46 @@ describe("mpReduce (turn-gated play)", () => {
     expect(mpReduce(resting, 0, { type: "endTurn" }).state.active).toBe(1);
     const mid = playing({}, [partyAt(0, { phase: "encounter", strangers: [10] }), partyAt(1)]);
     expect(mpReduce(mid, 0, { type: "endTurn" }).events).toEqual([{ type: "blocked" }]);
+  });
+});
+
+describe("awareness & interaction masks (spec I-1/I-9/I-13, plan WS-1)", () => {
+  it("occupants lists co-located exploring seats only (terminal seats drop out)", () => {
+    const mp = playing({}, [partyAt(0), partyAt(1), partyAt(2, { status: "left" })], [0, 1, 2]);
+    expect(occupants(mp, 0)).toEqual([0, 1]); // the escaped seat 2 no longer occupies the tile
+    expect(occupants(mp, 99)).toEqual([]);
+  });
+
+  it("PvP is legal in a clear shared chamber", () => {
+    const mp = playing({}, [partyAt(0), partyAt(1)]);
+    expect(areaInteractionMask(mp, 0)).toEqual({ pvpLegal: true, reason: null, fightInProgress: null });
+  });
+
+  it("PvP is barred in the Viper Pit and the Deep Pool", () => {
+    const pool = playing({ areas: [{ card: 15 | (2 << 7), coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }] }, [partyAt(0), partyAt(1)]);
+    expect(areaInteractionMask(pool, 0).pvpLegal).toBe(false);
+    const pit = playing({ areas: [{ card: 15 | (3 << 7), coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }] }, [partyAt(0), partyAt(1)]);
+    expect(areaInteractionMask(pit, 0).pvpLegal).toBe(false);
+  });
+
+  it("PvP is barred while strangers remain — parked on the tile or live in a working set", () => {
+    const parked = playing({ areas: [{ card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [110], flags: 0, indiffCount: 0 }] }, [partyAt(0), partyAt(1)]);
+    expect(areaInteractionMask(parked, 0).reason).toMatch(/strangers/);
+    const live = playing({}, [partyAt(0, { phase: "encounter", strangers: [10] }), partyAt(1)]);
+    expect(areaInteractionMask(live, 0).pvpLegal).toBe(false);
+  });
+
+  it("a co-located party mid-fight blocks interaction and is reported (I-13)", () => {
+    const mp = playing({}, [partyAt(0, { phase: "fight", strangers: [3], fight: { surprise: 0, round: 1, focus: 0 } }), partyAt(1)]);
+    const mask = areaInteractionMask(mp, 0);
+    expect(mask.pvpLegal).toBe(false);
+    expect(mask.fightInProgress).toBe(0);
+  });
+
+  it("surprise applies only when the attacker is NOT following the defender (I-9)", () => {
+    const followed = pvpSurprise(partyAt(0, { prev: 4 }), partyAt(1, { prev: 4 }));
+    expect(followed).toBe(0); // came in the same way — no surprise
+    const flanked = pvpSurprise(partyAt(0, { prev: 2 }), partyAt(1, { prev: 4 }));
+    expect(flanked).toBe(1); // arrived by another way
   });
 });

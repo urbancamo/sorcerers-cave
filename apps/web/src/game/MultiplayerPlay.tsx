@@ -161,9 +161,25 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
     })
     .filter((x): x is OtherPartyToken => x !== null);
 
+  // Awareness (spec I-1/I-3): rivals standing on YOUR tile, live from playView. Interaction is
+  // opt-in and never forced — this chip is presence only; Trade/Attack affordances arrive with M3/M4.
+  const here = (view.hereSeats ?? [])
+    .map((s: number) => view.parties.find((p) => p.seat === s))
+    .filter((p): p is NonNullable<typeof p> => !!p);
+
   return (
     <div className="relative h-screen w-screen">
       <CaveCanvas key={gameId} engine={engine} state={state} color={myColor} onPartyClick={() => setShowParty(true)} onQuit={() => setShowQuit(true)} otherParties={otherParties} multiplayer turnLabel={turnLabel} turnColor={turnColor} />
+      {here.length > 0 && !terminal && (
+        <div className="scv-mp-here" data-testid="also-here">
+          <span className="scv-mp-here-cap">Also here:</span>
+          {here.map((p) => (
+            <span key={p.seat} className="scv-mp-here-chip" style={{ borderColor: PARTY_COLOR_HEX[p.color as PartyColor] }}>
+              <i style={{ background: PARTY_COLOR_HEX[p.color as PartyColor] }} />{p.name}
+            </span>
+          ))}
+        </div>
+      )}
       <div className="scv-mp-toasts">
         {toasts.map((t) => (
           <div key={t.id} className={"scv-mp-toast" + (t.tone === "you" ? " you" : t.tone === "chat" ? " chat" : "")}>{t.text}</div>

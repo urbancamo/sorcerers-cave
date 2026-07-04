@@ -77,7 +77,9 @@ describe("Ring invincibility extends to the Lost-Ruby statue (§16 / SC-11-25)",
     const seed = seedWhereStatueSlays(); // rolls are level-independent, so this seed is lethal at level 3 too
     const withRing = takeRuby([man([RING])], seed, 3);
     expect(withRing.state.party[0]!.status).toBe(3); // level 3: slain despite holding the Ring
-    expect(withRing.state.treasures).toEqual([11]); // ruby left in place
+    // Ruby left in place, and the slain wrestler's CARRIED Ring spills onto the floor beside it —
+    // the unified death-loot rule (plan ④a / SC-9.5-11); it was carried, not borne, so it is takeable.
+    expect(withRing.state.treasures).toEqual([11, RING]);
     expect(withRing.events.some((e) => e.type === "memberDied")).toBe(true);
     expect(withRing.events.some((e) => e.type === "deathPrevented")).toBe(false);
   });

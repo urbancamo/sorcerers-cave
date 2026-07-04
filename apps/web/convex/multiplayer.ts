@@ -3,7 +3,7 @@ import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Id, Doc } from "./_generated/dataModel";
 import { uniqueCode } from "./game";
-import { buildMpGame, choosePartyFor, mpReduce, partyView, scoreGame, CREATURES, TREASURES, PARTY_BUDGET, type MpGameState, type MpAction, type PartyState, type GameEvent } from "@sorcerers-cave/engine";
+import { buildMpGame, choosePartyFor, mpReduce, partyView, scoreGame, occupants, areaInteractionMask, CREATURES, TREASURES, PARTY_BUDGET, type MpGameState, type MpAction, type PartyState, type GameEvent } from "@sorcerers-cave/engine";
 
 // Permissive action shape; the engine (mpReduce) enforces semantics. Includes the lobby-level endTurn.
 const mpActionValidator = v.object({
@@ -361,6 +361,7 @@ export const playView = query({
     if (!mp || (mp.phase !== "playing" && mp.phase !== "finished")) return null;
 
     const current = mp.phase === "playing" ? mp.order[mp.active]! : null;
+    const yourArea = mp.parties[me.seat]!.partyArea;
     return {
       state: partyView(mp, me.seat),
       youSeat: me.seat,
@@ -370,6 +371,9 @@ export const playView = query({
         seat: p.seat, name: p.name, color: p.color, status: p.status,
         partyArea: p.partyArea, level: p.level,
       })),
+      // Awareness (spec I-1/I-3): who shares your tile, and what interaction is legal here right now.
+      hereSeats: occupants(mp, yourArea).filter((s) => s !== me.seat),
+      areaMask: areaInteractionMask(mp, yourArea),
     };
   },
 });

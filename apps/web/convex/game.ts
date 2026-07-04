@@ -21,6 +21,8 @@ const actionValidator = v.object({
   to: v.optional(v.number()),
   artifact: v.optional(v.number()),
   target: v.optional(v.number()),
+  borne: v.optional(v.boolean()), // setBorne: bear (wield/wear) vs stow a Sword/Staff/Ring
+
   // resolveRound: the player's pairing for one fight round (front/background/strangers per match).
   matches: v.optional(v.array(v.object({
     front: v.array(v.number()),

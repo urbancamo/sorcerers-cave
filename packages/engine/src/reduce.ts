@@ -12,6 +12,7 @@ import { reactionRoll } from "./reaction";
 import { frontStrength } from "./combat";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import { wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, ringInvincible } from "./effects";
+import { BORNEABLE, isBorne, sweepFallen } from "./loot";
 import { rollDie } from "./rng";
 import { CREATURES } from "./data/creatures";
 
@@ -95,6 +96,9 @@ function finalizeRound(state: GameState): GameEvent[] {
     state.gs = GS_DEAD;
     state.phase = "gameOver";
     state.fight = null;
+    // A wiped party's fallen spill their CARRIED items onto the tile for whoever comes next; borne
+    // items are lost with the bodies (plan ④a / I-12 — matters most in multiplayer, harmless in solo).
+    events.push(...sweepFallen(state, "contents"));
     state.party.forEach((m) => { m.potionActive = false; });
     events.push({ type: "gameOver", gs: GS_DEAD });
   } else if (state.strangers.length === 0) {
@@ -105,6 +109,10 @@ function finalizeRound(state: GameState): GameEvent[] {
       state.treasures.push(...reclaimed);
       area.contents = area.contents.filter((c) => c < 200 || c >= 300);
     }
+    // The survivors recover their fallen comrades' CARRIED items — they join the post-win pickup
+    // ("anything they were carrying can be taken from them at the end of the turn", §Medusa; §489's
+    // Eye-on-a-corpse becomes recoverable here). Borne items stay lost with the body (plan ④a).
+    events.push(...sweepFallen(state, "working"));
     state.fight = null;
     state.party.forEach((m) => { m.potionActive = false; });
     events.push({ type: "fightWon" });
@@ -399,6 +407,9 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
           fighter.status = 3;
           events.push({ type: "memberDied", creatureId: fighter.creatureId });
           events.push({ type: "statueAroused" });
+          // The slain wrestler's CARRIED items spill onto the floor with the rest of the pickup;
+          // a borne Sword/Staff/Ring is lost with the body (plan ④a / I-12).
+          events.push(...sweepFallen(next, "working"));
           if (!next.party.some((m) => m.status === 0 || m.status === 1)) {
             next.gs = GS_DEAD;
             next.phase = "gameOver";
@@ -457,7 +468,12 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       if (!(to.status === 0 || to.status === 1)) return { state, events: [{ type: "blocked" }] }; // recipient must be living
       const tid = from.treasure[action.idx];
       if (tid === undefined || !canCarry(to, tid)) return { state, events: [{ type: "blocked" }] }; // honour carry capacity
+      // A stone member's goods are beyond reach (its carried items already spilled at petrification;
+      // what remains is petrified with it) and a corpse's BORNE item is lost with the body (plan ④a).
+      if (from.status === 2) return { state, events: [{ type: "blocked" }] };
+      if (from.status === 3 && isBorne(from, tid)) return { state, events: [{ type: "blocked" }] };
       from.treasure.splice(action.idx, 1);
+      if (isBorne(from, tid)) from.borne = from.borne!.filter((t) => t !== tid); // handing it over un-bears it
       to.treasure.push(tid);
       // The Eye of God must stay with its bearer — moving it off them brings a curse (§Eye of God).
       if (tid === T_EYE_OF_GOD) { next.curses += 1; return { state: next, events: [{ type: "eyeForsaken" }] }; }
@@ -471,7 +487,11 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       if (!m) return { state, events: [{ type: "blocked" }] };
       const tid = m.treasure[action.idx];
       if (tid === undefined) return { state, events: [{ type: "blocked" }] };
+      // Stone members' goods are beyond reach; a corpse's borne item is lost with the body (plan ④a).
+      if (m.status === 2) return { state, events: [{ type: "blocked" }] };
+      if (m.status === 3 && isBorne(m, tid)) return { state, events: [{ type: "blocked" }] };
       m.treasure.splice(action.idx, 1);
+      if (isBorne(m, tid)) m.borne = m.borne!.filter((t) => t !== tid); // dropping it un-bears it
       // During an active pickup the chamber floor IS the live working set, so a member dropping
       // treasure to free capacity (e.g. a Giant clearing room for the 100kg Chest) lands it back on
       // the floor where it can be re-taken this same visit. Otherwise (at rest) it parks on contents.
@@ -479,6 +499,26 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       else next.areas[next.partyArea]!.contents.push(200 + tid); // left on the chamber floor
       // Forsaking the Eye of God curses the party (§Eye of God).
       if (tid === T_EYE_OF_GOD) { next.curses += 1; return { state: next, events: [{ type: "eyeForsaken" }] }; }
+      return { state: next, events: [] };
+    }
+
+    case "setBorne": {
+      // Bear (wield/wear) or stow an item (plan ④a). Only the Sword/Staff/Ring have a borne mode;
+      // borne items go down with the body on death/petrification, carried items spill to the floor.
+      // Party-panel action like moveTreasure — not offered via legalActions, not usable mid-fight.
+      if (state.phase === "fight" || state.phase === "gameOver") return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      const m = next.party[action.mi];
+      if (!m || !(m.status === 0 || m.status === 1)) return { state, events: [{ type: "blocked" }] };
+      const tid = m.treasure[action.idx];
+      if (tid === undefined) return { state, events: [{ type: "blocked" }] };
+      if (action.borne) {
+        if (!BORNEABLE.includes(tid) || isBorne(m, tid)) return { state, events: [{ type: "blocked" }] };
+        m.borne = [...(m.borne ?? []), tid];
+      } else {
+        if (!isBorne(m, tid)) return { state, events: [{ type: "blocked" }] };
+        m.borne = m.borne!.filter((t) => t !== tid);
+      }
       return { state: next, events: [] };
     }
 

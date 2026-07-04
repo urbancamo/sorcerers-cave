@@ -12,6 +12,9 @@ export type GameAction =
   // Redistribute carried treasure (spec §"keep holdings… A player may redistribute treasure"):
   | { type: "moveTreasure"; from: number; to: number; idx: number } // give party[from].treasure[idx] to party[to]
   | { type: "dropTreasure"; mi: number; idx: number }               // drop party[mi].treasure[idx] onto the floor
+  // Bear (wield/wear/display) or stow a borneable item — Sword/Staff/Ring only (plan ④a). Dispatched
+  // by the party panel like moveTreasure/dropTreasure; never offered via legalActions.
+  | { type: "setBorne"; mi: number; idx: number; borne: boolean }
   | { type: "test" }
   | { type: "attack" }
   | { type: "resolveRound"; matches: PlanMatch[] } // resolve one round from a player-supplied pairing
@@ -82,4 +85,7 @@ export type GameEvent =
   | { type: "carpetUsed"; dir: number }
   | { type: "dragonsLulled"; count: number }
   | { type: "vipersLulled" }
-  | { type: "secretDoorRevealed"; dir: number };
+  | { type: "secretDoorRevealed"; dir: number }
+  // A downed (slain or petrified) member's CARRIED items spilled onto the chamber floor — borne items
+  // stay with the body (§Medusa "anything they were carrying can be taken", plan ④a / I-12).
+  | { type: "itemsSpilled"; creatureId: number; items: number[] };

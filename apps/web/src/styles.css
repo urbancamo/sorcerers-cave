@@ -701,6 +701,20 @@
 .scv-mp-loading { display: grid; place-items: center; height: 100vh; color: var(--stone); font-family: var(--ui); }
 
 /* In-play multiplayer overlays (over the 3D scene). */
+/* Shared-occupancy chip (spec I-1/I-3): rivals on your tile, presence only — interaction is opt-in. */
+.scv-mp-here {
+  position: fixed; top: 46px; left: 50%; transform: translateX(-50%); z-index: 59;
+  display: flex; align-items: center; gap: 8px; pointer-events: none;
+  font-family: var(--ui); font-size: 12px;
+  padding: 5px 14px; border-radius: 18px;
+  background: rgba(15, 15, 20, 0.82); border: 1px solid var(--line-strong); backdrop-filter: blur(8px);
+}
+.scv-mp-here-cap { color: var(--stone-dim); letter-spacing: 0.1em; text-transform: uppercase; font-size: 10px; }
+.scv-mp-here-chip {
+  display: inline-flex; align-items: center; gap: 6px; color: var(--cream); font-weight: 600;
+  padding: 2px 9px; border-radius: 14px; border: 1px solid var(--line-strong); background: rgba(0, 0, 0, 0.35);
+}
+.scv-mp-here-chip i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
 /* Transient toasts under the depth bar: turn changes and mirrored chat, 3s each. */
 .scv-mp-toasts {
   position: fixed; top: 78px; left: 50%; transform: translateX(-50%); z-index: 60;
@@ -936,6 +950,13 @@
 .scv-pp-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .scv-pp-item .ph { display: grid; place-items: center; height: 100%; font-size: 13px; color: var(--parchment); font-family: var(--display); }
 .scv-pp-item.art { border-color: var(--brass); }
+/* Borne (wielded/worn) item — a solid brass frame + a hilt glyph: this item stays with the body if
+   its holder is petrified or slain, unlike carried items which spill to the floor (plan ④a). */
+.scv-pp-item.borne { border: 2px solid var(--brass-bright); box-shadow: 0 0 8px -2px var(--brass-bright); position: relative; }
+.scv-pp-item.borne::after {
+  content: "⚔"; position: absolute; right: 2px; bottom: 1px; font-size: 11px; color: var(--brass-bright);
+  text-shadow: 0 0 3px #000, 0 0 3px #000;
+}
 /* Dragon-slayer trophy: the Dragon card laid upside-down (as in the boxed game), non-interactive. */
 .scv-pp-item.dragon-slain { border-color: var(--crimson); cursor: help; }
 .scv-pp-item.dragon-slain img { transform: rotate(180deg); }
