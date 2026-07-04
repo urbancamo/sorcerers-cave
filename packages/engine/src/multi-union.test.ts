@@ -163,7 +163,7 @@ describe("union turn logic & combined force (I-6/I-7)", () => {
 
 describe("leaving & dissolving (I-7)", () => {
   it("leaveUnion returns the seat's members with their treasure, co-located; the rump union dissolves", () => {
-    const mp = playing({}, [partyAt(0, { party: [member(0), member(7, [1])] }), partyAt(1, { party: [] })]);
+    const mp = playing({}, [partyAt(0, { party: [member(0), member(7, [1], { mpTag: "loan:1" })] }), partyAt(1, { party: [] })]);
     mp.unions = [union()];
     const r = leaveUnion(mp, 1, 0);
     expect(r.ok).toBe(true);
@@ -174,7 +174,7 @@ describe("leaving & dissolving (I-7)", () => {
   });
 
   it("a casualty among loaned members comes home dead — the owning seat's loss", () => {
-    const mp = playing({}, [partyAt(0, { party: [member(0), member(7, [], { status: 3 })] }), partyAt(1, { party: [] })]);
+    const mp = playing({}, [partyAt(0, { party: [member(0), member(7, [], { status: 3, mpTag: "loan:1" })] }), partyAt(1, { party: [] })]);
     mp.unions = [union()];
     const r = leaveUnion(mp, 1, 0);
     expect(r.state.parties[1]!.party[0]!.status).toBe(3);
@@ -192,7 +192,7 @@ describe("leaving & dissolving (I-7)", () => {
   });
 
   it("only the commander may dissolve; his leave IS a dissolution", () => {
-    const mp = playing({}, [partyAt(0, { party: [member(0), member(7)] }), partyAt(1, { party: [] })]);
+    const mp = playing({}, [partyAt(0, { party: [member(0), member(7, [], { mpTag: "loan:1" })] }), partyAt(1, { party: [] })]);
     mp.unions = [union()];
     expect(dissolveUnion(mp, 1, 0).reason).toBe("notCommander");
     const r = leaveUnion(mp, 0, 0); // commander walking away dissolves the whole thing
@@ -202,7 +202,7 @@ describe("leaving & dissolving (I-7)", () => {
   });
 
   it("dissolution with a recruit: unanimous allocation hands the ally over", () => {
-    const mp = playing({}, [partyAt(0, { party: [member(0), member(5), member(6)] }), partyAt(1, { party: [] })]);
+    const mp = playing({}, [partyAt(0, { party: [member(0), member(5, [], { mpTag: "loan:1" }), member(6, [], { mpTag: "recruit:1" })] }), partyAt(1, { party: [] })]);
     mp.unions = [union({ recruits: [{ seat: 0, partyIdx: 2 }] })]; // the Woman joined while united
     const d = dissolveUnion(mp, 0, 0);
     expect(d.ok).toBe(true);
@@ -222,7 +222,7 @@ describe("leaving & dissolving (I-7)", () => {
   });
 
   it("dissolution with a recruit: disagreement parks the ally neutral on the tile", () => {
-    const mp = playing({}, [partyAt(0, { party: [member(0), member(5), member(6, [2])] }), partyAt(1, { party: [] })]);
+    const mp = playing({}, [partyAt(0, { party: [member(0), member(5, [], { mpTag: "loan:1" }), member(6, [2], { mpTag: "recruit:1" })] }), partyAt(1, { party: [] })]);
     mp.unions = [union({ recruits: [{ seat: 0, partyIdx: 2 }] })];
     const d = dissolveUnion(mp, 0, 0);
     const a1 = allocateRecruit(d.state, 0, 0, 0); // commander wants her for himself…
@@ -361,5 +361,32 @@ describe("recruit recording & Sorcerer bounty (I-7/I-19)", () => {
     const solo = playing({}, [partyAt(0, { sorcererKilled: true }), partyAt(1)]);
     expect(mpScore(solo, 0)).toBe(scoreGame(partyView(solo, 0)));
     expect(mpScore(solo, 0)).toBe(40);
+  });
+});
+
+describe("loan-index stability under solo array reshaping (mutiny regression)", () => {
+  it("a mutiny that splices deserters out of the commander's array does not corrupt the loans", () => {
+    // Commander seat 0: own Hero (0), an own ALLY Troll (status 1 — WILL desert), and seat 1's
+    // Dwarf on loan at index 2. The commander enters a chamber that draws Mutiny: the Troll is
+    // spliced out, shifting the Dwarf to index 1 — stored loan indices are now stale. The tag
+    // reindex in unionPostAction must keep the bookkeeping true so leaveUnion returns the Dwarf.
+    const mp = playing(
+      { largePack: [17], smallPack: [300 + 0] }, // N+chamber south; the draw is a Mutiny (hazard id 0)
+      [
+        partyAt(0, { party: [member(0), member(3, [], { status: 1 }), member(7, [], { mpTag: "loan:1" })] }),
+        partyAt(1, { party: [] }),
+      ],
+    );
+    mp.unions = [union({ onLoan: [{ fromSeat: 1, idx: 2 }] })];
+
+    const moved = mpReduce(mp, 0, { type: "move", dir: 3 });
+    expect(moved.events.some((e) => e.type === "mutinied")).toBe(true);
+    expect(moved.state.parties[0]!.party.map((m) => m.creatureId)).toEqual([0, 7]); // Troll deserted
+    expect(moved.state.unions![0]!.onLoan).toEqual([{ fromSeat: 1, idx: 1 }]); // reindexed by tag
+
+    const left = leaveUnion(moved.state, 1, 0);
+    expect(left.ok).toBe(true);
+    expect(left.state.parties[1]!.party).toEqual([member(7)]); // the RIGHT member came home
+    expect(left.state.parties[0]!.party).toEqual([member(0)]);
   });
 });

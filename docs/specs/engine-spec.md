@@ -26,7 +26,7 @@
 | 10 | Special areas | `special.ts`, `reduce.ts` |
 | 11 | Artifacts & treasure effects | `effects.ts`, `reduce.ts`, `selectors.ts` |
 | 12 | Scoring & game over | `score.ts`, `reduce.ts` |
-| MP | Multiplayer | `multi.ts` |
+| MP | Multiplayer | `multi.ts`, `multi-session.ts`, `multi-trade.ts`, `multi-fight.ts`, `multi-union.ts`, `multi-zombies.ts` |
 
 ---
 

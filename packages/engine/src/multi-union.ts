@@ -135,6 +135,10 @@ function formUnion(mp: MpGameState, prop: UnionProposal): MpGameState {
     for (const m of p.party) {
       if (living(m)) {
         onLoan.push({ fromSeat: seat, idx: cmd.party.length });
+        // Identity tag: stored indices go stale when a solo action reshapes the commander's array
+        // (Mutiny splices deserters out), so positions are re-derived from tags after every
+        // commander action (reindexUnion) and returns select by tag, never by index.
+        m.mpTag = `loan:${seat}`;
         cmd.party.push(m);
       } else keep.push(m); // stone/dead members stay home with their owner
     }
@@ -189,22 +193,42 @@ export function expireUnionProposal(mp: MpGameState, now: number, windowMs = 600
 
 // --- operation & dissolution (I-7) ------------------------------------------------------------------
 
+/**
+ * Re-derive the union's positional bookkeeping from member tags. Solo actions the commander
+ * triggers can RESHAPE the party array — Mutiny splices deserting allies out entirely — so stored
+ * indices cannot be trusted across an action. Tags are identity: a loaned member carries
+ * `loan:<seat>`, a union recruit `recruit:<id>`. A tag that has vanished from the array means the
+ * member left the game through a solo rule (a loaned ally deserting in a mutiny reverts to a
+ * stranger — the owning seat has lost it, exactly as a mutiny costs a solo party its allies).
+ */
+export function reindexUnion(mp: MpGameState, u: Union): void {
+  const cmd = mp.parties[u.commander]!;
+  const onLoan: Union["onLoan"] = [];
+  const recruits: Union["recruits"] = [];
+  cmd.party.forEach((m, idx) => {
+    if (!m.mpTag) return;
+    if (m.mpTag.startsWith("loan:")) onLoan.push({ fromSeat: Number(m.mpTag.slice(5)), idx });
+    else if (m.mpTag === `recruit:${u.id}`) recruits.push({ seat: u.commander, partyIdx: idx });
+  });
+  u.onLoan = onLoan;
+  u.recruits = recruits;
+}
+
 /** Return each listed seat's loaned members (dead or alive, treasure aboard) from the commander's
  *  array to their owner, co-locating the owner at the commander's position. Mutates a CLONED state;
- *  keeps the union's idx bookkeeping consistent and wipes an owner whose roster came back dead. */
+ *  selection is BY TAG (never by stored index — see reindexUnion) and wipes an owner whose roster
+ *  came back dead. */
 function returnLoans(mp: MpGameState, u: Union, seats: number[]): void {
   const cmd = mp.parties[u.commander]!;
   for (const fromSeat of seats) {
-    const mine = u.onLoan.filter((l) => l.fromSeat === fromSeat);
-    if (mine.length === 0) continue;
+    const tag = `loan:${fromSeat}`;
+    const back = cmd.party.filter((m) => m.mpTag === tag);
+    if (back.length === 0) { u.onLoan = u.onLoan.filter((l) => l.fromSeat !== fromSeat); continue; }
+    cmd.party = cmd.party.filter((m) => m.mpTag !== tag);
     const owner = mp.parties[fromSeat]!;
-    const removedIdxs = mine.map((l) => l.idx);
-    const back: PartyMember[] = [];
-    for (const i of [...removedIdxs].sort((a, b) => b - a)) back.unshift(cmd.party.splice(i, 1)[0]!);
+    back.forEach((m) => { delete m.mpTag; });
     owner.party.push(...back);
-    const shift = (idx: number): number => idx - removedIdxs.filter((r) => r < idx).length;
-    u.onLoan = u.onLoan.filter((l) => l.fromSeat !== fromSeat).map((l) => ({ ...l, idx: shift(l.idx) }));
-    u.recruits = u.recruits.map((r) => ({ ...r, partyIdx: shift(r.partyIdx) }));
+    reindexUnion(mp, u); // refresh remaining loans + recruit positions from tags
     owner.partyArea = cmd.partyArea; owner.level = cmd.level; owner.prev = cmd.prev; owner.prev2 = cmd.prev2;
     // All returned dead and nothing else living: the owner's expedition is over (the union fight
     // was its loss — spec I-6 "casualties are the owning seat's loss").
@@ -284,12 +308,19 @@ export function allocateRecruit(mp: MpGameState, seat: number, recruit: number, 
     nu.alloc = null;
     if (nu.recruits.length === 0) next.unions = next.unions!.filter((x) => x.id !== nu.id);
   };
-  const removeRecruit = (): PartyMember => {
+  const removeRecruit = (): PartyMember | null => {
+    // Select BY TAG, not by the recorded index — the host keeps playing solo actions while the
+    // allocation pends, and e.g. a Mutiny reshapes (and can even desert members from) its array.
     const r = nu.recruits[recruit]!;
     const host = next.parties[r.seat]!;
-    const m = host.party.splice(r.partyIdx, 1)[0]!;
-    nu.recruits = nu.recruits.filter((_, i) => i !== recruit)
-      .map((x) => (x.seat === r.seat && x.partyIdx > r.partyIdx ? { ...x, partyIdx: x.partyIdx - 1 } : x));
+    const tagged = host.party.filter((m) => m.mpTag === `recruit:${nu.id}`);
+    // Recruits are recorded in array order; the recruit-th union recruit hosted by this seat:
+    const ordinal = nu.recruits.slice(0, recruit).filter((x) => x.seat === r.seat).length;
+    const m = tagged[ordinal] ?? null;
+    nu.recruits = nu.recruits.filter((_, i) => i !== recruit);
+    if (!m) return null; // the recruit deserted (mutiny) since dissolution — nothing to allocate
+    host.party = host.party.filter((x) => x !== m);
+    delete m.mpTag;
     return m;
   };
 
@@ -301,15 +332,17 @@ export function allocateRecruit(mp: MpGameState, seat: number, recruit: number, 
   if (nu.alloc.to !== to) {
     // Disagreement → the ally goes neutral on the dissolution tile.
     const m = removeRecruit();
-    const tile = next.cave.areas[nu.area!]!;
-    tile.contents = [...tile.contents, 100 + m.creatureId, ...m.treasure.map((t) => 200 + t)];
+    if (m) {
+      const tile = next.cave.areas[nu.area!]!;
+      tile.contents = [...tile.contents, 100 + m.creatureId, ...m.treasure.map((t) => 200 + t)];
+    }
     settle();
     return { state: next, ok: true };
   }
   if (!nu.alloc.approved.includes(seat)) nu.alloc.approved.push(seat);
   if (nu.members.every((m) => nu.alloc!.approved.includes(m))) {
     const m = removeRecruit();
-    next.parties[to]!.party.push(m); // agreed: the ally (treasure aboard) joins its new party
+    if (m) next.parties[to]!.party.push(m); // agreed: the ally (treasure aboard) joins its new party
     settle();
   }
   return { state: next, ok: true };
@@ -380,7 +413,10 @@ export function unionPostAction(mp: MpGameState, seat: number, events: GameEvent
     ensure();
     const nu = out.unions!.find((u) => u.id === commanded.id)!;
     returnLoans(out, nu, nu.members.filter((m) => m !== seat));
-    out.unions = out.unions!.filter((u) => u.id !== nu.id); // recruits remain in the commander's party
+    // Recruits remain in the commander's party; the union record dies with him, so strip the
+    // now-meaningless recruit tags (a dangling tag would ride along into later trades).
+    out.parties[seat]!.party.forEach((m) => { if (m.mpTag === `recruit:${nu.id}`) delete m.mpTag; });
+    out.unions = out.unions!.filter((u) => u.id !== nu.id);
     return { state: out, events: extra };
   }
 
@@ -407,13 +443,25 @@ export function unionPostAction(mp: MpGameState, seat: number, events: GameEvent
 
   const u = (out.unions ?? []).find((x) => !x.dissolved && x.commander === seat);
   if (u) {
-    // 4. New allies recruited under the union flag are negotiable at dissolution — record them.
+    // 4. New allies recruited under the union flag are negotiable at dissolution — record them
+    //    (tagged: positions are re-derived from tags, indices are never trusted across actions).
     const joined = events.reduce((n, e) => n + (e.type === "strangersJoined" ? e.count : 0), 0);
     if (joined > 0) {
       ensure();
       const nu = out.unions!.find((x) => x.id === u.id)!;
-      const len = out.parties[seat]!.party.length;
-      for (let i = len - joined; i < len; i++) nu.recruits.push({ seat, partyIdx: i });
+      const party = out.parties[seat]!.party;
+      for (let i = party.length - joined; i < party.length; i++) {
+        party[i]!.mpTag = `recruit:${nu.id}`;
+        nu.recruits.push({ seat, partyIdx: i });
+      }
+    }
+    // 4b. Re-derive loan/recruit positions from tags: the commander's solo action may have
+    //     RESHAPED the party array (Mutiny splices deserters out — a spliced loaned ally has
+    //     deserted to the chamber as a stranger, and every later index shifted).
+    {
+      ensure();
+      const nu = out.unions!.find((x) => x.id === u.id)!;
+      reindexUnion(out, nu);
     }
     // 5. The Sorcerer fell to the combined force: every member shares the bounty (I-19).
     if (u.members.length >= 2 && events.some((e) => e.type === "sorcererSlain")) {

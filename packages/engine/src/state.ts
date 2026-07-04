@@ -32,6 +32,10 @@ export interface PartyMember {
   potionActive?: boolean; // Strength Potion drunk this fight (+2 frontStrength until it ends)
   stoneArea?: number; // when petrified (status 2): the area index where Medusa struck — the member is
                       // left there until a Wizard with the Magic Staff returns to free it (§Medusa).
+  // Multiplayer-only identity tag ("loan:<seat>" | "recruit:<unionId>") — lets the union layer
+  // re-derive a loaned/recruited member's position after solo actions that reshape the party array
+  // (Mutiny SPLICES deserters out, so stored indices go stale). Solo play never reads or writes it.
+  mpTag?: string;
 }
 
 export interface PlacedArea {
