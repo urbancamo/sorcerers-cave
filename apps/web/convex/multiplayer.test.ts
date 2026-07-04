@@ -551,14 +551,21 @@ test("a PvP wipe caused by window auto-resolve records the loser's high score (I
     await bySeat[0]!.mutation(api.multiplayer.act, { gameId, action: { type: "endTurn" } });
   }
 
-  const { wiped, scores } = await t.run(async (ctx) => {
+  const { wiped, scores, lines } = await t.run(async (ctx) => {
     const game = await ctx.db.get(gameId);
     const mp = game!.state as MpGameState;
     const rows = await ctx.db.query("highScores").withIndex("by_game", (q) => q.eq("gameId", gameId)).collect();
-    return { wiped: mp.parties[1]!.status, scores: rows.map((r) => ({ name: r.partyName, mode: r.mode })) };
+    const msgs = await ctx.db.query("messages").withIndex("by_game", (q) => q.eq("gameId", gameId)).collect();
+    return {
+      wiped: mp.parties[1]!.status,
+      scores: rows.map((r) => ({ name: r.partyName, mode: r.mode })),
+      lines: msgs.filter((m) => m.seat === null).map((m) => m.text),
+    };
   });
   expect(wiped).toBe("wiped");
   expect(scores).toContainEqual({ name: "Beta", mode: "multi" }); // the timer-wiped party IS recorded
+  // Both sides get the outcome beat: the battle end is announced to the whole table (spec I-10).
+  expect(lines.some((t2) => t2.includes("Alpha defeated Beta in battle"))).toBe(true);
 });
 
 test("the concurrent variant frees both seats to act at once (M6 wiring, plan ①)", async () => {

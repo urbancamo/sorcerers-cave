@@ -512,6 +512,28 @@ export const spectateView = query({
 });
 
 /**
+ * Announce the end of a PvP battle to the whole table (spec I-10: "there needs to be feedback to
+ * both sides of the outcome"). One system line per battle end, whatever ended it — a wipe, a
+ * retreat, a truce, or a timer-resolved round (action null on the expiry path). The participants
+ * additionally get an outcome notice client-side; this line is the shared record in chat/toasts.
+ */
+async function narratePvpEnd(
+  ctx: MutationCtx, gameId: Id<"games">,
+  before: MpGameState, after: MpGameState, action: MpAction | null, now: number,
+): Promise<void> {
+  const sess = before.session;
+  if (sess?.kind !== "pvp" || after.session?.kind === "pvp") return; // no battle ended here
+  const names = (seats: number[]) => seats.map((x) => before.parties[x]!.name).join(" + ");
+  const att = sess.attacker, def = sess.defender;
+  const wiped = (seats: number[]) => seats.every((x) => after.parties[x]!.status !== "exploring" || after.parties[x]!.zombie === true);
+  if (wiped(def)) await postSystem(ctx, gameId, `⚔ ${names(att)} defeated ${names(def)} in battle — the spoils lie where they fell`, now);
+  else if (wiped(att)) await postSystem(ctx, gameId, `⚔ ${names(def)} defeated ${names(att)} in battle — the spoils lie where they fell`, now);
+  else if (action?.type === "pvpRetreat") await postSystem(ctx, gameId, `⚔ The battle broke off — one side fled the field`, now);
+  else if (action?.type === "pvpAcceptStop") await postSystem(ctx, gameId, `⚔ ${names(att)} and ${names(def)} ended their battle by agreement`, now);
+  else await postSystem(ctx, gameId, `⚔ The battle between ${names(att)} and ${names(def)} is over`, now);
+}
+
+/**
  * Record every party that transitioned OUT of "exploring" between two states to the multiplayer
  * high-score table (§8.4), with the bounty-split-aware score (I-19), and broadcast the outcome.
  * Called from `act` AND from the window auto-resolve paths — a party wiped by an expired PvP
@@ -579,6 +601,7 @@ async function settleOverdueSession(
       for (const s of risen) await postSystem(ctx, gameId, `${after.parties[s]!.name} rise from the dead…`, now);
       // A timer-resolved round can wipe a command (or annihilate zombies): record those terminals
       // here — the act-path recorder only sees transitions caused by the player's own action.
+      await narratePvpEnd(ctx, gameId, mp, after, null, now);
       await recordTerminals(ctx, gameId, game, mp, after, now);
       await armSessionJob(ctx, gameId, after, now);
       return after;
@@ -651,6 +674,7 @@ export const act = mutation({
     await ctx.db.patch(gameId, { state, updatedAt: now });
     // Re-arm (or clear) the window job whenever the session state may have changed.
     if ((mp.session ?? null) !== (state.session ?? null)) await armSessionJob(ctx, gameId, state, now);
+    await narratePvpEnd(ctx, gameId, mp, state, action as MpAction, now);
 
     // Narrate the completed action to the other parties (toasted on their screens).
     const frags = actionNarration(action as MpAction, events, mp.parties[me.seat]!, state.parties[me.seat]!);

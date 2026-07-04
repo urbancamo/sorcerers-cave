@@ -85,8 +85,9 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
     const fresh = chatFeed.slice(toastedCountRef.current);
     toastedCountRef.current = chatFeed.length;
     for (const m of fresh) {
-      if (m.seat === null || m.seat === view?.youSeat) continue; // skip system lines and your own
-      if (m.kind === "action") pushToast(`${m.partyName} ${m.text}`, "chat");
+      if (m.seat === view?.youSeat) continue; // skip only your own lines
+      if (m.seat === null) pushToast(m.text, "turn"); // system lines: session outcomes, unions, rises
+      else if (m.kind === "action") pushToast(`${m.partyName} ${m.text}`, "chat");
       else pushToast(`${m.partyName}: ${m.text}`, "chat");
     }
   }, [chatFeed, pushToast, view?.youSeat]);
@@ -102,6 +103,33 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   }, [view?.distantFights, pushToast]);
 
   useEffect(() => { void loadManifest().then(setArt); }, []);
+
+  // Battle-outcome beat for BOTH sides (spec I-10): the resolving dispatcher already sees the dice,
+  // but the passive participant (and both sides on a timer-resolved round) would only notice the
+  // fight surface vanish. When a PvP session involving you ends and no dice/notice dialog of your
+  // own is up, announce the outcome from your own state's transition.
+  const wasInPvpRef = useRef(false);
+  useEffect(() => {
+    const inPvp = view?.session?.kind === "pvp";
+    if (wasInPvpRef.current && !inPvp && view) {
+      const meNow = view.parties.find((p) => p.seat === view.youSeat);
+      const st = view.state as GameState;
+      setNotices((open) => {
+        if (open) return open; // the dispatcher's own dice/notices carry the outcome already
+        if (meNow && meNow.status !== "exploring") {
+          return [{ text: "Defeat — your party was destroyed in the battle.", tone: "bad" }];
+        }
+        if (meNow?.zombie) {
+          return [{ text: "Your party fell in battle — and rises again as the dead…", tone: "bad" }];
+        }
+        if (st.phase === "pickup") {
+          return [{ text: "Victory! Your rival is broken — gather the spoils from the floor.", tone: "good" }];
+        }
+        return [{ text: "The battle has ended.", tone: "neutral" }];
+      });
+    }
+    wasInPvpRef.current = !!inPvp;
+  }, [view]);
 
   const adapterRef = useRef<CaveAdapter | null>(null);
   const syncedRef = useRef<GameState | null>(null);
