@@ -4,7 +4,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Id, Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { uniqueCode } from "./game";
-import { buildMpGame, choosePartyFor, mpReduce, partyView, scoreGame, occupants, areaInteractionMask, expireTrade, CREATURES, TREASURES, PARTY_BUDGET, type MpGameState, type MpAction, type PartyState, type GameEvent } from "@sorcerers-cave/engine";
+import { buildMpGame, choosePartyFor, mpReduce, partyView, scoreGame, occupants, areaInteractionMask, expireTrade, expirePvp, pvpView, PVP_WINDOW_MS, CREATURES, TREASURES, PARTY_BUDGET, type MpGameState, type MpAction, type PartyState, type GameEvent } from "@sorcerers-cave/engine";
 
 // Permissive action shape; the engine (mpReduce) enforces semantics. Includes the lobby-level endTurn.
 const mpActionValidator = v.object({
@@ -21,6 +21,10 @@ const mpActionValidator = v.object({
   // Trade-session baskets (I-5): treasure ids + party member indices offered.
   treasure: v.optional(v.array(v.number())),
   members: v.optional(v.array(v.number())),
+  // PvP session layout (I-9/I-10): member ids are "seat:idx" strings.
+  line: v.optional(v.array(v.string())),
+  engagements: v.optional(v.array(v.object({ attackers: v.array(v.string()), defenders: v.array(v.string()) }))),
+  backers: v.optional(v.array(v.object({ caster: v.string(), at: v.number() }))),
   // resolveRound: the player's pairing for one fight round (front/background/strangers per match).
   matches: v.optional(v.array(v.object({
     front: v.array(v.number()),
@@ -385,8 +389,14 @@ export const playView = query({
       hereSeats: occupants(mp, yourArea).filter((s) => s !== me.seat),
       areaMask: areaInteractionMask(mp, yourArea),
       // The active interaction session — projected only to its participants (others see null).
-      session: mp.session && "a" in mp.session && (mp.session.a === me.seat || mp.session.b === me.seat)
-        ? mp.session
+      // Non-participants co-located with a PvP fight get only the no-detail hint via areaMask.
+      session: mp.session && (
+        ("a" in mp.session && (mp.session.a === me.seat || mp.session.b === me.seat)) ||
+        (mp.session.kind === "pvp" && (mp.session.attacker.includes(me.seat) || mp.session.defender.includes(me.seat)))
+      ) ? mp.session : null,
+      // Per-engagement strength preview for the fight surface (participants only).
+      pvp: mp.session?.kind === "pvp" && (mp.session.attacker.includes(me.seat) || mp.session.defender.includes(me.seat))
+        ? pvpView(mp.session, mp)
         : null,
       // Secret-door knowledge (I-18): coords of secret-stair ends this seat may use / may share.
       youKnowDoors: mp.parties[me.seat]!.knownDoors ?? [],
@@ -436,16 +446,27 @@ async function settleOverdueSession(
   if (!w || now < w.deadline) return mp;
   const seats = await seatsOf(ctx, gameId);
   const awaited = seats.find((p) => p.seat === w.seat);
+  const extendMs = mp.session?.kind === "pvp" ? PVP_WINDOW_MS : TRADE_WINDOW_MS;
   if (awaited && now - awaited.lastSeen < PRESENCE_FRESH_MS) {
     // Present but pondering — extend rather than default (spec §1.3 presence pause).
     const extended: MpGameState = {
-      ...mp, session: { ...mp.session!, window: { ...w, deadline: now + TRADE_WINDOW_MS } },
+      ...mp, session: { ...mp.session!, window: { ...w, deadline: now + extendMs } },
     };
     await ctx.db.patch(gameId, { state: extended, updatedAt: now });
     await armSessionJob(ctx, gameId, extended, now);
     return extended;
   }
-  // Auto-default. Trade windows expire (declined); PvP/union defaults arrive with their milestones.
+  // Auto-default per session kind (§1.3): a trade offer expires (declined); a PvP layout auto-deploys
+  // strongest-fights-strongest and the round resolves — a stalled side never blocks the fight.
+  if (mp.session?.kind === "pvp") {
+    const { state: after, fired } = expirePvp(mp, now, PVP_WINDOW_MS);
+    if (fired) {
+      await ctx.db.patch(gameId, { state: after, updatedAt: now });
+      await postSystem(ctx, gameId, "The round was fought on — the delay forfeited the deployment", now);
+      await armSessionJob(ctx, gameId, after, now);
+    }
+    return after;
+  }
   const { state: after, fired } = expireTrade(mp, now);
   if (fired) {
     await ctx.db.patch(gameId, { state: after, updatedAt: now });
