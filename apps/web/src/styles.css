@@ -717,11 +717,18 @@
 /* In-play multiplayer overlays (over the 3D scene). */
 /* Shared-occupancy chip (spec I-1/I-3): rivals on your tile, presence only — interaction is opt-in. */
 .scv-mp-here {
-  position: fixed; top: 46px; left: 50%; transform: translateX(-50%); z-index: 59;
-  display: flex; align-items: center; gap: 8px; pointer-events: none;
+  /* Sits centred just ABOVE the lower HUD dock (cave.css .dock: bottom 24px, one button row) —
+     the top of the screen belongs to the depth bar and toasts. */
+  position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%); z-index: 59;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center;
+  max-width: 94vw; pointer-events: none;
   font-family: var(--ui); font-size: 12px;
   padding: 5px 14px; border-radius: 18px;
   background: rgba(15, 15, 20, 0.82); border: 1px solid var(--line-strong); backdrop-filter: blur(8px);
+}
+/* The dock compacts and can wrap on small screens (cave.css @640/@480) — keep clear of it. */
+@media (max-width: 640px) {
+  .scv-mp-here { bottom: calc(104px + env(safe-area-inset-bottom)); }
 }
 .scv-mp-here-cap { color: var(--stone-dim); letter-spacing: 0.1em; text-transform: uppercase; font-size: 10px; }
 .scv-mp-here-chip {
