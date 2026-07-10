@@ -214,3 +214,137 @@ test("log is owner-scoped (IDOR guard)", async () => {
   const intruder = await asUser(t);
   expect(await intruder.as.query(api.game.log, { id })).toBeNull();
 });
+
+// ---------------------------------------------------------------------------
+// Replay-by-code (spec docs/requirements/2026-07-10-replay-by-code-feature-spec.md, §RB-1/§RB-2)
+// Deliberately shareable: NOT owner-scoped (decision §RB-6-3), carries no owner PII.
+// ---------------------------------------------------------------------------
+
+test("replayByCode returns null for an unknown code", async () => {
+  // RB-1-1: read-only query, null when no eligible game matches.
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  expect(await as.query(api.game.replayByCode, { code: "ZZZZ" })).toBeNull();
+});
+
+test("replayByCode normalises 'abcd' to 'ABCD'", async () => {
+  // RB-1-2: trim().toUpperCase() + by_code index, mirroring resumeByCode.
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+  const code = await as.mutation(api.game.save, { id });
+  const bundle = await as.query(api.game.replayByCode, { code: ` ${code.toLowerCase()} ` });
+  expect(bundle).not.toBeNull();
+  expect(bundle?.game.code).toBe(code);
+});
+
+test("replayByCode returns the bundle for a game the caller does NOT own", async () => {
+  // RB-1-3: shareable-by-code — no ownership guard (decision §RB-6-3).
+  const t = convexTest(schema, modules);
+  const owner = await asUser(t);
+  const id = await owner.as.mutation(api.game.newGame, { seed: 5, picks: [0] });
+  const code = await owner.as.mutation(api.game.save, { id });
+  const stranger = await asUser(t);
+  const bundle = await stranger.as.query(api.game.replayByCode, { code });
+  expect(bundle).not.toBeNull();
+  expect(bundle?.game.seed).toBe(5);
+  // …and an unauthenticated caller gets it too (it is a share link, not an account feature).
+  expect(await t.query(api.game.replayByCode, { code })).not.toBeNull();
+});
+
+test("replayByCode bundle carries no ownerId or user PII", async () => {
+  // RB-1-7: reachable by anyone with the code, so no owner identity in the bundle.
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+  const code = await as.mutation(api.game.save, { id });
+  const bundle = await as.query(api.game.replayByCode, { code });
+  const flat = JSON.stringify(bundle);
+  expect(flat).not.toContain("ownerId");
+  expect(flat).not.toContain("email");
+  expect(bundle?.game).toEqual({
+    code,
+    seed: 1,
+    picks: [0],
+    color: null,
+    status: "active",
+    createdAt: expect.any(Number),
+  });
+});
+
+test("replayByCode bundle carries seed, picks and ordered moves", async () => {
+  // RB-1-4: self-contained bundle in the shape `log` already returns.
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 7, picks: [0] });
+  await as.mutation(api.game.applyAction, { id, action: { type: "move", dir: 1 } });
+  await as.mutation(api.game.applyAction, { id, action: { type: "attack" } }); // blocked → not logged
+  const code = await as.mutation(api.game.save, { id });
+  const bundle = await as.query(api.game.replayByCode, { code });
+  expect(bundle?.replayable).toBe(true);
+  expect(bundle?.game.seed).toBe(7);
+  expect(bundle?.game.picks).toEqual([0]);
+  expect(bundle?.moves.map((m) => m.seq)).toEqual([0]); // seq order, blocked no-op absent
+  expect(bundle?.moves[0]!.action).toEqual({ type: "move", dir: 1 });
+  expect(Array.isArray(bundle?.moves[0]!.events)).toBe(true);
+});
+
+test("replayByCode flags a pre-logging game as unreplayable", async () => {
+  // RB-1-5: seed/picks null (pre-logging row) → bundle still returned, flagged not reconstructable.
+  const t = convexTest(schema, modules);
+  const { as, userId } = await asUser(t);
+  await t.run(async (ctx) => {
+    const now = Date.now();
+    await ctx.db.insert("games", {
+      ownerId: userId,
+      code: "OLDG",
+      state: createGameState(1, [0]),
+      status: "finished",
+      createdAt: now,
+      updatedAt: now,
+    });
+  });
+  const bundle = await as.query(api.game.replayByCode, { code: "OLDG" });
+  expect(bundle).not.toBeNull();
+  expect(bundle?.replayable).toBe(false);
+  expect(bundle?.game.seed).toBeNull();
+  expect(bundle?.game.picks).toBeNull();
+});
+
+test("replayByCode does not replay a multi game", async () => {
+  // RB-1-6: solo only in this milestone — mode "multi" resolves to null.
+  const t = convexTest(schema, modules);
+  const { as, userId } = await asUser(t);
+  await t.run(async (ctx) => {
+    const now = Date.now();
+    await ctx.db.insert("games", {
+      ownerId: userId,
+      code: "MULT",
+      mode: "multi",
+      seed: 1,
+      picks: [0],
+      state: createGameState(1, [0]),
+      status: "active",
+      createdAt: now,
+      updatedAt: now,
+    });
+  });
+  expect(await as.query(api.game.replayByCode, { code: "MULT" })).toBeNull();
+});
+
+test("replayByCode log replays to the stored final state", async () => {
+  // RB-2-1 + RB-2-2: replay(seed, picks, actions) — last frame deep-equals the persisted state.
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 42, picks: [6, 4] }); // Woman + Priest
+  await as.mutation(api.game.applyAction, { id, action: { type: "move", dir: 1 } });
+  await as.mutation(api.game.applyAction, { id, action: { type: "quit" } });
+  const code = await as.mutation(api.game.save, { id });
+  const bundle = await as.query(api.game.replayByCode, { code });
+  const frames = replay(bundle!.game.seed!, bundle!.game.picks!, bundle!.moves.map((m) => m.action));
+  // RB-2-3 invariant: moves.length + 1 frames, frame 0 the untouched deal.
+  expect(frames.length).toBe(bundle!.moves.length + 1);
+  expect(frames[0]!.action).toBeNull();
+  const game = await as.query(api.game.get, { id });
+  expect(frames[frames.length - 1]!.state).toEqual(game?.state);
+});
