@@ -1,7 +1,8 @@
 # Replay-by-Code — Feature Specification (Solitaire first)
 
-> **Status:** Proposed feature spec, written 2026-07-10. Not yet implemented — this document is the
-> **seed for a loop-oriented build**, not a record of one.
+> **Status:** IMPLEMENTED 2026-07-10 (all milestones; every RB row has a passing test). Written the
+> same day as the **seed for a loop-oriented build**; the loop drove it red→green autonomously.
+> Human review still owed on feel/placement/copy (Part 0's human-judged column).
 > **Source of truth caveat:** unlike `engine-spec.md`, the `Code` and `Test` columns below name
 > **targets to create**, not existing lines. Where this spec cites *existing* code it gives a real
 > `file:line`; where it names code to be written it is marked **(new)**. As the loop turns red→green,
@@ -97,7 +98,7 @@ reads the mismatch, fixes it, and *knows* when it is right without you in the se
 
 | ID | Requirement | Code | Test |
 |----|-------------|------|------|
-| RB-2-1 | The frames MUST be produced solely by `replay(seed, picks, moves.map(m => m.action))` from `@sorcerers-cave/engine` — no bespoke re-derivation of state in the web app. | engine replay.ts:27 (viewer wiring lands in §RB-4) | game.test.ts:335 › `replayByCode log replays to the stored final state` |
+| RB-2-1 | The frames MUST be produced solely by `replay(seed, picks, moves.map(m => m.action))` from `@sorcerers-cave/engine` — no bespoke re-derivation of state in the web app. | engine replay.ts:27, ReplayView.tsx:26-29 (sole call site) | game.test.ts:335 › `replayByCode log replays to the stored final state` |
 | RB-2-2 | Reconstruction MUST be exact: the LAST frame's `state` MUST deep-equal the game's persisted `state`. This is the core self-check the loop drives to green (the pattern already exists at game.test.ts:205). | engine replay.ts:27, convex/game.ts:174 | game.test.ts:335 › `replayByCode log replays to the stored final state` (last-frame deep-equal) |
 | RB-2-3 | Reconstruction MUST yield exactly `moves.length + 1` frames, frame 0 being the untouched initial deal (`action: null`, `events: []`). | engine replay.ts:29 | replay.test.ts:75 (existing invariant) + game.test.ts:335 (frame count + frame-0 assertions) |
 
@@ -105,26 +106,26 @@ reads the mismatch, fixes it, and *knows* when it is right without you in the se
 
 | ID | Requirement | Code | Test |
 |----|-------------|------|------|
-| RB-3-1 | The UI MUST provide a way to enter a four-letter code to start a replay, presented alongside — and visually parallel to — the existing "Resume a game" box on the splash screen. | apps/web/src/game/SplashScreen.tsx:96 (extend) **(new)** | SplashScreen.test.tsx › `offers a replay-by-code entry` **(new)** |
-| RB-3-2 | Code entry MUST validate `^[A-Z]{4}$` (case-insensitively) before calling the backend, reusing the existing validation pattern, and MUST surface a clear message when no replay is found for the code. | SplashScreen.tsx:30-37 (pattern) **(new)** | SplashScreen.test.tsx › `rejects a non 4-letter replay code` **(new)** |
-| RB-3-3 | Entering a valid code for any solo game (owned or not, §RB-1-3) MUST open the replay viewer (§RB-4); an unreplayable (RB-1-5) or unsupported (RB-1-6) game MUST show its explanatory state, not the viewer. | apps/web viewer wiring **(new)** | SplashScreen.test.tsx › `unreplayable code shows explanation, not viewer` **(new)** |
+| RB-3-1 | The UI MUST provide a way to enter a four-letter code to start a replay, presented alongside — and visually parallel to — the existing "Resume a game" box on the splash screen. | SplashScreen.tsx:139-166 ("Replay a game" box) | SplashScreen.test.tsx:64 › `offers a replay-by-code entry` |
+| RB-3-2 | Code entry MUST validate `^[A-Z]{4}$` (case-insensitively) before calling the backend, reusing the existing validation pattern, and MUST surface a clear message when no replay is found for the code. | SplashScreen.tsx:47-56 (`submitReplay`) | SplashScreen.test.tsx:74 › `rejects a non 4-letter replay code` |
+| RB-3-3 | Entering a valid code for any solo game (owned or not, §RB-1-3) MUST open the replay viewer (§RB-4); an unreplayable (RB-1-5) or unsupported (RB-1-6) game MUST show its explanatory state, not the viewer. | GameScreen.tsx:104-112 (`handleReplay`), :134-136 | SplashScreen.test.tsx:85 › `unreplayable code shows explanation, not viewer` |
 
 ## §RB-4 — Replay viewer & transport
 
 | ID | Requirement | Code | Test |
 |----|-------------|------|------|
-| RB-4-1 | The viewer MUST hold the full `ReplayFrame[]` and a current index `i` (0-based), rendering the state of frame `i`. Stepping MUST be O(1) array indexing (no re-reduction on navigation). | apps/web/src/game/ReplayView.tsx **(new)** | ReplayView.test.tsx › `renders frame i on step` **(new)** |
-| RB-4-2 | Transport controls MUST include: first, previous, next, last, and a scrubber (range input) over `0..frames.length-1`, plus a readout of the current position (e.g. "move 7 / 42"). | ReplayView.tsx **(new)** | ReplayView.test.tsx › `scrubber jumps to the chosen frame` **(new)** |
-| RB-4-3 | Navigation MUST clamp: previous at frame 0 and next at the last frame are no-ops (buttons disabled at the ends), never out-of-range. | ReplayView.tsx **(new)** | ReplayView.test.tsx › `prev at 0 and next at end are no-ops` **(new)** |
-| RB-4-4 | For frame `i ≥ 1` the viewer MUST show the action that produced it and the events it generated, reusing the existing human-readable formatters `actionLabel` / `describeEvent` (Appendix A-3) rather than new copy. Frame 0 MUST read as the initial deal. | ReplayView.tsx **(new)**, gameLog.ts:45,100 | ReplayView.test.tsx › `labels the current move and its events` **(new)** |
-| RB-4-5 | The viewer MUST be unmistakably a replay, not live play: no action/movement controls, a visible "Replay" banner/label, and an exit back to the splash. | ReplayView.tsx **(new)** | ReplayView.test.tsx › `shows no live-action controls in replay` **(new)** |
+| RB-4-1 | The viewer MUST hold the full `ReplayFrame[]` and a current index `i` (0-based), rendering the state of frame `i`. Stepping MUST be O(1) array indexing (no re-reduction on navigation). | ReplayView.tsx:26-33 (frames memo + cursor) | ReplayView.test.tsx:41 › `renders frame i on step` |
+| RB-4-2 | Transport controls MUST include: first, previous, next, last, and a scrubber (range input) over `0..frames.length-1`, plus a readout of the current position (e.g. "move 7 / 42"). | ReplayView.tsx:60-75 | ReplayView.test.tsx:53 › `scrubber jumps to the chosen frame` |
+| RB-4-3 | Navigation MUST clamp: previous at frame 0 and next at the last frame are no-ops (buttons disabled at the ends), never out-of-range. | ReplayView.tsx:32 (`jump` clamp), :62-66 (disabled at ends) | ReplayView.test.tsx:60 › `prev at 0 and next at end are no-ops` |
+| RB-4-4 | For frame `i ≥ 1` the viewer MUST show the action that produced it and the events it generated, reusing the existing human-readable formatters `actionLabel` / `describeEvent` (Appendix A-3) rather than new copy. Frame 0 MUST read as the initial deal. | ReplayView.tsx:77-81, gameLog.ts:45,100 | ReplayView.test.tsx:72 › `labels the current move and its events` |
+| RB-4-5 | The viewer MUST be unmistakably a replay, not live play: no action/movement controls, a visible "Replay" banner/label, and an exit back to the splash. | ReplayView.tsx:57-58 (banner + exit); adapter bound `canAct: () => false` at :42 | ReplayView.test.tsx:80 › `shows no live-action controls in replay` |
 
 ## §RB-5 — Rendering a frame through the existing view
 
 | ID | Requirement | Code | Test |
 |----|-------------|------|------|
-| RB-5-1 | Each frame's `state` MUST be rendered through the existing cave view via `createCaveAdapter` (Appendix A-4); the replay path MUST NOT reimplement cave/roster rendering. | apps/web/src/view/* (reuse), ReplayView.tsx **(new)** | ReplayView.test.tsx › `mounts the cave view for a frame` **(new)** |
-| RB-5-2 | Changing frame MUST update the rendered cave/roster to that frame's state (forward AND backward), with no residual state leaking from a previously viewed frame. | ReplayView.tsx **(new)** | ReplayView.test.tsx › `stepping back restores the earlier frame's view` **(new)** |
+| RB-5-1 | Each frame's `state` MUST be rendered through the existing cave view via `createCaveAdapter` (Appendix A-4); the replay path MUST NOT reimplement cave/roster rendering. | ReplayView.tsx:38-45 (adapter), :56 (CaveCanvas) | ReplayView.test.tsx:94 › `mounts the cave view for a frame` |
+| RB-5-2 | Changing frame MUST update the rendered cave/roster to that frame's state (forward AND backward), with no residual state leaking from a previously viewed frame. | ReplayView.tsx:41-44 (`sync` on step) | ReplayView.test.tsx:102 › `stepping back restores the earlier frame's view` |
 
 ## §RB-6 — Non-goals & open decisions
 

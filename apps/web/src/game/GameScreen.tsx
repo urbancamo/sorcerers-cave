@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-import { useConvexAuth, useMutation, useQuery } from "convex/react";
+import { useConvex, useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { api } from "../../convex/_generated/api";
@@ -25,6 +25,7 @@ import { eventNotices, type Notice } from "./eventNotices";
 import { MULTIPLAYER_ENABLED } from "./featureFlags";
 import { MultiplayerSetup } from "./MultiplayerSetup";
 import { MultiplayerLobby } from "./MultiplayerLobby";
+import { ReplayView, type ReplayBundle } from "./ReplayView";
 
 export default function GameScreen() {
   const { isAuthenticated, isLoading } = useConvexAuth();
@@ -98,6 +99,18 @@ export default function GameScreen() {
     return true;
   }, [resumeByCode]);
 
+  // Replay from the splash by code (§RB-3-3): fetch the shareable bundle once (no subscription —
+  // a replay is a fixed record) and open the read-only viewer, or explain why we can't.
+  const convex = useConvex();
+  const [replayBundle, setReplayBundle] = useState<ReplayBundle | null>(null);
+  const handleReplay = useCallback(async (code: string): Promise<string | null> => {
+    const bundle = (await convex.query(api.game.replayByCode, { code })) as ReplayBundle | null;
+    if (!bundle) return "No replayable game found with that code.";
+    if (!bundle.replayable) return "This game predates full logging and cannot be replayed.";
+    setReplayBundle(bundle);
+    return null;
+  }, [convex]);
+
   useEffect(() => { if (!isLoading && !isAuthenticated) void signIn("anonymous"); }, [isLoading, isAuthenticated, signIn]);
 
   if (isLoading) return <p>Connecting…</p>;
@@ -117,11 +130,17 @@ export default function GameScreen() {
     );
   }
 
+  // The read-only replay viewer, entered from the splash (never from inside a live game).
+  if (replayBundle) {
+    return <ReplayView bundle={replayBundle} onExit={() => setReplayBundle(null)} />;
+  }
+
   if (!started) {
     return (
       <SplashScreen
         onStartSolitaire={() => setStarted(true)}
         onResume={handleResume}
+        onReplay={handleReplay}
         onStartMultiplayer={MULTIPLAYER_ENABLED ? () => setMp({ view: "create" }) : undefined}
         onJoinMultiplayer={MULTIPLAYER_ENABLED ? () => setMp({ view: "join" }) : undefined}
       />

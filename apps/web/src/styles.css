@@ -849,6 +849,21 @@
 }
 .scv-spectate-banner b { color: var(--brass-bright); }
 
+/* Replay-by-code transport: first/prev/next/last + scrubber + the move's action/events readout. */
+.scv-replay-transport {
+  position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 60;
+  width: min(640px, 94vw); padding: 12px 16px; border-radius: 14px;
+  background: rgba(15, 15, 20, 0.88); border: 1px solid var(--line-strong); backdrop-filter: blur(8px);
+  font-family: var(--ui); color: var(--stone);
+}
+.scv-replay-row { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.scv-replay-row .scv-primary { margin-top: 0; padding: 6px 12px; font-size: 12px; }
+.scv-replay-pos { min-width: 90px; text-align: center; font-size: 13px; color: var(--brass-bright); }
+.scv-replay-scrub { display: block; width: 100%; margin: 10px 0 6px; accent-color: var(--brass-bright); }
+.scv-replay-move { max-height: 110px; overflow-y: auto; }
+.scv-replay-action { margin: 4px 0 2px; font-size: 13px; color: var(--cream); }
+.scv-replay-event { margin: 0 0 0 14px; font-size: 12px; color: var(--stone-dim); }
+
 /* Quit popup (leave-to-menu vs abandon), reached from the HUD "Quit" button. */
 .scv-mp-modal {
   position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center;
