@@ -134,7 +134,7 @@ reads the mismatch, fixes it, and *knows* when it is right without you in the se
 | RB-6-1 | **Non-goal:** editing, branching, or resuming *from* a replayed frame. Replay is strictly read-only (Part 0, constraint 4). |
 | RB-6-2 | **Non-goal (this milestone):** multiplayer replay. `mode === "multi"` is excluded by RB-1-6; a later spec revision covers multi-seat timelines. |
 | RB-6-3 | **DECIDED (2026-07-10) — shareable.** Replay is reachable by anyone who has the code; the new query drops the IDOR guard (RB-1-3), the bundle carries no owner PII (RB-1-7), and the existing owner-scoped paths are untouched. Accepted trade-off: the 26⁴ (~457k) code space is guessable, so replays are effectively enumerable by a determined scraper — deemed acceptable for a low-sensitivity solo board game. **Optional future hardening (not required now):** issue a longer/opaque *share token* distinct from the short resume code if enumeration ever becomes a concern. |
-| RB-6-4 | **DECIDED (2026-07-10) — splash screen.** The entry point is a "Replay a game" affordance on the splash screen, visually parallel to the existing "Resume a game" code box (SplashScreen.tsx:96). RB-3-1 already encodes this; the in-game "Game log" adjacency is rejected for v1. |
+| RB-6-4 | **DECIDED (2026-07-10) — splash screen.** The entry point is a "Replay a game" affordance on the splash screen, visually parallel to the existing "Resume a game" code box (SplashScreen.tsx:114). RB-3-1 already encodes this; the in-game "Game log" adjacency is rejected for v1. |
 | RB-6-5 | **Non-goal:** playback timing/auto-advance ("play" button, speed control). Manual stepping only in v1; auto-play is a fast follow if the manual viewer feels good. |
 
 ---
@@ -143,7 +143,7 @@ reads the mismatch, fixes it, and *knows* when it is right without you in the se
 
 A player has a finished (or in-progress) solo game and its four-letter code. From the splash screen —
 right next to the existing **Resume a game** box, which already takes a four-letter code and calls
-`onResume(code)` (SplashScreen.tsx:96, :30-37) — they instead choose **Replay a game**, type the
+`onResume(code)` (SplashScreen.tsx:114, :36-45) — they instead choose **Replay a game**, type the
 code, and are taken into a read-only viewer that lets them step through the game move by move.
 
 Nothing about the game engine changes, because the hard part is already built and tested. The engine
@@ -194,8 +194,8 @@ hands back to you; everything with a deterministic answer, it settles itself.
 - **A-4 — Cave rendering adapter.** `apps/web/src/view/engineAdapter.ts:24`
   (`createCaveAdapter(initial: GameState, art, opts): CaveAdapter`); cave view + HUD in
   `apps/web/src/view/cave3d.js`, `apps/web/src/view/CaveHud.tsx`, roster in `view/viewParty.ts`.
-- **A-5 — Entry-point precedent.** `apps/web/src/game/SplashScreen.tsx:96` renders the "Resume a
-  game" four-letter code input; `:30-37` validates `^[A-Z]{4}$` and calls `onResume(code)`. The
+- **A-5 — Entry-point precedent.** `apps/web/src/game/SplashScreen.tsx:114` renders the "Resume a
+  game" four-letter code input; `:36-45` validates `^[A-Z]{4}$` and calls `onResume(code)`. The
   in-game log surface is `apps/web/src/game/GameLogModal.tsx` (fetches `api.game.log`).
 
 # Appendix B — Test commands (the loop's feedback command)
