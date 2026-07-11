@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { newGame, reduce } from "./index";
+import { newGame, reduce, CREATURES } from "./index";
 import { legalActions } from "./selectors";
 import { validatePlan } from "./combatPlan";
 import { casterMP } from "./combat";
@@ -23,10 +23,14 @@ import type { GameAction, GameState } from "./index";
  *
  *     pnpm --filter engine exec vitest run -u src/conformance-vectors.test.ts
  *
- * The action-selection policy below mirrors solo-golden.test.ts. The two need not stay in lockstep:
- * a vector file is self-contained (its OWN action list is what a port replays), the policy only
- * decides what those actions are.
+ * Three action-selection policies drive the runs. "base" mirrors solo-golden.test.ts; "slayer"
+ * recruits allies, grabs treasure and gangs 2 front + casters onto the strongest foe (it can kill
+ * the Sorcerer); "artifacts" additionally spends any usable artifact on sight. Policies need not
+ * stay in lockstep with solo-golden: a vector file is self-contained (its OWN action list is what
+ * a port replays) — the policy only decides what those actions are.
  */
+
+type Policy = "base" | "slayer" | "artifacts";
 
 const C_SPECTRE = 9;
 const T_MAGIC_SWORD = 3;
@@ -44,6 +48,35 @@ function buildPlan(state: GameState): { front: number[]; backers: number[]; stra
   for (let s = 0; s < state.strangers.length; s++) {
     const mi = state.party.findIndex((m, i) => (m.status === 0 || m.status === 1) && !usedM.has(i) && capable(i, s));
     if (mi >= 0) { usedM.add(mi); matches.push({ front: [mi], backers: [], strangers: [s] }); }
+  }
+  return matches;
+}
+
+/** Strongest-foe-first plan: 2 front on the toughest foe, leftover casters back it, 1v1 the rest. */
+function buildStrongPlan(state: GameState): { front: number[]; backers: number[]; strangers: number[] }[] {
+  const alive = state.party.map((m, i) => ({ m, i })).filter(({ m }) => m.status === 0 || m.status === 1);
+  const capable = (mi: number, si: number): boolean => {
+    const m = state.party[mi]!;
+    if (state.strangers[si] !== C_SPECTRE) return true;
+    const sword = !eyeActive(state) && m.treasure.includes(T_MAGIC_SWORD) && [0, 1, 5, 6].includes(m.creatureId);
+    return casterMP(m, state) > 0 || sword;
+  };
+  const foes = state.strangers
+    .map((cid, si) => ({ cid, si }))
+    .sort((a, b) => CREATURES[b.cid]!.fs + CREATURES[b.cid]!.mp - (CREATURES[a.cid]!.fs + CREATURES[a.cid]!.mp));
+  const used = new Set<number>();
+  const matches: { front: number[]; backers: number[]; strangers: number[] }[] = [];
+  for (const { si } of foes) {
+    const cands = alive
+      .filter(({ i }) => !used.has(i) && capable(i, si))
+      .sort((a, b) => CREATURES[b.m.creatureId]!.fs - CREATURES[a.m.creatureId]!.fs);
+    if (!cands.length) continue;
+    const front = cands.slice(0, matches.length === 0 ? 2 : 1).map(({ i }) => i);
+    front.forEach((i) => used.add(i));
+    matches.push({ front, backers: [], strangers: [si] });
+  }
+  if (matches.length) {
+    for (const { m, i } of alive) if (!used.has(i) && casterMP(m, state) > 0) { used.add(i); matches[0]!.backers.push(i); }
   }
   return matches;
 }
@@ -85,8 +118,8 @@ function encodeAction(a: GameAction): string {
   }
 }
 
-/** Drive one game with the fixed policy and render its conformance vector text. */
-function buildVector(seed: number, picks: number[]): string {
+/** Drive one game with the given policy and render its conformance vector text. */
+function buildVector(seed: number, picks: number[], policy: Policy, maxSteps: number): string {
   const rnd = lcg(seed * 2654435761);
   let state = newGame(seed, picks);
   const lines: string[] = [
@@ -98,18 +131,39 @@ function buildVector(seed: number, picks: number[]): string {
     "BEGIN MOVES",
   ];
   let step = 0;
-  const MAX_STEPS = 150;
-  for (; step < MAX_STEPS && state.gs === 0; step++) {
+  for (; step < maxSteps && state.gs === 0; step++) {
     let action: GameAction | null = null;
     if (state.phase === "fight" && !state.fight?.casualtyQueue?.length) {
-      const matches = buildPlan(state);
-      action = validatePlan(state, { matches }).ok ? { type: "resolveRound", matches } : null;
+      // The artifacts policy spends fight-legal artifacts (Potion, Lotus) before planning a round;
+      // they are consumed, so this self-limits.
+      const fightUses = policy === "artifacts" ? legalActions(state).filter((a) => a.type === "useArtifact") : [];
+      if (fightUses.length) action = fightUses[rnd() % fightUses.length]!;
+      else {
+        let matches = policy === "base" ? buildPlan(state) : buildStrongPlan(state);
+        if (!validatePlan(state, { matches }).ok) matches = buildPlan(state);
+        action = validatePlan(state, { matches }).ok ? { type: "resolveRound", matches } : null;
+      }
     }
     if (!action) {
       const acts = legalActions(state);
       if (acts.length === 0) break;
-      const pool = acts.filter((a) => a.type !== "exitCave");
-      const from = step < 40 && pool.length > 0 ? pool : acts;
+      let from = acts;
+      if (policy !== "base") {
+        // Steered preferences: use artifacts / recruit by testing / grab treasure, else roam.
+        const uses = acts.filter((a) => a.type === "useArtifact");
+        const tests = acts.filter((a) => a.type === "test");
+        const takes = acts.filter((a) => a.type === "takeTreasure");
+        if (policy === "artifacts" && uses.length) from = uses;
+        else if (tests.length) from = tests;
+        else if (takes.length) from = takes;
+        else {
+          const pool = acts.filter((a) => a.type !== "exitCave");
+          from = step < 60 && pool.length > 0 ? pool : acts;
+        }
+      } else {
+        const pool = acts.filter((a) => a.type !== "exitCave");
+        from = step < 40 && pool.length > 0 ? pool : acts;
+      }
       action = from[rnd() % from.length]!;
     }
     const r = reduce(state, action);
@@ -135,21 +189,38 @@ function buildVector(seed: number, picks: number[]): string {
   return lines.join("\n") + "\n";
 }
 
-// The same seed × party coverage set as the solo golden firewall.
-const RUNS: [number, number[]][] = [
-  [3, [0]], [7, [1, 7]], [11, [5, 6, 7]], [19, [2, 7]],
-  [23, [4, 6]], [42, [3]], [101, [1, 7]], [777, [5, 6]],
+// Base set = the solo golden firewall's seed × party coverage. The tagged runs are TARGETED
+// fixtures found by seed sweep: outcomes the base policy never reaches (see the tag).
+interface Run { seed: number; picks: number[]; policy: Policy; maxSteps: number; tag?: string }
+const RUNS: Run[] = [
+  { seed: 3, picks: [0], policy: "base", maxSteps: 150 },
+  { seed: 7, picks: [1, 7], policy: "base", maxSteps: 150 },
+  { seed: 11, picks: [5, 6, 7], policy: "base", maxSteps: 150 },
+  { seed: 19, picks: [2, 7], policy: "base", maxSteps: 150 },
+  { seed: 23, picks: [4, 6], policy: "base", maxSteps: 150 },
+  { seed: 42, picks: [3], policy: "base", maxSteps: 150 },
+  { seed: 101, picks: [1, 7], policy: "base", maxSteps: 150 },
+  { seed: 777, picks: [5, 6], policy: "base", maxSteps: 150 },
+  // Escape with a laden party: gameOver(ESCAPED), 11 carried treasures, valid score 131.
+  { seed: 225, picks: [0], policy: "base", maxSteps: 150, tag: "escape" },
+  // The Sorcerer is slain (sorcererSlain, curse lift §12) before the party is wiped.
+  { seed: 174, picks: [1, 7], policy: "slayer", maxSteps: 300, tag: "sorcerer" },
+  // Artifact coverage — together the four artifact runs use Carpet 4, Lotus 5, Balm 6, Potion 8,
+  // Staff 9 and Flute 12, and exercise the Lost-Ruby wrestle and the Treasure Chest.
+  { seed: 257, picks: [4, 6], policy: "artifacts", maxSteps: 300, tag: "artifacts" },   // 5,6,8,12 + ruby, terminal
+  { seed: 1237, picks: [1, 7], policy: "artifacts", maxSteps: 300, tag: "artifacts" },  // 5,6,9 (Staff) + ruby
+  { seed: 2678, picks: [5, 6, 7], policy: "artifacts", maxSteps: 300, tag: "artifacts" }, // 4 (Carpet),5,6,12 + ruby
+  { seed: 2355, picks: [0], policy: "artifacts", maxSteps: 300, tag: "artifacts" },     // 5,6,8,12 + chest
 ];
 
 describe("conformance vectors — committed port fixtures match the engine", () => {
-  for (const [seed, picks] of RUNS) {
-    it(`solo seed ${seed} party [${picks.join(",")}] matches its committed vector`, async () => {
-      const text = buildVector(seed, picks);
+  for (const { seed, picks, policy, maxSteps, tag } of RUNS) {
+    const name = `solo-seed${seed}-party${picks.join("-")}${tag ? `-${tag}` : ""}`;
+    it(`${name} (${policy}) matches its committed vector`, async () => {
+      const text = buildVector(seed, picks, policy, maxSteps);
       expect(text.split("\n").length).toBeGreaterThan(10); // sanity: the run did something
       // File snapshot = the committed, port-consumable fixture. Drift fails; regenerate with -u.
-      await expect(text).toMatchFileSnapshot(
-        `../../../docs/specs/conformance/solo-seed${seed}-party${picks.join("-")}.txt`,
-      );
+      await expect(text).toMatchFileSnapshot(`../../../docs/specs/conformance/${name}.txt`);
     });
   }
 });

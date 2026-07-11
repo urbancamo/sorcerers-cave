@@ -730,7 +730,7 @@ The v1 `design-spec.html` predates most of the artifact, hazard, combat, and mul
 
 The borne/carried death-loot model (SC-7.3-13/14, SC-7.2-13, SC-9.5-11) is pinned by `loot.test.ts`. In addition, `solo-golden.test.ts` is the **solo golden firewall**: deterministic policy-bot playthroughs whose full replays are snapshotted, freezing solo behaviour — any engine change that alters a solo game's course fails the snapshot and must be a deliberate, reviewed update. Two port-support suites extend the same idea: `data/data.test.ts › creature table matches engine-spec Appendix A.1 verbatim` pins every cell of the A.1 table, and `conformance-vectors.test.ts` regenerates and guards the committed Appendix D vector files as file snapshots (regenerate deliberately with `vitest run -u`).
 
-Full engine suite: **484 tests green** (the M3–M7 interaction layer is pinned by `multi-trade.test.ts`, `multi-fight.test.ts`, `multi-union.test.ts`, `multi-concurrent.test.ts` and `multi-zombies.test.ts`). Keep it that way — when a requirement changes, update both its `test` reference here and the test itself (see the repo `CLAUDE.md`).
+Full engine suite: **490 tests green** (the M3–M7 interaction layer is pinned by `multi-trade.test.ts`, `multi-fight.test.ts`, `multi-union.test.ts`, `multi-concurrent.test.ts` and `multi-zombies.test.ts`). Keep it that way — when a requirement changes, update both its `test` reference here and the test itself (see the repo `CLAUDE.md`).
 
 ---
 
@@ -748,8 +748,11 @@ divergence in roll count, order, or LCG arithmetic (A.5) shows on the exact line
   snapshots, so the suite FAILS if engine behaviour drifts from what is committed; regenerate
   deliberately with `pnpm --filter engine exec vitest run -u src/conformance-vectors.test.ts`
   in the same commit as the approved rules change (mirror of the solo-golden discipline).
-- **Coverage:** the same eight seed × party runs as `solo-golden.test.ts` (combat, pickup,
-  hazards, artifacts, deaths, escapes). They are conformance smoke tests; the normative contract
-  remains Part I.
+- **Coverage:** fourteen runs. Eight mirror `solo-golden.test.ts` (combat, pickup, hazards,
+  deaths); six are TARGETED fixtures found by seed sweep, driven by steered policies committed in
+  the generator: an escape with a laden party (`-escape`), a Sorcerer kill (`-sorcerer`), and four
+  artifact runs (`-artifacts`) that together use every usable artifact (Carpet 4, Lotus 5, Balm 6,
+  Potion 8, Staff 9, Flute 12) and exercise the Lost-Ruby wrestle and the Treasure Chest. They are
+  conformance smoke tests; the normative contract remains Part I.
 - **Porting workflow:** `docs/specs/PORTING-GUIDE.md` ties Part I/II, Appendix A, and these
   vectors into a step-by-step plan for a port.

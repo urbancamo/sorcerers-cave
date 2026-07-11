@@ -70,6 +70,17 @@ applied**. Directions: 1 N, 2 E, 3 S, 4 W, 5 up, 6 down.
 
 ## Coverage
 
-Eight seed × party runs (the same set as the solo golden firewall, `solo-golden.test.ts`),
-chosen to exercise combat, pickup, hazards, artifacts, deaths and escapes. They are conformance
-smoke tests, not an exhaustive rules suite — the normative contract remains engine-spec Part I.
+Fourteen runs. The eight untagged files mirror the solo golden firewall's seed × party set
+(`solo-golden.test.ts`) and exercise combat, pickup, hazards and deaths. The six TAGGED files are
+targeted fixtures found by seed sweep, driven by steered policies committed in the generator:
+
+| File tag | Pins |
+|---|---|
+| `-escape` (seed 225) | `exitCave` → `gameOver(ESCAPED)` with a laden party — valid final score 131 (§12) |
+| `-sorcerer` (seed 174) | `sorcererSlain` (+ the `SORCKILLED 1` curse-lift flag) before a party wipe |
+| `-artifacts` (seeds 257, 1237, 2678, 2355) | together, every usable artifact — Carpet 4, Lotus 5, Balm 6, Potion 8, Staff 9, Flute 12 (`USE` actions + effects) — plus the Lost-Ruby statue wrestle (×3) and the Treasure Chest (`OPENCHEST`) |
+
+Note two truncation shapes a replayer must accept: a run may end at the step cap with `GS 0`
+(`END MOVES 300`, game still live), and seed 2678 stops early when no legal action remains (the
+deliberate SC-6.3-1 soft-lock). They are conformance smoke tests, not an exhaustive rules suite —
+the normative contract remains engine-spec Part I.

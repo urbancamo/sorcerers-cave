@@ -14,7 +14,7 @@ is NOT required reading for the port:
 |---|---|
 | `docs/specs/engine-spec.md` | The specification. Part I = normative testable rules; Part II = readable rulebook; Appendix A = data tables, RNG algorithm (A.5), full state shape (A.6); Appendix B = deliberate deviations from the original 1978/1982 rules; Appendix D = the conformance-vector contract. |
 | `docs/specs/conformance/README.md` | Vector file format + action grammar. |
-| `docs/specs/conformance/solo-*.txt` | Eight machine-checkable playthroughs — the port's acceptance tests. |
+| `docs/specs/conformance/solo-*.txt` | Fourteen machine-checkable playthroughs — the port's acceptance tests (eight broad, six targeted: escape-with-loot, Sorcerer kill, full artifact coverage). |
 | `docs/specs/PORTING-GUIDE.md` | This file. |
 
 ## 1. What you are porting — and what you are not
@@ -104,11 +104,14 @@ fails: later ones compound everything.
 1. **M1 — RNG + static data.** A.5 exactly; transcribe A.1–A.4. Check `nextSeed(1)=1103527590`,
    the SC-3 counts (61 area cards, 71-card small pack, 14 creatures, 15 treasures, 5 hazards).
 2. **M2 — decks + newGame.** SC-5-1..5-12, §3 state init (SC-3-23/24). Gate: the `SETUP` line of
-   **all eight** vectors matches (this alone proves shuffle + consumption order).
+   **all fourteen** vectors matches (this alone proves shuffle + consumption order).
 3. **M3 — movement.** §6. Gate: every vector matches up to its first non-move action.
 4. **M4 — chambers, hazards, encounters.** §7–§8. 5. **M5 — fights.** §9 (the battle-plan
    validation rules SC-9.1-* are the subtle part). 6. **M6 — special areas, artifacts, scoring.**
-   §10–§12. Gate after M6: **all eight vectors match end to end, including the FINAL blocks.**
+   §10–§12. Gate after M6: **all fourteen vectors match end to end, including the FINAL blocks**
+   (the `-artifacts`/`-sorcerer`/`-escape` fixtures land in this milestone: between them they use
+   every usable artifact, wrestle the Ruby statue, open the Chest, slay the Sorcerer, and bank a
+   valid escape score).
 5. **M7 — reconcile legacy behaviour.** Walk Appendix B and remove any remaining
    rulebook-faithful behaviour the vectors happened not to exercise (the vectors are smoke tests;
    Part I is the contract — an audit pass of Part I rows against your code closes the gap).
@@ -126,6 +129,7 @@ fails: later ones compound everything.
   `seed + picks + actions` produces the same game in both, so a game log exported from one can be
   replayed by the other (the web app's replay-by-code viewer and `.json` machine log already
   speak this format on this side).
-- If more vectors would help (deeper levels, specific artifacts, a Sorcerer kill, an escape with
-  loot), ask for them on this side — the generator takes any `seed × picks` and the policy bot is
-  ~40 lines; targeted vectors are cheap to mint.
+- If more vectors would help (deeper levels, a specific hazard chain, multiplayer once that layer
+  is in scope), ask for them on this side — the generator takes any `seed × picks × policy`, and
+  targeted fixtures are found by a cheap seed sweep (that is how the escape / Sorcerer / artifact
+  vectors were minted).
