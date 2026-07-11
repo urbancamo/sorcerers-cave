@@ -10,7 +10,7 @@
 - **Part I — Normative Requirements** is the testable contract: one rule per row, each with a stable **ID**, the authoritative **`file:line`**, and the **test** that pins it (`—` = no direct test; consolidated in Appendix C).
 - **Part II — Rules Narrative** is the readable rulebook, cross-referencing requirement IDs in parentheses, e.g. (SC-8.3-5).
 - **Requirement IDs** are `SC-<§>-<n>`, stable across edits and aligned with the code's `spec §N` comments. `§MP` = multiplayer.
-- **Appendices:** A — data tables & constants (incl. the RNG algorithm); B — corrections vs the v1 spec; C — test-coverage gaps.
+- **Appendices:** A — data tables & constants (incl. the RNG algorithm and the full state shape); B — corrections vs the v1 spec; C — test-coverage gaps; D — cross-implementation conformance vectors (for ports).
 
 ### Section map
 
@@ -535,26 +535,33 @@ The M2 *awareness* layer is the read-only groundwork (plan WS-1) for the inter-p
 
 # Appendix A — Data tables & constants
 
-## A.1 Creatures (`data/creatures.ts`)
+## A.1 Creatures (`data/creatures.ts`) — complete, port-grade
 
-| id | name | fs | mp | carry | cost | pts | leaderPri | hostileMax / indiffMax | notable flag |
-|----|------|----|----|-------|------|-----|-----------|------------------------|--------------|
-| 0 | Hero | 5 | 0 | 75 | 6 | 10 | 7 | 3 / 3 | CHARISMA |
-| 1 | W-Hero (Woman-Hero) | — | — | 50 | 5 | — | 7 | — | CHARISMA, BEFRIENDS_UNICORN |
-| 2 | Ogre | — | 0 | 100 | 5 | 5 | 3 | — | INHUMAN |
-| 3 | Troll | — | 0 | 75 | 4 | 4 | 2 | — | INHUMAN |
-| 4 | Priest | — | >0 | 25 | 4 | 8 | 6 | 1 / 4 | (caster) |
-| 5 | Man | — | 0 | 50 | 3 | 5 | 5 | 2 / 4 | HUMAN |
-| 6 | Woman | — | 0 | 25 | 2 | 5 | 5 | 2 / 4 | HUMAN, BEFRIENDS_UNICORN |
-| 7 | Dwarf | — | 0 | 25 | 1 | 2 | 1 | 0 / 4 | GUIDES_PAST_TRAP |
-| 8 | Wizard | — | 5 | 0 | null | 15 | 8 | — | (caster) |
-| 9 | Spectre | — | — | 0 | null | 0 | 10 | 5 / 6 | needs magic/sword |
-| 10 | Dragon | 6 | — | 0 | null | 0 | 9 | 4 / 6 | never friendly |
-| 11 | Sorcerer | — | 9 | 0 | null | 0 | 11 | 6 / — | always hostile |
-| 12 | Giant | 7 | — | 150 | null | 7 | 4 | — | carries anything |
-| 13 | Unicorn | — | — | 0 | null | 4 | 0 | 0 / 0 | joins only with a Woman |
+Every cell below is verbatim from `data/creatures.ts:22-37` and pinned cell-by-cell by
+`data.test.ts › creature table matches engine-spec Appendix A.1 verbatim` — a port may transcribe
+this table without consulting the TypeScript.
 
-> Fields shown as `—` are not individually pinned by a data test (see SC-3-5); consult `data/creatures.ts` for the authoritative full row. Selectable starters are exactly ids 0–7 (`cost !== null`, SC-3-7). Flags bitmask: HUMAN=1, CHARISMA=2, BEFRIENDS_UNICORN=4, GUIDES_PAST_TRAP=8, INHUMAN=16 (SC-3-6).
+| id | name | fs | mp | carry | cost | pts | flags | hostileMax | indiffMax | leaderPri | notes |
+|----|------|----|----|-------|------|-----|-------|------------|-----------|-----------|-------|
+| 0 | Hero | 5 | 0 | 75 | 6 | 10 | 3 = HUMAN+CHARISMA | 3 | 3 | 7 | |
+| 1 | W-Hero | 4 | 0 | 50 | 5 | 10 | 7 = HUMAN+CHARISMA+BEFRIENDS_UNICORN | 3 | 3 | 7 | |
+| 2 | Ogre | 5 | 0 | 100 | 5 | 5 | 16 = INHUMAN | 4 | 5 | 3 | |
+| 3 | Troll | 4 | 0 | 75 | 4 | 4 | 16 = INHUMAN | 3 | 4 | 2 | |
+| 4 | Priest | 2 | 2 | 25 | 4 | 8 | 1 = HUMAN | 1 | 4 | 6 | caster |
+| 5 | Man | 3 | 0 | 50 | 3 | 5 | 1 = HUMAN | 2 | 4 | 5 | |
+| 6 | Woman | 2 | 0 | 25 | 2 | 5 | 5 = HUMAN+BEFRIENDS_UNICORN | 2 | 4 | 5 | |
+| 7 | Dwarf | 1 | 0 | 25 | 1 | 2 | 24 = INHUMAN+GUIDES_PAST_TRAP | 0 | 4 | 1 | |
+| 8 | Wizard | 2 | 5 | 0 | null | 15 | 1 = HUMAN | 1 | 5 | 8 | caster |
+| 9 | Spectre | 0 | 5 | 0 | null | 0 | 0 | 5 | 6 | 10 | fightable only by magic / borne Sword (§9.4) |
+| 10 | Dragon | 6 | 0 | 0 | null | 0 | 16 = INHUMAN | 4 | 6 | 9 | rolls 5–6 indifferent; never friendly |
+| 11 | Sorcerer | 4 | 9 | 0 | null | 0 | 0 | 6 | 6 | 11 | hostileMax 6 ⇒ always hostile |
+| 12 | Giant | 7 | 0 | 150 | null | 7 | 16 = INHUMAN | 3 | 5 | 4 | |
+| 13 | Unicorn | 0 | 4 | 0 | null | 4 | 4 = BEFRIENDS_UNICORN | 0 | 0 | 0 | joins only with a Woman/W-Hero (§8) |
+
+> Reaction thresholds: a d6 roll ≤ hostileMax is hostile, ≤ indiffMax indifferent, else friendly
+> (SC-8.x); `hostileMax` 0 = never hostile, 6 = always hostile. Selectable starters are exactly
+> ids 0–7 (`cost !== null`, SC-3-7). Flags bitmask: HUMAN=1, CHARISMA=2, BEFRIENDS_UNICORN=4,
+> GUIDES_PAST_TRAP=8, INHUMAN=16 (SC-3-6).
 
 ## A.2 Treasures (`data/treasures.ts`)
 
@@ -609,6 +616,86 @@ shuffle(s, arr)  -> Fisher–Yates, i = len-1 .. 1, j = randBelow(i+1), swap; re
 
 > Port note: because `M = 2^31` is a power of two, only the low 31 bits of the product are needed — a 32-bit truncating unsigned multiply masked with `& 0x7FFFFFFF` reproduces `nextSeed` exactly; 64-bit math is not required.
 
+## A.6 Full state shape (`state.ts`) — port-grade field inventory
+
+The complete `GameState` and its nested records, verbatim from `state.ts:21-136`. Optional (`?`)
+fields may be absent — a port should treat absent as the stated default. All values are integers,
+booleans, or arrays thereof; nothing requires floating point.
+
+### GameState (state.ts:86-136)
+
+| Field | Type | Meaning / default |
+|-------|------|-------------------|
+| gs | int | GS_PLAYING 0 / ESCAPED 1 / DEAD 2 / QUIT 3 (SC-3-22) |
+| phase | enum | `explore \| encounter \| fight \| pickup \| gameOver` (SC-4-3) |
+| turn | int | starts 1; +1 per successful move (SC-4-9) |
+| score | int | running score field (final score is computed by §12 `scoreBreakdown`) |
+| curses | int | accumulated curses (Eye of God, Chest curse roll) |
+| bonusScore | int | banked Chest loot added at scoring (SC-12) |
+| sorcererKilled | bool | lifts the curse penalty (§12) |
+| areas | PlacedArea[] | placed map, index 0 = the Gateway |
+| partyArea | int | index into `areas` |
+| level | int | current cave level, starts 1 |
+| prev / prev2 | int | area index one / two moves back (withdraw target / earthquake) |
+| party | PartyMember[] | the party, in join order |
+| largePack / largeIdx | int[] / int | shuffled 60 area-card values; next-draw cursor (SC-5-10/12) |
+| smallPack / smallIdx | int[] / int | shuffled 71-card codes minus party picks; cursor (SC-5-11/12, SC-5-5) |
+| strangers | int[] | chamber working set: creature ids present (SC-7.1-5) |
+| treasures | int[] | working set: treasure ids on the live floor |
+| hazards | int[] | working set: hazard ids drawn this entry (cleared after firing, SC-7.2-10) |
+| sleeping? | int[] | Lotus-slept creature ids — inert; default `[]` |
+| lulled? | int[] | flute-lulled Dragons, recomputed per entry (SC-7.1-7); default `[]` |
+| seed | int | the LCG cursor (A.5) — the ONLY randomness state (SC-5-13) |
+| fight | FightState \| null | active fight, else null |
+| fellThroughTrap? | bool | position reached by one-way trap fall; blocks withdraw/retreat (SC-4-14/17); default false |
+| surpriseReady? | bool | fresh chamber entry, attack-now grants surprise (SC-4-16); default false |
+| secretDoors? | int | count of secret doors discovered (labels A, B, C…, SC-6.1-13); default 0 |
+| lotusOnSorcerer? | bool | Sorcerer weakened −2 FS (can't be slept); default false |
+| indiffStreak? | int | consecutive indifferent tests THIS visit (3 ⇒ pacify, SC-4-20); default 0 |
+| pacifiedAreas? | int[] | area indices permanently indifferent to this party; default `[]` |
+| hostileAreas? | int[] | areas retreated from — attack on sight on return (SC-4-28); default `[]` |
+| fightDrops? | {mi,tid}[] | heavy treasure dropped for THIS fight, with its dropper (SC-7.3-10); default `[]` |
+
+### PartyMember (state.ts:21-39)
+
+| Field | Type | Meaning / default |
+|-------|------|-------------------|
+| creatureId | int | index into the A.1 table |
+| status | int | 0 original / 1 ally / 2 stone / 3 dead (SC-3-21) |
+| dragonKills | int | >0 doubles the member's creature points (§12) |
+| treasure | int[] | carried treasure ids |
+| borne? | int[] | subset of `treasure` being borne — only ids 3/9/10 (SC-7.3-13); default `[]` |
+| potionActive? | bool | Strength Potion active this fight (+2 FS); default false |
+| stoneArea? | int | where Medusa struck (status 2 only) |
+| mpTag? | string | multiplayer-only union identity tag (SC-MP-32); solo never sets it |
+
+### PlacedArea (state.ts:41-58)
+
+| Field | Type | Meaning / default |
+|-------|------|-------------------|
+| card | int | area-card value (bit-field, SC-3-2) |
+| coord | int | packed `level*10000 + y*100 + x` (SC-3-19) |
+| faceUp | bool | entered vs dead-end face-down placement (SC-6.1-8/9) |
+| visited | bool | chamber contents already drawn once (SC-7.1-2/6) |
+| contents | int[] | parked codes 100+cid / 200+tid / 300+hid / 400+cid (SC-3-17) |
+| flags | int | AF_DESTROYED=4 set by an earthquake (SC-7.2-2) |
+| indiffCount | int | reserved AI counter (persisted; solo play leaves it 0) |
+| dropped? | int[] | Deep-Pool sunken heavy treasure ids (SC-10.2); default `[]` |
+| markers? | int[] | display-only hazard scars (300+hid), never re-fire (SC-7.2-10); default `[]` |
+| mirroredStairs? | int | connectivity-only stair bits 32/64, excluded from art (SC-6.1-13..17); default 0 |
+| secretDoor? | int | 0-based discovery ordinal of this secret door; absent = none |
+
+### FightState / BattlePlan (state.ts:61-84)
+
+| Field | Type | Meaning / default |
+|-------|------|-------------------|
+| surprise | int | +1 party / −1 strangers / 0 — round 1 only (SC-9.2) |
+| round | int | starts 1; retreat legal only after round 1 (SC-4-27) |
+| focus | int | index into `strangers` |
+| casualtyQueue? | int[][] | pending losing pairs; player picks who falls (SC-4-26) |
+| retreatBlocked? | bool | a dead-end retreat this round; must fight on (SC-4-27) |
+| PlanMatch | {front[],backers[],strangers[]} | one pairing of a battle plan (SC-9.1-1) |
+
 ---
 
 # Appendix B — Corrections vs the v1 design-spec
@@ -641,6 +728,28 @@ The v1 `design-spec.html` predates most of the artifact, hazard, combat, and mul
 
 `gap-data-rng`, `gap-contract`, `gap-movement`, `gap-encounters`, `gap-fights`, `gap-special`, `gap-artifacts`, `gap-scoring`, `gap-multiplayer`, and `gap-misc` (`gap-*.test.ts`).
 
-The borne/carried death-loot model (SC-7.3-13/14, SC-7.2-13, SC-9.5-11) is pinned by `loot.test.ts`. In addition, `solo-golden.test.ts` is the **solo golden firewall**: deterministic policy-bot playthroughs whose full replays are snapshotted, freezing solo behaviour — any engine change that alters a solo game's course fails the snapshot and must be a deliberate, reviewed update.
+The borne/carried death-loot model (SC-7.3-13/14, SC-7.2-13, SC-9.5-11) is pinned by `loot.test.ts`. In addition, `solo-golden.test.ts` is the **solo golden firewall**: deterministic policy-bot playthroughs whose full replays are snapshotted, freezing solo behaviour — any engine change that alters a solo game's course fails the snapshot and must be a deliberate, reviewed update. Two port-support suites extend the same idea: `data/data.test.ts › creature table matches engine-spec Appendix A.1 verbatim` pins every cell of the A.1 table, and `conformance-vectors.test.ts` regenerates and guards the committed Appendix D vector files as file snapshots (regenerate deliberately with `vitest run -u`).
 
-Full engine suite: **474 tests green** (the M3–M7 interaction layer is pinned by `multi-trade.test.ts`, `multi-fight.test.ts`, `multi-union.test.ts`, `multi-concurrent.test.ts` and `multi-zombies.test.ts`). Keep it that way — when a requirement changes, update both its `test` reference here and the test itself (see the repo `CLAUDE.md`).
+Full engine suite: **484 tests green** (the M3–M7 interaction layer is pinned by `multi-trade.test.ts`, `multi-fight.test.ts`, `multi-union.test.ts`, `multi-concurrent.test.ts` and `multi-zombies.test.ts`). Keep it that way — when a requirement changes, update both its `test` reference here and the test itself (see the repo `CLAUDE.md`).
+
+---
+
+# Appendix D — Cross-implementation conformance vectors
+
+`docs/specs/conformance/` holds fixed solo playthroughs rendered as plain 7-bit-ASCII text —
+everything a **foreign implementation** (e.g. the VAX Macro-32 port) needs to prove it reproduces
+this engine: the initial `seed`/`picks`, the ordered action log to drive its reducer, a
+post-action checkpoint per move (turn / level / area / phase / gs / **RNG cursor**), and the full
+end state (party, map, working sets, score). The RNG cursor is the sharpest diagnostic: any
+divergence in roll count, order, or LCG arithmetic (A.5) shows on the exact line it occurs.
+
+- **Format & action grammar:** `docs/specs/conformance/README.md`.
+- **Generator & drift guard:** `conformance-vectors.test.ts` — the vectors are vitest file
+  snapshots, so the suite FAILS if engine behaviour drifts from what is committed; regenerate
+  deliberately with `pnpm --filter engine exec vitest run -u src/conformance-vectors.test.ts`
+  in the same commit as the approved rules change (mirror of the solo-golden discipline).
+- **Coverage:** the same eight seed × party runs as `solo-golden.test.ts` (combat, pickup,
+  hazards, artifacts, deaths, escapes). They are conformance smoke tests; the normative contract
+  remains Part I.
+- **Porting workflow:** `docs/specs/PORTING-GUIDE.md` ties Part I/II, Appendix A, and these
+  vectors into a step-by-step plan for a port.
