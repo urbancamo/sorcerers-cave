@@ -849,6 +849,10 @@
 }
 .scv-spectate-banner b { color: var(--brass-bright); }
 
+/* The finished game's four-letter code — the handle for replay-by-code on the splash. */
+.scv-go-code { margin: 2px 0 10px; font-size: 13px; color: var(--stone-dim); }
+.scv-go-code b { color: var(--brass-bright); letter-spacing: 0.14em; }
+
 /* Replay-by-code transport: first/prev/next/last + scrubber + the move's action/events readout. */
 .scv-replay-transport {
   position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 60;

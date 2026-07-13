@@ -58,6 +58,12 @@ function ScoreDetail({ row, rank, onBack }: { row: LeaderboardRow; rank?: number
         {left.length} of {row.party.length} left the cave
         {artifacts > 0 ? ` with ${artifacts} artifact${artifacts > 1 ? "s" : ""}` : ""}.
       </p>
+      {/* The recorded game's code — replay the whole run from the title screen (comes with the log). */}
+      {log?.game?.code && (
+        <p className="scv-go-code" data-testid="game-code">
+          Game code <b>{log.game.code}</b> — replay this run from the title screen.
+        </p>
+      )}
       {stats && (
         <dl className="scv-hsd-stats" data-testid="hs-stats">
           <div><dt>Max depth</dt><dd>Level {stats.maxDepth}</dd></div>

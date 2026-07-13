@@ -122,5 +122,15 @@ describe("HighScores", () => {
     render(<HighScores rows={rows} />);
     fireEvent.click(screen.getByText("Alice"));
     expect(screen.queryByTestId("download-log")).toBeNull();
+    expect(screen.queryByTestId("game-code")).toBeNull(); // the code line waits on the log too
+  });
+
+  it("shows the game code in the score detail once the log resolves", () => {
+    const log = { game: { code: "ABCD", seed: 1, picks: [0], color: null, status: "finished", createdAt: 0 }, moves: [] } as GameLog;
+    useQueryMock.mockImplementation((q: unknown) => (q === "highScores:log" ? log : undefined));
+    const rows = [row({ _id: "a", name: "Alice", party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }] })];
+    render(<HighScores rows={rows} />);
+    fireEvent.click(screen.getByText("Alice"));
+    expect(within(screen.getByTestId("hs-detail")).getByTestId("game-code")).toHaveTextContent(/ABCD/);
   });
 });

@@ -102,6 +102,22 @@ describe("GameOverScreen", () => {
     expect(screen.getByTestId("no-record")).toHaveTextContent(/can record a score/i);
   });
 
+  it("shows the game code on the escaped, abandoned and slain screens alike", () => {
+    const base = newGame(1, [0]);
+    // One component serves all three outcomes — the code must show on each.
+    for (const gs of [GS_ESCAPED, GS_QUIT, GS_DEAD]) {
+      const { unmount } = render(<GameOverScreen state={{ ...base, gs }} onNewGame={() => {}} code="SPQR" />);
+      expect(screen.getByTestId("game-code")).toHaveTextContent(/SPQR/);
+      unmount();
+    }
+  });
+
+  it("omits the game-code line when no code is known", () => {
+    const escaped: GameState = { ...newGame(1, [0]), gs: GS_ESCAPED };
+    render(<GameOverScreen state={escaped} onNewGame={() => {}} />);
+    expect(screen.queryByTestId("game-code")).toBeNull();
+  });
+
   it("offers no name entry when saving is unavailable", () => {
     const base = newGame(1, [0]);
     const escaped: GameState = { ...base, gs: GS_ESCAPED };

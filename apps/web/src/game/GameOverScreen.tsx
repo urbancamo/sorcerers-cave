@@ -18,6 +18,7 @@ export function GameOverScreen({
   leaderboard,
   newGameLabel,
   log,
+  code,
 }: {
   state: GameState;
   onNewGame: () => void;
@@ -29,6 +30,8 @@ export function GameOverScreen({
   leaderboard?: LeaderboardRow[];
   /** This game's move log, if available — enables the .txt / .log downloads. */
   log?: GameLog | null;
+  /** The game's four-letter code — the handle for replay-by-code on the splash screen. */
+  code?: string | null;
 }) {
   const breakdown = scoreBreakdown(state);
   // Only a party that climbs back to the surface earns a recordable score (§Scoring). An abandoned or
@@ -53,6 +56,14 @@ export function GameOverScreen({
   return (
     <section className="scv-panel scv-gameover" data-testid="game-over">
       <h2 className="scv-hd">{OUTCOME[state.gs] ?? "The expedition ends."}</h2>
+
+      {/* Whatever the outcome, the code lets anyone replay this expedition from the title screen. */}
+      {code && (
+        <p className="scv-go-code" data-testid="game-code">
+          Game code <b>{code}</b> — enter it under &ldquo;Replay a game&rdquo; on the title screen to
+          step through this expedition.
+        </p>
+      )}
 
       {/* Roll call — every member, their carried items, and the points each is worth. */}
       <ul className="scv-rollcall">

@@ -166,6 +166,7 @@ export default function GameScreen() {
           onSaveScore={(name) => saveScore({ gameId, name })}
           leaderboard={leaderboard}
           log={gameLog ?? null}
+          code={code ?? gameLog?.game.code ?? null}
         />
         {overlay}
       </>
