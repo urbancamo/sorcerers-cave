@@ -19,6 +19,7 @@ export function GameOverScreen({
   newGameLabel,
   log,
   code,
+  onReplay,
 }: {
   state: GameState;
   onNewGame: () => void;
@@ -32,6 +33,8 @@ export function GameOverScreen({
   log?: GameLog | null;
   /** The game's four-letter code — the handle for replay-by-code on the splash screen. */
   code?: string | null;
+  /** Open the replay viewer for a recorded game's code (threaded into the post-save leaderboard). */
+  onReplay?: (code: string) => Promise<string | null>;
 }) {
   const breakdown = scoreBreakdown(state);
   // Only a party that climbs back to the surface earns a recordable score (§Scoring). An abandoned or
@@ -147,7 +150,7 @@ export function GameOverScreen({
       {saved && (
         <div className="scv-hs-wrap">
           <h3 className="scv-hs-heading">High Scores</h3>
-          <HighScores rows={leaderboard} highlightId={savedId || undefined} />
+          <HighScores rows={leaderboard} highlightId={savedId || undefined} onReplay={onReplay} />
         </div>
       )}
 

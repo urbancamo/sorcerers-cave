@@ -130,7 +130,8 @@ export default function GameScreen() {
     );
   }
 
-  // The read-only replay viewer, entered from the splash (never from inside a live game).
+  // The read-only replay viewer — entered from the splash or a high-score detail (this check
+  // precedes every game surface, so it also overlays the game-over screen; never a live game).
   if (replayBundle) {
     return <ReplayView bundle={replayBundle} onExit={() => setReplayBundle(null)} />;
   }
@@ -167,6 +168,7 @@ export default function GameScreen() {
           leaderboard={leaderboard}
           log={gameLog ?? null}
           code={code ?? gameLog?.game.code ?? null}
+          onReplay={handleReplay}
         />
         {overlay}
       </>

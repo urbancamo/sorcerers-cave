@@ -125,6 +125,38 @@ describe("HighScores", () => {
     expect(screen.queryByTestId("game-code")).toBeNull(); // the code line waits on the log too
   });
 
+  it("offers Replay in the detail's button cluster and launches it with the game's code", async () => {
+    const log = { game: { code: "ABCD", seed: 1, picks: [0], color: null, status: "finished", createdAt: 0 }, moves: [] } as GameLog;
+    useQueryMock.mockImplementation((q: unknown) => (q === "highScores:log" ? log : undefined));
+    const onReplay = vi.fn().mockResolvedValue(null); // null = the viewer opened
+    const rows = [row({ _id: "a", name: "Alice", party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }] })];
+    render(<HighScores rows={rows} onReplay={onReplay} />);
+    fireEvent.click(screen.getByText("Alice"));
+    const cluster = screen.getByTestId("download-log");
+    fireEvent.click(within(cluster).getByRole("button", { name: /replay/i }));
+    await vi.waitFor(() => expect(onReplay).toHaveBeenCalledWith("ABCD"));
+  });
+
+  it("explains when a recorded game cannot be replayed, instead of opening the viewer", async () => {
+    const log = { game: { code: "OLDG", seed: null, picks: null, color: null, status: "finished", createdAt: 0 }, moves: [] } as GameLog;
+    useQueryMock.mockImplementation((q: unknown) => (q === "highScores:log" ? log : undefined));
+    const onReplay = vi.fn().mockResolvedValue("This game predates full logging and cannot be replayed.");
+    const rows = [row({ _id: "a", name: "Alice", party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }] })];
+    render(<HighScores rows={rows} onReplay={onReplay} />);
+    fireEvent.click(screen.getByText("Alice"));
+    fireEvent.click(within(screen.getByTestId("download-log")).getByRole("button", { name: /replay/i }));
+    expect(await screen.findByText(/predates full logging/i)).toBeInTheDocument();
+  });
+
+  it("offers no Replay button without an onReplay handler", () => {
+    const log = { game: { code: "ABCD", seed: 1, picks: [0], color: null, status: "finished", createdAt: 0 }, moves: [] } as GameLog;
+    useQueryMock.mockImplementation((q: unknown) => (q === "highScores:log" ? log : undefined));
+    const rows = [row({ _id: "a", name: "Alice", party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }] })];
+    render(<HighScores rows={rows} />);
+    fireEvent.click(screen.getByText("Alice"));
+    expect(within(screen.getByTestId("download-log")).queryByRole("button", { name: /replay/i })).toBeNull();
+  });
+
   it("shows the game code in the score detail once the log resolves", () => {
     const log = { game: { code: "ABCD", seed: 1, picks: [0], color: null, status: "finished", createdAt: 0 }, moves: [] } as GameLog;
     useQueryMock.mockImplementation((q: unknown) => (q === "highScores:log" ? log : undefined));

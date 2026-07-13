@@ -191,7 +191,7 @@ export function SplashScreen({
         </a>
       </section>
 
-      {showScores && <HighScoresModal onClose={() => setShowScores(false)} />}
+      {showScores && <HighScoresModal onClose={() => setShowScores(false)} onReplay={onReplay} />}
 
       <footer className="scv-attrib">
         <p>
