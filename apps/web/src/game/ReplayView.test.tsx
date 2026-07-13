@@ -101,12 +101,14 @@ describe("ReplayView — auto-play (§RB-4-6)", () => {
     return screen.getByTestId("canvas");
   };
 
-  it("play animates forward at half a second per frame and stops at the end", async () => {
+  it("play animates forward at one second per frame and stops at the end", async () => {
     await renderWithTimers();
     fireEvent.click(screen.getByRole("button", { name: /play replay/i }));
-    act(() => vi.advanceTimersByTime(500));
+    act(() => vi.advanceTimersByTime(999));
+    expect(screen.getByText(/move 0 \/ 2/i)).toBeInTheDocument(); // not yet — full second per frame
+    act(() => vi.advanceTimersByTime(1));
     expect(screen.getByText(/move 1 \/ 2/i)).toBeInTheDocument();
-    act(() => vi.advanceTimersByTime(500));
+    act(() => vi.advanceTimersByTime(1000));
     expect(screen.getByText(/move 2 \/ 2/i)).toBeInTheDocument();
     // At the last frame playback ends by itself: Play is offered again, and time changes nothing.
     expect(screen.getByRole("button", { name: /play replay/i })).toBeInTheDocument();
@@ -117,7 +119,7 @@ describe("ReplayView — auto-play (§RB-4-6)", () => {
   it("stop halts playback where it is", async () => {
     await renderWithTimers();
     fireEvent.click(screen.getByRole("button", { name: /play replay/i }));
-    act(() => vi.advanceTimersByTime(500));
+    act(() => vi.advanceTimersByTime(1000));
     expect(screen.getByText(/move 1 \/ 2/i)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /stop playback/i }));
     act(() => vi.advanceTimersByTime(2000));

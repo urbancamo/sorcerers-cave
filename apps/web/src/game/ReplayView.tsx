@@ -31,13 +31,14 @@ export function ReplayView({ bundle, onExit }: { bundle: ReplayBundle; onExit: (
   const [i, setI] = useState(0);
   const jump = (n: number) => setI(Math.max(0, Math.min(last, n))); // clamp: never out of range
 
-  // Auto-play (RB-4-6): advance one frame per half-second until stopped or the timeline ends.
+  // Auto-play (RB-4-6): advance one frame per second until stopped or the timeline ends.
   // One timeout per frame (not an interval) so a manual jump mid-play simply re-arms from there.
+  // 1000 ms comfortably clears the renderer's 550 ms token-move animation between steps.
   const [playing, setPlaying] = useState(false);
   useEffect(() => {
     if (!playing) return;
     if (i >= last) { setPlaying(false); return; } // the end stops playback by itself
-    const t = setTimeout(() => setI(i + 1), 500);
+    const t = setTimeout(() => setI(i + 1), 1000);
     return () => clearTimeout(t);
   }, [playing, i, last]);
 
