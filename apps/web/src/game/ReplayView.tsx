@@ -31,6 +31,16 @@ export function ReplayView({ bundle, onExit }: { bundle: ReplayBundle; onExit: (
   const [i, setI] = useState(0);
   const jump = (n: number) => setI(Math.max(0, Math.min(last, n))); // clamp: never out of range
 
+  // Auto-play (RB-4-6): advance one frame per half-second until stopped or the timeline ends.
+  // One timeout per frame (not an interval) so a manual jump mid-play simply re-arms from there.
+  const [playing, setPlaying] = useState(false);
+  useEffect(() => {
+    if (!playing) return;
+    if (i >= last) { setPlaying(false); return; } // the end stops playback by itself
+    const t = setTimeout(() => setI(i + 1), 500);
+    return () => clearTimeout(t);
+  }, [playing, i, last]);
+
   const [art, setArt] = useState<ArtTables | null>(null);
   useEffect(() => { void loadManifest().then(setArt); }, []);
 
@@ -62,6 +72,11 @@ export function ReplayView({ bundle, onExit }: { bundle: ReplayBundle; onExit: (
           <button className="scv-primary" onClick={() => jump(0)} disabled={i === 0} aria-label="first move">⏮ First</button>
           <button className="scv-primary" onClick={() => jump(i - 1)} disabled={i === 0} aria-label="previous move">◀ Previous</button>
           <span className="scv-replay-pos">Move {i} / {last}</span>
+          {playing ? (
+            <button className="scv-primary" onClick={() => setPlaying(false)} aria-label="stop playback">■ Stop</button>
+          ) : (
+            <button className="scv-primary" onClick={() => setPlaying(true)} disabled={i === last} aria-label="play replay">▶ Play</button>
+          )}
           <button className="scv-primary" onClick={() => jump(i + 1)} disabled={i === last} aria-label="next move">Next ▶</button>
           <button className="scv-primary" onClick={() => jump(last)} disabled={i === last} aria-label="last move">Last ⏭</button>
         </div>

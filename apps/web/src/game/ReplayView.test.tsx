@@ -1,5 +1,5 @@
-import { render, screen, fireEvent } from "@testing-library/react";
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { render, screen, fireEvent, act } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { replay, type GameState } from "@sorcerers-cave/engine";
 import { ReplayView, type ReplayBundle } from "./ReplayView";
 
@@ -87,6 +87,41 @@ describe("ReplayView — transport over ReplayFrames (§RB-4)", () => {
     expect(screen.queryByRole("button", { name: /attack|test|withdraw|save|quit the game/i })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /exit replay/i }));
     expect(onExit).toHaveBeenCalledOnce();
+  });
+});
+
+describe("ReplayView — auto-play (§RB-4-6)", () => {
+  beforeEach(() => vi.useFakeTimers());
+  afterEach(() => vi.useRealTimers());
+
+  const renderWithTimers = async () => {
+    render(<ReplayView bundle={bundle} onExit={vi.fn()} />);
+    // findBy* would need real timers; flush the manifest promise under fake ones instead.
+    await act(async () => { await Promise.resolve(); });
+    return screen.getByTestId("canvas");
+  };
+
+  it("play animates forward at half a second per frame and stops at the end", async () => {
+    await renderWithTimers();
+    fireEvent.click(screen.getByRole("button", { name: /play replay/i }));
+    act(() => vi.advanceTimersByTime(500));
+    expect(screen.getByText(/move 1 \/ 2/i)).toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(500));
+    expect(screen.getByText(/move 2 \/ 2/i)).toBeInTheDocument();
+    // At the last frame playback ends by itself: Play is offered again, and time changes nothing.
+    expect(screen.getByRole("button", { name: /play replay/i })).toBeInTheDocument();
+    act(() => vi.advanceTimersByTime(2000));
+    expect(screen.getByText(/move 2 \/ 2/i)).toBeInTheDocument();
+  });
+
+  it("stop halts playback where it is", async () => {
+    await renderWithTimers();
+    fireEvent.click(screen.getByRole("button", { name: /play replay/i }));
+    act(() => vi.advanceTimersByTime(500));
+    expect(screen.getByText(/move 1 \/ 2/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /stop playback/i }));
+    act(() => vi.advanceTimersByTime(2000));
+    expect(screen.getByText(/move 1 \/ 2/i)).toBeInTheDocument(); // did not creep forward
   });
 });
 

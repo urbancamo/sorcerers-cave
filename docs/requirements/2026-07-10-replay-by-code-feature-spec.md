@@ -119,6 +119,7 @@ reads the mismatch, fixes it, and *knows* when it is right without you in the se
 | RB-4-3 | Navigation MUST clamp: previous at frame 0 and next at the last frame are no-ops (buttons disabled at the ends), never out-of-range. | ReplayView.tsx:32 (`jump` clamp), :62-66 (disabled at ends) | ReplayView.test.tsx:60 › `prev at 0 and next at end are no-ops` |
 | RB-4-4 | For frame `i ≥ 1` the viewer MUST show the action that produced it and the events it generated, reusing the existing human-readable formatters `actionLabel` / `describeEvent` (Appendix A-3) rather than new copy. Frame 0 MUST read as the initial deal. | ReplayView.tsx:77-81, gameLog.ts:45,100 | ReplayView.test.tsx:72 › `labels the current move and its events` |
 | RB-4-5 | The viewer MUST be unmistakably a replay, not live play: no action/movement controls, a visible "Replay" banner/label, and an exit back to the splash. | ReplayView.tsx:57-58 (banner + exit); adapter bound `canAct: () => false` at :42 | ReplayView.test.tsx:80 › `shows no live-action controls in replay` |
+| RB-4-6 | *(added 2026-07-13, supersedes the RB-6-5 v1 non-goal)* The transport MUST offer auto-play: Play advances one frame per 500 ms until Stop is pressed or the last frame is reached (playback then ends by itself and Play is offered again); a manual jump during playback re-arms the timer from the new frame. Play is disabled at the last frame. | ReplayView.tsx:34-43 (timer), :74-79 (Play/Stop) | ReplayView.test.tsx:104 › `play animates forward at half a second per frame and stops at the end`; :117 › `stop halts playback where it is` |
 
 ## §RB-5 — Rendering a frame through the existing view
 
@@ -135,7 +136,7 @@ reads the mismatch, fixes it, and *knows* when it is right without you in the se
 | RB-6-2 | **Non-goal (this milestone):** multiplayer replay. `mode === "multi"` is excluded by RB-1-6; a later spec revision covers multi-seat timelines. |
 | RB-6-3 | **DECIDED (2026-07-10) — shareable.** Replay is reachable by anyone who has the code; the new query drops the IDOR guard (RB-1-3), the bundle carries no owner PII (RB-1-7), and the existing owner-scoped paths are untouched. Accepted trade-off: the 26⁴ (~457k) code space is guessable, so replays are effectively enumerable by a determined scraper — deemed acceptable for a low-sensitivity solo board game. **Optional future hardening (not required now):** issue a longer/opaque *share token* distinct from the short resume code if enumeration ever becomes a concern. |
 | RB-6-4 | **DECIDED (2026-07-10) — splash screen.** The entry point is a "Replay a game" affordance on the splash screen, visually parallel to the existing "Resume a game" code box (SplashScreen.tsx:114). RB-3-1 already encodes this; the in-game "Game log" adjacency is rejected for v1. |
-| RB-6-5 | **Non-goal:** playback timing/auto-advance ("play" button, speed control). Manual stepping only in v1; auto-play is a fast follow if the manual viewer feels good. |
+| RB-6-5 | ~~**Non-goal:** playback timing/auto-advance.~~ **SUPERSEDED (2026-07-13):** auto-play shipped as the planned fast follow — Play/Stop at a fixed 500 ms per frame (RB-4-6). Still out of scope: variable speed control. |
 
 ---
 
@@ -166,9 +167,10 @@ the stored state, the very check `game.test.ts:205` already performs.
 The viewer holds the frame array and a cursor, renders the current frame's state through the existing
 cave view (`createCaveAdapter`) so the cave and roster look exactly as they did in play, and shows the
 current move and its consequences using the same `actionLabel` / `describeEvent` text that powers the
-downloadable log (gameLog.ts:45, :100). Transport is first / prev / next / last plus a scrubber and a
-"move i / n" readout. Crucially it presents as a replay — no movement or action controls, a clear
-"Replay" label — so it can never be confused with, or accidentally mutate, a live game.
+downloadable log (gameLog.ts:45, :100). Transport is first / prev / next / last plus a scrubber, a
+"move i / n" readout, and Play/Stop auto-advance at half a second per frame (RB-4-6). Crucially it
+presents as a replay — no movement or action controls, a clear "Replay" label — so it can never be
+confused with, or accidentally mutate, a live game.
 
 What stays a human call is the *feel*: whether stepping is pleasant, whether the cave should animate
 between frames or cut, and where the entry point and its copy belong. Those are the parts the loop
