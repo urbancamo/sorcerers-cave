@@ -26,8 +26,17 @@ const survived = (m: PartyMember) => m.status === 0 || m.status === 1;
 
 /** Roll-call detail for one score: who walked out, and the treasure & artifacts they carried —
  *  shown with the actual card art (progressive enhancement; falls back to names if art can't load). */
-function ScoreDetail({ row, rank, onBack }: { row: LeaderboardRow; rank?: number; onBack: () => void }) {
+function ScoreDetail({ row, rank, onBack, onReplay }: {
+  row: LeaderboardRow;
+  rank?: number;
+  onBack: () => void;
+  /** Open the replay viewer for a game code — resolves null on success, or an explanatory
+   *  message (e.g. the game predates full logging) to surface here. */
+  onReplay?: (code: string) => Promise<string | null>;
+}) {
   const [cards, setCards] = useState<CardArt[]>([]);
+  const [replayErr, setReplayErr] = useState<string | null>(null);
+  const [replaying, setReplaying] = useState(false);
   useEffect(() => {
     let alive = true;
     loadManifest().then(({ cards }) => { if (alive) setCards(cards); }).catch(() => {});
@@ -58,6 +67,12 @@ function ScoreDetail({ row, rank, onBack }: { row: LeaderboardRow; rank?: number
         {left.length} of {row.party.length} left the cave
         {artifacts > 0 ? ` with ${artifacts} artifact${artifacts > 1 ? "s" : ""}` : ""}.
       </p>
+      {/* The recorded game's code — replay the whole run from the title screen (comes with the log). */}
+      {log?.game?.code && (
+        <p className="scv-go-code" data-testid="game-code">
+          Game code <b>{log.game.code}</b> — replay this run from the title screen.
+        </p>
+      )}
       {stats && (
         <dl className="scv-hsd-stats" data-testid="hs-stats">
           <div><dt>Max depth</dt><dd>Level {stats.maxDepth}</dd></div>
@@ -111,28 +126,50 @@ function ScoreDetail({ row, rank, onBack }: { row: LeaderboardRow; rank?: number
           );
         })}
       </ul>
-      {/* Download this expedition's log — a readable narrative (.txt) or a wide-carriage printer report (.log). */}
+      {/* This expedition's record — watch it replayed move by move, or download its log
+          as a readable narrative (.txt) / wide-carriage printer report (.log). */}
       {log && (
         <div className="scv-hsd-downloads" data-testid="download-log">
-          <span className="scv-hsd-dl-label">Download log</span>
+          <span className="scv-hsd-dl-label">This game</span>
+          {onReplay && log.game?.code && (
+            <button
+              type="button"
+              className="scv-hsd-dl"
+              disabled={replaying}
+              onClick={() => {
+                if (!log.game?.code) return;
+                setReplaying(true);
+                setReplayErr(null);
+                void onReplay(log.game.code).then((err) => { setReplaying(false); if (err) setReplayErr(err); });
+              }}
+            >
+              {replaying ? "Loading…" : "▶ Replay"}
+            </button>
+          )}
           <button type="button" className="scv-hsd-dl" onClick={() => downloadLog(log, "human")}>Readable (.txt)</button>
           <button type="button" className="scv-hsd-dl" onClick={() => downloadLog(log, "printer")}>Printer (.log)</button>
         </div>
       )}
+      {replayErr && <p className="scv-resume-err" role="alert">{replayErr}</p>}
     </div>
   );
 }
 
 /** Presentational leaderboard. Rows are clickable to reveal the party & artifacts that left the
  *  cave. `rows === undefined` means still loading. */
-export function HighScores({ rows, highlightId }: { rows: LeaderboardRow[] | undefined; highlightId?: string }) {
+export function HighScores({ rows, highlightId, onReplay }: {
+  rows: LeaderboardRow[] | undefined;
+  highlightId?: string;
+  /** When provided, the score detail offers a "Replay" of the recorded game (see ScoreDetail). */
+  onReplay?: (code: string) => Promise<string | null>;
+}) {
   const [openId, setOpenId] = useState<string | null>(null);
   if (rows === undefined) return <p className="scv-muted scv-hs-status">Loading high scores…</p>;
   if (rows.length === 0) return <p className="scv-muted scv-hs-status">No scores recorded yet — be the first.</p>;
 
   const openIndex = rows.findIndex((r) => r._id === openId);
   if (openIndex !== -1) {
-    return <ScoreDetail row={rows[openIndex]!} rank={openIndex + 1} onBack={() => setOpenId(null)} />;
+    return <ScoreDetail row={rows[openIndex]!} rank={openIndex + 1} onBack={() => setOpenId(null)} onReplay={onReplay} />;
   }
 
   return (
@@ -176,13 +213,16 @@ export function HighScores({ rows, highlightId }: { rows: LeaderboardRow[] | und
 }
 
 /** Self-fetching modal used from the splash screen (only mounts when opened). */
-export function HighScoresModal({ onClose }: { onClose: () => void }) {
+export function HighScoresModal({ onClose, onReplay }: {
+  onClose: () => void;
+  onReplay?: (code: string) => Promise<string | null>;
+}) {
   const rows = useQuery(api.highScores.list) as LeaderboardRow[] | undefined;
   return (
     <div className="scv-hs-overlay" role="dialog" aria-label="high scores" onClick={onClose}>
       <div className="scv-hs-modal" onClick={(e) => e.stopPropagation()}>
         <h2 className="scv-hd">High Scores</h2>
-        <HighScores rows={rows} />
+        <HighScores rows={rows} onReplay={onReplay} />
         <button className="scv-primary" onClick={onClose}>Close</button>
       </div>
     </div>

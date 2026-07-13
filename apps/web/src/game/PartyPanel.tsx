@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  CREATURES, TREASURES, carriedWeight, canCarry,
+  CREATURES, TREASURES, carriedWeight, canCarry, BORNEABLE, isBorne,
   type GameState, type GameAction,
 } from "@sorcerers-cave/engine";
 import { memberLabels } from "./memberLabels";
@@ -72,6 +72,13 @@ export function PartyPanel({
         {sel && selTid !== undefined && canManage && (
           <div className="scv-pp-bar">
             <span>Move <b>{TREASURES[selTid]?.name}</b> to a member, or</span>
+            {/* Bear vs stow (Sword/Staff/Ring only): a BORNE item is wielded/worn — it is petrified or
+                lost WITH its holder; a carried item spills to the floor when the holder falls (§④a). */}
+            {BORNEABLE.includes(selTid) && isAlive(party[sel.mi]!.status) && (
+              isBorne(party[sel.mi]!, selTid)
+                ? <button className="scv-pp-act" onClick={() => { dispatch({ type: "setBorne", mi: sel.mi, idx: sel.idx, borne: false }); setSel(null); }}>Stow (carry)</button>
+                : <button className="scv-pp-act" onClick={() => { dispatch({ type: "setBorne", mi: sel.mi, idx: sel.idx, borne: true }); setSel(null); }}>Bear (wield)</button>
+            )}
             <button className="scv-pp-act" onClick={drop}>Drop into chamber</button>
             <button className="scv-pp-act ghost" onClick={() => setSel(null)}>Cancel</button>
           </div>
@@ -106,14 +113,15 @@ export function PartyPanel({
                     const t = TREASURES[tid]!;
                     const timg = imgOf("treasure", tid);
                     const selected = sel?.mi === mi && sel?.idx === idx;
+                    const borne = isBorne(m, tid);
                     return (
                       <button
                         key={idx}
                         type="button"
-                        className={"scv-pp-item" + (t.kind === "artifact" ? " art" : "") + (selected ? " sel" : "")}
+                        className={"scv-pp-item" + (t.kind === "artifact" ? " art" : "") + (selected ? " sel" : "") + (borne ? " borne" : "")}
                         disabled={!canManage}
-                        aria-label={t.name}
-                        title={t.name + (t.kind === "artifact" ? " · artifact" : ` · ${t.weight}kg`)}
+                        aria-label={t.name + (borne ? " (borne)" : "")}
+                        title={t.name + (t.kind === "artifact" ? " · artifact" : ` · ${t.weight}kg`) + (borne ? " · borne (wielded — stays with the body if the holder falls)" : "")}
                         onClick={() => setSel(selected ? null : { mi, idx })}
                         onMouseEnter={() => setPreview(timg)}
                         onMouseLeave={() => setPreview((p) => (p === timg ? null : p))}

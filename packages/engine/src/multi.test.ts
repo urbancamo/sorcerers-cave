@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildMpGame, choosePartyFor, mpReduce, currentSeat, type CaveState, type PartyState, type MpGameState } from "./multi";
+import { buildMpGame, choosePartyFor, mpReduce, currentSeat, occupants, areaInteractionMask, pvpSurprise, type CaveState, type PartyState, type MpGameState } from "./multi";
 import { packCoord } from "./coords";
 
 const member = (creatureId: number, treasure: number[] = []) => ({ creatureId, status: 0 as const, dragonKills: 0, treasure });
@@ -195,5 +195,111 @@ describe("mpReduce (turn-gated play)", () => {
     expect(mpReduce(resting, 0, { type: "endTurn" }).state.active).toBe(1);
     const mid = playing({}, [partyAt(0, { phase: "encounter", strangers: [10] }), partyAt(1)]);
     expect(mpReduce(mid, 0, { type: "endTurn" }).events).toEqual([{ type: "blocked" }]);
+  });
+});
+
+describe("awareness & interaction masks (spec I-1/I-9/I-13, plan WS-1)", () => {
+  it("occupants lists co-located exploring seats only (terminal seats drop out)", () => {
+    const mp = playing({}, [partyAt(0), partyAt(1), partyAt(2, { status: "left" })], [0, 1, 2]);
+    expect(occupants(mp, 0)).toEqual([0, 1]); // the escaped seat 2 no longer occupies the tile
+    expect(occupants(mp, 99)).toEqual([]);
+  });
+
+  it("PvP is legal in a clear shared chamber", () => {
+    const mp = playing({}, [partyAt(0), partyAt(1)]);
+    expect(areaInteractionMask(mp, 0)).toEqual({ pvpLegal: true, reason: null, fightInProgress: null });
+  });
+
+  it("PvP is barred in the Viper Pit and the Deep Pool", () => {
+    const pool = playing({ areas: [{ card: 15 | (2 << 7), coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }] }, [partyAt(0), partyAt(1)]);
+    expect(areaInteractionMask(pool, 0).pvpLegal).toBe(false);
+    const pit = playing({ areas: [{ card: 15 | (3 << 7), coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }] }, [partyAt(0), partyAt(1)]);
+    expect(areaInteractionMask(pit, 0).pvpLegal).toBe(false);
+  });
+
+  it("PvP is barred while strangers remain — parked on the tile or live in a working set", () => {
+    const parked = playing({ areas: [{ card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [110], flags: 0, indiffCount: 0 }] }, [partyAt(0), partyAt(1)]);
+    expect(areaInteractionMask(parked, 0).reason).toMatch(/strangers/);
+    const live = playing({}, [partyAt(0, { phase: "encounter", strangers: [10] }), partyAt(1)]);
+    expect(areaInteractionMask(live, 0).pvpLegal).toBe(false);
+  });
+
+  it("a co-located party mid-fight blocks interaction and is reported (I-13)", () => {
+    const mp = playing({}, [partyAt(0, { phase: "fight", strangers: [3], fight: { surprise: 0, round: 1, focus: 0 } }), partyAt(1)]);
+    const mask = areaInteractionMask(mp, 0);
+    expect(mask.pvpLegal).toBe(false);
+    expect(mask.fightInProgress).toBe(0);
+  });
+
+  it("surprise applies only when the attacker is NOT following the defender (I-9)", () => {
+    const followed = pvpSurprise(partyAt(0, { prev: 4 }), partyAt(1, { prev: 4 }));
+    expect(followed).toBe(0); // came in the same way — no surprise
+    const flanked = pvpSurprise(partyAt(0, { prev: 2 }), partyAt(1, { prev: 4 }));
+    expect(flanked).toBe(1); // arrived by another way
+  });
+});
+
+describe("PvP wiring in mpReduce (M4b)", () => {
+  it("declareAttack opens the session off-turn machinery and locks combatants out of solo actions", () => {
+    const mp = playing({}, [partyAt(0), partyAt(1)]);
+    const declared = mpReduce(mp, 0, { type: "declareAttack", to: 1 }, 1000).state;
+    expect(declared.session?.kind).toBe("pvp");
+    // Combatants may not dispatch solo actions while the fight runs (Tier C lock).
+    expect(mpReduce(declared, 0, { type: "move", dir: 1 }, 1000).events).toEqual([{ type: "blocked" }]);
+    // Layout proceeds via the staged pvp actions: defender lays the line first.
+    const lined = mpReduce(declared, 1, { type: "pvpLine", line: ["1:0"] }, 1000);
+    expect((lined.state.session as { stage?: string })?.stage).toBe("attackerEngage");
+  });
+
+  it("a clean flight turn keeps the fleeing seat active for its second turn in a row (§I-11)", () => {
+    // Two-tile map: gateway-ish chamber (0) and an EXPLORED empty chamber north (1) so the flight
+    // move draws nothing and meets nobody. Seat 0 has fleeGrace 2 (as if just fled).
+    const north = { card: 31, coord: packCoord(1, 50, 49), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };
+    const mp = playing(
+      { areas: [ { card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }, north ] },
+      [partyAt(0, { fleeGrace: 2 }), partyAt(1, { partyArea: 0 })],
+    );
+    // Seat 1 stands on tile 0; the flight goes NORTH to tile 1 — empty, no rivals: clean.
+    const fled = mpReduce(mp, 0, { type: "move", dir: 1 });
+    expect(fled.state.parties[0]!.partyArea).toBe(1);
+    expect(fled.state.order[fled.state.active]).toBe(0); // STILL seat 0's turn (second in a row)
+    expect(fled.state.parties[0]!.fleeGrace).toBe(1);
+    // The second turn passes normally.
+    const second = mpReduce(fled.state, 0, { type: "move", dir: 3 });
+    expect(second.state.order[second.state.active]).toBe(1); // now the rival moves
+    expect(second.state.parties[0]!.fleeGrace).toBeUndefined();
+  });
+
+  it("wiping the ACTIVE seat via PvP advances the parked cursor to the survivor (review P1)", () => {
+    // Seat 0 (ACTIVE, a lone Dwarf FS 1) is attacked by seat 1 (a Giant FS 7): the Giant's total
+    // (7+d6 ≥ 8) always beats the Dwarf's (1+d6 ≤ 7), so the round wipes seat 0 — the seat the
+    // strict-mode turn cursor is parked on. PvP actions bypass the solo tail's advanceTurn, so
+    // without repairTurnFlow the game would jam with the survivor unable to ever act again.
+    const mp = playing({}, [
+      partyAt(0, { party: [{ creatureId: 7, status: 0, dragonKills: 0, treasure: [] }] }),
+      partyAt(1, { party: [{ creatureId: 12, status: 0, dragonKills: 0, treasure: [] }], prev: 2 }),
+    ]);
+    const declared = mpReduce(mp, 1, { type: "declareAttack", to: 0 }, 1000).state;
+    const lined = mpReduce(declared, 0, { type: "pvpLine", line: ["0:0"] }, 1000).state;
+    const engaged = mpReduce(lined, 1, { type: "pvpEngage", engagements: [{ attackers: ["1:0"], defenders: ["0:0"] }], backers: [] }, 1000).state;
+    const done = mpReduce(engaged, 0, { type: "pvpCasters", backers: [] }, 1000).state; // resolves
+
+    expect(done.parties[0]!.status).toBe("wiped");
+    expect(done.session ?? null).toBeNull();
+    expect(done.order[done.active]).toBe(1); // the cursor moved OFF the wiped seat — no jam
+    // The survivor can act (its turn, at rest).
+    expect(mpReduce(done, 1, { type: "endTurn" }).events).not.toContainEqual({ type: "blocked" });
+  });
+
+  it("meeting another party on the flight turn forfeits the grace", () => {
+    const north = { card: 31, coord: packCoord(1, 50, 49), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };
+    const mp = playing(
+      { areas: [ { card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }, north ] },
+      [partyAt(0, { fleeGrace: 2 }), partyAt(1, { partyArea: 1 })], // the rival is WAITING on tile 1
+    );
+    const fled = mpReduce(mp, 0, { type: "move", dir: 1 });
+    expect(fled.state.parties[0]!.partyArea).toBe(1);
+    expect(fled.state.order[fled.state.active]).toBe(1); // grace forfeited — turn passes
+    expect(fled.state.parties[0]!.fleeGrace).toBeUndefined();
   });
 });

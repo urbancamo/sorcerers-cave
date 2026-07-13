@@ -679,6 +679,20 @@
 .scv-lobby-started { font-family: var(--display); color: var(--brass-bright); text-align: center; margin: 4px 0; }
 .scv-lobby-actions { display: flex; gap: 10px; }
 .scv-lobby-actions .scv-primary { margin-top: 0; flex: 1; }
+/* Game variants (M7): host toggles / guest chips in the open lobby. */
+.scv-lobby-variants {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 12px;
+  padding: 8px 10px; border: 1px solid var(--line); border-radius: 9px;
+  font-family: var(--ui); font-size: 13px; color: var(--cream);
+}
+.scv-lobby-variant { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.scv-lobby-variant input { accent-color: var(--brass-bright); }
+.scv-lobby-variant .scv-muted { font-size: 11px; }
+.scv-lobby-varchip {
+  font-size: 11px; padding: 2px 9px; border-radius: 12px;
+  border: 1px solid var(--line); color: var(--stone-dim);
+}
+.scv-lobby-varchip.on { border-color: var(--brass); color: var(--brass-bright); }
 
 .scv-chat { display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); padding-top: 10px; }
 .scv-chat-log {
@@ -701,6 +715,86 @@
 .scv-mp-loading { display: grid; place-items: center; height: 100vh; color: var(--stone); font-family: var(--ui); }
 
 /* In-play multiplayer overlays (over the 3D scene). */
+/* Shared-occupancy chip (spec I-1/I-3): rivals on your tile, presence only — interaction is opt-in. */
+.scv-mp-here {
+  /* Sits centred just ABOVE the lower HUD dock (cave.css .dock: bottom 24px, one button row) —
+     the top of the screen belongs to the depth bar and toasts. */
+  position: fixed; bottom: 84px; left: 50%; transform: translateX(-50%); z-index: 59;
+  display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center;
+  max-width: 94vw; pointer-events: none;
+  font-family: var(--ui); font-size: 12px;
+  padding: 5px 14px; border-radius: 18px;
+  background: rgba(15, 15, 20, 0.82); border: 1px solid var(--line-strong); backdrop-filter: blur(8px);
+}
+/* The dock compacts and can wrap on small screens (cave.css @640/@480) — keep clear of it. */
+@media (max-width: 640px) {
+  .scv-mp-here { bottom: calc(104px + env(safe-area-inset-bottom)); }
+}
+.scv-mp-here-cap { color: var(--stone-dim); letter-spacing: 0.1em; text-transform: uppercase; font-size: 10px; }
+.scv-mp-here-chip {
+  display: inline-flex; align-items: center; gap: 6px; color: var(--cream); font-weight: 600;
+  padding: 2px 9px; border-radius: 14px; border: 1px solid var(--line-strong); background: rgba(0, 0, 0, 0.35);
+}
+.scv-mp-here-chip i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.scv-mp-here { pointer-events: auto; } /* the chip hosts the Trade affordance */
+.scv-mp-here-act {
+  margin-left: 4px; padding: 1px 8px; border-radius: 10px; cursor: pointer;
+  font-family: var(--ui); font-size: 10.5px; font-weight: 700; letter-spacing: 0.06em;
+  color: #241a06; background: linear-gradient(180deg, var(--brass-bright), var(--brass));
+  border: 1px solid var(--brass);
+}
+.scv-mp-here-act:hover { filter: brightness(1.08); }
+/* Zombies option (M7): the "risen" tag on a walking-dead party's chip. */
+.scv-mp-risen {
+  font-style: normal; font-size: 9.5px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase;
+  color: #a9d18a; background: rgba(52, 84, 44, 0.55); border: 1px solid #4c6b3c;
+  padding: 1px 6px; border-radius: 9px; margin-left: 2px;
+}
+/* Trade modal (spec I-5): two-column both-confirm exchange between co-located parties. */
+.scv-trade { max-width: 620px; }
+.scv-trade-clock { margin: 0 0 10px; font-family: var(--ui); font-size: 12px; color: var(--brass-bright); }
+.scv-trade-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+.scv-trade-col h4 {
+  margin: 0 0 8px; font-family: var(--ui); font-size: 10.5px; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--stone-dim);
+}
+.scv-trade-item {
+  display: block; width: 100%; text-align: left; margin: 0 0 6px; padding: 7px 10px;
+  border-radius: 8px; border: 1px solid var(--line-strong); background: rgba(0, 0, 0, 0.3);
+  color: var(--cream); font-family: var(--ui); font-size: 13px; cursor: pointer;
+}
+.scv-trade-item.offered { border-color: var(--brass-bright); background: rgba(201, 161, 78, 0.12); }
+.scv-trade-item.incoming { cursor: default; border-style: dashed; }
+.scv-trade-item.member { border-left: 3px solid var(--teal); }
+.scv-trade-owner { color: var(--stone-dim); font-size: 11px; }
+.scv-trade-note { margin: 8px 0 0; font-size: 12px; color: var(--brass-bright); }
+/* Union surfaces (spec I-6/I-7): proposal countdown, the in-play union chip, ally allocation. */
+.scv-union-clock { margin: 0 0 10px; font-family: var(--ui); font-size: 12px; color: var(--brass-bright); }
+.scv-union-chip {
+  position: fixed; top: 46px; right: 14px; z-index: 59;
+  display: flex; align-items: center; gap: 7px;
+  font-family: var(--ui); font-size: 12px; color: var(--cream);
+  padding: 5px 12px; border-radius: 16px;
+  background: rgba(15, 15, 20, 0.82); border: 1px solid var(--line-strong); backdrop-filter: blur(8px);
+}
+.scv-union-cap { color: var(--stone-dim); letter-spacing: 0.1em; text-transform: uppercase; font-size: 10px; }
+.scv-union-dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.scv-union-role { color: var(--stone-dim); font-size: 11px; }
+.scv-union-recruit { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; margin: 0 0 8px; }
+.scv-union-recruit-name { font-family: var(--ui); font-size: 13px; font-weight: 600; color: var(--cream); min-width: 90px; }
+.scv-union-seat {
+  padding: 4px 10px; border-radius: 9px; cursor: pointer; font-family: var(--ui); font-size: 12px;
+  color: var(--cream); background: rgba(0, 0, 0, 0.3); border: 1px solid var(--line-strong);
+}
+.scv-union-seat.pending { border-color: var(--brass-bright); background: rgba(201, 161, 78, 0.12); }
+.scv-union-seat:disabled { opacity: 0.55; cursor: default; }
+/* Guarded-loot ribbon (spec I-8/I-4): a rival rear-guard holds the treasure on this tile. */
+.scv-mp-guard {
+  position: fixed; top: 84px; left: 50%; transform: translateX(-50%); z-index: 58;
+  font-family: var(--ui); font-size: 12px; color: var(--cream);
+  padding: 5px 14px; border-radius: 16px;
+  background: rgba(90, 46, 38, 0.85); border: 1px solid #8a3a34; backdrop-filter: blur(8px);
+}
 /* Transient toasts under the depth bar: turn changes and mirrored chat, 3s each. */
 .scv-mp-toasts {
   position: fixed; top: 78px; left: 50%; transform: translateX(-50%); z-index: 60;
@@ -734,6 +828,7 @@
 .scv-sb-row.me td { background: rgba(230,196,99,0.12); }
 .scv-sb-chip { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 7px; vertical-align: middle; }
 .scv-sb-you { color: var(--stone-dim); font-style: normal; opacity: 0.7; }
+.scv-sb-risen { color: #a9d18a; font-style: normal; font-size: 11px; } /* M7 zombies: the risen dead */
 .scv-sb-score { font-weight: 700; color: var(--brass-bright); }
 .scv-sb-badge { font-size: 10px; padding: 2px 7px; border-radius: 10px; white-space: nowrap; }
 .scv-sb-badge.esc { background: #2e6b3e; color: #eaf4ea; }
@@ -753,6 +848,25 @@
   background: rgba(15, 15, 20, 0.82); border: 1px solid var(--line-strong); backdrop-filter: blur(8px);
 }
 .scv-spectate-banner b { color: var(--brass-bright); }
+
+/* The finished game's four-letter code — the handle for replay-by-code on the splash. */
+.scv-go-code { margin: 2px 0 10px; font-size: 13px; color: var(--stone-dim); }
+.scv-go-code b { color: var(--brass-bright); letter-spacing: 0.14em; }
+
+/* Replay-by-code transport: first/prev/next/last + scrubber + the move's action/events readout. */
+.scv-replay-transport {
+  position: fixed; left: 50%; bottom: 16px; transform: translateX(-50%); z-index: 60;
+  width: min(640px, 94vw); padding: 12px 16px; border-radius: 14px;
+  background: rgba(15, 15, 20, 0.88); border: 1px solid var(--line-strong); backdrop-filter: blur(8px);
+  font-family: var(--ui); color: var(--stone);
+}
+.scv-replay-row { display: flex; align-items: center; justify-content: center; gap: 8px; }
+.scv-replay-row .scv-primary { margin-top: 0; padding: 6px 12px; font-size: 12px; }
+.scv-replay-pos { min-width: 90px; text-align: center; font-size: 13px; color: var(--brass-bright); }
+.scv-replay-scrub { display: block; width: 100%; margin: 10px 0 6px; accent-color: var(--brass-bright); }
+.scv-replay-move { max-height: 110px; overflow-y: auto; }
+.scv-replay-action { margin: 4px 0 2px; font-size: 13px; color: var(--cream); }
+.scv-replay-event { margin: 0 0 0 14px; font-size: 12px; color: var(--stone-dim); }
 
 /* Quit popup (leave-to-menu vs abandon), reached from the HUD "Quit" button. */
 .scv-mp-modal {
@@ -936,6 +1050,13 @@
 .scv-pp-item img { width: 100%; height: 100%; object-fit: cover; display: block; }
 .scv-pp-item .ph { display: grid; place-items: center; height: 100%; font-size: 13px; color: var(--parchment); font-family: var(--display); }
 .scv-pp-item.art { border-color: var(--brass); }
+/* Borne (wielded/worn) item — a solid brass frame + a hilt glyph: this item stays with the body if
+   its holder is petrified or slain, unlike carried items which spill to the floor (plan ④a). */
+.scv-pp-item.borne { border: 2px solid var(--brass-bright); box-shadow: 0 0 8px -2px var(--brass-bright); position: relative; }
+.scv-pp-item.borne::after {
+  content: "⚔"; position: absolute; right: 2px; bottom: 1px; font-size: 11px; color: var(--brass-bright);
+  text-shadow: 0 0 3px #000, 0 0 3px #000;
+}
 /* Dragon-slayer trophy: the Dragon card laid upside-down (as in the boxed game), non-interactive. */
 .scv-pp-item.dragon-slain { border-color: var(--crimson); cursor: help; }
 .scv-pp-item.dragon-slain img { transform: rotate(180deg); }
@@ -1352,6 +1473,56 @@
 .scv-fight-btn.ghost { background: transparent; } .scv-fight-btn:disabled { opacity: .4; cursor: default; }
 .scv-fight-btn:hover:not(:disabled) { border-color: var(--brass); color: var(--cream); }
 .scv-retreat { position: relative; } .scv-retreat-menu { position: absolute; bottom: 110%; left: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px; background: rgba(15,15,20,.96); border: 1px solid var(--line-strong); border-radius: 10px; }
+
+/* ---- two-sided PvP fight surface (spec §I-10) — same shell as the solo fight ---- */
+.scv-pvp { z-index: 60; } /* over the canvas and any other panel, like the trade modal */
+.scv-pvp-round { font-family: var(--ui); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--brass-bright); white-space: nowrap; }
+.scv-pvp-rosters { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.scv-pvp-roster h4 { display: flex; align-items: center; gap: 7px; margin: 0 0 6px; font-family: var(--ui); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; }
+.scv-pvp-roster h4 i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
+.scv-pvp-chips { display: flex; gap: 10px; flex-wrap: wrap; }
+/* Member CARD TILES: creature card art at close to the solo FightSurface's scale (its .scv-fc is
+   116px), with name + strength beneath. Creature cards are never concealed (rulebook §Hidden
+   Cards), so both sides show their actual cards; the text label remains the accessible name and
+   the whole face when art hasn't loaded. */
+.scv-pvp-chip {
+  display: inline-flex; flex-direction: column; align-items: center; gap: 4px;
+  width: 104px; padding: 6px 6px 7px;
+  font-family: var(--ui); font-size: 12px; line-height: 1.25; text-align: center;
+  border-radius: 10px; border: 1px solid var(--line-strong);
+  color: var(--parchment); background: rgba(201,161,78,.06); cursor: pointer;
+}
+.scv-pvp-thumb {
+  flex: none; width: 88px; aspect-ratio: 63 / 88; border-radius: 7px; overflow: hidden;
+  background: #0d0d11; display: grid; place-items: center; border: 1px solid rgba(0,0,0,.5);
+}
+.scv-pvp-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* Tighter tiles on small screens so the bottom sheet still fits two commands side by side. */
+@media (max-width: 640px) {
+  .scv-pvp-chip { width: 76px; font-size: 11px; }
+  .scv-pvp-thumb { width: 62px; }
+}
+.scv-pvp-chip:disabled { cursor: default; opacity: .8; }
+.scv-pvp-chip b { font-family: var(--display); font-weight: 700; font-size: 15px; color: var(--brass-bright); }
+.scv-pvp-chip i { font-family: var(--body); font-style: italic; font-size: 11px; color: var(--stone-dim); }
+.scv-pvp-chip.caster { background: rgba(95,143,138,.09); }
+.scv-pvp-chip.foe { background: rgba(46,18,16,.35); color: #e7c9c2; }
+.scv-pvp-chip.picked { outline: 2px solid var(--brass-bright); outline-offset: 1px; }
+.scv-pvp-stage { display: flex; flex-direction: column; gap: 10px; }
+.scv-pvp-rows { display: flex; flex-direction: column; gap: 10px; }
+.scv-pvp-row { padding: 8px 12px; }
+.scv-pvp-row-target { cursor: pointer; } .scv-pvp-row-target:hover { border-color: var(--brass); }
+.scv-pvp-zone { min-height: 44px; min-width: 180px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; padding: 6px 8px; border: 1px dashed var(--line); border-radius: 9px; }
+.scv-pvp-zone.back { border-color: var(--arcane); background: rgba(95,143,138,.06); min-width: 120px; }
+.scv-pvp-zone:focus-visible { outline: 2px solid var(--brass-bright); }
+.scv-pvp-zone[aria-disabled="true"] { opacity: .45; cursor: not-allowed; }
+.scv-pvp-zone .scv-slot-empty { width: auto; aspect-ratio: auto; padding: 4px 10px; }
+.scv-pvp-mini { font-family: var(--ui); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line-strong); background: transparent; color: var(--stone); cursor: pointer; }
+.scv-pvp-mini:hover { border-color: var(--brass); color: var(--cream); }
+.scv-pvp-wait { align-items: flex-start; }
+.scv-pvp-waittext { margin: 0; font-family: var(--body); font-style: italic; font-size: 14px; color: var(--stone); }
+.scv-pvp-waittext b { font-family: var(--display); font-style: normal; color: var(--brass-bright); }
+.scv-pvp-boundary { border-top: 1px dashed var(--line); padding-top: 10px; }
 
 /* a fight card */
 .scv-fc { width: 116px; }

@@ -21,6 +21,8 @@ const actionValidator = v.object({
   to: v.optional(v.number()),
   artifact: v.optional(v.number()),
   target: v.optional(v.number()),
+  borne: v.optional(v.boolean()), // setBorne: bear (wield/wear) vs stow a Sword/Staff/Ring
+
   // resolveRound: the player's pairing for one fight round (front/background/strangers per match).
   matches: v.optional(v.array(v.object({
     front: v.array(v.number()),
@@ -152,6 +154,40 @@ export const log = query({
       game: {
         code: game.code ?? null,
         seed: game.seed ?? null,   // null for games created before initial conditions were persisted
+        picks: game.picks ?? null,
+        color: game.color ?? null,
+        status: game.status,
+        createdAt: game.createdAt,
+      },
+      moves: rows.map((r) => ({ seq: r.seq, action: r.action, events: r.events })),
+    };
+  },
+});
+
+/** Replay bundle for any solo game by its four-letter code — deliberately SHAREABLE, not
+ *  owner-scoped (spec §RB-6-3): anyone holding the code may replay the game, so unlike
+ *  `resumeByCode`/`log`/`get` there is no IDOR guard here, and the bundle carries no owner
+ *  identity (RB-1-7). Read-only: reconstructing the game is the client's job via the engine's
+ *  replay(seed, picks, moves.map(m => m.action)). Multi games are excluded this milestone
+ *  (RB-1-6); a pre-logging game (null seed/picks) is returned flagged `replayable: false`
+ *  rather than crashing the viewer (RB-1-5). */
+export const replayByCode = query({
+  args: { code: v.string() },
+  handler: async (ctx, { code }) => {
+    const normalized = code.trim().toUpperCase();
+    const game = await ctx.db.query("games").withIndex("by_code", (q) => q.eq("code", normalized)).first();
+    if (!game) return null;
+    if (game.mode === "multi") return null; // solo only in this milestone (RB-1-6)
+    const rows = await ctx.db
+      .query("gameEvents")
+      .withIndex("by_game", (q) => q.eq("gameId", game._id))
+      .collect(); // index order = seq ascending
+    return {
+      // reconstructable-from-scratch only when the initial conditions were persisted (RB-1-5)
+      replayable: game.seed != null && game.picks != null,
+      game: {
+        code: game.code ?? null,
+        seed: game.seed ?? null,
         picks: game.picks ?? null,
         color: game.color ?? null,
         status: game.status,

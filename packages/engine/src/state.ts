@@ -23,9 +23,19 @@ export interface PartyMember {
   status: MemberStatus;
   dragonKills: number;
   treasure: number[]; // treasure ids carried
+  // Items the member is BEARING (wielded/worn/displayed) rather than merely carrying — a subset of
+  // `treasure` by id (only the Magic Sword 3, Magic Staff 9 and The Ring 10 have a borne mode).
+  // Passive combat effects stay possession-based; `borne` governs only what happens to the item when
+  // the flesh fails: a borne item is petrified/lost WITH the body, a carried item spills to the floor
+  // (§Medusa "anything they were carrying can be taken", multiplayer plan ④a). Absent = all carried.
+  borne?: number[];
   potionActive?: boolean; // Strength Potion drunk this fight (+2 frontStrength until it ends)
   stoneArea?: number; // when petrified (status 2): the area index where Medusa struck — the member is
                       // left there until a Wizard with the Magic Staff returns to free it (§Medusa).
+  // Multiplayer-only identity tag ("loan:<seat>" | "recruit:<unionId>") — lets the union layer
+  // re-derive a loaned/recruited member's position after solo actions that reshape the party array
+  // (Mutiny SPLICES deserters out, so stored indices go stale). Solo play never reads or writes it.
+  mpTag?: string;
 }
 
 export interface PlacedArea {

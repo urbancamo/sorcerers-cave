@@ -78,6 +78,9 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "treasureDropped":
         out.push({ text: `${plural(e.count, "heavy treasure")} sinks into the Deep Pool — reclaim it on the way back.`, tone: "bad" });
         break;
+      case "heavyDownForFight":
+        out.push({ text: `${plural(e.count, "heavy treasure")} cast down for the fight — it lies on the floor until the issue is decided.`, tone: "neutral" });
+        break;
       case "treasureReclaimed":
         out.push({ text: `You recover ${plural(e.count, "treasure")} from the Deep Pool.`, tone: "good" });
         break;

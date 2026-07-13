@@ -21,6 +21,16 @@ test("shows live stats for in-maze parties and an outcome for finished ones", ()
   expect(screen.getByText("In maze")).toBeTruthy(); // Alpha (status "exploring")
 });
 
+test("a risen (zombie) party wears the ☠ badge; the living do not (M7 zombies option)", () => {
+  const withZombie: ScoreboardParty[] = [{ ...parties[0]!, zombie: true }, parties[1]!];
+  render(<Scoreboard parties={withZombie} youSeat={1} />);
+  const rows = screen.getAllByTestId("sb-row");
+  const alphaRow = rows.find((r) => within(r).queryByText(/Alpha/))!;
+  expect(within(alphaRow).getByText(/risen/)).toBeTruthy();
+  const betaRow = rows.find((r) => within(r).queryByText(/Beta/))!;
+  expect(within(betaRow).queryByText(/risen/)).toBeNull();
+});
+
 test("fires footer + row callbacks", () => {
   const onQuit = vi.fn(), onRowClick = vi.fn();
   render(<Scoreboard parties={parties} youSeat={0} onQuit={onQuit} onRowClick={onRowClick} />);

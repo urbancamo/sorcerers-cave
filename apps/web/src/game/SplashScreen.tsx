@@ -11,11 +11,15 @@ const REPO_URL = "https://github.com/urbancamo/sorcerers-cave";
 export function SplashScreen({
   onStartSolitaire,
   onResume,
+  onReplay,
   onStartMultiplayer,
   onJoinMultiplayer,
 }: {
   onStartSolitaire: () => void;
   onResume?: (code: string) => Promise<boolean>;
+  /** Replay a (any player's) solo game by code — resolves null when the viewer opened, or an
+   *  explanatory message (not found / predates logging / multiplayer) to surface here (§RB-3-3). */
+  onReplay?: (code: string) => Promise<string | null>;
   // Multiplayer entry points — undefined (disabled) unless the feature flag is on.
   onStartMultiplayer?: () => void;
   onJoinMultiplayer?: () => void;
@@ -25,6 +29,9 @@ export function SplashScreen({
   const [resumeCode, setResumeCode] = useState("");
   const [resumeErr, setResumeErr] = useState<string | null>(null);
   const [resuming, setResuming] = useState(false);
+  const [replayCode, setReplayCode] = useState("");
+  const [replayErr, setReplayErr] = useState<string | null>(null);
+  const [replaying, setReplaying] = useState(false);
 
   const submitResume = async () => {
     const code = resumeCode.trim().toUpperCase();
@@ -35,6 +42,17 @@ export function SplashScreen({
     const ok = await onResume(code);
     setResuming(false);
     if (!ok) setResumeErr("No game found with that code.");
+  };
+
+  const submitReplay = async () => {
+    const code = replayCode.trim().toUpperCase();
+    if (!/^[A-Z]{4}$/.test(code)) { setReplayErr("Enter a four-letter game code."); return; }
+    if (!onReplay) return;
+    setReplaying(true);
+    setReplayErr(null);
+    const err = await onReplay(code);
+    setReplaying(false);
+    if (err) setReplayErr(err);
   };
 
   // Card art is a progressive enhancement (falls back to no fan if the manifest can't load).
@@ -118,6 +136,33 @@ export function SplashScreen({
           {resumeErr && <p className="scv-resume-err" role="alert">{resumeErr}</p>}
         </div>
 
+        {/* Replay-by-code (§RB-3-1): visually parallel to Resume; any player's solo game code works. */}
+        <div className="scv-resume" data-testid="replay">
+          <label className="scv-resume-label" htmlFor="scv-replay-code">Replay a game</label>
+          <div className="scv-resume-row">
+            <input
+              id="scv-replay-code"
+              className="scv-resume-input"
+              value={replayCode}
+              onChange={(e) => { setReplayCode(e.target.value.toUpperCase().slice(0, 4)); setReplayErr(null); }}
+              onKeyDown={(e) => { if (e.key === "Enter") void submitReplay(); }}
+              maxLength={4}
+              placeholder="ABCD"
+              aria-label="four-letter replay code"
+              autoCapitalize="characters"
+              spellCheck={false}
+            />
+            <button
+              className="scv-primary"
+              onClick={() => void submitReplay()}
+              disabled={replaying || replayCode.trim().length !== 4}
+            >
+              {replaying ? "Loading…" : "Replay"}
+            </button>
+          </div>
+          {replayErr && <p className="scv-resume-err" role="alert">{replayErr}</p>}
+        </div>
+
         <button
           className="scv-primary"
           disabled={!onStartMultiplayer}
@@ -146,7 +191,7 @@ export function SplashScreen({
         </a>
       </section>
 
-      {showScores && <HighScoresModal onClose={() => setShowScores(false)} />}
+      {showScores && <HighScoresModal onClose={() => setShowScores(false)} onReplay={onReplay} />}
 
       <footer className="scv-attrib">
         <p>

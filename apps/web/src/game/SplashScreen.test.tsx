@@ -60,6 +60,38 @@ describe("SplashScreen", () => {
     expect(onJoinMp).toHaveBeenCalledOnce();
   });
 
+  // Replay-by-code entry (spec §RB-3): a box visually parallel to "Resume a game".
+  it("offers a replay-by-code entry", async () => {
+    const onReplay = vi.fn().mockResolvedValue(null); // null = replay opened
+    render(<SplashScreen onStartSolitaire={() => {}} onReplay={onReplay} />);
+    const input = screen.getByLabelText(/four-letter replay code/i);
+    fireEvent.change(input, { target: { value: "wxyz" } });
+    expect((input as HTMLInputElement).value).toBe("WXYZ"); // auto-uppercased like Resume
+    fireEvent.click(screen.getByRole("button", { name: /^replay$/i }));
+    await waitFor(() => expect(onReplay).toHaveBeenCalledWith("WXYZ"));
+  });
+
+  it("rejects a non 4-letter replay code", async () => {
+    const onReplay = vi.fn();
+    render(<SplashScreen onStartSolitaire={() => {}} onReplay={onReplay} />);
+    const btn = screen.getByRole("button", { name: /^replay$/i });
+    expect(btn).toBeDisabled(); // nothing entered yet
+    fireEvent.change(screen.getByLabelText(/four-letter replay code/i), { target: { value: "A1" } });
+    expect(btn).toBeDisabled();
+    // Validation happens before the backend is ever called.
+    expect(onReplay).not.toHaveBeenCalled();
+  });
+
+  it("unreplayable code shows explanation, not viewer", async () => {
+    // The parent resolves an explanatory message for a not-found / pre-logging / multi game —
+    // the splash surfaces it instead of opening the viewer (RB-1-5 / RB-1-6 / RB-3-3).
+    const onReplay = vi.fn().mockResolvedValue("This game predates full logging and cannot be replayed.");
+    render(<SplashScreen onStartSolitaire={() => {}} onReplay={onReplay} />);
+    fireEvent.change(screen.getByLabelText(/four-letter replay code/i), { target: { value: "OLDG" } });
+    fireEvent.click(screen.getByRole("button", { name: /^replay$/i }));
+    expect(await screen.findByText(/predates full logging/i)).toBeInTheDocument();
+  });
+
   it("credits the authors and links the repository", () => {
     render(<SplashScreen onStartSolitaire={() => {}} />);
     expect(screen.getByText(/written by mark wickens/i)).toBeInTheDocument();

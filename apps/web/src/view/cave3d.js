@@ -328,7 +328,11 @@ function refresh(){
   // (withdraw/retreat send the party back to the previous tile, outside doMove's animation).
   if(partyToken){
     const to=worldPos(engine.current);
-    if(!tokenMove && partyToken.position.distanceTo(to)>0.01){
+    // A sync can land while a previous token move is still animating (rapid panel moves, replay
+    // auto-play): retarget from wherever the token is instead of dropping the move — dropping it
+    // left the token a tile behind (it "skipped" locations) until a later sync caught up.
+    const retarget = tokenMove && tokenMove.to.distanceTo(to)>0.01;
+    if((!tokenMove || retarget) && partyToken.position.distanceTo(to)>0.01){
       tokenMove={from:partyToken.position.clone(), to, t0:clock.elapsedTime, dur:0.55};
       flyFollow(to);
       if(isoFocus!=null) setIsolation(engine.current.level, isoDir);
