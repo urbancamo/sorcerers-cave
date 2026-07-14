@@ -211,6 +211,12 @@ const RUNS: Run[] = [
   { seed: 1237, picks: [1, 7], policy: "artifacts", maxSteps: 300, tag: "artifacts" },  // 5,6,9 (Staff) + ruby
   { seed: 2678, picks: [5, 6, 7], policy: "artifacts", maxSteps: 300, tag: "artifacts" }, // 4 (Carpet),5,6,12 + ruby
   { seed: 2355, picks: [0], policy: "artifacts", maxSteps: 300, tag: "artifacts" },     // 5,6,8,12 + chest
+  // Gap coverage (seed sweep) — each targets an outcome the four artifact runs never reach:
+  { seed: 53, picks: [2, 7], policy: "artifacts", maxSteps: 300, tag: "chest2" },       // openChest -> a Spectre attacks
+  { seed: 30, picks: [4, 6], policy: "artifacts", maxSteps: 300, tag: "ring" },         // Ring shrugs off a killing blow (deathPrevented)
+  { seed: 148, picks: [4, 6], policy: "artifacts", maxSteps: 300, tag: "reclaim" },     // Deep-Pool dropped treasure reclaimed
+  { seed: 330, picks: [1, 7], policy: "artifacts", maxSteps: 300, tag: "medusaavert" }, // Staff-Wizard averts Medusa
+  { seed: 24, picks: [5, 6, 7], policy: "artifacts", maxSteps: 300, tag: "petrified" }, // whole party turned to stone (petrifiedOut)
 ];
 
 describe("conformance vectors — committed port fixtures match the engine", () => {
