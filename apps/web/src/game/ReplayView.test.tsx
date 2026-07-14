@@ -15,7 +15,8 @@ vi.mock("../data/manifest", () => ({
 }));
 const { createCaveAdapterMock, syncMock } = vi.hoisted(() => {
   const syncMock = vi.fn();
-  return { syncMock, createCaveAdapterMock: vi.fn(() => ({ sync: syncMock, get areas() { return []; } })) };
+  // Accept (and ignore) the real adapter arguments so mock.calls[i] is indexable under tsc.
+  return { syncMock, createCaveAdapterMock: vi.fn((..._args: unknown[]) => ({ sync: syncMock, get areas() { return []; } })) };
 });
 vi.mock("../view/engineAdapter", () => ({ createCaveAdapter: createCaveAdapterMock }));
 beforeEach(() => { createCaveAdapterMock.mockClear(); syncMock.mockClear(); });
