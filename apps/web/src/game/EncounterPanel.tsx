@@ -1,8 +1,9 @@
 import { CREATURES, TREASURES, carriedWeight, legalActions, type GameState, type GameAction } from "@sorcerers-cave/engine";
 import { memberLabel } from "./memberLabels";
 
-// The `fight` phase is owned by the FightSurface (drag-card pairing); this panel keeps encounter + pickup.
-const ACTIVE = new Set<GameState["phase"]>(["encounter", "pickup"]);
+// The `fight` phase is owned by the FightSurface (drag-card pairing); this panel keeps
+// encounter + pickup + the Medusa pause (throw the Lotus Dust at her, or proceed).
+const ACTIVE = new Set<GameState["phase"]>(["encounter", "pickup", "medusa"]);
 
 const RETREAT_DIR: Record<number, string> = { 1: "north", 2: "east", 3: "south", 4: "west", 5: "up the stair", 6: "down the stair" };
 
@@ -52,8 +53,11 @@ function label(a: GameAction, state: GameState): string {
         if (a.artifact === 6) return `${tname} — revive ${memberLabel(state.party, a.target)}`;
         if (a.artifact === 9) return `${tname} — free ${memberLabel(state.party, a.target)} from stone`;
       }
+      // Untargeted Lotus Dust is the Medusa-pause throw (§Lotus Dust "Works on MEDUSA").
+      if (a.artifact === 5 && a.target === undefined) return "Throw the Lotus Dust — put Medusa to sleep";
       return `Use ${tname}`;
     }
+    case "proceed": return "Proceed — brave her gaze";
     default: return a.type;
   }
 }
@@ -74,9 +78,12 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
   // "Retake dropped treasure (as before)" is the one-tap shortcut after a won fight — surface it FIRST,
   // ahead of the per-item assignment dropdowns.
   let retake: GameAction | null = null;
+  // The Medusa pause offers exactly two choices (throw the dust / proceed) — both plain buttons,
+  // not a target dropdown: the target (Medusa) is implicit.
+  const medusaPause = state.phase === "medusa";
   for (const a of actions) {
     if (a.type === "takeTreasure") (takeByTi.get(a.ti) ?? takeByTi.set(a.ti, []).get(a.ti)!).push(a.mi);
-    else if (a.type === "useArtifact") (artByArtifact.get(a.artifact) ?? artByArtifact.set(a.artifact, []).get(a.artifact)!).push(a);
+    else if (a.type === "useArtifact" && !medusaPause) (artByArtifact.get(a.artifact) ?? artByArtifact.set(a.artifact, []).get(a.artifact)!).push(a);
     else if (a.type === "retakeDropped") retake = a;
     else simple.push(a);
   }
@@ -100,6 +107,11 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
       )}
       {treasures.length > 0 && (
         <p className="scv-enc-line scv-enc-treasure"><span className="k">Treasure: </span>{treasures.join(", ")}</p>
+      )}
+      {medusaPause && (
+        <p className="scv-enc-line scv-enc-strangers">
+          Medusa looms — throw the Lotus Dust before her gaze lands, or proceed and brave it.
+        </p>
       )}
       {state.fight && <p className="scv-enc-round">Round {state.fight.round}</p>}
       {state.fight?.casualtyQueue?.length ? (

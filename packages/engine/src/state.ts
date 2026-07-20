@@ -13,7 +13,8 @@ export const AF_DESTROYED = 4; // collapsed by an earthquake — removed from pl
 
 // Interactive mode: which controls the UI shows and which actions reduce accepts.
 // Milestone B uses only "explore" and "gameOver"; "encounter"/"fight"/"pickup" arrive in C.
-export type GamePhase = "explore" | "encounter" | "fight" | "pickup" | "gameOver";
+// "medusa" is the pre-hazard pause: Medusa looms and the party holds Lotus Dust — throw or proceed.
+export type GamePhase = "explore" | "medusa" | "encounter" | "fight" | "pickup" | "gameOver";
 
 // Member status: 0 original, 1 ally, 2 stone, 3 dead.
 export type MemberStatus = 0 | 1 | 2 | 3;
@@ -55,6 +56,10 @@ export interface PlacedArea {
   // Set when the party descended onto this area and it shows no printed stair up: its end of the
   // stairway is a secret door (§"Secret Doors"). The 0-based value is its discovery order (→ A, B, C…).
   secretDoor?: number;
+  // Lotus Dust was thrown at this chamber's Medusa: she sleeps while the thrower's `turn` counter is
+  // <= this value ("asleep for 2 turns of the player who uses it", §Lotus Dust) — entries meanwhile
+  // draw no gaze. Cleared (she wakes) on the first entry after it lapses.
+  medusaAsleepUntil?: number;
 }
 
 // surprise: +1 party, -1 strangers, 0 none (applies to round 1 only). focus indexes `strangers`.
@@ -120,6 +125,10 @@ export interface GameState {
   secretDoors?: number;
   // Lotus Dust has been used on the Sorcerer (he can't be slept, only weakened): −2 to his Strength.
   lotusOnSorcerer?: boolean;
+  // Set while phase === "medusa": the entry is held mid-resolution (hazards not yet fired) for the
+  // throw-or-proceed decision. `freshEntry` preserves the first-visit flag for the resumed tail
+  // (surprise eligibility, Dragon-lull announcement) — it can't be recomputed after enterChamber.
+  medusaPause?: { freshEntry: boolean };
   // Indifference (per party — NOT on the shared area, so it never affects other parties):
   // `indiffStreak` counts consecutive indifferent reaction tests in the CURRENT chamber visit
   // (reset on each chamber entry). When it reaches 3 the strangers are permanently indifferent to

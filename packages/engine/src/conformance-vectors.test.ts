@@ -89,10 +89,10 @@ function lcg(seed: number): () => number {
 
 // --- Vector text rendering (grammar documented in docs/specs/conformance/README.md) --------------
 
-const PHASE_CODE: Record<string, string> = { explore: "EXP", encounter: "ENC", fight: "FGT", pickup: "PKP", gameOver: "END" };
+const PHASE_CODE: Record<string, string> = { explore: "EXP", medusa: "MDS", encounter: "ENC", fight: "FGT", pickup: "PKP", gameOver: "END" };
 const list = (xs: readonly number[] | undefined): string => (xs && xs.length ? xs.join(",") : "-");
 
-/** One action in the vector grammar — covers the full 17-action catalog (SC-4-41). */
+/** One action in the vector grammar — covers the full 18-action catalog (SC-4-41). */
 function encodeAction(a: GameAction): string {
   switch (a.type) {
     case "move": return `MOVE ${a.dir}`;
@@ -110,6 +110,7 @@ function encodeAction(a: GameAction): string {
     case "dropTreasure": return `DROP ${a.mi} ${a.idx}`;
     case "setBorne": return `BORNE ${a.mi} ${a.idx} ${a.borne ? 1 : 0}`;
     case "chooseCasualty": return `CASUALTY ${a.idx}`;
+    case "proceed": return "PROCEED";
     case "useArtifact": return `USE ${a.artifact}${a.target !== undefined ? ` T${a.target}` : ""}${a.dir !== undefined ? ` D${a.dir}` : ""}`;
     case "resolveRound":
       return `FIGHT ${a.matches.length === 0 ? "-" : a.matches

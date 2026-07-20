@@ -21,6 +21,7 @@ export type GameAction =
   | { type: "chooseCasualty"; idx: number } // pick which of a losing pair falls (§"A Round of Fighting")
   | { type: "retreat"; dir: number } // flee a fight by any doorway/stair; a dead end means fight on
   | { type: "useArtifact"; artifact: number; target?: number; dir?: number }
+  | { type: "proceed" } // decline the Medusa-pause throw: let her gaze (and the other hazards) fire
   | { type: "openChest" };
 
 // What happened — the reducer is the only producer; the UI never infers game facts.
@@ -76,6 +77,11 @@ export type GameEvent =
   | { type: "wardedOff"; creatureId: number }
   | { type: "ghoulsWarded" } // a party member's Talisman turned the Ghouls away (card)
   | { type: "medusaAverted" } // a Wizard's Magic Staff turned Medusa's gaze aside — no one stoned (card)
+  // The Medusa pause (§Lotus Dust "Works on MEDUSA"): the party entered her lair holding Lotus Dust,
+  // so the hazards are held while the player decides to throw the dust at her or proceed.
+  | { type: "medusaLooms" }
+  | { type: "medusaSlept"; until: number } // the dust is thrown — she sleeps while the thrower's turn <= until
+  | { type: "medusaAsleep" } // entered while she sleeps — no gaze this entry
   | { type: "droppedRetaken"; count: number } // fighters reclaimed the heavy treasure they dropped to fight
   | { type: "annihilated"; creatureId: number }
   | { type: "statuePowerless" }

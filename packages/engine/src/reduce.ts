@@ -4,7 +4,8 @@ import { decodeArea } from "./decode";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT } from "./data/areaCards";
 import { viperCrossing, deepPoolCrossing } from "./special";
 import { enterChamber } from "./chamber";
-import { applyHazards } from "./hazards";
+import { applyHazards, hasStaffWizard } from "./hazards";
+import { HAZARD_MEDUSA } from "./data/hazards";
 import { takeTreasure, canCarry } from "./pickup";
 import { unpackCoord, packCoord, targetCoord, DIR_UP, DIR_DOWN } from "./coords";
 import type { GameAction, GameEvent } from "./actions";
@@ -141,12 +142,95 @@ function reviveStoned(state: GameState): GameEvent[] {
   return events;
 }
 
+/** A Medusa is about to gaze, nothing already neutralises her (staff-Wizard, or her Lotus sleep),
+ *  and a living member holds Lotus Dust — the throw-or-proceed decision is the player's
+ *  (§Lotus Dust "Works on MEDUSA"). */
+function medusaLooms(state: GameState): boolean {
+  if (!state.hazards.includes(HAZARD_MEDUSA) || hasStaffWizard(state)) return false;
+  const until = state.areas[state.partyArea]!.medusaAsleepUntil;
+  if (until !== undefined && state.turn <= until) return false; // asleep — nothing to decide
+  return state.party.some((m) => (m.status === 0 || m.status === 1) && m.treasure.includes(5));
+}
+
+/** Fire the chamber's hazards and settle the entry's outcome (wipe / encounter / pickup / explore).
+ *  Returns true when a trap dropped the party a level: the caller must resolve the area fallen into. */
+function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[]): boolean {
+  const { events: hzEvents, fell } = applyHazards(state);
+  events.push(...hzEvents);
+  // A hazard may incapacitate the whole party (Medusa petrifies everyone, or Ghouls slay them) —
+  // with no one left able to act, the expedition ends.
+  if (!state.party.some((m) => m.status === 0 || m.status === 1)) {
+    state.gs = GS_DEAD;
+    state.phase = "gameOver";
+    if (state.party.every((m) => m.status === 2)) events.push({ type: "petrifiedOut" }); // all turned to stone
+    events.push({ type: "gameOver", gs: GS_DEAD });
+    return false;
+  }
+  if (fell) {
+    // The party falls away from this chamber — its strangers and treasure stay behind here (parked
+    // to its contents). Clearing the working set first stops them leaking onto the tile fallen into.
+    persistAndExplore(state);
+    relocateDown(state);
+    events.push({ type: "trapSprung", level: state.level });
+    events.push({ type: "moved", area: state.partyArea, level: state.level });
+    return true;
+  }
+  // The Charmed Flute lulls every Dragon for as long as the party holds it: they sleep in the
+  // chamber, no longer leading or blocking, so a friendlier creature reacts and the area plays
+  // out as if empty (§ Charmed Flute). Re-evaluated each entry, so they wake if the flute is gone.
+  if (fluteLulls(state) && state.strangers.includes(10)) {
+    const dragons = state.strangers.filter((id) => id === 10);
+    state.lulled = [...(state.lulled ?? []), ...dragons];
+    state.strangers = state.strangers.filter((id) => id !== 10);
+    if (freshEntry) events.push({ type: "dragonsLulled", count: dragons.length });
+  }
+  // Permanently indifferent to this party (§Reactions): the party may walk freely through (any exit)
+  // — so park the guards to the tile and go to explore for full traversal — but it may also still
+  // CHOOSE to attack them (selectors offers an Attack action; the guarded treasure stays out of reach
+  // unless they're beaten). Other parties are unaffected.
+  if (state.pacifiedAreas?.includes(state.partyArea)) {
+    persistAndExplore(state);
+    return false;
+  }
+  if (state.strangers.length > 0) {
+    if (state.hostileAreas?.includes(state.partyArea)) {
+      // The party retreated from these strangers before — they attack on sight (with surprise). §Retreat
+      events.push(...startFight(state, -1));
+    } else {
+      state.phase = "encounter";
+      // Surprise if attacking immediately on a fresh entry — never after a trap fall (§Surprise).
+      state.surpriseReady = freshEntry && !state.fellThroughTrap;
+    }
+  } else if (state.treasures.length > 0) {
+    state.phase = "pickup";
+  } else {
+    persistAndExplore(state);
+  }
+  return false;
+}
+
+/** Resume the entry held at the Medusa pause — the dust thrown or the gaze braved — firing the
+ *  held hazards and playing the chamber out (looping on if a trap drops the party further). */
+function resumeFromMedusaPause(state: GameState): GameEvent[] {
+  const freshEntry = state.medusaPause?.freshEntry ?? false;
+  delete state.medusaPause;
+  const events: GameEvent[] = [];
+  if (finishChamber(state, freshEntry, events)) events.push(...resolveAreaLoop(state));
+  return events;
+}
+
 /** Resolve the area just entered: special markers, then chamber draw + hazards + phase (spec §4/§7). */
 function resolveArea(state: GameState): GameEvent[] {
   const events: GameEvent[] = [{ type: "moved", area: state.partyArea, level: state.level }];
   // Returning to a chamber with our petrified members + a Wizard's Magic Staff frees them on arrival.
   events.push(...reviveStoned(state));
+  events.push(...resolveAreaLoop(state));
+  return events;
+}
 
+/** The special/tunnel/chamber resolution cycle — loops when a trap drops the party a level. */
+function resolveAreaLoop(state: GameState): GameEvent[] {
+  const events: GameEvent[] = [];
   for (;;) {
     const dec = decodeArea(state.areas[state.partyArea]!.card);
     if (dec.special === SPECIAL_DEEP_POOL) {
@@ -190,58 +274,14 @@ function resolveArea(state: GameState): GameEvent[] {
     events.push(...enterChamber(state));
     events.push(...annihilateWithEye(state)); // the Eye destroys Spectres on sight (§ Eye of God)
     events.push(...wardOffSpectres(state)); // the Talisman drives off Spectres on level >= 4 (§ Talisman)
-    const { events: hzEvents, fell } = applyHazards(state);
-    events.push(...hzEvents);
-    // A hazard may incapacitate the whole party (Medusa petrifies everyone, or Ghouls slay them) —
-    // with no one left able to act, the expedition ends.
-    if (!state.party.some((m) => m.status === 0 || m.status === 1)) {
-      state.gs = GS_DEAD;
-      state.phase = "gameOver";
-      if (state.party.every((m) => m.status === 2)) events.push({ type: "petrifiedOut" }); // all turned to stone
-      events.push({ type: "gameOver", gs: GS_DEAD });
+    if (medusaLooms(state)) {
+      // Hold every hazard while the player decides: throw the Lotus Dust at Medusa, or proceed.
+      state.phase = "medusa";
+      state.medusaPause = { freshEntry };
+      events.push({ type: "medusaLooms" });
       return events;
     }
-    if (fell) {
-      // The party falls away from this chamber — its strangers and treasure stay behind here (parked
-      // to its contents). Clearing the working set first stops them leaking onto the tile fallen into.
-      persistAndExplore(state);
-      relocateDown(state);
-      events.push({ type: "trapSprung", level: state.level });
-      events.push({ type: "moved", area: state.partyArea, level: state.level });
-      continue;
-    }
-    // The Charmed Flute lulls every Dragon for as long as the party holds it: they sleep in the
-    // chamber, no longer leading or blocking, so a friendlier creature reacts and the area plays
-    // out as if empty (§ Charmed Flute). Re-evaluated each entry, so they wake if the flute is gone.
-    if (fluteLulls(state) && state.strangers.includes(10)) {
-      const dragons = state.strangers.filter((id) => id === 10);
-      state.lulled = [...(state.lulled ?? []), ...dragons];
-      state.strangers = state.strangers.filter((id) => id !== 10);
-      if (freshEntry) events.push({ type: "dragonsLulled", count: dragons.length });
-    }
-    // Permanently indifferent to this party (§Reactions): the party may walk freely through (any exit)
-    // — so park the guards to the tile and go to explore for full traversal — but it may also still
-    // CHOOSE to attack them (selectors offers an Attack action; the guarded treasure stays out of reach
-    // unless they're beaten). Other parties are unaffected.
-    if (state.pacifiedAreas?.includes(state.partyArea)) {
-      persistAndExplore(state);
-      return events;
-    }
-    if (state.strangers.length > 0) {
-      if (state.hostileAreas?.includes(state.partyArea)) {
-        // The party retreated from these strangers before — they attack on sight (with surprise). §Retreat
-        events.push(...startFight(state, -1));
-      } else {
-        state.phase = "encounter";
-        // Surprise if attacking immediately on a fresh entry — never after a trap fall (§Surprise).
-        state.surpriseReady = freshEntry && !state.fellThroughTrap;
-      }
-    } else if (state.treasures.length > 0) {
-      state.phase = "pickup";
-    } else {
-      persistAndExplore(state);
-    }
-    return events;
+    if (!finishChamber(state, freshEntry, events)) return events;
   }
 }
 
@@ -673,6 +713,13 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       return { state: res.state, events };
     }
 
+    case "proceed": {
+      // Decline the Medusa-pause throw: the held hazards (her gaze included) now fire as normal.
+      if (state.phase !== "medusa") return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      return { state: next, events: resumeFromMedusaPause(next) };
+    }
+
     case "useArtifact": {
       const bearerIdx = findBearer(state, action.artifact);
       if (bearerIdx < 0) return { state, events: [{ type: "blocked" }] };
@@ -710,7 +757,17 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
           sm.stoneArea = undefined;
           return ok;
         }
-        case 5: { // Lotus Dust — encounter or fight, target a stranger (put to sleep)
+        case 5: { // Lotus Dust — thrown at Medusa in the pause, or at a stranger in encounter/fight
+          if (next.phase === "medusa") {
+            // "Works on MEDUSA" (card): she sleeps for 2 of this player's turns — entries meanwhile
+            // draw no gaze — then wakes. The held entry resolves on with her asleep.
+            const until = next.turn + 2;
+            next.areas[next.partyArea]!.medusaAsleepUntil = until;
+            consume();
+            const events: GameEvent[] = [{ type: "artifactUsed", artifact: 5 }, { type: "medusaSlept", until }];
+            events.push(...resumeFromMedusaPause(next));
+            return { state: next, events };
+          }
           if ((next.phase !== "encounter" && next.phase !== "fight") || action.target === undefined) return { state, events: [{ type: "blocked" }] };
           if (action.target < 0 || action.target >= next.strangers.length) return { state, events: [{ type: "blocked" }] };
           const sid = next.strangers[action.target]!;

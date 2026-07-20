@@ -67,6 +67,10 @@ function artifactActions(state: GameState): GameAction[] {
 export function legalActions(state: GameState): GameAction[] {
   if (state.gs !== GS_PLAYING) return [];
 
+  if (state.phase === "medusa") {
+    // Medusa looms and the party holds Lotus Dust: throw it at her before her gaze, or proceed.
+    return [{ type: "useArtifact", artifact: 5 }, { type: "proceed" }];
+  }
   if (state.phase === "encounter") {
     // Withdraw retreats to the area the party came from — but not back up a trap it fell through, nor
     // into an area an earthquake has since collapsed (§Earthquake): both leave no way back.

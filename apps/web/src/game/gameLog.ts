@@ -64,12 +64,15 @@ export function actionLabel(a: GameAction, state?: GameState | null): string {
     case "dropTreasure": return `Drop ${held(a.mi, a.idx)} (${member(a.mi)})`;
     case "setBorne": return `${a.borne ? "Bear" : "Stow"} ${held(a.mi, a.idx)} (${member(a.mi)})`;
     case "useArtifact": {
-      // Lotus Dust (5) targets a stranger; every other artefact targets a party member.
+      // Lotus Dust (5) targets a stranger — or, untargeted in the Medusa pause, Medusa herself;
+      // every other artefact targets a party member.
+      if (a.artifact === 5 && a.target === undefined) return "Use Lotus Dust on Medusa";
       const target = a.target === undefined ? ""
         : a.artifact === 5 ? ` on ${s?.strangers[a.target] != null ? creature(s.strangers[a.target]!) : `#${a.target}`}`
         : ` on ${member(a.target)}`;
       return `Use ${treasure(a.artifact)}${target}` + (a.dir !== undefined ? ` (${dir(a.dir)})` : "");
     }
+    case "proceed": return "Proceed — brave Medusa's gaze";
     case "openChest": return "Open the treasure chest";
     default: return (a as { type: string }).type;
   }
@@ -147,6 +150,9 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "wardedOff": return `the Talisman warded off ${creature(e.creatureId)}`;
     case "ghoulsWarded": return "the Talisman warded off the Ghouls";
     case "medusaAverted": return "the Magic Staff turned Medusa's gaze aside";
+    case "medusaLooms": return "Medusa looms — throw the Lotus Dust, or proceed";
+    case "medusaSlept": return "the Lotus Dust put Medusa to sleep (two turns)";
+    case "medusaAsleep": return "Medusa slept on — no gaze";
     case "droppedRetaken": return `reclaimed ${e.count} dropped treasure`;
     case "annihilated": return `the Eye of God annihilated ${creature(e.creatureId)}`;
     case "statuePowerless": return "the guardian statue stood powerless";
@@ -317,7 +323,9 @@ function actionCode(a: GameAction, state: GameState | null): { act: string; arg:
     case "setBorne": return { act: a.borne ? "BER" : "STW", arg: `${held(a.mi, a.idx)} ${mem(a.mi)}` };
     case "moveTreasure": return { act: "GIV", arg: `${held(a.from, a.idx)} ${mem(a.from)}>${mem(a.to)}` };
     case "chooseCasualty": return { act: "CAS", arg: mem(a.idx) };
-    case "useArtifact": return { act: "USE", arg: tr3(a.artifact) + (a.target !== undefined ? `>${a.artifact === 5 ? foe(a.target) : mem(a.target)}` : "") };
+    // An untargeted USE of the Lotus Dust (5) is the Medusa-pause throw — shown as LOT>MED.
+    case "useArtifact": return { act: "USE", arg: tr3(a.artifact) + (a.target !== undefined ? `>${a.artifact === 5 ? foe(a.target) : mem(a.target)}` : a.artifact === 5 ? ">MED" : "") };
+    case "proceed": return { act: "PRO", arg: "" };
     case "resolveRound": return { act: "FGT", arg: a.matches.map((m) => `${[...m.front, ...m.backers].map((i) => (state?.party[i] ? cr3(state.party[i]!.creatureId) : `#${i}`)).join("+") || "-"}>${m.strangers.map(foe).join("+") || "-"}`).join(",") };
     default: return { act: (a as { type: string }).type.slice(0, 3).toUpperCase(), arg: "" };
   }
@@ -370,6 +378,9 @@ function eventCode(e: GameEvent): string | null {
     case "wardedOff": return `WRD ${cr3(e.creatureId)}`;
     case "ghoulsWarded": return "WRD GHL";
     case "medusaAverted": return "MED AVD";
+    case "medusaLooms": return "MED LOM";
+    case "medusaSlept": return "MED SLP";
+    case "medusaAsleep": return "MED ZZZ";
     case "annihilated": return `ANH ${cr3(e.creatureId)}`;
     case "unicornGuards": return "UNI GRD";
     case "unicornDeparted": return "UNI DEP";
@@ -417,7 +428,7 @@ function legend(): string[] {
     ...rows("TREASURE", treasures),
     ...rows("TILE", ["CHM=CHAMBER", "TUN=TUNNEL", "GTW=GATEWAY", "POL=DEEP POOL", "VPT=VIPER PIT", "TMB=TOMB", "HAL=GREAT HALL"]),
     ...rows("TILE COLS", ["EXT: N/E/S/W OPEN, - WALL", "STR: U UP, D DOWN"]),
-    ...rows("ACTION", ["MOV=MOVE", "RET=RETREAT", "OUT=EXIT CAVE", "WDR=WITHDRAW", "TST=TEST", "ATK=ATTACK", "FGT=FIGHT ROUND", "TAK=TAKE", "GIV=GIVE", "DRP=DROP", "BER=BEAR", "STW=STOW", "LVE=LEAVE", "RTK=RETAKE", "USE=USE ARTEFACT", "OPN=OPEN CHEST", "CAS=CASUALTY", "QIT=QUIT"]),
+    ...rows("ACTION", ["MOV=MOVE", "RET=RETREAT", "OUT=EXIT CAVE", "WDR=WITHDRAW", "TST=TEST", "ATK=ATTACK", "FGT=FIGHT ROUND", "TAK=TAKE", "GIV=GIVE", "DRP=DROP", "BER=BEAR", "STW=STOW", "LVE=LEAVE", "RTK=RETAKE", "USE=USE ARTEFACT", "OPN=OPEN CHEST", "CAS=CASUALTY", "PRO=PROCEED (MEDUSA)", "QIT=QUIT"]),
     ...rows("EVENT", ["DRW=DREW (S:STRANGERS T:TREASURE H:HAZARDS)", "RCT=REACTION (HOS/IND/FRD)", "JOI=JOINED", "PAC=PACIFIED", "FGT SUP=FIGHT ON", "CBT=COMBAT (SIDE # V FOE # WON/LOS/TIE)", "WON=PARTY WON", "DIE=MEMBER DIED", "KIL=STRANGER SLAIN", "SLW=SPECTRE SLEW", "CAS=CASUALTY (R# DIE)"]),
     ...rows("EVENT", ["HAZ=HAZARD (GHL/MDA/ERQ/MUT/TRP)", "TRP=TRAP", "ESP/XSP=ENTER/CROSS SPECIAL", "TDR/TRC=POOL DROP/RECOVER", "FDR=FIGHT DROP", "RCL=RECLAIM", "END=GAME OVER (ESC/DED/QIT)", "DED=DEAD END", "SEC=SECRET DOOR", "SPL=ITEMS SPILLED", "ANH=ANNIHILATE", "WRD=WARD OFF", "RVV=REVIVE", "SAV=RING SAVE"]),
   ];

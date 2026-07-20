@@ -23,7 +23,7 @@ function livingHolds(state: GameState, treasureId: number): boolean {
 }
 
 /** A living Wizard bearing the Magic Staff — makes Medusa powerless over the whole party (card). */
-function hasStaffWizard(state: GameState): boolean {
+export function hasStaffWizard(state: GameState): boolean {
   return state.party.some((m) => (m.status === 0 || m.status === 1) && m.creatureId === C_WIZARD && m.treasure.includes(T_MAGIC_STAFF));
 }
 
@@ -36,7 +36,15 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
   for (const hz of order) {
     if (!state.hazards.includes(hz)) continue;
     if (hz === HAZARD_GHOULS && livingHolds(state, T_TALISMAN)) { events.push({ type: "ghoulsWarded" }); continue; } // the Talisman wards off Ghouls (card)
-    if (hz === HAZARD_MEDUSA && hasStaffWizard(state)) { events.push({ type: "medusaAverted" }); continue; } // the staff averts her gaze — no one stoned
+    if (hz === HAZARD_MEDUSA) {
+      const here = state.areas[state.partyArea];
+      if (here?.medusaAsleepUntil !== undefined) {
+        // Lotus Dust holds her under ("asleep for 2 turns of the player who uses it", §Lotus Dust).
+        if (state.turn <= here.medusaAsleepUntil) { events.push({ type: "medusaAsleep" }); continue; }
+        delete here.medusaAsleepUntil; // her two turns have run — she wakes, and her gaze fires
+      }
+      if (hasStaffWizard(state)) { events.push({ type: "medusaAverted" }); continue; } // the staff averts her gaze — no one stoned
+    }
     events.push({ type: "hazardFired", hazard: hz });
     switch (hz) {
       case HAZARD_EARTHQUAKE: {

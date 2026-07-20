@@ -40,7 +40,7 @@ END
 ```
 
 Checkpoint fields: `TRN` turn · `LVL` level · `ARA` partyArea index · `PH` phase
-(`EXP`=explore `ENC`=encounter `FGT`=fight `PKP`=pickup `END`=gameOver) · `GS` game state
+(`EXP`=explore `MDS`=medusa `ENC`=encounter `FGT`=fight `PKP`=pickup `END`=gameOver) · `GS` game state
 (0 playing, 1 escaped, 2 dead, 3 quit) · `SEED` the LCG cursor (`state.seed`) ·
 `LARGEIDX`/`SMALLIDX` deck cursors. `EV` lists the emitted event types in order (`-` = none).
 `<list>` is comma-separated integers, `-` when empty. PARTY: `CID` creatureId, `ST` status
@@ -52,7 +52,7 @@ dropped treasure ids.
 
 ## Action grammar
 
-Covers the full 17-action catalog (spec SC-4-41). Indices refer to the engine's state arrays
+Covers the full 18-action catalog (spec SC-4-41). Indices refer to the engine's state arrays
 (`party` / `strangers` / `treasures` / a member's `treasure`) **at the moment the action is
 applied**. Directions: 1 N, 2 E, 3 S, 4 W, 5 up, 6 down.
 
@@ -65,13 +65,14 @@ applied**. Directions: 1 N, 2 E, 3 S, 4 W, 5 up, 6 down.
 | `DROP <mi> <idx>` | dropTreasure |
 | `BORNE <mi> <idx> <0|1>` | setBorne (1 bear, 0 stow) |
 | `CASUALTY <idx>` | chooseCasualty |
-| `USE <artifact>[ T<target>][ D<dir>]` | useArtifact |
+| `PROCEED` | proceed (decline the Medusa-pause Lotus throw — the held hazards fire) |
+| `USE <artifact>[ T<target>][ D<dir>]` | useArtifact (`USE 5` with no `T` = the Medusa-pause throw) |
 | `FIGHT <match>[;<match>…]` | resolveRound; match = `<front>[+<front>][\|<backer>[+…]]><stranger>[+<stranger>]`; `FIGHT -` = the forced-Spectre empty plan (SC-9.4-6) |
 
 ## Coverage
 
-Fourteen runs. The eight untagged files mirror the solo golden firewall's seed × party set
-(`solo-golden.test.ts`) and exercise combat, pickup, hazards and deaths. The six TAGGED files are
+Nineteen runs. The eight untagged files mirror the solo golden firewall's seed × party set
+(`solo-golden.test.ts`) and exercise combat, pickup, hazards and deaths. The eleven TAGGED files are
 targeted fixtures found by seed sweep, driven by steered policies committed in the generator:
 
 | File tag | Pins |
@@ -79,6 +80,11 @@ targeted fixtures found by seed sweep, driven by steered policies committed in t
 | `-escape` (seed 225) | `exitCave` → `gameOver(ESCAPED)` with a laden party — valid final score 131 (§12) |
 | `-sorcerer` (seed 174) | `sorcererSlain` (+ the `SORCKILLED 1` curse-lift flag) before a party wipe |
 | `-artifacts` (seeds 257, 1237, 2678, 2355) | together, every usable artifact — Carpet 4, Lotus 5, Balm 6, Potion 8, Staff 9, Flute 12 (`USE` actions + effects) — plus the Lost-Ruby statue wrestle (×3) and the Treasure Chest (`OPENCHEST`) |
+| `-chest2` (seed 53) | `openChest` → a Spectre attacks |
+| `-ring` (seed 30) | the Ring shrugs off a killing blow (`deathPrevented`) |
+| `-reclaim` (seed 148) | Deep-Pool dropped treasure reclaimed by a Giant |
+| `-medusaavert` (seed 330) | a staff-Wizard averts Medusa (`medusaAverted`) |
+| `-petrified` (seed 24) | whole-party petrification (`petrifiedOut`) — and the Medusa pause: `MDS` phase, the no-target `USE 5` throw, `medusaSlept` + `medusaAsleep` |
 
 Note two truncation shapes a replayer must accept: a run may end at the step cap with `GS 0`
 (`END MOVES 300`, game still live), and seed 2678 stops early when no legal action remains (the

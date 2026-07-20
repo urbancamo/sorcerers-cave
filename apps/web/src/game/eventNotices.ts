@@ -118,6 +118,15 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "medusaAverted":
         out.push({ text: "Medusa's gaze sweeps the party — but the Wizard's Magic Staff turns it aside; no one is stoned.", tone: "good" });
         break;
+      case "medusaLooms":
+        out.push({ text: "Medusa looms before her gaze can land — throw the Lotus Dust at her, or proceed and brave it.", tone: "neutral" });
+        break;
+      case "medusaSlept":
+        out.push({ text: "The Lotus Dust settles over Medusa — she sleeps for two of your turns.", tone: "good" });
+        break;
+      case "medusaAsleep":
+        out.push({ text: "Medusa slumbers on under the Lotus Dust — her gaze never lifts.", tone: "good" });
+        break;
       case "droppedRetaken":
         out.push({ text: `Your fighters reclaim ${plural(e.count, "treasure")} they set down for the fight.`, tone: "good" });
         break;

@@ -71,4 +71,16 @@ describe("EncounterPanel", () => {
     const { container } = render(<EncounterPanel state={s} dispatch={() => {}} />);
     expect(container).toBeEmptyDOMElement();
   });
+
+  it("offers the Medusa-pause choice as two plain buttons (throw the dust / proceed)", () => {
+    const dispatch = vi.fn();
+    const s: GameState = { ...newGame(1, [5, 6]), phase: "medusa", hazards: [3], medusaPause: { freshEntry: true } };
+    s.party[0]!.treasure.push(5); // the Man carries the Lotus Dust
+    render(<EncounterPanel state={s} dispatch={dispatch} />);
+    expect(screen.getByText(/medusa looms/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /throw the lotus dust/i }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "useArtifact", artifact: 5 });
+    fireEvent.click(screen.getByRole("button", { name: /proceed/i }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "proceed" });
+  });
 });
