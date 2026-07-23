@@ -61,6 +61,12 @@
     nav.toc a { display: block; padding: 5px 8px; border-radius: 7px; font-family: var(--ui); font-size: 13.5px; color: var(--stone); }
     nav.toc a:hover { background: rgba(201, 161, 78, 0.10); color: var(--cream); text-decoration: none; }
     @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } nav.toc { position: static; max-height: none; } }
+    /* Portrait phones: the stat tables' natural width (~530px) must not stretch the page —
+       let the column shrink and scroll each table inside its own box instead. */
+    @media (max-width: 640px) {
+      .layout > * { min-width: 0; }
+      table { display: block; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    }
 
     /* ---- hero ---- */
     header.hero { text-align: center; padding: 70px 0 26px; }

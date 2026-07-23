@@ -293,6 +293,30 @@ canvas{display:block;touch-action:none;}
   .dock .sep { display: none; }
 }
 
+/* ===== Portrait phones — additions only. Scoped to portrait orientation so landscape
+   phones (the max-height rules above) and desktop windows keep exactly the rules above. */
+@media (max-width: 720px) and (orientation: portrait) {
+  /* The mobile chip cull above (nth-child(n+4)) also hides the Deck counter — but the
+     remaining-tiles count (and its deck-low warning pulse) is play-critical. Re-show it. */
+  .stats .chip:has(#st-tiles) { display: flex; }
+
+  /* When a card is revealed top-right, the centred prompt bubble would run underneath it.
+     Yield: the prompt becomes a left-hand band beside the card, so both stay readable. */
+  #hud:has(.cardpanel.show) .prompt {
+    left: 10px;
+    right: 170px; /* cardpanel: 150px wide + 10px inset + 10px gap */
+    transform: none;
+    max-width: none;
+    justify-content: flex-start;
+    text-align: left;
+  }
+}
+@media (max-width: 560px) and (orientation: portrait) {
+  /* The centred stats row needs the full width of a phone — the corner brand collides
+     with it (the title clips under the Code chip). The splash owns the brand on phones. */
+  .brand { display: none; }
+}
+
 /* ===================== Discovery overlay ===================== */
 /* reveal ribbon (bottom) */
 .reveal{position:fixed;left:50%;bottom:96px;transform:translateX(-50%) translateY(10px);z-index:11;

@@ -1,0 +1,209 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-07-23T10:17:54Z",
+  "title": "Design System: Sorcerer's Cave",
+  "extensions": {
+    "colorMeta": {
+      "lantern-gold": {
+        "role": "primary",
+        "displayName": "Lantern Gold",
+        "canonical": "#c9a14e",
+        "tonalRamp": ["oklch(15% 0.05 85)", "oklch(25% 0.07 85)", "oklch(35% 0.09 85)", "oklch(45% 0.10 85)", "oklch(55% 0.10 85)", "oklch(72% 0.10 85)", "oklch(84% 0.09 85)", "oklch(94% 0.06 85)"]
+      },
+      "bright-lantern": {
+        "role": "primary",
+        "displayName": "Bright Lantern",
+        "canonical": "#e6c578",
+        "tonalRamp": ["oklch(15% 0.04 88)", "oklch(27% 0.06 88)", "oklch(39% 0.08 88)", "oklch(51% 0.09 88)", "oklch(63% 0.10 88)", "oklch(75% 0.10 88)", "oklch(85% 0.09 88)", "oklch(95% 0.05 88)"]
+      },
+      "old-wound-red": {
+        "role": "secondary",
+        "displayName": "Old Wound Red",
+        "canonical": "#a8443a",
+        "tonalRamp": ["oklch(15% 0.06 30)", "oklch(24% 0.08 30)", "oklch(33% 0.10 30)", "oklch(42% 0.11 30)", "oklch(50% 0.12 30)", "oklch(62% 0.11 30)", "oklch(78% 0.08 30)", "oklch(93% 0.04 30)"]
+      },
+      "cold-pool-teal": {
+        "role": "tertiary",
+        "displayName": "Cold Pool Teal",
+        "canonical": "#5f8f8a",
+        "tonalRamp": ["oklch(15% 0.03 185)", "oklch(24% 0.04 185)", "oklch(33% 0.05 185)", "oklch(42% 0.05 185)", "oklch(51% 0.05 185)", "oklch(60% 0.05 185)", "oklch(78% 0.04 185)", "oklch(94% 0.02 185)"]
+      },
+      "depthless-dark": {
+        "role": "neutral",
+        "displayName": "Depthless Dark",
+        "canonical": "#070709",
+        "tonalRamp": ["oklch(13% 0.006 285)", "oklch(20% 0.008 285)", "oklch(28% 0.008 285)", "oklch(38% 0.008 285)", "oklch(50% 0.008 285)", "oklch(65% 0.008 285)", "oklch(80% 0.006 285)", "oklch(95% 0.004 285)"]
+      },
+      "cavern-shade": {
+        "role": "neutral",
+        "displayName": "Cavern Shade",
+        "canonical": "#15151b",
+        "tonalRamp": ["oklch(15% 0.012 285)", "oklch(20% 0.012 285)", "oklch(28% 0.012 285)", "oklch(38% 0.012 285)", "oklch(50% 0.012 285)", "oklch(65% 0.010 285)", "oklch(80% 0.008 285)", "oklch(95% 0.005 285)"]
+      },
+      "torchlit-vellum": {
+        "role": "neutral",
+        "displayName": "Torchlit Vellum",
+        "canonical": "#e8dbbb",
+        "tonalRamp": ["oklch(15% 0.02 90)", "oklch(27% 0.025 90)", "oklch(39% 0.03 90)", "oklch(51% 0.035 90)", "oklch(63% 0.035 90)", "oklch(75% 0.035 90)", "oklch(89% 0.035 90)", "oklch(96% 0.02 90)"]
+      },
+      "candle-cream": {
+        "role": "neutral",
+        "displayName": "Candle Cream",
+        "canonical": "#f6efce",
+        "tonalRamp": ["oklch(15% 0.015 95)", "oklch(27% 0.02 95)", "oklch(39% 0.025 95)", "oklch(51% 0.03 95)", "oklch(63% 0.03 95)", "oklch(76% 0.03 95)", "oklch(88% 0.03 95)", "oklch(94% 0.03 95)"]
+      },
+      "weathered-stone": {
+        "role": "neutral",
+        "displayName": "Weathered Stone",
+        "canonical": "#b8b1a2",
+        "tonalRamp": ["oklch(15% 0.01 95)", "oklch(25% 0.015 95)", "oklch(35% 0.02 95)", "oklch(46% 0.02 95)", "oklch(57% 0.02 95)", "oklch(68% 0.02 95)", "oklch(75% 0.02 95)", "oklch(92% 0.015 95)"]
+      },
+      "faded-stone": {
+        "role": "neutral",
+        "displayName": "Faded Stone",
+        "canonical": "#6f6a5f",
+        "tonalRamp": ["oklch(15% 0.008 95)", "oklch(23% 0.01 95)", "oklch(31% 0.012 95)", "oklch(40% 0.014 95)", "oklch(50% 0.014 95)", "oklch(62% 0.014 95)", "oklch(76% 0.012 95)", "oklch(92% 0.008 95)"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Splash title only, with gold-and-arcane text glow." },
+      "headline": { "displayName": "Headline", "purpose": "Shell-screen titles (party select, game over) in Candle Cream with soft brass text-shadow." },
+      "title": { "displayName": "Engraved Eyebrow", "purpose": "Uppercase, heavily letterspaced Cinzel panel headers and overlay titles." },
+      "blackletter": { "displayName": "Card Name", "purpose": "The revealed card's name on its parchment mat; the loader subtitle. Nowhere else." },
+      "flavor": { "displayName": "Flavor", "purpose": "Italic EB Garamond narrative: discovery banners, dice messages, the splash quote." },
+      "body": { "displayName": "Working UI", "purpose": "System sans for buttons, rows, chat, tables, toasts (12.5–15px)." },
+      "label": { "displayName": "Stat Label", "purpose": "Uppercase micro-labels for stat keys, costs, captions in Faded Stone." }
+    },
+    "shadows": [
+      { "name": "floating-panel", "value": "0 28px 70px -28px rgba(0, 0, 0, 0.8)", "purpose": "Shell panels, modals, the dice card floating over the void." },
+      { "name": "hud-furniture", "value": "0 10px 30px -16px rgba(0, 0, 0, 0.8)", "purpose": "Chips, compass, toasts, docks." },
+      { "name": "overlay-heavy", "value": "0 24px 60px -20px rgba(0, 0, 0, 0.85)", "purpose": "Scoreboards and heavy modal cards." },
+      { "name": "brass-glow", "value": "0 8px 22px -8px rgba(201, 161, 78, 0.6)", "purpose": "Underglow beneath gold-filled primary buttons." },
+      { "name": "brass-selection", "value": "0 0 0 1px #c9a14e, 0 8px 20px -10px rgba(201, 161, 78, 0.55)", "purpose": "Selected character cards and interactive frames." },
+      { "name": "die-underside", "value": "inset 0 -4px 10px rgba(0, 0, 0, 0.2), 0 6px 16px -4px rgba(0, 0, 0, 0.6)", "purpose": "Bone dice tile shading." }
+    ],
+    "motion": [
+      { "name": "hover-standard", "value": "0.15s ease (border-color, background, color)", "purpose": "Default control hover/focus transition." },
+      { "name": "card-lift", "value": "transform 0.2s cubic-bezier(0.2, 0.7, 0.2, 1)", "purpose": "Splash fan-card straighten/lift/scale on hover." },
+      { "name": "panel-reveal", "value": "0.34s cubic-bezier(0.2, 0.7, 0.2, 1)", "purpose": "Revealed-card panel fade/slide in." },
+      { "name": "die-tumble", "value": "scv-tumble 0.18s linear infinite (±9deg wobble)", "purpose": "Dice while rolling; settle pops to scale(1.08) over 0.12s." },
+      { "name": "toast-in", "value": "0.18s ease-out (fade + 6px drop)", "purpose": "Transient toast entrance; 3s lifetime." },
+      { "name": "deck-low-pulse", "value": "deckLowPulse 1.4s ease-in-out infinite", "purpose": "Crimson warning pulse on the deck chip." }
+    ],
+    "breakpoints": [
+      { "name": "hud-compact", "value": "720px" },
+      { "name": "portrait-sheets", "value": "720px (portrait only)" },
+      { "name": "mp-dock-clear", "value": "640px" },
+      { "name": "card-grid", "value": "600px" },
+      { "name": "portrait-phone", "value": "560px (portrait only)" },
+      { "name": "narrow", "value": "420px" },
+      { "name": "short-viewport", "value": "520px (max-height)" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The brass fitting: the one gold-filled action per surface region.",
+      "html": "<button class=\"ds-btn-primary\">Enter the Cave</button>",
+      "css": ".ds-btn-primary { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; font-weight: 600; font-size: 14px; letter-spacing: 0.02em; padding: 12px 18px; border-radius: 11px; border: 1px solid var(--brass, #c9a14e); color: #241a06; cursor: pointer; background: linear-gradient(180deg, var(--brass-bright, #e6c578), var(--brass, #c9a14e)); box-shadow: 0 8px 22px -8px rgba(201, 161, 78, 0.6); transition: filter 0.15s; } .ds-btn-primary:hover { filter: brightness(1.07); } .ds-btn-primary:focus-visible { outline: 2px solid var(--brass-bright, #e6c578); outline-offset: 2px; } .ds-btn-primary:disabled { opacity: 0.4; cursor: default; box-shadow: none; }"
+    },
+    {
+      "name": "Ghost Button",
+      "kind": "button",
+      "refersTo": "button-ghost",
+      "description": "Hairline glass control; earns brass on hover.",
+      "html": "<button class=\"ds-btn-ghost\">Inspect</button>",
+      "css": ".ds-btn-ghost { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; font-size: 13px; padding: 9px 12px; border-radius: 9px; border: 1px solid var(--line-strong, rgba(232, 219, 187, 0.26)); color: var(--parchment, #e8dbbb); background: rgba(201, 161, 78, 0.06); cursor: pointer; transition: border-color 0.15s, background 0.15s, color 0.15s; } .ds-btn-ghost:hover { border-color: var(--brass, #c9a14e); color: var(--cream, #f6efce); background: rgba(201, 161, 78, 0.14); } .ds-btn-ghost:focus-visible { outline: 2px solid var(--brass-bright, #e6c578); outline-offset: 2px; }"
+    },
+    {
+      "name": "Danger Button",
+      "kind": "button",
+      "refersTo": "button-danger",
+      "description": "Dried-blood gradient for destructive or perilous choices.",
+      "html": "<button class=\"ds-btn-danger\">Abandon Expedition</button>",
+      "css": ".ds-btn-danger { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; font-weight: 600; font-size: 14px; padding: 12px 18px; border-radius: 11px; border: 1px solid #8a3a34; color: var(--cream, #f6efce); cursor: pointer; background: linear-gradient(180deg, #c2473e, #8a3a34); box-shadow: 0 8px 22px -8px rgba(194, 71, 62, 0.5); transition: filter 0.15s; } .ds-btn-danger:hover { filter: brightness(1.08); } .ds-btn-danger:focus-visible { outline: 2px solid #e6a39a; outline-offset: 2px; }"
+    },
+    {
+      "name": "Cabinet Panel",
+      "kind": "card",
+      "refersTo": "panel",
+      "description": "The dark-glass display case: blur, vellum hairline, ambient void shadow, engraved eyebrow.",
+      "html": "<div class=\"ds-panel\"><div class=\"ds-panel-hd\">Muster Your Party</div><p class=\"ds-panel-body\">Spend a 6-point budget recruiting your expedition before you descend.</p></div>",
+      "css": ".ds-panel { width: 320px; display: flex; flex-direction: column; gap: 14px; padding: 24px 26px 26px; background: rgba(15, 15, 20, 0.74); border: 1px solid var(--line-strong, rgba(232, 219, 187, 0.26)); border-radius: 16px; backdrop-filter: blur(8px); box-shadow: 0 28px 70px -28px rgba(0, 0, 0, 0.8); } .ds-panel-hd { font-family: Cinzel, serif; font-size: 13px; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; color: var(--brass-bright, #e6c578); text-align: center; } .ds-panel-body { margin: 0; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 14px; line-height: 1.5; color: var(--parchment, #e8dbbb); text-align: center; }"
+    },
+    {
+      "name": "Stat Chip",
+      "kind": "chip",
+      "refersTo": "chip",
+      "description": "HUD stat: uppercase stone key over an engraved cream value.",
+      "html": "<div class=\"ds-chip\"><span class=\"ds-chip-k\">Deck</span><span class=\"ds-chip-v\">42</span></div>",
+      "css": ".ds-chip { display: inline-flex; flex-direction: column; gap: 1px; min-width: 74px; padding: 8px 14px; background: rgba(15, 15, 20, 0.74); border: 1px solid var(--line-strong, rgba(232, 219, 187, 0.26)); border-radius: 9px; backdrop-filter: blur(8px); box-shadow: 0 10px 30px -16px rgba(0, 0, 0, 0.8); } .ds-chip-k { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 9.5px; letter-spacing: 0.16em; text-transform: uppercase; color: var(--stone-dim, #6f6a5f); } .ds-chip-v { font-family: Cinzel, serif; font-size: 16px; font-weight: 600; line-height: 1.1; color: var(--cream, #f6efce); }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Recessed near-black field with a brass frame and gold focus ring.",
+      "html": "<input class=\"ds-input\" type=\"text\" placeholder=\"Party name\" />",
+      "css": ".ds-input { font-family: ui-sans-serif, system-ui, -apple-system, sans-serif; font-size: 15px; padding: 9px 11px; border-radius: 9px; border: 1px solid var(--brass, #c9a14e); background: rgba(0, 0, 0, 0.25); color: var(--cream, #f6efce); } .ds-input::placeholder { color: var(--stone-dim, #6f6a5f); } .ds-input:focus-visible { outline: none; border-color: var(--brass-bright, #e6c578); box-shadow: 0 0 0 2px rgba(230, 197, 120, 0.3); }"
+    },
+    {
+      "name": "Brass Select",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Themed dropdown with a custom brass chevron replacing the OS arrow.",
+      "html": "<select class=\"ds-select\"><option>Give to Hero</option><option>Give to Wizard</option></select>",
+      "css": ".ds-select { font-family: ui-sans-serif, system-ui, sans-serif; font-size: 13px; font-weight: 600; padding: 7px 30px 7px 12px; border-radius: 8px; border: 1px solid var(--brass, #c9a14e); color: var(--cream, #f6efce); background-color: rgba(201, 161, 78, 0.12); background-image: url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='none' stroke='%23e6c578' stroke-width='1.6' d='M1 1.5 6 6.5 11 1.5'/%3E%3C/svg%3E\"); background-repeat: no-repeat; background-position: right 10px center; background-size: 11px 8px; appearance: none; -webkit-appearance: none; cursor: pointer; transition: border-color 0.15s, background-color 0.15s; } .ds-select:hover { background-color: rgba(201, 161, 78, 0.2); border-color: var(--brass-bright, #e6c578); } .ds-select:focus-visible { outline: none; border-color: var(--brass-bright, #e6c578); box-shadow: 0 0 0 2px rgba(230, 197, 120, 0.3); } .ds-select option { color: #1b1b22; background: var(--parchment, #e8dbbb); }"
+    },
+    {
+      "name": "Bone Die",
+      "kind": "custom",
+      "refersTo": "die",
+      "description": "The signature dice tile: bone gradient, Cinzel numeral, winner glows brass.",
+      "html": "<div class=\"ds-die-row\"><span class=\"ds-die ds-die-win\">6</span><span class=\"ds-die ds-die-foe\">3</span></div>",
+      "css": ".ds-die-row { display: inline-flex; gap: 12px; align-items: center; } .ds-die { width: 60px; height: 60px; display: inline-grid; place-items: center; font-family: Cinzel, serif; font-size: 32px; font-weight: 700; color: var(--void, #070709); background: linear-gradient(180deg, #f3ead0, #d8c79c); border-radius: 12px; box-shadow: inset 0 -4px 10px rgba(0, 0, 0, 0.2), 0 6px 16px -4px rgba(0, 0, 0, 0.6); } .ds-die-win { outline: 2px solid var(--brass-bright, #e6c578); box-shadow: inset 0 -4px 10px rgba(0, 0, 0, 0.2), 0 0 16px -2px var(--brass-bright, #e6c578); } .ds-die-foe { background: linear-gradient(180deg, #caa2a0, #a8443a); border: 1px solid #7c2f2a; color: var(--cream, #f6efce); }"
+    },
+    {
+      "name": "Toast",
+      "kind": "custom",
+      "refersTo": "chip",
+      "description": "Pill-shaped transient notice floating under the stats row.",
+      "html": "<div class=\"ds-toast\">The party descends to <b>Level 2</b></div>",
+      "css": ".ds-toast { display: inline-block; font-family: ui-sans-serif, system-ui, sans-serif; font-size: 12.5px; letter-spacing: 0.02em; padding: 8px 16px; border-radius: 999px; color: var(--parchment, #e8dbbb); background: rgba(15, 15, 20, 0.85); border: 1px solid var(--line-strong, rgba(232, 219, 187, 0.26)); backdrop-filter: blur(8px); box-shadow: 0 10px 30px -16px rgba(0, 0, 0, 0.8); } .ds-toast b { color: var(--brass-bright, #e6c578); font-weight: 600; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Antiquarian's Cabinet",
+    "overview": "This interface is the museum-grade cabinet in which a rediscovered 1978 artifact is displayed: dark glass, brass fittings, and vellum labels around the original card art, which is always the exhibit and never the decoration. The room is nearly lightless — a depthless near-black cave — and every UI surface is a pane of smoked glass floating in it, edged with hairlines of translucent parchment and lit by the warm glow of lantern gold. The atmosphere is immersive and hushed; the player is down in the dark, and the interface is the small circle of civilized light they carry.\n\nThe system speaks in four typographic voices (engraved Cinzel capitals, blackletter card names, italic Garamond flavor, and a plain system sans that does the working UI) and one warm metal. Gold is interaction: buttons, focus, emphasis, and win-states all glow brass, and its scarcity against the dark is what makes it feel valuable. Danger is an old dried-blood red, never a modern alert red. Nothing in the interface is pure white, pure black, opaque, or cool-gray.",
+    "keyCharacteristics": [
+      "Near-black void ground with translucent dark-glass panels (blur + vellum hairline).",
+      "Brass/gold reserved for interaction and emphasis; dark ink text on gold fills.",
+      "Original card art displayed whole, on parchment mats, at card aspect (63/88).",
+      "Uppercase, letterspaced Cinzel eyebrows label every panel and stat.",
+      "Ambient lantern-glow depth: huge soft black shadows below, brass glows around."
+    ],
+    "rules": [
+      { "name": "The Brass Is Interaction Rule", "body": "Gold belongs to things the player can touch or must notice. At most one gold-filled control per surface region; everything else earns brass only on hover, focus, or selection.", "section": "colors" },
+      { "name": "The No Daylight Rule", "body": "No pure #fff or #000, no cool grays, no default blues. Light tones are always warm vellum; darks are always the warm-black cave family.", "section": "colors" },
+      { "name": "The Four Voices Rule", "body": "Cinzel engraves, Grenze Gotisch names cards, EB Garamond tells the story in italic, the system sans does the work. Never swap their jobs; never introduce a fifth voice.", "section": "typography" },
+      { "name": "The Engraved Eyebrow Rule", "body": "Every panel announces itself with an uppercase, heavily letterspaced (≥0.16em) Cinzel or sans label — never a sentence-case heading.", "section": "typography" },
+      { "name": "The Lantern Glow Rule", "body": "Black shadows fall down and away (large y-offset, huge blur, negative spread); gold light radiates outward (0 0 Npx glows). Never a crisp, small, \"card UI\" shadow.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do build every floating surface as dark glass: rgba(15,15,20,0.74–0.92), backdrop-filter: blur(8px), 1px Vellum Hairline, and an ambient black shadow.",
+      "Do give every panel an engraved eyebrow: uppercase, ≥0.16em tracking, Cinzel 700 or sans 600, in Bright Lantern or Faded Stone.",
+      "Do show card art whole — object-fit: contain, aspect-ratio 63/88, on a parchment mat or dark frame — and let it be the most saturated thing on screen.",
+      "Do use the brass gradient + Gilt Ink text for exactly the one action you want taken, and ghost hairline buttons for everything else.",
+      "Do keep state feedback in-world: brass for fortune, Old Wound Red for peril, stone tones for the mundane; hover transitions at 0.15s."
+    ],
+    "donts": [
+      "Don't import modern flat-SaaS idioms: no white or light panels (except the parchment mat), no cool grays, no default-blue buttons, no crisp small shadows.",
+      "Don't drift into cartoon fantasy: no bevelled gold UI kits, no glossy ornament, no faux-medieval kitsch fonts beyond the four committed voices.",
+      "Don't go neon dungeon-crawler: no synthwave purples/cyans as UI chrome, no glitch effects (the splash's magical haze is backdrop, not chrome).",
+      "Don't use pure #fff or #000 anywhere; light text is Torchlit Vellum or Candle Cream, dark text is Scribe's/Gilt Ink.",
+      "Don't recolor, crop, filter, or caption over the original card art — it is the exhibit (PRODUCT.md brand commitment)."
+    ]
+  }
+}
