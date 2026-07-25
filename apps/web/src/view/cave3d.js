@@ -113,7 +113,8 @@ const levelBounds={};
 let isoFocus=null, isoDir='above', isoHinted=false; // focused level (null = whole cave); dir = which side to hide
 const isoAlpha={};                        // level -> current (lerped) alpha
 function regMat(m){ if(m && m.userData.b===undefined) m.userData.b=m.opacity; }
-// dir 'above' hides shallower levels (overhead views); 'below' hides deeper levels (after climbing up).
+// dir 'above' hides shallower levels (overhead views); 'below' hides deeper levels (after climbing up);
+// 'only' hides every level except the focused one (the Home / snap-to-tile view).
 function setIsolation(focus, dir){
   if(focus!=null && isoFocus==null && !isoHinted){ isoHinted=true;
     showToast('Some levels hidden — <b>Free orbit</b> shows the whole cave'); }
@@ -122,6 +123,7 @@ function setIsolation(focus, dir){
 function isoTargetFor(lvl){
   if(isoFocus==null) return 1;
   const a=lvlIndex(lvl), f=lvlIndex(isoFocus);
+  if(isoDir==='only') return a===f ? 1 : 0;
   return (isoDir==='below' ? a>f : a<f) ? 0 : 1;
 }
 function applyFadeObj(o){
@@ -495,7 +497,7 @@ function frameSnap(area){
   // look slightly from the south so North reads "up" the screen; height ≈ dist, small forward bias
   flyTo(wp.clone().add(new THREE.Vector3(0,dist*0.96,dist*0.27)),wp,fov);
 }
-function viewSnapTile(){const a=engine.current;setMode('snap','Overhead · '+a.name);setIsolation(a.level);frameSnap(a);}
+function viewSnapTile(){const a=engine.current;setMode('snap','Overhead · '+a.name);setIsolation(a.level,'only');frameSnap(a);}
 function focusArea(a){ // a: {col,row,level} — fly the camera to that area (free-roam spectating)
   if(a==null) return;
   setMode('orbit','Spectating'); setIsolation(a.level);
