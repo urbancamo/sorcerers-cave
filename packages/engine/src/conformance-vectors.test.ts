@@ -92,7 +92,7 @@ function lcg(seed: number): () => number {
 const PHASE_CODE: Record<string, string> = { explore: "EXP", medusa: "MDS", encounter: "ENC", fight: "FGT", pickup: "PKP", gameOver: "END" };
 const list = (xs: readonly number[] | undefined): string => (xs && xs.length ? xs.join(",") : "-");
 
-/** One action in the vector grammar — covers the full 18-action catalog (SC-4-41). */
+/** One action in the vector grammar — covers the full 21-action catalog (SC-4-41). */
 function encodeAction(a: GameAction): string {
   switch (a.type) {
     case "move": return `MOVE ${a.dir}`;
@@ -116,10 +116,12 @@ function encodeAction(a: GameAction): string {
       return `FIGHT ${a.matches.length === 0 ? "-" : a.matches
         .map((m) => `${m.front.join("+") || "-"}${m.backers.length ? `|${m.backers.join("+")}` : ""}>${m.strangers.join("+")}`)
         .join(";")}`;
-    // Extension kit (SC-EXT-5): none of the "base"/"slayer"/"artifacts" policies below ever choose
-    // this (the kit is off in every conformance run), so this arm is exhaustiveness-only — it never
-    // actually appears in a committed vector file.
+    // Extension kit (SC-EXT-5/7/8): none of the "base"/"slayer"/"artifacts" policies below ever
+    // choose these (the kit is off in every conformance run), so these arms are exhaustiveness-only —
+    // they never actually appear in a committed vector file.
     case "descendChasm": return "DESCENDCHASM";
+    case "drawFromWell": return "DRAWFROMWELL";
+    case "pullBellRope": return `PULLBELLROPE ${a.mi}`;
   }
 }
 

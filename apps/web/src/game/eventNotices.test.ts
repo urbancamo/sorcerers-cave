@@ -140,6 +140,23 @@ describe("eventNotices", () => {
     expect(safe.tone).toBe("good");
   });
 
+  it("reports the Well's draw (US-07) and the Bell Rope's three bands (US-03)", () => {
+    expect(eventNotices([{ type: "wellDraw" }])[0]!.text).toMatch(/bucket rises/i);
+
+    const vanish = eventNotices([{ type: "bellRoll", roll: 1, outcome: "vanish", creatureId: 0 }])[0]!;
+    expect(vanish.text).toMatch(/rope yanks .* upward/i);
+    expect(vanish.text).toMatch(/never seen again/i);
+    expect(vanish.tone).toBe("bad");
+
+    const toll = eventNotices([{ type: "bellRoll", roll: 2, outcome: "toll", creatureId: 0 }])[0]!;
+    expect(toll.text).toMatch(/bell tolls once/i);
+    expect(toll.text).toMatch(/now knows you are here/i);
+
+    const stir = eventNotices([{ type: "bellRoll", roll: 5, outcome: "stir", creatureId: 0 }])[0]!;
+    expect(stir.text).toMatch(/two cards are drawn/i);
+    expect(stir.text).toMatch(/cannot withdraw this turn/i);
+  });
+
   it("noticeTone prefers bad, then good, then neutral", () => {
     expect(noticeTone([{ text: "", tone: "neutral" }, { text: "", tone: "good" }, { text: "", tone: "bad" }])).toBe("bad");
     expect(noticeTone([{ text: "", tone: "neutral" }, { text: "", tone: "good" }])).toBe("good");

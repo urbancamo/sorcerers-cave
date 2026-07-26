@@ -25,7 +25,16 @@ export type GameAction =
   | { type: "openChest" }
   // Extension kit (SC-EXT-5): descend the Chasm — legal only on a SPECIAL_CHASM tile, in explore or
   // encounter phase (design US-02). No dice; reuses `relocateDown` (one-way, no mirrored stair-up).
-  | { type: "descendChasm" };
+  | { type: "descendChasm" }
+  // Extension kit (SC-EXT-7): draw one small card into the Well's chamber (design US-07). Legal on
+  // a SPECIAL_WELL tile with a non-empty small pack, in explore OR encounter phase; repeatable every
+  // turn (Resolved interpretation 4) — no spent flag.
+  | { type: "drawFromWell" }
+  // Extension kit (SC-EXT-8): pull the Bell Rope (design US-03), naming the puller by party index
+  // (the "member picker" — same `mi` convention as takeTreasure/dropTreasure/setBorne). Legal on a
+  // SPECIAL_BELL_ROPE tile in explore OR encounter phase, for a living member, ONCE per tile ever
+  // (AF_BELL_SPENT on the area).
+  | { type: "pullBellRope"; mi: number };
 
 // What happened — the reducer is the only producer; the UI never infers game facts.
 // Encounter-resolution and fight events arrive with combat (Milestone C-2).
@@ -104,4 +113,15 @@ export type GameEvent =
   | { type: "heavyDownForFight"; count: number }
   // Extension kit special-area events (design US-02/US-05, SC-EXT-5/SC-EXT-6):
   | { type: "chasmDescend" } // the party chose to climb down the Chasm — a fresh card one level down
-  | { type: "whirlpoolRoll"; roll: number; dragged: boolean }; // crossing the Whirlpool's shallows: 1-2 drags the party down
+  | { type: "whirlpoolRoll"; roll: number; dragged: boolean } // crossing the Whirlpool's shallows: 1-2 drags the party down
+  // Extension kit (SC-EXT-7): the Well drew one small card into the current chamber (design US-07).
+  | { type: "wellDraw" }
+  // Extension kit (SC-EXT-8): the Bell Rope's visible d6 and its band outcome (design US-03).
+  // `creatureId` is the PULLER's creature id (not a party index — the index may go stale for
+  // "vanish", where the puller is spliced out of `party` entirely). Deviates from the design brief's
+  // literal `memberId` field name for consistency with every other id-reporting event in this union
+  // (memberDied/memberRevived/itemsSpilled all key off `creatureId`); the VALUE is exactly what that
+  // name described. 1 = vanish (Desertion semantics: removed with everything carried, not dead, not
+  // revivable); 2-3 = toll (foreboding narration only, no mechanical effect); 4-6 = stir (two cards
+  // drawn into the area, withdraw blocked this turn).
+  | { type: "bellRoll"; roll: number; outcome: "vanish" | "toll" | "stir"; creatureId: number };

@@ -1,7 +1,7 @@
 import { decodeArea } from "./decode";
 import { DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, unpackCoord, packCoord } from "./coords";
-import { GS_PLAYING, AF_DESTROYED, type GameState } from "./state";
-import { SPECIAL_DEEP_POOL, SPECIAL_CHASM } from "./data/areaCards";
+import { GS_PLAYING, AF_DESTROYED, AF_BELL_SPENT, type GameState } from "./state";
+import { SPECIAL_DEEP_POOL, SPECIAL_CHASM, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
 import type { GameAction } from "./actions";
 import { canCarry } from "./pickup";
 
@@ -60,6 +60,17 @@ function artifactActions(state: GameState): GameAction[] {
   return actions;
 }
 
+/** Extension kit (SC-EXT-8): one `pullBellRope` action per living party member, offered while the
+ *  party stands on an unspent Bell Rope tile (design US-03 — the "member picker"). */
+function bellRopeActions(state: GameState): GameAction[] {
+  const dec = decodeArea(state.areas[state.partyArea]!.card);
+  if (dec.special !== SPECIAL_BELL_ROPE) return [];
+  if ((state.areas[state.partyArea]!.flags & AF_BELL_SPENT) !== 0) return [];
+  const actions: GameAction[] = [];
+  state.party.forEach((m, mi) => { if (m.status === 0 || m.status === 1) actions.push({ type: "pullBellRope", mi }); });
+  return actions;
+}
+
 /**
  * The actions the UI may offer in the current state (the interactive contract).
  * The UI renders controls from this list; reduce validates against the same rules.
@@ -75,12 +86,21 @@ export function legalActions(state: GameState): GameAction[] {
     // Withdraw retreats to the area the party came from — but not back up a trap it fell through, nor
     // into an area an earthquake has since collapsed (§Earthquake): both leave no way back.
     const prevGone = ((state.areas[state.prev]?.flags ?? 0) & AF_DESTROYED) !== 0;
-    const canWithdraw = !state.fellThroughTrap && !prevGone;
+    // A Well draw or a Bell Rope 4-6 roll blocks withdraw for the turn it fired on, same as a trap
+    // fall (SC-EXT-9, design US-03/US-07).
+    const noWithdrawTurn = state.noWithdrawTurn === state.turn;
+    const canWithdraw = !state.fellThroughTrap && !prevGone && !noWithdrawTurn;
     const actions: GameAction[] = canWithdraw ? [{ type: "withdraw" }, { type: "attack" }] : [{ type: "attack" }];
     if ((state.indiffStreak ?? 0) < 3) actions.push({ type: "test" });
+    const special = decodeArea(state.areas[state.partyArea]!.card).special;
     // The Chasm offers an escape hatch even mid-encounter — descending abandons the strangers here,
     // no test/fight required (design US-02).
-    if (decodeArea(state.areas[state.partyArea]!.card).special === SPECIAL_CHASM) actions.push({ type: "descendChasm" });
+    if (special === SPECIAL_CHASM) actions.push({ type: "descendChasm" });
+    // The Well and the Bell Rope are likewise offered mid-encounter — drawing/pulling doesn't require
+    // resolving the current strangers first (design US-03/US-07 — same "no test/fight required" logic
+    // as the Chasm's escape hatch above).
+    if (special === SPECIAL_WELL && state.smallIdx < state.smallPack.length) actions.push({ type: "drawFromWell" });
+    actions.push(...bellRopeActions(state));
     actions.push(...artifactActions(state));
     return actions; // quitting is via the HUD Quit button, not an in-menu action
   }
@@ -146,6 +166,11 @@ export function legalActions(state: GameState): GameAction[] {
   if (state.party.some((m) => (m.status === 0 || m.status === 1) && m.treasure.includes(14))) actions.push({ type: "openChest" });
   // The Chasm is reusable terrain: always offered while resting on it, not a one-shot (design US-02).
   if (dec.special === SPECIAL_CHASM) actions.push({ type: "descendChasm" });
+  // The Well is likewise reusable terrain, repeatable every turn — no spent flag (design US-07,
+  // Resolved interpretation 4) — gated only on the small pack having a card left to draw.
+  if (dec.special === SPECIAL_WELL && state.smallIdx < state.smallPack.length) actions.push({ type: "drawFromWell" });
+  // The Bell Rope, unlike the Well, is spent forever once pulled (AF_BELL_SPENT, design US-03).
+  actions.push(...bellRopeActions(state));
   // A permanently-indifferent chamber is traversed in the explore phase, but the party may still choose
   // to attack its guards (to win the treasure they guard) — offer it while they're parked on the tile.
   if (state.pacifiedAreas?.includes(state.partyArea) &&

@@ -20,6 +20,8 @@ export interface Notice {
 const name = (cid: number): string => CREATURES[cid]?.name ?? "a creature";
 const plural = (n: number, s: string) => `${n} ${s}${n === 1 ? "" : "s"}`;
 const DIR_WORD: Record<number, string> = { 1: "north", 2: "east", 3: "south", 4: "west", 5: "up the stair", 6: "down the stair" };
+// The Bell Rope's 2-3 "toll" band uses the design's exact foreboding wording (US-03 Feedback).
+const BELL_TOLL_TEXT = "A bell tolls once, far above — and is answered by silence. Something, somewhere, now knows you are here.";
 
 /** A short notice for a fired hazard's effect. Mutiny and Trap are surfaced elsewhere
  *  (the `mutinied` event and the trap confirm modal), so they produce nothing here. */
@@ -212,6 +214,18 @@ export function eventNotices(events: GameEvent[]): Notice[] {
             ? { text: "The whirlpool drags the whole party under!", tone: "bad" }
             : { text: "The party wades the shallows safely.", tone: "good" },
         );
+        break;
+      case "wellDraw":
+        out.push({ text: "The bucket rises from the dark…", tone: "neutral" });
+        break;
+      case "bellRoll":
+        if (e.outcome === "vanish") {
+          out.push({ text: `The rope yanks ${name(e.creatureId)} upward. They are never seen again.`, tone: "bad" });
+        } else if (e.outcome === "toll") {
+          out.push({ text: BELL_TOLL_TEXT, tone: "neutral" });
+        } else {
+          out.push({ text: "The bell's echo shakes something loose — two cards are drawn. The party cannot withdraw this turn.", tone: "neutral" });
+        }
         break;
       default:
         assertNever(e);

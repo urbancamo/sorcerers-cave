@@ -10,6 +10,9 @@ export const GATEWAY_START_COORD = 15050; // level 1, x=50, y=50
 
 // Area-flag (PlacedArea.flags) bits.
 export const AF_DESTROYED = 4; // collapsed by an earthquake — removed from play, impassable
+// Extension kit (SC-EXT-8): the Bell Rope on this area has been pulled — once per tile ever, so the
+// `pullBellRope` action is never offered again here, on this visit or any later one (design US-03).
+export const AF_BELL_SPENT = 8;
 
 // Interactive mode: which controls the UI shows and which actions reduce accepts.
 // Milestone B uses only "explore" and "gameOver"; "encounter"/"fight"/"pickup" arrive in C.
@@ -146,4 +149,9 @@ export interface GameState {
   // (multi.ts:133). Absent/false ⇒ today's behaviour, byte-identical (SC-EXT-1). Immutable thereafter;
   // no reducer path ever writes it.
   variants?: { extensionKit?: boolean };
+  // Extension kit (SC-EXT-9): the turn number `withdraw` is blocked for — set by a Well draw or a
+  // Bell Rope 4-6 roll (design US-03/US-07), alongside `fellThroughTrap` on the same legality check.
+  // `turn` only advances on `move`, so this self-invalidates once the party moves on — no explicit
+  // reset needed, and it re-arms cleanly if the SAME turn draws again.
+  noWithdrawTurn?: number;
 }

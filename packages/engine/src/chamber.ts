@@ -59,3 +59,17 @@ export function enterChamber(state: GameState): GameEvent[] {
     hazards: [...state.hazards],
   }];
 }
+
+/**
+ * Draw up to `count` more codes from the small pack into the CURRENT chamber's working set
+ * (Extension kit — the Well's 1-card draw and the Bell Rope's 2-card draw, SC-EXT-7/SC-EXT-8):
+ * the same classification as a fresh chamber draw (`classify`), but APPENDED onto whatever is
+ * already there rather than replacing it, so it composes with an already-in-progress encounter.
+ * Stops early if the small pack runs dry. Mutates `state`; emits no event of its own — the caller
+ * (reduce.ts) reports the draw with its own event (`wellDraw` / `bellRoll`).
+ */
+export function drawSmallCards(state: GameState, count: number): void {
+  for (let i = 0; i < count && state.smallIdx < state.smallPack.length; i++) {
+    classify(state, state.smallPack[state.smallIdx++]!);
+  }
+}

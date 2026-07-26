@@ -75,6 +75,8 @@ export function actionLabel(a: GameAction, state?: GameState | null): string {
     case "proceed": return "Proceed — brave Medusa's gaze";
     case "openChest": return "Open the treasure chest";
     case "descendChasm": return "Descend the chasm";
+    case "drawFromWell": return "Draw from the well";
+    case "pullBellRope": return `Pull the bell rope → ${member(a.mi)}`;
     default: return (a as { type: string }).type;
   }
 }
@@ -167,6 +169,8 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "itemsSpilled": return `${creature(e.creatureId)}'s carried items spilled to the floor: ${e.items.map(treasure).join(", ")}`;
     case "chasmDescend": return "the party climbed down into the chasm";
     case "whirlpoolRoll": return `whirlpool crossing (rolled ${e.roll}) — ${e.dragged ? "dragged the party down" : "safe"}`;
+    case "wellDraw": return "drew a card from the well";
+    case "bellRoll": return `bell rope (rolled ${e.roll}) — ${e.outcome} (${creature(e.creatureId)})`;
     default: return (e as { type: string }).type;
   }
 }
@@ -331,6 +335,8 @@ function actionCode(a: GameAction, state: GameState | null): { act: string; arg:
     case "proceed": return { act: "PRO", arg: "" };
     case "resolveRound": return { act: "FGT", arg: a.matches.map((m) => `${[...m.front, ...m.backers].map((i) => (state?.party[i] ? cr3(state.party[i]!.creatureId) : `#${i}`)).join("+") || "-"}>${m.strangers.map(foe).join("+") || "-"}`).join(",") };
     case "descendChasm": return { act: "CHM", arg: "" };
+    case "drawFromWell": return { act: "WEL", arg: "" };
+    case "pullBellRope": return { act: "BEL", arg: mem(a.mi) };
     default: return { act: (a as { type: string }).type.slice(0, 3).toUpperCase(), arg: "" };
   }
 }
@@ -398,6 +404,8 @@ function eventCode(e: GameEvent): string | null {
     case "planRejected": return "REJ";
     case "chasmDescend": return "CHM DSC";
     case "whirlpoolRoll": return `WHP R${e.roll} ${e.dragged ? "DRG" : "SAF"}`;
+    case "wellDraw": return "WEL DRW";
+    case "bellRoll": return `BEL R${e.roll} ${e.outcome.slice(0, 3).toUpperCase()}`;
     default: return (e as { type: string }).type.slice(0, 3).toUpperCase();
   }
 }

@@ -1,9 +1,9 @@
-import { GS_PLAYING, GS_QUIT, GS_ESCAPED, GS_DEAD, AF_DESTROYED, type GameState, type PartyMember } from "./state";
+import { GS_PLAYING, GS_QUIT, GS_ESCAPED, GS_DEAD, AF_DESTROYED, AF_BELL_SPENT, type GameState, type PartyMember } from "./state";
 import { tryMove } from "./map";
 import { decodeArea } from "./decode";
-import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WHIRLPOOL } from "./data/areaCards";
+import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WHIRLPOOL, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
 import { viperCrossing, deepPoolCrossing, whirlpoolCrossing } from "./special";
-import { enterChamber } from "./chamber";
+import { enterChamber, drawSmallCards } from "./chamber";
 import { applyHazards, hasStaffWizard } from "./hazards";
 import { HAZARD_MEDUSA } from "./data/hazards";
 import { takeTreasure, canCarry } from "./pickup";
@@ -291,6 +291,25 @@ function resolveAreaLoop(state: GameState): GameEvent[] {
   }
 }
 
+/**
+ * Resolve cards freshly drawn INTO the current (already-entered) chamber — the Well's 1-card and the
+ * Bell Rope's 2-card draw (design US-07/US-03, SC-EXT-7/SC-EXT-8). Mirrors the tail of the per-chamber
+ * body in `resolveAreaLoop` (Eye/Talisman on a fresh Spectre, the Medusa pause, then hazards + phase),
+ * but is never a "fresh entry" (no surprise) and loops via `resolveAreaLoop` if a drawn Trap drops the
+ * party a level — same as any other hazard resolution.
+ */
+function resolveExtraDraw(state: GameState, events: GameEvent[]): void {
+  events.push(...annihilateWithEye(state));
+  events.push(...wardOffSpectres(state));
+  if (medusaLooms(state)) {
+    state.phase = "medusa";
+    state.medusaPause = { freshEntry: false };
+    events.push({ type: "medusaLooms" });
+    return;
+  }
+  if (finishChamber(state, false, events)) events.push(...resolveAreaLoop(state));
+}
+
 /** Move the whole party to the area directly below (same x,y), creating it if needed. */
 function relocateDown(state: GameState): void {
   const { x, y, level } = unpackCoord(state.areas[state.partyArea]!.coord);
@@ -410,6 +429,7 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
     case "withdraw": {
       if (state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
       if (state.fellThroughTrap) return { state, events: [{ type: "blocked" }] }; // no way back up a trap
+      if (state.noWithdrawTurn === state.turn) return { state, events: [{ type: "blocked" }] }; // Well/Bell fired this turn (SC-EXT-9)
       if (((state.areas[state.prev]?.flags ?? 0) & AF_DESTROYED) !== 0) return { state, events: [{ type: "blocked" }] }; // the way back collapsed (earthquake)
       const next = structuredClone(state);
       next.areas[next.partyArea]!.contents = [
@@ -898,6 +918,59 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       const events: GameEvent[] = [{ type: "chasmDescend" }];
       relocateDown(next); // one-way, no mirrored stair-up — `fellThroughTrap` blocks withdraw below (SC-EXT-5)
       events.push(...resolveArea(next));
+      return { state: next, events };
+    }
+
+    case "drawFromWell": {
+      // Legal on a Well tile in explore OR encounter phase (design US-07, same "no test/fight
+      // required" latitude as the Chasm's escape hatch) — repeatable every turn, no spent flag
+      // (Resolved interpretation 4); gated only on the small pack having a card left.
+      if (state.phase !== "explore" && state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
+      if (decodeArea(state.areas[state.partyArea]!.card).special !== SPECIAL_WELL) return { state, events: [{ type: "blocked" }] };
+      if (state.smallIdx >= state.smallPack.length) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      const events: GameEvent[] = [{ type: "wellDraw" }];
+      drawSmallCards(next, 1); // exactly one code, appended onto whatever's already in the working set
+      next.noWithdrawTurn = next.turn; // blocks withdraw this turn only (SC-EXT-9)
+      resolveExtraDraw(next, events); // strangers/hazards resolve normally, same as any chamber draw
+      return { state: next, events };
+    }
+
+    case "pullBellRope": {
+      // Legal on a Bell Rope tile in explore OR encounter phase, for a living member, ONCE per tile
+      // ever (design US-03; AF_BELL_SPENT persists the spend on the placed area).
+      if (state.phase !== "explore" && state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
+      if (decodeArea(state.areas[state.partyArea]!.card).special !== SPECIAL_BELL_ROPE) return { state, events: [{ type: "blocked" }] };
+      if ((state.areas[state.partyArea]!.flags & AF_BELL_SPENT) !== 0) return { state, events: [{ type: "blocked" }] };
+      const puller = state.party[action.mi];
+      if (!puller || !(puller.status === 0 || puller.status === 1)) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      next.areas[next.partyArea]!.flags |= AF_BELL_SPENT; // spent forever, whatever the roll (design US-03)
+      const creatureId = next.party[action.mi]!.creatureId;
+      const r = rollDie(next.seed);
+      next.seed = r.seed;
+      const events: GameEvent[] = [];
+      if (r.value === 1) {
+        // Desertion semantics (design Resolved-3): removed from the game with everything carried —
+        // not dead (no memberDied), not revivable. Splice out entirely, like Mutiny's deserters.
+        next.party.splice(action.mi, 1);
+        events.push({ type: "bellRoll", roll: r.value, outcome: "vanish", creatureId });
+        if (!next.party.some((m) => m.status === 0 || m.status === 1)) {
+          next.gs = GS_DEAD;
+          next.phase = "gameOver";
+          events.push({ type: "gameOver", gs: GS_DEAD });
+        }
+        return { state: next, events };
+      }
+      if (r.value <= 3) {
+        // Foreboding narration only — no mechanical effect (design US-03, Resolved-2).
+        events.push({ type: "bellRoll", roll: r.value, outcome: "toll", creatureId });
+        return { state: next, events };
+      }
+      events.push({ type: "bellRoll", roll: r.value, outcome: "stir", creatureId });
+      drawSmallCards(next, 2); // two codes, appended onto whatever's already in the working set
+      next.noWithdrawTurn = next.turn; // blocks withdraw this turn only (SC-EXT-9)
+      resolveExtraDraw(next, events); // strangers/hazards resolve normally, same as any chamber draw
       return { state: next, events };
     }
   }
