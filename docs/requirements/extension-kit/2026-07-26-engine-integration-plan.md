@@ -25,6 +25,7 @@ task below cites its US stories; the design doc is the requirements authority.
 - New engine events must each get a notice in `apps/web/src/game/eventNotices.ts` (exhaustive after Task 2) — engine tasks add their event types AND the UI notice text (from the design doc's Feedback lines) in the same commit to keep the web build green.
 - Kit entity ids: creatures 14–20, treasures 15–21 (Idol 18 and Crypt/Gems 21 are HEAVY 25 kg; Shield is 20), hazards 5–8 (Desertion, Harpies, Quarrel, Spell), specials 6–11 — exactly as the design doc §1.3 tables (Apprentice points 0/female/cost null, Demon fs 0 points 0 cost null; kit starters + Ogre/Troll cost revision are kit-on only, per docs/specs/extension-kit-rules.md).
 - RNG discipline: all rolls via the seeded `rng.ts` helpers, threaded through `state.seed`; every roll emits a roll-shaped event (visible dice).
+- **Kit-id lookups (Task 3 outcome):** kit entities live in `KIT_CREATURES`/`KIT_TREASURES`/`KIT_HAZARD_NAMES`; resolve ANY id via the combined `ALL_CREATURES`/`ALL_TREASURES`/`ALL_HAZARD_NAMES` (index === id). `CREATURES[18]` is `undefined` — the base arrays are pinned by data.test.ts and never grow.
 
 ## File Structure
 
