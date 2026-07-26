@@ -142,4 +142,8 @@ export interface GameState {
   // Heavy treasure dropped to the floor by front-line fighters this fight (§387), with the member that
   // dropped each — lets the won-fight pickup offer "retake as distributed before" in one step.
   fightDrops?: { mi: number; tid: number }[];
+  // Solo game variants (§EXT), fixed at `newGame` for the whole game — mirrors `MpGameState.variants`
+  // (multi.ts:133). Absent/false ⇒ today's behaviour, byte-identical (SC-EXT-1). Immutable thereafter;
+  // no reducer path ever writes it.
+  variants?: { extensionKit?: boolean };
 }

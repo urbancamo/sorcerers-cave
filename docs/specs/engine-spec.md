@@ -27,6 +27,7 @@
 | 11 | Artifacts & treasure effects | `effects.ts`, `reduce.ts`, `selectors.ts` |
 | 12 | Scoring & game over | `score.ts`, `reduce.ts` |
 | MP | Multiplayer | `multi.ts`, `multi-session.ts`, `multi-trade.ts`, `multi-fight.ts`, `multi-union.ts`, `multi-zombies.ts` |
+| EXT | Extension kit | `state.ts`, `setup.ts`, `decks.ts` |
 
 ---
 
@@ -444,6 +445,12 @@
 | SC-MP-36 | Variants & fog (M7): `variants { zombies?, fogLite? }` is fixed at `buildMpGame` for the whole game (absent = today's behaviour). Every seat's `seenAreas` ledger records the areas it has stood in (recorded ALWAYS, applied only under fogLite); `fogFilter(mp, seat)` masks unseen areas to face-down stubs, and `distantFights(mp, seat)` counts rival fights outside the seat's view. | multi.ts:127-133,235,258,613-643 | multi-zombies.test.ts › fog-of-war-lite (M7, plan ⑦) |
 | SC-MP-37 | Zombies variant (M7, spec I-15, rulebook §Zombies): a wiped seat forfeits one turn then rises as a zombie party (`riseAsZombies` via the `zombiePostSweep` game sweep — stone members, Dragons and Spectres never rise; carried items already spilled at the wipe, borne items lost); `zombieActionGate` pre-gates: no loot/chest/artifact, no test/attack on strangers, no Deep-Pool entry or crossing, and secret stairs ALL with the Sorcerer aboard, NONE without; `zombieAfterAction` repairs hazard immunity post-hoc (Medusa/vipers/Ghouls reverted, strangers parked back untested, swept treasure returned); any seat's Sorcerer-kill annihilates every zombie party ("no more may be created"); zombies union only with zombies and never trade; their casters lend NO magical power in PvP; a zombie command wiped in PvP is terminal for good. | multi-zombies.ts:64-314, multi.ts:309,321-325,427-444,521-531, multi-fight.ts:386-392 | multi-zombies.test.ts › riseAsZombies; › zombie action gates; › zombie post-action repair; › zombies in the wider game |
 
+## §EXT Extension kit
+
+| ID | Requirement | Code | Test |
+|----|-------------|------|------|
+| SC-EXT-1 | Solo `GameState` gains `variants?: { extensionKit?: boolean }`, mirroring `MpGameState.variants` (multi.ts:133). `newGame(seed, picks, variants?)` stores it verbatim (omitted when the caller passes no third argument or an explicit falsy variants); it is immutable for the life of the game — no reducer path writes it. `buildLargePack`/`buildSmallPack` accept the same optional variants parameter (currently unused, threaded so later kit tasks need no signature change). Absent, `{}`, or `{extensionKit:false}` MUST leave gameplay byte-identical to calling `newGame`/`buildLargePack`/`buildSmallPack` with no variants argument at all — the same deck arrays, same shuffles, same resulting state (aside from the `variants` bookkeeping field itself). | state.ts:145-148, setup.ts:31-45, decks.ts:6-19 | kit-variant.test.ts › newGame with no variants arg is identical to explicitly-absent; › byte identity across repeated calls; › `{extensionKit:true}` stores + round-trips JSON; › `{}`/`{extensionKit:false}` leave gameplay identical; › buildSmallPack/buildLargePack identical across no-arg/undefined/`{}` |
+
 ---
 
 # Part II — Rules Narrative
@@ -659,6 +666,7 @@ booleans, or arrays thereof; nothing requires floating point.
 | pacifiedAreas? | int[] | area indices permanently indifferent to this party; default `[]` |
 | hostileAreas? | int[] | areas retreated from — attack on sight on return (SC-4-28); default `[]` |
 | fightDrops? | {mi,tid}[] | heavy treasure dropped for THIS fight, with its dropper (SC-7.3-10); default `[]` |
+| variants? | {extensionKit?} | solo game variants fixed at `newGame`, immutable thereafter (SC-EXT-1); default absent = today's behaviour |
 
 ### PartyMember (state.ts:22-40)
 

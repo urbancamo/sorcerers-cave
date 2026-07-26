@@ -28,12 +28,18 @@ export function validatePicks(picks: readonly number[]): boolean {
   return true;
 }
 
-/** Create a fresh solitaire game: validate party, shuffle both decks, place the Gateway. */
-export function newGame(seed: number, picks: readonly number[]): GameState {
+/** Create a fresh solitaire game: validate party, shuffle both decks, place the Gateway.
+ *  `variants` (§EXT, SC-EXT-1) is stored on the returned state, immutable for the life of the game;
+ *  absent/false ⇒ byte-identical to calling with no third argument at all. */
+export function newGame(
+  seed: number,
+  picks: readonly number[],
+  variants?: { extensionKit?: boolean },
+): GameState {
   if (!validatePicks(picks)) throw new Error("Invalid party selection");
 
-  const large = buildLargePack(seed);
-  const small = buildSmallPack(large.seed);
+  const large = buildLargePack(seed, variants);
+  const small = buildSmallPack(large.seed, variants);
 
   // The party is drawn FROM the small pack: remove the chosen creature cards so they cannot also be
   // drawn as chamber strangers (one finite deck — rules §"choosing creatures from the small pack").
@@ -84,5 +90,6 @@ export function newGame(seed: number, picks: readonly number[]): GameState {
     hazards: [],
     seed: small.seed,
     fight: null,
+    ...(variants ? { variants } : {}),
   };
 }
