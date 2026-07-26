@@ -13,6 +13,8 @@ mkdirSync(dest, { recursive: true });
 // manifest is tiny — always refresh it.
 cpSync(resolve(src, "manifest.json"), resolve(dest, "manifest.json"));
 // PNG dirs are large — copy only if the target is missing/empty (idempotent, fast re-runs).
+// Caveat: after ADDING new assets under docs/assets/tiles|cards, this skip means the mirror
+// under public/assets won't pick them up — delete public/assets/tiles|cards first to refresh.
 for (const dir of ["tiles", "cards", "tokens"]) {
   const from = resolve(src, dir);
   const to = resolve(dest, dir);

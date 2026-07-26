@@ -59,6 +59,7 @@ def run(kind):
         "tiles": (TILE_PAGES, 2, TILE_RAW, "area-tile-x", ASSETS / "tiles"),
         "cards": (CARD_PAGES, 4, CARD_RAW, "small-card-x", ASSETS / "cards"),
     }[kind]
+    outdir.mkdir(parents=True, exist_ok=True)
     written = []
     for pno in pages:
         page = doc[pno - 1]
@@ -84,6 +85,7 @@ def run(kind):
     for pno, slot, name, size in written:
         print(f"p{pno:>2} slot {slot}: {name} {size[0]}x{size[1]}")
     print(f"{len(written)} {kind} written")
+    assert len(written) == 30, f"expected 30 {kind}, wrote {len(written)}"
 
 
 def report():
@@ -131,5 +133,9 @@ def sheets():
 
 if __name__ == "__main__":
     mode = sys.argv[1] if len(sys.argv) > 1 else "--report"
-    {"--report": report, "--tiles": lambda: run("tiles"),
-     "--cards": lambda: run("cards"), "--sheets": sheets}[mode]()
+    dispatch = {"--report": report, "--tiles": lambda: run("tiles"),
+                "--cards": lambda: run("cards"), "--sheets": sheets}
+    if mode not in dispatch:
+        print("usage: extract_extension_kit.py [--report|--tiles|--cards|--sheets]")
+        sys.exit(2)
+    dispatch[mode]()
