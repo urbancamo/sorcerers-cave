@@ -71,15 +71,15 @@ entry with identical rules**; creatures: Dwarf (creature 7) ×1 and Woman (creat
 
 | Id | Name | fs | mp | carry | points | Flags / reaction | Uses artifacts as |
 |---|---|---|---|---|---|---|---|
-| 14 | Apprentice | 2 | 7 | 0 | 10 † | HUMAN; custom reaction (US-14) | Wizard |
-| 15 | Demon | 4 † | 6 | 0 | 15 † | INHUMAN; never tests — always hostile; magic-only foe | — (none) |
+| 14 | Apprentice | 2 | 7 | 0 | 0 | HUMAN; custom reaction (US-14); female — she/her in all copy | Wizard |
+| 15 | Demon | 0 | 6 | 0 | 0 | INHUMAN; never tests — always hostile; magic-only foe | — (none) |
 | 16 | Lion | 3 | 0 | 0 | 3 | INHUMAN; thresholds: hostile ≤4, indiff ≤5 † | — (none) |
 | 17 | Scholar | 2 | 1 | 25 | 5 | HUMAN; reaction thresholds = Priest † | Priest |
 | 18 | Witch | 1 | 4 | 0 | 10 | HUMAN; reaction thresholds = Woman † | Priest |
 | 19 | Thief | 2 | 0 | 25 | 5 | HUMAN; reaction thresholds = Man † | Man |
 | 20 | Wolf | 2 † | 0 | 0 | 2 | INHUMAN; thresholds = Lion †; immune Medusa/Quarrel/Mutiny/Desertion | — (none) |
 
-† = proposed value; the card text leaves it unspecified. See Open items.
+† = value not printed on the card; accepted as proposed (Resolved interpretations, item 1).
 
 "Uses artifacts as X" means the creature is added to every artifact-eligibility list X appears in
 (Sword/Axe bonuses excepted — those name specific creatures).
@@ -190,15 +190,17 @@ US-19..25 artifacts · US-26 duplicates · US-27 plain tiles.
   confirm. Declining is always allowed; the option remains on later visits until used.
 - **Dice:** One visible d6.
 - **Feedback:** 1 — "The rope yanks [name] upward. They are never seen again." 2–3 — "A bell
-  tolls somewhere far above. Nothing stirs." 4–6 — "The bell's echo shakes something loose —
-  two cards are drawn. The party cannot withdraw this turn."
+  tolls once, far above — and is answered by silence. Something, somewhere, now knows you are
+  here." (foreboding narration; no mechanical effect). 4–6 — "The bell's echo shakes something
+  loose — two cards are drawn. The party cannot withdraw this turn."
 - **Aftermath:** 1: the puller is removed from the game with everything they carried (not
-  revivable — Desertion semantics). 2–3: no mechanical effect (interpretive call, flagged).
+  revivable — Desertion semantics). 2–3: no mechanical effect (confirmed — narration only).
   4–6: two small cards resolve into this area immediately (strangers test/fight as usual) and
   `withdraw` is illegal this turn (a new condition alongside `fellThroughTrap` on the same
   legality check, reduce.ts:380-383 / selectors.ts:77-79). The rope is then spent (per-area flag).
 - **Build notes:** New action `pullBellRope(memberId)`; draw-2 reuses `enterChamber`'s draw path.
   MP: the no-withdraw flag is per-seat turn state; unions — the commander's roll binds the union.
+
 
 ### US-04: The Lair (tile x07-1, special 8)
 
@@ -228,42 +230,49 @@ US-19..25 artifacts · US-26 duplicates · US-27 plain tiles.
 - **Feedback:** 1–2 — "The whirlpool drags the whole party under!" then the landing chamber's
   own beat. 3–6 — "The party wades the shallows safely."
 - **Aftermath:** 1–2: entire party relocates one level down (one-way, `relocateDown`, no return
-  stair); the intended lateral move is cancelled. 3–6: movement completes normally. The tile
-  remains dangerous forever.
+  stair); the intended lateral move is cancelled. **Withdraw is not offered from the landing
+  area** — if the chamber below holds creatures, the party must face them (trap-fall semantics).
+  3–6: movement completes normally. The tile remains dangerous forever.
 - **Build notes:** New crossing hook beside `viperCrossing`/`deepPoolCrossing`
   (reduce.ts:362-374, special.ts). Chamber draws still occur on first entry (it is a chamber,
-  unlike Deep Pool). MP: crossing rolls use the shared cave stream (solo-composed action);
-  interaction-mask entry not needed.
+  unlike Deep Pool). The landing reuses the `fellThroughTrap` withdraw block. MP: crossing rolls
+  use the shared cave stream (solo-composed action); interaction-mask entry not needed.
 
 ### US-06: The Gallery (tile x07-3, special 10)
 
-- **Trigger:** First entry draws as usual, but every creature drawn here arrives **as stone**
-  (except Sorcerer, Spectre — and Demon, which never joins a chamber, US-13).
+- **Trigger:** First entry draws as usual, but every creature drawn here arrives **as stone** —
+  except the **Sorcerer, Spectre, and Demon**: those are drawn un-petrified and the interaction
+  proceeds as in a standard chamber (the Demon still relocates per US-13).
 - **On screen:** The six-statues art; drawn creatures lay down with a stone overlay (the STONE
   marker token art) instead of standing strangers. Notice: "The strangers here are stone — silent,
   waiting."
-- **Interaction:** No reaction test fires — statues are scenery. Treasure drawn here is freely
-  collectible (statues guard nothing). If the party holds **Holy Water**, the artifact's target
-  picker (US-20) lists each statue: reanimating one wakes it for an immediate, normal reaction
-  test.
-- **Dice:** Only if a statue is reanimated: the standard reaction d6.
-- **Feedback:** Reanimation: "The stone cracks — the [creature] stirs!" then the usual
+- **Interaction:** No reaction test fires for statues — they are scenery. Treasure drawn here is
+  freely collectible (statues guard nothing). Two reanimation routes:
+  1. **Magic Staff borne by a Wizard:** on the party's entry, ALL stone creatures in the chamber
+     are automatically reanimated (the member-revival pattern, US precedent: `reviveStoned`).
+     They become normal strangers and the full standard chamber interaction follows — reaction
+     test, fight/recruit, the lot.
+  2. **Holy Water** (US-20): targets one statue; it wakes for an immediate, normal reaction test.
+- **Dice:** The standard reaction d6 whenever statues wake (Staff wakes the group → one group
+  test as in any chamber).
+- **Feedback:** Staff: "The Magic Staff blazes — every stone figure in the gallery cracks and
+  stirs!" Holy Water: "The stone cracks — the [creature] stirs!" Then the usual
   hostile/indifferent/friendly notice.
-- **Aftermath:** Statues persist in the area until reanimated (or forever). They score nothing
-  and threaten nothing while stone. Reanimated-friendly creatures join as allies like any
-  stranger.
+- **Aftermath:** Un-reanimated statues persist in the area indefinitely. They score nothing and
+  threaten nothing while stone. Reanimated-friendly creatures join as allies like any stranger.
 - **Build notes:** Stone strangers persist as `500+creatureId` content codes (pattern:
-  sleeping's `400+id`, chamber.ts:11-14). Sorcerer/Spectre exempt at draw-classify time. The
-  Medusa petrify logic is **not** reused here (that is member-petrification); this is a new,
-  simpler stranger state. MP: statues are cave-shared area content.
+  sleeping's `400+id`, chamber.ts:11-14). Sorcerer/Spectre/Demon exempt at draw-classify time.
+  The Staff auto-wake extends the existing `reviveStoned` entry hook (reduce.ts:127-143) to
+  cover stone strangers in a Gallery. The Medusa member-petrify logic is otherwise untouched.
+  MP: statues are cave-shared area content; the entering seat's Staff triggers the wake.
 
 ### US-07: The Well (tile x07-4, special 11)
 
 - **Trigger:** Party in the Well chamber, any turn, small pack not empty.
 - **On screen:** The rope-and-bucket well art; action row offers "Draw from the well".
 - **Interaction:** One action button + confirm ("Draw 1 card — you cannot withdraw this turn").
-  Available every turn spent at the Well (not once-only — the card text sets no limit; flagged
-  interpretive call).
+  Available every turn spent at the Well (not once-only — the card text sets no limit; accepted
+  interpretation).
 - **Dice:** none for the draw itself (subsequent strangers/hazards roll as usual).
 - **Feedback:** "The bucket rises from the dark…" then the drawn card's normal reveal beat.
 - **Aftermath:** One small card resolves into this area; withdraw is illegal this turn (same
@@ -285,11 +294,16 @@ US-19..25 artifacts · US-26 duplicates · US-27 plain tiles.
 - **Feedback:** 1–2 — "The floor gives way! The party plunges into darkness." 3–6 — "Within the
   crypt: gems!"
 - **Aftermath:** 1–2: unavoidable trap — the whole party falls one level (`relocateDown`), **a
-  Dwarf does not guide past this one**. 3–6: a Gems treasure (id 2, 25 kg, 20 pts) appears on the
-  area floor for normal pickup. Either way the crypt is spent and its card removed.
+  Dwarf does not guide past this one**, and **withdraw is not offered from the landing area**
+  (trap-fall semantics — creatures below must be faced). 3–6: a Gems treasure (id 2, 25 kg,
+  20 pts) appears on the area floor for normal pickup — **presented with the Crypt/Gems card
+  art**: the crypt card itself becomes the pickup card, and while carried it shows as the
+  Crypt/Gems card, marking that these gems were claimed from the crypt. Either way the crypt is
+  spent (no second entry).
 - **Build notes:** New hazard case that parks (contents re-entry like Medusa/Ghouls,
-  hazards.ts:147-154) + a `enterCrypt` action gated to turn start in the area. MP: the crypt is
-  area content; whichever seat enters rolls on the shared stream.
+  hazards.ts:147-154) + a `enterCrypt` action gated to turn start in the area; the found gems
+  are treasure id 2 with a kit-art override (US-26 mechanism). Landing reuses `fellThroughTrap`.
+  MP: the crypt is area content; whichever seat enters rolls on the shared stream.
 
 ### US-09: Desertion (hazard 6, card x01-2)
 
@@ -324,8 +338,9 @@ US-19..25 artifacts · US-26 duplicates · US-27 plain tiles.
   Lair is not yet on the map: "…toward a lair you have not yet found."
 - **Aftermath:** All party-held artifacts (borne and carried, from every member) move to the
   Lair's floor if placed, else into the pending `harpyStash` that lands when the Lair appears
-  (US-04). The harpies card then leaves the game. Curse note: the **Eye of God** taken by
-  harpies is *stolen*, not forsaken — no curse (interpretive call, flagged).
+  (US-04). The harpies card then leaves the game. Curse note: the **Eye of God** carried off by
+  harpies counts as forsaken — **the curse falls on the party**, with an explicit notice: "The
+  Eye of God is torn away — its curse descends upon you."
 - **Build notes:** New hazard case + park condition; stash state per §US-04. Talisman check
   reuses the effects.ts ward-predicate pattern. MP: artifacts stolen from the drawing seat only;
   stash recoverable by any seat (shared cave).
@@ -376,20 +391,22 @@ US-19..25 artifacts · US-26 duplicates · US-27 plain tiles.
   area forces an encounter: **only magical power can touch it** — members with mp > 0, plus a
   **Magic Axe** bearer (US-24). The FightSurface's Spectre-style doom banner shows when the
   party cannot legally engage it; an unfightable, unengaged Demon follows Spectre rules
-  (slays the strongest — proposed, flagged).
+  (slays the strongest — confirmed).
 - **Dice:** Standard fight dice when engaged.
 - **Feedback:** Entering its area: "The Demon unfolds from the shadows." Kill: "The Demon
   collapses into ash." Doom: the banner names why nobody can fight it.
 - **Aftermath:** While it waits on the back-trail, `withdraw` leads into a demon fight — the
-  card turns retreat into a threat, exactly its board-game role. Edge cases: party's first area
-  (no prev) or a destroyed prev ⇒ it materializes in the current area instead (flagged call).
-  Worth 15 points (proposed) if slain — creature kills do not score in this engine, so its value
-  is as a recruit? No: Demons never test friendly — it is a pure obstacle (points moot; kept for
-  data completeness).
+  card turns retreat into a threat, exactly its board-game role. The Demon has **no fighting
+  strength and no points** (fs 0, mp 6): it is a pure magical obstacle, never a recruit (it
+  never tests friendly). Edge cases: if the previous area was **collapsed by an Earthquake**,
+  the Demon cannot take form — special notice: "The Demon claws at fallen rock, finds no
+  purchase in the ruined dark, and disperses." (card discarded, no effect). A party with no
+  valid `prev` at all cannot occur (every game starts at the Gateway), but as a defensive
+  fallback the Demon would materialize in the current area.
 - **Build notes:** Draw-classify special case (like Gallery's stone exemption); spawns into
-  `prev`'s contents as a hostile lurker. Fight gating extends the Spectre magic-only predicate
-  (SC-9.4-1) with the Axe-bearer clause. MP: the demon is cave-shared area content — it haunts
-  whoever enters.
+  `prev`'s contents as a hostile lurker; `AF_DESTROYED` prev ⇒ discard + notice. Fight gating
+  extends the Spectre magic-only predicate (SC-9.4-1) with the Axe-bearer clause. MP: the demon
+  is cave-shared area content — it haunts whoever enters.
 
 ### US-14: Apprentice (creature 14)
 
@@ -398,18 +415,19 @@ US-19..25 artifacts · US-26 duplicates · US-27 plain tiles.
   indifferent band.)
 - **On screen:** Standard stranger beat; the reaction roll shows with a caption when relevant:
   "The Apprentice serves the Sorcerer still…"
-- **Interaction:** Standard encounter choices. As an ally he uses artifacts **as a Wizard**
-  (Staff reanimation, Carpet, etc.). At `exitCave`, a confirm popup warns: "The Apprentice will
-  not leave the cave. He stays behind."
+- **Interaction:** Standard encounter choices. The Apprentice is **female** (per the card art) —
+  all copy uses she/her. As an ally she uses artifacts **as a Wizard** (Staff reanimation,
+  Carpet, etc.). At `exitCave`, a confirm popup warns: "The Apprentice will not leave the cave.
+  She stays behind."
 - **Dice:** Reaction d6 (custom bands), fight dice as usual (fs 2, mp 7 — a major magic ally).
-- **Feedback:** Recruit: "The Apprentice bows — for now." Sorcerer dies while he's an ally:
-  "The Apprentice's eyes go cold." — he immediately **deserts to stranger** in the current area,
-  hostile (interpretive call, flagged). Exit: "The Apprentice melts back into the dark."
+- **Feedback:** Recruit: "The Apprentice bows — for now." Sorcerer dies while she's an ally:
+  "The Apprentice's eyes go cold." — she immediately **deserts to stranger** in the current
+  area, hostile. Exit: "The Apprentice melts back into the dark."
 - **Aftermath:** Powerful but conditional: killing the Sorcerer (the +30 bounty) costs you the
-  Apprentice. He never contributes to final score (he won't leave; points 10 apply only in the
-  impossible brought-out case — effectively decorative, flagged).
+  Apprentice. She is worth **0 points** — she never leaves the cave, so she can never be
+  brought out to score.
 - **Build notes:** Custom reaction branch keyed on `sorcererKilled`; Sorcerer-death hook adds
-  the ally-reverts step; `exitCave` filter drops him. MP: Sorcerer death is cave-global — every
+  the ally-reverts step; `exitCave` filter drops her. MP: Sorcerer death is cave-global — every
   seat's Apprentice reverts.
 
 ### US-15: Lion (creature 16)
@@ -496,7 +514,7 @@ US-19..25 artifacts · US-26 duplicates · US-27 plain tiles.
   in the area (encounter or fight phase).
 - **On screen:** "Read the Scroll" appears only when legal; confirm popup: "Destroys every enemy
   here save the magical — and curses the party."
-- **Interaction:** One confirm; the reader is any human (no picker needed — flagged simplification).
+- **Interaction:** One confirm; the reader is any human (no picker needed — confirmed simplification).
 - **Dice:** none.
 - **Feedback:** "The words burn the air. [list of destroyed] crumble to dust. The survivors —
   [list with mp > 0] — laugh." Then the standing curse notice: "A curse settles on the party."
@@ -535,18 +553,22 @@ US-19..25 artifacts · US-26 duplicates · US-27 plain tiles.
   W-Hero.
 - **On screen:** Shield icon on the bearer's party row; in fights, enemy magic-power chips
   render struck-through with a shield glyph.
-- **Interaction:** None once borne — it is a passive ward. Transfer/drop via the normal item
-  panel; only eligible bearers appear in the transfer list.
+- **Interaction:** None once borne — it is a passive ward. **Any member may pick up, carry, or
+  receive the Shield** via the normal item panel; the ward is simply inert unless the current
+  holder is an eligible bearer (Man, Woman, Hero, W-Hero). The party-row icon renders dimmed
+  when held by an ineligible member.
 - **Dice:** none of its own.
 - **Feedback:** Fight-plan notice when it bites: "The Magic Shield turns the [creature]'s power
   aside." / vs Sorcerer or Apprentice: "The Shield dims the [Sorcerer]'s power (−2)."
-- **Aftermath:** In any fight involving the bearer's party: ordinary enemies contribute **0
-  magic power**; the Sorcerer and Apprentice instead lose 2 mp (stacking with Lotus Dust / Holy
-  Water / Eye, floor 0). Worth 15 pts at scoring. Petrifies with a stoned bearer like other
-  borne items.
-- **Build notes:** BORNEABLE addition (loot.ts:15) + an effects.ts ward predicate read where
-  `enemyMP` is computed (combatPlan.ts:99-107). MP note: in PvP fights the shield also nullifies
-  the opposing seat's magic contribution — explicit MP-milestone decision, flagged.
+- **Aftermath:** The ward is **pairing-scoped**: it affects only the creature slotted against
+  the Shield's bearer on the FightSurface — that one opponent contributes 0 magic power (or,
+  if it is the Sorcerer or Apprentice, fights the bearer at −2 mp, stacking with Lotus Dust /
+  Holy Water / Eye, floor 0). Enemies paired against other members are unaffected. Worth 15 pts
+  at scoring. Petrifies with a stoned bearer like other borne items.
+- **Build notes:** BORNEABLE addition (loot.ts:15) + an effects.ts ward predicate read at the
+  **pairing level** of the combat plan (per-matchup mp contribution), not the global `enemyMP`
+  aggregate. MP note: in PvP fights the shield nullifies the magic of the enemy fighter paired
+  against the bearer — explicit MP-milestone decision, flagged.
 
 ### US-24: Magic Axe (artifact 17, borne)
 
@@ -628,18 +650,30 @@ US-19..25 artifacts · US-26 duplicates · US-27 plain tiles.
 - Harpies stash, Gallery statues, Demon, and the Crypt are shared cave content — first seat to
   act takes the risk/reward.
 
-## Open items (proposed values awaiting confirmation — all flagged † above)
+## Resolved interpretations (reviewed by MSW, 2026-07-26)
 
-1. Apprentice points 10 / Demon fs 4, points 15 / Wolf fs 2 / Lion & Wolf reaction thresholds /
-   Scholar=Priest, Witch=Woman, Thief=Man threshold mappings.
-2. Bell Rope 2–3 "Bell Rings" = narration only.
-3. Bell Rope puller & Desertion deserters are removed unrevivably (not "dead").
-4. Well draws are unlimited (one per turn at the tile).
-5. Quarrel loser dies (tie harmless); Wolf/Lion exempt.
-6. Demon with no valid `prev` materializes in the current area; unfightable Demon follows the
-   Spectre auto-slay rule.
-7. Apprentice reverts to hostile stranger the moment the Sorcerer dies; never exits the cave.
-8. Harpies stealing the Eye of God does not trigger the forsaken-curse.
-9. Magic Axe / Magic Shield "HERO" includes the W-Hero (Sword precedent).
-10. Scroll needs any living human, no reader selection.
-11. Kit-copy draws show extension art for duplicate cards (US-26).
+1. **Stats:** Apprentice 0 points (she never leaves the cave); Demon fs 0, 0 points (a purely
+   magical obstacle). Wolf fs 2; Lion thresholds hostile ≤4 / indiff ≤5; Wolf = Lion;
+   Scholar = Priest, Witch = Woman, Thief = Man threshold mappings — accepted as proposed.
+2. Bell Rope 2–3 "Bell Rings" = narration only, in foreboding terms (US-03).
+3. Bell Rope puller & Desertion deserters are removed unrevivably (not "dead") — confirmed.
+4. Well draws are unlimited (one per turn at the tile) — accepted as proposed.
+5. Quarrel loser dies (tie harmless); Wolf/Lion exempt — confirmed.
+6. Unfightable Demon follows the Spectre auto-slay rule — confirmed. A Demon with no valid
+   `prev` cannot occur (all games start at the Gateway); current-area materialization is a
+   defensive fallback only. A prev collapsed by Earthquake disperses the Demon with a special
+   message (US-13).
+7. Apprentice reverts to hostile stranger the moment the Sorcerer dies; never exits the cave —
+   confirmed. She is female per the card art (US-14).
+8. Harpies stealing the Eye of God **does invoke the forsaken-curse**, with an explicit notice
+   to the player (US-10).
+9. Magic Axe / Magic Shield "HERO" includes the W-Hero (Sword precedent) — confirmed.
+10. Scroll needs any living human, no reader selection — confirmed.
+11. Kit-copy draws show extension art for duplicate cards (US-26) — confirmed.
+12. Descents into occupied chambers (Whirlpool, Crypt fall, Chasm) never offer withdraw —
+    trap-fall semantics throughout (US-02/05/08).
+13. Crypt gems are carried as the Crypt/Gems card (art override) to mark their provenance (US-08).
+14. Gallery: Sorcerer/Spectre/Demon draw un-petrified (standard interaction); a Wizard bearing
+    the Magic Staff auto-reanimates all statues on entry, with a notice (US-06).
+15. Magic Shield: holdable by anyone, ward active only for eligible bearers, and scoped to the
+    creature paired against the bearer (US-23).
