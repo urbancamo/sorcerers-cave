@@ -174,6 +174,41 @@ describe("The Whirlpool — crossing roll (US-05, SC-EXT-6)", () => {
     expect(state.level).toBe(2);
     expect(unpackCoord(state.areas[state.partyArea]!.coord)).toEqual({ level: 2, x: 50, y: 50 });
     expect(state.fellThroughTrap).toBe(true);
+    // The cancelled lateral move must leave no trace: tryMove already placed a fresh, face-up
+    // tile at (1,51,50) and burned largePack[0] for it BEFORE the roll — undoing the move must pop
+    // that phantom tile and give its card back, so only relocateDown's OWN landing draw remains.
+    // Areas: whirlpool(0) + west origin(1) [both pre-placed by whirlpoolState] + relocateDown's
+    // landing = 3, not 4 (the leaked phantom eastward tile would make it 4). largeIdx: exactly one
+    // draw consumed (the landing, off the now-restored largePack[0]) = 1, not 2.
+    expect(state.areas.length).toBe(3);
+    expect(state.areas.some((a) => unpackCoord(a.coord).x === 51 && unpackCoord(a.coord).level === 1)).toBe(false);
+    expect(state.largeIdx).toBe(1);
+  });
+
+  it("an explored-target drag pops nothing and burns no extra card (undo is a no-op when tryMove found an existing area)", () => {
+    const seed = seedForDragRoll();
+    // Pre-place the eastward target (already explored) so tryMove takes its "existing area" branch —
+    // no push, no largePack draw — before the whirlpool roll ever fires.
+    const eastTile = { card: PLAIN_WEST_TUNNEL, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };
+    const s = whirlpoolState({
+      party: [member(HERO)],
+      seed,
+      areas: [
+        { card: WHIRLPOOL_CARD, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+        { card: 2, coord: packCoord(1, 49, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+        eastTile,
+      ],
+      largePack: [PLAIN_CHAMBER], // nothing to draw for the (already-placed) lateral target
+      largeIdx: 0,
+    });
+    const areasBefore = s.areas.length; // 3: whirlpool, origin, pre-placed east tile
+
+    const { state } = reduce(s, { type: "move", dir: DIR_E });
+
+    // Only relocateDown's landing is new — the pre-existing east tile is untouched, not popped.
+    expect(state.areas.length).toBe(areasBefore + 1);
+    expect(state.areas.some((a) => unpackCoord(a.coord).level === 1 && unpackCoord(a.coord).x === 51)).toBe(true);
+    expect(state.largeIdx).toBe(1); // exactly one draw — the landing — nothing consumed for the lateral part
   });
 
   it("a roll of 3-6 lets the lateral move complete normally", () => {
@@ -191,10 +226,14 @@ describe("The Whirlpool — crossing roll (US-05, SC-EXT-6)", () => {
 
   it("withdraw is illegal at a dragged-down landing (fellThroughTrap), same as a trap fall", () => {
     const seed = seedForDragRoll();
+    // A single card: PLAIN_CHAMBER (a NESW chamber) has a W-facing door, so tryMove accepts it for
+    // the (soon-cancelled) eastward attempt; the fix gives it back, and relocateDown redraws the
+    // SAME card off the top of the pack for the landing — which must be a real chamber so the
+    // landing can actually draw a stranger into an encounter.
     const s = whirlpoolState({
       party: [member(HERO)],
       seed,
-      largePack: [PLAIN_WEST_TUNNEL, PLAIN_CHAMBER],
+      largePack: [PLAIN_CHAMBER],
       smallPack: [100 + MAN],
     });
     const { state } = reduce(s, { type: "move", dir: DIR_E });

@@ -356,6 +356,8 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       const fromSpecial = decodeArea(state.areas[state.partyArea]!.card).special;
       const fromIdx = state.partyArea;
       const oldPrev = state.prev;
+      const areasBefore = state.areas.length; // snapshot: did tryMove place a brand-new target tile?
+      const largeIdxBefore = state.largeIdx; // snapshot: did tryMove burn a large-pack card for it?
       const res = tryMove(state, action.dir);
       if (!res.moved) {
         return { state: res.state, events: [res.deadEnd ? { type: "deadEnd", dir: action.dir } : { type: "blocked" }] };
@@ -383,8 +385,16 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
         if (dragged) {
           // The lateral move is cancelled — the party is dragged down FROM the Whirlpool tile
           // instead (one-way, no return stair; `fellThroughTrap` blocks withdraw at the landing —
-          // design US-05 / Resolved-12). Undo the lateral arrival tryMove already applied, then
-          // fall through the same one-way descent every trap uses.
+          // design US-05 / Resolved-12). Undo the lateral arrival tryMove already applied: if it
+          // drew and placed a brand-new tile for the (now-cancelled) target, remove it and give its
+          // large-pack card back first — otherwise a phantom explored tile would linger on the map
+          // and relocateDown would burn an extra card beyond its own draw. tryMove pushes at most
+          // one area (always the last element), and only for a fresh target; an already-explored
+          // target (no push, no draw) makes this a no-op, as it must be.
+          if (next.areas.length > areasBefore) {
+            next.areas.pop();
+            next.largeIdx = largeIdxBefore;
+          }
           next.partyArea = fromIdx;
           next.prev = oldPrev;
           relocateDown(next);
