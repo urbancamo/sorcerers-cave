@@ -22,7 +22,10 @@ export type GameAction =
   | { type: "retreat"; dir: number } // flee a fight by any doorway/stair; a dead end means fight on
   | { type: "useArtifact"; artifact: number; target?: number; dir?: number }
   | { type: "proceed" } // decline the Medusa-pause throw: let her gaze (and the other hazards) fire
-  | { type: "openChest" };
+  | { type: "openChest" }
+  // Extension kit (SC-EXT-5): descend the Chasm — legal only on a SPECIAL_CHASM tile, in explore or
+  // encounter phase (design US-02). No dice; reuses `relocateDown` (one-way, no mirrored stair-up).
+  | { type: "descendChasm" };
 
 // What happened — the reducer is the only producer; the UI never infers game facts.
 // Encounter-resolution and fight events arrive with combat (Milestone C-2).
@@ -98,4 +101,7 @@ export type GameEvent =
   // Heavy treasure cast down at a PvP declaration (§388 "left on the area card until the issue is
   // decided", spec I-9). Distinct from treasureDropped, which is the DEEP POOL sinking — reusing
   // that type made the UI announce a pool where there was only a brawl. Emitted only by multi-fight.
-  | { type: "heavyDownForFight"; count: number };
+  | { type: "heavyDownForFight"; count: number }
+  // Extension kit special-area events (design US-02/US-05, SC-EXT-5/SC-EXT-6):
+  | { type: "chasmDescend" } // the party chose to climb down the Chasm — a fresh card one level down
+  | { type: "whirlpoolRoll"; roll: number; dragged: boolean }; // crossing the Whirlpool's shallows: 1-2 drags the party down

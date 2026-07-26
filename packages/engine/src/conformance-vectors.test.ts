@@ -116,6 +116,10 @@ function encodeAction(a: GameAction): string {
       return `FIGHT ${a.matches.length === 0 ? "-" : a.matches
         .map((m) => `${m.front.join("+") || "-"}${m.backers.length ? `|${m.backers.join("+")}` : ""}>${m.strangers.join("+")}`)
         .join(";")}`;
+    // Extension kit (SC-EXT-5): none of the "base"/"slayer"/"artifacts" policies below ever choose
+    // this (the kit is off in every conformance run), so this arm is exhaustiveness-only — it never
+    // actually appears in a committed vector file.
+    case "descendChasm": return "DESCENDCHASM";
   }
 }
 

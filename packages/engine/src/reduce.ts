@@ -1,8 +1,8 @@
 import { GS_PLAYING, GS_QUIT, GS_ESCAPED, GS_DEAD, AF_DESTROYED, type GameState, type PartyMember } from "./state";
 import { tryMove } from "./map";
 import { decodeArea } from "./decode";
-import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT } from "./data/areaCards";
-import { viperCrossing, deepPoolCrossing } from "./special";
+import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WHIRLPOOL } from "./data/areaCards";
+import { viperCrossing, deepPoolCrossing, whirlpoolCrossing } from "./special";
 import { enterChamber } from "./chamber";
 import { applyHazards, hasStaffWizard } from "./hazards";
 import { HAZARD_MEDUSA } from "./data/hazards";
@@ -254,6 +254,12 @@ function resolveAreaLoop(state: GameState): GameEvent[] {
       state.phase = "explore";
       return events;
     }
+    if (dec.special === SPECIAL_WHIRLPOOL) {
+      // Unlike Deep Pool / Viper Pit, the Whirlpool IS a chamber (design US-05): it draws on entry
+      // like any other, so this only adds the entry telegraph and falls through to the chamber path
+      // below rather than returning early.
+      events.push({ type: "enteredSpecial", special: dec.special });
+    }
     if (!dec.chamber) {
       // A passage tile (tunnel / the Gateway) hosts no encounter, but the party may have LEFT treasure
       // on its floor — dropTreasure and leaveTreasure park it as 200+tid on `area.contents` (§7.3-5/6).
@@ -371,6 +377,20 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       } else if (crossing && fromSpecial === SPECIAL_DEEP_POOL) {
         events.push({ type: "crossedSpecial", special: SPECIAL_DEEP_POOL });
         events.push(...deepPoolCrossing(next, fromIdx));
+      } else if (crossing && fromSpecial === SPECIAL_WHIRLPOOL) {
+        const { events: wpEvents, dragged } = whirlpoolCrossing(next);
+        events.push(...wpEvents);
+        if (dragged) {
+          // The lateral move is cancelled — the party is dragged down FROM the Whirlpool tile
+          // instead (one-way, no return stair; `fellThroughTrap` blocks withdraw at the landing —
+          // design US-05 / Resolved-12). Undo the lateral arrival tryMove already applied, then
+          // fall through the same one-way descent every trap uses.
+          next.partyArea = fromIdx;
+          next.prev = oldPrev;
+          relocateDown(next);
+          events.push(...resolveArea(next));
+          return { state: next, events };
+        }
       }
 
       events.push(...resolveArea(next));
@@ -853,6 +873,21 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
         case 5: next.bonusScore += 40; break; // Gold
         case 6: next.bonusScore += 80; break; // Gems
       }
+      return { state: next, events };
+    }
+
+    case "descendChasm": {
+      // Legal on a Chasm tile in explore OR encounter phase (design US-02) — the party may dive
+      // down to escape an encounter, not just at rest. No dice; the Chasm is reusable terrain.
+      if (state.phase !== "explore" && state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
+      if (decodeArea(state.areas[state.partyArea]!.card).special !== SPECIAL_CHASM) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      // Park any pending encounter strangers/treasure back onto the chasm tile before leaving it —
+      // otherwise they'd leak into the landing area's working set.
+      persistAndExplore(next);
+      const events: GameEvent[] = [{ type: "chasmDescend" }];
+      relocateDown(next); // one-way, no mirrored stair-up — `fellThroughTrap` blocks withdraw below (SC-EXT-5)
+      events.push(...resolveArea(next));
       return { state: next, events };
     }
   }

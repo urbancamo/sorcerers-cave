@@ -1,7 +1,7 @@
 import {
   CREATURES,
   HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_MUTINY, HAZARD_TRAP,
-  SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT,
+  SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_WHIRLPOOL,
   DIR_DOWN,
   type GameEvent,
 } from "@sorcerers-cave/engine";
@@ -65,7 +65,9 @@ export function eventNotices(events: GameEvent[]): Notice[] {
             ? "The party reaches the edge of the Viper Pit."
             : e.special === SPECIAL_DEEP_POOL
               ? "The party reaches the edge of the Deep Pool."
-              : "The party reaches a special area.",
+              : e.special === SPECIAL_WHIRLPOOL
+                ? "Dark water churns here — crossing the shallows risks the pull of the whirlpool."
+                : "The party reaches a special area.",
           tone: "neutral",
         });
         break;
@@ -200,6 +202,16 @@ export function eventNotices(events: GameEvent[]): Notice[] {
         break;
       case "unicornDeparted":
         out.push({ text: `The unicorn departs from ${name(e.creatureId)}.`, tone: "neutral" });
+        break;
+      case "chasmDescend":
+        out.push({ text: "The party climbs down into the chasm.", tone: "neutral" });
+        break;
+      case "whirlpoolRoll":
+        out.push(
+          e.dragged
+            ? { text: "The whirlpool drags the whole party under!", tone: "bad" }
+            : { text: "The party wades the shallows safely.", tone: "good" },
+        );
         break;
       default:
         assertNever(e);

@@ -1,7 +1,7 @@
 import { decodeArea } from "./decode";
 import { DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, unpackCoord, packCoord } from "./coords";
 import { GS_PLAYING, AF_DESTROYED, type GameState } from "./state";
-import { SPECIAL_DEEP_POOL } from "./data/areaCards";
+import { SPECIAL_DEEP_POOL, SPECIAL_CHASM } from "./data/areaCards";
 import type { GameAction } from "./actions";
 import { canCarry } from "./pickup";
 
@@ -78,6 +78,9 @@ export function legalActions(state: GameState): GameAction[] {
     const canWithdraw = !state.fellThroughTrap && !prevGone;
     const actions: GameAction[] = canWithdraw ? [{ type: "withdraw" }, { type: "attack" }] : [{ type: "attack" }];
     if ((state.indiffStreak ?? 0) < 3) actions.push({ type: "test" });
+    // The Chasm offers an escape hatch even mid-encounter — descending abandons the strangers here,
+    // no test/fight required (design US-02).
+    if (decodeArea(state.areas[state.partyArea]!.card).special === SPECIAL_CHASM) actions.push({ type: "descendChasm" });
     actions.push(...artifactActions(state));
     return actions; // quitting is via the HUD Quit button, not an in-menu action
   }
@@ -141,6 +144,8 @@ export function legalActions(state: GameState): GameAction[] {
     else actions.push({ type: "move", dir: DIR_UP });
   }
   if (state.party.some((m) => (m.status === 0 || m.status === 1) && m.treasure.includes(14))) actions.push({ type: "openChest" });
+  // The Chasm is reusable terrain: always offered while resting on it, not a one-shot (design US-02).
+  if (dec.special === SPECIAL_CHASM) actions.push({ type: "descendChasm" });
   // A permanently-indifferent chamber is traversed in the explore phase, but the party may still choose
   // to attack its guards (to win the treasure they guard) — offer it while they're parked on the tile.
   if (state.pacifiedAreas?.includes(state.partyArea) &&

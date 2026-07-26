@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  SPECIAL_VIPER_PIT, SPECIAL_DEEP_POOL,
+  SPECIAL_VIPER_PIT, SPECIAL_DEEP_POOL, SPECIAL_WHIRLPOOL,
   HAZARD_MEDUSA, HAZARD_MUTINY, HAZARD_TRAP, HAZARD_EARTHQUAKE,
   DIR_DOWN, DIR_UP,
   type GameEvent,
@@ -124,6 +124,20 @@ describe("eventNotices", () => {
     expect(out[0]!.tone).toBe("good");
     expect(out[0]!.text).toContain("Sorcerer");
     expect(out[0]!.text).toContain("Congratulations");
+  });
+
+  it("announces the Whirlpool's entry telegraph distinctly from Deep Pool / Viper Pit", () => {
+    expect(eventNotices([{ type: "enteredSpecial", special: SPECIAL_WHIRLPOOL }])[0]!.text).toMatch(/whirlpool/i);
+  });
+
+  it("reports the Chasm descent (US-02) and Whirlpool crossing roll (US-05)", () => {
+    expect(eventNotices([{ type: "chasmDescend" }])[0]!.text).toMatch(/climbs down into the chasm/i);
+    const dragged = eventNotices([{ type: "whirlpoolRoll", roll: 1, dragged: true }])[0]!;
+    expect(dragged.text).toMatch(/drags the whole party under/i);
+    expect(dragged.tone).toBe("bad");
+    const safe = eventNotices([{ type: "whirlpoolRoll", roll: 5, dragged: false }])[0]!;
+    expect(safe.text).toMatch(/wades the shallows safely/i);
+    expect(safe.tone).toBe("good");
   });
 
   it("noticeTone prefers bad, then good, then neutral", () => {

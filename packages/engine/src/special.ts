@@ -54,3 +54,15 @@ export function deepPoolCrossing(state: GameState, poolIdx: number): GameEvent[]
   }
   return events;
 }
+
+/** Cross the Whirlpool's shallows (§Whirlpool, design US-05): a d6 of 1-2 means the whole party is
+ *  about to be dragged one level down (SC-EXT-6) — the caller (reduce.ts) performs the actual
+ *  relocation via `relocateDown` and cancels the lateral move, since only reduce.ts holds that
+ *  helper; 3-6 means the crossing is safe and the already-completed lateral move stands. Threads
+ *  the seed. Unlike the Viper Pit / Deep Pool, no per-member effect — the whole party shares one roll. */
+export function whirlpoolCrossing(state: GameState): { events: GameEvent[]; dragged: boolean } {
+  const r = rollDie(state.seed);
+  state.seed = r.seed;
+  const dragged = r.value <= 2;
+  return { events: [{ type: "whirlpoolRoll", roll: r.value, dragged }], dragged };
+}

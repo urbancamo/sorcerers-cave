@@ -74,6 +74,7 @@ export function actionLabel(a: GameAction, state?: GameState | null): string {
     }
     case "proceed": return "Proceed — brave Medusa's gaze";
     case "openChest": return "Open the treasure chest";
+    case "descendChasm": return "Descend the chasm";
     default: return (a as { type: string }).type;
   }
 }
@@ -164,6 +165,8 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "vipersLulled": return "the Charmed Flute lulled the vipers";
     case "secretDoorRevealed": return `a secret stairway was revealed (${dir(e.dir)})`;
     case "itemsSpilled": return `${creature(e.creatureId)}'s carried items spilled to the floor: ${e.items.map(treasure).join(", ")}`;
+    case "chasmDescend": return "the party climbed down into the chasm";
+    case "whirlpoolRoll": return `whirlpool crossing (rolled ${e.roll}) — ${e.dragged ? "dragged the party down" : "safe"}`;
     default: return (e as { type: string }).type;
   }
 }
@@ -327,6 +330,7 @@ function actionCode(a: GameAction, state: GameState | null): { act: string; arg:
     case "useArtifact": return { act: "USE", arg: tr3(a.artifact) + (a.target !== undefined ? `>${a.artifact === 5 ? foe(a.target) : mem(a.target)}` : a.artifact === 5 ? ">MED" : "") };
     case "proceed": return { act: "PRO", arg: "" };
     case "resolveRound": return { act: "FGT", arg: a.matches.map((m) => `${[...m.front, ...m.backers].map((i) => (state?.party[i] ? cr3(state.party[i]!.creatureId) : `#${i}`)).join("+") || "-"}>${m.strangers.map(foe).join("+") || "-"}`).join(",") };
+    case "descendChasm": return { act: "CHM", arg: "" };
     default: return { act: (a as { type: string }).type.slice(0, 3).toUpperCase(), arg: "" };
   }
 }
@@ -392,6 +396,8 @@ function eventCode(e: GameEvent): string | null {
     case "deadEnd": return `DED ${d1(e.dir)}`;
     case "mutinied": return `MUT ${e.deserters.length}`;
     case "planRejected": return "REJ";
+    case "chasmDescend": return "CHM DSC";
+    case "whirlpoolRoll": return `WHP R${e.roll} ${e.dragged ? "DRG" : "SAF"}`;
     default: return (e as { type: string }).type.slice(0, 3).toUpperCase();
   }
 }
