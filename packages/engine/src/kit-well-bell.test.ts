@@ -360,3 +360,77 @@ describe("Extra draws resolve a drawn hazard normally, not just strangers", () =
     expect(state.treasures).toContain(1); // carried Gold spills to the chamber floor, same as any petrify
   });
 });
+
+// ---------------------------------------------------------------------------------------------
+// A drawn Medusa can open the pre-hazard Medusa pause mid-draw (a living member holds Lotus Dust) —
+// the resumed tail (proceed / throw the dust) must carry the SAME surprise-preservation and forced
+// dragon-lull-announcement contract as the non-paused extra-draw path, or the pause reintroduces
+// the SC-4-16 bug for exactly the case SC-EXT-7's own spec text calls out (code review round 2).
+// ---------------------------------------------------------------------------------------------
+
+const LOTUS_DUST = 5;
+
+describe("A Medusa pause opened by an extra draw resumes without re-breaking SC-4-16", () => {
+  it("preserves surpriseReady through the pause when resumed via proceed", () => {
+    const seed = seedForRoll((v) => v >= 3); // a safe (non-petrifying) gaze roll — keeps the party intact
+    const s = wellState({
+      party: [member(HERO, [LOTUS_DUST])], // Lotus Dust held — opens the pause
+      seed,
+      phase: "encounter",
+      strangers: [MAN],
+      surpriseReady: true,
+      smallPack: [300 + HAZARD_MEDUSA],
+    });
+    const drawn = reduce(s, { type: "drawFromWell" });
+    expect(drawn.state.phase).toBe("medusa");
+    expect(drawn.events).toContainEqual({ type: "medusaLooms" });
+
+    const resumed = reduce(drawn.state, { type: "proceed" });
+    expect(resumed.events.some((e) => e.type === "medusaGaze")).toBe(true);
+    expect(resumed.state.surpriseReady).toBe(true); // NOT clobbered by the resumed finishChamber call
+    expect(resumed.state.phase).toBe("encounter"); // the original stranger (MAN) is still pending
+  });
+
+  it("preserves surpriseReady through the same pause when resumed via the Lotus Dust throw", () => {
+    const s = wellState({
+      party: [member(HERO, [LOTUS_DUST])],
+      phase: "encounter",
+      strangers: [MAN],
+      surpriseReady: true,
+      smallPack: [300 + HAZARD_MEDUSA],
+    });
+    const drawn = reduce(s, { type: "drawFromWell" });
+    expect(drawn.state.phase).toBe("medusa");
+
+    const resumed = reduce(drawn.state, { type: "useArtifact", artifact: LOTUS_DUST });
+    expect(resumed.events.some((e) => e.type === "medusaSlept")).toBe(true);
+    expect(resumed.state.surpriseReady).toBe(true); // NOT clobbered by the resumed finishChamber call
+    expect(resumed.state.phase).toBe("encounter");
+  });
+
+  it("announces dragonsLulled for a dragon drawn alongside a paused Medusa (Bell Rope 'stir' band)", () => {
+    const CHARMED_FLUTE = 12;
+    const DRAGON = 10;
+    // Sweep for a seed whose FIRST roll selects the "stir" band (>=4) and whose SECOND roll (the
+    // resumed Medusa gaze, drawn from the same advancing seed) is safe — so the sole, item-holding
+    // member survives and the Flute keeps working, isolating the assertion to the lull mechanism.
+    let seed = 1;
+    for (; seed < 100000; seed++) {
+      const r1 = rollDie(seed);
+      if (r1.value < 4) continue;
+      if (rollDie(r1.seed).value >= 3) break;
+    }
+    const s = bellState({
+      party: [member(HERO, [LOTUS_DUST, CHARMED_FLUTE])],
+      seed,
+      smallPack: [300 + HAZARD_MEDUSA, 100 + DRAGON],
+    });
+    const pulled = reduce(s, { type: "pullBellRope", mi: 0 });
+    expect(pulled.state.phase).toBe("medusa"); // Medusa opened the pause before the lull could resolve
+    expect(pulled.state.strangers).toEqual([DRAGON]); // drawn, but not yet lulled — that's on resume
+
+    const resumed = reduce(pulled.state, { type: "proceed" });
+    expect(resumed.events).toContainEqual({ type: "dragonsLulled", count: 1 }); // NOT suppressed by the pause
+    expect(resumed.state.strangers).toEqual([]); // lulled away on resume
+  });
+});

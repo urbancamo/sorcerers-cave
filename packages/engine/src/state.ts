@@ -131,7 +131,12 @@ export interface GameState {
   // Set while phase === "medusa": the entry is held mid-resolution (hazards not yet fired) for the
   // throw-or-proceed decision. `freshEntry` preserves the first-visit flag for the resumed tail
   // (surprise eligibility, Dragon-lull announcement) — it can't be recomputed after enterChamber.
-  medusaPause?: { freshEntry: boolean };
+  // Extension kit (SC-EXT-7/8, SC-4-16 fix): `extraDraw` is set instead when the pause was opened by
+  // a Well/Bell draw into an ALREADY-entered chamber (never a fresh entry) — it carries the
+  // `surpriseReady` captured before the draw, so the resumed tail can restore it rather than let
+  // `finishChamber`'s default recompute clobber it, and forces the Dragon-lull notice on regardless
+  // of chamber freshness (a drawn Dragon is new information either way).
+  medusaPause?: { freshEntry: boolean; extraDraw?: { hadSurprise?: boolean } };
   // Indifference (per party — NOT on the shared area, so it never affects other parties):
   // `indiffStreak` counts consecutive indifferent reaction tests in the CURRENT chamber visit
   // (reset on each chamber entry). When it reaches 3 the strangers are permanently indifferent to

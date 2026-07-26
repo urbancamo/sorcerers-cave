@@ -215,12 +215,20 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
 }
 
 /** Resume the entry held at the Medusa pause — the dust thrown or the gaze braved — firing the
- *  held hazards and playing the chamber out (looping on if a trap drops the party further). */
+ *  held hazards and playing the chamber out (looping on if a trap drops the party further).
+ *  A pause opened by a Well/Bell extra draw (`medusaPause.extraDraw` set) resumes through the SAME
+ *  surprise-preservation / forced-lull-announcement contract as the non-paused extra-draw path
+ *  (SC-4-16 fix, `finishExtraDraw`) — otherwise this is byte-identical to the pre-fix behaviour. */
 function resumeFromMedusaPause(state: GameState): GameEvent[] {
   const freshEntry = state.medusaPause?.freshEntry ?? false;
+  const extraDraw = state.medusaPause?.extraDraw;
   delete state.medusaPause;
   const events: GameEvent[] = [];
-  if (finishChamber(state, freshEntry, events)) events.push(...resolveAreaLoop(state));
+  if (extraDraw) {
+    finishExtraDraw(state, events, extraDraw.hadSurprise);
+  } else if (finishChamber(state, freshEntry, events)) {
+    events.push(...resolveAreaLoop(state));
+  }
   return events;
 }
 
@@ -297,13 +305,28 @@ function resolveAreaLoop(state: GameState): GameEvent[] {
 }
 
 /**
- * Resolve cards freshly drawn INTO the current (already-entered) chamber — the Well's 1-card and the
- * Bell Rope's 2-card draw (design US-07/US-03, SC-EXT-7/SC-EXT-8). Mirrors the tail of the per-chamber
- * body in `resolveAreaLoop` (Eye/Talisman on a fresh Spectre, the Medusa pause, then hazards + phase),
- * but is never a "fresh entry" for SURPRISE purposes (SC-4-16: the draw itself earns none) — while
- * still announcing a freshly-drawn Dragon's lull, since that IS new information to the player even
- * though the chamber itself isn't newly entered. Loops via `resolveAreaLoop` if a drawn Trap drops the
- * party a level — same as any other hazard resolution.
+ * Finish an "extra draw" into an ALREADY-entered chamber — the Well's 1-card and the Bell Rope's
+ * 2-card draw (SC-EXT-7/SC-EXT-8) — whether reached directly or via a resumed Medusa pause opened
+ * mid-draw (SC-4-16 fix, both callers below). Never a fresh entry for SURPRISE purposes (the draw
+ * itself earns none, but must not clobber surprise already earned and unconsumed from this
+ * chamber's ORIGINAL fresh entry — restored from `hadSurprise` whenever still in `encounter`
+ * afterward); always announces a freshly-drawn Dragon's lull, since that's new information to the
+ * player regardless of chamber freshness. Loops via `resolveAreaLoop` if a drawn Trap drops the
+ * party a level — the fresh landing area then computes its OWN surprise correctly and must not be
+ * overwritten.
+ */
+function finishExtraDraw(state: GameState, events: GameEvent[], hadSurprise: boolean | undefined): void {
+  if (finishChamber(state, false, events, true)) {
+    events.push(...resolveAreaLoop(state));
+  } else if (state.phase === "encounter") {
+    state.surpriseReady = hadSurprise;
+  }
+}
+
+/**
+ * Resolve cards freshly drawn INTO the current (already-entered) chamber (design US-07/US-03).
+ * Mirrors the tail of the per-chamber body in `resolveAreaLoop` (Eye/Talisman on a fresh Spectre,
+ * the Medusa pause, then `finishExtraDraw`'s hazards + phase contract).
  */
 function resolveExtraDraw(state: GameState, events: GameEvent[]): void {
   // Preserve any surprise already earned by this chamber's ORIGINAL fresh entry and not yet spent —
@@ -312,18 +335,15 @@ function resolveExtraDraw(state: GameState, events: GameEvent[]): void {
   events.push(...annihilateWithEye(state));
   events.push(...wardOffSpectres(state));
   if (medusaLooms(state)) {
+    // The pause must carry `hadSurprise` through to its resume (`resumeFromMedusaPause`) — a plain
+    // `{ freshEntry: false }` (like a genuine fresh-entry pause) would lose it, reproducing the same
+    // clobber this function's own resume path guards against (SC-4-16 fix, round 2).
     state.phase = "medusa";
-    state.medusaPause = { freshEntry: false };
+    state.medusaPause = { freshEntry: false, extraDraw: { hadSurprise } };
     events.push({ type: "medusaLooms" });
     return;
   }
-  // freshEntry=false (no surprise from the draw itself); announceLull=true (a drawn Dragon is new
-  // information regardless of chamber freshness).
-  if (finishChamber(state, false, events, true)) {
-    events.push(...resolveAreaLoop(state)); // a fresh area (trap fall) computes its OWN surprise correctly
-  } else if (state.phase === "encounter") {
-    state.surpriseReady = hadSurprise;
-  }
+  finishExtraDraw(state, events, hadSurprise);
 }
 
 /** Move the whole party to the area directly below (same x,y), creating it if needed. */
