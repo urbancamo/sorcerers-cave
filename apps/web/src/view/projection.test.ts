@@ -102,21 +102,6 @@ describe("projectArea", () => {
     state.party[0]!.treasure = []; // drop the Flute
     expect(dragon(0).asleep).toBe(false); // no Flute → awake again
   });
-
-  it("resolves the extension kit's new specials to their own art and name, not a generic chamber (SC-EXT-5/6)", () => {
-    const state = newGame(1, [0]);
-    // Chasm (SPECIAL_CHASM=6): card 799 = (6<<7)|31, a NESW chamber (kit-data.test.ts pins this value).
-    const chasm = projectArea(area({ card: 799 }), 0, state, art);
-    expect(chasm.special).toBe("chasm");
-    expect(chasm.name).toBe("The Chasm");
-    expect(chasm.tileId).toBe("x06-2"); // its OWN art, not the art.tiles[0] fallback
-
-    // Whirlpool (SPECIAL_WHIRLPOOL=9): card 1183 = (9<<7)|31.
-    const whirlpool = projectArea(area({ card: 1183 }), 0, state, art);
-    expect(whirlpool.special).toBe("whirlpool");
-    expect(whirlpool.name).toBe("The Whirlpool");
-    expect(whirlpool.tileId).toBe("x07-2");
-  });
 });
 
 describe("encodeWorkingSet", () => {

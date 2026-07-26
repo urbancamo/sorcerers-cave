@@ -4,17 +4,8 @@ import type { Area, Card } from "./ports";
 
 export interface ArtTables { tiles: TileArt[]; cards: CardArt[]; }
 
-/** engine special int -> ports/manifest special key. Indices 6-11 are the extension kit's six new
- *  specials (data/areaCards.ts SPECIAL_CHASM..SPECIAL_WELL, SC-EXT-3) — their manifest keys match
- *  docs/assets/manifest.json's tilesExtension entries verbatim (e.g. area-tile-x06-2 -> "chasm").
- *  Without these, a kit tile's topology would resolve `special: null` and `resolveTile` would match
- *  it against an unrelated plain chamber instead of its own art (SC-EXT-5/SC-EXT-6 depend on this
- *  for the Chasm/Whirlpool "On screen" art; Bell Rope/Lair/Gallery/Well render correctly as plain
- *  chambers ahead of their own rules landing in later tasks — same as Tomb/Great Hall today). */
-const SPECIAL: (string | null)[] = [
-  null, "gateway", "deep-pool", "viper-pit", "tomb-of-kings", "great-hall",
-  "chasm", "bell-rope", "lair", "whirlpool", "gallery", "well",
-];
+/** engine special int -> ports/manifest special key */
+const SPECIAL: (string | null)[] = [null, "gateway", "deep-pool", "viper-pit", "tomb-of-kings", "great-hall"];
 
 export const areaKey = (level: number, col: number, row: number): string => `${level},${col},${row}`;
 
@@ -78,12 +69,6 @@ function displayName(special: string | null, isChamber: boolean): string {
     case "viper-pit": return "Viper Pit";
     case "tomb-of-kings": return "Tomb of Kings";
     case "great-hall": return "Great Hall";
-    case "chasm": return "The Chasm";
-    case "bell-rope": return "The Bell Rope";
-    case "lair": return "The Lair";
-    case "whirlpool": return "The Whirlpool";
-    case "gallery": return "The Gallery";
-    case "well": return "The Well";
     default: return isChamber ? "Chamber" : "Tunnel";
   }
 }
