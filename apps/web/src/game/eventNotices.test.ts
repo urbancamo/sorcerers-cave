@@ -7,6 +7,49 @@ import {
 } from "@sorcerers-cave/engine";
 import { eventNotices, noticeTone } from "./eventNotices";
 
+describe("eventNotices exhaustiveness (base hardening)", () => {
+  it("surfaces a generic notice for a blocked action (previously silent everywhere)", () => {
+    const out = eventNotices([{ type: "blocked" }]);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.text.length).toBeGreaterThan(0);
+  });
+
+  it("surfaces the engine's rejection reason for an illegal battle plan (previously silent)", () => {
+    const out = eventNotices([{ type: "planRejected", reason: "unmatched pairing" }]);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.text).toMatch(/unmatched pairing/i);
+    expect(out[0]!.tone).toBe("bad");
+  });
+
+  it("announces arrival at a special area (previously silent)", () => {
+    expect(eventNotices([{ type: "enteredSpecial", special: SPECIAL_VIPER_PIT }])[0]!.text).toMatch(/viper pit/i);
+    expect(eventNotices([{ type: "enteredSpecial", special: SPECIAL_DEEP_POOL }])[0]!.text).toMatch(/deep pool/i);
+  });
+
+  it("reports a downed member's items spilling onto the floor (previously silent)", () => {
+    const out = eventNotices([{ type: "itemsSpilled", creatureId: 0, items: [1, 2] }]);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.text.length).toBeGreaterThan(0);
+  });
+
+  it("stays silent for the remaining event types, which all have dedicated dice-overlay or banner UI", () => {
+    const handled: GameEvent[] = [
+      { type: "viperPit", rolls: [{ creatureId: 0, roll: 3, died: false }] },
+      { type: "medusaGaze", rolls: [{ creatureId: 0, roll: 3, petrified: false }] },
+      { type: "casualtyChosen", creatureId: 0, roll: 4, gotPreference: true },
+      { type: "fightWon" },
+      { type: "rubyTaken" },
+      { type: "statueAroused" },
+      { type: "strangerKilled", creatureId: 3 },
+      { type: "pacified" },
+      { type: "strangersJoined", count: 2 },
+      { type: "fightStarted", surprise: 1 },
+      { type: "trapAvoided" },
+    ];
+    expect(eventNotices(handled)).toHaveLength(0);
+  });
+});
+
 describe("eventNotices", () => {
   it("produces no text notices for a Viper Pit crossing (its dice overlay shows the outcome)", () => {
     const events: GameEvent[] = [

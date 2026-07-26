@@ -1,10 +1,15 @@
 import {
   CREATURES,
   HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_MUTINY, HAZARD_TRAP,
-  SPECIAL_DEEP_POOL,
+  SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT,
   DIR_DOWN,
   type GameEvent,
 } from "@sorcerers-cave/engine";
+
+// Exhaustiveness guard for the switch in eventNotices(): if a new GameEvent member is added
+// without a case below, TypeScript reports `x` as not assignable to `never` here — a compile
+// error, not a silently-dropped event (docs/requirements/extension-kit/2026-07-26-engine-integration-design.md §1.5).
+const assertNever = (x: never): void => {};
 
 export type Tone = "good" | "bad" | "neutral";
 export interface Notice {
@@ -43,6 +48,51 @@ export function eventNotices(events: GameEvent[]): Notice[] {
   const out: Notice[] = [];
   for (const e of events) {
     switch (e.type) {
+      case "blocked":
+        // Generic no-op guard (wrong phase, invalid target, …) fired by many actions across both
+        // single-player and multiplayer dispatch — previously silent everywhere it wasn't
+        // preempted client-side, so give it a plain fallback notice.
+        out.push({ text: "Nothing happens.", tone: "neutral" });
+        break;
+      case "planRejected":
+        // The client pre-validates battle plans (FightSurface), but the engine is authoritative —
+        // a plan it rejects reached the player as nothing but a log line until now.
+        out.push({ text: `The battle plan is rejected: ${e.reason}`, tone: "bad" });
+        break;
+      case "enteredSpecial":
+        out.push({
+          text: e.special === SPECIAL_VIPER_PIT
+            ? "The party reaches the edge of the Viper Pit."
+            : e.special === SPECIAL_DEEP_POOL
+              ? "The party reaches the edge of the Deep Pool."
+              : "The party reaches a special area.",
+          tone: "neutral",
+        });
+        break;
+      case "itemsSpilled":
+        out.push({ text: `${name(e.creatureId)}'s carried items spill onto the floor.`, tone: "neutral" });
+        break;
+      // Dice-overlay events (rollView.ts / FightSurface.tsx) already narrate their own outcome —
+      // a text notice here would duplicate that dedicated UI, so these are handled-silence.
+      case "moved": // reflected directly by the area/map display; nothing to narrate
+      case "drewChamber": // the chamber-draw display (engineAdapter's `ev.chamber`)
+      case "gameOver": // GameOverScreen / rollView's `over`/`wipedOut` messaging
+      case "reaction": // rollView.reactionView's single-die overlay
+      case "pacified": // folded into reactionView's "Indifferent again…" message
+      case "strangersJoined": // folded into reactionView's "…they join your party!" message
+      case "fightStarted": // FightSurface's surprise banner reads state.fight.surprise directly
+      case "combatRoll": // rollView.combatView's party-vs-enemy dice overlay
+      case "fightWon": // folded into combatView's "Victory" message
+      case "strangerKilled": // folded into combatView's "N foe(s) down" message
+      case "casualtyChosen": // rollView.casualtyView's single-die overlay
+      case "chestOpened": // rollView.chestView's single-die overlay
+      case "rubyTaken": // folded into combatView's "guardian statue" overlay message
+      case "statueAroused": // folded into combatView's "guardian statue" overlay message
+      case "medusaGaze": // rollView.medusaView's die-per-member overlay
+      case "viperPit": // rollView.viperView's die-per-member overlay (see `hasViper` above)
+      case "trapSprung": // the move-result trap indicator / confirm modal
+      case "trapAvoided": // the move-result trap indicator / confirm modal
+        break;
       case "crossedSpecial":
         // The Viper Pit crossing is shown by its dice overlay; only the Deep Pool needs a notice.
         if (e.special === SPECIAL_DEEP_POOL) out.push({ text: "The party wades through the Deep Pool…", tone: "neutral" });
@@ -152,6 +202,7 @@ export function eventNotices(events: GameEvent[]): Notice[] {
         out.push({ text: `The unicorn departs from ${name(e.creatureId)}.`, tone: "neutral" });
         break;
       default:
+        assertNever(e);
         break;
     }
   }
