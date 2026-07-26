@@ -65,7 +65,7 @@ value (and its stair-pruned forms) resolves to a tile at rot 0 across the 90-til
 All ids append after existing ranges; existing tables are untouched. Kit duplicates map to
 existing ids — treasures: Gold (treasure 1) ×3, Silver (treasure 0) ×3, Gems (treasure 2) ×1,
 **Lotus Dust (treasure 5) ×1 — already a base artifact; the kit copy is simply a second deck
-entry with identical rules**; creatures: Dwarf (creature 7) ×1 and Woman (creature 5) ×1.
+entry with identical rules**; creatures: Dwarf (creature 7) ×1 and Woman (creature 6) ×1.
 
 **Creatures (ids 14–20)** — costs per the official kit SELECTION TABLE
 ([extension-kit-rules.md](../../specs/extension-kit-rules.md)); Apprentice and Demon are never
