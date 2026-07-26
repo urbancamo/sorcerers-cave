@@ -5,6 +5,7 @@ import { makeState } from "./testkit";
 import { rollDie } from "./rng";
 import { packCoord } from "./coords";
 import { SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
+import { HAZARD_TRAP, HAZARD_MEDUSA } from "./data/hazards";
 import { GS_PLAYING, GS_DEAD, AF_BELL_SPENT, type GameState, type PartyMember } from "./state";
 
 /**
@@ -170,9 +171,12 @@ describe("The Bell Rope — a visible d6 in three bands (US-03, SC-EXT-8)", () =
     expect(reduce(spent, { type: "pullBellRope", mi: 0 }).events).toEqual([{ type: "blocked" }]);
   });
 
-  it("roll 1: the puller vanishes with everything carried — not dead, not revivable (Resolved-3)", () => {
+  it("roll 1: the puller vanishes with everything carried, including a BORNE item — not dead, not revivable (Resolved-3)", () => {
+    const GOLD = 1;
+    const MAGIC_SWORD = 3;
     const seed = seedForVanish();
-    const s = bellState({ party: [member(HERO, [1]), member(MAN)], seed });
+    const puller: PartyMember = { creatureId: HERO, status: 0, dragonKills: 0, treasure: [GOLD, MAGIC_SWORD], borne: [MAGIC_SWORD] };
+    const s = bellState({ party: [puller, member(MAN)], seed });
     const { state, events } = reduce(s, { type: "pullBellRope", mi: 0 });
 
     expect(events).toContainEqual({ type: "bellRoll", roll: 1, outcome: "vanish", creatureId: HERO });
@@ -180,6 +184,12 @@ describe("The Bell Rope — a visible d6 in three bands (US-03, SC-EXT-8)", () =
     expect(state.party).toHaveLength(1);
     expect(state.party[0]!.creatureId).toBe(MAN); // the Hero — and their Gold — are simply gone
     expect((state.areas[0]!.flags & AF_BELL_SPENT) !== 0).toBe(true);
+    // Everything carried leaves the game with them — not spilled to the floor (unlike a death), not
+    // picked up by anyone, and the BORNE Magic Sword is just as gone as the merely-carried Gold.
+    expect(state.treasures).toEqual([]);
+    expect(state.areas[0]!.contents).not.toContain(200 + GOLD);
+    expect(state.areas[0]!.contents).not.toContain(200 + MAGIC_SWORD);
+    expect(state.party.every((m) => !m.treasure.includes(GOLD) && !m.treasure.includes(MAGIC_SWORD))).toBe(true);
   });
 
   it("roll 1 on the last living member empties the party and ends the game", () => {
@@ -242,5 +252,111 @@ describe("The Bell Rope — a visible d6 in three bands (US-03, SC-EXT-8)", () =
 
     expect(legalActions(state)).not.toContainEqual({ type: "pullBellRope", mi: 0 });
     expect(reduce(state, { type: "pullBellRope", mi: 0 }).events).toEqual([{ type: "blocked" }]);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Extra draws must never corrupt surprise eligibility, and must still announce a freshly-drawn
+// dragon (code review fix, SC-4-16). Both bugs share one root cause: `resolveExtraDraw` used to
+// call `finishChamber` with `freshEntry=false`, which (a) unconditionally overwrote
+// `surpriseReady` with `false` — clobbering surprise already earned by the chamber's ORIGINAL
+// fresh entry and not yet consumed — and (b) suppressed the `dragonsLulled` notice, which is
+// gated on the same `freshEntry` flag even though a well/bell-drawn dragon is always genuinely
+// new information to the player (never previously shown in `strangers`).
+// ---------------------------------------------------------------------------------------------
+
+describe("Extra draws never corrupt surprise, and still announce a freshly-drawn dragon (SC-4-16)", () => {
+  it("preserves an existing, unconsumed surpriseReady across a Well draw — the draw itself earns no surprise but must not clear one already earned", () => {
+    const s = wellState({
+      party: [member(HERO)],
+      phase: "encounter",
+      strangers: [MAN],
+      surpriseReady: true,
+      smallPack: [100 + MAN],
+    });
+    const { state } = reduce(s, { type: "drawFromWell" });
+
+    expect(state.surpriseReady).toBe(true); // NOT clobbered by the extra draw
+    expect(state.strangers).toEqual([MAN, MAN]);
+    const attacked = reduce(state, { type: "attack" });
+    expect(attacked.events).toContainEqual({ type: "fightStarted", surprise: 1 }); // the earned edge still lands
+  });
+
+  it("leaves surpriseReady false when it was false — a Well draw never grants surprise on its own", () => {
+    const s = wellState({
+      party: [member(HERO)],
+      phase: "encounter",
+      strangers: [MAN],
+      surpriseReady: false,
+      smallPack: [100 + MAN],
+    });
+    const { state } = reduce(s, { type: "drawFromWell" });
+
+    expect(state.surpriseReady).toBe(false); // NOT upgraded false -> true by the extra draw
+    const attacked = reduce(state, { type: "attack" });
+    expect(attacked.events).toContainEqual({ type: "fightStarted", surprise: 0 });
+  });
+
+  it("also preserves surpriseReady across a Bell Rope 'stir' draw (same shared resolveExtraDraw path)", () => {
+    const seed = seedForStir();
+    const s = bellState({
+      party: [member(HERO)],
+      seed,
+      phase: "encounter",
+      strangers: [MAN],
+      surpriseReady: true,
+      smallPack: [100 + MAN, 100 + MAN],
+    });
+    const { state } = reduce(s, { type: "pullBellRope", mi: 0 });
+
+    expect(state.surpriseReady).toBe(true);
+  });
+
+  it("announces dragonsLulled for a dragon drawn via the Well while the Charmed Flute is held", () => {
+    const CHARMED_FLUTE = 12;
+    const DRAGON = 10;
+    const s = wellState({ party: [member(HERO, [CHARMED_FLUTE])], smallPack: [100 + DRAGON] });
+    const { state, events } = reduce(s, { type: "drawFromWell" });
+
+    expect(events).toContainEqual({ type: "dragonsLulled", count: 1 }); // NOT suppressed for new information
+    expect(state.strangers).toEqual([]); // lulled — no longer a live stranger to fight
+    // Nothing else to encounter, so the party simply moves on; the lulled dragon parks AWAKE on the
+    // tile for a future visit (persistAndExplore clears the WORKING `lulled` set once it's parked —
+    // pre-existing §Charmed Flute behaviour, not special to the Well).
+    expect(state.phase).toBe("explore");
+    expect(state.areas[0]!.contents).toContain(100 + DRAGON);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Extra draws resolve hazards exactly like any chamber draw (design brief: "strangers/hazards
+// resolve normally"), not just strangers.
+// ---------------------------------------------------------------------------------------------
+
+describe("Extra draws resolve a drawn hazard normally, not just strangers", () => {
+  it("a well-drawn Trap drops the party a level, same as any trap hazard", () => {
+    const s = wellState({
+      party: [member(HERO)],
+      smallPack: [300 + HAZARD_TRAP],
+      largePack: [31], // a plain chamber for the trap-fall landing
+      largeIdx: 0,
+    });
+    const { state, events } = reduce(s, { type: "drawFromWell" });
+
+    expect(events).toContainEqual({ type: "hazardFired", hazard: HAZARD_TRAP });
+    expect(events.some((e) => e.type === "trapSprung")).toBe(true);
+    expect(state.level).toBe(2);
+    expect(state.fellThroughTrap).toBe(true);
+  });
+
+  it("a well-drawn Medusa fires her gaze with normal effects (petrify roll, item spill)", () => {
+    const seed = seedForRoll((v) => v <= 2); // a petrifying roll for the sole member
+    const s = wellState({ party: [member(HERO, [1])], seed, smallPack: [300 + HAZARD_MEDUSA] });
+    const { state, events } = reduce(s, { type: "drawFromWell" });
+
+    expect(events).toContainEqual({ type: "hazardFired", hazard: HAZARD_MEDUSA });
+    expect(events.some((e) => e.type === "medusaGaze")).toBe(true);
+    expect(state.party[0]!.status).toBe(2); // petrified
+    expect(state.treasures).toContain(1); // carried Gold spills to the chamber floor, same as any petrify
   });
 });

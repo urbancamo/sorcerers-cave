@@ -153,8 +153,13 @@ function medusaLooms(state: GameState): boolean {
 }
 
 /** Fire the chamber's hazards and settle the entry's outcome (wipe / encounter / pickup / explore).
- *  Returns true when a trap dropped the party a level: the caller must resolve the area fallen into. */
-function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[]): boolean {
+ *  Returns true when a trap dropped the party a level: the caller must resolve the area fallen into.
+ *  `freshEntry` alone governs `surpriseReady` (SC-4-16: earned only on a genuinely fresh, non-trap
+ *  chamber entry). `announceLull` (defaults to `freshEntry`) governs only the `dragonsLulled` notice —
+ *  split out because an extra draw into an already-entered chamber (Well/Bell, SC-EXT-7/8) is never a
+ *  fresh entry, yet a dragon it just drew is still genuinely new information the player hasn't seen
+ *  (`resolveExtraDraw` passes `true` explicitly for that case). */
+function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[], announceLull = freshEntry): boolean {
   const { events: hzEvents, fell } = applyHazards(state);
   events.push(...hzEvents);
   // A hazard may incapacitate the whole party (Medusa petrifies everyone, or Ghouls slay them) —
@@ -182,7 +187,7 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
     const dragons = state.strangers.filter((id) => id === 10);
     state.lulled = [...(state.lulled ?? []), ...dragons];
     state.strangers = state.strangers.filter((id) => id !== 10);
-    if (freshEntry) events.push({ type: "dragonsLulled", count: dragons.length });
+    if (announceLull) events.push({ type: "dragonsLulled", count: dragons.length });
   }
   // Permanently indifferent to this party (§Reactions): the party may walk freely through (any exit)
   // — so park the guards to the tile and go to explore for full traversal — but it may also still
@@ -295,10 +300,15 @@ function resolveAreaLoop(state: GameState): GameEvent[] {
  * Resolve cards freshly drawn INTO the current (already-entered) chamber — the Well's 1-card and the
  * Bell Rope's 2-card draw (design US-07/US-03, SC-EXT-7/SC-EXT-8). Mirrors the tail of the per-chamber
  * body in `resolveAreaLoop` (Eye/Talisman on a fresh Spectre, the Medusa pause, then hazards + phase),
- * but is never a "fresh entry" (no surprise) and loops via `resolveAreaLoop` if a drawn Trap drops the
+ * but is never a "fresh entry" for SURPRISE purposes (SC-4-16: the draw itself earns none) — while
+ * still announcing a freshly-drawn Dragon's lull, since that IS new information to the player even
+ * though the chamber itself isn't newly entered. Loops via `resolveAreaLoop` if a drawn Trap drops the
  * party a level — same as any other hazard resolution.
  */
 function resolveExtraDraw(state: GameState, events: GameEvent[]): void {
+  // Preserve any surprise already earned by this chamber's ORIGINAL fresh entry and not yet spent —
+  // finishChamber(freshEntry=false) would otherwise force it to false unconditionally (SC-4-16 fix).
+  const hadSurprise = state.surpriseReady;
   events.push(...annihilateWithEye(state));
   events.push(...wardOffSpectres(state));
   if (medusaLooms(state)) {
@@ -307,7 +317,13 @@ function resolveExtraDraw(state: GameState, events: GameEvent[]): void {
     events.push({ type: "medusaLooms" });
     return;
   }
-  if (finishChamber(state, false, events)) events.push(...resolveAreaLoop(state));
+  // freshEntry=false (no surprise from the draw itself); announceLull=true (a drawn Dragon is new
+  // information regardless of chamber freshness).
+  if (finishChamber(state, false, events, true)) {
+    events.push(...resolveAreaLoop(state)); // a fresh area (trap fall) computes its OWN surprise correctly
+  } else if (state.phase === "encounter") {
+    state.surpriseReady = hadSurprise;
+  }
 }
 
 /** Move the whole party to the area directly below (same x,y), creating it if needed. */
