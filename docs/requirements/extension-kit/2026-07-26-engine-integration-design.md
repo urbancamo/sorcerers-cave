@@ -67,44 +67,55 @@ existing ids — treasures: Gold (treasure 1) ×3, Silver (treasure 0) ×3, Gems
 **Lotus Dust (treasure 5) ×1 — already a base artifact; the kit copy is simply a second deck
 entry with identical rules**; creatures: Dwarf (creature 7) ×1 and Woman (creature 5) ×1.
 
-**Creatures (ids 14–20)** — none are selectable starters (`cost: null`):
+**Creatures (ids 14–20)** — costs per the official kit SELECTION TABLE
+([extension-kit-rules.md](../../specs/extension-kit-rules.md)); Apprentice and Demon are never
+selectable. Wolf's fs 2 and the Witch/Scholar/Lion stat lines are confirmed by that table.
 
-| Id | Name | fs | mp | carry | points | Flags / reaction | Uses artifacts as |
-|---|---|---|---|---|---|---|---|
-| 14 | Apprentice | 2 | 7 | 0 | 0 | HUMAN; custom reaction (US-14); female — she/her in all copy | Wizard |
-| 15 | Demon | 0 | 6 | 0 | 0 | INHUMAN; never tests — always hostile; magic-only foe | — (none) |
-| 16 | Lion | 3 | 0 | 0 | 3 | INHUMAN; thresholds: hostile ≤4, indiff ≤5 † | — (none) |
-| 17 | Scholar | 2 | 1 | 25 | 5 | HUMAN; reaction thresholds = Priest † | Priest |
-| 18 | Witch | 1 | 4 | 0 | 10 | HUMAN; reaction thresholds = Woman † | Priest |
-| 19 | Thief | 2 | 0 | 25 | 5 | HUMAN; reaction thresholds = Man † | Man |
-| 20 | Wolf | 2 † | 0 | 0 | 2 | INHUMAN; thresholds = Lion †; immune Medusa/Quarrel/Mutiny/Desertion | — (none) |
+| Id | Name | fs | mp | carry | cost | points | Flags / reaction | Uses artifacts as |
+|---|---|---|---|---|---|---|---|---|
+| 14 | Apprentice | 2 | 7 | 0 | null | 0 | HUMAN; custom reaction (US-14); female — she/her in all copy | Wizard |
+| 15 | Demon | 0 | 6 | 0 | null | 0 | INHUMAN; never tests — always hostile; magic-only foe | — (none) |
+| 16 | Lion | 3 | 0 | 0 | 2 | 3 | INHUMAN; thresholds: hostile ≤4, indiff ≤5 † | — (none) |
+| 17 | Scholar | 2 | 1 | 25 | 3 | 5 | HUMAN; reaction thresholds = Priest † | Priest |
+| 18 | Witch | 1 | 4 | 0 | 5 | 10 | HUMAN; reaction thresholds = Woman † | Priest |
+| 19 | Thief | 2 | 0 | 25 | 3 | 5 | HUMAN; reaction thresholds = Man † | Man |
+| 20 | Wolf | 2 | 0 | 0 | 1 | 2 | INHUMAN; thresholds = Lion †; immune Medusa/Quarrel/Mutiny/Desertion | — (none) |
 
-† = value not printed on the card; accepted as proposed (Resolved interpretations, item 1).
+† = value not printed on the card or table; accepted as proposed (Resolved interpretations, item 1).
+
+**Kit-on party selection** (official SELECTION TABLE): the selectable pool gains Witch, Scholar,
+Thief, Lion, Wolf at the costs above, with stock Witch 3, Scholar 1, Thief 1, Lion 1, Wolf 1;
+Dwarf and Woman stock rises 3 → 4 (the kit copies). **Ogre's selection cost is revised 5 → 4 and
+Troll's 4 → 3 in kit-on games only — the base game keeps 5/4** (MSW ruling). The engine resolves
+selection costs and stock through the variant; `PARTY_BUDGET` stays 6.
 
 "Uses artifacts as X" means the creature is added to every artifact-eligibility list X appears in
 (Sword/Axe bonuses excepted — those name specific creatures).
 
-**Treasures (ids 15–21)** — all `kind: "artifact"`, weight 0, one deck copy each:
+**Treasures (ids 15–21)** — classifications per the official INVENTORY (artefacts: Elixir, Holy
+Water, Magic Axe, Scroll, Magic Shield; **heavy treasure: Idol and Crypt/Gems**):
 
-| Id | Name | Points | One-use? | Summary |
-|---|---|---|---|---|
-| 15 | Elixir | 0 | yes | Any member drinks: d6 → 1 dies, 2–3 nothing, 4–6 +2 fs permanently |
-| 16 | Holy Water | 5 | yes | Reanimate STONE; or destroy Medusa/Spectre/Demon; or weaken Sorcerer/Apprentice −2 MP |
-| 17 | Magic Axe | 15 | no (borne) | +1 fs Man/Woman/Hero/W-Hero, +3 Dwarf; bearer may fight a Demon |
-| 18 | Idol | 10×d6 at end | — | Value determined at game end (US-25) |
-| 19 | Scroll | 0 | yes | Read by a HUMAN: destroys all non-magical enemies in the area; party CURSED |
-| 20 | Spell | 0 | yes | Previous tunnel returns to mid-pack, replaced face-down; its secret doors vanish |
-| 21 | Magic Shield | 15 | no (borne) | Bearer Man/Woman/Hero/W-Hero: nullifies enemy MP; Sorcerer/Apprentice −2 instead |
+| Id | Name | Kind / weight | Points | One-use? | Summary |
+|---|---|---|---|---|---|
+| 15 | Elixir | artifact / 0 | 0 | yes | Any member drinks: d6 → 1 dies, 2–3 nothing, 4–6 +2 fs permanently |
+| 16 | Holy Water | artifact / 0 | 5 | yes | Reanimate STONE; or destroy Medusa/Spectre/Demon; or weaken Sorcerer/Apprentice −2 MP |
+| 17 | Magic Axe | artifact / 0 | 15 | no (borne) | +1 fs Man/Woman/Hero/W-Hero, +3 Dwarf; bearer may fight a Demon |
+| 18 | Idol | **heavy / 25 kg** | 10×d6 at end | — | Value determined at game end (US-25); a real haul to carry out |
+| 19 | Scroll | artifact / 0 | 0 | yes | Read by a HUMAN: destroys all non-magical enemies in the area; party CURSED |
+| 20 | Magic Shield | artifact / 0 | 15 | no (borne) | Bearer Man/Woman/Hero/W-Hero: nullifies the paired enemy's MP; Sorcerer/Apprentice −2 instead |
+| 21 | Crypt/Gems | **heavy / 25 kg** | 20 | — | Drawn: parks as the crypt (US-08); on a find, the card itself becomes the carried gems |
 
 **Hazards (ids 5–8)**, appended to data/hazards.ts and the `applyHazards` order (after TRAP):
-Crypt(5), Desertion(6), Harpies(7), Quarrel(8). Crypt and Harpies park in the area (lurk-style);
-Desertion and Quarrel fire once and discard.
+Desertion(5), Harpies(6), Quarrel(7), **Spell(8)** — Spell is a hazard per the official
+INVENTORY, not a usable artifact: it fires when drawn (US-22). Harpies parks (lurk-style);
+Desertion, Quarrel and Spell fire once and discard. The Crypt is no longer a hazard id — its
+card is treasure 21, which parks as the crypt location when drawn.
 
 **Small-pack additions (30 codes):** creatures ×11 (Apprentice, Demon, Lion, Scholar, Witch ×3,
 Thief, Wolf, plus duplicate-copy Dwarf and Woman), treasures ×15 (Gold ×3, Silver ×3, Gems,
-Lotus Dust, Elixir, Holy Water, Magic Axe, Idol, Scroll, Spell, Magic Shield — the Crypt's
-found-Gems are minted on the spot, not deck entries), hazards ×4 (Crypt, Desertion, Harpies,
-Quarrel).
+Lotus Dust, Elixir, Holy Water, Magic Axe, Idol, Scroll, Magic Shield, Crypt/Gems), hazards ×4
+(Desertion, Harpies, Quarrel, Spell). Matches the official INVENTORY exactly (9 heavy treasure
++ 6 artefacts + 11 creatures + 4 hazards).
 
 ### 1.4 Manifest & art
 
@@ -282,10 +293,10 @@ US-19..25 artifacts · US-26 duplicates · US-27 plain tiles.
 
 ---
 
-### US-08: Crypt (hazard 5, card x01-1 "Crypt / Gems")
+### US-08: Crypt (treasure 21 "Crypt/Gems", card x01-1 — heavy treasure per the official INVENTORY)
 
-- **Trigger:** Drawn like any hazard, but it does not fire — it **parks**: the chamber now
-  contains a crypt.
+- **Trigger:** Drawn like a treasure card, but it does not lie on the floor — it **parks**: the
+  chamber now contains a crypt (draw-classify special case on treasure id 21).
 - **On screen:** The crypt card lays down and stays visible in the area (lurk presentation, like
   Medusa's parked card). Notice: "A sealed crypt squats in the corner of this chamber."
 - **Interaction:** At the **start of any turn** in this area, the action row offers "Enter the
@@ -295,15 +306,15 @@ US-19..25 artifacts · US-26 duplicates · US-27 plain tiles.
   crypt: gems!"
 - **Aftermath:** 1–2: unavoidable trap — the whole party falls one level (`relocateDown`), **a
   Dwarf does not guide past this one**, and **withdraw is not offered from the landing area**
-  (trap-fall semantics — creatures below must be faced). 3–6: a Gems treasure (id 2, 25 kg,
-  20 pts) appears on the area floor for normal pickup — **presented with the Crypt/Gems card
-  art**: the crypt card itself becomes the pickup card, and while carried it shows as the
-  Crypt/Gems card, marking that these gems were claimed from the crypt. Either way the crypt is
-  spent (no second entry).
-- **Build notes:** New hazard case that parks (contents re-entry like Medusa/Ghouls,
-  hazards.ts:147-154) + a `enterCrypt` action gated to turn start in the area; the found gems
-  are treasure id 2 with a kit-art override (US-26 mechanism). Landing reuses `fellThroughTrap`.
-  MP: the crypt is area content; whichever seat enters rolls on the shared stream.
+  (trap-fall semantics — creatures below must be faced). 3–6: **the crypt card itself becomes
+  the found gems** — treasure id 21 (heavy, 25 kg, 20 pts) drops onto the area floor for normal
+  pickup, carried under the Crypt/Gems card art, marking these gems as claimed from the crypt.
+  Either way the crypt is spent (no second entry).
+- **Build notes:** Treasure-classified draw that parks as a crypt (contents re-entry like
+  Medusa/Ghouls, hazards.ts:147-154) + an `enterCrypt` action gated to turn start in the area;
+  on a find the parked content converts to floor treasure id 21 — no separate art override
+  needed, it is its own treasure. Landing reuses `fellThroughTrap`. MP: the crypt is area
+  content; whichever seat enters rolls on the shared stream.
 
 ### US-09: Desertion (hazard 6, card x01-2)
 
@@ -525,29 +536,30 @@ US-19..25 artifacts · US-26 duplicates · US-27 plain tiles.
 - **Build notes:** `useArtifact` case; curse reuses the existing counter verbatim. MP: destroys
   the current area's shared strangers; curses only the reading seat.
 
-### US-22: Spell (artifact 20)
+### US-22: Spell (hazard 8 — a hazard per the official INVENTORY, not a usable artifact)
 
-- **Trigger:** Picked up; usable when the **previous area is a tunnel** (not a chamber, not
-  destroyed, not the gateway).
-- **On screen:** "Cast the Spell" with a caption naming the target: "Sends the last tunnel back
-  into the pack." Confirm popup shows the consequence: "The tunnel behind you will be replaced,
-  face down. Its secret doors will vanish."
-- **Interaction:** One confirm.
+- **Trigger:** Fires when drawn, in the hazard phase: the **last occupied tunnel** (the party's
+  `prev`, if it is an un-destroyed non-gateway tunnel) is snatched back into the pack.
+- **On screen:** The spell card flashes up; the map visibly swaps the previous tile for a
+  face-down card back.
+- **Interaction:** None — it simply happens (hazard semantics).
 - **Dice:** none.
-- **Feedback:** "The tunnel folds in on itself and is elsewhere." The map visibly swaps the
-  tile for a face-down card back; the game log records the exchange.
+- **Feedback:** "A spell takes hold — the tunnel behind you folds in on itself and is
+  elsewhere. Its secret doors are gone." If `prev` is not an eligible tunnel (chamber, gateway,
+  collapsed, or none): "A spell crackles through the cave… and finds nothing to grip." (no
+  effect, card discarded).
 - **Aftermath:** The previous tunnel's card value returns to the **middle of the remaining
   large pack**; the map cell is replaced by the next card off the pack, placed **unexplored**
   (revealed with a normal entry beat when next stepped on — mirrored stairs/secret doors of the
   old tile are gone; the new card gets the standard mirrored-stair treatment only when entered).
-  If the large pack is empty, the action is not offered.
-- **Build notes:** The most map-invasive card: needs a place-face-down state (a placed area
-  with `unresolved` flag the renderer shows as a card back — the engine already resolves areas
-  on entry, so the flag mainly suppresses art until then). Deck splice at
-  `floor(remaining/2)`. MP: changes shared cave — gated to the acting seat's turn like any solo-
-  composed action; fog-lite hides it naturally from others.
+  If the large pack is empty, the spell fizzles (narrated no-effect).
+- **Build notes:** New `applyHazards` case (fires once, discards). The most map-invasive card:
+  needs a place-face-down state (a placed area with `unresolved` flag the renderer shows as a
+  card back — the engine already resolves areas on entry, so the flag mainly suppresses art
+  until then). Deck splice at `floor(remaining/2)`. MP: changes shared cave on the drawing
+  seat's turn; fog-lite hides it naturally from others.
 
-### US-23: Magic Shield (artifact 21, borne)
+### US-23: Magic Shield (artifact 20, borne)
 
 - **Trigger:** Picked up and **borne** (Sword/Staff/Ring pattern) by a Man, Woman, Hero, or
   W-Hero.
@@ -586,12 +598,14 @@ US-19..25 artifacts · US-26 duplicates · US-27 plain tiles.
 - **Note:** the kit card is untitled in the requirements table; the printed banner (verified
   during asset conversion) is "MAGIC AXE".
 
-### US-25: Idol (artifact 18)
+### US-25: Idol (treasure 18 — heavy per the official INVENTORY)
 
 - **Trigger:** Picked up; no in-game use at all — its mystery is its value.
 - **On screen:** In the party panel its score shows as "10×?". At game over, the reveal: a
   visible d6 rolls on the game-over screen and the Idol's line animates to its final value.
-- **Interaction:** Carry, transfer, drop — nothing else.
+- **Interaction:** Carry, transfer, drop — nothing else. It is **heavy treasure (25 kg)**:
+  it consumes carry capacity like Silver/Gold/Gems, so hauling the mystery out is a real
+  logistics decision.
 - **Dice:** One d6 at scoring, shown on the game-over/score-breakdown screen (seeded — replays
   reproduce it).
 - **Feedback:** Game-over line: "The Idol's eyes open: it is worth [10×d6]."
@@ -677,3 +691,12 @@ US-19..25 artifacts · US-26 duplicates · US-27 plain tiles.
     the Magic Staff auto-reanimates all statues on entry, with a notice (US-06).
 15. Magic Shield: holdable by anyone, ward active only for eligible bearers, and scoped to the
     creature paired against the bearer (US-23).
+16. **Official kit rules** ([extension-kit-rules.md](../../specs/extension-kit-rules.md), OCR'd
+    2026-07-26) govern classifications: Spell is a **hazard**; Crypt/Gems and Idol are **heavy
+    treasure** (25 kg each; Idol keeps its 10×d6 end-game value).
+17. Witch (5), Scholar (3), Thief (3), Lion (2), Wolf (1) join the selectable starter pool in
+    kit-on games (stock 3/1/1/1/1); Dwarf and Woman stock rises to 4.
+18. Ogre 5→4 and Troll 4→3 selection costs apply in **kit-on games only**; the base game keeps
+    the original values (MSW ruling).
+19. The rules' "remove a third to half of the large pack" short-game suggestion is NOT adopted:
+    all 30 extension tiles always join the 90-card area deck (MSW ruling).
