@@ -124,4 +124,14 @@ export type GameEvent =
   // name described. 1 = vanish (Desertion semantics: removed with everything carried, not dead, not
   // revivable); 2-3 = toll (foreboding narration only, no mechanical effect); 4-6 = stir (two cards
   // drawn into the area, withdraw blocked this turn).
-  | { type: "bellRoll"; roll: number; outcome: "vanish" | "toll" | "stir"; creatureId: number };
+  | { type: "bellRoll"; roll: number; outcome: "vanish" | "toll" | "stir"; creatureId: number }
+  // Extension kit (SC-EXT-10): the Gallery petrified some of THIS entry's freshly-drawn creatures
+  // on sight (design US-06) — `creatureIds` lists only the newly-stoned ones, not statues reloaded
+  // from an earlier visit (those produce no fresh notice).
+  | { type: "galleryStone"; creatureIds: number[] }
+  // Extension kit (SC-EXT-11): a living Wizard bearing the Magic Staff cracked every Gallery statue
+  // awake on entry (design US-06 / Resolved-14) — they rejoin `strangers` as ordinary creatures.
+  | { type: "staffWake"; creatureIds: number[] }
+  // Extension kit (SC-EXT-12): Harpies-stolen treasure landed on the Lair's floor — either spilled
+  // on the Lair's own placement/entry, or delivered straight there by a later theft (design US-04).
+  | { type: "lairStash"; treasureIds: number[] };

@@ -159,4 +159,20 @@ export interface GameState {
   // `turn` only advances on `move`, so this self-invalidates once the party moves on — no explicit
   // reset needed, and it re-arms cleanly if the SAME turn draws again.
   noWithdrawTurn?: number;
+  // Extension kit (SC-EXT-10): the Gallery's chamber working set of creatures drawn there as
+  // statues — inert scenery (no reaction test) unless woken (Staff auto-wake, SC-EXT-11; Holy
+  // Water single-statue wake, Task 13). Persists across exit/re-entry as 500+creatureId content
+  // codes on the area (pattern: `sleeping`'s 400+id). Reset to `[]` only on a Gallery entry — stays
+  // undefined for every other chamber, so a kit-off (or Gallery-less) game never gains this field
+  // (SC-EXT-1 byte-identity).
+  statues?: number[];
+  // Extension kit (SC-EXT-12): the coordinate of the Lair once its tile has been placed AND
+  // entered (design US-04) — the permanent destination for all Harpies thefts, past and future.
+  // Undefined until then; set once, in `chamber.ts`'s `enterChamber`.
+  lairCoord?: number;
+  // Extension kit (SC-EXT-12): treasure ids stolen by Harpies (Task 9), queued here until the Lair
+  // itself turns up on the map. Spilled onto the Lair's floor (as ordinary 200+tid contents) the
+  // moment it is placed and entered, or delivered straight there via `stashOrDeliver` if the Lair
+  // already exists (`chamber.ts`). Empty/absent ⇒ no pending stash.
+  harpyStash?: number[];
 }

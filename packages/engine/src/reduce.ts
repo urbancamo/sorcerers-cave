@@ -55,6 +55,7 @@ function persistAndExplore(state: GameState): void {
     ...state.strangers.map((id) => 100 + id),
     ...(onDeepPool ? [] : state.treasures.map((id) => 200 + id)),
     ...(state.sleeping ?? []).map((id) => 400 + id), // sleeping creatures stay (inert) in the chamber
+    ...(state.statues ?? []).map((id) => 500 + id), // Gallery statues stay (inert) in the chamber (SC-EXT-10)
     ...(state.lulled ?? []).map((id) => 100 + id), // flute-lulled dragons park AWAKE — re-lulled on re-entry only if the flute is still held
   ];
   // Clear the live working set now that it's parked on the area — otherwise leftover cards (e.g.
@@ -63,6 +64,10 @@ function persistAndExplore(state: GameState): void {
   state.treasures = [];
   state.hazards = [];
   state.sleeping = [];
+  // Only clear `statues` if it was already defined (a Gallery visit) — an unconditional `= []` here
+  // would introduce the field into EVERY chamber exit's state, kit-off included, breaking the
+  // solo-golden byte-identity snapshots (SC-EXT-1; see the matching guard in `enterChamber`).
+  if (state.statues) state.statues = [];
   state.lulled = [];
   state.fightDrops = []; // moving on — the drop record no longer applies
   state.phase = "explore";
@@ -140,6 +145,23 @@ function reviveStoned(state: GameState): GameEvent[] {
     }
   }
   return events;
+}
+
+/** Extension kit (SC-EXT-11): a living Wizard bearing the Magic Staff cracks every Gallery statue
+ *  awake the instant the party enters (design US-06 / Resolved-14) — mirrors `reviveStoned`'s own
+ *  bearer condition (`hasStaffWizard`) exactly. Waking converts them to ordinary strangers, so the
+ *  standard chamber interaction (one group reaction test, fight/recruit) follows in the normal tail
+ *  (`finishChamber`). Unlike `reviveStoned` (which runs BEFORE the chamber draw, since it frees
+ *  PARTY members left stone on an earlier visit), this must run AFTER `enterChamber` has populated
+ *  `state.statues` for the area just entered.
+ *  Task 10 note: the Apprentice (id 14) "uses artifacts as Wizard" per the design, but class-list
+ *  plumbing lands in Task 10 — she does NOT count here yet, only the Wizard (id 8). */
+function wakeGalleryStatues(state: GameState): GameEvent[] {
+  if (!state.statues?.length || !hasStaffWizard(state)) return [];
+  const creatureIds = [...state.statues];
+  state.strangers.push(...creatureIds);
+  state.statues = [];
+  return [{ type: "staffWake", creatureIds }];
 }
 
 /** A Medusa is about to gaze, nothing already neutralises her (staff-Wizard, or her Lotus sleep),
@@ -291,6 +313,7 @@ function resolveAreaLoop(state: GameState): GameEvent[] {
     }
     const freshEntry = !state.areas[state.partyArea]!.visited; // first visit by this (unused) doorway → eligible for surprise
     events.push(...enterChamber(state));
+    events.push(...wakeGalleryStatues(state)); // Staff-Wizard cracks every Gallery statue awake (SC-EXT-11)
     events.push(...annihilateWithEye(state)); // the Eye destroys Spectres on sight (§ Eye of God)
     events.push(...wardOffSpectres(state)); // the Talisman drives off Spectres on level >= 4 (§ Talisman)
     if (medusaLooms(state)) {
@@ -473,9 +496,12 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
         ...next.strangers.map((id) => 100 + id),
         ...next.treasures.map((id) => 200 + id),
         ...(next.sleeping ?? []).map((id) => 400 + id),
+        ...(next.statues ?? []).map((id) => 500 + id), // Gallery statues stay put (SC-EXT-10)
         ...(next.lulled ?? []).map((id) => 100 + id), // flute-lulled dragons park awake (re-lulled on re-entry if held)
       ];
-      next.strangers = []; next.treasures = []; next.hazards = []; next.sleeping = []; next.lulled = [];
+      next.strangers = []; next.treasures = []; next.hazards = []; next.sleeping = [];
+      if (next.statues) next.statues = []; // guarded — see persistAndExplore's comment (SC-EXT-1)
+      next.lulled = [];
       next.partyArea = next.prev;
       next.level = unpackCoord(next.areas[next.partyArea]!.coord).level;
       next.phase = "explore";
@@ -778,6 +804,7 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
         ...res.state.strangers.map((id) => 100 + id),
         ...res.state.treasures.map((id) => 200 + id),
         ...(res.state.sleeping ?? []).map((id) => 400 + id),
+        ...(res.state.statues ?? []).map((id) => 500 + id), // Gallery statues stay put (SC-EXT-10)
         ...(res.state.lulled ?? []).map((id) => 100 + id), // flute-lulled dragons park awake (re-lulled on re-entry if held)
       ];
       // §426: artefacts carried by creatures who have perished are left behind in the area; the living
@@ -788,7 +815,9 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
           m.treasure = [];
         }
       });
-      res.state.strangers = []; res.state.treasures = []; res.state.hazards = []; res.state.sleeping = []; res.state.lulled = [];
+      res.state.strangers = []; res.state.treasures = []; res.state.hazards = []; res.state.sleeping = [];
+      if (res.state.statues) res.state.statues = []; // guarded — see persistAndExplore's comment (SC-EXT-1)
+      res.state.lulled = [];
       res.state.fight = null;
       res.state.party.forEach((m) => { m.potionActive = false; });
       // The strangers we fled stay hostile to this party for the rest of the game (§Retreat).

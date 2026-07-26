@@ -157,6 +157,19 @@ describe("eventNotices", () => {
     expect(stir.text).toMatch(/cannot withdraw this turn/i);
   });
 
+  it("reports the Gallery's stone arrival, the Staff's group wake, and the Lair's stash landing (US-04/US-06)", () => {
+    const stone = eventNotices([{ type: "galleryStone", creatureIds: [5] }])[0]!;
+    expect(stone.text).toMatch(/strangers here are stone/i);
+
+    const wake = eventNotices([{ type: "staffWake", creatureIds: [5, 5] }])[0]!;
+    expect(wake.text).toMatch(/magic staff blazes/i);
+    expect(wake.text).toMatch(/cracks and stirs/i);
+
+    const stash = eventNotices([{ type: "lairStash", treasureIds: [1] }])[0]!;
+    expect(stash.text).toMatch(/harpies' hoard glitters/i);
+    expect(stash.tone).toBe("good");
+  });
+
   it("noticeTone prefers bad, then good, then neutral", () => {
     expect(noticeTone([{ text: "", tone: "neutral" }, { text: "", tone: "good" }, { text: "", tone: "bad" }])).toBe("bad");
     expect(noticeTone([{ text: "", tone: "neutral" }, { text: "", tone: "good" }])).toBe("good");

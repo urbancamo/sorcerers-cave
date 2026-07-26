@@ -227,6 +227,15 @@ export function eventNotices(events: GameEvent[]): Notice[] {
           out.push({ text: "The bell's echo shakes something loose — two cards are drawn. The party cannot withdraw this turn.", tone: "neutral" });
         }
         break;
+      case "galleryStone":
+        out.push({ text: "The strangers here are stone — silent, waiting.", tone: "neutral" });
+        break;
+      case "staffWake":
+        out.push({ text: "The Magic Staff blazes — every stone figure in the gallery cracks and stirs!", tone: "neutral" });
+        break;
+      case "lairStash":
+        out.push({ text: "The harpies' hoard glitters among the bones — the stolen artifacts are here.", tone: "good" });
+        break;
       default:
         assertNever(e);
         break;
