@@ -7,7 +7,10 @@ export type CardCategory = "creature" | "treasure" | "hazard";
 
 /** Area-tile classification. */
 export type TileType = "chamber" | "tunnel" | "gateway";
-export type TileSpecial = "deep-pool" | "viper-pit" | "tomb-of-kings" | "great-hall" | "gateway";
+export type TileSpecial =
+  | "deep-pool" | "viper-pit" | "tomb-of-kings" | "great-hall" | "gateway"
+  // extension kit:
+  | "chasm" | "bell-rope" | "lair" | "whirlpool" | "gallery" | "well";
 
 export interface AssetItem {
   file: string;

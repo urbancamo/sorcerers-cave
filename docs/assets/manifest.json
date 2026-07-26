@@ -13,6 +13,12 @@
       "pages": 6,
       "author": "Peter Vodden",
       "version": "03"
+    },
+    "extension": {
+      "pdf": "sorcerers-cave-conversion-kit-extension.pdf",
+      "pages": 14,
+      "author": "Peter Vodden",
+      "version": "1.2 20220525"
     }
   },
   "printCardSizeMm": {
@@ -638,6 +644,314 @@
         }
       ]
     },
+    "tilesExtension": {
+      "dir": "tiles",
+      "source": "extension",
+      "description": "Extension-kit area tiles (88x126mm), LANDSCAPE with NW direction arrow up, x-prefixed sheets x01-x08 = PDF pages 3-10. Exits/stairs/specials per docs/requirements/extension-kit/2026-07-25-asset-conversion.md, verified against the art. Not yet used by the engine; kept out of 'tiles' so the base game is unchanged.",
+      "count": 30,
+      "items": [
+        {
+          "file": "area-tile-x01-1.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NE",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x01-2.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NES",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x01-3.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NE",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x01-4.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NES",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x02-1.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NES",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": true,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x02-2.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x02-3.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NES",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": true
+        },
+        {
+          "file": "area-tile-x02-4.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NEW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x03-1.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x03-2.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x03-3.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x03-4.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x04-1.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x04-2.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NSW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": true,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x04-3.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x04-4.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NSW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x05-1.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "ESW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x05-2.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "ESW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": true
+        },
+        {
+          "file": "area-tile-x05-3.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "ES",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x05-4.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "ESW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x06-1.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "SW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x06-2.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": "chasm",
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x06-3.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "ESW",
+          "tileType": "chamber",
+          "special": null,
+          "stairUp": true,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x06-4.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": "bell-rope",
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x07-1.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": "lair",
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x07-2.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": "whirlpool",
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x07-3.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": "gallery",
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x07-4.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW",
+          "tileType": "chamber",
+          "special": "well",
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x08-1.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "EW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        },
+        {
+          "file": "area-tile-x08-2.png",
+          "w": 1728,
+          "h": 1210,
+          "exits": "EW",
+          "tileType": "tunnel",
+          "special": null,
+          "stairUp": false,
+          "stairDown": false
+        }
+      ]
+    },
     "cards": {
       "dir": "cards",
       "source": "base",
@@ -1219,6 +1533,254 @@
           "name": "Woman Hero",
           "category": "creature",
           "entityId": 1
+        }
+      ]
+    },
+    "cardsExtension": {
+      "dir": "cards",
+      "source": "extension",
+      "description": "Extension-kit small cards (63x88mm), upright portrait, x-prefixed sheets x01-x04 = PDF pages 11-14 (sheet x04 has slots 1,2,3,5,6,7). Names/types per docs/requirements/extension-kit/2026-07-25-asset-conversion.md, verified against the printed banners. entityId null pending engine integration; artifacts categorised 'treasure' per base-kit convention. Not yet used by the engine.",
+      "count": 30,
+      "items": [
+        {
+          "file": "small-card-x01-1.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Crypt / Gems",
+          "category": "hazard",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x01-2.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Desertion",
+          "category": "hazard",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x01-3.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Elixir",
+          "category": "treasure",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x01-4.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Gold",
+          "category": "treasure",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x01-5.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Apprentice",
+          "category": "creature",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x01-6.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Demon",
+          "category": "creature",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x01-7.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Dwarf",
+          "category": "creature",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x01-8.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Gems",
+          "category": "treasure",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x02-1.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Gold",
+          "category": "treasure",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x02-2.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Holy Water",
+          "category": "treasure",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x02-3.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Lion",
+          "category": "creature",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x02-4.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Magic Axe",
+          "category": "treasure",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x02-5.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Gold",
+          "category": "treasure",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x02-6.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Harpies",
+          "category": "hazard",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x02-7.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Idol",
+          "category": "treasure",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x02-8.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Lotus Dust",
+          "category": "treasure",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x03-1.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Quarrel",
+          "category": "hazard",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x03-2.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Scroll",
+          "category": "treasure",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x03-3.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Silver",
+          "category": "treasure",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x03-4.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Spell",
+          "category": "treasure",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x03-5.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Magic Shield",
+          "category": "treasure",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x03-6.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Scholar",
+          "category": "creature",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x03-7.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Silver",
+          "category": "treasure",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x03-8.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Silver",
+          "category": "treasure",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x04-1.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Witch",
+          "category": "creature",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x04-2.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Witch",
+          "category": "creature",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x04-3.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Woman",
+          "category": "creature",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x04-5.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Thief",
+          "category": "creature",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x04-6.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Witch",
+          "category": "creature",
+          "entityId": null
+        },
+        {
+          "file": "small-card-x04-7.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Wolf",
+          "category": "creature",
+          "entityId": null
         }
       ]
     },

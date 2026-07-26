@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { ASSET_BASE, type AssetItem, type AssetManifest } from "./index";
+import { ASSET_BASE, type AssetItem, type AssetManifest, type TileSpecial } from "./index";
 
 describe("assets package", () => {
   it("exposes a served base path", () => {
@@ -18,5 +18,12 @@ describe("assets package", () => {
     };
     expect(dragon.category).toBe("creature");
     expect(dragon.entityId).toBe(10);
+  });
+
+  it("extension tile specials are valid TileSpecial values", () => {
+    const specials: TileSpecial[] = [
+      "chasm", "bell-rope", "lair", "whirlpool", "gallery", "well",
+    ];
+    expect(specials).toHaveLength(6);
   });
 });
