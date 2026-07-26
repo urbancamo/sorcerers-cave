@@ -647,7 +647,7 @@
     "tilesExtension": {
       "dir": "tiles",
       "source": "extension",
-      "description": "Extension-kit area tiles (88x126mm), LANDSCAPE with NW direction arrow up, x-prefixed sheets x01-x08 = PDF pages 3-10. Exits/stairs/specials per docs/requirements/extension-kit/2026-07-25-asset-conversion.md, verified against the art. Not yet used by the engine; kept out of 'tiles' so the base game is unchanged.",
+      "description": "Extension-kit area tiles (88x126mm), LANDSCAPE with NW direction arrow up, x-prefixed sheets x01-x08 = PDF pages 3-10. Exits/stairs/specials per docs/requirements/extension-kit/2026-07-25-asset-conversion.md, verified against the art. Merged into the served tile art table by apps/web/src/data/manifest.ts (parseManifest) alongside 'tiles'; kept as a separate category so the base 60-tile set stays traceable on its own.",
       "count": 30,
       "items": [
         {
@@ -1539,7 +1539,7 @@
     "cardsExtension": {
       "dir": "cards",
       "source": "extension",
-      "description": "Extension-kit small cards (63x88mm), upright portrait, x-prefixed sheets x01-x04 = PDF pages 11-14 (sheet x04 has slots 1,2,3,5,6,7). Names/types per docs/requirements/extension-kit/2026-07-25-asset-conversion.md, verified against the printed banners. entityId null pending engine integration; artifacts categorised 'treasure' per base-kit convention. Not yet used by the engine.",
+      "description": "Extension-kit small cards (63x88mm), upright portrait, x-prefixed sheets x01-x04 = PDF pages 11-14 (sheet x04 has slots 1,2,3,5,6,7). Names/types per docs/requirements/extension-kit/2026-07-25-asset-conversion.md, verified against the printed banners. entityId backfilled to engine ids (packages/engine/src/data/*.ts KIT_*; duplicates of base entities carry the base id) per docs/requirements/extension-kit/2026-07-26-engine-integration-design.md §1.4. Merged into the served card art table by apps/web/src/data/manifest.ts (parseManifest), marked kitArt: true.",
       "count": 30,
       "items": [
         {
@@ -1547,8 +1547,8 @@
           "w": 700,
           "h": 1000,
           "name": "Crypt / Gems",
-          "category": "hazard",
-          "entityId": null
+          "category": "treasure",
+          "entityId": 21
         },
         {
           "file": "small-card-x01-2.png",
@@ -1556,7 +1556,7 @@
           "h": 1000,
           "name": "Desertion",
           "category": "hazard",
-          "entityId": null
+          "entityId": 5
         },
         {
           "file": "small-card-x01-3.png",
@@ -1564,7 +1564,7 @@
           "h": 1000,
           "name": "Elixir",
           "category": "treasure",
-          "entityId": null
+          "entityId": 15
         },
         {
           "file": "small-card-x01-4.png",
@@ -1572,7 +1572,7 @@
           "h": 1000,
           "name": "Gold",
           "category": "treasure",
-          "entityId": null
+          "entityId": 1
         },
         {
           "file": "small-card-x01-5.png",
@@ -1580,7 +1580,7 @@
           "h": 1000,
           "name": "Apprentice",
           "category": "creature",
-          "entityId": null
+          "entityId": 14
         },
         {
           "file": "small-card-x01-6.png",
@@ -1588,7 +1588,7 @@
           "h": 1000,
           "name": "Demon",
           "category": "creature",
-          "entityId": null
+          "entityId": 15
         },
         {
           "file": "small-card-x01-7.png",
@@ -1596,7 +1596,7 @@
           "h": 1000,
           "name": "Dwarf",
           "category": "creature",
-          "entityId": null
+          "entityId": 7
         },
         {
           "file": "small-card-x01-8.png",
@@ -1604,7 +1604,7 @@
           "h": 1000,
           "name": "Gems",
           "category": "treasure",
-          "entityId": null
+          "entityId": 2
         },
         {
           "file": "small-card-x02-1.png",
@@ -1612,7 +1612,7 @@
           "h": 1000,
           "name": "Gold",
           "category": "treasure",
-          "entityId": null
+          "entityId": 1
         },
         {
           "file": "small-card-x02-2.png",
@@ -1620,7 +1620,7 @@
           "h": 1000,
           "name": "Holy Water",
           "category": "treasure",
-          "entityId": null
+          "entityId": 16
         },
         {
           "file": "small-card-x02-3.png",
@@ -1628,7 +1628,7 @@
           "h": 1000,
           "name": "Lion",
           "category": "creature",
-          "entityId": null
+          "entityId": 16
         },
         {
           "file": "small-card-x02-4.png",
@@ -1636,7 +1636,7 @@
           "h": 1000,
           "name": "Magic Axe",
           "category": "treasure",
-          "entityId": null
+          "entityId": 17
         },
         {
           "file": "small-card-x02-5.png",
@@ -1644,7 +1644,7 @@
           "h": 1000,
           "name": "Gold",
           "category": "treasure",
-          "entityId": null
+          "entityId": 1
         },
         {
           "file": "small-card-x02-6.png",
@@ -1652,7 +1652,7 @@
           "h": 1000,
           "name": "Harpies",
           "category": "hazard",
-          "entityId": null
+          "entityId": 6
         },
         {
           "file": "small-card-x02-7.png",
@@ -1660,7 +1660,7 @@
           "h": 1000,
           "name": "Idol",
           "category": "treasure",
-          "entityId": null
+          "entityId": 18
         },
         {
           "file": "small-card-x02-8.png",
@@ -1668,7 +1668,7 @@
           "h": 1000,
           "name": "Lotus Dust",
           "category": "treasure",
-          "entityId": null
+          "entityId": 5
         },
         {
           "file": "small-card-x03-1.png",
@@ -1676,7 +1676,7 @@
           "h": 1000,
           "name": "Quarrel",
           "category": "hazard",
-          "entityId": null
+          "entityId": 7
         },
         {
           "file": "small-card-x03-2.png",
@@ -1684,7 +1684,7 @@
           "h": 1000,
           "name": "Scroll",
           "category": "treasure",
-          "entityId": null
+          "entityId": 19
         },
         {
           "file": "small-card-x03-3.png",
@@ -1692,15 +1692,15 @@
           "h": 1000,
           "name": "Silver",
           "category": "treasure",
-          "entityId": null
+          "entityId": 0
         },
         {
           "file": "small-card-x03-4.png",
           "w": 700,
           "h": 1000,
           "name": "Spell",
-          "category": "treasure",
-          "entityId": null
+          "category": "hazard",
+          "entityId": 8
         },
         {
           "file": "small-card-x03-5.png",
@@ -1708,7 +1708,7 @@
           "h": 1000,
           "name": "Magic Shield",
           "category": "treasure",
-          "entityId": null
+          "entityId": 20
         },
         {
           "file": "small-card-x03-6.png",
@@ -1716,7 +1716,7 @@
           "h": 1000,
           "name": "Scholar",
           "category": "creature",
-          "entityId": null
+          "entityId": 17
         },
         {
           "file": "small-card-x03-7.png",
@@ -1724,7 +1724,7 @@
           "h": 1000,
           "name": "Silver",
           "category": "treasure",
-          "entityId": null
+          "entityId": 0
         },
         {
           "file": "small-card-x03-8.png",
@@ -1732,7 +1732,7 @@
           "h": 1000,
           "name": "Silver",
           "category": "treasure",
-          "entityId": null
+          "entityId": 0
         },
         {
           "file": "small-card-x04-1.png",
@@ -1740,7 +1740,7 @@
           "h": 1000,
           "name": "Witch",
           "category": "creature",
-          "entityId": null
+          "entityId": 18
         },
         {
           "file": "small-card-x04-2.png",
@@ -1748,7 +1748,7 @@
           "h": 1000,
           "name": "Witch",
           "category": "creature",
-          "entityId": null
+          "entityId": 18
         },
         {
           "file": "small-card-x04-3.png",
@@ -1756,7 +1756,7 @@
           "h": 1000,
           "name": "Woman",
           "category": "creature",
-          "entityId": null
+          "entityId": 6
         },
         {
           "file": "small-card-x04-5.png",
@@ -1764,7 +1764,7 @@
           "h": 1000,
           "name": "Thief",
           "category": "creature",
-          "entityId": null
+          "entityId": 19
         },
         {
           "file": "small-card-x04-6.png",
@@ -1772,7 +1772,7 @@
           "h": 1000,
           "name": "Witch",
           "category": "creature",
-          "entityId": null
+          "entityId": 18
         },
         {
           "file": "small-card-x04-7.png",
@@ -1780,7 +1780,7 @@
           "h": 1000,
           "name": "Wolf",
           "category": "creature",
-          "entityId": null
+          "entityId": 20
         }
       ]
     },

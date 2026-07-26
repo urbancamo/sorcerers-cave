@@ -13,11 +13,23 @@ const FIXTURE: AssetManifest = {
         { file: "area-tile-s14-2.png", w: 1728, h: 1210, exits: "NESW", tileType: "gateway", special: "gateway", stairUp: true, stairDown: false },
       ],
     },
+    tilesExtension: {
+      dir: "tiles", source: "extension", description: "", count: 1,
+      items: [
+        { file: "area-tile-x06-2.png", w: 1728, h: 1210, exits: "NESW", tileType: "chamber", special: "chasm", stairUp: false, stairDown: false },
+      ],
+    },
     cards: {
       dir: "cards", source: "base", description: "", count: 2,
       items: [
         { file: "small-card-s01-1.png", w: 1, h: 1, name: "Dragon", category: "creature", entityId: 10 },
         { file: "small-card-s02-1.png", w: 1, h: 1, name: "Magic Sword", category: "treasure", entityId: 3 },
+      ],
+    },
+    cardsExtension: {
+      dir: "cards", source: "extension", description: "", count: 1,
+      items: [
+        { file: "small-card-x04-7.png", w: 700, h: 1000, name: "Wolf", category: "creature", entityId: 20 },
       ],
     },
   },
@@ -33,11 +45,24 @@ describe("normExits", () => {
 describe("parseManifest", () => {
   it("derives tileId/cardId from filenames and serves URLs under /assets", () => {
     const { tiles, cards } = parseManifest(FIXTURE);
-    expect(tiles.map((t) => t.tileId)).toEqual(["s01-1", "s07-2", "s14-2"]);
+    expect(tiles.map((t) => t.tileId)).toEqual(["s01-1", "s07-2", "s14-2", "x06-2"]);
     expect(tiles[0]!.file).toBe("/assets/tiles/area-tile-s01-1.png");
     expect(tiles[0]!.exits).toBe("NE");
-    expect(cards.map((c) => c.cardId)).toEqual(["s01-1", "s02-1"]);
+    expect(cards.map((c) => c.cardId)).toEqual(["s01-1", "s02-1", "x04-7"]);
     expect(cards[0]!.file).toBe("/assets/cards/small-card-s01-1.png");
+  });
+
+  it("merges tilesExtension/cardsExtension into the returned tables, marking kit-sourced cards", () => {
+    const { tiles, cards } = parseManifest(FIXTURE);
+    const extTile = tiles.find((t) => t.tileId === "x06-2");
+    expect(extTile).toEqual({
+      tileId: "x06-2", file: "/assets/tiles/area-tile-x06-2.png", exits: "NESW",
+      type: "chamber", stairUp: false, stairDown: false, special: "chasm",
+    });
+    const extCard = cards.find((c) => c.cardId === "x04-7");
+    expect(extCard?.kitArt).toBe(true);
+    const baseCard = cards.find((c) => c.cardId === "s01-1");
+    expect(baseCard?.kitArt).toBeUndefined();
   });
 });
 
@@ -60,6 +85,9 @@ describe("resolveTile", () => {
   });
   it("returns null when nothing matches", () => {
     expect(resolveTile(topo({ exits: "NESW", isChamber: false }), tiles)).toBeNull();
+  });
+  it("resolves a merged extension tile (chasm, x06-2) at rot 0", () => {
+    expect(resolveTile(topo({ exits: "NESW", isChamber: true, special: "chasm" }), tiles)).toEqual({ tileId: "x06-2", rot: 0 });
   });
 });
 
@@ -97,9 +125,9 @@ describe("real manifest ↔ engine coverage (D-1 de-risk)", () => {
     real = parseManifest(REAL);
   });
 
-  it("parses 60 tiles and 72 cards from the real manifest", () => {
-    expect(real.tiles.length).toBe(60);
-    expect(real.cards.length).toBe(72);
+  it("parses 90 tiles and 102 cards from the real manifest (base + extension-kit merged)", () => {
+    expect(real.tiles.length).toBe(90);
+    expect(real.cards.length).toBe(102);
   });
 
   it("every engine area-card topology resolves to a tile + rotation", () => {

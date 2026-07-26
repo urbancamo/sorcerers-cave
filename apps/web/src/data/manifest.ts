@@ -1,4 +1,4 @@
-import type { AssetManifest, AssetItem } from "@sorcerers-cave/assets";
+import type { AssetManifest, AssetCategory, AssetItem } from "@sorcerers-cave/assets";
 import { ASSET_BASE } from "@sorcerers-cave/assets";
 
 export type Rot = 0 | 90 | 180 | 270;
@@ -23,6 +23,9 @@ export interface CardArt {
   name: string;
   category: Category;
   entityId: number | null;
+  /** Present (true) only on cards sourced from the extension kit's `cardsExtension` category.
+   *  Later UI work (US-26/US-08) uses this to prefer kit art when a draw is kit-sourced. */
+  kitArt?: true;
 }
 
 /** The topology a placed area needs art for (engine-agnostic; the caller decodes engine cards). */
@@ -45,26 +48,36 @@ const tileIdOf = (file: string) => file.replace(/^area-tile-/, "").replace(/\.pn
 const cardIdOf = (file: string) => file.replace(/^small-card-/, "").replace(/\.png$/, "");
 const urlOf = (dir: string, file: string) => `${ASSET_BASE}/${dir}/${file}`;
 
-/** Parse the raw manifest into tile and card art tables. */
-export function parseManifest(m: AssetManifest): { tiles: TileArt[]; cards: CardArt[] } {
-  const tilesCat = m.categories["tiles"];
-  const cardsCat = m.categories["cards"];
-  const tiles: TileArt[] = (tilesCat?.items ?? []).map((it: AssetItem) => ({
+const tilesOf = (cat: AssetCategory | undefined): TileArt[] =>
+  (cat?.items ?? []).map((it: AssetItem) => ({
     tileId: tileIdOf(it.file),
-    file: urlOf(tilesCat!.dir, it.file),
+    file: urlOf(cat!.dir, it.file),
     exits: normExits(it.exits ?? ""),
     type: (it.tileType ?? "tunnel") as TileKind,
     stairUp: !!it.stairUp,
     stairDown: !!it.stairDown,
     special: it.special ?? null,
   }));
-  const cards: CardArt[] = (cardsCat?.items ?? []).map((it: AssetItem) => ({
+
+const cardsOf = (cat: AssetCategory | undefined, kitArt?: true): CardArt[] =>
+  (cat?.items ?? []).map((it: AssetItem) => ({
     cardId: cardIdOf(it.file),
-    file: urlOf(cardsCat!.dir, it.file),
+    file: urlOf(cat!.dir, it.file),
     name: it.name ?? "",
     category: (it.category ?? "treasure") as Category,
     entityId: it.entityId ?? null,
+    ...(kitArt ? { kitArt } : {}),
   }));
+
+/**
+ * Parse the raw manifest into tile and card art tables. `tilesExtension`/`cardsExtension` (the
+ * extension kit's art) are always merged in — kit-off games never place/draw the kit's tile or
+ * entity ids, so the extra entries are inert; this keeps the merge unconditional and simple
+ * (design §1.4). Extension cards carry `kitArt: true` for later kit-art-preference logic.
+ */
+export function parseManifest(m: AssetManifest): { tiles: TileArt[]; cards: CardArt[] } {
+  const tiles: TileArt[] = [...tilesOf(m.categories["tiles"]), ...tilesOf(m.categories["tilesExtension"])];
+  const cards: CardArt[] = [...cardsOf(m.categories["cards"]), ...cardsOf(m.categories["cardsExtension"], true)];
   return { tiles, cards };
 }
 

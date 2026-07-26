@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import type { AssetManifest } from "@sorcerers-cave/assets";
-import { AREA_CARDS, decodeArea, newGame, reduce, legalActions, packCoord, type GameState, type GameAction } from "@sorcerers-cave/engine";
+import { AREA_CARDS, EXT_AREA_CARDS, decodeArea, newGame, reduce, legalActions, packCoord, type GameState, type GameAction } from "@sorcerers-cave/engine";
 import { parseManifest, resolveTile, normExits, type Topology } from "./manifest";
 import { projectArea } from "../view/projection";
 
@@ -15,8 +15,12 @@ const manifest = JSON.parse(
 ) as AssetManifest;
 const { tiles } = parseManifest(manifest);
 
-// engine special int -> manifest special key (mirrors projection.ts)
-const SPECIAL: (string | null)[] = [null, "gateway", "deep-pool", "viper-pit", "tomb-of-kings", "great-hall"];
+// engine special int -> manifest special key (mirrors projection.ts; indices 6-11 are the
+// extension kit's specials — chasm/bell-rope/lair/whirlpool/gallery/well, areaCards.ts SPECIAL_*).
+const SPECIAL: (string | null)[] = [
+  null, "gateway", "deep-pool", "viper-pit", "tomb-of-kings", "great-hall",
+  "chasm", "bell-rope", "lair", "whirlpool", "gallery", "well",
+];
 
 /** Decode an area-card value into the topology resolveTile needs (same as projectArea):
  *  stairs added only for level connectivity (`mirroredStairs`) are excluded from the art. */
@@ -54,6 +58,20 @@ describe("tile orientation (every area card renders un-rotated)", () => {
       for (const v of variants) {
         const bad = nonZeroRotation(v);
         if (bad && !rotated.includes(`card ${i}: ${bad}`)) rotated.push(`card ${i}: ${bad}`);
+      }
+    });
+    expect(rotated).toEqual([]);
+  });
+
+  it("resolves every extension-kit area card — and its level-1 form — to a tile at rot 0", () => {
+    // Mirrors the base-card test above: the kit pack has no gateway card of its own, so every
+    // value gets both variants (native + stair-up pruned, as if drawn on level 1).
+    const rotated: string[] = [];
+    EXT_AREA_CARDS.forEach((card, i) => {
+      const variants = [card, card & ~STAIR_UP_BIT];
+      for (const v of variants) {
+        const bad = nonZeroRotation(v);
+        if (bad && !rotated.includes(`ext card ${i}: ${bad}`)) rotated.push(`ext card ${i}: ${bad}`);
       }
     });
     expect(rotated).toEqual([]);
