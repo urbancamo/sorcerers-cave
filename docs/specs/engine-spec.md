@@ -27,7 +27,7 @@
 | 11 | Artifacts & treasure effects | `effects.ts`, `reduce.ts`, `selectors.ts` |
 | 12 | Scoring & game over | `score.ts`, `reduce.ts` |
 | MP | Multiplayer | `multi.ts`, `multi-session.ts`, `multi-trade.ts`, `multi-fight.ts`, `multi-union.ts`, `multi-zombies.ts` |
-| EXT | Extension kit | `state.ts`, `setup.ts`, `decks.ts` |
+| EXT | Extension kit | `state.ts`, `setup.ts`, `decks.ts`, `decode.ts`, `data/creatures.ts`, `data/treasures.ts`, `data/hazards.ts`, `data/areaCards.ts`, `data/smallPack.ts` |
 
 ---
 
@@ -450,6 +450,9 @@
 | ID | Requirement | Code | Test |
 |----|-------------|------|------|
 | SC-EXT-1 | Solo `GameState` gains `variants?: { extensionKit?: boolean }`, mirroring `MpGameState.variants` (multi.ts:133). `newGame(seed, picks, variants?)` stores it verbatim (omitted when the caller passes no third argument or an explicit falsy variants); it is immutable for the life of the game — no reducer path writes it. `buildLargePack`/`buildSmallPack` accept the same optional variants parameter (currently unused, threaded so later kit tasks need no signature change). Absent, `{}`, or `{extensionKit:false}` MUST leave gameplay byte-identical to calling `newGame`/`buildLargePack`/`buildSmallPack` with no variants argument at all — the same deck arrays, same shuffles, same resulting state (aside from the `variants` bookkeeping field itself). | state.ts:145-148, setup.ts:31-38,93, decks.ts:5-21 | kit-variant.test.ts › newGame(seed, picks) with no variants arg is identical to passing variants explicitly absent; › newGame(seed, picks) produces the same state whether or not a third arg is passed at all — byte identity; › newGame(seed, picks, { extensionKit: true }) stores the flag, and it round-trips JSON; › newGame(seed, picks, {}) or ({extensionKit: false}) leaves gameplay identical (decks, party, gateway); › buildSmallPack(seed) ≡ buildSmallPack(seed, undefined) ≡ buildSmallPack(seed, {}) — identical packs; › buildLargePack(seed) ≡ buildLargePack(seed, undefined) ≡ buildLargePack(seed, {}) — identical packs |
+| SC-EXT-2 | Kit ids append strictly after the existing ranges — creatures 14-20, treasures 15-21, hazards 5-8 — but live in tables SEPARATE from `CREATURES`/`TREASURES`/`HAZARD_NAMES` (`KIT_CREATURES`, `KIT_TREASURES`, `KIT_HAZARD_NAMES`), so the base exports keep the exact shape `data.test.ts` pins (that suite is unmodified and stays green); `ALL_CREATURES`/`ALL_TREASURES`/`ALL_HAZARD_NAMES` concatenate base+kit for id-indexed lookup. `KIT_STARTING_STOCK` (Lion/Scholar/Thief/Wolf +1, Witch +3, Woman/Dwarf +1 each) and `KIT_COST_OVERRIDES` (Ogre 5→4, Troll 4→3) hold the kit-on-only party-selection data (official SELECTION TABLE; Apprentice/Demon never selectable — `cost: null`). `selectionCost(id, variants?)` returns `KIT_COST_OVERRIDES[id]` when the kit is on and present, else `ALL_CREATURES[id]?.cost ?? null`; `startingStock(variants?)` returns `STARTING_STOCK` unchanged when the kit is off, else merges `KIT_STARTING_STOCK` counts ADDITIVELY onto it (Woman/Dwarf 3+1=4, not a replacement). No base-game code path reads any of this yet — `setup.ts`'s `validatePicks` still reads `CREATURES`/`STARTING_STOCK` directly; the rewiring is a later kit task. | data/creatures.ts:44-100, data/treasures.ts:29-47, data/hazards.ts:9-19 | data.test.ts (unmodified, still green); kit-data.test.ts › kit creature rows 14-20 match the design table verbatim, in id order; › kit treasure rows 15-21 match the design table verbatim, in id order; › kit hazards 5-8 are Desertion/Harpies/Quarrel/Spell; base HAZARD_NAMES untouched; › KIT_STARTING_STOCK / KIT_COST_OVERRIDES match the design table verbatim; › selectionCost returns base costs unchanged when the kit is off; › selectionCost applies the Ogre/Troll kit-on revision, and resolves kit creature costs; › startingStock() equals STARTING_STOCK; startingStock(kit) merges the kit additions |
+| SC-EXT-3 | The area-card `special` field widens from 3 bits (mask `& 7`, values 0-5 used) to 4 bits (mask `& 15`, values 0-11) to fit six new special-area codes: `SPECIAL_CHASM`=6, `SPECIAL_BELL_ROPE`=7, `SPECIAL_LAIR`=8, `SPECIAL_WHIRLPOOL`=9, `SPECIAL_GALLERY`=10, `SPECIAL_WELL`=11. Every base `AREA_CARDS` value is below 1024 (bit 10 clear on all 61), so `decodeArea` decodes every base card identically under the wider mask — a pure superset, not a behaviour change. `EXT_AREA_CARDS` (30 values, manifest `tilesExtension` order, same bitfield as `AREA_CARDS`) is the kit's tile table. | decode.ts:9,12-28, data/areaCards.ts:8-44 | kit-data.test.ts › all 61 base AREA_CARDS decode identically under the widened (& 15) mask as under the old (& 7) mask; › EXT_AREA_CARDS has exactly 30 tiles; › decodeArea(799) is a NESW chamber with special 6 (Chasm, tile x06-2); › decodeArea(1439) is a NESW chamber with special 11 (Well, tile x07-4); › decodeArea(39) is a NES stairUp tunnel (tile x02-1); › decodes the remaining new specials (Bell Rope 7, Lair 8, Whirlpool 9, Gallery 10) as NESW chambers; decode.test.ts (unmodified, still green) |
+| SC-EXT-4 | `buildLargePack`/`buildSmallPack` (decks.ts) gate the extension content on `variants?.extensionKit`: off (absent/false) each shuffles exactly the pre-kit template — 60-value `AREA_CARDS` (Gateway removed) / 71-card `smallPackTemplate()` — byte-identical to a direct `shuffle(seed, template)` call, preserving SC-EXT-1's guarantee; on, `EXT_AREA_CARDS` (30) / `smallPackExtension()` (30) are concatenated onto the template BEFORE the shuffle, yielding a 90-card large pack and a 101-card small pack. `smallPackExtension()` (data/smallPack.ts) is a function separate from `smallPackTemplate()`, never folded into it, so the base 71-card deck's construction is untouched byte-for-byte. | decks.ts:1-25, data/smallPack.ts:42-79 | kit-data.test.ts › smallPackTemplate stays 71 cards — unchanged by the kit; › smallPackExtension is exactly 30 codes, with the right duplicate counts; › kit off: buildSmallPack/buildLargePack are 71/60 and byte-identical to a direct pre-kit shuffle; › kit on: buildSmallPack is 101 cards, buildLargePack is 90 cards |
 
 ---
 
@@ -540,6 +543,14 @@ The M2 *awareness* layer is the read-only groundwork (plan WS-1) for the inter-p
 **Concurrency & RNG (M6).** Every seat rolls its own dice: `buildMpGame` derives a per-seat `diceSeed` substream from the game seed (derived, never consumed), PvP rounds roll from each side's command lead, and the shared cave stream is never perturbed by an inter-party fight (SC-MP-34). With the per-game `concurrent` flag on, the turn gate drops entirely — free roam, deck draws serialised by arrival, sessions locking their participants, a rival's live stranger-fight barring entry, the flee grace degrading to a pursuit lockout, and forfeits paid down by rival activity; off, play is byte-identical strict round-robin (SC-MP-35).
 
 **Variants (M7).** `variants` is fixed at build time. Fog-lite masks everything a seat has not stood on to face-down stubs via each party's always-recorded `seenAreas` ledger (SC-MP-36). Zombies turns a wiped seat into a spoiler: after a one-turn forfeit its corpses rise — barred from loot, stranger contact, water and (Sorcererless) secret stairs, hazard-immune by post-action repair, unionable only with other zombies, casting nothing in PvP — until any seat's Sorcerer kill annihilates the risen for good (SC-MP-37).
+
+## §EXT Extension kit
+
+The extension kit is an opt-in variant, off by default: `newGame(seed, picks, variants)` stores `{ extensionKit?: boolean }` immutably for the life of the game, and every deck builder accepts the same optional parameter — absent, `{}`, or `{extensionKit:false}` is byte-identical to calling with no variants argument at all (SC-EXT-1). Turning it on never rewrites a base rule; it only changes what the decks contain and how wide the `special` field is.
+
+The kit's new ids append strictly after the existing ranges — creatures 14-20, treasures 15-21, hazards 5-8 — but they live in tables of their own (`KIT_CREATURES`, `KIT_TREASURES`, `KIT_HAZARD_NAMES`) rather than growing `CREATURES`/`TREASURES`/`HAZARD_NAMES` in place, so those base tables keep the exact shape pinned since Milestone A; `ALL_CREATURES`/`ALL_TREASURES`/`ALL_HAZARD_NAMES` concatenate base and kit for anything that needs to resolve either by id. Two small variant-aware helpers, `selectionCost` and `startingStock`, fold in the kit-on-only party-selection data — Ogre 5→4 and Troll 4→3, Witch/Scholar/Thief/Lion/Wolf joining the selectable pool, Woman/Dwarf stock rising 3→4 — as pure lookups the base game doesn't call yet (SC-EXT-2).
+
+The area-card `special` field widens from 3 bits to 4 (mask `& 7` → `& 15`) to make room for six new special-area codes (6-11: Chasm, Bell Rope, Lair, Whirlpool, Gallery, Well). Because no base tile's encoded value reaches the newly-freed bit, every one of the 61 base `AREA_CARDS` decodes identically under the wider mask, and the kit's 30 `EXT_AREA_CARDS` tiles use that same bitfield (SC-EXT-3). Finally, the deck builders are deck-as-gate: with the kit off, `buildLargePack`/`buildSmallPack` shuffle exactly the same 60/71-card templates as before this milestone; with it on, the 30 extension tiles and 30 extension small-pack codes are concatenated onto the template BEFORE the shuffle, producing a 90-card area deck and a 101-card small pack for that game only (SC-EXT-4).
 
 ---
 
@@ -709,6 +720,80 @@ booleans, or arrays thereof; nothing requires floating point.
 | retreatBlocked? | bool | a dead-end retreat this round; must fight on (SC-4-27) |
 | PlanMatch | {front[],backers[],strangers[]} | one pairing of a battle plan (SC-9.1-1) |
 
+## A.7 Extension-kit data tables — pinned by `kit-data.test.ts`
+
+All ids below append strictly after the base ranges (A.1–A.3). They live in tables SEPARATE from
+`CREATURES`/`TREASURES`/`HAZARD_NAMES` — `KIT_CREATURES`, `KIT_TREASURES`, `KIT_HAZARD_NAMES` — so
+those base tables keep the exact shape `data.test.ts` pins (unmodified, still green); `ALL_CREATURES`/
+`ALL_TREASURES`/`ALL_HAZARD_NAMES` concatenate base+kit for id-indexed lookup (SC-EXT-2).
+
+### Kit creatures (`data/creatures.ts` — `KIT_CREATURES`, ids 14–20)
+
+| id | name | fs | mp | carry | cost | pts | flags | hostileMax | indiffMax | leaderPri | notes |
+|----|------|----|----|-------|------|-----|-------|------------|-----------|-----------|-------|
+| 14 | Apprentice | 2 | 7 | 0 | null | 0 | 1 = HUMAN | 5 | 5 | 10 | custom reaction (US-14): 6=friendly only while the Sorcerer lives, else hostile — no indifferent band; never selectable |
+| 15 | Demon | 0 | 6 | 0 | null | 0 | 16 = INHUMAN | 6 | 6 | 10 | always hostile; fightable only by magic or a Magic Axe bearer; never selectable |
+| 16 | Lion | 3 | 0 | 0 | 2 | 3 | 16 = INHUMAN | 4 | 5 | 3 | |
+| 17 | Scholar | 2 | 1 | 25 | 3 | 5 | 1 = HUMAN | 1 | 4 | 6 | uses artifacts as Priest |
+| 18 | Witch | 1 | 4 | 0 | 5 | 10 | 1 = HUMAN | 2 | 4 | 6 | uses artifacts as Priest |
+| 19 | Thief | 2 | 0 | 25 | 3 | 5 | 1 = HUMAN | 2 | 4 | 5 | uses artifacts as Man |
+| 20 | Wolf | 2 | 0 | 0 | 1 | 2 | 16 = INHUMAN | 4 | 5 | 2 | immune to Medusa/Quarrel/Mutiny/Desertion |
+
+**Kit-on party selection:** `KIT_STARTING_STOCK` = Lion 1, Scholar 1, Witch 3, Thief 1, Wolf 1, plus
++1 Woman and +1 Dwarf (raising their base stock 3→4, additively). `KIT_COST_OVERRIDES` = Ogre 5→4,
+Troll 4→3 (kit-on ONLY; base game keeps 5/4). `selectionCost(id, variants?)` and
+`startingStock(variants?)` (data/creatures.ts) are the variant-aware helpers over these tables;
+`PARTY_BUDGET` (6) is unchanged.
+
+### Kit treasures (`data/treasures.ts` — `KIT_TREASURES`, ids 15–21)
+
+| id | name | pts | weight | kind | notes |
+|----|------|-----|--------|------|-------|
+| 15 | Elixir | 0 | 0 | artifact | |
+| 16 | Holy Water | 5 | 0 | artifact | |
+| 17 | Magic Axe | 15 | 0 | artifact | |
+| 18 | Idol | 0 | 25 | heavy | scored 10×d6 at game end |
+| 19 | Scroll | 0 | 0 | artifact | |
+| 20 | Magic Shield | 15 | 0 | artifact | |
+| 21 | Crypt/Gems | 20 | 25 | heavy | parks as the crypt when drawn; the card becomes the found gems on a successful entry |
+
+### Kit hazards (`data/hazards.ts` — `KIT_HAZARD_NAMES`, ids 5–8)
+
+| id | const | name |
+|----|-------|------|
+| 5 | HAZARD_DESERTION | Desertion |
+| 6 | HAZARD_HARPIES | Harpies |
+| 7 | HAZARD_QUARREL | Quarrel |
+| 8 | HAZARD_SPELL | Spell |
+
+Spell is a hazard per the official kit INVENTORY, not a usable artifact. The Crypt is no longer a
+hazard id — its card is treasure 21 (Crypt/Gems), which parks as the crypt location when drawn
+instead of firing.
+
+### New special-area codes (`data/areaCards.ts`; `decode.ts` widened to mask 15, SC-EXT-3)
+
+| Const | Value | Tile |
+|---|---|---|
+| SPECIAL_CHASM | 6 | area-tile-x06-2 |
+| SPECIAL_BELL_ROPE | 7 | area-tile-x06-4 |
+| SPECIAL_LAIR | 8 | area-tile-x07-1 |
+| SPECIAL_WHIRLPOOL | 9 | area-tile-x07-2 |
+| SPECIAL_GALLERY | 10 | area-tile-x07-3 |
+| SPECIAL_WELL | 11 | area-tile-x07-4 |
+
+`EXT_AREA_CARDS` is 30 values in manifest `tilesExtension` order, using the same bitfield as
+`AREA_CARDS` (bits 0–3 NESW, 16 chamber, 32 stairUp, 64 stairDown, `special = (value>>7)&15`).
+
+### Deck composition (`decks.ts`, `data/smallPack.ts` — SC-EXT-4)
+
+`smallPackExtension()` is 30 codes: 11 creatures (Apprentice, Demon, Lion, Scholar, Witch×3, Thief,
+Wolf, +1 Dwarf, +1 Woman), 15 treasures (Gold×3, Silver×3, Gems, Lotus Dust, Elixir, Holy Water,
+Magic Axe, Idol, Scroll, Magic Shield, Crypt/Gems), 4 hazards (Desertion, Harpies, Quarrel, Spell) —
+concatenated onto the 71-card `smallPackTemplate()` before the shuffle when `variants.extensionKit`
+is set, for a 101-card small pack. `EXT_AREA_CARDS`'s 30 tiles are concatenated onto the 60-value
+large-pack template the same way, for a 90-card area deck. Kit off ⇒ both builders shuffle exactly
+the pre-kit templates, byte-identical to before this milestone.
+
 ---
 
 # Appendix B — Corrections vs the v1 design-spec
@@ -743,7 +828,7 @@ The v1 `design-spec.html` predates most of the artifact, hazard, combat, and mul
 
 The borne/carried death-loot model (SC-7.3-13/14, SC-7.2-13, SC-9.5-11) is pinned by `loot.test.ts`. In addition, `solo-golden.test.ts` is the **solo golden firewall**: deterministic policy-bot playthroughs whose full replays are snapshotted, freezing solo behaviour — any engine change that alters a solo game's course fails the snapshot and must be a deliberate, reviewed update. Two port-support suites extend the same idea: `data/data.test.ts › creature table matches engine-spec Appendix A.1 verbatim` pins every cell of the A.1 table, and `conformance-vectors.test.ts` regenerates and guards the committed Appendix D vector files as file snapshots (regenerate deliberately with `vitest run -u`).
 
-Full engine suite: **490 tests green** (the M3–M7 interaction layer is pinned by `multi-trade.test.ts`, `multi-fight.test.ts`, `multi-union.test.ts`, `multi-concurrent.test.ts` and `multi-zombies.test.ts`). Keep it that way — when a requirement changes, update both its `test` reference here and the test itself (see the repo `CLAUDE.md`).
+Full engine suite: **526 tests green** (the M3–M7 interaction layer is pinned by `multi-trade.test.ts`, `multi-fight.test.ts`, `multi-union.test.ts`, `multi-concurrent.test.ts` and `multi-zombies.test.ts`; the extension kit's variant plumbing and data tables are pinned by `kit-variant.test.ts` and `kit-data.test.ts`). Keep it that way — when a requirement changes, update both its `test` reference here and the test itself (see the repo `CLAUDE.md`).
 
 ---
 

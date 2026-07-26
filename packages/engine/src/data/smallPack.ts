@@ -38,3 +38,42 @@ export function smallPackTemplate(): number[] {
   add(304, 1); // Ghouls
   return cards;
 }
+
+// The extension kit's 30 small-pack codes (design §1.3, official INVENTORY): 11 creatures, 15
+// treasures, 4 hazards. `buildSmallPack` (decks.ts) concatenates this onto `smallPackTemplate()`
+// before the shuffle when `variants.extensionKit` is set (SC-EXT-4) — a separate function, not
+// folded into `smallPackTemplate`, so the base 71-card deck is untouched byte-for-byte.
+export function smallPackExtension(): number[] {
+  const cards: number[] = [];
+  const add = (code: number, n: number) => {
+    for (let i = 0; i < n; i++) cards.push(code);
+  };
+  // Creatures (11): Apprentice, Demon, Lion, Scholar, Witch×3, Thief, Wolf, dup Dwarf, dup Woman
+  add(114, 1); // Apprentice
+  add(115, 1); // Demon
+  add(116, 1); // Lion
+  add(117, 1); // Scholar
+  add(118, 3); // Witch
+  add(119, 1); // Thief
+  add(120, 1); // Wolf
+  add(107, 1); // Dwarf (kit copy)
+  add(106, 1); // Woman (kit copy)
+  // Treasures (15): Gold×3, Silver×3, Gems, Lotus Dust, then the 7 new artifacts/heavy treasures
+  add(201, 3); // Gold (kit copies)
+  add(200, 3); // Silver (kit copies)
+  add(202, 1); // Gems (kit copy)
+  add(205, 1); // Lotus Dust (kit copy — already a base artifact; same rules, one more deck entry)
+  add(215, 1); // Elixir
+  add(216, 1); // Holy Water
+  add(217, 1); // Magic Axe
+  add(218, 1); // Idol
+  add(219, 1); // Scroll
+  add(220, 1); // Magic Shield
+  add(221, 1); // Crypt/Gems
+  // Hazards (4): Desertion, Harpies, Quarrel, Spell
+  add(305, 1);
+  add(306, 1);
+  add(307, 1);
+  add(308, 1);
+  return cards;
+}

@@ -1,21 +1,25 @@
 import { shuffle } from "./rng";
-import { AREA_CARDS, GATEWAY_INDEX } from "./data/areaCards";
-import { smallPackTemplate } from "./data/smallPack";
+import { AREA_CARDS, EXT_AREA_CARDS, GATEWAY_INDEX } from "./data/areaCards";
+import { smallPackTemplate, smallPackExtension } from "./data/smallPack";
 
 /** Solo game variants (§EXT, state.ts) — threaded through the deck builders so the extension kit's
- *  entries can be appended to the template before the shuffle. Unused for now: no variant currently
- *  changes either pack (SC-EXT-1); the parameter exists so later kit tasks need no signature change. */
+ *  entries can be appended to the template before the shuffle (SC-EXT-4). Absent/false ⇒ the exact
+ *  same template shuffled as before this variant existed — the byte-identity guarantee (SC-EXT-1). */
 type DeckVariants = { extensionKit?: boolean };
 
-/** 60 shuffled area-card values (Gateway removed). Returns the advanced seed. */
-export function buildLargePack(seed: number, _variants?: DeckVariants): { seed: number; pack: number[] } {
+/** 60 (90 with the kit) shuffled area-card values (Gateway removed). Returns the advanced seed. */
+export function buildLargePack(seed: number, variants?: DeckVariants): { seed: number; pack: number[] } {
   const values = AREA_CARDS.filter((_, i) => i !== GATEWAY_INDEX);
-  const { seed: nextSeed, result } = shuffle(seed, values);
+  const template = variants?.extensionKit ? values.concat(EXT_AREA_CARDS) : values;
+  const { seed: nextSeed, result } = shuffle(seed, template);
   return { seed: nextSeed, pack: result };
 }
 
-/** 52 shuffled small-pack card codes. Returns the advanced seed. */
-export function buildSmallPack(seed: number, _variants?: DeckVariants): { seed: number; pack: number[] } {
-  const { seed: nextSeed, result } = shuffle(seed, smallPackTemplate());
+/** 71 (101 with the kit) shuffled small-pack card codes. Returns the advanced seed. */
+export function buildSmallPack(seed: number, variants?: DeckVariants): { seed: number; pack: number[] } {
+  const template = variants?.extensionKit
+    ? smallPackTemplate().concat(smallPackExtension())
+    : smallPackTemplate();
+  const { seed: nextSeed, result } = shuffle(seed, template);
   return { seed: nextSeed, pack: result };
 }
