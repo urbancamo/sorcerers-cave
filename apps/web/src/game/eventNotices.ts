@@ -121,12 +121,13 @@ export function eventNotices(events: GameEvent[]): Notice[] {
         if (!hasViper) out.push({ text: `${name(e.creatureId)} is slain!`, tone: "bad" });
         break;
       case "deadEnd":
-        // A retreat that hit a dead end — the party is bounced straight back into the fight, so say so
-        // explicitly (otherwise it's not obvious the chosen exit was blocked).
-        out.push({
-          text: `The way ${DIR_WORD[e.dir] ?? "out"} is a dead end — the party can't escape and must fight another round.`,
-          tone: "bad",
-        });
+        // Two flavors (e.retreat, SC-4-42): a fight retreat that hit a dead end bounces the party
+        // straight back into the fight — say so explicitly. A plain exploration move into a dead
+        // end is just a blocked step; mentioning a fight there is wrong (regression fixed after
+        // move-path notices landed).
+        out.push(e.retreat
+          ? { text: `The way ${DIR_WORD[e.dir] ?? "out"} is a dead end — the party can't escape and must fight another round.`, tone: "bad" }
+          : { text: `The way ${DIR_WORD[e.dir] ?? "out"} is a dead end.`, tone: "neutral" });
         break;
       case "spectreSlew":
         out.push({ text: `A Spectre's touch slays ${name(e.creatureId)}!`, tone: "bad" });

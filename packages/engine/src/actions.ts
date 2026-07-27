@@ -45,7 +45,7 @@ export type GameAction =
 // Encounter-resolution and fight events arrive with combat (Milestone C-2).
 export type GameEvent =
   | { type: "moved"; area: number; level: number }
-  | { type: "deadEnd"; dir: number }
+  | { type: "deadEnd"; dir: number; retreat?: true } // retreat: the fight bounce-back, not a plain blocked move
   | { type: "blocked" }
   | { type: "planRejected"; reason: string } // the submitted battle plan broke a pairing rule
   | { type: "drewChamber"; strangers: number[]; treasures: number[]; hazards: number[] }

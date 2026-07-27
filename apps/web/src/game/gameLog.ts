@@ -127,7 +127,7 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
       const card = state?.areas[e.area]?.card;
       return `moved to area ${e.area} (level ${e.level})` + (card != null ? ` — ${describeTile(card)}` : "");
     }
-    case "deadEnd": return `dead end to the ${dir(e.dir)} — bounced back`;
+    case "deadEnd": return e.retreat ? `dead end to the ${dir(e.dir)} — bounced back into the fight` : `dead end to the ${dir(e.dir)}`;
     case "blocked": return "action blocked (no effect)";
     case "planRejected": return `battle plan rejected (${e.reason})`;
     case "drewChamber": {

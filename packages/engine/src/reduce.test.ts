@@ -366,7 +366,7 @@ describe("reduce — fight dispatch (C-2 §9.5)", () => {
     expect(state.phase).toBe("fight");        // still fighting
     expect(state.fight).not.toBeNull();
     expect(state.strangers).toEqual([3]);     // strangers remain
-    expect(events).toContainEqual({ type: "deadEnd", dir: DIR_N });
+    expect(events).toContainEqual({ type: "deadEnd", dir: DIR_N, retreat: true }); // retreat flavor (SC-4-42)
     // No further retreat is allowed this round — only fighting on (the round is resolved via the
     // resolveRound action, which is built by the fight UI rather than offered in legalActions). §Retreat
     expect(state.fight!.retreatBlocked).toBe(true);
@@ -383,7 +383,7 @@ describe("reduce — fight dispatch (C-2 §9.5)", () => {
       largePack: [], largeIdx: 0, // nothing left to draw — the way north can't open
     });
     const { state, events } = reduce(s, { type: "retreat", dir: DIR_N });
-    expect(events).toContainEqual({ type: "deadEnd", dir: DIR_N }); // a notice fires (was a silent "blocked")
+    expect(events).toContainEqual({ type: "deadEnd", dir: DIR_N, retreat: true }); // retreat flavor (SC-4-42) // a notice fires (was a silent "blocked")
     expect(state.fight!.retreatBlocked).toBe(true);                 // and retreat is locked, not left dangling
     expect(legalActions(state).some((a) => a.type === "retreat")).toBe(false);
   });

@@ -197,7 +197,7 @@ describe("SC-9.5-7 a blocked retreat is a dead end (§Retreat)", () => {
       largeIdx: 0,
     });
     const { state, events } = reduce(s, { type: "retreat", dir: DIR_S });
-    expect(events).toContainEqual({ type: "deadEnd", dir: DIR_S });
+    expect(events).toContainEqual({ type: "deadEnd", dir: DIR_S, retreat: true }); // retreat flavor (SC-4-42)
     expect(state.fight!.retreatBlocked).toBe(true);
   });
 });

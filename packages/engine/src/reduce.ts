@@ -965,7 +965,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         // before flagging the latter to avoid mutating the input state.
         const next = res.deadEnd ? res.state : structuredClone(state);
         if (next.fight) next.fight = { ...next.fight, retreatBlocked: true };
-        return { state: next, events: [{ type: "deadEnd", dir: action.dir }] };
+        return { state: next, events: [{ type: "deadEnd", dir: action.dir, retreat: true }] };
       }
       // Retreat succeeds: the strangers and any dropped treasure are LEFT BEHIND in the chamber we fled.
       const fled = res.state.areas[fromIdx]!;

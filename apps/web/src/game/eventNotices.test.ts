@@ -97,7 +97,7 @@ describe("eventNotices", () => {
   });
 
   it("warns when a retreat hits a dead end and the party is forced back to fight", () => {
-    const out = eventNotices([{ type: "deadEnd", dir: 1 }]);
+    const out = eventNotices([{ type: "deadEnd", dir: 1, retreat: true }]); // this test covers the RETREAT flavor
     expect(out).toHaveLength(1);
     expect(out[0]!.tone).toBe("bad");
     expect(out[0]!.text).toMatch(/dead end/i);
@@ -385,3 +385,17 @@ describe("eventNotices", () => {
     expect(noticeTone([{ text: "", tone: "neutral" }])).toBe("neutral");
   });
 });
+describe("deadEnd flavors (retreat vs plain move)", () => {
+  it("a fight retreat's dead end keeps the bounced-back-into-the-fight wording", () => {
+    const out = eventNotices([{ type: "deadEnd", dir: 3, retreat: true } as GameEvent]);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.text).toBe("The way south is a dead end — the party can't escape and must fight another round.");
+  });
+  it("a plain exploration dead end never mentions fighting", () => {
+    const out = eventNotices([{ type: "deadEnd", dir: 3 } as GameEvent]);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.text).toBe("The way south is a dead end.");
+    expect(out[0]!.text).not.toContain("fight");
+  });
+});
+
