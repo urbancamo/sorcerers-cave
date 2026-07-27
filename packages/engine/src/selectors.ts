@@ -25,6 +25,13 @@ function artifactActions(state: GameState): GameAction[] {
       });
     }
   }
+  // Extension kit (SC-EXT-22, design US-19): the Elixir is usable ANY time the party is not
+  // mid-fight — offered in every phase `artifactActions` is called from except "fight" (medusa's
+  // pause offers no artifactActions at all, unlike Lotus Dust, so it's excluded there too, same as
+  // every other artifact here). "Any creature" may drink it — one action per living member.
+  if (state.phase !== "fight" && has(15, () => true)) {
+    living(state).forEach(({ idx }) => actions.push({ type: "useArtifact", artifact: 15, target: idx }));
+  }
   if (state.phase === "fight" || state.phase === "encounter") {
     if (has(5, () => true)) { // Lotus Dust -> each stranger (but not a Spectre — no effect, per card)
       for (let i = 0; i < state.strangers.length; i++) {

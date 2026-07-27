@@ -328,6 +328,14 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "demonSlew":
         out.push({ text: `The Demon's malice claims ${name(e.creatureId)}!`, tone: "bad" });
         break;
+      case "elixirDrunk":
+        // Design US-19 Feedback, verbatim per band. `deathPrevented`/`eyeForsaken`/`itemsSpilled`
+        // (the ordinary death machinery) fire alongside this on the death band, each with their own
+        // notice, exactly as any other "killing die-roll" site (e.g. Quarrel).
+        if (e.outcome === "death") out.push({ text: `${name(e.creatureId)} convulses — poison!`, tone: "bad" });
+        else if (e.outcome === "nothing") out.push({ text: "It tastes of pond water. Nothing happens.", tone: "neutral" });
+        else out.push({ text: `${name(e.creatureId)} feels power settle into their bones. (+2 fs)`, tone: "good" });
+        break;
       default:
         assertNever(e);
         break;

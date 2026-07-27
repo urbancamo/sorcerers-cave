@@ -42,6 +42,13 @@ export interface PartyMember {
   // (§Medusa "anything they were carrying can be taken", multiplayer plan ④a). Absent = all carried.
   borne?: number[];
   potionActive?: boolean; // Strength Potion drunk this fight (+2 frontStrength until it ends)
+  // Extension kit (SC-EXT-22, design US-19): a PERMANENT frontStrength bonus — currently only ever
+  // +2, from an Elixir 4-6 draught, but kept as an accumulating number (not a boolean) in case a
+  // later source stacks. Unlike `potionActive` (one fight only), this rides on the member forever —
+  // read by `frontStrength` (combat.ts) so it composes into every fight, Quarrel's effective-fs
+  // ranking, and the strongest-member auto-slay pick alike, for free. NOT nullified by the Eye of
+  // God (it is a permanent trait of the flesh, like `dragonKills`, not an artefact's magic).
+  fsBonus?: number;
   stoneArea?: number; // when petrified (status 2): the area index where Medusa struck — the member is
                       // left there until a Wizard with the Magic Staff returns to free it (§Medusa).
   // Multiplayer-only identity tag ("loan:<seat>" | "recruit:<unionId>") — lets the union layer

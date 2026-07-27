@@ -323,6 +323,20 @@ describe("eventNotices", () => {
     expect(slew.tone).toBe("bad");
   });
 
+  it("reports the Elixir's three outcome bands verbatim (US-19)", () => {
+    const death = eventNotices([{ type: "elixirDrunk", creatureId: 0, roll: 1, outcome: "death" }])[0]!;
+    expect(death.text).toBe("Hero convulses — poison!");
+    expect(death.tone).toBe("bad");
+
+    const nothing = eventNotices([{ type: "elixirDrunk", creatureId: 0, roll: 2, outcome: "nothing" }])[0]!;
+    expect(nothing.text).toBe("It tastes of pond water. Nothing happens.");
+    expect(nothing.tone).toBe("neutral");
+
+    const strength = eventNotices([{ type: "elixirDrunk", creatureId: 0, roll: 6, outcome: "strength" }])[0]!;
+    expect(strength.text).toBe("Hero feels power settle into their bones. (+2 fs)");
+    expect(strength.tone).toBe("good");
+  });
+
   it("reports the Demon's own kill line verbatim, but stays silent for an ordinary stranger (fix round, US-13)", () => {
     const demonKilled = eventNotices([{ type: "strangerKilled", creatureId: 15 }]);
     expect(demonKilled).toHaveLength(1);

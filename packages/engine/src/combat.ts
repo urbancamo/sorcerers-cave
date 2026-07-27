@@ -24,7 +24,10 @@ function holds(member: PartyMember, treasureId: number): boolean {
 export function frontStrength(member: PartyMember, state?: GameState): number {
   const c = CREATURES[member.creatureId]!;
   // A caster in the front line adds its magical power (staff-boosted, nullified by the Eye); 0 for non-casters.
-  let s = c.fs + member.dragonKills + casterMP(member, state);
+  // Extension kit (SC-EXT-22): `fsBonus` (an Elixir's permanent +2, design US-19) is a trait of the
+  // member, like `dragonKills` — always counted, never nullified by the Eye (which zeroes only magic
+  // and artefacts, see below).
+  let s = c.fs + member.dragonKills + (member.fsBonus ?? 0) + casterMP(member, state);
   const artefactsPowerless = state ? eyeActive(state) : false;
   if (!artefactsPowerless && holds(member, T_MAGIC_SWORD)) {
     if (member.creatureId === 0 || member.creatureId === 1) s += 2; // Hero / W-Hero

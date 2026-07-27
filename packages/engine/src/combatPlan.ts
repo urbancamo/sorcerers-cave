@@ -227,6 +227,12 @@ export function previewPlan(state: GameState, plan: BattlePlan): PlanPreview {
       if (m.dragonKills > 0 && !(magicOnly && casterMP(m, state) > 0)) {
         modifiers.push({ label: `Dragon-slayer · ${named(i)}`, value: m.dragonKills, side: "party", roll: false });
       }
+      // Extension kit (SC-EXT-22): the Elixir's permanent +2 fs (design US-19) — same magic-only
+      // guard as Dragon-slayer above: a caster fighting a magic-only foe with its magic alone (not
+      // combined frontStrength) doesn't actually draw on this bonus, so it's hidden for that matchup.
+      if (m.fsBonus && !(magicOnly && casterMP(m, state) > 0)) {
+        modifiers.push({ label: `Elixir · ${named(i)}`, value: m.fsBonus, side: "party", roll: false });
+      }
     }
     for (const i of mt.backers) {
       const m = state.party[i]!, c = m.creatureId;

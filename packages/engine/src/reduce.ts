@@ -13,7 +13,7 @@ import { reactionRoll } from "./reaction";
 import { frontStrength } from "./combat";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import { wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, ringInvincible, usesArtifactsAs } from "./effects";
-import { BORNEABLE, isBorne, sweepFallen } from "./loot";
+import { BORNEABLE, isBorne, sweepFallen, spillCarried } from "./loot";
 import { rollDie } from "./rng";
 // Extension kit (SC-EXT-17): aliases `ALL_CREATURES` — `strongestStranger`'s fight-focus pick and
 // the Lost-Ruby wrestler's combat-roll name both index by an actual creatureId that may already be
@@ -1077,6 +1077,36 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
           // long as the party holds it (see resolveArea) — and lulls Vipers on the pit crossing (see
           // special.ts). So there is no explicit "lull" action; without a `dir`, the Flute does nothing.
           return { state, events: [{ type: "blocked" }] };
+        }
+        case 15: { // Elixir — usable ANY time the party is not mid-fight; ANY living member may drink (design US-19, SC-EXT-22)
+          if (next.phase === "fight" || action.target === undefined) return { state, events: [{ type: "blocked" }] };
+          const drinker = next.party[action.target];
+          if (!drinker || (drinker.status !== 0 && drinker.status !== 1)) return { state, events: [{ type: "blocked" }] };
+          consume(); // consumed on use, whatever the outcome
+          const r = rollDie(next.seed);
+          next.seed = r.seed;
+          const events: GameEvent[] = [{ type: "artifactUsed", artifact: 15 }];
+          if (r.value === 1) {
+            // Poison — a normal "killing die-roll" death: the Ring's usual invincibility still
+            // applies (§Ring), and when it doesn't, the curse check runs BEFORE the spill (Task 9
+            // lesson — spillCarried would otherwise strip the Eye of God out of `treasure` first
+            // and mask eyeForsakenByDeath's own check), matching every other death site.
+            if (ringInvincible(drinker, next)) {
+              events.push({ type: "deathPrevented", creatureId: drinker.creatureId });
+            } else {
+              drinker.status = 3;
+              events.push(...eyeForsakenByDeath(next, drinker));
+              const items = spillCarried(drinker);
+              if (items.length) { next.treasures.push(...items); events.push({ type: "itemsSpilled", creatureId: drinker.creatureId, items }); }
+            }
+          } else if (r.value >= 4) {
+            drinker.fsBonus = (drinker.fsBonus ?? 0) + 2; // permanent, stacks if drunk again
+          }
+          events.push({
+            type: "elixirDrunk", creatureId: drinker.creatureId, roll: r.value,
+            outcome: r.value === 1 ? "death" : r.value <= 3 ? "nothing" : "strength",
+          });
+          return { state: next, events };
         }
         default:
           return { state, events: [{ type: "blocked" }] };

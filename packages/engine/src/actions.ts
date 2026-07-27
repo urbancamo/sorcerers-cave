@@ -219,4 +219,11 @@ export type GameEvent =
   // Extension kit (SC-EXT-21): an unfightable, unengaged Demon follows the Spectre's own
   // auto-slay rule (Resolved-6) — `creatureId` is the slain PARTY member (mirrors `spectreSlew`'s
   // own field, a separate event only because the design's flavour text is Demon-specific).
-  | { type: "demonSlew"; creatureId: number };
+  | { type: "demonSlew"; creatureId: number }
+  // Extension kit (SC-EXT-22, design US-19): the Elixir's outcome — `creatureId` the drinker,
+  // `roll` the visible d6 (1 death, 2-3 nothing, 4-6 permanent +2 fs). `outcome` mirrors the
+  // roll band as a discriminant for the presentation layer, so it needn't re-derive it from
+  // `roll`. Fires alongside the generic `artifactUsed{artifact:15}` and, on the death band, the
+  // ordinary death machinery's own events (`deathPrevented` if the Ring saves the drinker, else
+  // `eyeForsaken`/`itemsSpilled`) exactly as any other "killing die-roll" site.
+  | { type: "elixirDrunk"; creatureId: number; roll: number; outcome: "death" | "nothing" | "strength" };
