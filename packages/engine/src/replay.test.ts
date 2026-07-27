@@ -19,8 +19,13 @@ const SCRIPT: GameAction[] = [
 
 /** Play a game live, capturing exactly what the DB's gameEvents table would store: the ordered
  *  actions and the events each produced. */
-function record(seed: number, picks: readonly number[], script: readonly GameAction[]) {
-  let state = newGame(seed, picks);
+function record(
+  seed: number,
+  picks: readonly number[],
+  script: readonly GameAction[],
+  variants?: { extensionKit?: boolean },
+) {
+  let state = newGame(seed, picks, variants);
   const rows: { action: GameAction; events: GameEvent[] }[] = [];
   for (const action of script) {
     const r = reduce(state, action);
@@ -75,5 +80,26 @@ describe("replay (deterministic move-by-move reconstruction)", () => {
     const frames = replay(3, PICKS, []);
     expect(frames).toHaveLength(1);
     expect(frames[0]!.state).toEqual(newGame(3, PICKS));
+  });
+});
+
+describe("replay — extension kit variants (SC-EXT-29)", () => {
+  const KIT = { extensionKit: true };
+  const KIT_PICKS = [18, 20]; // Witch + Wolf, cost 6 — only selectable kit-on
+
+  it("threads variants into newGame so a kit-on game's decks/state reconstruct exactly", () => {
+    const seed = 555;
+    const rec = record(seed, KIT_PICKS, SCRIPT, KIT);
+    const frames = replay(seed, KIT_PICKS, rec.rows.map((r) => r.action), KIT);
+    expect(frames[0]!.state).toEqual(newGame(seed, KIT_PICKS, KIT));
+    expect(frames[frames.length - 1]!.state).toEqual(rec.finalState);
+  });
+
+  it("omitting variants (old codes) decodes kit-off — identical to no fourth argument at all", () => {
+    const seed = 61;
+    const a = replay(seed, PICKS, SCRIPT);
+    const b = replay(seed, PICKS, SCRIPT, undefined);
+    expect(a).toEqual(b);
+    expect(a[0]!.state.variants).toBeUndefined();
   });
 });

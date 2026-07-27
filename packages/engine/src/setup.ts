@@ -1,4 +1,4 @@
-import { CREATURES, STARTING_STOCK } from "./data/creatures";
+import { selectionCost, startingStock } from "./data/creatures";
 import { AREA_CARDS, GATEWAY_INDEX } from "./data/areaCards";
 import { buildLargePack, buildSmallPack } from "./decks";
 import {
@@ -10,20 +10,25 @@ import {
   type PlacedArea,
 } from "./state";
 
-/** True if `picks` is a legal starting party: selectable ids, total cost <= 6, within stock. */
-export function validatePicks(picks: readonly number[]): boolean {
+/** True if `picks` is a legal starting party: selectable ids, total cost <= 6, within stock.
+ *  Routed through the variant-aware `selectionCost`/`startingStock` (SC-EXT-29, design US-01/§1.3):
+ *  absent/false `variants` resolves the exact same costs and stock as before this param existed
+ *  (base ids 0-7 only, Ogre 5 / Troll 4) — byte-identical (SC-EXT-1). Kit-on additionally admits
+ *  Witch/Scholar/Thief/Lion/Wolf at their official costs and the Ogre 5→4 / Troll 4→3 revision. */
+export function validatePicks(picks: readonly number[], variants?: { extensionKit?: boolean }): boolean {
   if (picks.length === 0) return false;
   let total = 0;
   const counts = new Map<number, number>();
   for (const id of picks) {
-    const c = CREATURES[id];
-    if (!c || c.cost === null) return false; // not a selectable starter
-    total += c.cost;
+    const cost = selectionCost(id, variants);
+    if (cost === null) return false; // not a selectable starter
+    total += cost;
     counts.set(id, (counts.get(id) ?? 0) + 1);
   }
   if (total > PARTY_BUDGET) return false;
+  const stock = startingStock(variants);
   for (const [id, n] of counts) {
-    if (n > (STARTING_STOCK[id] ?? 0)) return false;
+    if (n > (stock[id] ?? 0)) return false;
   }
   return true;
 }
@@ -36,7 +41,7 @@ export function newGame(
   picks: readonly number[],
   variants?: { extensionKit?: boolean },
 ): GameState {
-  if (!validatePicks(picks)) throw new Error("Invalid party selection");
+  if (!validatePicks(picks, variants)) throw new Error("Invalid party selection");
 
   const large = buildLargePack(seed, variants);
   const small = buildSmallPack(large.seed, variants);

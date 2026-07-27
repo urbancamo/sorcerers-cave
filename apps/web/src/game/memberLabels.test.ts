@@ -24,4 +24,14 @@ describe("memberLabels (party-wide #N disambiguation)", () => {
   it("falls back for an out-of-range index", () => {
     expect(memberLabel([m(0)], 5)).toBe("a companion");
   });
+
+  it("resolves kit creature ids (SC-EXT-29) — not the '?' base-table fallback", () => {
+    // Witch 18, Wolf 20 — kit-only ids, single copies each.
+    expect(memberLabels([m(18), m(20)])).toEqual(["Witch", "Wolf"]);
+  });
+
+  it("numbers duplicated kit creatures the same way as base ones", () => {
+    // Two Witches (18) — legal kit stock is 3, so this can occur in play.
+    expect(memberLabels([m(18), m(18)])).toEqual(["Witch #1", "Witch #2"]);
+  });
 });

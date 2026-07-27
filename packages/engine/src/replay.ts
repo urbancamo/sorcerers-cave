@@ -23,9 +23,18 @@ export interface ReplayFrame {
  * Returns `actions.length + 1` frames: frame 0 is the untouched `newGame(seed, picks)` deal, and
  * frame i (i ≥ 1) is the state after `actions[0..i-1]`, carrying the i-th action and the events it
  * produced. A move-by-move viewer simply indexes the array — stepping backward or forward is O(1).
+ *
+ * `variants` (SC-EXT-29, design US-01): threaded straight into `newGame` so a kit-on game's saved
+ * initial conditions reproduce the exact 101/90-card decks it was actually dealt from. Absent
+ * ⇒ identical to calling `replay(seed, picks, actions)` with no fourth argument at all (SC-EXT-1).
  */
-export function replay(seed: number, picks: readonly number[], actions: readonly GameAction[]): ReplayFrame[] {
-  let state = newGame(seed, picks);
+export function replay(
+  seed: number,
+  picks: readonly number[],
+  actions: readonly GameAction[],
+  variants?: { extensionKit?: boolean },
+): ReplayFrame[] {
+  let state = newGame(seed, picks, variants);
   const frames: ReplayFrame[] = [{ seq: 0, action: null, state, events: [] }];
   for (let i = 0; i < actions.length; i++) {
     const { state: next, events } = reduce(state, actions[i]!);

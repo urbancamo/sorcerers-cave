@@ -79,6 +79,19 @@
 .scv-budget.over b {
   color: var(--crimson);
 }
+/* Extension kit toggle (SC-EXT-29, design US-01) — PartySelect, above the roster. */
+.scv-kit-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-family: var(--display);
+  font-size: 13px;
+  color: var(--parchment);
+  cursor: pointer;
+}
+.scv-kit-toggle input { accent-color: var(--brass-bright); }
+.scv-kit-toggle .scv-muted { font-size: 11px; }
 .scv-list {
   display: flex;
   flex-direction: column;
@@ -1042,7 +1055,7 @@
 .scv-pp-empty { font-size: 11px; font-style: italic; color: var(--stone-dim); }
 .scv-pp-item {
   width: 64px; aspect-ratio: 7 / 10; padding: 0; border-radius: 6px; border: 1px solid var(--line-strong);
-  background: #0d0d11; cursor: pointer; overflow: hidden;
+  background: #0d0d11; cursor: pointer; overflow: hidden; position: relative;
   transition: filter 0.16s ease, box-shadow 0.16s ease;
 }
 .scv-pp-item:disabled { cursor: default; }
@@ -1064,6 +1077,13 @@
 .scv-pp-item.dragon-slain img { transform: rotate(180deg); }
 .scv-pp-item.dragon-slain .ph { transform: rotate(180deg); }
 .scv-pp-item.sel { outline: 2px solid var(--brass-bright); outline-offset: 2px; box-shadow: 0 0 14px -2px var(--brass-bright); z-index: 4; }
+/* Extension kit (SC-EXT-23/29, design US-25): the Idol's mystery-value glyph — a static "10×?"
+   label, never a resolved number, until the game-over reveal rolls it. */
+.scv-pp-idol-glyph {
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 2px 0; text-align: center;
+  font-family: var(--display); font-size: 11px; font-weight: 700; color: var(--brass-bright);
+  background: rgba(13, 13, 17, 0.78); text-shadow: 0 0 3px #000;
+}
 /* Large floating card preview — fixed to the viewport, above the panel, never clipped. */
 .scv-pp-preview {
   position: fixed; inset: 0; z-index: 80; display: grid; place-items: center;
@@ -1139,6 +1159,18 @@
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--stone-dim);
+}
+/* Extension kit label on a leaderboard row (SC-EXT-29, design US-01). */
+.scv-ext-badge {
+  margin-left: 6px;
+  font-family: var(--ui);
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  color: var(--brass-bright);
+  border: 1px solid var(--line-strong);
+  border-radius: 4px;
+  padding: 1px 5px;
 }
 .scv-rc-pts {
   font-variant-numeric: tabular-nums;

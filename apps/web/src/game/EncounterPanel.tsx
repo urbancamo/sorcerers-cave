@@ -1,4 +1,8 @@
-import { CREATURES, TREASURES, carriedWeight, legalActions, type GameState, type GameAction } from "@sorcerers-cave/engine";
+// ALL_CREATURES/ALL_TREASURES (not the base-only tables, SC-EXT-29): a kit-on game's small pack can
+// draw a kit id (14-21) into `state.strangers`/`state.treasures` on ANY chamber, regardless of the
+// starting party — this panel is the very first thing that renders such a draw, so the base tables
+// would crash here before a kit-on game gets past its first encounter.
+import { ALL_CREATURES, ALL_TREASURES, carriedWeight, legalActions, type GameState, type GameAction } from "@sorcerers-cave/engine";
 import { memberLabel } from "./memberLabels";
 
 // The `fight` phase is owned by the FightSurface (drag-card pairing); this panel keeps
@@ -39,7 +43,7 @@ function label(a: GameAction, state: GameState): string {
     }
     case "takeTreasure": {
       const tid = state.treasures[a.ti]!;
-      const tname = TREASURES[tid]?.name ?? "treasure";
+      const tname = ALL_TREASURES[tid]?.name ?? "treasure";
       const member = memberLabel(state.party, a.mi);
       // The Lost Ruby (id 11) is guarded by a strength-8 statue that must be beaten to claim it (§16).
       return tid === 11
@@ -47,7 +51,7 @@ function label(a: GameAction, state: GameState): string {
         : `Take ${tname} → ${member}`;
     }
     case "useArtifact": {
-      const tname = TREASURES[a.artifact]?.name ?? `artifact ${a.artifact}`;
+      const tname = ALL_TREASURES[a.artifact]?.name ?? `artifact ${a.artifact}`;
       // Member-targeting revives — name the member so each option is distinct.
       if (a.target !== undefined) {
         if (a.artifact === 6) return `${tname} — revive ${memberLabel(state.party, a.target)}`;
@@ -65,8 +69,8 @@ function label(a: GameAction, state: GameState): string {
 export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch: (a: GameAction) => void }) {
   if (!ACTIVE.has(state.phase)) return null;
   const actions = legalActions(state);
-  const strangers = state.strangers.map((id) => CREATURES[id]!.name);
-  const treasures = state.treasures.map((id) => TREASURES[id]!.name);
+  const strangers = state.strangers.map((id) => ALL_CREATURES[id]!.name);
+  const treasures = state.treasures.map((id) => ALL_TREASURES[id]!.name);
 
   // Collapse the action explosion into one control per treasure / per artefact:
   //  - each treasure is listed once, with a dropdown of the members who can carry it;
@@ -89,14 +93,14 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
   }
 
   const memberName = (mi: number) => {
-    const m = state.party[mi]!, c = CREATURES[m.creatureId]!;
+    const m = state.party[mi]!, c = ALL_CREATURES[m.creatureId]!;
     const base = memberLabel(state.party, mi); // party-wide "#N" for duplicate classes
     return c.carry > 0 ? `${base} (${carriedWeight(m)}/${c.carry}kg)` : base;
   };
   // An artefact action's target, named: Lotus Dust (5) targets a stranger; the others a party member.
   const artTargetName = (a: Extract<GameAction, { type: "useArtifact" }>) =>
     a.target === undefined ? "the party"
-      : a.artifact === 5 ? CREATURES[state.strangers[a.target]!]!.name
+      : a.artifact === 5 ? ALL_CREATURES[state.strangers[a.target]!]!.name
       : memberLabel(state.party, a.target);
 
   return (
@@ -130,7 +134,7 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
         <div className="scv-enc-assign">
           {[...takeByTi].map(([ti, mis]) => {
             const labels = dedupeLabels(mis.map(memberName));
-            const tname = TREASURES[state.treasures[ti]!]!.name;
+            const tname = ALL_TREASURES[state.treasures[ti]!]!.name;
             // The Lost Ruby (id 11) is set in a strength-8 statue that must be beaten — taking it is a
             // fight, not a free pickup, so word the options as wresting it from the guardian (§16).
             const guarded = state.treasures[ti] === 11;
@@ -157,7 +161,7 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
       {artByArtifact.size > 0 && (
         <div className="scv-enc-assign">
           {[...artByArtifact].map(([artifact, acts]) => {
-            const aname = TREASURES[artifact]?.name ?? `artifact ${artifact}`;
+            const aname = ALL_TREASURES[artifact]?.name ?? `artifact ${artifact}`;
             const labels = dedupeLabels(acts.map((a) => artTargetName(a as Extract<GameAction, { type: "useArtifact" }>)));
             return (
               <label key={`a${artifact}`} className="scv-enc-row">

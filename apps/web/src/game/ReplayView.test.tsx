@@ -128,6 +128,20 @@ describe("ReplayView — auto-play (§RB-4-6)", () => {
   });
 });
 
+describe("ReplayView — extension kit variants (SC-EXT-29)", () => {
+  it("threads bundle.game.variants into replay() so a kit-on game's picks (only legal kit-on) reconstruct", async () => {
+    const kitFrames = replay(11, [18, 20], [{ type: "move", dir: 1 }] as unknown as Parameters<typeof replay>[2], { extensionKit: true });
+    const kitBundle: ReplayBundle = {
+      replayable: true,
+      game: { code: "KWLF", seed: 11, picks: [18, 20], color: null, status: "active", createdAt: 0, variants: { extensionKit: true } },
+      moves: kitFrames.slice(1).map((f) => ({ seq: f.seq - 1, action: f.action!, events: f.events })),
+    };
+    render(<ReplayView bundle={kitBundle} onExit={vi.fn()} />);
+    await screen.findByTestId("canvas");
+    expect(canvas().dataset.turn).toBe(String(kitFrames[0]!.state.turn));
+  });
+});
+
 describe("ReplayView — rendering through the existing cave view (§RB-5)", () => {
   it("mounts the cave view for a frame", async () => {
     await renderView();

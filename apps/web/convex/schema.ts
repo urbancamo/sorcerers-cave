@@ -30,7 +30,12 @@ export default defineSchema({
     // Game variants (M7, plan WS-6), chosen in the lobby BEFORE the engine state exists (state is
     // null until startGame) — hence a games field, handed into buildMpGame at start and riding in
     // state.variants from then on. Absent = a plain game.
-    variants: v.optional(v.object({ zombies: v.optional(v.boolean()), fogLite: v.optional(v.boolean()), concurrent: v.optional(v.boolean()) })),
+    // `extensionKit` (SC-EXT-29, design US-01/§1.1) reuses this same field for SOLO games too: set
+    // once at `game.newGame` (mirroring the immutable `seed`/`picks` initial conditions) rather than
+    // via a lobby, and threaded into `replay()` by `game.log`/`replayByCode`/`highScores.log` so a
+    // kit-on game's saved code reconstructs the exact 101/90-card decks it was dealt from. Absent
+    // ⇒ kit-off (old codes/saves decode unchanged — SC-EXT-1 byte-identity).
+    variants: v.optional(v.object({ zombies: v.optional(v.boolean()), fogLite: v.optional(v.boolean()), concurrent: v.optional(v.boolean()), extensionKit: v.optional(v.boolean()) })),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -81,6 +86,10 @@ export default defineSchema({
     mode: v.optional(v.union(v.literal("solo"), v.literal("multi"))),
     gameCode: v.optional(v.string()),  // the four-letter code (group a multi game's parties)
     partyName: v.optional(v.string()),
+    // Extension kit (SC-EXT-29, design US-01): labels a kit-on game's leaderboard entry. Set from
+    // the final state's `variants.extensionKit` at `highScores.save`; absent on every pre-kit row
+    // (reads as kit-off, same as everywhere else the flag is threaded).
+    extensionKit: v.optional(v.boolean()),
   })
     .index("by_game", ["gameId"])
     .index("by_score", ["score"]),

@@ -113,4 +113,22 @@ describe("PartyPanel", () => {
     expect(screen.getByText(/redistributed during a fight/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /^gold$/i })).toBeDisabled();
   });
+
+  it("renders a kit party member and their carried kit treasure without crashing (SC-EXT-29)", () => {
+    // Witch (18) + Wolf (20) — only legal kit-on. Before the ALL_CREATURES/ALL_TREASURES fix this
+    // panel crashed the instant a kit-on party was opened (CREATURES[18] is undefined).
+    const s = newGame(1, [18, 20], { extensionKit: true });
+    s.party[0]!.treasure.push(16); // Holy Water (kit artifact, id 16)
+    render(<PartyPanel state={s} dispatch={() => {}} onClose={() => {}} />);
+    expect(screen.getByText("Witch")).toBeInTheDocument();
+    expect(screen.getByText("Wolf")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /^holy water$/i })).toBeInTheDocument();
+  });
+
+  it("shows a static '10×?' glyph on a carried Idol, never a resolved point value mid-game (SC-EXT-29/US-25)", () => {
+    const s = newGame(1, [18, 20], { extensionKit: true });
+    s.party[0]!.treasure.push(18); // Idol (heavy treasure, id 18)
+    render(<PartyPanel state={s} dispatch={() => {}} onClose={() => {}} />);
+    expect(screen.getByText("10×?")).toBeInTheDocument();
+  });
 });

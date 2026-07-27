@@ -47,6 +47,10 @@ canvas{display:block;touch-action:none;}
 .chip .v{font-family:var(--display);font-size:16px;color:var(--cream);font-weight:600;line-height:1.1;}
 .chip .v.warn{color:var(--brass-bright);}
 .chip .scv-code{font-family:ui-monospace,"SF Mono",Menlo,monospace;letter-spacing:.14em;color:var(--brass-bright);}
+/* Extension kit indicator (SC-EXT-29, design US-01): a compact single-value chip, no .k label —
+ *  reuses the base .chip look; culled/kept by the same mobile rules as the other optional chips. */
+.scv-extchip{align-items:center;justify-content:center;min-width:0;padding:6px 10px;}
+.scv-extchip .v{color:var(--brass-bright);letter-spacing:.08em;}
 /* Curse indicator: the curse card itself, shown while the party is cursed (−1 to every roll). */
 .scv-cursechip{flex-direction:row;align-items:center;gap:5px;min-width:0;padding:5px 8px;border-color:#8a3a34;}
 .scv-curse-card{height:38px;width:auto;border-radius:4px;display:block;box-shadow:0 4px 12px -6px rgba(0,0,0,.9);}

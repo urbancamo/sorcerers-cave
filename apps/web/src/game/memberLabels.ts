@@ -1,4 +1,4 @@
-import { CREATURES } from "@sorcerers-cave/engine";
+import { ALL_CREATURES } from "@sorcerers-cave/engine";
 
 /**
  * Party-wide, stable disambiguation labels. When the party holds more than one member of the same
@@ -12,7 +12,7 @@ export function memberLabels(party: readonly { creatureId: number }[]): string[]
   for (const m of party) total.set(m.creatureId, (total.get(m.creatureId) ?? 0) + 1);
   const seen = new Map<number, number>();
   return party.map((m) => {
-    const name = CREATURES[m.creatureId]?.name ?? "?";
+    const name = ALL_CREATURES[m.creatureId]?.name ?? "?";
     if ((total.get(m.creatureId) ?? 0) <= 1) return name;
     const n = (seen.get(m.creatureId) ?? 0) + 1;
     seen.set(m.creatureId, n);

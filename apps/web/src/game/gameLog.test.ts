@@ -206,6 +206,38 @@ describe("score summary section", () => {
   });
 });
 
+describe("extension kit (SC-EXT-29, design US-01) — game log", () => {
+  it("formatLog's opening records 'Extension kit active' when the game's variants say so", () => {
+    const text = formatLog(sampleLog({ variants: { extensionKit: true } }));
+    expect(text).toMatch(/Extension kit active/);
+  });
+
+  it("formatLog omits the kit line for a kit-off (or pre-kit) game", () => {
+    expect(formatLog(sampleLog())).not.toMatch(/Extension kit active/);
+    expect(formatLog(sampleLog({ variants: { extensionKit: false } }))).not.toMatch(/Extension kit active/);
+  });
+
+  it("logReport's meta line notes KIT ON only for a kit-on game", () => {
+    expect(logReport(sampleLog({ variants: { extensionKit: true } }))).toMatch(/KIT ON/);
+    expect(logReport(sampleLog())).not.toMatch(/KIT ON/);
+  });
+
+  it("threads variants into replay() so a kit-on game's log (with a kit pick) reconstructs without throwing", () => {
+    // Witch (18) + Wolf (20) are only a legal party when the kit is on — formatLog must pass
+    // `game.variants` into replay() or this game can never be reconstructed to name its moves.
+    const seed = 3, picks = [18, 20];
+    const script: GameAction[] = [{ type: "move", dir: 1 }];
+    let s = newGame(seed, picks, { extensionKit: true });
+    const moves: GameLog["moves"] = [];
+    let seq = 0;
+    for (const action of script) { const r = reduce(s, action); moves.push({ seq: seq++, action, events: r.events }); s = r.state; }
+    const log: GameLog = { game: { code: "KWLF", seed, picks, color: null, status: "active", createdAt: 0, variants: { extensionKit: true } }, moves };
+    expect(formatLog(log)).toMatch(/Move north/);
+    expect(formatLog(log)).toMatch(/Extension kit active/);
+    expect(logReport(log)).toMatch(/MOV N/);
+  });
+});
+
 describe("machineLog", () => {
   it("is versioned JSON whose actions replay to reproduce the game", () => {
     const log = sampleLog();

@@ -157,6 +157,25 @@ describe("HighScores", () => {
     expect(within(screen.getByTestId("download-log")).queryByRole("button", { name: /replay/i })).toBeNull();
   });
 
+  it("labels a kit-on row's outcome cell EXT, and doesn't for a kit-off row (SC-EXT-29)", () => {
+    const rows = [
+      row({ _id: "a", name: "Kitter", extensionKit: true, party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }] }),
+      row({ _id: "b", name: "Plain", party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }] }),
+    ];
+    render(<HighScores rows={rows} />);
+    const kitterRow = screen.getByText("Kitter").closest("tr")!;
+    expect(within(kitterRow).getByText("EXT")).toBeInTheDocument();
+    const plainRow = screen.getByText("Plain").closest("tr")!;
+    expect(within(plainRow).queryByText("EXT")).toBeNull();
+  });
+
+  it("notes the kit in the score detail header for a kit-on game", () => {
+    const rows = [row({ _id: "a", name: "Kitter", extensionKit: true, party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }] })];
+    render(<HighScores rows={rows} />);
+    fireEvent.click(screen.getByText("Kitter"));
+    expect(within(screen.getByTestId("hs-detail")).getByText(/extension kit/i)).toBeInTheDocument();
+  });
+
   it("shows the game code in the score detail once the log resolves", () => {
     const log = { game: { code: "ABCD", seed: 1, picks: [0], color: null, status: "finished", createdAt: 0 }, moves: [] } as GameLog;
     useQueryMock.mockImplementation((q: unknown) => (q === "highScores:log" ? log : undefined));

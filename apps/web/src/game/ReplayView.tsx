@@ -24,7 +24,9 @@ export interface ReplayBundle {
 export function ReplayView({ bundle, onExit }: { bundle: ReplayBundle; onExit: () => void }) {
   // bundle.replayable is guaranteed by the caller (an unreplayable code never opens the viewer).
   const frames = useMemo(
-    () => replay(bundle.game.seed!, bundle.game.picks!, bundle.moves.map((m) => m.action)),
+    // `bundle.game.variants` (SC-EXT-29): a kit-on game's decks only reconstruct exactly when the
+    // flag rides along with seed/picks — absent (old/kit-off codes) behaves exactly as before.
+    () => replay(bundle.game.seed!, bundle.game.picks!, bundle.moves.map((m) => m.action), bundle.game.variants),
     [bundle],
   );
   const last = frames.length - 1;

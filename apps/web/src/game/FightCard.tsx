@@ -1,4 +1,6 @@
-import { CREATURES, TREASURES, type GameState } from "@sorcerers-cave/engine";
+// ALL_CREATURES/ALL_TREASURES (not the base-only tables, SC-EXT-29): every fight-surface card —
+// party member or foe — can be a kit id (14-21) in a kit-on game.
+import { ALL_CREATURES, ALL_TREASURES, type GameState } from "@sorcerers-cave/engine";
 import { resolveCardVariant, resolveCard, type CardArt } from "../data/manifest";
 
 export type CardKind = "ally" | "caster" | "foe";
@@ -18,10 +20,10 @@ export function FightCard({
   dragId?: number; // the party-member index this card carries when dragged (read by the drop targets)
 }) {
   const art = resolveCardVariant("creature", creatureId, creatureId, cards) ?? resolveCard("creature", creatureId, cards);
-  const name = CREATURES[creatureId]?.name ?? "?";
+  const name = ALL_CREATURES[creatureId]?.name ?? "?";
   const relics = treasure
-    .filter((t) => !artifactsOnly || TREASURES[t]?.kind === "artifact")
-    .map((t) => ({ id: t, art: resolveCard("treasure", t, cards), name: TREASURES[t]?.name ?? "artefact" }));
+    .filter((t) => !artifactsOnly || ALL_TREASURES[t]?.kind === "artifact")
+    .map((t) => ({ id: t, art: resolveCard("treasure", t, cards), name: ALL_TREASURES[t]?.name ?? "artefact" }));
 
   return (
     <div className={`scv-fc scv-fc-${kind}${dim ? " is-dim" : ""}${selected ? " is-sel" : ""}`}>

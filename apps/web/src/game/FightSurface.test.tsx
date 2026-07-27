@@ -169,6 +169,20 @@ describe("FightSurface", () => {
     expect(screen.getByTestId("bg-0").textContent ?? "").toContain("Priest"); // the caster is shown behind, no error
   });
 
+  it("renders a kit party member fighting a kit stranger without crashing (SC-EXT-29)", () => {
+    // Witch (18, a caster: mp 4) + Wolf (20) vs a Lion (16, a kit stranger). Before the
+    // ALL_CREATURES fix, isCaster's raw CREATURES[18] lookup crashed before anything rendered.
+    const s: GameState = {
+      ...newGame(1, [18, 20], { extensionKit: true }),
+      phase: "fight",
+      fight: { surprise: 0, round: 1, focus: 0 },
+      strangers: [16],
+    };
+    render(<FightSurface state={s} dispatch={() => {}} cards={cards} />);
+    expect(screen.getByTestId("fight-surface")).toBeInTheDocument();
+    expect(screen.getByTestId("tray-0")).toHaveTextContent(/witch/i);
+  });
+
   it("offers retreat after round 1", () => {
     const dispatch = vi.fn();
     // The gateway (card 175) has all four doorways, so legalActions offers N/E/S/W retreats at round > 1.

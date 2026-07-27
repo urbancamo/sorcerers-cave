@@ -51,18 +51,26 @@ export async function uniqueCode(ctx: MutationCtx): Promise<string> {
   throw new Error("Could not allocate a unique game code");
 }
 
+// Extension kit (SC-EXT-29, design US-01): the only solo-relevant key of the shared `variants`
+// shape (schema.ts) — a plain object validator here rather than reusing the full MP union, since a
+// solo `newGame` call never sets zombies/fogLite/concurrent.
+const variantsValidator = v.object({ extensionKit: v.optional(v.boolean()) });
+
 export const newGame = mutation({
-  args: { seed: v.number(), picks: v.array(v.number()), color: v.optional(colorValidator) },
-  handler: async (ctx, { seed, picks, color }) => {
+  args: { seed: v.number(), picks: v.array(v.number()), color: v.optional(colorValidator), variants: v.optional(variantsValidator) },
+  handler: async (ctx, { seed, picks, color, variants }) => {
     const ownerId = await getAuthUserId(ctx);
     if (!ownerId) throw new Error("Unauthenticated");
-    if (!validatePicks(picks)) throw new Error("Invalid party selection");
-    const state = createGameState(seed, picks);
+    // Server-side authoritative check (mirrors the client's PartySelect validation) — a kit-only
+    // pick (e.g. the Witch) is only legal when `variants.extensionKit` is actually set, closing off
+    // a client that omits the flag to sneak a kit creature into a kit-off game.
+    if (!validatePicks(picks, variants)) throw new Error("Invalid party selection");
+    const state = createGameState(seed, picks, variants);
     const now = Date.now();
     const code = await uniqueCode(ctx);
-    // Persist the initial conditions (seed + picks) alongside the state so the full game is replayable
-    // from scratch via the engine's replay() over the gameEvents action log.
-    return await ctx.db.insert("games", { ownerId, code, seed, picks, state, status: "active", color, createdAt: now, updatedAt: now });
+    // Persist the initial conditions (seed + picks + variants) alongside the state so the full game
+    // is replayable from scratch via the engine's replay() over the gameEvents action log.
+    return await ctx.db.insert("games", { ownerId, code, seed, picks, variants, state, status: "active", color, createdAt: now, updatedAt: now });
   },
 });
 
@@ -158,6 +166,7 @@ export const log = query({
         color: game.color ?? null,
         status: game.status,
         createdAt: game.createdAt,
+        variants: game.variants ?? undefined, // extensionKit (SC-EXT-29) — undefined ⇒ kit-off
       },
       moves: rows.map((r) => ({ seq: r.seq, action: r.action, events: r.events })),
     };
@@ -192,6 +201,7 @@ export const replayByCode = query({
         color: game.color ?? null,
         status: game.status,
         createdAt: game.createdAt,
+        variants: game.variants ?? undefined, // extensionKit (SC-EXT-29) — undefined ⇒ kit-off
       },
       moves: rows.map((r) => ({ seq: r.seq, action: r.action, events: r.events })),
     };

@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  CREATURES, TREASURES, carriedWeight, canCarry, BORNEABLE, isBorne,
+  ALL_CREATURES, ALL_TREASURES, carriedWeight, canCarry, BORNEABLE, isBorne,
   type GameState, type GameAction,
 } from "@sorcerers-cave/engine";
 import { memberLabels } from "./memberLabels";
@@ -14,6 +14,13 @@ const STATUS_BADGE: Record<number, { label: string; cls: string }> = {
   2: { label: "stone", cls: "stone" },
   3: { label: "fallen", cls: "fallen" },
 };
+
+// Extension kit (SC-EXT-23/29, design US-25): the Idol (treasure 18) carries no fixed value — its
+// worth is a d6 rolled only at `scoreBreakdown` (score.ts), which must NEVER run mid-game (it would
+// leak the roll and, being re-derived from the live `state.seed`, appear to "change" every action).
+// The party panel shows a static "10×?" placeholder instead — carry/transfer/drop all work exactly
+// like any other heavy treasure; only the value stays a mystery until the game-over reveal.
+const T_IDOL = 18;
 
 /** Expanded party view: each member as their card, what they carry as cards, a carry-weight
  *  bar, and (outside combat) controls to move treasure between members or drop it. */
@@ -71,7 +78,7 @@ export function PartyPanel({
 
         {sel && selTid !== undefined && canManage && (
           <div className="scv-pp-bar">
-            <span>Move <b>{TREASURES[selTid]?.name}</b> to a member, or</span>
+            <span>Move <b>{ALL_TREASURES[selTid]?.name}</b> to a member, or</span>
             {/* Bear vs stow (Sword/Staff/Ring only): a BORNE item is wielded/worn — it is petrified or
                 lost WITH its holder; a carried item spills to the floor when the holder falls (§④a). */}
             {BORNEABLE.includes(selTid) && isAlive(party[sel.mi]!.status) && (
@@ -86,7 +93,7 @@ export function PartyPanel({
 
         <div className="scv-pp-members">
           {ordered.map(({ m, mi }) => {
-            const c = CREATURES[m.creatureId]!;
+            const c = ALL_CREATURES[m.creatureId]!;
             const load = carriedWeight(m), cap = c.carry;
             const pct = cap > 0 ? Math.min(100, Math.round((load / cap) * 100)) : 0;
             const living = m.status === 0 || m.status === 1;
@@ -110,10 +117,11 @@ export function PartyPanel({
                 <div className="scv-pp-items">
                   {m.treasure.length === 0 && m.dragonKills === 0 && <span className="scv-pp-empty">empty-handed</span>}
                   {m.treasure.map((tid, idx) => {
-                    const t = TREASURES[tid]!;
+                    const t = ALL_TREASURES[tid]!;
                     const timg = imgOf("treasure", tid);
                     const selected = sel?.mi === mi && sel?.idx === idx;
                     const borne = isBorne(m, tid);
+                    const isIdol = tid === T_IDOL;
                     return (
                       <button
                         key={idx}
@@ -121,7 +129,7 @@ export function PartyPanel({
                         className={"scv-pp-item" + (t.kind === "artifact" ? " art" : "") + (selected ? " sel" : "") + (borne ? " borne" : "")}
                         disabled={!canManage}
                         aria-label={t.name + (borne ? " (borne)" : "")}
-                        title={t.name + (t.kind === "artifact" ? " · artifact" : ` · ${t.weight}kg`) + (borne ? " · borne (wielded — stays with the body if the holder falls)" : "")}
+                        title={t.name + (t.kind === "artifact" ? " · artifact" : ` · ${t.weight}kg`) + (borne ? " · borne (wielded — stays with the body if the holder falls)" : "") + (isIdol ? " · value revealed at game's end" : "")}
                         onClick={() => setSel(selected ? null : { mi, idx })}
                         onMouseEnter={() => setPreview(timg)}
                         onMouseLeave={() => setPreview((p) => (p === timg ? null : p))}
@@ -129,6 +137,9 @@ export function PartyPanel({
                         onBlur={() => setPreview((p) => (p === timg ? null : p))}
                       >
                         {timg ? <img src={timg} alt={t.name} /> : <span className="ph">{t.name[0]}</span>}
+                        {/* Extension kit (SC-EXT-23/29, US-25): a static mystery-value glyph — NEVER
+                            scoreBreakdown mid-game (that would leak/appear to "change" the roll). */}
+                        {isIdol && <span className="scv-pp-idol-glyph">10×?</span>}
                       </button>
                     );
                   })}

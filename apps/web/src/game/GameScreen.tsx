@@ -148,7 +148,12 @@ export default function GameScreen() {
     );
   }
   if (!gameId) {
-    return <PartySelect onConfirm={async (picks, color) => setGameId(await newGame({ seed: Date.now(), picks, color }))} />;
+    return (
+      <PartySelect
+        kitToggle
+        onConfirm={async (picks, color, variants) => setGameId(await newGame({ seed: Date.now(), picks, color, variants }))}
+      />
+    );
   }
   if (loading || !engine || !state) return <p>Loading cave…</p>;
 

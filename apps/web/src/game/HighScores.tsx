@@ -13,6 +13,9 @@ export interface LeaderboardRow {
   outcome: number;
   party: PartyMember[];
   createdAt: number;
+  // Extension kit (SC-EXT-29, design US-01): labels this score as a kit game. Absent/false on
+  // every score recorded before the kit existed.
+  extensionKit?: boolean;
 }
 
 const OUTCOME_LABEL: Record<number, string> = {
@@ -61,7 +64,9 @@ function ScoreDetail({ row, rank, onBack, onReplay }: {
       <button className="scv-hs-back" onClick={onBack}>← Back to scores</button>
       <div className="scv-hs-detail-hd">
         <span className="scv-hs-detail-name">{rank ? `#${rank} ` : ""}{row.name}</span>
-        <span className="scv-hs-detail-meta">{OUTCOME_LABEL[row.outcome] ?? "—"} · {row.score} pts</span>
+        <span className="scv-hs-detail-meta">
+          {OUTCOME_LABEL[row.outcome] ?? "—"} · {row.score} pts{row.extensionKit ? " · Extension kit" : ""}
+        </span>
       </div>
       <p className="scv-muted scv-hs-detail-sub">
         {left.length} of {row.party.length} left the cave
@@ -200,7 +205,10 @@ export function HighScores({ rows, highlightId, onReplay }: {
             >
               <td className="scv-hs-rank">{i + 1}</td>
               <td>{r.name}</td>
-              <td>{OUTCOME_LABEL[r.outcome] ?? "—"}</td>
+              <td>
+                {OUTCOME_LABEL[r.outcome] ?? "—"}
+                {r.extensionKit && <span className="scv-ext-badge" title="Extension kit game">EXT</span>}
+              </td>
               <td className="scv-hs-num">{survivors}/{r.party.length}</td>
               <td className="scv-hs-num">{r.score}</td>
               <td className="scv-hs-chev" aria-hidden="true">›</td>

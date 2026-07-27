@@ -1,6 +1,9 @@
 import { type DragEvent, useEffect, useRef, useState } from "react";
+// ALL_CREATURES/ALL_TREASURES (not the base-only tables, SC-EXT-29): a kit-on party/stranger set
+// can hold kit ids (14-21) the moment any fight begins — the base tables would crash before the
+// surface renders anything.
 import {
-  CREATURES, TREASURES, legalActions, validatePlan, previewPlan, frontStrength, casterMP, enemyMP,
+  ALL_CREATURES, ALL_TREASURES, legalActions, validatePlan, previewPlan, frontStrength, casterMP, enemyMP,
   type GameState, type GameAction,
 } from "@sorcerers-cave/engine";
 import type { CardArt } from "../data/manifest";
@@ -21,7 +24,7 @@ const REASON: Record<string, string> = {
 const C_SPECTRE = 9;
 const living = (s: GameState) => s.party.map((_, i) => i).filter((i) => { const m = s.party[i]!; return m.status === 0 || m.status === 1; });
 // A Priest/Wizard is a caster by creature type — even when an active Eye of God has zeroed its power.
-const isCaster = (s: GameState, i: number) => CREATURES[s.party[i]!.creatureId]!.mp > 0;
+const isCaster = (s: GameState, i: number) => ALL_CREATURES[s.party[i]!.creatureId]!.mp > 0;
 const kindOf = (s: GameState, i: number): CardKind => (isCaster(s, i) ? "caster" : "ally");
 
 export function FightSurface({ state, dispatch, cards }: { state: GameState; dispatch: (a: GameAction) => void; cards: CardArt[] }) {
@@ -58,7 +61,7 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
         <div className="scv-fight-row">
           {pair.map((idx) => (
             <button key={idx} className="scv-fight-btn" onClick={() => dispatch({ type: "chooseCasualty", idx })}>
-              Let {labels[idx] ?? CREATURES[state.party[idx]!.creatureId]!.name} fall
+              Let {labels[idx] ?? ALL_CREATURES[state.party[idx]!.creatureId]!.name} fall
             </button>
           ))}
         </div>
@@ -75,7 +78,7 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
   const preview = previewPlan(state, { matches });
   // Show the EFFECTIVE foe strength the resolver fights with: an active Eye of God zeroes a stranger's
   // magic (and only reduces the Sorcerer), so a stranger Wizard reads 2, not 7, while the Eye is held.
-  const enemyStrOf = (si: number) => CREATURES[state.strangers[si]!]!.fs + enemyMP(state, state.strangers[si]!);
+  const enemyStrOf = (si: number) => ALL_CREATURES[state.strangers[si]!]!.fs + enemyMP(state, state.strangers[si]!);
   const enemyMpOf = (si: number) => enemyMP(state, state.strangers[si]!);
   // Forced no-magic-vs-Spectre round (§Spectre): every remaining foe is an un-fightable Spectre and no one
   // wields magic, so the ONLY legal plan is the empty one. This is a property of the STATE, not the current
@@ -244,7 +247,7 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
       {reason && <p className="scv-fight-reason">{reason}</p>}
       {forcedSpectre && doomedIdx !== null && (
         <p className="scv-fight-reason scv-fight-doom" data-testid="forced-spectre">
-          No one can fight the Spectre and no magic remains — {labels[doomedIdx] ?? CREATURES[state.party[doomedIdx]!.creatureId]!.name},
+          No one can fight the Spectre and no magic remains — {labels[doomedIdx] ?? ALL_CREATURES[state.party[doomedIdx]!.creatureId]!.name},
           your strongest, will be slain this round (§Spectre). Retreat if you can; otherwise you must face it.
         </p>
       )}
@@ -269,10 +272,10 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
         {artifacts.map((a, i) => {
           // Name the artefact and its target so each option is distinct — Lotus Dust (5) targets a
           // stranger, Strength Potion (8) a party member (§ artefacts).
-          const nm = TREASURES[a.artifact]?.name ?? "artefact";
+          const nm = ALL_TREASURES[a.artifact]?.name ?? "artefact";
           const tgt = a.target === undefined ? null
-            : a.artifact === 5 ? CREATURES[state.strangers[a.target]!]!.name
-            : (labels[a.target] ?? CREATURES[state.party[a.target]!.creatureId]!.name);
+            : a.artifact === 5 ? ALL_CREATURES[state.strangers[a.target]!]!.name
+            : (labels[a.target] ?? ALL_CREATURES[state.party[a.target]!.creatureId]!.name);
           return (
             <button key={i} className="scv-fight-btn" onClick={() => dispatch(a)}>
               {tgt ? `${nm} → ${tgt}` : `Use ${nm}`}

@@ -59,6 +59,25 @@ describe("viewParty", () => {
     expect(viewParty(state).map((m) => m.name)).toEqual(["Man", "Dwarf", "Woman"]);
   });
 
+  it("resolves a kit party member (SC-EXT-29): no crash on Witch/Wolf, real stats not '?'", () => {
+    // Witch (18, cost 5) + Wolf (20, cost 1) — only a legal party when the kit is on. Before the
+    // ALL_CREATURES/ALL_TREASURES fix, viewParty crashed (`CREATURES[18]` is undefined in the
+    // 14-entry base table) the instant a kit-on game's roster rendered — i.e. on the very first frame.
+    const state = newGame(1, [18, 20], { extensionKit: true });
+    const p = viewParty(state);
+    expect(p.map((m) => m.name)).toEqual(["Witch", "Wolf"]);
+    expect(p[0]!.fs).toBe(1); // Witch fs 1
+    expect(p[1]!.carry).toBe(0); // Wolf carries nothing
+  });
+
+  it("resolves a kit treasure carried by a member (SC-EXT-29): no crash, real name/weight not '?'", () => {
+    const state = newGame(1, [18, 20], { extensionKit: true });
+    state.party[0]!.treasure.push(18); // Idol (heavy, 25kg) — id 18 in TREASURES' kit range too
+    const p = viewParty(state);
+    expect(p[0]!.items[0]).toMatchObject({ name: "Idol", weight: 25 });
+    expect(p[0]!.load).toBe(25);
+  });
+
   it("flags ally and petrified members for status badges", () => {
     const state = newGame(1, [5, 6]); // Man + Woman, both originals
     state.party[1]!.status = 1; // Woman befriended → ally

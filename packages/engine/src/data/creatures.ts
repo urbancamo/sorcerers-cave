@@ -74,11 +74,18 @@ export const KIT_STARTING_STOCK: Readonly<Record<number, number>> = {
 // Ogre 5→4, Troll 4→3 — kit-on ONLY (MSW ruling); the base game keeps 5/4.
 export const KIT_COST_OVERRIDES: Readonly<Record<number, number>> = { 2: 4, 3: 3 };
 
+/** Extension kit creature ids start here (spec §1.3); used to gate kit-only selection off in
+ *  kit-off games — see `selectionCost` below. */
+const KIT_ID_MIN = 14;
+
 /** Selection cost for `id`, honouring the kit-on Ogre/Troll revision. Returns null for
- *  never-selectable creatures (Apprentice, Demon, and every base id with `cost: null`). Base game
- *  code paths do not call this yet (SC-EXT-2); it's the variant-aware source of truth for later
- *  tasks (party-select validation, PartySelect UI). */
+ *  never-selectable creatures (Apprentice, Demon, and every base id with `cost: null`), AND for
+ *  every kit creature id (14-20) when the kit is off (SC-EXT-29) — `ALL_CREATURES` resolves a real
+ *  cost for e.g. the Witch regardless of variant (other subsystems need her stats unconditionally,
+ *  §deck-as-gate), so selection specifically must gate the kit range itself, not just Apprentice/
+ *  Demon's own null costs. Called by `setup.ts`'s `validatePicks` and the PartySelect UI. */
 export function selectionCost(id: number, variants?: { extensionKit?: boolean }): number | null {
+  if (id >= KIT_ID_MIN && !variants?.extensionKit) return null;
   if (variants?.extensionKit) {
     const override = KIT_COST_OVERRIDES[id];
     if (override !== undefined) return override;

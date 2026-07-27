@@ -332,6 +332,83 @@ test("replayByCode does not replay a multi game", async () => {
   expect(await as.query(api.game.replayByCode, { code: "MULT" })).toBeNull();
 });
 
+// ---------------------------------------------------------------------------
+// Extension kit (SC-EXT-29, design US-01/§1.1): variants persist and round-trip through
+// save/log/replayByCode so a kit-on game's code reproduces it; a code without the flag decodes
+// kit-off (backward compat — every pre-kit row is unaffected).
+// ---------------------------------------------------------------------------
+
+test("newGame accepts a kit-only pick only when variants.extensionKit is set (server-side authority)", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  // Witch (id 18) is unselectable without the kit — mirrors the client's PartySelect validation.
+  await expect(as.mutation(api.game.newGame, { seed: 1, picks: [18] })).rejects.toThrow();
+  await expect(as.mutation(api.game.newGame, { seed: 1, picks: [18], variants: { extensionKit: false } })).rejects.toThrow();
+  const id = await as.mutation(api.game.newGame, { seed: 1, picks: [18], variants: { extensionKit: true } });
+  const game = await as.query(api.game.get, { id });
+  expect(game?.variants).toEqual({ extensionKit: true });
+  expect(game?.state.variants).toEqual({ extensionKit: true });
+  expect(game?.state).toEqual(createGameState(1, [18], { extensionKit: true }));
+});
+
+test("newGame with no variants stays byte-identical to today (variants absent on the row)", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+  const game = await as.query(api.game.get, { id });
+  expect(game?.variants).toBeUndefined();
+  expect(game?.state.variants).toBeUndefined();
+});
+
+test("newGame with an explicit variants: undefined key (the real PartySelect/GameScreen call shape when the kit toggle is off) behaves identically to omitting it", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0], variants: undefined });
+  const game = await as.query(api.game.get, { id });
+  expect(game?.variants).toBeUndefined();
+  expect(game?.state.variants).toBeUndefined();
+});
+
+test("log and replayByCode return variants so the client's replay() reconstructs a kit-on game", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 9, picks: [18, 20], variants: { extensionKit: true } }); // Witch + Wolf
+  await as.mutation(api.game.applyAction, { id, action: { type: "move", dir: 1 } });
+  const code = await as.mutation(api.game.save, { id });
+
+  const log = await as.query(api.game.log, { id });
+  expect(log?.game.variants).toEqual({ extensionKit: true });
+  const frames = replay(log!.game.seed!, log!.game.picks!, log!.moves.map((m) => m.action), log!.game.variants);
+  const game = await as.query(api.game.get, { id });
+  expect(frames[frames.length - 1]!.state).toEqual(game?.state);
+
+  const bundle = await as.query(api.game.replayByCode, { code });
+  expect(bundle?.game.variants).toEqual({ extensionKit: true });
+});
+
+test("save/resume round-trips variants: a kit-on game's state.variants survives a save + resumeByCode + get load", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 1, picks: [18, 20], variants: { extensionKit: true } });
+  const code = await as.mutation(api.game.save, { id });
+  const resumedId = await as.mutation(api.game.resumeByCode, { code });
+  const game = await as.query(api.game.get, { id: resumedId! });
+  expect(game?.variants).toEqual({ extensionKit: true });
+  expect(game?.state.variants).toEqual({ extensionKit: true });
+});
+
+test("replayByCode omits variants for a kit-off game — decodes kit-off same as an old, pre-kit code", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+  const code = await as.mutation(api.game.save, { id });
+  const bundle = await as.query(api.game.replayByCode, { code });
+  expect(bundle?.game.variants).toBeUndefined();
+  // The PII-shape test above pins the exact object for a kit-off game with no `variants` key
+  // present in a literal comparison — undefined here composes with that guarantee (toEqual ignores
+  // undefined-valued keys), so this stays additive rather than a re-assertion of that test.
+});
+
 test("replayByCode log replays to the stored final state", async () => {
   // RB-2-1 + RB-2-2: replay(seed, picks, actions) — last frame deep-equals the persisted state.
   const t = convexTest(schema, modules);

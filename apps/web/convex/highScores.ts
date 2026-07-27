@@ -47,6 +47,8 @@ export const save = mutation({
       state,
       createdAt: Date.now(),
       mode: "solo",
+      // Extension kit (SC-EXT-29): labels this entry so the leaderboard can show a kit tag.
+      extensionKit: state.variants?.extensionKit ?? undefined,
     });
   },
 });
@@ -70,6 +72,7 @@ export const list = query({
       outcome: r.outcome,
       party: r.party,
       createdAt: r.createdAt,
+      extensionKit: r.extensionKit ?? undefined,
     }));
   },
 });
@@ -146,6 +149,7 @@ export const log = query({
         color: game.color ?? null,
         status: game.status,
         createdAt: game.createdAt,
+        variants: game.variants ?? undefined, // extensionKit (SC-EXT-29) — undefined ⇒ kit-off
       },
       moves: rows.map((r) => ({ seq: r.seq, action: r.action, events: r.events })),
     };

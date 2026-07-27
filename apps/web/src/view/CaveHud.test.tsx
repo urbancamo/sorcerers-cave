@@ -20,6 +20,20 @@ describe("CaveHud — game-log button", () => {
   });
 });
 
+describe("CaveHud — extension kit chip (SC-EXT-29, design US-01)", () => {
+  it("shows an EXT chip when the game is a kit game", () => {
+    render(<CaveHud mountRef={ref()} kitActive />);
+    expect(screen.getByText("EXT")).toBeInTheDocument();
+  });
+
+  it("hides the EXT chip for a kit-off (or pre-kit) game", () => {
+    render(<CaveHud mountRef={ref()} />);
+    expect(screen.queryByText("EXT")).toBeNull();
+    render(<CaveHud mountRef={ref()} kitActive={false} />);
+    expect(screen.queryAllByText("EXT")).toHaveLength(0);
+  });
+});
+
 describe("CaveHud — game code chip", () => {
   it("shows the CODE box with the game's resume code when provided", () => {
     render(<CaveHud mountRef={ref()} code="ABCD" />);

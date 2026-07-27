@@ -72,6 +72,21 @@ describe("EncounterPanel", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
+  it("lists a kit stranger/treasure by name, not a crash (SC-EXT-29)", () => {
+    // A kit-on game's chamber can draw kit ids in `strangers`/`treasures` regardless of the
+    // starting party — the small pack is shared. Before the ALL_CREATURES/ALL_TREASURES fix this
+    // panel crashed (`CREATURES[16]`/`TREASURES[15]` are undefined in the base-only tables).
+    const s: GameState = {
+      ...newGame(1, [0], { extensionKit: true }),
+      phase: "encounter",
+      strangers: [16], // Lion (kit creature 16)
+      treasures: [15], // Elixir (kit treasure 15)
+    };
+    render(<EncounterPanel state={s} dispatch={() => {}} />);
+    expect(screen.getByText(/lion/i)).toBeInTheDocument();
+    expect(screen.getByText(/elixir/i)).toBeInTheDocument();
+  });
+
   it("offers the Medusa-pause choice as two plain buttons (throw the dust / proceed)", () => {
     const dispatch = vi.fn();
     const s: GameState = { ...newGame(1, [5, 6]), phase: "medusa", hazards: [3], medusaPause: { freshEntry: true } };

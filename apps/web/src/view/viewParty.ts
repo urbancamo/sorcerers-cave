@@ -1,4 +1,4 @@
-import { CREATURES, TREASURES, FLAG_CHARISMA, type GameState } from "@sorcerers-cave/engine";
+import { ALL_CREATURES, ALL_TREASURES, FLAG_CHARISMA, type GameState } from "@sorcerers-cave/engine";
 import { resolveCard, type CardArt } from "../data/manifest";
 import { memberLabels } from "../game/memberLabels";
 import type { ViewPartyMember } from "./cave3d";
@@ -18,13 +18,16 @@ export function viewParty(state: GameState, cards: CardArt[] = []): ViewPartyMem
     .filter(({ m }) => m.status !== 3)
     .sort((a, b) => Number(isAlive(b.m.status)) - Number(isAlive(a.m.status))) // alive first; stable otherwise
     .map(({ m, origIdx }, i) => {
-    const c = CREATURES[m.creatureId]!;
+    // ALL_CREATURES/ALL_TREASURES (not the base-only tables): a kit-on game's party/carried items
+    // can be kit ids (14-20 / 15-21, SC-EXT-2) the moment the roster first renders — the base
+    // tables don't cover them and would crash on frame 1 of any kit-on game (SC-EXT-29).
+    const c = ALL_CREATURES[m.creatureId]!;
     const items = m.treasure.map((tid) => {
-      const t = TREASURES[tid]!;
+      const t = ALL_TREASURES[tid]!;
       const art = resolveCard("treasure", tid, cards);
       return { name: t.name, file: art?.file ?? null, weight: t.weight, artifact: t.kind === "artifact" };
     });
-    const load = m.treasure.reduce((sum, tid) => sum + TREASURES[tid]!.weight, 0);
+    const load = m.treasure.reduce((sum, tid) => sum + ALL_TREASURES[tid]!.weight, 0);
     return {
       sig: c.name[0]!.toUpperCase(),
       name: c.name,               // plain creature name — kept stable for the desertion-diff (by name)

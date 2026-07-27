@@ -3,6 +3,7 @@ import { expect, test } from "vitest";
 import { api } from "./_generated/api";
 import schema from "./schema";
 import { packCoord, GS_ESCAPED } from "@sorcerers-cave/engine";
+import { asUser } from "./game.test";
 
 const modules = import.meta.glob("./**/*.*s");
 
@@ -85,4 +86,38 @@ test("log returns null for an unknown score id", async () => {
   const id = await seedScore(t);
   await t.run(async (ctx) => ctx.db.delete(id)); // valid id shape, no longer present
   expect(await t.query(api.highScores.log, { id })).toBeNull();
+});
+
+// ---------------------------------------------------------------------------
+// Extension kit (SC-EXT-29): a finished game's kit flag rides onto its leaderboard entry.
+// ---------------------------------------------------------------------------
+
+test("save records extensionKit from the finished game's state.variants", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 1, picks: [18, 20], variants: { extensionKit: true } }); // Witch + Wolf
+  await as.mutation(api.game.applyAction, { id, action: { type: "exitCave" } }); // escape at the gateway
+  const scoreId = await as.mutation(api.highScores.save, { gameId: id, name: "Kitter" });
+  const row = await t.run((ctx) => ctx.db.get(scoreId));
+  expect(row?.extensionKit).toBe(true);
+});
+
+test("a kit-off game's score has no extensionKit flag", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+  await as.mutation(api.game.applyAction, { id, action: { type: "exitCave" } });
+  const scoreId = await as.mutation(api.highScores.save, { gameId: id, name: "Plain" });
+  const row = await t.run((ctx) => ctx.db.get(scoreId));
+  expect(row?.extensionKit).toBeFalsy();
+});
+
+test("list surfaces extensionKit on each row", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 1, picks: [18, 20], variants: { extensionKit: true } });
+  await as.mutation(api.game.applyAction, { id, action: { type: "exitCave" } });
+  await as.mutation(api.highScores.save, { gameId: id, name: "Kitter" });
+  const rows = await t.query(api.highScores.list, {});
+  expect(rows.find((r) => r.name === "Kitter")?.extensionKit).toBe(true);
 });
