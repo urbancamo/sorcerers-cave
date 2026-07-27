@@ -3,17 +3,23 @@ import { CREATURES, FLAG_GUIDES_PAST_TRAP } from "./data/creatures";
 import { ALL_TREASURES } from "./data/treasures";
 import {
   HAZARD_MUTINY, HAZARD_TRAP, HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_DESERTION,
+  HAZARD_HARPIES, HAZARD_QUARREL, HAZARD_SPELL,
 } from "./data/hazards";
-import { AF_DESTROYED, type GameState, type PartyMember } from "./state";
+import { SPECIAL_GATEWAY } from "./data/areaCards";
+import { decodeArea } from "./decode";
+import { AF_DESTROYED, AF_UNRESOLVED, type GameState, type PartyMember } from "./state";
 import type { GameEvent } from "./actions";
-import { frontStrength } from "./combat";
+import { frontStrength, partyRollBonus } from "./combat";
 import { eyeForsakenByDeath, ringInvincible } from "./effects";
 import { spillCarried, sweepFallen } from "./loot";
+import { stashOrDeliver } from "./chamber";
 
 const T_TALISMAN = 7;
 const T_MAGIC_STAFF = 9;
+const T_EYE_OF_GOD = 13; // extension-kit theft target — Harpies stealing it forsakes the party (design Resolved-8, SC-EXT-15)
 const C_WIZARD = 8;
-const C_WOLF = 20; // extension-kit creature — immune to Desertion's rolls (design US-18, SC-EXT-14)
+const C_WOLF = 20; // extension-kit creature — immune to Desertion's rolls (design US-18, SC-EXT-14); also excluded from Quarrel (SC-EXT-16)
+const C_LION = 16; // extension-kit creature — excluded from Quarrel's picker (design US-15, SC-EXT-16)
 
 function living(state: GameState): PartyMember[] {
   return state.party.filter((m) => m.status === 0 || m.status === 1);
@@ -21,6 +27,12 @@ function living(state: GameState): PartyMember[] {
 
 function livingHolds(state: GameState, treasureId: number): boolean {
   return living(state).some((m) => m.treasure.includes(treasureId));
+}
+
+/** Any living member holds ANY artifact (kind==="artifact", base or kit, SC-EXT-2) — Harpies' park
+ *  condition is "the party has no artifacts" (design US-10, SC-EXT-15). */
+function livingHasArtifacts(state: GameState): boolean {
+  return living(state).some((m) => m.treasure.some((t) => ALL_TREASURES[t]?.kind === "artifact"));
 }
 
 /** A living Wizard bearing the Magic Staff — makes Medusa powerless over the whole party (card). */
@@ -32,15 +44,38 @@ export function hasStaffWizard(state: GameState): boolean {
 export function applyHazards(state: GameState): { events: GameEvent[]; fell: boolean } {
   const events: GameEvent[] = [];
   let fell = false;
-  // Extension kit (SC-EXT-14): Desertion is appended strictly AFTER Trap — a kit-off game's `hazards`
-  // working set can never contain id 5 (the base small pack has no such code), so this extension is
-  // a no-op for the base game (SC-EXT-1 byte-identity); when the kit is on and BOTH fire together,
-  // Desertion still resolves in this same pass, before the trap's fall is handled by the caller.
-  const order = [HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_MUTINY, HAZARD_TRAP, HAZARD_DESERTION];
+  // Extension kit (SC-EXT-14/15/16/28): Desertion, Harpies, Quarrel and Spell are appended strictly
+  // AFTER Trap, in that numeric order — a kit-off game's `hazards` working set can never contain ids
+  // 5-8 (the base small pack has no such codes), so this extension is a no-op for the base game
+  // (SC-EXT-1 byte-identity); when the kit is on and several fire together, they all resolve in this
+  // same pass, before the trap's fall is handled by the caller.
+  const order = [
+    HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_MUTINY, HAZARD_TRAP,
+    HAZARD_DESERTION, HAZARD_HARPIES, HAZARD_QUARREL, HAZARD_SPELL,
+  ];
+  // Harpies (SC-EXT-15) actually stole this pass — as opposed to parking — so it must NOT re-park
+  // below (design US-10 "After firing, the card leaves the game (no re-park)"), unlike Medusa/Ghouls
+  // which always lurk again whatever happened this visit. Set only inside the HAZARD_HARPIES switch
+  // case (never on the park-and-`continue` branch below), so it exactly tracks that distinction.
+  let harpiesFired = false;
 
   for (const hz of order) {
     if (!state.hazards.includes(hz)) continue;
     if (hz === HAZARD_GHOULS && livingHolds(state, T_TALISMAN)) { events.push({ type: "ghoulsWarded" }); continue; } // the Talisman wards off Ghouls (card)
+    // Harpies parks (lurk-style) instead of striking when the party has no artifacts to steal, or
+    // holds the Talisman (design US-10, SC-EXT-15) — checked, like Ghouls' ward above, BEFORE the
+    // generic `hazardFired` push, so a parked visit reports only its own dedicated notice.
+    if (hz === HAZARD_HARPIES && (!livingHasArtifacts(state) || livingHolds(state, T_TALISMAN))) {
+      events.push({ type: "harpiesLurk" });
+      continue;
+    }
+    // Quarrel needs two eligible combatants (living, non-Wolf, non-Lion) to have anyone to pair —
+    // design US-11's "if fewer than 2 eligible members: no effect" fizzle, narrated distinctly and
+    // skipping the generic `hazardFired` push, same shape as the checks above.
+    if (hz === HAZARD_QUARREL) {
+      const eligible = living(state).filter((m) => m.creatureId !== C_WOLF && m.creatureId !== C_LION);
+      if (eligible.length < 2) { events.push({ type: "quarrelFizzled" }); continue; }
+    }
     if (hz === HAZARD_MEDUSA) {
       const here = state.areas[state.partyArea];
       if (here?.medusaAsleepUntil !== undefined) {
@@ -171,15 +206,121 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         if (deserted.length > 0) state.party = state.party.filter((m) => !deserted.includes(m));
         break;
       }
+      case HAZARD_HARPIES: {
+        // Reaches here only when the park condition above did NOT fire (design US-10, SC-EXT-15):
+        // the party holds at least one artifact and no Talisman. Every living member's artifacts —
+        // "carried AND borne, from every member" — leave outright: filtered off `treasure`, and off
+        // `borne` too since a stolen Sword/Staff/Ring can't stay listed as borne once it's gone.
+        harpiesFired = true;
+        const stolen: number[] = [];
+        let eyeStolen = false;
+        for (const m of state.party) {
+          if (m.status !== 0 && m.status !== 1) continue;
+          const artifacts = m.treasure.filter((t) => ALL_TREASURES[t]?.kind === "artifact");
+          if (artifacts.length === 0) continue;
+          if (artifacts.includes(T_EYE_OF_GOD)) eyeStolen = true;
+          m.treasure = m.treasure.filter((t) => !artifacts.includes(t));
+          if (m.borne) m.borne = m.borne.filter((t) => !artifacts.includes(t));
+          stolen.push(...artifacts);
+        }
+        // The Eye of God carried off by Harpies is forsaken exactly like a slain bearer's (design
+        // Resolved-8) — `state.curses += 1`, the same mutation `eyeForsakenByDeath` makes — but NOT
+        // its `eyeForsaken` event: the design mandates this theft's own explicit wording ("The Eye
+        // of God is torn away — its curse descends upon you."), carried as `cursed` on `harpiesSteal`
+        // below rather than a second, wrongly-worded event.
+        const cursed = eyeStolen;
+        if (cursed) state.curses += 1;
+        // Lands on the Lair's floor if it's already placed, else queues in `harpyStash` until it is
+        // (SC-EXT-12); `stashOrDeliver` emits its own `lairStash` exactly when it delivers, which is
+        // how the presentation layer tells "toward their lair" from "a lair you have not yet found"
+        // apart (design US-10 Feedback) without a redundant field on this event.
+        stashOrDeliver(state, stolen, events);
+        events.push({ type: "harpiesSteal", treasureIds: stolen, cursed });
+        break;
+      }
+      case HAZARD_QUARREL: {
+        // The two highest EFFECTIVE fs living members (Wolf/Lion excluded, checked as a fizzle
+        // above) turn on each other for one round (design US-11, SC-EXT-16). `frontStrength` is the
+        // same "total combat strength" fights use — fs + dragon-kills + a caster's mp + Magic Sword
+        // bonus — so a Priest/Wizard's magic counts exactly as it would fighting a stranger. Ranking
+        // by a stable sort over roster order gives "ties by roster order" for free: `state.party`'s
+        // own order is preserved among equal-fs members.
+        const ranked = state.party
+          .filter((m) => (m.status === 0 || m.status === 1) && m.creatureId !== C_WOLF && m.creatureId !== C_LION)
+          .map((m) => ({ m, fs: frontStrength(m, state) }))
+          .sort((x, y) => y.fs - x.fs);
+        const a = ranked[0]!, b = ranked[1]!; // >= 2 guaranteed by the fizzle check above
+        const rollBonus = partyRollBonus(state); // Ring +1 / curse −1 — "the party's dice" (design build note)
+        const ra = rollDie(state.seed); state.seed = ra.seed;
+        const rb = rollDie(state.seed); state.seed = rb.seed;
+        const aTotal = a.fs + ra.value + rollBonus;
+        const bTotal = b.fs + rb.value + rollBonus;
+        const loser = aTotal < bTotal ? a : bTotal < aTotal ? b : null;
+        events.push({
+          type: "quarrel", aId: a.m.creatureId, bId: b.m.creatureId,
+          aRoll: ra.value, bRoll: rb.value, loserId: loser ? loser.m.creatureId : null,
+        });
+        if (loser) {
+          // Normal death (design "lower total dies"): CARRIED items spill to the floor, Balm-
+          // revivable — the Ring's usual immunity to a killing roll still applies (§ Ring).
+          if (ringInvincible(loser.m, state)) {
+            events.push({ type: "deathPrevented", creatureId: loser.m.creatureId });
+          } else {
+            const items = spillCarried(loser.m);
+            if (items.length) { state.treasures.push(...items); events.push({ type: "itemsSpilled", creatureId: loser.m.creatureId, items }); }
+            loser.m.status = 3;
+            // No `memberDied` here — the `quarrel` event above already carries its own dedicated
+            // Feedback wording ("[loser] falls to [winner]'s fury."); Ghouls sets the precedent for
+            // a hazard-specific death not doubling up on the generic notice.
+            events.push(...eyeForsakenByDeath(state, loser.m));
+          }
+        }
+        break;
+      }
+      case HAZARD_SPELL: {
+        // Fires once on draw (design US-22, SC-EXT-28): only an un-destroyed, non-gateway TUNNEL
+        // (not chamber) `prev` is eligible, and the large pack must have a card left to draw.
+        const prevArea = state.areas[state.prev];
+        const dec = prevArea ? decodeArea(prevArea.card) : undefined;
+        const eligible = !!prevArea && state.prev !== state.partyArea
+          && (prevArea.flags & AF_DESTROYED) === 0
+          && !!dec && !dec.chamber && dec.special !== SPECIAL_GATEWAY
+          && state.largeIdx < state.largePack.length;
+        if (!eligible) { events.push({ type: "spellRemap", fizzled: true }); break; }
+        // The old tunnel's card value splices into the middle of the REMAINING large pack (not the
+        // whole array — cards already drawn stay put), so it can turn up again as a later draw.
+        const oldValue = prevArea!.card;
+        const remaining = state.largePack.length - state.largeIdx;
+        const insertAt = state.largeIdx + Math.floor(remaining / 2);
+        state.largePack.splice(insertAt, 0, oldValue);
+        // The map cell is replaced by the NEXT card off the pack — a fresh `PlacedArea`, so the old
+        // tile's `secretDoor`/`mirroredStairs` history is gone (design), `visited:false` so its real
+        // first-visit resolution (a chamber draw, or just a tunnel) and any mirrored-stair treatment
+        // happen normally the next time `tryMove`/`resolveArea` actually lands there — `AF_UNRESOLVED`
+        // only tells the renderer to show it face-down until then.
+        const drawn = state.largePack[state.largeIdx]!;
+        state.largeIdx += 1;
+        state.areas[state.prev] = {
+          card: drawn, coord: prevArea!.coord, faceUp: true, visited: false,
+          contents: [], flags: AF_UNRESOLVED, indiffCount: 0,
+        };
+        events.push({ type: "spellRemap", fizzled: false });
+        break;
+      }
     }
   }
   // Medusa & Ghouls LURK in the chamber — re-parked into the area's contents so they reload and fire
   // again on every re-entry (§Medusa, §Ghouls). (Earthquake's scar is laid on the tile it collapsed,
-  // handled in its case above.)
+  // handled in its case above.) Harpies joins this LURK set (design US-10, SC-EXT-15) only for a
+  // visit that PARKED rather than fired — `harpiesFired` is true only when it actually struck, and
+  // the design is explicit that a struck Harpies card "leaves the game (no re-park)".
   const here = state.areas[state.partyArea];
   if (here) {
     for (const hz of state.hazards) {
       if ((hz === HAZARD_MEDUSA || hz === HAZARD_GHOULS) && !here.contents.includes(300 + hz)) {
+        here.contents.push(300 + hz);
+      }
+      if (hz === HAZARD_HARPIES && !harpiesFired && !here.contents.includes(300 + hz)) {
         here.contents.push(300 + hz);
       }
     }

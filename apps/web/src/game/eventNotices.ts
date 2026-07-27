@@ -1,6 +1,7 @@
 import {
   CREATURES, ALL_TREASURES,
   HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_MUTINY, HAZARD_TRAP, HAZARD_DESERTION,
+  HAZARD_HARPIES, HAZARD_QUARREL, HAZARD_SPELL,
   SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_WHIRLPOOL,
   DIR_DOWN,
   type GameEvent,
@@ -35,6 +36,9 @@ function hazardNotice(hz: number): Notice | null {
     case HAZARD_MUTINY: return null; // see the `mutinied` event
     case HAZARD_TRAP: return null;   // see trapSprung / trapAvoided (confirm modal)
     case HAZARD_DESERTION: return null; // see the per-ally `desertionRoll` / `wolfUnmoved` events
+    case HAZARD_HARPIES: return null; // see `harpiesSteal` / `harpiesLurk`
+    case HAZARD_QUARREL: return null; // see the `quarrel` event
+    case HAZARD_SPELL: return null; // see `spellRemap` (covers both the remap and the fizzle)
     default: return { text: "A hazard strikes!", tone: "bad" };
   }
 }
@@ -263,6 +267,40 @@ export function eventNotices(events: GameEvent[]): Notice[] {
         break;
       case "wolfUnmoved":
         out.push({ text: "The Wolf is unmoved.", tone: "neutral" });
+        break;
+      case "harpiesSteal": {
+        // "Toward their lair" vs "toward a lair you have not yet found" (design US-10 Feedback)
+        // turns on whether the Lair is already on the map — inferred from a companion `lairStash`
+        // in this SAME batch (`stashOrDeliver`, chamber.ts, emits it exactly when it delivers
+        // straight to a placed Lair) rather than a redundant field on this event.
+        const lairKnown = events.some((ev) => ev.type === "lairStash");
+        out.push({
+          text: `Harpies swoop! They snatch ${itemList(e.treasureIds)} and wheel away toward ${lairKnown ? "their lair" : "a lair you have not yet found"}.`,
+          tone: "bad",
+        });
+        if (e.cursed) out.push({ text: "The Eye of God is torn away — its curse descends upon you.", tone: "bad" });
+        break;
+      }
+      case "harpiesLurk":
+        out.push({ text: "Harpies circle overhead, eyeing your baggage.", tone: "neutral" });
+        break;
+      case "quarrel":
+        out.push({ text: `Tempers flare — ${name(e.aId)} and ${name(e.bId)} come to blows!`, tone: "neutral" });
+        out.push(
+          e.loserId !== null
+            ? { text: `${name(e.loserId)} falls to ${name(e.loserId === e.aId ? e.bId : e.aId)}'s fury.`, tone: "bad" }
+            : { text: "They are pulled apart, fuming but unhurt.", tone: "good" },
+        );
+        break;
+      case "quarrelFizzled":
+        out.push({ text: "Tempers flare, but there's no one left to settle it with — the moment passes.", tone: "neutral" });
+        break;
+      case "spellRemap":
+        out.push(
+          e.fizzled
+            ? { text: "A spell crackles through the cave… and finds nothing to grip.", tone: "neutral" }
+            : { text: "A spell takes hold — the tunnel behind you folds in on itself and is elsewhere. Its secret doors are gone.", tone: "bad" },
+        );
         break;
       default:
         assertNever(e);

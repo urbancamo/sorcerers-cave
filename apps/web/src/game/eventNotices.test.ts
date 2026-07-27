@@ -221,6 +221,51 @@ describe("eventNotices", () => {
     expect(eventNotices([]).some((n) => n.text === "The party holds together.")).toBe(false);
   });
 
+  it("reports Harpies' theft (with lair-known wording), its park lurk, and the Eye-of-God curse line (US-10)", () => {
+    const stolenUnknownLair = eventNotices([{ type: "harpiesSteal", treasureIds: [3], cursed: false }]);
+    expect(stolenUnknownLair[0]!.text).toMatch(/harpies swoop/i);
+    expect(stolenUnknownLair[0]!.text).toMatch(/lair you have not yet found/i);
+    expect(stolenUnknownLair).toHaveLength(1); // no curse line when nothing cursed
+
+    // A companion lairStash in the SAME batch (chamber.ts's stashOrDeliver) means the Lair is
+    // already on the map — the wording switches accordingly (design US-10 Feedback).
+    const stolenKnownLair = eventNotices([
+      { type: "harpiesSteal", treasureIds: [3], cursed: false },
+      { type: "lairStash", treasureIds: [3] },
+    ]);
+    expect(stolenKnownLair[0]!.text).toMatch(/toward their lair/i);
+    expect(stolenKnownLair[0]!.text).not.toMatch(/have not yet found/i);
+
+    const cursed = eventNotices([{ type: "harpiesSteal", treasureIds: [13], cursed: true }]);
+    expect(cursed.some((n) => n.text === "The Eye of God is torn away — its curse descends upon you.")).toBe(true);
+
+    const lurk = eventNotices([{ type: "harpiesLurk" }]);
+    expect(lurk[0]!.text).toBe("Harpies circle overhead, eyeing your baggage.");
+  });
+
+  it("reports Quarrel's duel, its loser/tie outcomes, and its too-few-combatants fizzle (US-11)", () => {
+    const duel = eventNotices([{ type: "quarrel", aId: 0, bId: 5, aRoll: 2, bRoll: 5, loserId: 0 }]);
+    expect(duel[0]!.text).toMatch(/tempers flare/i);
+    expect(duel[1]!.text).toMatch(/falls to/i);
+    expect(duel[1]!.tone).toBe("bad");
+
+    const tie = eventNotices([{ type: "quarrel", aId: 0, bId: 5, aRoll: 4, bRoll: 4, loserId: null }]);
+    expect(tie[1]!.text).toBe("They are pulled apart, fuming but unhurt.");
+    expect(tie[1]!.tone).toBe("good");
+
+    const fizzled = eventNotices([{ type: "quarrelFizzled" }]);
+    expect(fizzled).toHaveLength(1);
+    expect(fizzled[0]!.tone).toBe("neutral");
+  });
+
+  it("reports the Spell's remap and its fizzle verbatim (US-22)", () => {
+    const remapped = eventNotices([{ type: "spellRemap", fizzled: false }]);
+    expect(remapped[0]!.text).toBe("A spell takes hold — the tunnel behind you folds in on itself and is elsewhere. Its secret doors are gone.");
+
+    const fizzled = eventNotices([{ type: "spellRemap", fizzled: true }]);
+    expect(fizzled[0]!.text).toBe("A spell crackles through the cave… and finds nothing to grip.");
+  });
+
   it("noticeTone prefers bad, then good, then neutral", () => {
     expect(noticeTone([{ text: "", tone: "neutral" }, { text: "", tone: "good" }, { text: "", tone: "bad" }])).toBe("bad");
     expect(noticeTone([{ text: "", tone: "neutral" }, { text: "", tone: "good" }])).toBe("good");

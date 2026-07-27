@@ -159,4 +159,32 @@ export type GameEvent =
   | { type: "desertionRoll"; creatureId: number; roll: number; deserted: boolean; items: number[] }
   // Extension kit (SC-EXT-14, design US-18): a Wolf ally was skipped by Desertion's rolls — immune,
   // with its own visible notice ("The Wolf is unmoved.") so the immunity is seen, not silent.
-  | { type: "wolfUnmoved" };
+  | { type: "wolfUnmoved" }
+  // Extension kit (SC-EXT-15): Harpies actually struck (design US-10) — every living member's
+  // artifacts (borne AND carried alike) are gone. `treasureIds` is the full stolen list (never
+  // empty — this only fires when the party DOES hold artifacts, the mirror image of the park
+  // condition below); `cursed` is true when the Eye of God (13) was among them, invoking the
+  // forsaken curse (`state.curses += 1`, design Resolved-8) — carried on this event, rather than
+  // the base game's `eyeForsaken`, because the design mandates its OWN wording here ("The Eye of
+  // God is torn away — its curse descends upon you."), distinct from a bearer's death.
+  | { type: "harpiesSteal"; treasureIds: number[]; cursed: boolean }
+  // Extension kit (SC-EXT-15): Harpies parked instead of striking — the party holds no artifacts,
+  // or holds the Talisman (design US-10). The card keeps lurking in the area (Medusa/Ghouls
+  // pattern, hazards.ts) and re-checks on every re-entry.
+  | { type: "harpiesLurk" }
+  // Extension kit (SC-EXT-16): Quarrel's one-round mini-fight (design US-11) between the two
+  // highest effective-fs living members (Wolf 20 / Lion 16 excluded; ties by roster order). Both
+  // dice are always shown, win or tie. `aId`/`bId`/`loserId` are creature ids, not party indices —
+  // the loser's own death never removes them from `party` (status flips to 3, same as any other
+  // death), so an index would stay valid too, but creature id keeps this event self-describing and
+  // consistent with `bellRoll`/`desertionRoll`'s convention. `loserId` is null on a tie (no harm).
+  | { type: "quarrel"; aId: number; bId: number; aRoll: number; bRoll: number; loserId: number | null }
+  // Extension kit (SC-EXT-16): Quarrel drew but found fewer than two eligible combatants (Wolf/Lion
+  // excluded, dead/stone members ineligible) — it fizzles with no roll and no effect.
+  | { type: "quarrelFizzled" }
+  // Extension kit (SC-EXT-28): the Spell hazard's remap-on-draw (design US-22). `fizzled` is true
+  // when `prev` wasn't an eligible un-destroyed, non-gateway tunnel (chamber/gateway/collapsed/no
+  // prev) or the large pack was empty — no state change. False means `prev`'s card value was
+  // spliced back into the remaining large pack and the area replaced with a freshly-drawn,
+  // `AF_UNRESOLVED` (face-down) card, mirrored-stairs/secret-door history gone.
+  | { type: "spellRemap"; fizzled: boolean };

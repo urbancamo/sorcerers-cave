@@ -13,6 +13,14 @@ export const AF_DESTROYED = 4; // collapsed by an earthquake — removed from pl
 // Extension kit (SC-EXT-8): the Bell Rope on this area has been pulled — once per tile ever, so the
 // `pullBellRope` action is never offered again here, on this visit or any later one (design US-03).
 export const AF_BELL_SPENT = 8;
+// Extension kit (SC-EXT-28): this area holds a card the Spell hazard remapped in — a freshly-drawn
+// value swapped in for the tunnel the party just left, not yet stepped on (design US-22). Marks the
+// area for the renderer to show face-down until then; carries no engine meaning of its own (the
+// replaced area's `visited:false` already gates its OWN real first-visit resolution — chamber draw,
+// mirrored-stair treatment on entry — through the ordinary `tryMove`/`resolveArea` path). Cleared the
+// moment the party's `resolveArea` next lands on this area (whether that resolves it as a tunnel or a
+// chamber) — see reduce.ts.
+export const AF_UNRESOLVED = 16;
 
 // Interactive mode: which controls the UI shows and which actions reduce accepts.
 // Milestone B uses only "explore" and "gameOver"; "encounter"/"fight"/"pickup" arrive in C.

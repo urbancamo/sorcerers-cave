@@ -1,4 +1,4 @@
-import { GS_PLAYING, GS_QUIT, GS_ESCAPED, GS_DEAD, AF_DESTROYED, AF_BELL_SPENT, type GameState, type PartyMember } from "./state";
+import { GS_PLAYING, GS_QUIT, GS_ESCAPED, GS_DEAD, AF_DESTROYED, AF_BELL_SPENT, AF_UNRESOLVED, type GameState, type PartyMember } from "./state";
 import { tryMove } from "./map";
 import { decodeArea } from "./decode";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WHIRLPOOL, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
@@ -258,6 +258,10 @@ function resumeFromMedusaPause(state: GameState): GameEvent[] {
 /** Resolve the area just entered: special markers, then chamber draw + hazards + phase (spec §4/§7). */
 function resolveArea(state: GameState): GameEvent[] {
   const events: GameEvent[] = [{ type: "moved", area: state.partyArea, level: state.level }];
+  // Reveal a Spell-remapped area (design US-22, SC-EXT-28) the moment it's genuinely re-entered —
+  // every landing path here funnels through `resolveArea` except `withdraw` (known gap, task report).
+  const landed = state.areas[state.partyArea]!;
+  if ((landed.flags & AF_UNRESOLVED) !== 0) landed.flags &= ~AF_UNRESOLVED;
   // Returning to a chamber with our petrified members + a Wizard's Magic Staff frees them on arrival.
   events.push(...reviveStoned(state));
   events.push(...resolveAreaLoop(state));
