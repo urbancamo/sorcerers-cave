@@ -94,7 +94,6 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "fightStarted": // FightSurface's surprise banner reads state.fight.surprise directly
       case "combatRoll": // rollView.combatView's party-vs-enemy dice overlay
       case "fightWon": // folded into combatView's "Victory" message
-      case "strangerKilled": // folded into combatView's "N foe(s) down" message
       case "casualtyChosen": // rollView.casualtyView's single-die overlay
       case "chestOpened": // rollView.chestView's single-die overlay
       case "rubyTaken": // folded into combatView's "guardian statue" overlay message
@@ -103,6 +102,12 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "viperPit": // rollView.viperView's die-per-member overlay (see `hasViper` above)
       case "trapSprung": // the move-result trap indicator / confirm modal
       case "trapAvoided": // the move-result trap indicator / confirm modal
+        break;
+      case "strangerKilled":
+        // Folded into combatView's "N foe(s) down" message for every ordinary foe — EXCEPT the
+        // Demon (creature 15), which gets its own design-verbatim kill line (US-13 Feedback:
+        // "The Demon collapses into ash.") the generic dice overlay doesn't carry.
+        if (e.creatureId === 15) out.push({ text: "The Demon collapses into ash.", tone: "good" });
         break;
       case "crossedSpecial":
         // The Viper Pit crossing is shown by its dice overlay; only the Deep Pool needs a notice.

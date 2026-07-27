@@ -323,6 +323,15 @@ describe("eventNotices", () => {
     expect(slew.tone).toBe("bad");
   });
 
+  it("reports the Demon's own kill line verbatim, but stays silent for an ordinary stranger (fix round, US-13)", () => {
+    const demonKilled = eventNotices([{ type: "strangerKilled", creatureId: 15 }]);
+    expect(demonKilled).toHaveLength(1);
+    expect(demonKilled[0]!.text).toBe("The Demon collapses into ash.");
+
+    // An ordinary foe (e.g. a Troll) stays folded into combatView's generic "N foe(s) down".
+    expect(eventNotices([{ type: "strangerKilled", creatureId: 3 }])).toHaveLength(0);
+  });
+
   it("noticeTone prefers bad, then good, then neutral", () => {
     expect(noticeTone([{ text: "", tone: "neutral" }, { text: "", tone: "good" }, { text: "", tone: "bad" }])).toBe("bad");
     expect(noticeTone([{ text: "", tone: "neutral" }, { text: "", tone: "good" }])).toBe("good");

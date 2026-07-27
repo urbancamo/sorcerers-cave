@@ -4,7 +4,7 @@ import { reactionRoll } from "./reaction";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import { makeState } from "./testkit";
 import { packCoord } from "./coords";
-import { SPECIAL_GALLERY } from "./data/areaCards";
+import { SPECIAL_GALLERY, SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT } from "./data/areaCards";
 import { AF_DESTROYED, GS_PLAYING, GS_ESCAPED, type GameState, type PartyMember, type BattlePlan } from "./state";
 import type { GameEvent } from "./actions";
 
@@ -250,6 +250,61 @@ describe("Entering (or withdrawing into) the Demon's area forces an ambush (US-1
     expect(state.phase).toBe("fight");
     expect(state.strangers).toEqual([DEMON]);
     expect(events).toContainEqual({ type: "demonUnfolds" });
+  });
+
+  it("forces the SAME ambush entering a Deep Pool tile holding a parked Demon (fix round)", () => {
+    // Deep Pool/Viper Pit branches return BEFORE the generic tunnel branch's demon pull-in — a
+    // Demon parked on one of these specific tile types (e.g. materialized behind a pool the party
+    // crossed) must still ambush on ordinary entry, exactly like a tunnel or chamber.
+    const DEEP_POOL_CARD = (SPECIAL_DEEP_POOL << 7) | 31;
+    const s = demonState({
+      party: [member(HERO)],
+      areas: [
+        { card: START_CARD, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+        { card: DEEP_POOL_CARD, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents: [100 + DEMON], flags: 0, indiffCount: 0 },
+      ],
+    });
+    const { state, events } = reduce(s, { type: "move", dir: DIR_E });
+
+    expect(state.phase).toBe("fight");
+    expect(state.strangers).toEqual([DEMON]);
+    expect(events).toContainEqual({ type: "demonUnfolds" });
+    // The ambush supersedes the pool's own entry telegraph — no "enteredSpecial" for this visit.
+    expect(events.some((e) => e.type === "enteredSpecial")).toBe(false);
+  });
+
+  it("forces the SAME ambush entering a Viper Pit tile holding a parked Demon (fix round)", () => {
+    const VIPER_PIT_CARD = (SPECIAL_VIPER_PIT << 7) | 31;
+    const s = demonState({
+      party: [member(HERO)],
+      areas: [
+        { card: START_CARD, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+        { card: VIPER_PIT_CARD, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents: [100 + DEMON], flags: 0, indiffCount: 0 },
+      ],
+    });
+    const { state, events } = reduce(s, { type: "move", dir: DIR_E });
+
+    expect(state.phase).toBe("fight");
+    expect(state.strangers).toEqual([DEMON]);
+    expect(events).toContainEqual({ type: "demonUnfolds" });
+    expect(events.some((e) => e.type === "enteredSpecial")).toBe(false);
+  });
+
+  it("the Deep Pool behaves normally again once the Demon there is gone (fix round)", () => {
+    // No parked marker (the demon was already killed in an earlier visit) — an ordinary entry.
+    const DEEP_POOL_CARD = (SPECIAL_DEEP_POOL << 7) | 31;
+    const s = demonState({
+      party: [member(HERO)],
+      areas: [
+        { card: START_CARD, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+        { card: DEEP_POOL_CARD, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+      ],
+    });
+    const { state, events } = reduce(s, { type: "move", dir: DIR_E });
+
+    expect(state.phase).toBe("explore");
+    expect(state.strangers).toEqual([]);
+    expect(events).toContainEqual({ type: "enteredSpecial", special: SPECIAL_DEEP_POOL });
   });
 
   it("forces the ambush when the party WITHDRAWS back into a Demon-holding area", () => {

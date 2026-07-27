@@ -1,4 +1,4 @@
-import { GS_PLAYING, GS_QUIT, GS_ESCAPED, GS_DEAD, AF_DESTROYED, AF_BELL_SPENT, AF_UNRESOLVED, type GameState, type PartyMember } from "./state";
+import { GS_PLAYING, GS_QUIT, GS_ESCAPED, GS_DEAD, AF_DESTROYED, AF_BELL_SPENT, AF_UNRESOLVED, type GameState, type PartyMember, type PlacedArea } from "./state";
 import { tryMove } from "./map";
 import { decodeArea } from "./decode";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WHIRLPOOL, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
@@ -156,6 +156,23 @@ function ambushIfDemon(state: GameState, events: GameEvent[]): boolean {
   if (!state.strangers.includes(C_DEMON)) return false;
   events.push({ type: "demonUnfolds" });
   events.push(...startFight(state, -1));
+  return true;
+}
+
+/** Extension kit (SC-EXT-21, fix round): pull a Demon marker parked on `area`'s own persisted
+ *  `contents` (by an earlier draw made elsewhere, design US-13) into the LIVE `state.strangers`
+ *  working set, for every entry path that never runs `enterChamber`'s own reload cycle — a plain
+ *  tunnel/Gateway, or a Deep Pool/Viper Pit special (both return from `resolveAreaLoop` before
+ *  ever reaching the generic tunnel branch, so each needs this same pull-in at its own entry
+ *  point). Mutates `area.contents` and `state.strangers`; returns true when one was found, so the
+ *  caller can immediately follow with `ambushIfDemon` (entry-ambush fires BEFORE any of the
+ *  special's own crossing/pool logic — that logic only ever runs when the party later LEAVES,
+ *  which can't happen until they've survived arriving). */
+function pullParkedDemon(state: GameState, area: PlacedArea): boolean {
+  const demonIdx = area.contents.indexOf(100 + C_DEMON);
+  if (demonIdx < 0) return false;
+  area.contents.splice(demonIdx, 1);
+  state.strangers = [C_DEMON];
   return true;
 }
 
@@ -345,6 +362,12 @@ function resolveAreaLoop(state: GameState): GameEvent[] {
     const dec = decodeArea(state.areas[state.partyArea]!.card);
     if (dec.special === SPECIAL_DEEP_POOL) {
       const area = state.areas[state.partyArea]!;
+      // Extension kit (SC-EXT-21, fix round): a Demon may be lurking here even though Deep Pool
+      // is a non-chamber special that returns before the generic tunnel branch below — pull a
+      // parked marker in and ambush FIRST, ahead of the pool's own treasure-reclaim/telegraph
+      // logic (that logic only matters once the party has survived arriving; the pool's own
+      // CROSSING effects, elsewhere, only fire when the party later LEAVES by a fresh doorway).
+      if (pullParkedDemon(state, area)) { ambushIfDemon(state, events); return events; }
       // Treasure cast into a Deep Pool is recoverable only by a Giant (§Deep Pool). Reclaim it into a
       // Giant-only pickup only when a living Giant has the spare capacity to lift some of it; otherwise
       // it stays sunk in the pool for a future visit.
@@ -360,6 +383,9 @@ function resolveAreaLoop(state: GameState): GameEvent[] {
       return events;
     }
     if (dec.special === SPECIAL_VIPER_PIT) {
+      // Extension kit (SC-EXT-21, fix round): same Demon pull-in as Deep Pool above — the Viper
+      // Pit is likewise a non-chamber special that returns before the generic tunnel branch.
+      if (pullParkedDemon(state, state.areas[state.partyArea]!)) { ambushIfDemon(state, events); return events; }
       events.push({ type: "enteredSpecial", special: dec.special });
       state.phase = "explore";
       return events;
@@ -380,13 +406,7 @@ function resolveAreaLoop(state: GameState): GameEvent[] {
       // elsewhere, design US-13) even though this tile is an ordinary tunnel/Gateway, which never
       // runs `enterChamber`'s reload cycle — pull it into the live working set here so the ambush
       // still fires (a tunnel can never otherwise hold a "stranger").
-      const demonIdx = area.contents.indexOf(100 + C_DEMON);
-      if (demonIdx >= 0) {
-        area.contents.splice(demonIdx, 1);
-        state.strangers = [C_DEMON];
-        ambushIfDemon(state, events); // always true here
-        return events;
-      }
+      if (pullParkedDemon(state, area)) { ambushIfDemon(state, events); return events; }
       const floor = area.contents.filter((c) => c >= 200 && c < 300);
       if (floor.length > 0) {
         state.treasures = floor.map((c) => c - 200);
@@ -608,12 +628,7 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       // Extension kit (SC-EXT-21): a Demon may be lurking in the area withdrawn INTO — parked by a
       // draw made elsewhere while the party was away (design US-13's "or withdrawing into") — pull
       // it in and force the ambush instead of a quiet return to `explore`.
-      const destArea = next.areas[next.partyArea]!;
-      const demonIdx = destArea.contents.indexOf(100 + C_DEMON);
-      if (demonIdx >= 0) {
-        destArea.contents.splice(demonIdx, 1);
-        next.strangers = [C_DEMON];
-      }
+      pullParkedDemon(next, next.areas[next.partyArea]!);
       if (!ambushIfDemon(next, events)) next.phase = "explore";
       return { state: next, events };
     }
