@@ -305,6 +305,24 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "thiefPalmed":
         out.push({ text: `The Thief palms the ${treasureName(e.tid)}.`, tone: "good" });
         break;
+      case "apprenticeTurned":
+        out.push({ text: "The Apprentice's eyes go cold.", tone: "bad" });
+        break;
+      case "apprenticeStaysBehind":
+        out.push({ text: "The Apprentice melts back into the dark.", tone: "neutral" });
+        break;
+      case "demonSpawned":
+        out.push({ text: "Something vast and wrong now waits on your back-trail.", tone: "bad" });
+        break;
+      case "demonDispersed":
+        out.push({ text: "The Demon claws at fallen rock, finds no purchase in the ruined dark, and disperses.", tone: "neutral" });
+        break;
+      case "demonUnfolds":
+        out.push({ text: "The Demon unfolds from the shadows.", tone: "bad" });
+        break;
+      case "demonSlew":
+        out.push({ text: `The Demon's malice claims ${name(e.creatureId)}!`, tone: "bad" });
+        break;
       default:
         assertNever(e);
         break;

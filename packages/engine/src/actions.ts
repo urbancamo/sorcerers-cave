@@ -197,4 +197,26 @@ export type GameEvent =
   // (`state.thiefPickup`, reduce.ts's `settlePacifiedArea`) — treasure an indifference-pacified
   // area's strangers would otherwise still guard. `tid` is the lifted treasure id (design Feedback:
   // "The Thief palms the [item]."); fires once per successful lift, never for an ordinary pickup.
-  | { type: "thiefPalmed"; tid: number };
+  | { type: "thiefPalmed"; tid: number }
+  // Extension kit (SC-EXT-20, design US-14/Resolved-7): the Sorcerer's death instantly breaks
+  // every Apprentice ally's loyalty — `count` how many turned (normally one), `items` the pooled
+  // treasure ids dropped into the chamber floor (`revertApprenticesOnSorcererDeath`, effects.ts).
+  | { type: "apprenticeTurned"; count: number; items: number[] }
+  // Extension kit (SC-EXT-20, design US-14): an Apprentice ally never leaves the cave — a
+  // successful `exitCave` drops her from the scored party (`count`, normally one) rather than
+  // let her escape with the rest.
+  | { type: "apprenticeStaysBehind"; count: number }
+  // Extension kit (SC-EXT-21, design US-13/Resolved-6): a freshly-drawn Demon materializes into
+  // `prev`'s contents instead of joining the chamber it was drawn in (`spawnDemon`, chamber.ts).
+  | { type: "demonSpawned" }
+  // Extension kit (SC-EXT-21): the area the Demon would have materialized into was collapsed by
+  // an Earthquake (`AF_DESTROYED`) — it can't take form there and disperses outright, no state
+  // change beyond this notice (design US-13/Resolved-6).
+  | { type: "demonDispersed" }
+  // Extension kit (SC-EXT-21): the party has (re-)entered — or withdrawn back into — the Demon's
+  // area: a forced hostile encounter, no reaction test, "like always-hostile" (design US-13).
+  | { type: "demonUnfolds" }
+  // Extension kit (SC-EXT-21): an unfightable, unengaged Demon follows the Spectre's own
+  // auto-slay rule (Resolved-6) — `creatureId` is the slain PARTY member (mirrors `spectreSlew`'s
+  // own field, a separate event only because the design's flavour text is Demon-specific).
+  | { type: "demonSlew"; creatureId: number };

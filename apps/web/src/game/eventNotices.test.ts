@@ -299,6 +299,30 @@ describe("eventNotices", () => {
     expect(lifted.tone).toBe("good");
   });
 
+  it("reports the Apprentice's Sorcerer-death revert and exit-cave desertion verbatim (US-14)", () => {
+    const turned = eventNotices([{ type: "apprenticeTurned", count: 1, items: [] }])[0]!;
+    expect(turned.text).toBe("The Apprentice's eyes go cold.");
+    expect(turned.tone).toBe("bad");
+
+    const staying = eventNotices([{ type: "apprenticeStaysBehind", count: 1 }])[0]!;
+    expect(staying.text).toBe("The Apprentice melts back into the dark.");
+  });
+
+  it("reports the Demon's spawn/disperse/ambush notices verbatim (US-13)", () => {
+    const spawned = eventNotices([{ type: "demonSpawned" }])[0]!;
+    expect(spawned.text).toBe("Something vast and wrong now waits on your back-trail.");
+
+    const dispersed = eventNotices([{ type: "demonDispersed" }])[0]!;
+    expect(dispersed.text).toBe("The Demon claws at fallen rock, finds no purchase in the ruined dark, and disperses.");
+
+    const unfolds = eventNotices([{ type: "demonUnfolds" }])[0]!;
+    expect(unfolds.text).toBe("The Demon unfolds from the shadows.");
+
+    const slew = eventNotices([{ type: "demonSlew", creatureId: 0 }])[0]!;
+    expect(slew.text).toMatch(/Demon/);
+    expect(slew.tone).toBe("bad");
+  });
+
   it("noticeTone prefers bad, then good, then neutral", () => {
     expect(noticeTone([{ text: "", tone: "neutral" }, { text: "", tone: "good" }, { text: "", tone: "bad" }])).toBe("bad");
     expect(noticeTone([{ text: "", tone: "neutral" }, { text: "", tone: "good" }])).toBe("good");

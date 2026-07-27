@@ -1,6 +1,6 @@
 import { decodeArea } from "./decode";
 import { SPECIAL_TOMB, SPECIAL_GREAT_HALL, SPECIAL_LAIR, SPECIAL_GALLERY } from "./data/areaCards";
-import type { GameState } from "./state";
+import { AF_DESTROYED, type GameState } from "./state";
 import type { GameEvent } from "./actions";
 
 const MAX_STRANGERS = 8;
@@ -11,11 +11,17 @@ const MAX_HAZARDS = 4;
 // crypt (`state.cryptCoord`) instead of lying on the floor; see `classify` below.
 const T_CRYPT = 21;
 
+// Extension kit (SC-EXT-21): the Demon (creature 15) never joins ANY chamber it's drawn in — see
+// `spawnDemon` below. It is intercepted before the Gallery check even runs, so it no longer needs
+// (or belongs in) the Gallery's own exemption list.
+const C_DEMON = 15;
+
 // Extension kit (SC-EXT-10): creatures the Gallery does NOT petrify on the draw — the Sorcerer and
-// Spectre arrive un-petrified with standard interaction, and so does the Demon (design US-06,
-// Resolved-14) — though the Demon's OWN draw-relocation behaviour (US-13) is not implemented yet
-// (that's Task 11); for now a Demon drawn here is simply exempt like any other, with no relocation.
-const GALLERY_EXEMPT_CREATURES = [9, 11, 15]; // Spectre, Sorcerer, Demon
+// Spectre arrive un-petrified with standard interaction (design US-06, Resolved-14). The Demon
+// USED to be listed here too (arriving exempt but un-relocated); it now never reaches this check
+// at all — Task 11 closes that seam by intercepting it in `classify`, below, before the Gallery
+// branch (SC-EXT-21).
+const GALLERY_EXEMPT_CREATURES = [9, 11]; // Spectre, Sorcerer
 
 /** Load an already-classified code straight into its working-set bucket — no draw-time transforms.
  *  Used to reload PERSISTED/parked contents (a revisit, or a stash just spilled onto the Lair):
@@ -41,13 +47,39 @@ function reload(state: GameState, code: number): void {
 }
 
 /**
- * Classify a code freshly drawn from the small pack (a genuinely NEW arrival) into the chamber
- * working set. Identical to `reload` for every code EXCEPT a creature (100-199) drawn in a Gallery
- * (`SPECIAL_GALLERY`, design US-06): every such arrival is stone on sight — a scenery statue
- * (500+id, `state.statues`) — except the Sorcerer/Spectre/Demon, who arrive un-petrified with
- * standard interaction (Resolved-14). This distinction applies ONLY at draw time (see `reload`).
+ * Extension kit (SC-EXT-21, design US-13/Resolved-6): a freshly-drawn Demon never joins the
+ * chamber it was drawn in — it materializes as a hostile lurker in the area the party just LEFT
+ * (`prev`), parked as an ordinary `100+id` content code so it surfaces normally the next time
+ * that area is (re-)entered or withdrawn into (`reduce.ts`'s `ambushIfDemon` then forces the
+ * fight — no reaction test). An earthquake-collapsed `prev` can't host it: it "claws at fallen
+ * rock… and disperses" — discarded outright, no state change beyond the notice. `state.prev` is
+ * always a valid area index from `newGame` onward (it starts equal to the party's own position,
+ * the Gateway, before any move has happened) — the design's "materialize in the current area"
+ * fallback for a missing `prev` is therefore purely defensive and not actually reachable in play.
  */
-function classify(state: GameState, code: number): void {
+function spawnDemon(state: GameState, events: GameEvent[]): void {
+  const target = state.areas[state.prev] ?? state.areas[state.partyArea]!;
+  if ((target.flags & AF_DESTROYED) !== 0) {
+    events.push({ type: "demonDispersed" });
+    return;
+  }
+  target.contents.push(100 + C_DEMON);
+  events.push({ type: "demonSpawned" });
+}
+
+/**
+ * Classify a code freshly drawn from the small pack (a genuinely NEW arrival) into the chamber
+ * working set. Identical to `reload` for every code EXCEPT: a Demon (100+15, SC-EXT-21), which
+ * never joins ANY chamber — see `spawnDemon` above; and an ordinary creature (100-199) drawn in a
+ * Gallery (`SPECIAL_GALLERY`, design US-06), which is stone on sight — a scenery statue (500+id,
+ * `state.statues`) — except the Sorcerer/Spectre, who arrive un-petrified with standard
+ * interaction (Resolved-14). Both distinctions apply ONLY at draw time (see `reload`).
+ */
+function classify(state: GameState, code: number, events: GameEvent[]): void {
+  if (code === 100 + C_DEMON) {
+    spawnDemon(state, events);
+    return;
+  }
   if (code === 200 + T_CRYPT) {
     // Extension kit (SC-EXT-13): the Crypt/Gems card doesn't lie on the floor when drawn — it PARKS
     // as "the crypt" in this chamber (design US-08). Tracked as a single coordinate on `state`
@@ -127,7 +159,7 @@ export function enterChamber(state: GameState): GameEvent[] {
     if (dec.special === SPECIAL_GREAT_HALL) draw += 2;
     draw = Math.min(draw, 8);
     for (let i = 0; i < draw && state.smallIdx < state.smallPack.length; i++) {
-      classify(state, state.smallPack[state.smallIdx++]!);
+      classify(state, state.smallPack[state.smallIdx++]!, events);
     }
   }
   // Clear the parked snapshot: during an active session the working set IS the truth.
@@ -184,11 +216,13 @@ export function stashOrDeliver(state: GameState, treasureIds: readonly number[],
  * (Extension kit — the Well's 1-card draw and the Bell Rope's 2-card draw, SC-EXT-7/SC-EXT-8):
  * the same classification as a fresh chamber draw (`classify`), but APPENDED onto whatever is
  * already there rather than replacing it, so it composes with an already-in-progress encounter.
- * Stops early if the small pack runs dry. Mutates `state`; emits no event of its own — the caller
- * (reduce.ts) reports the draw with its own event (`wellDraw` / `bellRoll`).
+ * Stops early if the small pack runs dry. Mutates `state`; appends any event `classify` itself
+ * produces (SC-EXT-21: a Demon drawn here still relocates into `prev`, same as any fresh chamber
+ * draw) onto the caller-supplied `events` — the caller (reduce.ts) additionally reports the draw
+ * itself with its own event (`wellDraw` / `bellRoll`).
  */
-export function drawSmallCards(state: GameState, count: number): void {
+export function drawSmallCards(state: GameState, count: number, events: GameEvent[]): void {
   for (let i = 0; i < count && state.smallIdx < state.smallPack.length; i++) {
-    classify(state, state.smallPack[state.smallIdx++]!);
+    classify(state, state.smallPack[state.smallIdx++]!, events);
   }
 }

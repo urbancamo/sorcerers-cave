@@ -8,6 +8,13 @@ import type { GameState } from "./state";
 
 export type Reaction = "hostile" | "indifferent" | "friendly";
 
+// Extension kit — the Apprentice's loyalty is conditional on the Sorcerer's life (design US-14,
+// SC-EXT-20): a plain data row can express "1-5 hostile, 6 friendly, never indifferent" (her
+// hostileMax===indiffMax===5 already does, via the ordinary formula below), but not "that same
+// roll of 6 flips to hostile once he's dead" — a context-dependent band the data table can't
+// carry. This is the one custom reaction band the whole system needs.
+const C_APPRENTICE = 14;
+
 /** Index into `strangers` of the highest leader-priority creature (ties -> first, spec §8.2). */
 export function findLeader(strangers: readonly number[]): number {
   let best = 0;
@@ -19,7 +26,8 @@ export function findLeader(strangers: readonly number[]): number {
 
 /** Roll the leader's reaction (spec §8.3). Threads the seed. `roll` is the raw d6 (for display). */
 export function reactionRoll(state: GameState): { seed: number; outcome: Reaction; roll: number } {
-  const leader = CREATURES[state.strangers[findLeader(state.strangers)]!]!;
+  const leaderId = state.strangers[findLeader(state.strangers)]!;
+  const leader = CREATURES[leaderId]!;
   const r = rollDie(state.seed);
   const natural1 = r.value === 1;
   let roll = r.value;
@@ -33,6 +41,12 @@ export function reactionRoll(state: GameState): { seed: number; outcome: Reactio
 
   const hostileMax = leader.hostileMax ?? 0; // no table -> never hostile
   const indiffMax = leader.indiffMax ?? 6; // no table -> always indifferent
-  const outcome: Reaction = roll <= hostileMax ? "hostile" : roll <= indiffMax ? "indifferent" : "friendly";
+  let outcome: Reaction = roll <= hostileMax ? "hostile" : roll <= indiffMax ? "indifferent" : "friendly";
+  // Extension kit (SC-EXT-20, design US-14): while the Sorcerer lives, the data row's hostileMax
+  // (5) === indiffMax (5) already yields exactly "1-5 hostile, 6 friendly, no indifferent band" —
+  // the ordinary formula above needs no help. The moment he's dead, that same roll of 6 must ALSO
+  // read hostile instead of friendly (never indifferent either way) — the one context-dependent
+  // band this reducer carries.
+  if (leaderId === C_APPRENTICE && outcome === "friendly" && state.sorcererKilled) outcome = "hostile";
   return { seed: r.seed, outcome, roll: r.value };
 }

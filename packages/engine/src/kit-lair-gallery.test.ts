@@ -22,7 +22,6 @@ const MAN = 5;
 const WIZARD = 8;
 const SPECTRE = 9;
 const SORCERER = 11;
-const DEMON = 15;
 const GOLD = 1;
 const GEMS = 2;
 const MAGIC_STAFF = 9;
@@ -137,13 +136,16 @@ function galleryState(over: Partial<GameState>): GameState {
   });
 }
 
-describe("The Gallery — creatures arrive as stone, except Sorcerer/Spectre/Demon (US-06, SC-EXT-10)", () => {
-  it("an ordinary creature arrives as a statue (500+id); the Sorcerer/Spectre/Demon arrive as normal strangers", () => {
-    const s = galleryState({ party: [member(HERO)], smallPack: [100 + MAN, 100 + SPECTRE, 100 + SORCERER, 100 + DEMON] });
+describe("The Gallery — creatures arrive as stone, except Sorcerer/Spectre (US-06, SC-EXT-10)", () => {
+  // Task 11 (SC-EXT-21) closes the seam this suite's own comments and `chamber.ts` flagged: the
+  // Demon no longer arrives as a plain exempt stranger here — it never joins ANY chamber, Gallery
+  // included, and instead relocates (see `kit-apprentice-demon.test.ts`'s dedicated coverage).
+  it("an ordinary creature arrives as a statue (500+id); the Sorcerer/Spectre arrive as normal strangers", () => {
+    const s = galleryState({ party: [member(HERO)], smallPack: [100 + MAN, 100 + SPECTRE, 100 + SORCERER] });
     const { state, events } = reduce(s, { type: "move", dir: DIR_E });
 
     expect(state.statues).toEqual([MAN]);
-    expect(state.strangers).toEqual([SPECTRE, SORCERER, DEMON]);
+    expect(state.strangers).toEqual([SPECTRE, SORCERER]);
     expect(events).toContainEqual({ type: "galleryStone", creatureIds: [MAN] });
     expect(state.phase).toBe("encounter"); // the exempt strangers still drive a standard encounter
   });

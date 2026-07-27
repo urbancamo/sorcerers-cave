@@ -26,6 +26,8 @@ const C_WIZARD = 8;
 const C_THIEF = 19; // extension-kit creature — a living Thief ally unlocks guarded treasure in an
                      // indifference-pacified area (design US-17, SC-EXT-19)
 const T_CRYPT = 21; // extension-kit treasure — the crypt's find converts to this ordinary treasure (SC-EXT-13)
+const C_APPRENTICE = 14; // extension-kit creature — never leaves the cave (design US-14, SC-EXT-20)
+const C_DEMON = 15; // extension-kit creature — forces immediate hostile combat on sight (design US-13, SC-EXT-21)
 
 /** Can a living Giant fish at least one dropped item out of a Deep Pool right now? Recovery is a
  *  Giant-only, capacity-limited pickup (§Deep Pool): a Man/Ogre/etc. can never lift pool treasure,
@@ -142,6 +144,19 @@ function startFight(state: GameState, surprise: number): GameEvent[] {
   state.surpriseReady = false; // the surprise (if any) is now baked into the fight
   state.fightDrops = []; // fresh fight — forget any earlier drop record
   return [{ type: "fightStarted", surprise }];
+}
+
+/** Extension kit (SC-EXT-21, design US-13): a Demon present in `state.strangers` forces an
+ *  immediate hostile fight — no reaction test, "like always-hostile" (unlike `hostileAreas`,
+ *  which applies only once THIS party has already retreated from THIS area before). Fires
+ *  identically whether the party just stepped onto its area (a fresh move/carpet/relocateDown
+ *  entry, or a later revisit) or fled back INTO it (`withdraw`). Returns true when it fired —
+ *  callers skip their own ordinary phase resolution for this entry. */
+function ambushIfDemon(state: GameState, events: GameEvent[]): boolean {
+  if (!state.strangers.includes(C_DEMON)) return false;
+  events.push({ type: "demonUnfolds" });
+  events.push(...startFight(state, -1));
+  return true;
 }
 
 /** Settle the outcome once a round (and any casualty choices) is fully resolved: a Unicorn may
@@ -274,7 +289,9 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
     return false;
   }
   if (state.strangers.length > 0) {
-    if (state.hostileAreas?.includes(state.partyArea)) {
+    if (ambushIfDemon(state, events)) {
+      // handled — a Demon forces the fight outright (SC-EXT-21), ahead of the hostileAreas check
+    } else if (state.hostileAreas?.includes(state.partyArea)) {
       // The party retreated from these strangers before — they attack on sight (with surprise). §Retreat
       events.push(...startFight(state, -1));
     } else {
@@ -359,6 +376,17 @@ function resolveAreaLoop(state: GameState): GameEvent[] {
       // Reload any such floor treasure into a pickup so it can be reclaimed on return; without this,
       // anything dropped in a tunnel would be stranded, since a passage tile never runs enterChamber.
       const area = state.areas[state.partyArea]!;
+      // Extension kit (SC-EXT-21): a Demon may be lurking here (parked by an earlier draw
+      // elsewhere, design US-13) even though this tile is an ordinary tunnel/Gateway, which never
+      // runs `enterChamber`'s reload cycle — pull it into the live working set here so the ambush
+      // still fires (a tunnel can never otherwise hold a "stranger").
+      const demonIdx = area.contents.indexOf(100 + C_DEMON);
+      if (demonIdx >= 0) {
+        area.contents.splice(demonIdx, 1);
+        state.strangers = [C_DEMON];
+        ambushIfDemon(state, events); // always true here
+        return events;
+      }
       const floor = area.contents.filter((c) => c >= 200 && c < 300);
       if (floor.length > 0) {
         state.treasures = floor.map((c) => c - 200);
@@ -482,7 +510,21 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       if (state.phase !== "explore") return { state, events: [{ type: "blocked" }] };
       const dec = decodeArea(state.areas[state.partyArea]!.card);
       if (state.level === 1 && dec.stairUp) {
-        return { state: { ...state, gs: GS_ESCAPED, phase: "gameOver" }, events: [{ type: "gameOver", gs: GS_ESCAPED }] };
+        const next = structuredClone(state);
+        const events: GameEvent[] = [];
+        // Extension kit (SC-EXT-20, design US-14): the Apprentice "will not leave the cave" — any
+        // Apprentice ally is dropped from the scored roster the instant the party actually
+        // escapes (she is worth 0 points regardless, but the design calls out her removal and
+        // its own notice explicitly, not just a silent 0-point pass-through).
+        const staying = next.party.filter((m) => m.status === 1 && m.creatureId === C_APPRENTICE);
+        if (staying.length > 0) {
+          next.party = next.party.filter((m) => !staying.includes(m));
+          events.push({ type: "apprenticeStaysBehind", count: staying.length });
+        }
+        next.gs = GS_ESCAPED;
+        next.phase = "gameOver";
+        events.push({ type: "gameOver", gs: GS_ESCAPED });
+        return { state: next, events };
       }
       return { state, events: [{ type: "blocked" }] };
     }
@@ -562,8 +604,18 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       next.lulled = [];
       next.partyArea = next.prev;
       next.level = unpackCoord(next.areas[next.partyArea]!.coord).level;
-      next.phase = "explore";
-      return { state: next, events: [{ type: "moved", area: next.partyArea, level: next.level }] };
+      const events: GameEvent[] = [{ type: "moved", area: next.partyArea, level: next.level }];
+      // Extension kit (SC-EXT-21): a Demon may be lurking in the area withdrawn INTO — parked by a
+      // draw made elsewhere while the party was away (design US-13's "or withdrawing into") — pull
+      // it in and force the ambush instead of a quiet return to `explore`.
+      const destArea = next.areas[next.partyArea]!;
+      const demonIdx = destArea.contents.indexOf(100 + C_DEMON);
+      if (demonIdx >= 0) {
+        destArea.contents.splice(demonIdx, 1);
+        next.strangers = [C_DEMON];
+      }
+      if (!ambushIfDemon(next, events)) next.phase = "explore";
+      return { state: next, events };
     }
 
     case "takeTreasure": {
@@ -1067,7 +1119,7 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       const next = structuredClone(state);
       const events: GameEvent[] = [{ type: "wellDraw" }];
       const hadCrypt = next.cryptCoord !== undefined; // SC-EXT-13: tell a freshly-parked Crypt apart
-      drawSmallCards(next, 1); // exactly one code, appended onto whatever's already in the working set
+      drawSmallCards(next, 1, events); // exactly one code, appended onto whatever's already in the working set
       if (!hadCrypt && next.cryptCoord === next.areas[next.partyArea]!.coord) events.push({ type: "cryptParked" });
       next.noWithdrawTurn = next.turn; // blocks withdraw this turn only (SC-EXT-9)
       resolveExtraDraw(next, events); // strangers/hazards resolve normally, same as any chamber draw
@@ -1107,7 +1159,7 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       }
       events.push({ type: "bellRoll", roll: r.value, outcome: "stir", creatureId });
       const hadCrypt = next.cryptCoord !== undefined; // SC-EXT-13: tell a freshly-parked Crypt apart
-      drawSmallCards(next, 2); // two codes, appended onto whatever's already in the working set
+      drawSmallCards(next, 2, events); // two codes, appended onto whatever's already in the working set
       if (!hadCrypt && next.cryptCoord === next.areas[next.partyArea]!.coord) events.push({ type: "cryptParked" });
       next.noWithdrawTurn = next.turn; // blocks withdraw this turn only (SC-EXT-9)
       resolveExtraDraw(next, events); // strangers/hazards resolve normally, same as any chamber draw

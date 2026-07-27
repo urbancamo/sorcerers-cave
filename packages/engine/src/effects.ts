@@ -8,6 +8,7 @@ const T_CHARMED_FLUTE = 12;
 const T_EYE_OF_GOD = 13;
 const C_SPECTRE = 9;
 const C_UNICORN = 13;
+const C_APPRENTICE = 14; // extension-kit creature — deserts to a hostile stranger the instant the Sorcerer dies (design US-14, SC-EXT-20)
 // The Charmed Flute only works when played by a Man, Woman, Hero, Priest or Wizard (§ Charmed Flute).
 const FLUTE_BASE = [0, 4, 5, 6, 8]; // Hero, Priest, Man, Woman, Wizard
 
@@ -124,6 +125,30 @@ export function annihilateWithEye(state: GameState): GameEvent[] {
     }
   }
   return events;
+}
+
+/**
+ * Extension kit (SC-EXT-20, design US-14/Resolved-7): the instant the Sorcerer dies, every
+ * Apprentice ALLY's loyalty breaks — she deserts to a hostile stranger in the party's CURRENT
+ * area (mirrors Mutiny's own ally->stranger reversion, `hazards.ts`'s `HAZARD_MUTINY` case,
+ * exactly: pushed onto `state.strangers`, her carried treasure dropped into `state.treasures`).
+ * Design ruling (flagged for review): she "takes nothing" — carried AND borne items alike spill,
+ * not lost outright, same as a Mutiny deserter's loot. Called from the one solo kill site
+ * (`combatPlan.ts`'s Sorcerer-slaying branch) the instant `sorcererKilled` flips true; a safe
+ * no-op whenever no Apprentice is currently allied (there is normally at most one, but a
+ * full-group friendly recruit could in principle bring more than one into the same party).
+ */
+export function revertApprenticesOnSorcererDeath(state: GameState): GameEvent[] {
+  const turned = state.party.filter((m) => m.status === 1 && m.creatureId === C_APPRENTICE);
+  if (turned.length === 0) return [];
+  const dropped: number[] = [];
+  for (const a of turned) {
+    state.strangers.push(a.creatureId);
+    dropped.push(...a.treasure);
+  }
+  if (dropped.length) state.treasures.push(...dropped);
+  state.party = state.party.filter((m) => !turned.includes(m));
+  return [{ type: "apprenticeTurned", count: turned.length, items: dropped }];
 }
 
 /** A Unicorn stays allied only while a Woman lives; otherwise it departs. Mutates `party`. */
