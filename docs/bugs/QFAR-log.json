@@ -1,0 +1,194 @@
+{
+  "version": 1,
+  "game": {
+    "code": "QFAR",
+    "color": "green",
+    "createdAt": 1785172327297,
+    "picks": [
+      16,
+      19,
+      20
+    ],
+    "seed": 1785172327247,
+    "status": "active",
+    "variants": {
+      "extensionKit": true
+    }
+  },
+  "moves": [
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 1,
+          "level": 1,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [
+            4
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 0
+    },
+    {
+      "action": {
+        "mi": 1,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 1
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 2,
+          "level": 1,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [
+            14
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 2
+    },
+    {
+      "action": {
+        "type": "leaveTreasure"
+      },
+      "events": [],
+      "seq": 3
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 3,
+          "level": 1,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            13
+          ],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 4
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "friendly",
+          "roll": 4,
+          "type": "reaction"
+        },
+        {
+          "count": 0,
+          "type": "strangersJoined"
+        },
+        {
+          "creatureId": 13,
+          "type": "unicornGuards"
+        }
+      ],
+      "seq": 5
+    },
+    {
+      "action": {
+        "mi": 1,
+        "type": "pullBellRope"
+      },
+      "events": [
+        {
+          "creatureId": 19,
+          "outcome": "toll",
+          "roll": 2,
+          "type": "bellRoll"
+        }
+      ],
+      "seq": 6
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 4,
+          "level": 1,
+          "type": "moved"
+        },
+        {
+          "hazards": [
+            4
+          ],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        },
+        {
+          "hazard": 4,
+          "type": "hazardFired"
+        },
+        {
+          "enemy": "Ghouls",
+          "enemyRoll": 4,
+          "enemyTotal": 6,
+          "party": "Lion",
+          "partyRoll": 4,
+          "partyTotal": 7,
+          "result": "partyWon",
+          "type": "combatRoll"
+        },
+        {
+          "enemy": "Ghouls",
+          "enemyRoll": 1,
+          "enemyTotal": 3,
+          "party": "Thief",
+          "partyRoll": 6,
+          "partyTotal": 8,
+          "result": "partyWon",
+          "type": "combatRoll"
+        },
+        {
+          "enemy": "Ghouls",
+          "enemyRoll": 2,
+          "enemyTotal": 4,
+          "party": "Wolf",
+          "partyRoll": 5,
+          "partyTotal": 7,
+          "result": "partyWon",
+          "type": "combatRoll"
+        }
+      ],
+      "seq": 7
+    }
+  ]
+}

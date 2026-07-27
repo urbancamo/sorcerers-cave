@@ -144,6 +144,17 @@ describe("decode widening to a 4-bit special field (SC-EXT-3)", () => {
     expect(EXT_AREA_CARDS).toHaveLength(30);
   });
 
+  it("x04-1 (EXT_AREA_CARDS[12]) is a NW TUNNEL — the QFAR misclassification fix", () => {
+    // The art is a bent NW corridor (passage-width throughout; the wall grate is décor, not a
+    // room). It was wrongly encoded as a chamber, which dealt chamber cards — Ghouls in a
+    // tunnel (docs/bugs/QFAR-log.json). Manifest tileType and this encoding must both say tunnel.
+    expect(EXT_AREA_CARDS[12]).toBe(9); // N(1) + W(8), no chamber bit
+    expect(decodeArea(EXT_AREA_CARDS[12]!)).toEqual({
+      n: true, e: false, s: false, w: true,
+      chamber: false, stairUp: false, stairDown: false, special: 0,
+    });
+  });
+
   it("decodeArea(799) is a NESW chamber with special 6 (Chasm, tile x06-2)", () => {
     expect(decodeArea(799)).toEqual({
       n: true, e: true, s: true, w: true,

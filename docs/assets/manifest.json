@@ -775,7 +775,7 @@
           "w": 1728,
           "h": 1210,
           "exits": "NW",
-          "tileType": "chamber",
+          "tileType": "tunnel",
           "special": null,
           "stairUp": false,
           "stairDown": false
@@ -921,6 +921,7 @@
           "stairDown": false
         },
         {
+          "file": "area-tile-x07-4.png",
           "file": "area-tile-x07-4.png",
           "w": 1728,
           "h": 1210,

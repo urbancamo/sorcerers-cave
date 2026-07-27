@@ -36,7 +36,7 @@ export const EXT_AREA_CARDS: readonly number[] = [
   3, 23, 3, 23,            // x01: NE t, NES c, NE t, NES c
   39, 31, 87, 27,          // x02: NES t+U, NESW c, NES c+D, NEW c
   31, 31, 31, 31,          // x03: NESW chambers
-  25, 61, 31, 13,          // x04: NW c, NSW c+U, NESW c, NSW t
+  9, 61, 31, 13,           // x04: NW t (QFAR fix: art is a bent corridor, was mis-encoded 25/chamber), NSW c+U, NESW c, NSW t
   30, 94, 6, 30,           // x05: ESW c, ESW c+D, ES t, ESW c
   12, 799, 62, 927,        // x06: SW t, chasm, ESW c+U, bell-rope
   1055, 1183, 1311, 1439,  // x07: lair, whirlpool, gallery, well
