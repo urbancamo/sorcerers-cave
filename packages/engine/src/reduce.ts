@@ -1141,6 +1141,17 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           return { state: next, events };
         }
         case 16: { // Holy Water — one use, target enumeration (design US-20, SC-EXT-24)
+          if (next.phase === "medusa") {
+            // Pre-gaze destroy (design answer 2026-07-27): the water sears her into mist before
+            // her gaze lands. Removing the pending hazard pre-fire means she never lurks — gone
+            // for good — and the pause resumes through the same contract as the Lotus throw
+            // (finishExtraDraw surprise preservation included, SC-4-16).
+            consume();
+            next.hazards = next.hazards.filter((h) => h !== HAZARD_MEDUSA);
+            const events: GameEvent[] = [{ type: "artifactUsed", artifact: 16 }, { type: "holyWaterMedusaDestroyed" }];
+            events.push(...resumeFromMedusaPause(next));
+            return { state: next, events };
+          }
           if (action.target === undefined) return { state, events: [{ type: "blocked" }] };
           const found = holyWaterTargets(next).find((t) => t.target === action.target);
           if (!found) return { state, events: [{ type: "blocked" }] };

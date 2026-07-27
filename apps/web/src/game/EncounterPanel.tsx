@@ -67,6 +67,8 @@ function label(a: GameAction, state: GameState): string {
       }
       // Untargeted Lotus Dust is the Medusa-pause throw (§Lotus Dust "Works on MEDUSA").
       if (a.artifact === 5 && a.target === undefined) return "Throw the Lotus Dust — put Medusa to sleep";
+      // Untargeted Holy Water is the pause's pre-gaze destroy (design answer 2026-07-27, SC-EXT-24).
+      if (a.artifact === 16 && a.target === undefined) return "Use the Holy Water — destroy Medusa";
       return `Use ${tname}`;
     }
     case "proceed": return "Proceed — brave her gaze";
@@ -145,7 +147,7 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
       )}
       {medusaPause && (
         <p className="scv-enc-line scv-enc-strangers">
-          Medusa looms — throw the Lotus Dust before her gaze lands, or proceed and brave it.
+          Medusa looms — act before her gaze lands, or proceed and brave it.
         </p>
       )}
       {state.fight && <p className="scv-enc-round">Round {state.fight.round}</p>}

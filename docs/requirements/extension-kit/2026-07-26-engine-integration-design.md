@@ -691,6 +691,12 @@ US-19..25 artifacts · US-26 duplicates · US-27 plain tiles.
     the Magic Staff auto-reanimates all statues on entry, with a notice (US-06).
 15. Magic Shield: holdable by anyone, ward active only for eligible bearers, and scoped to the
     creature paired against the bearer (US-23).
+20. **MSW design answers (2026-07-27, [2026-07-27-design-answers.md](2026-07-27-design-answers.md)):**
+    (a) Holy Water gains a PRE-GAZE destroy inside the Medusa pause — a third pause option
+    (implemented; SC-EXT-24). (b) Sword+Axe borne together stack additively — no cap, confirmed.
+    (c) An Eye of God carried off by a DESERTER (Desertion/Bell-vanish) does NOT curse — only the
+    Harpies' theft does; confirmed as-is. (d) Bell Rope stays legal in encounter phase. (e) The
+    demonSlew auto-slay flavour text is blessed. (f) The 3-letter kit log mnemonics are blessed.
 16. **Official kit rules** ([extension-kit-rules.md](../../specs/extension-kit-rules.md), OCR'd
     2026-07-26) govern classifications: Spell is a **hazard**; Crypt/Gems and Idol are **heavy
     treasure** (25 kg each; Idol keeps its 10×d6 end-game value).

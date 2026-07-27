@@ -367,3 +367,40 @@ describe("Scroll (US-21, SC-EXT-25)", () => {
     expect(legalActions(noStrangers)).not.toContainEqual({ type: "useArtifact", artifact: T_SCROLL });
   });
 });
+describe("Holy Water pre-gaze destroy in the Medusa pause (design answer 2026-07-27)", () => {
+  // The pause opens when Medusa is drawn while Lotus Dust is held (SC-7.2-14). With Holy Water
+  // ALSO held, the player may destroy her outright before her gaze lands — a third pause option.
+  const pauseState = (withHolyWater: boolean) => {
+    const s = makeState({
+      phase: "medusa",
+      medusaPause: { freshEntry: true },
+      party: [{ creatureId: HERO, status: 0, dragonKills: 0, treasure: withHolyWater ? [5, T_HOLY_WATER] : [5] }],
+      hazards: [3], // HAZARD_MEDUSA pending, pre-gaze
+      strangers: [],
+    });
+    return s;
+  };
+
+  it("offers useArtifact(16) in the pause only when Holy Water is held", () => {
+    const withHw = legalActions(pauseState(true));
+    expect(withHw).toContainEqual({ type: "useArtifact", artifact: 16 });
+    expect(withHw).toContainEqual({ type: "useArtifact", artifact: 5 });
+    expect(withHw).toContainEqual({ type: "proceed" });
+    const without = legalActions(pauseState(false));
+    expect(without).toEqual([{ type: "useArtifact", artifact: 5 }, { type: "proceed" }]);
+  });
+
+  it("destroys Medusa before her gaze: no petrification, consumed, pause resumes, gone for good", () => {
+    const s = pauseState(true);
+    const { state, events } = reduce(s, { type: "useArtifact", artifact: 16 });
+    expect(events).toContainEqual({ type: "holyWaterMedusaDestroyed" });
+    expect(events.some((e) => e.type === "medusaGaze")).toBe(false);
+    expect(state.phase).not.toBe("medusa");
+    expect(state.party[0]!.status).toBe(0); // nobody petrified
+    expect(state.party[0]!.treasure).toEqual([5]); // Holy Water consumed, Lotus kept
+    expect(state.hazards.includes(3)).toBe(false);
+    // Permanent: the area's persisted contents never re-park her.
+    expect(state.areas[state.partyArea]!.contents.includes(303)).toBe(false);
+  });
+});
+

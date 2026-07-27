@@ -107,7 +107,14 @@ export function legalActions(state: GameState): GameAction[] {
 
   if (state.phase === "medusa") {
     // Medusa looms and the party holds Lotus Dust: throw it at her before her gaze, or proceed.
-    return [{ type: "useArtifact", artifact: 5 }, { type: "proceed" }];
+    // With Holy Water ALSO held, destroy her outright pre-gaze (design answer 2026-07-27,
+    // SC-EXT-24) — a third plain-button option, target implicit like the Lotus throw.
+    const acts: GameAction[] = [{ type: "useArtifact", artifact: 5 }];
+    if (state.party.some((m) => (m.status === 0 || m.status === 1) && m.treasure.includes(16))) {
+      acts.push({ type: "useArtifact", artifact: 16 });
+    }
+    acts.push({ type: "proceed" });
+    return acts;
   }
   if (state.phase === "encounter") {
     // Withdraw retreats to the area the party came from — but not back up a trap it fell through, nor
