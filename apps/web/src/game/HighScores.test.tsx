@@ -197,6 +197,14 @@ describe("HighScores", () => {
     expect(useQueryMock.mock.lastCall?.[1]).toEqual({ extensionKit: false });
   });
 
+  it("keeps a stable-size body across tab switches (same wrapper for full and empty tables)", () => {
+    useQueryMock.mockReturnValue([]);
+    const { container } = render(<LeaderboardPanel />);
+    expect(container.querySelector(".scv-hs-body")).not.toBeNull();
+    fireEvent.click(screen.getByRole("tab", { name: "Extension Kit" }));
+    expect(container.querySelector(".scv-hs-body")).not.toBeNull();
+  });
+
   it("rows no longer carry a per-row EXT badge (the tab supplies the context)", () => {
     const rows = [row({ _id: "a", name: "Kitter", extensionKit: true, party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }] })];
     render(<HighScores rows={rows} />);

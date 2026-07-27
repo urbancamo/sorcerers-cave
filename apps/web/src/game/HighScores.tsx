@@ -240,7 +240,11 @@ export function LeaderboardPanel({ defaultKit = false, highlightId, onReplay }: 
           Extension Kit
         </button>
       </div>
-      <HighScores rows={rows} highlightId={highlightId} onReplay={onReplay} />
+      {/* Stable footprint across tab switches: the body keeps the same height whether the
+          selected table is full, short, empty, or still loading — only its scroll varies. */}
+      <div className="scv-hs-body">
+        <HighScores rows={rows} highlightId={highlightId} onReplay={onReplay} />
+      </div>
     </div>
   );
 }
