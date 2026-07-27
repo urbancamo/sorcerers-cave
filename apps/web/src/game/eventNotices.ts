@@ -122,12 +122,12 @@ export function eventNotices(events: GameEvent[]): Notice[] {
         break;
       case "deadEnd":
         // Two flavors (e.retreat, SC-4-42): a fight retreat that hit a dead end bounces the party
-        // straight back into the fight — say so explicitly. A plain exploration move into a dead
-        // end is just a blocked step; mentioning a fight there is wrong (regression fixed after
-        // move-path notices landed).
-        out.push(e.retreat
-          ? { text: `The way ${DIR_WORD[e.dir] ?? "out"} is a dead end — the party can't escape and must fight another round.`, tone: "bad" }
-          : { text: `The way ${DIR_WORD[e.dir] ?? "out"} is a dead end.`, tone: "neutral" });
+        // straight back into the fight — say so explicitly, it changes what the player must do.
+        // A plain exploration step into a dead end stays SILENT (handled-silence): the canvas
+        // already shows the party didn't move, and a notice on every bumped wall is noise.
+        if (e.retreat) {
+          out.push({ text: `The way ${DIR_WORD[e.dir] ?? "out"} is a dead end — the party can't escape and must fight another round.`, tone: "bad" });
+        }
         break;
       case "spectreSlew":
         out.push({ text: `A Spectre's touch slays ${name(e.creatureId)}!`, tone: "bad" });

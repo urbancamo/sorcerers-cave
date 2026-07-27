@@ -391,11 +391,9 @@ describe("deadEnd flavors (retreat vs plain move)", () => {
     expect(out).toHaveLength(1);
     expect(out[0]!.text).toBe("The way south is a dead end — the party can't escape and must fight another round.");
   });
-  it("a plain exploration dead end never mentions fighting", () => {
+  it("a plain exploration dead end is silent — no notice on every bumped wall", () => {
     const out = eventNotices([{ type: "deadEnd", dir: 3 } as GameEvent]);
-    expect(out).toHaveLength(1);
-    expect(out[0]!.text).toBe("The way south is a dead end.");
-    expect(out[0]!.text).not.toContain("fight");
+    expect(out).toHaveLength(0);
   });
 });
 
