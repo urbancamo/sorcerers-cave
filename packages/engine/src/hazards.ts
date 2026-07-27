@@ -266,13 +266,17 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
           if (ringInvincible(loser.m, state)) {
             events.push({ type: "deathPrevented", creatureId: loser.m.creatureId });
           } else {
-            const items = spillCarried(loser.m);
-            if (items.length) { state.treasures.push(...items); events.push({ type: "itemsSpilled", creatureId: loser.m.creatureId, items }); }
             loser.m.status = 3;
             // No `memberDied` here — the `quarrel` event above already carries its own dedicated
             // Feedback wording ("[loser] falls to [winner]'s fury."); Ghouls sets the precedent for
-            // a hazard-specific death not doubling up on the generic notice.
+            // a hazard-specific death not doubling up on the generic notice. Curse check BEFORE the
+            // spill below (review fix): spillCarried strips the (never-borneable) Eye of God out of
+            // `treasure` first, which would otherwise mask eyeForsakenByDeath's own check — every
+            // other death site (Ghouls' own case below; combatPlan.ts; special.ts; multi-fight.ts;
+            // reduce.ts) already runs the curse check before stripping.
             events.push(...eyeForsakenByDeath(state, loser.m));
+            const items = spillCarried(loser.m);
+            if (items.length) { state.treasures.push(...items); events.push({ type: "itemsSpilled", creatureId: loser.m.creatureId, items }); }
           }
         }
         break;

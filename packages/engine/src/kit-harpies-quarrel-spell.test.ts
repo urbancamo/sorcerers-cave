@@ -30,6 +30,7 @@ const MAGIC_SWORD = 3;
 const HEALING_BALM = 6;
 const TALISMAN = 7;
 const EYE_OF_GOD = 13;
+const THE_RING = 10;
 
 const DIR_E = 2;
 const DIR_W = 4;
@@ -249,6 +250,54 @@ describe("Quarrel — top-two effective-fs duel, Wolf/Lion exclusion, tie-break 
     expect(s.treasures).toContain(GOLD); // carried items spilled to the floor
     expect(events).toContainEqual({ type: "itemsSpilled", creatureId: HERO, items: [GOLD] });
     expect(events.some((e) => e.type === "memberDied")).toBe(false); // narrated via `quarrel` itself, not a second event
+  });
+
+  it("a loser carrying the Eye of God is forsaken: curses increment, eyeForsaken fires, the Eye still spills to the floor", () => {
+    // Same equal-fs (Hero vs Ogre) shape as the plain-death test above, but the loser carries the
+    // Eye of God (13) alongside an ordinary treasure — the curse check must see it BEFORE
+    // spillCarried strips it out of `treasure` (review fix; the Eye is never borneable).
+    const seed = seedForSequence([(v) => v <= 3, (v) => v >= 4]);
+    const s = makeState({
+      party: [member(HERO, 0, [GOLD, EYE_OF_GOD]), member(OGRE, 0)],
+      hazards: [HAZARD_QUARREL],
+      treasures: [],
+      curses: 0,
+      seed,
+    });
+    const { events } = applyHazards(s);
+
+    const q = events.find((e) => e.type === "quarrel") as { loserId: number | null };
+    expect(q.loserId).toBe(HERO);
+
+    expect(s.curses).toBe(1); // the forsaken curse fell
+    expect(events).toContainEqual({ type: "eyeForsaken" });
+    expect(s.party[0]!.status).toBe(3);
+    // The Eye still spills to the floor afterward, exactly like any other carried item — the fix
+    // only reorders WHEN the curse check runs, not what ends up on the floor.
+    expect(s.treasures).toEqual(expect.arrayContaining([GOLD, EYE_OF_GOD]));
+    expect(events).toContainEqual({ type: "itemsSpilled", creatureId: HERO, items: [GOLD, EYE_OF_GOD] });
+  });
+
+  it("a loser bearing the Ring under its invincibility conditions is spared: deathPrevented, no death, no spill", () => {
+    // The Ring guards against a killing roll only at level >= 4 with no active Eye (`ringInvincible`).
+    const seed = seedForSequence([(v) => v <= 3, (v) => v >= 4]);
+    const s = makeState({
+      party: [member(HERO, 0, [GOLD, THE_RING]), member(OGRE, 0)],
+      hazards: [HAZARD_QUARREL],
+      treasures: [],
+      level: 4,
+      seed,
+    });
+    const { events } = applyHazards(s);
+
+    const q = events.find((e) => e.type === "quarrel") as { loserId: number | null };
+    expect(q.loserId).toBe(HERO); // the roll still favours Ogre — the Ring saves the BLOW, not the roll
+
+    expect(events).toContainEqual({ type: "deathPrevented", creatureId: HERO });
+    expect(s.party[0]!.status).toBe(0); // alive and unmarked
+    expect(s.party[0]!.treasure).toEqual([GOLD, THE_RING]); // nothing spilled — there was no death
+    expect(s.treasures).toEqual([]);
+    expect(events.some((e) => e.type === "itemsSpilled")).toBe(false);
   });
 
   it("a tie is harmless — no death, no items spilled, loserId null", () => {
