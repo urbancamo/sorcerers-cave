@@ -1456,8 +1456,11 @@
 }
 .scv-hs-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
 /* The tabbed leaderboard's body holds a constant height so switching Base <-> Extension Kit
-   never resizes the panel; short/empty/loading tables just leave empty space, long ones scroll. */
+   never resizes the panel; short/empty/loading tables just leave empty space, long ones scroll.
+   Inside the 90vh splash modal it flex-fills the panel instead of the fixed fallback height
+   (the fallback serves embedded contexts like the game-over screen). */
 .scv-hs-body { height: min(340px, 50vh); overflow-y: auto; }
+.scv-hs-modal .scv-hs-body { height: auto; flex: 1; min-height: 0; }
 .scv-hs-tab {
   flex: 1; padding: 7px 10px; font-size: 13px; letter-spacing: .04em;
   background: transparent; color: var(--stone-dim);
@@ -1468,7 +1471,7 @@
 .scv-hs-modal {
   width: 100%;
   max-width: 520px;
-  max-height: 86vh;
+  height: 90vh;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
