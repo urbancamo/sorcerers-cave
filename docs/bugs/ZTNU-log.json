@@ -1,0 +1,197 @@
+{
+  "version": 1,
+  "game": {
+    "code": "ZTNU",
+    "color": "blue",
+    "createdAt": 1785175879172,
+    "picks": [
+      18,
+      20
+    ],
+    "seed": 1785175879115,
+    "status": "active",
+    "variants": {
+      "extensionKit": true
+    }
+  },
+  "moves": [
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 1,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 0
+    },
+    {
+      "action": {
+        "dir": 6,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 2,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [
+            17,
+            0
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 1
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 2
+    },
+    {
+      "action": {
+        "type": "leaveTreasure"
+      },
+      "events": [],
+      "seq": 3
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 3,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 4
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 2,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [
+            0
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 5
+    },
+    {
+      "action": {
+        "type": "leaveTreasure"
+      },
+      "events": [],
+      "seq": 6
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 4,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 7
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 5,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [
+            0,
+            1
+          ],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        },
+        {
+          "hazard": 0,
+          "type": "hazardFired"
+        },
+        {
+          "hazard": 1,
+          "type": "hazardFired"
+        },
+        {
+          "level": 3,
+          "type": "trapSprung"
+        },
+        {
+          "area": 6,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 8
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 7,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 9
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 6,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 10
+    }
+  ]
+}

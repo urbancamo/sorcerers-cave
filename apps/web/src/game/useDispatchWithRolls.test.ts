@@ -8,7 +8,7 @@ import { renderHook, act } from "@testing-library/react";
 import type { GameAction, GameEvent } from "@sorcerers-cave/engine";
 import { useDispatchWithRolls } from "./useDispatchWithRolls";
 
-type Res = { state?: unknown; events?: GameEvent[] } | null;
+type Res = { state?: unknown; events?: GameEvent[]; midState?: unknown } | null;
 
 const reactionEvents: GameEvent[] = [
   { type: "reaction", roll: 2, outcome: "hostile" } as GameEvent,
@@ -98,6 +98,61 @@ describe("useDispatchWithRolls", () => {
     expect(result.current.holding).toBe(true);
     await act(async () => { d.reject(new Error("network")); await done; });
     expect(result.current.holding).toBe(false);
+  });
+
+  it("a notice-only outcome holds until the notices are closed", async () => {
+    const d = deferred();
+    const { result } = renderHook(() => useDispatchWithRolls(() => d.promise, () => ({ s: 1 })));
+    act(() => { void result.current.dispatchWithRolls({ type: "proceed" } as GameAction); });
+    await act(async () => {
+      d.resolve({ state: {}, events: [{ type: "dragonsLulled" } as GameEvent] });
+    });
+    // Notices are up: the outcome stays hidden behind the modal until it closes.
+    expect(result.current.notices).not.toBeNull();
+    expect(result.current.holding).toBe(true);
+    act(() => { result.current.clearNotices(); });
+    expect(result.current.holding).toBe(false);
+    expect(result.current.heldState).toBeNull();
+  });
+
+  it("holdMove presents a mid-action snapshot until roll AND notices are both dismissed", () => {
+    const { result } = renderHook(() => useDispatchWithRolls(() => Promise.resolve(null), () => ({ marker: "pre" })));
+    const mid = { marker: "entered-chamber" };
+    act(() => {
+      result.current.holdMove(mid, { title: "Trap!", lanes: [], message: "", tone: "bad" }, [{ text: "Mutiny!", tone: "bad" } as never]);
+    });
+    expect(result.current.holding).toBe(true);
+    expect(result.current.heldState).toBe(mid);
+    act(() => { result.current.clearRoll(); });
+    // The notice is still up — keep holding the entered-chamber backdrop.
+    expect(result.current.holding).toBe(true);
+    act(() => { result.current.clearNotices(); });
+    expect(result.current.holding).toBe(false);
+    expect(result.current.heldState).toBeNull();
+  });
+
+  it("holdMove without a snapshot just shows the roll/notices (no hold)", () => {
+    const { result } = renderHook(() => useDispatchWithRolls(() => Promise.resolve(null)));
+    act(() => {
+      result.current.holdMove(null, { title: "Roll", lanes: [], message: "", tone: "neutral" }, []);
+    });
+    expect(result.current.roll).not.toBeNull();
+    expect(result.current.holding).toBe(false);
+  });
+
+  it("prefers the result's midState over the pre-action snapshot for the held backdrop", async () => {
+    const d = deferred();
+    const pre = { marker: "pre-action" };
+    const { result } = renderHook(() => useDispatchWithRolls(() => d.promise, () => pre));
+    act(() => { void result.current.dispatchWithRolls({ type: "drawFromWell" } as GameAction); });
+    expect(result.current.heldState).toBe(pre);
+    const mid = { marker: "drawn-contents-visible" };
+    await act(async () => {
+      d.resolve({ state: {}, events: reactionEvents, midState: mid });
+    });
+    // The engine's own snapshot (entered room, contents laid out) beats the pre-action guess.
+    expect(result.current.heldState).toBe(mid);
+    expect(result.current.holding).toBe(true);
   });
 
   it("clears `pending` when the dispatch rejects (no permanent gate)", async () => {

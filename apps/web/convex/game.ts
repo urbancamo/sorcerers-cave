@@ -117,7 +117,7 @@ export const applyAction = mutation({
     if (game.ownerId !== callerId) throw new Error("Forbidden"); // IDOR guard
     if (game.status !== "active") return { state: game.state as GameState, events: [] };
 
-    const { state, events } = reduce(game.state as GameState, action as GameAction);
+    const { state, events, midState } = reduce(game.state as GameState, action as GameAction);
     const status = state.gs === GS_PLAYING ? "active" : "finished";
     await ctx.db.patch(id, { state, status, updatedAt: Date.now() });
 
@@ -130,7 +130,9 @@ export const applyAction = mutation({
         .first();
       await ctx.db.insert("gameEvents", { gameId: id, seq: (last?.seq ?? -1) + 1, action, events });
     }
-    return { state, events };
+    // midState (SC-4-43): the pre-relocation presentation snapshot — never persisted,
+    // returned only so the client can hold the interrupted room as the backdrop.
+    return { state, events, midState };
   },
 });
 

@@ -17,6 +17,7 @@ import { FightSurface } from "./FightSurface";
 import { useManifestCards } from "../data/useManifestCards";
 import { DiceRoll } from "./DiceRoll";
 import { rollFromEvents, type RollView } from "./rollView";
+import { eventNotices, type Notice } from "./eventNotices";
 import { useDispatchWithRolls } from "./useDispatchWithRolls";
 import { showFightSurface } from "./fightGate";
 import { NoticeModal } from "./NoticeModal";
@@ -46,13 +47,17 @@ export default function GameScreen() {
   // roll still shows even though game-over swaps the panel out for GameOverScreen. Its `pending`
   // bridges the subscription-vs-mutation race: it gates FightSurface below so a hostile
   // reaction's fight screen can never appear before its reaction roll.
-  // Dice rolled by a move (e.g. ghouls fighting each member on entry) surface here too, via a
-  // ref because useCaveGame must be called before the roll hook that owns setRoll.
-  const onRollRef = useRef<(view: RollView) => void>(() => {});
+  // Dice AND notices from a move (ghouls on entry, a mutiny in the drawn chamber, …) surface
+  // here, held against the engine's mid-action snapshot when a relocation (trap fall, whirlpool
+  // drag) interrupted the move — so events present against the room they happened in, not the
+  // landing tile (SC-4-43, docs/bugs/ZTNU-log.json). Ref because useCaveGame must be called
+  // before the roll hook that owns holdMove.
+  const onHoldMoveRef = useRef<(mid: GameState | null, view: RollView | null, ns: Notice[]) => void>(() => {});
   const fightShownRef = useRef(false); // FightSurface already on screen (see gate below)
-  const onMoveResolved = useCallback((events: GameEvent[]) => {
+  const onMoveResolved = useCallback((events: GameEvent[], midState?: GameState) => {
     const view = rollFromEvents(events);
-    if (view) onRollRef.current(view);
+    const ns = eventNotices(events);
+    if (view || ns.length) onHoldMoveRef.current(midState ?? null, view, ns);
   }, []);
   const { engine, loading, state, color, code, dispatch, present } = useCaveGame(gameId, onMoveResolved);
   // Presentation hold (see useDispatchWithRolls): the pre-action snapshot stays on screen —
@@ -61,8 +66,8 @@ export default function GameScreen() {
   const stateRef = useRef<GameState | null>(state);
   stateRef.current = state;
   const getSnapshot = useCallback(() => stateRef.current, []);
-  const { roll, setRoll, notices, holding, heldState, dispatchWithRolls, clearRoll, clearNotices } = useDispatchWithRolls(dispatch, getSnapshot);
-  onRollRef.current = setRoll;
+  const { roll, notices, holding, heldState, dispatchWithRolls, holdMove, clearRoll, clearNotices } = useDispatchWithRolls(dispatch, getSnapshot);
+  onHoldMoveRef.current = holdMove;
   const cards = useManifestCards();
   // Leaderboard for the post-game screen; only subscribed once a game has ended.
   const gameOver = !!state && state.gs !== GS_PLAYING;

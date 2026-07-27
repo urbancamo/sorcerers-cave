@@ -13,7 +13,10 @@ import { DEFAULT_PARTY_COLOR, type PartyColor } from "./partyColors";
  * The adapter mirrors the authoritative snapshot (reconciled on every query update)
  * and forwards accepted actions to the `applyAction` mutation (server authority).
  */
-export function useCaveGame(id: Id<"games"> | null, onResolved?: (events: GameEvent[]) => void) {
+export function useCaveGame(
+  id: Id<"games"> | null,
+  onResolved?: (events: GameEvent[], midState?: GameState) => void,
+) {
   const game = useQuery(api.game.get, id ? { id } : "skip");
   const apply = useMutation(api.game.applyAction);
   const [art, setArt] = useState<ArtTables | null>(null);
@@ -43,7 +46,8 @@ export function useCaveGame(id: Id<"games"> | null, onResolved?: (events: GameEv
         onAction: (action: GameAction) => {
           if (!id) return;
           void apply({ id, action }).then((res) => {
-            onResolvedRef.current?.((res as { events?: GameEvent[] } | null)?.events ?? []);
+            const r = res as { events?: GameEvent[]; midState?: GameState } | null;
+            onResolvedRef.current?.(r?.events ?? [], r?.midState);
           });
         },
       });

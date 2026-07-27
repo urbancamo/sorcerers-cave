@@ -486,7 +486,15 @@ function resolveExtraDraw(state: GameState, events: GameEvent[]): void {
 }
 
 /** Move the whole party to the area directly below (same x,y), creating it if needed. */
+// Pre-relocation presentation snapshot (SC-4-43): every relocation that interrupts an area's
+// presentation (Trap during a chamber draw, Whirlpool drag, Chasm descent, Crypt fall) funnels
+// through relocateDown. The snapshot lets the UI hold the room the events actually happened in
+// as the backdrop until their dice/notices are dismissed (docs/bugs/ZTNU-log.json). Per-reduce
+// scratch: the engine is synchronous, `reduce` drains it before returning.
+let pendingMidState: GameState | null = null;
+
 function relocateDown(state: GameState): void {
+  pendingMidState = structuredClone(state);
   const { x, y, level } = unpackCoord(state.areas[state.partyArea]!.coord);
   const target = packCoord(level + 1, x, y);
   let idx = state.areas.findIndex((a) => a.coord === target);
@@ -529,7 +537,21 @@ function carpetMove(state: GameState, dir: number): void {
   state.fellThroughTrap = false; // carpet links both ways
 }
 
-export function reduce(state: GameState, action: GameAction): { state: GameState; events: GameEvent[] } {
+export function reduce(
+  state: GameState,
+  action: GameAction,
+): { state: GameState; events: GameEvent[]; midState?: GameState } {
+  pendingMidState = null;
+  const result = reduceCore(state, action);
+  if (pendingMidState !== null) {
+    const midState: GameState = pendingMidState;
+    pendingMidState = null;
+    return { ...result, midState };
+  }
+  return result;
+}
+
+function reduceCore(state: GameState, action: GameAction): { state: GameState; events: GameEvent[] } {
   if (state.gs !== GS_PLAYING) return { state, events: [] };
 
   switch (action.type) {
