@@ -138,8 +138,11 @@ function encodeAction(a: GameAction): string {
         .map((m) => `${m.front.join("+") || "-"}${m.backers.length ? `|${m.backers.join("+")}` : ""}>${m.strangers.join("+")}`)
         .join(";")}`;
     // Extension kit (SC-EXT-5/7/8/13): the "base"/"slayer"/"artifacts" policies below never choose
-    // these (the kit is off in every one of their runs); the "kit" policy (Task 17) does, and its one
-    // run below is the sole vector where these arms actually appear.
+    // these (the kit is off in every one of their runs); the "kit" policy (Task 17) does. Of the four,
+    // only `descendChasm`/`drawFromWell` actually fire in the one committed kit vector below (the run
+    // never revisits a Bell Rope tile or the parked Crypt's own coord to invoke `pullBellRope`/
+    // `enterCrypt` — see docs/specs/conformance/README.md's `-kit` row) — `pullBellRope`/`enterCrypt`
+    // stay exhaustiveness-only, same as all four are for every OTHER (kit-off) run.
     case "descendChasm": return "DESCENDCHASM";
     case "drawFromWell": return "DRAWFROMWELL";
     case "pullBellRope": return `PULLBELLROPE ${a.mi}`;
