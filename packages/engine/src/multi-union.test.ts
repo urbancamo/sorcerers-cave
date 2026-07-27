@@ -364,7 +364,27 @@ describe("recruit recording & Sorcerer bounty (I-7/I-19)", () => {
   });
 });
 
-describe("cave-global Apprentice revert on a union Sorcerer kill (SC-EXT-31, design US-14)", () => {
+describe("cave-global Apprentice revert on an MP Sorcerer kill (SC-EXT-31, design US-14)", () => {
+  it("reverts another seat's Apprentice ally on a NON-union solo kill (no union ever formed)", () => {
+    // Four seats, no union at all: seat 0 kills the Sorcerer solo via ordinary chamber combat;
+    // seat 3, wholly uninvolved, has a living Apprentice ally. There is only ONE Sorcerer in the
+    // cave (multi-zombies.ts's annihilation sweep is the existing union-agnostic precedent) — her
+    // loyalty must break too, exactly as it would for a union kill.
+    const mp = playing({}, [
+      partyAt(0, { party: [member(0)] }),
+      partyAt(1, { party: [member(5)] }),
+      partyAt(2, { party: [member(7)] }),
+      partyAt(3, { partyArea: 0, party: [member(6), member(14, [4], { status: 1 })] }),
+    ]);
+    expect(mp.unions ?? []).toHaveLength(0); // no union ever formed
+    const r = unionPostAction(mp, 0, [{ type: "sorcererSlain" }]);
+    expect(r.state.parties[3]!.party).toEqual([member(6)]);
+    expect(r.state.parties[3]!.strangers).toEqual([14]);
+    expect(r.state.parties[3]!.treasures).toEqual([4]); // her carried item spills
+    expect(r.events).toContainEqual({ type: "apprenticeTurned", count: 1, items: [4] });
+    expect(r.state.unions ?? []).toHaveLength(0); // still no union — this never touches union state
+  });
+
   it("reverts an Apprentice ally in the KILLING (commander) seat's own party", () => {
     const mp = playing({}, [
       partyAt(0, { party: [member(0), member(14, [], { status: 1 })] }), // commander's own Apprentice ally

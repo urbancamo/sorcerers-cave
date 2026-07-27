@@ -398,6 +398,8 @@ export function hostileDetachmentAt(mp: MpGameState, seat: number): boolean {
  *  1. a terminal commander auto-dissolves his union (loans home, recruits stay with him — doc'd);
  *  2. the acting seat's own detachment at its current area auto-merges back (I-8 "rejoin");
  *  3. guarded loot: a rival detachment re-parks the actor's whole working treasure set (doc'd);
+ *  3b. cave-global Apprentice revert (SC-EXT-31, design US-14): ANY seat's Sorcerer kill — union
+ *      or not — reverts every Apprentice ally, cave-wide;
  *  4. recruits: strangersJoined during a commander's action are recorded on the union (I-7);
  *  5. Sorcerer bounty (I-19): a union kill stamps sorcererKilled + sorcererSharedWith on EVERY member;
  *  6. the union travels together: subordinates relocate to the commander's position after his action.
@@ -442,6 +444,25 @@ export function unionPostAction(mp: MpGameState, seat: number, events: GameEvent
     extra.push({ type: "planRejected", reason: "treasureGuarded" });
   }
 
+  // 3b. The Sorcerer is cave-global (SC-EXT-31, design US-14): there is only ONE Sorcerer, so the
+  //     instant ANY seat kills him — union command or a lone party via ordinary chamber combat —
+  //     EVERY Apprentice ally's loyalty breaks everywhere in the cave, not just within a killing
+  //     union. UNION-AGNOSTIC by design, mirroring the existing precedent for "one Sorcerer,
+  //     cave-wide consequence" (multi-zombies.ts's zombiePostSweep: annihilation fires off ANY
+  //     seat's `sorcererKilled`, never gated on who's in a union). Reuse the solo revert
+  //     (effects.ts) across EVERY seat's party — cast `PartyState` to `GameState` the same way
+  //     `compose()` does; the function only touches `party`/`strangers`/`treasures`, all present on
+  //     `PartyState` verbatim. The killing seat's own party was already reverted inside the solo
+  //     reduce this hook runs after, so the call there is a safe no-op; a LOANED ally who reverts
+  //     vanishes from her commander's array along with her tag, so every active union (not just one
+  //     the killer commands) is re-indexed afterward to end the loan cleanly (mirrors the
+  //     mutiny-desertion path in reindexUnion's own doc comment).
+  if (events.some((e) => e.type === "sorcererSlain")) {
+    ensure();
+    for (const p of out.parties) extra.push(...revertApprenticesOnSorcererDeath(p as unknown as GameState));
+    for (const other of out.unions ?? []) if (!other.dissolved) reindexUnion(out, other);
+  }
+
   const u = (out.unions ?? []).find((x) => !x.dissolved && x.commander === seat);
   if (u) {
     // 4. New allies recruited under the union flag are negotiable at dissolution — record them
@@ -458,21 +479,16 @@ export function unionPostAction(mp: MpGameState, seat: number, events: GameEvent
     }
     // 4b. Re-derive loan/recruit positions from tags: the commander's solo action may have
     //     RESHAPED the party array (Mutiny splices deserters out — a spliced loaned ally has
-    //     deserted to the chamber as a stranger, and every later index shifted).
+    //     deserted to the chamber as a stranger, and every later index shifted). Also picks up any
+    //     loan ended a moment ago by step 3b's cave-global Apprentice revert.
     {
       ensure();
       const nu = out.unions!.find((x) => x.id === u.id)!;
       reindexUnion(out, nu);
     }
-    // 5. The Sorcerer fell to the combined force: every member shares the bounty (I-19). His death
-    //    is also CAVE-GLOBAL for the Apprentice (SC-EXT-31, design US-14): there is only ONE
-    //    Sorcerer in the cave, so the instant he dies, EVERY Apprentice ally's loyalty breaks —
-    //    not just within the union that felled him. Reuse the solo revert (effects.ts) across
-    //    EVERY seat's party: the killing seat's own party (the commander's composed array) was
-    //    already reverted inside the solo reduce this hook runs after, so the call there is a safe
-    //    no-op; a LOANED ally who reverts vanishes from the commander's array along with her tag,
-    //    so every active union is re-indexed afterward to end the loan cleanly (mirrors the
-    //    mutiny-desertion path in reindexUnion's own doc comment).
+    // 5. The Sorcerer fell to the combined force: every member shares the bounty (I-19) — this
+    //    stamp stays scoped to a genuine union kill (>=2 members); the Apprentice revert above is
+    //    the separate, union-agnostic concern.
     if (u.members.length >= 2 && events.some((e) => e.type === "sorcererSlain")) {
       ensure();
       const nu = out.unions!.find((x) => x.id === u.id)!;
@@ -481,8 +497,6 @@ export function unionPostAction(mp: MpGameState, seat: number, events: GameEvent
         p.sorcererKilled = true;
         p.sorcererSharedWith = nu.members.filter((x) => x !== m);
       }
-      for (const p of out.parties) extra.push(...revertApprenticesOnSorcererDeath(p as unknown as GameState));
-      for (const other of out.unions ?? []) if (!other.dissolved) reindexUnion(out, other);
     }
     // 6. The union travels as one: subordinates follow the commander's position.
     ensure();
