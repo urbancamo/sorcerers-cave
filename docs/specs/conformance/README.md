@@ -16,7 +16,10 @@ pnpm --filter engine exec vitest run -u src/conformance-vectors.test.ts
 
 ## How a port consumes a vector
 
-1. Read `SEED` and `PICKS`; run your `newGame(seed, picks)`; compare the `SETUP` line.
+1. Read `SEED` and `PICKS`, and check for an optional `KIT 1` line (extension kit ON — SC-EXT-1);
+   run your `newGame(seed, picks)` (or, with `KIT 1`, `newGame(seed, picks, {extensionKit: true})`
+   — building the 90-card/101-card kit decks instead of the base 60/71, SC-EXT-4); compare the
+   `SETUP` line.
 2. Apply each numbered move's action to your reducer, in order. After each, compare the
    post-action checkpoint. **`SEED` is the sharpest signal**: any difference in roll count, roll
    order, or LCG arithmetic (spec A.5) diverges the RNG cursor on the exact line it happens.
@@ -29,6 +32,7 @@ A port that matches every line of every vector implements the same game.
 ```
 SEED <n>                      initial LCG seed handed to newGame
 PICKS <id>[,<id>…]            starting party creature ids, in pick order
+KIT 1                         OPTIONAL — present only when the run is extension-kit-on (SC-EXT-1)
 SETUP …                       state straight after newGame (see checkpoint fields below)
 BEGIN MOVES / END MOVES <n>   the action log; <n> = number of actions applied
 <step> <ACTION> -> <checkpoint> EV <ev>[,<ev>…]     one applied action + post-action state
@@ -47,14 +51,14 @@ Checkpoint fields: `TRN` turn · `LVL` level · `ARA` partyArea index · `PH` ph
 (0 original, 1 ally, 2 stone, 3 dead), `DK` dragonKills, `CARRY` treasure ids held, `BORNE` the
 borne subset. AREA: `CARD` area-card value, `COORD` packed `level*10000+y*100+x`, `FU` faceUp,
 `VIS` visited, `FLG` flags (4 = earthquake-destroyed), `MIR` mirroredStairs bits, `SD` secret-door
-ordinal, `CONT` parked contents codes (100+cid / 200+tid / 300+hid / 400+cid), `DROP` Deep-Pool
-dropped treasure ids.
+ordinal, `CONT` parked contents codes (100+cid / 200+tid / 300+hid / 400+cid, and — kit-on runs only,
+SC-EXT-10 — 500+cid for a parked Gallery statue), `DROP` Deep-Pool dropped treasure ids.
 
 ## Action grammar
 
-Covers the full 18-action catalog (spec SC-4-41). Indices refer to the engine's state arrays
-(`party` / `strangers` / `treasures` / a member's `treasure`) **at the moment the action is
-applied**. Directions: 1 N, 2 E, 3 S, 4 W, 5 up, 6 down.
+Covers the full 22-action catalog (spec SC-4-41 — 18 base + 4 kit-only, SC-EXT-5/7/8/13). Indices
+refer to the engine's state arrays (`party` / `strangers` / `treasures` / a member's `treasure`) **at
+the moment the action is applied**. Directions: 1 N, 2 E, 3 S, 4 W, 5 up, 6 down.
 
 | Encoding | Action |
 |---|---|
@@ -66,14 +70,19 @@ applied**. Directions: 1 N, 2 E, 3 S, 4 W, 5 up, 6 down.
 | `BORNE <mi> <idx> <0|1>` | setBorne (1 bear, 0 stow) |
 | `CASUALTY <idx>` | chooseCasualty |
 | `PROCEED` | proceed (decline the Medusa-pause Lotus throw — the held hazards fire) |
-| `USE <artifact>[ T<target>][ D<dir>]` | useArtifact (`USE 5` with no `T` = the Medusa-pause throw) |
-| `FIGHT <match>[;<match>…]` | resolveRound; match = `<front>[+<front>][\|<backer>[+…]]><stranger>[+<stranger>]`; `FIGHT -` = the forced-Spectre empty plan (SC-9.4-6) |
+| `USE <artifact>[ T<target>][ D<dir>]` | useArtifact (`USE 5` with no `T` = the Medusa-pause throw; kit artifacts 15 Elixir/16 Holy Water/19 Scroll add their own target ranges, SC-EXT-22/24/25) |
+| `FIGHT <match>[;<match>…]` | resolveRound; match = `<front>[+<front>][\|<backer>[+…]]><stranger>[+<stranger>]`; `FIGHT -` = the forced-Spectre-or-Demon empty plan (SC-9.4-6, SC-EXT-21) |
+| `DESCENDCHASM` | descendChasm — kit-only, Chasm tile (SC-EXT-5) |
+| `DRAWFROMWELL` | drawFromWell — kit-only, Well tile (SC-EXT-7) |
+| `PULLBELLROPE <mi>` | pullBellRope: living member `mi` pulls it — kit-only, Bell Rope tile (SC-EXT-8) |
+| `ENTERCRYPT` | enterCrypt — kit-only, on the area a parked Crypt/Gems names (SC-EXT-13) |
 
 ## Coverage
 
-Nineteen runs. The eight untagged files mirror the solo golden firewall's seed × party set
-(`solo-golden.test.ts`) and exercise combat, pickup, hazards and deaths. The eleven TAGGED files are
-targeted fixtures found by seed sweep, driven by steered policies committed in the generator:
+Twenty runs. The eight untagged files mirror the solo golden firewall's seed × party set
+(`solo-golden.test.ts`) and exercise combat, pickup, hazards and deaths. The eleven base-game TAGGED
+files are targeted fixtures found by seed sweep, driven by steered policies committed in the
+generator; the final TAGGED file is the extension kit's own vector:
 
 | File tag | Pins |
 |---|---|
@@ -85,6 +94,7 @@ targeted fixtures found by seed sweep, driven by steered policies committed in t
 | `-reclaim` (seed 148) | Deep-Pool dropped treasure reclaimed by a Giant |
 | `-medusaavert` (seed 330) | a staff-Wizard averts Medusa (`medusaAverted`) |
 | `-petrified` (seed 24) | whole-party petrification (`petrifiedOut`) — and the Medusa pause: `MDS` phase, the no-target `USE 5` throw, `medusaSlept` + `medusaAsleep` |
+| `-kit` (seed 397, `KIT 1`) | the ONE extension-kit-on vector (Task 17), party `18,20` (Witch, Wolf), driven by the generator's "kit" policy — a byte-for-byte port of `kit-golden.test.ts`'s own decision logic, so it replays that golden's identical action sequence. Pins: `DESCENDCHASM`×2, `WHIRLPOOLROLL`, `DRAWFROMWELL`, and a parked Crypt (`cryptParked`); all four kit hazards firing — Quarrel fizzles (too few eligible duelists, SC-EXT-16), Spell remaps a tunnel, Desertion, and Harpies actually striking; two kit artifact `USE`s — Holy Water destroying a stranger (`USE 16 T3000`) and the Scroll (`USE 19`); reactions to kit-creature stranger groups (a Witch; a Giant+Lion pair that joins; a final mixed group including the Apprentice and the Thief); and a Demon materializing (`demonSpawned`). Ends `GS 2` (a full party wipe) at move 197 — a natural end, not a step-cap truncation. |
 
 Note two truncation shapes a replayer must accept: a run may end at the step cap with `GS 0`
 (`END MOVES 300`, game still live), and seed 2678 stops early when no legal action remains (the
