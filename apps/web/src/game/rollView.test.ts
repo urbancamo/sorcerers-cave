@@ -206,6 +206,23 @@ describe("rollFromEvents", () => {
     expect(bell.message).toMatch(/witch/i);
   });
 
+  it("names a kit member in the Medusa gaze / Viper Pit / casualty overlays too, not '?' (review fix)", () => {
+    // casualtyView, medusaView, and viperView used to index the base-only CREATURES table, so a kit
+    // member (id 14-21) fell back to "A companion"/"?" instead of showing its own name.
+    const gaze = rollFromEvents([
+      { type: "medusaGaze", rolls: [{ creatureId: 18, roll: 2, petrified: true }] }, // Witch
+    ])!;
+    expect(gaze.lanes[0]!.enemy.name).toBe("Witch");
+
+    const pit = rollFromEvents([
+      { type: "viperPit", rolls: [{ creatureId: 20, roll: 1, died: true }] }, // Wolf
+    ])!;
+    expect(pit.lanes[0]!.enemy.name).toBe("Wolf");
+
+    const casualty = rollFromEvents([{ type: "casualtyChosen", creatureId: 19, roll: 3, gotPreference: true }])!; // Thief
+    expect(casualty.message).toMatch(/thief falls/i);
+  });
+
   it("shows one lane per pairing and a slain message when the party falls", () => {
     const events: GameEvent[] = [
       { type: "combatRoll", party: "Dwarf", enemy: "Dragon", partyRoll: 2, enemyRoll: 6, partyTotal: 4, enemyTotal: 12, result: "enemyWon" },

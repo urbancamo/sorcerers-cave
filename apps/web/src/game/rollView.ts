@@ -1,7 +1,7 @@
 // ALL_CREATURES/ALL_TREASURES (not the base-only tables): the kit's dice-overlay events can name a
 // kit ally/stranger (14-21) — a Bell Rope puller, a Quarrel combatant, a Desertion roll, an Elixir
 // drinker. Byte-identical for ids 0-13.
-import { CREATURES, TREASURES, ALL_CREATURES, ALL_TREASURES, type GameEvent } from "@sorcerers-cave/engine";
+import { TREASURES, ALL_CREATURES, ALL_TREASURES, type GameEvent } from "@sorcerers-cave/engine";
 import type { Lane } from "./DiceRoll";
 
 export type Tone = "good" | "bad" | "neutral";
@@ -94,7 +94,7 @@ function chestView(events: GameEvent[]): RollView | null {
 function casualtyView(events: GameEvent[]): RollView | null {
   const c = events.find((e): e is Extract<GameEvent, { type: "casualtyChosen" }> => e.type === "casualtyChosen");
   if (!c) return null;
-  const who = CREATURES[c.creatureId]?.name ?? "A companion";
+  const who = ALL_CREATURES[c.creatureId]?.name ?? "A companion";
   return {
     title: "Who falls",
     lanes: [{ enemy: { value: c.roll } }],
@@ -108,7 +108,7 @@ function medusaView(events: GameEvent[]): RollView | null {
   const gaze = events.find((e): e is Extract<GameEvent, { type: "medusaGaze" }> => e.type === "medusaGaze");
   if (!gaze) return null;
   const lanes: Lane[] = gaze.rolls.map((r) => ({
-    enemy: { name: CREATURES[r.creatureId]?.name ?? "?", value: r.roll, outcome: r.petrified ? "lose" : "win" },
+    enemy: { name: ALL_CREATURES[r.creatureId]?.name ?? "?", value: r.roll, outcome: r.petrified ? "lose" : "win" },
   }));
   const stoned = gaze.rolls.filter((r) => r.petrified).length;
   const wipedOut = events.some((e) => e.type === "petrifiedOut");
@@ -123,7 +123,7 @@ function viperView(events: GameEvent[]): RollView | null {
   const pit = events.find((e): e is Extract<GameEvent, { type: "viperPit" }> => e.type === "viperPit");
   if (!pit) return null;
   const lanes: Lane[] = pit.rolls.map((r) => ({
-    enemy: { name: CREATURES[r.creatureId]?.name ?? "?", value: r.roll, outcome: r.died ? "lose" : "win" },
+    enemy: { name: ALL_CREATURES[r.creatureId]?.name ?? "?", value: r.roll, outcome: r.died ? "lose" : "win" },
   }));
   const lost = pit.rolls.filter((r) => r.died).length;
   const wipedOut = events.some((e) => e.type === "gameOver");
