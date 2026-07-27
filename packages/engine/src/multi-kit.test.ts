@@ -6,6 +6,9 @@ import { GS_PLAYING, GATEWAY_START_COORD } from "./state";
 import { AREA_CARDS, GATEWAY_INDEX } from "./data/areaCards";
 import { packCoord } from "./coords";
 import type { PartyMember, PlacedArea } from "./state";
+import {
+  declarePvp, expirePvp, setDefenderCasters, pvpView, type PvpFightSession,
+} from "./multi-fight";
 
 /**
  * Extension kit (SC-EXT-30): the multiplayer game-level `variants.extensionKit` flag threads into
@@ -139,5 +142,29 @@ describe("kit-stranger smoke draw (SC-EXT-30) — the deck-threaded path resolve
     const round = { type: "resolveRound" as const, matches: [{ front: [0], backers: [], strangers: [0] }] };
     const resolved = mpReduce(attacked.state, 0, round);
     expect(resolved.events.some((e) => e.type === "blocked")).toBe(false); // resolves cleanly, no crash
+  });
+});
+
+describe("PvP kit-creature lookups (SC-EXT-31) — no base-only CREATURES[]/TREASURES[] indexing", () => {
+  it("a PvP fight where a kit creature (Witch, id 18) fights does not crash and previews her name", () => {
+    // pvpView's per-engagement `nameOf` used to index the base-only `CREATURES` table directly —
+    // `CREATURES[18]` is undefined, so this would throw before this task's fix.
+    const mp: MpGameState = {
+      ...playing({}, [
+        partyAt(0, { party: [member(18)], prev: 2 }), // a lone Witch, surprise via a differing prev
+        partyAt(1, { party: [member(0)] }),
+      ]),
+      variants: { extensionKit: true },
+    };
+    const declared = declarePvp(mp, 0, 1, 0, 1000);
+    // Auto-default both layout windows exactly as multi-fight.test.ts's pvpView suite does — the
+    // fairness/engagement machinery is unrelated to creature identity.
+    const e1 = expirePvp(declared.state, 2000, 1000);
+    const e2 = expirePvp(e1.state, 4000, 1000);
+    const done = setDefenderCasters(e2.state, 1, [], 0, 1000);
+    const session = done.state.session as PvpFightSession;
+    expect(() => pvpView(session, done.state)).not.toThrow();
+    const v = pvpView(session, done.state);
+    expect(v.engagements.some((e) => e.attackerNames.includes("Witch"))).toBe(true);
   });
 });

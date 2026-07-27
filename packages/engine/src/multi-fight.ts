@@ -5,7 +5,7 @@ import { eyeForsakenByDeath, ringInvincible } from "./effects";
 import { sweepFallen } from "./loot";
 import { rollDie } from "./rng";
 import { decodeArea } from "./decode";
-import { CREATURES } from "./data/creatures";
+import { ALL_CREATURES } from "./data/creatures";
 import { ALL_TREASURES } from "./data/treasures";
 import { canCarry } from "./pickup";
 import { DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, targetCoord, unpackCoord } from "./coords";
@@ -654,7 +654,9 @@ export function pvpView(session: PvpSession, mp: MpGameState): PvpView {
       cards[`${seat}:${idx}`] = { creatureId: m.creatureId, copy, alive: m.status === 0 || m.status === 1 };
     });
   }
-  const nameOf = (id: string) => CREATURES[memberAt(mp, id)!.creatureId]!.name;
+  // `ALL_CREATURES` (base + kit, SC-EXT-2) — a kit creature (e.g. Witch 18) would otherwise crash
+  // this lookup against the base-only `CREATURES` table (SC-EXT-31).
+  const nameOf = (id: string) => ALL_CREATURES[memberAt(mp, id)!.creatureId]!.name;
   const engagements: PvpEngagementView[] = session.engagements.map((eng, ei) => {
     let a = 0; for (const id of eng.attackers) a += strengthOf(mp, id);
     for (const b of session.attackerBackers) if (b.at === ei) a += backerMP(mp, b.caster);

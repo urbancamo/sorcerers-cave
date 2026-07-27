@@ -1,6 +1,7 @@
-import { GS_PLAYING, GS_DEAD, type PartyMember } from "./state";
+import { GS_PLAYING, GS_DEAD, type PartyMember, type GameState } from "./state";
 import type { GameEvent } from "./actions";
 import { scoreBreakdown } from "./score";
+import { revertApprenticesOnSorcererDeath } from "./effects";
 import { advanceTurn, partyView, type MpGameState } from "./multi";
 import type { Union, UnionProposal } from "./multi-session";
 
@@ -463,7 +464,15 @@ export function unionPostAction(mp: MpGameState, seat: number, events: GameEvent
       const nu = out.unions!.find((x) => x.id === u.id)!;
       reindexUnion(out, nu);
     }
-    // 5. The Sorcerer fell to the combined force: every member shares the bounty (I-19).
+    // 5. The Sorcerer fell to the combined force: every member shares the bounty (I-19). His death
+    //    is also CAVE-GLOBAL for the Apprentice (SC-EXT-31, design US-14): there is only ONE
+    //    Sorcerer in the cave, so the instant he dies, EVERY Apprentice ally's loyalty breaks —
+    //    not just within the union that felled him. Reuse the solo revert (effects.ts) across
+    //    EVERY seat's party: the killing seat's own party (the commander's composed array) was
+    //    already reverted inside the solo reduce this hook runs after, so the call there is a safe
+    //    no-op; a LOANED ally who reverts vanishes from the commander's array along with her tag,
+    //    so every active union is re-indexed afterward to end the loan cleanly (mirrors the
+    //    mutiny-desertion path in reindexUnion's own doc comment).
     if (u.members.length >= 2 && events.some((e) => e.type === "sorcererSlain")) {
       ensure();
       const nu = out.unions!.find((x) => x.id === u.id)!;
@@ -472,6 +481,8 @@ export function unionPostAction(mp: MpGameState, seat: number, events: GameEvent
         p.sorcererKilled = true;
         p.sorcererSharedWith = nu.members.filter((x) => x !== m);
       }
+      for (const p of out.parties) extra.push(...revertApprenticesOnSorcererDeath(p as unknown as GameState));
+      for (const other of out.unions ?? []) if (!other.dissolved) reindexUnion(out, other);
     }
     // 6. The union travels as one: subordinates follow the commander's position.
     ensure();

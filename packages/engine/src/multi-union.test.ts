@@ -364,6 +364,47 @@ describe("recruit recording & Sorcerer bounty (I-7/I-19)", () => {
   });
 });
 
+describe("cave-global Apprentice revert on a union Sorcerer kill (SC-EXT-31, design US-14)", () => {
+  it("reverts an Apprentice ally in the KILLING (commander) seat's own party", () => {
+    const mp = playing({}, [
+      partyAt(0, { party: [member(0), member(14, [], { status: 1 })] }), // commander's own Apprentice ally
+      partyAt(1, { party: [] }),
+    ]);
+    mp.unions = [union()];
+    const r = unionPostAction(mp, 0, [{ type: "sorcererSlain" }]);
+    expect(r.state.parties[0]!.party).toEqual([member(0)]);
+    expect(r.state.parties[0]!.strangers).toEqual([14]); // hostile stranger in her current area
+    expect(r.events).toContainEqual({ type: "apprenticeTurned", count: 1, items: [] });
+  });
+
+  it("reverts an Apprentice ally in ANOTHER, uninvolved seat's party — the Sorcerer is cave-global", () => {
+    const mp = playing({}, [
+      partyAt(0, { party: [member(0), member(7)] }),
+      partyAt(1, { party: [] }),
+      partyAt(2, { partyArea: 0, party: [member(5), member(14, [3], { status: 1 })] }), // seat 2: not in the union
+    ]);
+    mp.unions = [union()]; // union between seats 0 and 1 only
+    const r = unionPostAction(mp, 0, [{ type: "sorcererSlain" }]);
+    expect(r.state.parties[2]!.party).toEqual([member(5)]);
+    expect(r.state.parties[2]!.strangers).toEqual([14]);
+    expect(r.state.parties[2]!.treasures).toEqual([3]); // her carried item spills, solo semantics
+  });
+
+  it("a LOANED Apprentice ends her loan cleanly when she reverts, and her item spills", () => {
+    const mp = playing({}, [
+      partyAt(0, { party: [member(0), member(14, [2], { status: 1, mpTag: "loan:1" })] }), // seat 1's Apprentice, on loan
+      partyAt(1, { party: [] }),
+    ]);
+    mp.unions = [union({ onLoan: [{ fromSeat: 1, idx: 1 }] })];
+    const r = unionPostAction(mp, 0, [{ type: "sorcererSlain" }]);
+    expect(r.state.parties[0]!.party).toEqual([member(0)]); // gone from the commander's array
+    expect(r.state.parties[0]!.strangers).toEqual([14]); // stranger where the union stands
+    expect(r.state.parties[0]!.treasures).toEqual([2]); // her item spilled into the working set
+    expect(r.state.unions![0]!.onLoan).toEqual([]); // the loan ended — no dangling record
+    expect(r.state.parties[1]!.party).toEqual([]); // she does NOT come home — she never exits the cave
+  });
+});
+
 describe("loan-index stability under solo array reshaping (mutiny regression)", () => {
   it("a mutiny that splices deserters out of the commander's array does not corrupt the loans", () => {
     // Commander seat 0: own Hero (0), an own ALLY Troll (status 1 — WILL desert), and seat 1's
