@@ -12,7 +12,10 @@ import type { GameAction, GameEvent } from "./actions";
 import { reactionRoll } from "./reaction";
 import { frontStrength } from "./combat";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
-import { wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, ringInvincible, usesArtifactsAs } from "./effects";
+import {
+  wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, ringInvincible, usesArtifactsAs,
+  hasLivingHuman, holyWaterTargets, HW_STATUE_BASE, HW_MEDUSA, HW_STRANGER_BASE,
+} from "./effects";
 import { BORNEABLE, isBorne, sweepFallen, spillCarried } from "./loot";
 import { rollDie } from "./rng";
 // Extension kit (SC-EXT-17): aliases `ALL_CREATURES` — `strongestStranger`'s fight-focus pick and
@@ -28,6 +31,7 @@ const C_THIEF = 19; // extension-kit creature — a living Thief ally unlocks gu
 const T_CRYPT = 21; // extension-kit treasure — the crypt's find converts to this ordinary treasure (SC-EXT-13)
 const C_APPRENTICE = 14; // extension-kit creature — never leaves the cave (design US-14, SC-EXT-20)
 const C_DEMON = 15; // extension-kit creature — forces immediate hostile combat on sight (design US-13, SC-EXT-21)
+const C_SORCERER = 11; // Holy Water's WEAKEN mode target, alongside the Apprentice (design US-20, SC-EXT-24)
 
 /** Can a living Giant fish at least one dropped item out of a Deep Pool right now? Recovery is a
  *  Giant-only, capacity-limited pickup (§Deep Pool): a Man/Ogre/etc. can never lift pool treasure,
@@ -1106,6 +1110,79 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
             type: "elixirDrunk", creatureId: drinker.creatureId, roll: r.value,
             outcome: r.value === 1 ? "death" : r.value <= 3 ? "nothing" : "strength",
           });
+          return { state: next, events };
+        }
+        case 16: { // Holy Water — one use, target enumeration (design US-20, SC-EXT-24)
+          if (action.target === undefined) return { state, events: [{ type: "blocked" }] };
+          const found = holyWaterTargets(next).find((t) => t.target === action.target);
+          if (!found) return { state, events: [{ type: "blocked" }] };
+          consume();
+          const events: GameEvent[] = [{ type: "artifactUsed", artifact: 16 }];
+          switch (found.mode) {
+            case "revive": { // stone party member -> alive (mirrors reviveStoned's revival; no bearer gate)
+              const sm = next.party[found.target]!;
+              sm.status = 0;
+              sm.stoneArea = undefined;
+              events.push({ type: "holyWaterRevived", creatureId: sm.creatureId });
+              return { state: next, events };
+            }
+            case "wake": { // Gallery statue -> wakes into strangers for an immediate, normal reaction test
+              const idx = found.target - HW_STATUE_BASE;
+              next.statues!.splice(idx, 1);
+              next.strangers.push(found.creatureId!);
+              next.phase = "encounter";
+              next.surpriseReady = false; // this is well after any fresh entry — never a surprise attack
+              next.indiffStreak = 0; // a fresh mini-encounter re-tests from scratch (enterChamber's own rule)
+              events.push({ type: "holyWaterStatueWoke", creatureId: found.creatureId! });
+              return { state: next, events };
+            }
+            case "destroyMedusa": { // the area's lurking Medusa marker — removed outright, no dice
+              const area = next.areas[next.partyArea]!;
+              area.contents = area.contents.filter((c) => c !== 300 + HAZARD_MEDUSA);
+              events.push({ type: "holyWaterMedusaDestroyed" });
+              return { state: next, events };
+            }
+            case "destroy": { // Spectre/Demon stranger or lurker — removed outright, no fight, no score
+              const idx = found.target - HW_STRANGER_BASE;
+              next.strangers.splice(idx, 1);
+              events.push({ type: "holyWaterFoeDestroyed", creatureId: found.creatureId! });
+              if (next.strangers.length === 0) { // mirrors Lotus Dust's own empty-strangers cleanup above
+                next.fight = null;
+                next.party.forEach((m) => { m.potionActive = false; });
+                if (next.treasures.length > 0) next.phase = "pickup";
+                else persistAndExplore(next);
+              }
+              return { state: next, events };
+            }
+            case "weaken": { // Sorcerer/Apprentice — -2 mp for the rest of the game (combatPlan.ts's enemyMP)
+              if (found.creatureId === C_SORCERER) next.holyWaterOnSorcerer = true;
+              else next.holyWaterOnApprentice = true;
+              events.push({ type: "holyWaterWeakened", creatureId: found.creatureId! });
+              return { state: next, events };
+            }
+            default:
+              return { state, events: [{ type: "blocked" }] };
+          }
+        }
+        case 19: { // Scroll — destroys every mp===0 stranger in the area; curses the party (US-21, SC-EXT-25)
+          if (next.phase !== "encounter" && next.phase !== "fight") return { state, events: [{ type: "blocked" }] };
+          if (!hasLivingHuman(next) || next.strangers.length === 0) return { state, events: [{ type: "blocked" }] };
+          consume();
+          const destroyed: number[] = [];
+          const survivors: number[] = [];
+          for (const sid of next.strangers) (CREATURES[sid]!.mp === 0 ? destroyed : survivors).push(sid);
+          next.strangers = survivors;
+          next.curses += 1; // the standing curse, no different from any other source (§Curse)
+          const events: GameEvent[] = [
+            { type: "artifactUsed", artifact: 19 },
+            { type: "scrollRead", destroyed, survivors },
+          ];
+          if (next.strangers.length === 0) { // no one left — same cleanup as Holy Water's destroy/Lotus Dust
+            next.fight = null;
+            next.party.forEach((m) => { m.potionActive = false; });
+            if (next.treasures.length > 0) next.phase = "pickup";
+            else persistAndExplore(next);
+          }
           return { state: next, events };
         }
         default:

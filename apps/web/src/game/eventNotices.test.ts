@@ -337,6 +337,41 @@ describe("eventNotices", () => {
     expect(strength.tone).toBe("good");
   });
 
+  it("reports Holy Water's four outcomes verbatim, by kit-inclusive creature name where relevant (US-20)", () => {
+    const revived = eventNotices([{ type: "holyWaterRevived", creatureId: 5 }])[0]!;
+    expect(revived.text).toBe("The stone sloughs away — Man breathes again.");
+    expect(revived.tone).toBe("good");
+
+    // Statue-wake and destroy/weaken can name a KIT creature id (14-20), past the base CREATURES
+    // table's range — this is exactly what routing through ALL_CREATURES (not the base-only
+    // `name()` helper) is for.
+    const woke = eventNotices([{ type: "holyWaterStatueWoke", creatureId: 18 }])[0]!; // Witch
+    expect(woke.text).toBe("The stone cracks — the Witch stirs!");
+
+    const medusaGone = eventNotices([{ type: "holyWaterMedusaDestroyed" }])[0]!;
+    expect(medusaGone.text).toBe("The water sears the Medusa into mist.");
+
+    const demonGone = eventNotices([{ type: "holyWaterFoeDestroyed", creatureId: 15 }])[0]!; // Demon
+    expect(demonGone.text).toBe("The water sears the Demon into mist.");
+
+    const weakened = eventNotices([{ type: "holyWaterWeakened", creatureId: 14 }])[0]!; // Apprentice
+    expect(weakened.text).toBe("The Apprentice recoils, diminished.");
+  });
+
+  it("reports the Scroll's destroy/survivor lines and the standing curse notice, handling empty lists (US-21)", () => {
+    const both = eventNotices([{ type: "scrollRead", destroyed: [5], survivors: [9] }]);
+    expect(both[0]!.text).toBe("The words burn the air. Man crumble to dust. The survivors — Spectre — laugh.");
+    expect(both[1]!.text).toBe("A curse settles on the party.");
+    expect(both[1]!.tone).toBe("bad");
+
+    const noSurvivors = eventNotices([{ type: "scrollRead", destroyed: [5, 2], survivors: [] }]);
+    expect(noSurvivors[0]!.text).toBe("The words burn the air. Man, Ogre crumble to dust.");
+
+    const noDestroyed = eventNotices([{ type: "scrollRead", destroyed: [], survivors: [9] }]);
+    expect(noDestroyed[0]!.text).toBe("The words burn the air. Nothing here is mundane enough to crumble. The survivors — Spectre — laugh.");
+    expect(noDestroyed[0]!.tone).toBe("neutral");
+  });
+
   it("reports the Demon's own kill line verbatim, but stays silent for an ordinary stranger (fix round, US-13)", () => {
     const demonKilled = eventNotices([{ type: "strangerKilled", creatureId: 15 }]);
     expect(demonKilled).toHaveLength(1);

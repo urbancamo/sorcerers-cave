@@ -4,7 +4,7 @@ import { GS_PLAYING, AF_DESTROYED, AF_BELL_SPENT, type GameState } from "./state
 import { SPECIAL_DEEP_POOL, SPECIAL_CHASM, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
 import type { GameAction } from "./actions";
 import { canCarry } from "./pickup";
-import { usesArtifactsAs } from "./effects";
+import { usesArtifactsAs, holyWaterTargets, hasLivingHuman } from "./effects";
 
 const C_GIANT = 12; // only a Giant may lift treasure out of a Deep Pool (§Deep Pool)
 
@@ -31,6 +31,20 @@ function artifactActions(state: GameState): GameAction[] {
   // every other artifact here). "Any creature" may drink it — one action per living member.
   if (state.phase !== "fight" && has(15, () => true)) {
     living(state).forEach(({ idx }) => actions.push({ type: "useArtifact", artifact: 15, target: idx }));
+  }
+  // Extension kit (SC-EXT-24, design US-20): Holy Water's target picker — `holyWaterTargets`
+  // (effects.ts) is the SAME function `reduce.ts`'s case 16 validates a chosen target against, so
+  // the offered list and the accepted list can never drift. It already self-gates by `state.phase`
+  // (explore/pickup for revive/wake/destroyMedusa; encounter/fight for destroy/weaken), so no
+  // additional phase check is needed here.
+  if (has(16, () => true)) {
+    holyWaterTargets(state).forEach((t) => actions.push({ type: "useArtifact", artifact: 16, target: t.target }));
+  }
+  // Extension kit (SC-EXT-25, design US-21/Resolved-10): the Scroll needs a living human present
+  // and strangers to burn, in encounter or fight — no target/picker (any human reads it).
+  if ((state.phase === "encounter" || state.phase === "fight") && has(19, () => true) &&
+      state.strangers.length > 0 && hasLivingHuman(state)) {
+    actions.push({ type: "useArtifact", artifact: 19 });
   }
   if (state.phase === "fight" || state.phase === "encounter") {
     if (has(5, () => true)) { // Lotus Dust -> each stranger (but not a Spectre — no effect, per card)

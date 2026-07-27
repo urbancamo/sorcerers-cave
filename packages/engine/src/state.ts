@@ -143,6 +143,13 @@ export interface GameState {
   secretDoors?: number;
   // Lotus Dust has been used on the Sorcerer (he can't be slept, only weakened): −2 to his Strength.
   lotusOnSorcerer?: boolean;
+  // Extension kit (SC-EXT-24, design US-20): Holy Water's WEAKEN mode has been used on the Sorcerer
+  // or an Apprentice — −2 mp for the rest of the game, stacking with Lotus Dust/Eye of God (each a
+  // separate flag summed by `enemyMP`, combatPlan.ts, mirroring how Eye+Lotus already stack today),
+  // floored at 0. Two separate flags (not one) because Holy Water can weaken EITHER target, but only
+  // once ever — it is a single-use artifact — so at most one of the pair is ever true in a game.
+  holyWaterOnSorcerer?: boolean;
+  holyWaterOnApprentice?: boolean;
   // Set while phase === "medusa": the entry is held mid-resolution (hazards not yet fired) for the
   // throw-or-proceed decision. `freshEntry` preserves the first-visit flag for the resumed tail
   // (surprise eligibility, Dragon-lull announcement) — it can't be recomputed after enterChamber.

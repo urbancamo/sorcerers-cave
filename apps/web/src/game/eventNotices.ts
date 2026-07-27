@@ -1,5 +1,5 @@
 import {
-  CREATURES, ALL_TREASURES,
+  CREATURES, ALL_CREATURES, ALL_TREASURES,
   HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_MUTINY, HAZARD_TRAP, HAZARD_DESERTION,
   HAZARD_HARPIES, HAZARD_QUARREL, HAZARD_SPELL,
   SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_WHIRLPOOL,
@@ -19,6 +19,11 @@ export interface Notice {
 }
 
 const name = (cid: number): string => CREATURES[cid]?.name ?? "a creature";
+// Holy Water/Scroll (US-20/US-21) can name ANY creature id, base or kit (a stoned party member, a
+// Gallery statue, a destroyed Spectre/Demon or a scrolled-away stranger) — routed through
+// `ALL_CREATURES` rather than extending the base-only `name()` helper above (a known gap other kit
+// notices deliberately hardcode around instead of widening — see `demonSlew`/`apprenticeTurned`).
+const allName = (cid: number): string => ALL_CREATURES[cid]?.name ?? "a creature";
 const treasureName = (tid: number): string => ALL_TREASURES[tid]?.name ?? "an item";
 const itemList = (ids: number[]): string => ids.map(treasureName).join(", ");
 const plural = (n: number, s: string) => `${n} ${s}${n === 1 ? "" : "s"}`;
@@ -336,6 +341,35 @@ export function eventNotices(events: GameEvent[]): Notice[] {
         else if (e.outcome === "nothing") out.push({ text: "It tastes of pond water. Nothing happens.", tone: "neutral" });
         else out.push({ text: `${name(e.creatureId)} feels power settle into their bones. (+2 fs)`, tone: "good" });
         break;
+      // Holy Water's four outcomes (design US-20 Feedback, verbatim per mode, SC-EXT-24).
+      case "holyWaterRevived":
+        out.push({ text: `The stone sloughs away — ${allName(e.creatureId)} breathes again.`, tone: "good" });
+        break;
+      case "holyWaterStatueWoke":
+        out.push({ text: `The stone cracks — the ${allName(e.creatureId)} stirs!`, tone: "neutral" });
+        break;
+      case "holyWaterMedusaDestroyed":
+        out.push({ text: "The water sears the Medusa into mist.", tone: "good" });
+        break;
+      case "holyWaterFoeDestroyed":
+        out.push({ text: `The water sears the ${allName(e.creatureId)} into mist.`, tone: "good" });
+        break;
+      case "holyWaterWeakened":
+        out.push({ text: `The ${allName(e.creatureId)} recoils, diminished.`, tone: "good" });
+        break;
+      case "scrollRead": {
+        // Design US-21 Feedback, verbatim — handling the empty-destroyed (an all-magical group) and
+        // empty-survivors (nothing left standing) edge cases sensibly rather than rendering a blank
+        // clause. The standing curse notice always follows — the Scroll curses on every legal use.
+        let text = "The words burn the air.";
+        text += e.destroyed.length
+          ? ` ${e.destroyed.map(allName).join(", ")} crumble to dust.`
+          : " Nothing here is mundane enough to crumble.";
+        if (e.survivors.length) text += ` The survivors — ${e.survivors.map(allName).join(", ")} — laugh.`;
+        out.push({ text, tone: e.destroyed.length ? "good" : "neutral" });
+        out.push({ text: "A curse settles on the party.", tone: "bad" });
+        break;
+      }
       default:
         assertNever(e);
         break;

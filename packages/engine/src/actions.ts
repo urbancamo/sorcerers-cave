@@ -226,4 +226,29 @@ export type GameEvent =
   // `roll`. Fires alongside the generic `artifactUsed{artifact:15}` and, on the death band, the
   // ordinary death machinery's own events (`deathPrevented` if the Ring saves the drinker, else
   // `eyeForsaken`/`itemsSpilled`) exactly as any other "killing die-roll" site.
-  | { type: "elixirDrunk"; creatureId: number; roll: number; outcome: "death" | "nothing" | "strength" };
+  | { type: "elixirDrunk"; creatureId: number; roll: number; outcome: "death" | "nothing" | "strength" }
+  // Extension kit (SC-EXT-24, design US-20): Holy Water's four outcomes, one event per mode —
+  // `holyWaterTargets` (effects.ts) is the shared source of truth both `selectors.ts` and
+  // `reduce.ts`'s useArtifact case 16 read to build/interpret the target picker (design "target
+  // picker listing every legal target in the current area").
+  // REANIMATE a stone PARTY member: "The stone sloughs away — [name] breathes again."
+  | { type: "holyWaterRevived"; creatureId: number }
+  // REANIMATE a Gallery statue: wakes into `state.strangers` for an immediate, normal reaction test
+  // (mirrors the Staff's group wake, SC-EXT-11, for a single creature). "The stone cracks — the
+  // [creature] stirs!" (design US-06's own wording for this same action).
+  | { type: "holyWaterStatueWoke"; creatureId: number }
+  // DESTROY the area's lurking Medusa marker outright — no dice, stops lurking forever. No
+  // `creatureId`: Medusa is a hazard (HAZARD_MEDUSA), not a creature with an id of her own.
+  | { type: "holyWaterMedusaDestroyed" }
+  // DESTROY a Spectre (9) or Demon (15) stranger/lurker in the area outright — no fight, no score.
+  | { type: "holyWaterFoeDestroyed"; creatureId: number }
+  // WEAKEN the Sorcerer (11) or an Apprentice (14) present in the area — −2 mp for the rest of the
+  // game (`state.holyWaterOnSorcerer`/`holyWaterOnApprentice`, combatPlan.ts's `enemyMP`), stacking
+  // with Lotus Dust/Eye of God, floor 0.
+  | { type: "holyWaterWeakened"; creatureId: number }
+  // Extension kit (SC-EXT-25, design US-21): the Scroll, read by any living human present — no
+  // reader selection (Resolved-10). `destroyed` are the area's strangers with mp===0 (creature ids,
+  // duplicates allowed), removed with no score; `survivors` are the mp>0 strangers left standing
+  // (a fight already on continues against them). Always curses the party (`state.curses += 1`) —
+  // the presentation layer's own "A curse settles on the party." notice follows unconditionally.
+  | { type: "scrollRead"; destroyed: number[]; survivors: number[] };

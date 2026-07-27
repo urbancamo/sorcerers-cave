@@ -1,4 +1,5 @@
-import { ALL_CREATURES as CREATURES, FLAG_BEFRIENDS_UNICORN } from "./data/creatures";
+import { ALL_CREATURES as CREATURES, FLAG_BEFRIENDS_UNICORN, FLAG_HUMAN } from "./data/creatures";
+import { HAZARD_MEDUSA } from "./data/hazards";
 import type { GameState, PartyMember } from "./state";
 import type { GameEvent } from "./actions";
 
@@ -7,8 +8,10 @@ const T_THE_RING = 10;
 const T_CHARMED_FLUTE = 12;
 const T_EYE_OF_GOD = 13;
 const C_SPECTRE = 9;
+const C_SORCERER = 11; // extension-kit Holy Water target — WEAKEN mode (design US-20, SC-EXT-24)
 const C_UNICORN = 13;
 const C_APPRENTICE = 14; // extension-kit creature — deserts to a hostile stranger the instant the Sorcerer dies (design US-14, SC-EXT-20)
+const C_DEMON = 15; // extension-kit creature — Holy Water's DESTROY mode target (design US-20, SC-EXT-24)
 // The Charmed Flute only works when played by a Man, Woman, Hero, Priest or Wizard (§ Charmed Flute).
 const FLUTE_BASE = [0, 4, 5, 6, 8]; // Hero, Priest, Man, Woman, Wizard
 
@@ -163,4 +166,63 @@ export function reconcileUnicorns(state: GameState): GameEvent[] {
     }
   }
   return events;
+}
+
+/** Extension kit (SC-EXT-25, design US-21/Resolved-10): the Scroll's reading condition — "a living
+ *  HUMAN party member is present" — with NO reader selection (any human qualifies; the artifact's
+ *  bearer need not be human themselves, `findBearer`'s default "any member" rule already covers
+ *  who consumes the card). FLAG_HUMAN covers both base humans and the kit's Apprentice/Scholar/
+ *  Witch/Thief rows (data/creatures.ts) — a plain flag check, not `usesArtifactsAs`, since "human"
+ *  is a species trait here, not an artifact-class eligibility list (design §1.3 doesn't apply). */
+export function hasLivingHuman(state: GameState): boolean {
+  return state.party.some((m) => living(m) && (CREATURES[m.creatureId]!.flags & FLAG_HUMAN) !== 0);
+}
+
+// Extension kit (SC-EXT-24, design US-20): Holy Water's single `useArtifact(16, target)` target
+// picker spans FOUR distinct pools — a stone PARTY member (by party index), a Gallery statue (by
+// index into `state.statues`), the area's lurking Medusa marker (a singleton — at most one per
+// area), and a stranger to destroy/weaken (by index into `state.strangers`) — which can be
+// simultaneously legal (e.g. a stone member AND an unwoken statue in the same Gallery). A single
+// `target: number` can't hold four independent index spaces without collision, so each pool is
+// offset into its own numeric range, mirroring the codebase's existing `100+id`/`200+id`/…
+// `area.contents` encoding (chamber.ts) rather than inventing a new convention. `holyWaterTargets`
+// is the SHARED source of truth for both sides of this contract: `selectors.ts`'s `artifactActions`
+// enumerates it to build the picker, and `reduce.ts`'s `useArtifact` case 16 looks up the SAME
+// function's output to validate and interpret whichever `target` the player chose — so the two can
+// never drift apart on what counts as a legal target.
+export const HW_STATUE_BASE = 1000; // + index into state.statues (REANIMATE a Gallery statue)
+export const HW_MEDUSA = 2000; // singleton sentinel (DESTROY the area's lurking Medusa marker)
+export const HW_STRANGER_BASE = 3000; // + index into state.strangers (DESTROY Spectre/Demon, or WEAKEN Sorcerer/Apprentice)
+
+export type HolyWaterMode = "revive" | "wake" | "destroyMedusa" | "destroy" | "weaken";
+
+export interface HolyWaterTarget {
+  target: number; // the value to pass/match as useArtifact's `target`
+  creatureId?: number; // absent only for "destroyMedusa" — Medusa has no creature id (she's a hazard)
+  mode: HolyWaterMode;
+}
+
+/** Every legal Holy Water target in the party's CURRENT area, for the state's CURRENT phase (design
+ *  US-20: "target picker listing every legal target in the current area"). REVIVE/WAKE/destroyMedusa
+ *  are offered at rest or while looting (explore/pickup — the same phases Balm/Staff use); DESTROY/
+ *  WEAKEN need a live stranger to target, so they're offered only in encounter/fight (Lotus Dust's
+ *  own phase gate). Any other phase (medusa pause, gameOver) yields no targets at all. */
+export function holyWaterTargets(state: GameState): HolyWaterTarget[] {
+  const out: HolyWaterTarget[] = [];
+  if (state.phase === "explore" || state.phase === "pickup") {
+    state.party.forEach((m, mi) => {
+      if (m.status === 2 && m.stoneArea === state.partyArea) out.push({ target: mi, creatureId: m.creatureId, mode: "revive" });
+    });
+    (state.statues ?? []).forEach((creatureId, i) => out.push({ target: HW_STATUE_BASE + i, creatureId, mode: "wake" }));
+    if (state.areas[state.partyArea]?.contents.includes(300 + HAZARD_MEDUSA)) {
+      out.push({ target: HW_MEDUSA, mode: "destroyMedusa" });
+    }
+  }
+  if (state.phase === "encounter" || state.phase === "fight") {
+    state.strangers.forEach((sid, i) => {
+      if (sid === C_SPECTRE || sid === C_DEMON) out.push({ target: HW_STRANGER_BASE + i, creatureId: sid, mode: "destroy" });
+      else if (sid === C_SORCERER || sid === C_APPRENTICE) out.push({ target: HW_STRANGER_BASE + i, creatureId: sid, mode: "weaken" });
+    });
+  }
+  return out;
 }

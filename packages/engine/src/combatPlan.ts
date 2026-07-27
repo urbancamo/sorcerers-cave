@@ -12,6 +12,7 @@ import type { GameEvent } from "./actions";
 const C_SPECTRE = 9;
 const C_DRAGON = 10;
 const C_SORCERER = 11;
+const C_APPRENTICE = 14; // Holy Water's WEAKEN mode also targets her (design US-20, SC-EXT-24)
 // Extension kit (SC-EXT-21) — the Demon, like the Spectre, can only be touched by magic; a Magic
 // Axe bearer (ANY species — design US-24, unlike the Sword-Spectre precedent below) also counts.
 const C_DEMON = 15;
@@ -129,7 +130,17 @@ export function enemyMP(state: GameState, sid: number): number {
     let mp = CREATURES[C_SORCERER]!.mp;
     if (eyeActive(state)) mp -= 2;
     if (state.lotusOnSorcerer) mp -= 2;
+    // Extension kit (SC-EXT-24): Holy Water's WEAKEN mode stacks with Lotus Dust/Eye exactly like
+    // they already stack with each other — a separate flag, its own separate -2, summed here.
+    if (state.holyWaterOnSorcerer) mp -= 2;
     return Math.max(0, mp);
+  }
+  // Extension kit (SC-EXT-24): the Apprentice can also be Holy-Water-weakened. The Eye nullifies her
+  // magic entirely, same as any non-Sorcerer foe (she has no Sorcerer-style partial resistance) —
+  // Holy Water's -2 only matters when the Eye is inactive, floored at 0 same as the Sorcerer's own.
+  if (sid === C_APPRENTICE) {
+    if (eyeActive(state)) return 0;
+    return Math.max(0, CREATURES[C_APPRENTICE]!.mp - (state.holyWaterOnApprentice ? 2 : 0));
   }
   return eyeActive(state) ? 0 : CREATURES[sid]!.mp;
 }
