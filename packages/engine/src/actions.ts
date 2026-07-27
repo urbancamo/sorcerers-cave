@@ -187,4 +187,9 @@ export type GameEvent =
   // prev) or the large pack was empty — no state change. False means `prev`'s card value was
   // spliced back into the remaining large pack and the area replaced with a freshly-drawn,
   // `AF_UNRESOLVED` (face-down) card, mirrored-stairs/secret-door history gone.
-  | { type: "spellRemap"; fizzled: boolean };
+  | { type: "spellRemap"; fizzled: boolean }
+  // Extension kit (SC-EXT-19, design US-17): a `takeTreasure` lift during a Thief-unlocked pickup
+  // (`state.thiefPickup`, reduce.ts's `settlePacifiedArea`) — treasure an indifference-pacified
+  // area's strangers would otherwise still guard. `tid` is the lifted treasure id (design Feedback:
+  // "The Thief palms the [item]."); fires once per successful lift, never for an ordinary pickup.
+  | { type: "thiefPalmed"; tid: number };

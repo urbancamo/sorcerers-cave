@@ -12,13 +12,19 @@ import type { GameAction, GameEvent } from "./actions";
 import { reactionRoll } from "./reaction";
 import { frontStrength } from "./combat";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
-import { wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, ringInvincible } from "./effects";
+import { wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, ringInvincible, usesArtifactsAs } from "./effects";
 import { BORNEABLE, isBorne, sweepFallen } from "./loot";
 import { rollDie } from "./rng";
-import { CREATURES } from "./data/creatures";
+// Extension kit (SC-EXT-17): aliases `ALL_CREATURES` — `strongestStranger`'s fight-focus pick and
+// the Lost-Ruby wrestler's combat-roll name both index by an actual creatureId that may already be
+// a kit id (14-20); byte-identical for ids 0-13.
+import { ALL_CREATURES as CREATURES } from "./data/creatures";
 
 const T_EYE_OF_GOD = 13; // treasure id — must stay with its bearer or the party is cursed (§Eye of God)
 const C_GIANT = 12; // only a Giant can recover treasure cast into a Deep Pool (§Deep Pool)
+const C_WIZARD = 8;
+const C_THIEF = 19; // extension-kit creature — a living Thief ally unlocks guarded treasure in an
+                     // indifference-pacified area (design US-17, SC-EXT-19)
 const T_CRYPT = 21; // extension-kit treasure — the crypt's find converts to this ordinary treasure (SC-EXT-13)
 
 /** Can a living Giant fish at least one dropped item out of a Deep Pool right now? Recovery is a
@@ -30,14 +36,17 @@ function giantCanRecover(state: GameState, dropped: readonly number[]): boolean 
   );
 }
 
-/** First living member who may bear+use `artifact` now (some artifacts need a specific creature). */
+/** First living member who may bear+use `artifact` now (some artifacts need a specific creature).
+ *  Extension kit (SC-EXT-17): each class-keyed check runs through `usesArtifactsAs` so a kit
+ *  creature "using artifacts as" that class (design §1.3) joins the same eligibility — Apprentice
+ *  as Wizard(8), Scholar/Witch as Priest(4), Thief as Man(5). */
 function findBearer(state: GameState, artifact: number): number {
   return state.party.findIndex((m: PartyMember) => {
     if (!(m.status === 0 || m.status === 1) || !m.treasure.includes(artifact)) return false;
-    if (artifact === 6) return m.creatureId === 6 || m.creatureId === 1 || m.creatureId === 4 || m.creatureId === 8; // Balm: Woman/W-Hero/Priest/Wizard
-    if (artifact === 9) return m.creatureId === 8; // Staff reanimation: Wizard
-    if (artifact === 4) return m.creatureId === 4 || m.creatureId === 8; // Magic Carpet: Priest/Wizard
-    if (artifact === 12) return m.creatureId === 0 || m.creatureId === 1 || m.creatureId === 4 || m.creatureId === 5 || m.creatureId === 6 || m.creatureId === 8; // Charmed Flute: Hero/W-Hero/Priest/Man/Woman/Wizard
+    if (artifact === 6) return m.creatureId === 6 || m.creatureId === 1 || usesArtifactsAs(m.creatureId, 4) || usesArtifactsAs(m.creatureId, 8); // Balm: Woman/W-Hero/Priest/Wizard
+    if (artifact === 9) return usesArtifactsAs(m.creatureId, 8); // Staff reanimation: Wizard
+    if (artifact === 4) return usesArtifactsAs(m.creatureId, 4) || usesArtifactsAs(m.creatureId, 8); // Magic Carpet: Priest/Wizard
+    if (artifact === 12) return m.creatureId === 0 || m.creatureId === 1 || usesArtifactsAs(m.creatureId, 4) || usesArtifactsAs(m.creatureId, 5) || m.creatureId === 6 || usesArtifactsAs(m.creatureId, 8); // Charmed Flute: Hero/W-Hero/Priest/Man/Woman/Wizard
     return true;
   });
 }
@@ -72,6 +81,41 @@ function persistAndExplore(state: GameState): void {
   state.lulled = [];
   state.fightDrops = []; // moving on — the drop record no longer applies
   state.phase = "explore";
+  // Extension kit (SC-EXT-19): a Thief-unlocked pickup session (`settlePacifiedArea` below) is over
+  // once the party leaves — `delete` rather than `= false` so a kit-off (or Thief-less) game never
+  // gains this key at all (SC-EXT-1 byte-identity; deleting an absent key is a harmless no-op).
+  delete state.thiefPickup;
+}
+
+/** Extension kit (SC-EXT-19, design US-17): a living Thief ally (creature 19) present. */
+function hasThief(state: GameState): boolean {
+  return state.party.some((m) => (m.status === 0 || m.status === 1) && m.creatureId === C_THIEF);
+}
+
+/**
+ * Settle a chamber the party has already permanently pacified by indifference (§Reactions) — called
+ * both the instant a party's 3rd indifferent test locks the area in (`test` case) and on every later
+ * re-entry (`finishChamber`). Base behaviour: the guards and the treasure they watch both park back
+ * onto the floor and the party returns to explore, unable to loot. With a living Thief ally present
+ * AND treasure actually here to lift (design US-17: "in any area pacified by indifference where
+ * treasure lies under the strangers' watch"), the Thief slips past the indifferent guards instead:
+ * the strangers still park — unengaged, no fight offered or required — but the treasure stays in the
+ * live pickup working set and the phase goes straight to `pickup`, `thiefPickup` marking the session
+ * so `takeTreasure` can narrate each lift ("The Thief palms the [item]."). Any other working-set
+ * leftovers (`sleeping`/`statues`/`lulled`/`fightDrops`) are simply left live in state rather than
+ * flushed here — harmless, since nothing else touches them before the eventual real
+ * `persistAndExplore` (pickup's end, or `leaveTreasure`) merges them back exactly as it always does.
+ */
+function settlePacifiedArea(state: GameState): void {
+  if (hasThief(state) && state.treasures.length > 0) {
+    const area = state.areas[state.partyArea]!;
+    area.contents = [...area.contents, ...state.strangers.map((id) => 100 + id)];
+    state.strangers = [];
+    state.thiefPickup = true;
+    state.phase = "pickup";
+    return;
+  }
+  persistAndExplore(state);
 }
 
 /** Index of the strongest current stranger (default focus target). */
@@ -130,12 +174,13 @@ function finalizeRound(state: GameState): GameEvent[] {
   return events;
 }
 
-/** Free any party members left as stone in the party's CURRENT area, if a living Wizard bearing the
- *  Magic Staff is present (§Medusa). They rejoin the party and leave the chamber's stone display. */
+/** Free any party members left as stone in the party's CURRENT area, if a living Wizard (or the
+ *  Apprentice, who "uses artifacts as a Wizard" — design US-14, SC-EXT-17) bearing the Magic Staff
+ *  is present (§Medusa). They rejoin the party and leave the chamber's stone display. */
 function reviveStoned(state: GameState): GameEvent[] {
   const events: GameEvent[] = [];
   const wizardWithStaff = state.party.some(
-    (m) => (m.status === 0 || m.status === 1) && m.creatureId === 8 && m.treasure.includes(9),
+    (m) => (m.status === 0 || m.status === 1) && usesArtifactsAs(m.creatureId, C_WIZARD) && m.treasure.includes(9),
   );
   if (!wizardWithStaff) return events;
   for (const m of state.party) {
@@ -155,8 +200,8 @@ function reviveStoned(state: GameState): GameEvent[] {
  *  (`finishChamber`). Unlike `reviveStoned` (which runs BEFORE the chamber draw, since it frees
  *  PARTY members left stone on an earlier visit), this must run AFTER `enterChamber` has populated
  *  `state.statues` for the area just entered.
- *  Task 10 note: the Apprentice (id 14) "uses artifacts as Wizard" per the design, but class-list
- *  plumbing lands in Task 10 — she does NOT count here yet, only the Wizard (id 8). */
+ *  Task 10 (SC-EXT-17): the Apprentice (id 14) "uses artifacts as Wizard" per the design — she now
+ *  counts here too, via `hasStaffWizard`'s own `usesArtifactsAs` check (closes the Task 7 seam). */
 function wakeGalleryStatues(state: GameState): GameEvent[] {
   if (!state.statues?.length || !hasStaffWizard(state)) return [];
   const creatureIds = [...state.statues];
@@ -215,9 +260,11 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
   // Permanently indifferent to this party (§Reactions): the party may walk freely through (any exit)
   // — so park the guards to the tile and go to explore for full traversal — but it may also still
   // CHOOSE to attack them (selectors offers an Attack action; the guarded treasure stays out of reach
-  // unless they're beaten). Other parties are unaffected.
+  // unless they're beaten). Other parties are unaffected. Extension kit (SC-EXT-19): a living Thief
+  // ally instead slips the guarded treasure straight into a live pickup — `settlePacifiedArea` covers
+  // both that and the ordinary re-park.
   if (state.pacifiedAreas?.includes(state.partyArea)) {
-    persistAndExplore(state);
+    settlePacifiedArea(state);
     return false;
   }
   if (state.strangers.length > 0) {
@@ -577,9 +624,15 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
         if (next.treasures.length === 0) persistAndExplore(next);
         return { state: next, events };
       }
-      takeTreasure(next, action.ti, action.mi);
+      // Extension kit (SC-EXT-19): a Thief-unlocked pickup (`settlePacifiedArea`) narrates each lift
+      // ("The Thief palms the [item].") — captured before `takeTreasure` splices `next.treasures`.
+      const liftedTid = next.treasures[action.ti];
+      const lifted = takeTreasure(next, action.ti, action.mi);
+      const events: GameEvent[] = lifted && next.thiefPickup && liftedTid !== undefined
+        ? [{ type: "thiefPalmed", tid: liftedTid }]
+        : [];
       if (next.treasures.length === 0) persistAndExplore(next);
-      return { state: next, events: [] };
+      return { state: next, events };
     }
 
     case "leaveTreasure": {
@@ -712,13 +765,14 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       } else if (roll.outcome === "indifferent") {
         next.indiffStreak = (next.indiffStreak ?? 0) + 1;
         if (next.indiffStreak >= 3) {
-          // Permanently indifferent to this party: treasure stays guarded (no pickup), but the
-          // party may now leave by any valid exit. Record the area so re-entry skips the encounter.
+          // Permanently indifferent to this party: treasure stays guarded (no pickup) UNLESS a
+          // living Thief ally is present (design US-17, SC-EXT-19) — but the party may now leave by
+          // any valid exit either way. Record the area so re-entry skips the encounter.
           if (!next.pacifiedAreas?.includes(next.partyArea)) {
             next.pacifiedAreas = [...(next.pacifiedAreas ?? []), next.partyArea];
           }
           events.push({ type: "pacified" }); // tell the player they may now move on
-          persistAndExplore(next); // park strangers + treasure back as guarded; return to explore
+          settlePacifiedArea(next); // Thief present + treasure here -> live pickup; else the ordinary re-park
         }
         // else stays in the encounter phase
       } else {

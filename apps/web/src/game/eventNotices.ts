@@ -302,6 +302,9 @@ export function eventNotices(events: GameEvent[]): Notice[] {
             : { text: "A spell takes hold — the tunnel behind you folds in on itself and is elsewhere. Its secret doors are gone.", tone: "bad" },
         );
         break;
+      case "thiefPalmed":
+        out.push({ text: `The Thief palms the ${treasureName(e.tid)}.`, tone: "good" });
+        break;
       default:
         assertNever(e);
         break;

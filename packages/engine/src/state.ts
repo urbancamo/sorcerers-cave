@@ -192,4 +192,11 @@ export interface GameState {
   // visits — `enterCrypt`'s legality is simply "am I standing where `cryptCoord` points, at rest".
   // Undefined ⇒ no crypt has been drawn yet, or the one that was has already been resolved.
   cryptCoord?: number;
+  // Extension kit (SC-EXT-19): true while `phase === "pickup"` is a Thief-unlocked session over
+  // treasure an indifference-pacified area's strangers would otherwise still guard (design US-17)
+  // — set by `reduce.ts`'s `settlePacifiedArea`, read by `takeTreasure` to narrate each lift
+  // ("The Thief palms the [item]."), and cleared (`delete`) the moment `persistAndExplore` next
+  // runs. Undefined for every ordinary pickup (won fight, floor find, Deep Pool, Lost Ruby, …) and
+  // for every kit-off game (SC-EXT-1 byte-identity).
+  thiefPickup?: boolean;
 }

@@ -1,4 +1,4 @@
-import { CREATURES, FLAG_BEFRIENDS_UNICORN } from "./data/creatures";
+import { ALL_CREATURES as CREATURES, FLAG_BEFRIENDS_UNICORN } from "./data/creatures";
 import type { GameState, PartyMember } from "./state";
 import type { GameEvent } from "./actions";
 
@@ -9,7 +9,30 @@ const T_EYE_OF_GOD = 13;
 const C_SPECTRE = 9;
 const C_UNICORN = 13;
 // The Charmed Flute only works when played by a Man, Woman, Hero, Priest or Wizard (§ Charmed Flute).
-const FLUTE_PLAYERS = new Set([0, 4, 5, 6, 8]); // Hero, Priest, Man, Woman, Wizard
+const FLUTE_BASE = [0, 4, 5, 6, 8]; // Hero, Priest, Man, Woman, Wizard
+
+/**
+ * Extension kit (SC-EXT-17, design §1.3): a kit creature that "uses artifacts as" a base class
+ * joins EVERY artifact-eligibility list the base class id appears in. Apprentice(14) uses
+ * artifacts as Wizard(8); Scholar(17) and Witch(18) as Priest(4); Thief(19) as Man(5) (design
+ * §1.3 table). Sword/Axe named-bonus tables are the sole exception (they name specific base
+ * creatures, not a class) — deliberately NOT routed through this map. Strength Potion's TARGET
+ * list (selectors.ts artifact 8) is likewise excluded: it names specific base creatures to boost,
+ * not a class of artifact USERS, so it must never be extended here either.
+ */
+const CLASS_EXTENSIONS: Readonly<Record<number, readonly number[]>> = {
+  8: [14],     // Wizard -> Apprentice
+  4: [17, 18], // Priest -> Scholar, Witch
+  5: [19],     // Man -> Thief
+};
+
+/** True when `creatureId` is eligible for an artifact list that names base class `classId` — the
+ *  base creature itself, or a kit creature that "uses artifacts as" it (design §1.3, SC-EXT-17).
+ *  Use in place of a bare `creatureId === classId` check in any Carpet/Balm/Staff/Flute-style
+ *  eligibility test (findBearer, artifactActions, hasStaffWizard, reviveStoned, …). */
+export function usesArtifactsAs(creatureId: number, classId: number): boolean {
+  return creatureId === classId || (CLASS_EXTENSIONS[classId]?.includes(creatureId) ?? false);
+}
 
 function living(m: PartyMember): boolean {
   return m.status === 0 || m.status === 1;
@@ -26,7 +49,7 @@ function partyHolds(state: GameState, treasureId: number): boolean {
  */
 export function fluteLulls(state: GameState): boolean {
   return state.party.some(
-    (m) => living(m) && FLUTE_PLAYERS.has(m.creatureId) && m.treasure.includes(T_CHARMED_FLUTE),
+    (m) => living(m) && FLUTE_BASE.some((base) => usesArtifactsAs(m.creatureId, base)) && m.treasure.includes(T_CHARMED_FLUTE),
   );
 }
 

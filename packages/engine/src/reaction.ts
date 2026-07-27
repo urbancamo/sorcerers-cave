@@ -1,5 +1,8 @@
 import { rollDie } from "./rng";
-import { CREATURES, FLAG_CHARISMA } from "./data/creatures";
+// Extension kit (SC-EXT-17): aliases `ALL_CREATURES` — the leader lookup indexes `state.strangers`
+// and the charisma check indexes `state.party`, either of which may already hold a kit id (14-20)
+// once the kit is on; byte-identical for ids 0-13 (the only ids a kit-off game can ever hold).
+import { ALL_CREATURES as CREATURES, FLAG_CHARISMA } from "./data/creatures";
 import { activeCurses } from "./effects";
 import type { GameState } from "./state";
 

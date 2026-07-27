@@ -1,4 +1,6 @@
-import { CREATURES } from "./data/creatures";
+// Extension kit (SC-EXT-17): aliases `ALL_CREATURES` — a surviving kit ally's own points/name would
+// otherwise crash the roll call at game end; byte-identical for ids 0-13.
+import { ALL_CREATURES as CREATURES } from "./data/creatures";
 import { ALL_TREASURES, type TreasureKind } from "./data/treasures";
 import { activeCurses } from "./effects";
 import { GS_DEAD, type GameState, type MemberStatus } from "./state";

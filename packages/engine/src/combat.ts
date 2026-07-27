@@ -1,4 +1,8 @@
-import { CREATURES } from "./data/creatures";
+// Extension kit (SC-EXT-17): aliases `ALL_CREATURES` (base + kit, SC-EXT-2) so a kit ally
+// (creature id 14-20) in the front line or backing a fight doesn't crash this lookup — every
+// call here indexes by an actual party member's `creatureId`, never enumerates the array, so
+// this is byte-identical for ids 0-13 (the only ids a kit-off game can ever hold).
+import { ALL_CREATURES as CREATURES } from "./data/creatures";
 import type { GameState, PartyMember } from "./state";
 import { eyeActive, activeCurses } from "./effects";
 

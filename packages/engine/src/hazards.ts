@@ -1,5 +1,8 @@
 import { rollDie } from "./rng";
-import { CREATURES, FLAG_GUIDES_PAST_TRAP } from "./data/creatures";
+// Extension kit (SC-EXT-17): aliases `ALL_CREATURES` — the Ghouls combat-roll name and the Trap
+// Dwarf-flag check both index by a living party member's `creatureId`, so a kit ally (id 14-20)
+// no longer crashes them; byte-identical for ids 0-13.
+import { ALL_CREATURES as CREATURES, FLAG_GUIDES_PAST_TRAP } from "./data/creatures";
 import { ALL_TREASURES } from "./data/treasures";
 import {
   HAZARD_MUTINY, HAZARD_TRAP, HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_DESERTION,
@@ -10,7 +13,7 @@ import { decodeArea } from "./decode";
 import { AF_DESTROYED, AF_UNRESOLVED, type GameState, type PartyMember } from "./state";
 import type { GameEvent } from "./actions";
 import { frontStrength, partyRollBonus } from "./combat";
-import { eyeForsakenByDeath, ringInvincible } from "./effects";
+import { eyeForsakenByDeath, ringInvincible, usesArtifactsAs } from "./effects";
 import { spillCarried, sweepFallen } from "./loot";
 import { stashOrDeliver } from "./chamber";
 
@@ -18,7 +21,7 @@ const T_TALISMAN = 7;
 const T_MAGIC_STAFF = 9;
 const T_EYE_OF_GOD = 13; // extension-kit theft target — Harpies stealing it forsakes the party (design Resolved-8, SC-EXT-15)
 const C_WIZARD = 8;
-const C_WOLF = 20; // extension-kit creature — immune to Desertion's rolls (design US-18, SC-EXT-14); also excluded from Quarrel (SC-EXT-16)
+const C_WOLF = 20; // extension-kit creature — immune to Medusa/Mutiny/Desertion (design US-18, SC-EXT-14/18); also excluded from Quarrel (SC-EXT-16)
 const C_LION = 16; // extension-kit creature — excluded from Quarrel's picker (design US-15, SC-EXT-16)
 
 function living(state: GameState): PartyMember[] {
@@ -35,9 +38,11 @@ function livingHasArtifacts(state: GameState): boolean {
   return living(state).some((m) => m.treasure.some((t) => ALL_TREASURES[t]?.kind === "artifact"));
 }
 
-/** A living Wizard bearing the Magic Staff — makes Medusa powerless over the whole party (card). */
+/** A living Wizard (or the Apprentice, who "uses artifacts as a Wizard" — design US-14, SC-EXT-17)
+ *  bearing the Magic Staff — makes Medusa powerless over the whole party, and cracks every Gallery
+ *  statue awake on entry (card; SC-EXT-11). */
 export function hasStaffWizard(state: GameState): boolean {
-  return state.party.some((m) => (m.status === 0 || m.status === 1) && m.creatureId === C_WIZARD && m.treasure.includes(T_MAGIC_STAFF));
+  return state.party.some((m) => (m.status === 0 || m.status === 1) && usesArtifactsAs(m.creatureId, C_WIZARD) && m.treasure.includes(T_MAGIC_STAFF));
 }
 
 /** Resolve every hazard in the working set, in priority order (spec §7.2). */
@@ -102,6 +107,9 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         const rolls: { creatureId: number; roll: number; petrified: boolean }[] = [];
         for (const m of state.party) {
           if (m.status !== 0 && m.status !== 1) continue;
+          // Extension kit (SC-EXT-18, design US-18): a Wolf is immune to Medusa's gaze — simply
+          // skipped, no roll, with its own visible notice, rather than folded into `rolls` below.
+          if (m.creatureId === C_WOLF) { events.push({ type: "wolfUnmoved" }); continue; }
           const r = rollDie(state.seed);
           state.seed = r.seed;
           const petrified = r.value <= 2; // a 1 or 2 turns that creature to stone (§Medusa)
@@ -161,8 +169,15 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
       case HAZARD_MUTINY: {
         const allies = state.party.filter((m) => m.status === 1);
         const originals = state.party.filter((m) => m.status === 0);
-        // All allies desert; if the party is now ALL allies, one stays loyal (spec §Mutiny).
-        const desert = originals.length === 0 ? allies.slice(1) : allies;
+        // Extension kit (SC-EXT-18, design US-18): a Wolf ally is immune to Mutiny — excluded from
+        // the desertion pool entirely (same "carve it out of the population first" shape as
+        // Quarrel's eligible-combatant filter, SC-EXT-16), with its own visible notice. It also
+        // doesn't count toward the "one stays loyal" pool below — it was never going to desert.
+        const wolves = allies.filter((m) => m.creatureId === C_WOLF);
+        for (const _w of wolves) events.push({ type: "wolfUnmoved" });
+        const eligible = allies.filter((m) => m.creatureId !== C_WOLF);
+        // All eligible allies desert; if the party is now ALL allies, one stays loyal (spec §Mutiny).
+        const desert = originals.length === 0 ? eligible.slice(1) : eligible;
         const dropped: number[] = [];
         for (const a of desert) {
           state.strangers.push(a.creatureId); // revert to a stranger (retestable)

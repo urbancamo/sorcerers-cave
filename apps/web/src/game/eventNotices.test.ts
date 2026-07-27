@@ -266,6 +266,12 @@ describe("eventNotices", () => {
     expect(fizzled[0]!.text).toBe("A spell crackles through the cave… and finds nothing to grip.");
   });
 
+  it("reports the Thief's silent lift by item name (US-17)", () => {
+    const lifted = eventNotices([{ type: "thiefPalmed", tid: 1 }])[0]!;
+    expect(lifted.text).toBe("The Thief palms the Gold.");
+    expect(lifted.tone).toBe("good");
+  });
+
   it("noticeTone prefers bad, then good, then neutral", () => {
     expect(noticeTone([{ text: "", tone: "neutral" }, { text: "", tone: "good" }, { text: "", tone: "bad" }])).toBe("bad");
     expect(noticeTone([{ text: "", tone: "neutral" }, { text: "", tone: "good" }])).toBe("good");

@@ -1,4 +1,7 @@
-import { CREATURES } from "./data/creatures";
+// Extension kit (SC-EXT-17): aliases `ALL_CREATURES` (base + kit, SC-EXT-2) — a kit ally with a
+// nonzero carry stat (Scholar/Thief, 25 kg each) would otherwise crash this lookup against the
+// base-only `CREATURES` table the moment it tries to pick anything up; byte-identical for ids 0-13.
+import { ALL_CREATURES as CREATURES } from "./data/creatures";
 import { ALL_TREASURES } from "./data/treasures";
 import type { GameState, PartyMember } from "./state";
 

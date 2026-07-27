@@ -1,5 +1,8 @@
 import { rollDie } from "./rng";
-import { CREATURES } from "./data/creatures";
+// Extension kit (SC-EXT-17): aliases `ALL_CREATURES` — every dynamic lookup below indexes by an
+// actual party member's or stranger's `creatureId` (never enumerates the array), so a kit ally or
+// kit stranger (id 14-20) fighting no longer crashes; byte-identical for ids 0-13.
+import { ALL_CREATURES as CREATURES } from "./data/creatures";
 import { ALL_TREASURES } from "./data/treasures";
 import { frontStrength, casterMP, partyRollBonus, isCaster } from "./combat";
 import { eyeActive, ringInvincible, activeCurses, eyeForsakenByDeath } from "./effects";
