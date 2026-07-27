@@ -31,10 +31,9 @@ export function useCaveGame(id: Id<"games"> | null, onResolved?: (events: GameEv
   // (assigned at game creation; the game is authoritatively persisted on every action — no Save needed).
   const code = (game as { code?: string } | null | undefined)?.code ?? null;
 
-  // Reconcile the adapter mirror to the authoritative snapshot DURING render, not in an
-  // effect: child effects (e.g. CaveCanvas's refresh) run before this hook's effects would,
-  // so syncing here guarantees consumers that read engine.current see the latest state
-  // (otherwise a withdraw/retreat leaves the view on the old tile).
+  // Create the adapter when the game binds; the caller drives WHICH state the renderer mirrors
+  // via `present` (below) so the presentation can lag the authoritative state while a die roll
+  // shows (the background must not change until the roll has completed).
   if (art && state && id) {
     if (!adapterRef.current || adapterIdRef.current !== id) {
       adapterIdRef.current = id;
@@ -48,14 +47,23 @@ export function useCaveGame(id: Id<"games"> | null, onResolved?: (events: GameEv
           });
         },
       });
-    } else if (syncedRef.current !== state) {
-      adapterRef.current.sync(state);
+      syncedRef.current = state;
     }
-    syncedRef.current = state;
   }
+
+  // Reconcile the adapter mirror to the given (display) state DURING render, not in an effect:
+  // child effects (e.g. CaveCanvas's refresh) run before this hook's effects would, so a
+  // render-phase sync guarantees consumers that read engine.current see the presented state
+  // (otherwise a withdraw/retreat leaves the view on the old tile). Idempotent per state.
+  const present = (s: GameState) => {
+    if (adapterRef.current && syncedRef.current !== s) {
+      adapterRef.current.sync(s);
+      syncedRef.current = s;
+    }
+  };
 
   // Returns the action's result ({ state, events }) so callers can react to events
   // (e.g. animate a reaction roll); null when there is no game.
   const dispatch = (action: GameAction) => (id ? apply({ id, action }) : Promise.resolve(null));
-  return { engine: adapterRef.current, loading: !art || game === undefined, state, color, code, dispatch };
+  return { engine: adapterRef.current, loading: !art || game === undefined, state, color, code, dispatch, present };
 }

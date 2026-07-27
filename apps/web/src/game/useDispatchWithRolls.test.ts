@@ -55,6 +55,51 @@ describe("useDispatchWithRolls", () => {
     expect(result.current.notices).not.toBeNull();
   });
 
+  it("holds the pre-action snapshot until the roll is dismissed (background must not jump)", async () => {
+    const d = deferred();
+    const snapshot = { marker: "pre-action" };
+    const { result } = renderHook(() => useDispatchWithRolls(() => d.promise, () => snapshot));
+    expect(result.current.holding).toBe(false);
+    expect(result.current.heldState).toBeNull();
+
+    let done!: Promise<Res>;
+    act(() => { done = result.current.dispatchWithRolls({ type: "test" } as GameAction); });
+    // From dispatch: hold starts with the captured snapshot (before any subscription push can land).
+    expect(result.current.holding).toBe(true);
+    expect(result.current.heldState).toBe(snapshot);
+
+    await act(async () => { d.resolve({ state: {}, events: reactionEvents }); await done; });
+    // Roll is up: STILL holding — the outcome stays hidden until the player continues.
+    expect(result.current.roll).not.toBeNull();
+    expect(result.current.holding).toBe(true);
+    expect(result.current.heldState).toBe(snapshot);
+
+    act(() => { result.current.clearRoll(); });
+    // Continue: release — the live state may now present.
+    expect(result.current.holding).toBe(false);
+    expect(result.current.heldState).toBeNull();
+  });
+
+  it("releases the hold immediately when the events carry no roll", async () => {
+    const d = deferred();
+    const { result } = renderHook(() => useDispatchWithRolls(() => d.promise, () => ({ s: 1 })));
+    act(() => { void result.current.dispatchWithRolls({ type: "proceed" } as GameAction); });
+    expect(result.current.holding).toBe(true);
+    await act(async () => { d.resolve({ state: {}, events: [] }); });
+    expect(result.current.holding).toBe(false);
+    expect(result.current.heldState).toBeNull();
+  });
+
+  it("releases the hold when the dispatch rejects", async () => {
+    const d = deferred();
+    const { result } = renderHook(() => useDispatchWithRolls(() => d.promise, () => ({ s: 1 })));
+    let done!: Promise<Res>;
+    act(() => { done = result.current.dispatchWithRolls({ type: "test" } as GameAction).catch(() => null); });
+    expect(result.current.holding).toBe(true);
+    await act(async () => { d.reject(new Error("network")); await done; });
+    expect(result.current.holding).toBe(false);
+  });
+
   it("clears `pending` when the dispatch rejects (no permanent gate)", async () => {
     const d = deferred();
     const { result } = renderHook(() => useDispatchWithRolls(() => d.promise));

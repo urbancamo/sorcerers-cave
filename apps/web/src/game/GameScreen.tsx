@@ -3,7 +3,7 @@ import { useConvex, useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { api } from "../../convex/_generated/api";
-import { GS_PLAYING, type GameAction, type GameEvent } from "@sorcerers-cave/engine";
+import { GS_PLAYING, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
 import { useCaveGame } from "./useCaveGame";
 import { CaveCanvas } from "../view/CaveCanvas";
 import { SplashScreen } from "./SplashScreen";
@@ -54,8 +54,14 @@ export default function GameScreen() {
     const view = rollFromEvents(events);
     if (view) onRollRef.current(view);
   }, []);
-  const { engine, loading, state, color, code, dispatch } = useCaveGame(gameId, onMoveResolved);
-  const { roll, setRoll, notices, pending, dispatchWithRolls, clearRoll, clearNotices } = useDispatchWithRolls(dispatch);
+  const { engine, loading, state, color, code, dispatch, present } = useCaveGame(gameId, onMoveResolved);
+  // Presentation hold (see useDispatchWithRolls): the pre-action snapshot stays on screen —
+  // canvas, panels, everything — until the die roll completes. getSnapshot reads a ref so the
+  // capture always sees the freshest authoritative state without re-creating the callback.
+  const stateRef = useRef<GameState | null>(state);
+  stateRef.current = state;
+  const getSnapshot = useCallback(() => stateRef.current, []);
+  const { roll, setRoll, notices, holding, heldState, dispatchWithRolls, clearRoll, clearNotices } = useDispatchWithRolls(dispatch, getSnapshot);
   onRollRef.current = setRoll;
   const cards = useManifestCards();
   // Leaderboard for the post-game screen; only subscribed once a game has ended.
@@ -145,11 +151,16 @@ export default function GameScreen() {
   }
   if (loading || !engine || !state) return <p>Loading cave…</p>;
 
-  // Fight-surface gate (see fightGate.ts): defer the INITIAL mount while a roll-producing
-  // dispatch is in flight so the reaction roll always presents before the fight screen; once
-  // shown, mid-fight dispatches must not unmount it. Ref bookkeeping happens during render,
-  // mirroring useCaveGame's own render-phase sync.
-  const fightVisible = showFightSurface(state.phase === "fight", pending, fightShownRef.current);
+  // What the player SEES: the held pre-action snapshot while a roll is in flight or showing,
+  // the live authoritative state otherwise. The 3D scene mirrors it too (render-phase sync,
+  // before CaveCanvas's effects run — same guarantee useCaveGame's old inline sync gave).
+  const displayState = holding && heldState ? heldState : state;
+  present(displayState);
+
+  // Fight-surface gate (see fightGate.ts): defer the INITIAL mount while a roll is in flight
+  // or showing; once shown, mid-fight dispatches must not unmount it. Ref bookkeeping happens
+  // during render, mirroring the present() sync above.
+  const fightVisible = showFightSurface(displayState.phase === "fight", holding, fightShownRef.current);
   fightShownRef.current = fightVisible;
 
   // Rendered on top of whatever screen is showing, so it survives a game-over transition.
@@ -157,11 +168,11 @@ export default function GameScreen() {
     <DiceRoll title={roll.title} lanes={roll.lanes} message={roll.message} tone={roll.tone} onContinue={clearRoll} />
   ) : null;
 
-  if (state.gs !== GS_PLAYING) {
+  if (displayState.gs !== GS_PLAYING) {
     return (
       <>
         <GameOverScreen
-          state={state}
+          state={displayState}
           // Return to the splash screen (the home / high-scores entry), not straight to party select.
           onNewGame={() => { clearRoll(); clearNotices(); setGameId(null); setStarted(false); }}
           onSaveScore={(name) => saveScore({ gameId, name })}
@@ -177,11 +188,11 @@ export default function GameScreen() {
 
   return (
     <div className="relative h-screen w-screen">
-      <CaveCanvas key={gameId} engine={engine} state={state} color={color} code={code ?? undefined} onPartyClick={() => setShowParty(true)} onSave={handleSave} onLog={() => setShowLog(true)} />
-      <EncounterPanel state={state} dispatch={dispatchWithRolls} />
-      {fightVisible && cards && <FightSurface state={state} dispatch={dispatchWithRolls} cards={cards} />}
-      <ExplorePanel state={state} dispatch={dispatchWithRolls} />
-      {showParty && <PartyPanel state={state} dispatch={dispatch} onClose={() => setShowParty(false)} />}
+      <CaveCanvas key={gameId} engine={engine} state={displayState} color={color} code={code ?? undefined} onPartyClick={() => setShowParty(true)} onSave={handleSave} onLog={() => setShowLog(true)} />
+      <EncounterPanel state={displayState} dispatch={dispatchWithRolls} />
+      {fightVisible && cards && <FightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
+      <ExplorePanel state={displayState} dispatch={dispatchWithRolls} />
+      {showParty && <PartyPanel state={displayState} dispatch={dispatch} onClose={() => setShowParty(false)} />}
       {overlay}
       {notices && <NoticeModal notices={notices} onClose={clearNotices} />}
       {savedCode && <SaveGameModal code={savedCode} onClose={goHome} />}
