@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useConvex, useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -17,11 +17,12 @@ import { FightSurface } from "./FightSurface";
 import { useManifestCards } from "../data/useManifestCards";
 import { DiceRoll } from "./DiceRoll";
 import { rollFromEvents, type RollView } from "./rollView";
+import { useDispatchWithRolls } from "./useDispatchWithRolls";
+import { showFightSurface } from "./fightGate";
 import { NoticeModal } from "./NoticeModal";
 import { SaveGameModal } from "./SaveGameModal";
 import { GameLogModal } from "./GameLogModal";
 import type { GameLog } from "./gameLog";
-import { eventNotices, type Notice } from "./eventNotices";
 import { MULTIPLAYER_ENABLED } from "./featureFlags";
 import { MultiplayerSetup } from "./MultiplayerSetup";
 import { MultiplayerLobby } from "./MultiplayerLobby";
@@ -41,17 +42,21 @@ export default function GameScreen() {
   const [showLog, setShowLog] = useState(false); // shows the game-log download modal when true
   // Multiplayer flow (behind the production-off feature flag): create/join setup → reactive lobby.
   const [mp, setMp] = useState<{ view: "create" | "join" } | { view: "lobby"; code: string } | null>(null);
-  // The dice overlay lives here (not in EncounterPanel) so a fatal round's roll
-  // still shows even though game-over swaps the panel out for GameOverScreen.
-  const [roll, setRoll] = useState<RollView | null>(null);
-  // Notices for panel-dispatched outcomes that aren't dice rolls (artifact effects, etc.).
-  const [notices, setNotices] = useState<Notice[] | null>(null);
-  // Dice rolled by a move (e.g. ghouls fighting each member on entry) surface here too.
+  // The dice overlay lives in useDispatchWithRolls (not in EncounterPanel) so a fatal round's
+  // roll still shows even though game-over swaps the panel out for GameOverScreen. Its `pending`
+  // bridges the subscription-vs-mutation race: it gates FightSurface below so a hostile
+  // reaction's fight screen can never appear before its reaction roll.
+  // Dice rolled by a move (e.g. ghouls fighting each member on entry) surface here too, via a
+  // ref because useCaveGame must be called before the roll hook that owns setRoll.
+  const onRollRef = useRef<(view: RollView) => void>(() => {});
+  const fightShownRef = useRef(false); // FightSurface already on screen (see gate below)
   const onMoveResolved = useCallback((events: GameEvent[]) => {
     const view = rollFromEvents(events);
-    if (view) setRoll(view);
+    if (view) onRollRef.current(view);
   }, []);
   const { engine, loading, state, color, code, dispatch } = useCaveGame(gameId, onMoveResolved);
+  const { roll, setRoll, notices, pending, dispatchWithRolls, clearRoll, clearNotices } = useDispatchWithRolls(dispatch);
+  onRollRef.current = setRoll;
   const cards = useManifestCards();
   // Leaderboard for the post-game screen; only subscribed once a game has ended.
   const gameOver = !!state && state.gs !== GS_PLAYING;
@@ -61,27 +66,10 @@ export default function GameScreen() {
   // The finished game's move log, for the post-game .txt / .log downloads (fetched only at game over).
   const gameLog = useQuery(api.game.log, gameOver && gameId ? { id: gameId } : "skip") as GameLog | null | undefined;
 
-  const dispatchWithRolls = useCallback(
-    async (action: GameAction) => {
-      const res = await dispatch(action);
-      const events = (res as { events?: GameEvent[] } | null)?.events ?? [];
-      const view = rollFromEvents(events);
-      // A dice view (reaction / chest / combat) already summarises the outcome; otherwise
-      // surface any silent-event notices (artifact effects, lulled dragons, …).
-      if (view) setRoll(view);
-      else {
-        const ns = eventNotices(events);
-        if (ns.length) setNotices(ns);
-      }
-      return res;
-    },
-    [dispatch],
-  );
-
   // Return to the splash screen, clearing all in-game overlays and the current game binding.
   const goHome = useCallback(() => {
-    setRoll(null); setNotices(null); setSavedCode(null); setShowParty(false); setGameId(null); setStarted(false);
-  }, []);
+    clearRoll(); clearNotices(); setSavedCode(null); setShowParty(false); setGameId(null); setStarted(false);
+  }, [clearRoll, clearNotices]);
 
   // Save from the HUD: the state is already authoritative in Convex, so this just surfaces the
   // four-letter code (modal) and, on dismiss, returns to the menu.
@@ -157,9 +145,16 @@ export default function GameScreen() {
   }
   if (loading || !engine || !state) return <p>Loading cave…</p>;
 
+  // Fight-surface gate (see fightGate.ts): defer the INITIAL mount while a roll-producing
+  // dispatch is in flight so the reaction roll always presents before the fight screen; once
+  // shown, mid-fight dispatches must not unmount it. Ref bookkeeping happens during render,
+  // mirroring useCaveGame's own render-phase sync.
+  const fightVisible = showFightSurface(state.phase === "fight", pending, fightShownRef.current);
+  fightShownRef.current = fightVisible;
+
   // Rendered on top of whatever screen is showing, so it survives a game-over transition.
   const overlay = roll ? (
-    <DiceRoll title={roll.title} lanes={roll.lanes} message={roll.message} tone={roll.tone} onContinue={() => setRoll(null)} />
+    <DiceRoll title={roll.title} lanes={roll.lanes} message={roll.message} tone={roll.tone} onContinue={clearRoll} />
   ) : null;
 
   if (state.gs !== GS_PLAYING) {
@@ -168,7 +163,7 @@ export default function GameScreen() {
         <GameOverScreen
           state={state}
           // Return to the splash screen (the home / high-scores entry), not straight to party select.
-          onNewGame={() => { setRoll(null); setNotices(null); setGameId(null); setStarted(false); }}
+          onNewGame={() => { clearRoll(); clearNotices(); setGameId(null); setStarted(false); }}
           onSaveScore={(name) => saveScore({ gameId, name })}
           leaderboard={leaderboard}
           log={gameLog ?? null}
@@ -184,11 +179,11 @@ export default function GameScreen() {
     <div className="relative h-screen w-screen">
       <CaveCanvas key={gameId} engine={engine} state={state} color={color} code={code ?? undefined} onPartyClick={() => setShowParty(true)} onSave={handleSave} onLog={() => setShowLog(true)} />
       <EncounterPanel state={state} dispatch={dispatchWithRolls} />
-      {state.phase === "fight" && cards && <FightSurface state={state} dispatch={dispatchWithRolls} cards={cards} />}
+      {fightVisible && cards && <FightSurface state={state} dispatch={dispatchWithRolls} cards={cards} />}
       <ExplorePanel state={state} dispatch={dispatchWithRolls} />
       {showParty && <PartyPanel state={state} dispatch={dispatch} onClose={() => setShowParty(false)} />}
       {overlay}
-      {notices && <NoticeModal notices={notices} onClose={() => setNotices(null)} />}
+      {notices && <NoticeModal notices={notices} onClose={clearNotices} />}
       {savedCode && <SaveGameModal code={savedCode} onClose={goHome} />}
       {showLog && <GameLogModal gameId={gameId} onClose={() => setShowLog(false)} />}
     </div>
