@@ -330,6 +330,43 @@ describe("Entering (or withdrawing into) the Demon's area forces an ambush (US-1
   });
 });
 
+describe("A Demon parked in an already-pacified area still ambushes on ordinary entry (review fix, SC-EXT-21)", () => {
+  it("forces the fight instead of settlePacifiedArea silently re-parking it", () => {
+    const s = demonState({
+      party: [member(HERO)],
+      pacifiedAreas: [1],
+      areas: [
+        { card: START_CARD, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+        { card: PLAIN_CHAMBER, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents: [100 + DEMON], flags: 0, indiffCount: 0 },
+      ],
+    });
+    const { state, events } = reduce(s, { type: "move", dir: DIR_E });
+
+    expect(state.phase).toBe("fight");
+    expect(state.strangers).toEqual([DEMON]);
+    expect(events).toContainEqual({ type: "demonUnfolds" });
+    // Never reaches settlePacifiedArea's re-park — the Demon isn't swallowed back onto the tile.
+    expect(state.areas[1]!.contents).not.toContainEqual(100 + DEMON);
+  });
+
+  it("pacified re-park behaves exactly as before when there's no Demon to ambush", () => {
+    const s = demonState({
+      party: [member(HERO)],
+      pacifiedAreas: [1],
+      areas: [
+        { card: START_CARD, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+        { card: PLAIN_CHAMBER, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents: [100 + MAN], flags: 0, indiffCount: 0 },
+      ],
+    });
+    const { state, events } = reduce(s, { type: "move", dir: DIR_E });
+
+    expect(state.phase).toBe("explore"); // ordinary indifference re-park — unaffected by the hoist
+    expect(state.strangers).toEqual([]);
+    expect(state.areas[1]!.contents).toContainEqual(100 + MAN);
+    expect(events.some((e) => e.type === "demonUnfolds")).toBe(false);
+  });
+});
+
 // ---------------------------------------------------------------------------------------------
 // The Demon — magic-only fight gating (US-13/US-24, SC-EXT-21)
 // ---------------------------------------------------------------------------------------------

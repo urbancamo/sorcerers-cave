@@ -299,6 +299,14 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
     state.strangers = state.strangers.filter((id) => id !== 10);
     if (announceLull) events.push({ type: "dragonsLulled", count: dragons.length });
   }
+  // Extension kit (SC-EXT-21): a Demon is always hostile — including one parked into an area the
+  // party had already permanently pacified (by an earlier draw made elsewhere while they were away,
+  // same as the `withdraw` case below, reduce.ts:642). This check must run BEFORE the pacifiedAreas
+  // branch: otherwise `settlePacifiedArea` would silently re-park the Demon right back onto the tile
+  // (or, with a Thief, slip it into a live pickup) every single re-entry, forever suppressing it.
+  if (ambushIfDemon(state, events)) {
+    return false;
+  }
   // Permanently indifferent to this party (§Reactions): the party may walk freely through (any exit)
   // — so park the guards to the tile and go to explore for full traversal — but it may also still
   // CHOOSE to attack them (selectors offers an Attack action; the guarded treasure stays out of reach
@@ -310,9 +318,7 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
     return false;
   }
   if (state.strangers.length > 0) {
-    if (ambushIfDemon(state, events)) {
-      // handled — a Demon forces the fight outright (SC-EXT-21), ahead of the hostileAreas check
-    } else if (state.hostileAreas?.includes(state.partyArea)) {
+    if (state.hostileAreas?.includes(state.partyArea)) {
       // The party retreated from these strangers before — they attack on sight (with surprise). §Retreat
       events.push(...startFight(state, -1));
     } else {
