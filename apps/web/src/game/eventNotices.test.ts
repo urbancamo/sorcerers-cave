@@ -372,6 +372,16 @@ describe("eventNotices", () => {
     expect(noDestroyed[0]!.tone).toBe("neutral");
   });
 
+  it("reports the Magic Shield's ward notices verbatim, by mode (US-23)", () => {
+    const nullified = eventNotices([{ type: "shieldWarded", creatureId: 3, mode: "nullify" }])[0]!; // Troll
+    expect(nullified.text).toBe("The Magic Shield turns the Troll's power aside.");
+    expect(nullified.tone).toBe("good");
+
+    const weakened = eventNotices([{ type: "shieldWarded", creatureId: 11, mode: "weaken" }])[0]!; // Sorcerer
+    expect(weakened.text).toBe("The Shield dims the Sorcerer's power (−2).");
+    expect(weakened.tone).toBe("good");
+  });
+
   it("reports the Demon's own kill line verbatim, but stays silent for an ordinary stranger (fix round, US-13)", () => {
     const demonKilled = eventNotices([{ type: "strangerKilled", creatureId: 15 }]);
     expect(demonKilled).toHaveLength(1);

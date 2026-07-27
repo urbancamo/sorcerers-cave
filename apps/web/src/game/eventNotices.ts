@@ -357,6 +357,15 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "holyWaterWeakened":
         out.push({ text: `The ${allName(e.creatureId)} recoils, diminished.`, tone: "good" });
         break;
+      case "shieldWarded":
+        // Design US-23 Feedback, verbatim per mode (SC-EXT-27) — fires only for a round the ward
+        // actually bit, one notice per stranger it turned aside.
+        out.push(
+          e.mode === "weaken"
+            ? { text: `The Shield dims the ${allName(e.creatureId)}'s power (−2).`, tone: "good" }
+            : { text: `The Magic Shield turns the ${allName(e.creatureId)}'s power aside.`, tone: "good" },
+        );
+        break;
       case "scrollRead": {
         // Design US-21 Feedback, verbatim — handling the empty-destroyed (an all-magical group) and
         // empty-survivors (nothing left standing) edge cases sensibly rather than rendering a blank

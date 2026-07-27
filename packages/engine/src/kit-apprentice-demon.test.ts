@@ -358,11 +358,14 @@ describe("The Demon can only be touched by magic or a Magic Axe bearer (US-13/US
     expect(c.party[1]!.status).toBe(0);
   });
 
-  it("an Axe bearer fights the Demon with front strength, like any ordinary foe", () => {
+  it("an Axe bearer fights the Demon with front strength, INCLUDING the Axe's own bonus", () => {
     const s = clone(fightS({ party: [member(MAN, [MAGIC_AXE])], strangers: [DEMON], seed: 5 }));
     const events = resolvePlannedRound(s, { matches: [{ front: [0], backers: [], strangers: [0] }] });
     const roll = events.find((e): e is Extract<GameEvent, { type: "combatRoll" }> => e.type === "combatRoll")!;
-    expect(roll.partyTotal - roll.partyRoll).toBe(3); // Man fs 3 (no Axe strength bonus wiring yet — Task 12)
+    // Man fs 3 + the Axe's own +1 (bonus-table wiring, SC-EXT-26, Task 14) — this test predates that
+    // wiring (its bearer was possession-only, "Task 12" placeholder) and is amended here now that it
+    // has landed, rather than left pinning a now-superseded interim behaviour.
+    expect(roll.partyTotal - roll.partyRoll).toBe(4);
     expect(roll.enemyTotal - roll.enemyRoll).toBe(6); // Demon fs 0 + mp 6
   });
 });

@@ -251,4 +251,11 @@ export type GameEvent =
   // duplicates allowed), removed with no score; `survivors` are the mp>0 strangers left standing
   // (a fight already on continues against them). Always curses the party (`state.curses += 1`) —
   // the presentation layer's own "A curse settles on the party." notice follows unconditionally.
-  | { type: "scrollRead"; destroyed: number[]; survivors: number[] };
+  | { type: "scrollRead"; destroyed: number[]; survivors: number[] }
+  // Extension kit (SC-EXT-27, design US-23): the Magic Shield's pairing-scoped ward actually bit in
+  // a resolved fight round — `creatureId` the warded stranger, `mode` "nullify" (an ordinary foe's
+  // mp fully zeroed) or "weaken" (the Sorcerer/Apprentice's partial resistance takes the ward's own
+  // extra −2, stacking with Lotus Dust/Holy Water/Eye, floor 0). Fires once per stranger the ward
+  // actually reduced (base mp>0) in `resolvePlannedRound` — never for a stranger with mp===0
+  // already (nothing to turn aside) and never merely because the Shield is in play.
+  | { type: "shieldWarded"; creatureId: number; mode: "nullify" | "weaken" };

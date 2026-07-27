@@ -9,6 +9,7 @@ import { eyeActive, activeCurses } from "./effects";
 const T_MAGIC_SWORD = 3;
 const T_MAGIC_STAFF = 9;
 const T_THE_RING = 10;
+const T_MAGIC_AXE = 17; // extension-kit artifact (SC-EXT-26, design US-24) — Sword's bonus-table shape, different roster
 
 export function isCaster(member: PartyMember): boolean {
   return CREATURES[member.creatureId]!.mp > 0;
@@ -32,6 +33,15 @@ export function frontStrength(member: PartyMember, state?: GameState): number {
   if (!artefactsPowerless && holds(member, T_MAGIC_SWORD)) {
     if (member.creatureId === 0 || member.creatureId === 1) s += 2; // Hero / W-Hero
     else if (member.creatureId === 5 || member.creatureId === 6) s += 1; // Man / Woman
+  }
+  // Extension kit (SC-EXT-26, design US-24): the Magic Axe — a Sword-shaped bonus table, but a
+  // different roster and a flat rate for the four human-ish classes it does favour (no Hero/W-Hero
+  // premium the Sword has); the Dwarf's own +3 makes the kit's extra Dwarf card worth fielding. Any
+  // OTHER bearer (Ogre, Priest, Wizard, …) still carries the Axe — for `combatPlan.ts`'s
+  // possession-only Demon predicate (SC-EXT-21) — but draws no strength from it.
+  if (!artefactsPowerless && holds(member, T_MAGIC_AXE)) {
+    if (member.creatureId === 7) s += 3; // Dwarf
+    else if ([0, 1, 5, 6].includes(member.creatureId)) s += 1; // Hero / W-Hero / Man / Woman
   }
   if (member.potionActive) s += 2; // Strength Potion (consumable; not nullified by the Eye)
   return s;

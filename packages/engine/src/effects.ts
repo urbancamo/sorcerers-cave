@@ -7,6 +7,10 @@ const T_TALISMAN = 7;
 const T_THE_RING = 10;
 const T_CHARMED_FLUTE = 12;
 const T_EYE_OF_GOD = 13;
+const T_MAGIC_SHIELD = 20; // extension-kit artifact (SC-EXT-27, design US-23)
+// The Magic Shield's ward is active only for these classes — the Sword's own "HERO includes
+// W-Hero" bonus roster (Resolved-9) — even though the Shield may sit in ANY member's `treasure`.
+const SHIELD_WARD_ELIGIBLE = [0, 1, 5, 6]; // Hero, W-Hero, Man, Woman
 const C_SPECTRE = 9;
 const C_SORCERER = 11; // extension-kit Holy Water target — WEAKEN mode (design US-20, SC-EXT-24)
 const C_UNICORN = 13;
@@ -95,6 +99,21 @@ export function talismanWardsSpectres(state: GameState): boolean {
 /** The Ring makes its bearer immune to killing die-rolls on the 4th level or deeper (negated by an active Eye). */
 export function ringInvincible(member: PartyMember, state: GameState): boolean {
   return state.level >= 4 && member.treasure.includes(T_THE_RING) && !eyeActive(state);
+}
+
+/**
+ * Extension kit (SC-EXT-27, design US-23/Resolved-15): is `member` an eligible, LIVE Magic Shield
+ * bearer whose ward is actually live right now? "Any member may pick up, carry, or receive the
+ * Shield… the ward is simply inert unless the current holder is an eligible bearer" (Man, Woman,
+ * Hero, W-Hero — the Sword's own class list, Resolved-9) — so BORNEABLE (loot.ts) gates only its
+ * fate on death/petrification, never this eligibility, and this check is possession-based
+ * (`treasure.includes`), NOT `isBorne`, exactly like the Sword's own combat bonus (combat.ts). An
+ * active Eye of God nullifies it, same as every other artefact (Sword/Axe precedent). Read at the
+ * PAIRING level by `combatPlan.ts` (once per match's own front line), never globally.
+ */
+export function shieldWardActive(state: GameState, member: PartyMember): boolean {
+  return !eyeActive(state) && living(member) &&
+    SHIELD_WARD_ELIGIBLE.includes(member.creatureId) && member.treasure.includes(T_MAGIC_SHIELD);
 }
 
 /** A living Woman (id 6) or W-Hero (id 1) is in the party — required to win and keep a Unicorn's loyalty. */

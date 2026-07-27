@@ -11,8 +11,13 @@ import type { GameEvent } from "./actions";
  *
  * Passive combat effects (Sword bonus, Staff MP, Ring rolls) remain possession-based, exactly as
  * before — `borne` changes only the fate of the item when its holder falls.
+ *
+ * Extension kit (SC-EXT-26/27, design US-23/US-24): the Magic Axe (17) and Magic Shield (20) join
+ * the SAME borne mode, mirrored exactly — their own passive combat effects (the Axe's fs bonus,
+ * the Shield's ward) are likewise possession-based (combat.ts/combatPlan.ts), never `isBorne`;
+ * `borne` still governs only what happens to the item when the holder falls or turns to stone.
  */
-export const BORNEABLE: readonly number[] = [3, 9, 10];
+export const BORNEABLE: readonly number[] = [3, 9, 10, 17, 20];
 
 export const isBorne = (m: PartyMember, tid: number): boolean => (m.borne ?? []).includes(tid);
 

@@ -5,7 +5,7 @@ import { rollDie } from "./rng";
 import { ALL_CREATURES as CREATURES } from "./data/creatures";
 import { ALL_TREASURES } from "./data/treasures";
 import { frontStrength, casterMP, partyRollBonus, isCaster } from "./combat";
-import { eyeActive, ringInvincible, activeCurses, eyeForsakenByDeath, revertApprenticesOnSorcererDeath } from "./effects";
+import { eyeActive, ringInvincible, activeCurses, eyeForsakenByDeath, revertApprenticesOnSorcererDeath, shieldWardActive } from "./effects";
 import type { GameState, PartyMember, BattlePlan } from "./state";
 import type { GameEvent } from "./actions";
 
@@ -19,7 +19,7 @@ const C_DEMON = 15;
 const T_MAGIC_SWORD = 3;
 const T_MAGIC_STAFF = 9;
 const T_THE_RING = 10;
-const T_MAGIC_AXE = 17; // extension-kit treasure — mere possession is enough here (canSwordSpectre precedent); full borne/bonus wiring is a later kit task
+const T_MAGIC_AXE = 17; // extension-kit treasure (SC-EXT-26) — mere possession is enough for the Demon predicate below; the fs bonus itself lives in combat.ts's frontStrength, mirrored here only for this file's own modifier-chip display
 
 export type PlanError =
   | "notFighting" | "emptyPlan" | "badIndex" | "deadMember" | "memberReused"
@@ -41,6 +41,21 @@ const canAxeDemon = (state: GameState, m: PartyMember): boolean =>
   !eyeActive(state) && m.treasure.includes(T_MAGIC_AXE);
 
 const MAGIC_ONLY_IDS = [C_SPECTRE, C_DEMON];
+
+/** Extension kit (SC-EXT-27, design US-23/Resolved-15): does THIS match's own front line — not the
+ *  whole party — include a live, eligible Magic Shield bearer? Pairing-scoped: only strangers
+ *  slotted directly against this match's front are ever warded, never a different match's foes and
+ *  never a leftover enemy caster folded in from the background (`enemyBackers`, §395) — those
+ *  aren't literally "paired" against anyone. */
+const matchShielded = (state: GameState, front: readonly number[]): boolean =>
+  front.some((i) => { const m = state.party[i]; return !!m && shieldWardActive(state, m); });
+
+/** The Shield's effect on one stranger's mp CONTRIBUTION, given its un-warded `base` (from
+ *  `enemyMP`, which already folds in the Eye/Lotus Dust/Holy Water): an ordinary foe is fully
+ *  nullified; the Sorcerer/Apprentice's own partial resistance instead takes an extra −2, stacking
+ *  with whatever already reduced `base`, floored at 0 (design US-23). */
+const shieldedMP = (sid: number, base: number): number =>
+  sid === C_SORCERER || sid === C_APPRENTICE ? Math.max(0, base - 2) : 0;
 
 /** Does `m` have the enabling artifact for the specific magic-only foe `sid` (Sword for a
  *  Spectre, Axe for a Demon)? Only meaningful when `sid` is one of `MAGIC_ONLY_IDS`. */
@@ -160,6 +175,10 @@ export interface PreviewMatch {
   partyStr: number;
   enemyStr: number;
   modifiers: MatchModifier[]; // artefact/curse/surprise modifiers affecting this matchup
+  // Extension kit (SC-EXT-27): strangers in THIS match whose mp the Magic Shield's ward actually
+  // reduced (base mp>0) — already folded into `enemyStr`/`modifiers` above; also consumed by
+  // `resolvePlannedRound` to fire one `shieldWarded` notice per entry.
+  shieldWard: { creatureId: number; mode: "nullify" | "weaken" }[];
 }
 export interface PlanPreview {
   matches: PreviewMatch[];
@@ -220,7 +239,20 @@ export function previewPlan(state: GameState, plan: BattlePlan): PlanPreview {
     const magicOnly = magicOnlyMatch(mt.strangers);
     const memberStr = (i: number) => (magicOnly && casterMP(state.party[i]!, state) > 0 ? casterMP(state.party[i]!, state) : frontStrength(state.party[i]!, state));
     const partyStr = mt.front.reduce((s, i) => s + memberStr(i), 0) + mt.backers.reduce((s, i) => s + casterMP(state.party[i]!, state), 0);
-    const enemyStr = mt.strangers.reduce((s, si) => s + CREATURES[state.strangers[si]!]!.fs + enemyMP(state, state.strangers[si]!), 0)
+
+    // Extension kit (SC-EXT-27): the Magic Shield's ward, pairing-scoped to THIS match's own front
+    // line — never `mt.enemyBackers` (leftover enemy casters lent from the background, §395, aren't
+    // literally "paired" against anyone).
+    const shielded = matchShielded(state, mt.front);
+    const shieldWard: { creatureId: number; mode: "nullify" | "weaken" }[] = [];
+    const strangerMP = (si: number) => {
+      const sid = state.strangers[si]!;
+      const base = enemyMP(state, sid);
+      if (!shielded || base === 0) return base; // 0 already — nothing for the ward to turn aside
+      shieldWard.push({ creatureId: sid, mode: sid === C_SORCERER || sid === C_APPRENTICE ? "weaken" : "nullify" });
+      return shieldedMP(sid, base);
+    };
+    const enemyStr = mt.strangers.reduce((s, si) => s + CREATURES[state.strangers[si]!]!.fs + strangerMP(si), 0)
       + mt.enemyBackers.reduce((s, si) => s + enemyMP(state, state.strangers[si]!), 0);
 
     // Modifiers in play for this matchup — artefact strength bonuses (already in the totals) plus the
@@ -231,6 +263,11 @@ export function previewPlan(state: GameState, plan: BattlePlan): PlanPreview {
       if (!eye && m.treasure.includes(T_MAGIC_SWORD)) {
         const v = c === 0 || c === 1 ? 2 : c === 5 || c === 6 ? 1 : 0; // Hero/W-Hero +2, Man/Woman +1
         if (v) modifiers.push({ label: `Magic Sword · ${named(i)}`, value: v, side: "party", roll: false });
+      }
+      // Extension kit (SC-EXT-26): the Magic Axe's own bonus-table chip, mirroring the Sword's.
+      if (!eye && m.treasure.includes(T_MAGIC_AXE)) {
+        const v = c === 7 ? 3 : [0, 1, 5, 6].includes(c) ? 1 : 0; // Dwarf +3, Hero/W-Hero/Man/Woman +1
+        if (v) modifiers.push({ label: `Magic Axe · ${named(i)}`, value: v, side: "party", roll: false });
       }
       if (m.potionActive) modifiers.push({ label: `Strength Potion · ${named(i)}`, value: 2, side: "party", roll: false });
       // Dragon-slayer: +1 fighting strength per dragon felled single-handed (baked into the total) —
@@ -260,8 +297,17 @@ export function previewPlan(state: GameState, plan: BattlePlan): PlanPreview {
     if (round1 && state.fight?.surprise === 1) modifiers.push({ label: "Surprise", value: 1, side: "party", roll: true });
     if (round1 && state.fight?.surprise === -1) modifiers.push({ label: "Surprise", value: 1, side: "enemy", roll: true });
     if (eye) modifiers.push({ label: "Eye of God — magic & artefacts nullified", value: 0, side: "party", roll: false });
+    // Extension kit (SC-EXT-27): one enemy-side chip per warded stranger, mirroring the Sword/Staff
+    // chips' shape but on the OTHER side of the matchup. Recomputed from `enemyMP` rather than a
+    // flat -2 for the weaken mode, so the chip's value always matches the ACTUAL (floored) change
+    // already folded into `enemyStr` above, even in the rare case Lotus Dust/Holy Water had already
+    // brought the Sorcerer/Apprentice down near 0.
+    for (const w of shieldWard) {
+      const before = enemyMP(state, w.creatureId);
+      modifiers.push({ label: `Magic Shield · ${CREATURES[w.creatureId]!.name}`, value: shieldedMP(w.creatureId, before) - before, side: "enemy", roll: false });
+    }
 
-    return { front: mt.front, backers: mt.backers, strangers: mt.strangers, attached: mt.attached, enemyBackers: mt.enemyBackers, partyStr, enemyStr, modifiers };
+    return { front: mt.front, backers: mt.backers, strangers: mt.strangers, attached: mt.attached, enemyBackers: mt.enemyBackers, partyStr, enemyStr, modifiers, shieldWard };
   });
 
   const inMatch = new Set<number>(matches.flatMap((m) => [...m.strangers, ...m.enemyBackers]));
@@ -298,6 +344,11 @@ export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEve
 
   // The matches as they will be fought (strongest-combination + strengths).
   const { matches, idle } = previewPlan(state, plan);
+
+  // Extension kit (SC-EXT-27): the Magic Shield's ward notice — one `shieldWarded` per stranger it
+  // actually bit against this round (design US-23 Feedback), computed once by `previewPlan` above
+  // and simply replayed here as events; never fired merely because the Shield is in play.
+  for (const mt of matches) for (const w of mt.shieldWard) events.push({ type: "shieldWarded", creatureId: w.creatureId, mode: w.mode });
 
   // An un-fightable, unengaged magic-only foe slays the strongest member (§Spectre; the Demon
   // follows the SAME rule, Resolved-6/SC-EXT-21). Only one slaying per round, matching the
