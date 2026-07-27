@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { readFileSync } from "node:fs";
 import { decodeArea } from "./decode";
 import {
   AREA_CARDS,
@@ -142,6 +143,23 @@ describe("decode widening to a 4-bit special field (SC-EXT-3)", () => {
 
   it("EXT_AREA_CARDS has exactly 30 tiles", () => {
     expect(EXT_AREA_CARDS).toHaveLength(30);
+  });
+
+  it("every EXT_AREA_CARDS value matches the manifest's tilesExtension row — the manifest is the authority", () => {
+    // Twice now (QFAR: x04-1; OQPX: six more tiles) a manifest tileType correction left the
+    // engine encoding stale, dealing chamber cards in tunnels. This derives every expected
+    // value from docs/assets/manifest.json so the two can never silently diverge again.
+    const manifest = JSON.parse(
+      readFileSync(new URL("../../../docs/assets/manifest.json", import.meta.url), "utf8"),
+    ) as { categories: { tilesExtension: { items: Array<{ file: string; exits: string; tileType: string; special: string | null; stairUp: boolean; stairDown: boolean }> } } };
+    const SPECIAL: Record<string, number> = { chasm: 6, "bell-rope": 7, lair: 8, whirlpool: 9, gallery: 10, well: 11 };
+    const expected = manifest.categories.tilesExtension.items.map((it) =>
+      (it.exits.includes("N") ? 1 : 0) | (it.exits.includes("E") ? 2 : 0) |
+      (it.exits.includes("S") ? 4 : 0) | (it.exits.includes("W") ? 8 : 0) |
+      (it.tileType === "chamber" ? 16 : 0) | (it.stairUp ? 32 : 0) | (it.stairDown ? 64 : 0) |
+      ((it.special ? SPECIAL[it.special]! : 0) << 7),
+    );
+    expect([...EXT_AREA_CARDS]).toEqual(expected);
   });
 
   it("x04-1 (EXT_AREA_CARDS[12]) is a NW TUNNEL — the QFAR misclassification fix", () => {

@@ -705,7 +705,7 @@
           "w": 1728,
           "h": 1210,
           "exits": "NESW",
-          "tileType": "chamber",
+          "tileType": "tunnel",
           "special": null,
           "stairUp": false,
           "stairDown": false
@@ -715,7 +715,7 @@
           "w": 1728,
           "h": 1210,
           "exits": "NES",
-          "tileType": "chamber",
+          "tileType": "tunnel",
           "special": null,
           "stairUp": false,
           "stairDown": true
@@ -785,7 +785,7 @@
           "w": 1728,
           "h": 1210,
           "exits": "NSW",
-          "tileType": "chamber",
+          "tileType": "tunnel",
           "special": null,
           "stairUp": true,
           "stairDown": false
@@ -815,7 +815,7 @@
           "w": 1728,
           "h": 1210,
           "exits": "ESW",
-          "tileType": "chamber",
+          "tileType": "tunnel",
           "special": null,
           "stairUp": false,
           "stairDown": false
@@ -825,7 +825,7 @@
           "w": 1728,
           "h": 1210,
           "exits": "ESW",
-          "tileType": "chamber",
+          "tileType": "tunnel",
           "special": null,
           "stairUp": false,
           "stairDown": true
@@ -875,7 +875,7 @@
           "w": 1728,
           "h": 1210,
           "exits": "ESW",
-          "tileType": "chamber",
+          "tileType": "tunnel",
           "special": null,
           "stairUp": true,
           "stairDown": false

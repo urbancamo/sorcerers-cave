@@ -34,11 +34,11 @@ export const AREA_CARDS: readonly number[] = [
 // `variants.extensionKit` is set (SC-EXT-4).
 export const EXT_AREA_CARDS: readonly number[] = [
   3, 23, 3, 23,            // x01: NE t, NES c, NE t, NES c
-  39, 31, 87, 27,          // x02: NES t+U, NESW c, NES c+D, NEW c
+  39, 15, 71, 27,          // x02: NES t+U, NESW t, NES t+D, NEW c (x02-2/-3 reclassified tunnels, OQPX fix)
   31, 31, 31, 31,          // x03: NESW chambers
-  9, 61, 31, 13,           // x04: NW t (QFAR fix: art is a bent corridor, was mis-encoded 25/chamber), NSW c+U, NESW c, NSW t
-  30, 94, 6, 30,           // x05: ESW c, ESW c+D, ES t, ESW c
-  12, 799, 62, 927,        // x06: SW t, chasm, ESW c+U, bell-rope
+  9, 45, 31, 13,           // x04: NW t (QFAR fix), NSW t+U (OQPX fix), NESW c, NSW t
+  14, 78, 6, 30,           // x05: ESW t, ESW t+D (x05-1/-2 reclassified tunnels, OQPX fix), ES t, ESW c
+  12, 799, 46, 927,        // x06: SW t, chasm, ESW t+U (reclassified tunnel, OQPX fix), bell-rope
   1055, 1183, 1311, 1439,  // x07: lair, whirlpool, gallery, well
   10, 10,                  // x08: EW tunnels
 ];
