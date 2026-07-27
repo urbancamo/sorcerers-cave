@@ -19,7 +19,6 @@ const ART_VERB: Record<number, string> = { 5: "put to sleep", 6: "revive", 8: "s
 // Extension kit blocking-confirm popups (design Part 2 — Trap-fall pattern), verbatim per story.
 const CHASM_CONFIRM = "Descend? You cannot return this way.";
 const WELL_CONFIRM = "Draw 1 card — you cannot withdraw this turn.";
-const CRYPT_CONFIRM = "Enter? A trap here cannot be avoided.";
 const ELIXIR_CONFIRM = "One draught. 1: death. 2–3: nothing. 4–6: +2 strength, forever.";
 const SCROLL_CONFIRM = "Destroys every enemy here save the magical — and curses the party.";
 
@@ -92,9 +91,10 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
   //  - each treasure is listed once, with a dropdown of the members who can carry it;
   //  - each artefact is listed once, with a dropdown of the targets it can be used on.
   // Everything else (test, attack, withdraw, leave, retake) stays a plain button. The extension
-  // kit's own confirm-gated actions (Chasm/Well/Crypt/Bell Rope/Elixir/Scroll) are pulled out into
+  // kit's own confirm-gated actions (Chasm/Well/Bell Rope/Elixir/Scroll) are pulled out into
   // their own ConfirmButton/ConfirmPicker rows (design's blocking-confirm pattern) rather than
-  // falling into the generic buckets below.
+  // falling into the generic buckets below. (enterCrypt is explore-only per selectors.ts — never
+  // legal here — so this panel doesn't handle it at all; see ExplorePanel.tsx.)
   const takeByTi = new Map<number, number[]>();        // treasure index -> member indices that can carry it
   const artByArtifact = new Map<number, GameAction[]>(); // artefact id -> its target actions
   const simple: GameAction[] = [];
@@ -103,7 +103,6 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
   let retake: GameAction | null = null;
   let descendChasm: Extract<GameAction, { type: "descendChasm" }> | null = null;
   let drawFromWell: Extract<GameAction, { type: "drawFromWell" }> | null = null;
-  let enterCrypt: Extract<GameAction, { type: "enterCrypt" }> | null = null;
   const pullBellRope: Extract<GameAction, { type: "pullBellRope" }>[] = [];
   const useElixir: Extract<GameAction, { type: "useArtifact" }>[] = [];
   let readScroll: Extract<GameAction, { type: "useArtifact" }> | null = null;
@@ -114,7 +113,6 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
     if (a.type === "takeTreasure") (takeByTi.get(a.ti) ?? takeByTi.set(a.ti, []).get(a.ti)!).push(a.mi);
     else if (a.type === "descendChasm") descendChasm = a;
     else if (a.type === "drawFromWell") drawFromWell = a;
-    else if (a.type === "enterCrypt") enterCrypt = a;
     else if (a.type === "pullBellRope") pullBellRope.push(a);
     else if (a.type === "useArtifact" && a.artifact === 15 && !medusaPause) useElixir.push(a);
     else if (a.type === "useArtifact" && a.artifact === 19 && !medusaPause) readScroll = a;
@@ -241,11 +239,10 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
       )}
 
       {/* Extension kit: single-confirm actions (design's blocking-confirm/Trap-fall pattern). */}
-      {(descendChasm || drawFromWell || enterCrypt || readScroll) && (
+      {(descendChasm || drawFromWell || readScroll) && (
         <div className="scv-enc-actions">
           {descendChasm && <ConfirmButton label="Descend the chasm" confirmText={CHASM_CONFIRM} onConfirm={() => dispatch(descendChasm!)} />}
           {drawFromWell && <ConfirmButton label="Draw from the well" confirmText={WELL_CONFIRM} onConfirm={() => dispatch(drawFromWell!)} />}
-          {enterCrypt && <ConfirmButton label="Enter the crypt" confirmText={CRYPT_CONFIRM} onConfirm={() => dispatch(enterCrypt!)} />}
           {readScroll && <ConfirmButton label="Read the Scroll" confirmText={SCROLL_CONFIRM} onConfirm={() => dispatch(readScroll!)} />}
         </div>
       )}

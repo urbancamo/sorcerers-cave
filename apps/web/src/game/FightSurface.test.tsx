@@ -220,6 +220,29 @@ describe("FightSurface", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "resolveRound", matches: [] });
   });
 
+  it("offers the Scroll's confirm popup in fight phase, not a one-click dispatch (US-21, review fix)", () => {
+    // Review finding: selectors.ts offers useArtifact(19) legally in the fight phase, but the
+    // generic artifact-buttons loop rendered it as a plain one-click dispatch — no ConfirmButton,
+    // no verbatim consequence text (EncounterPanel's own Scroll row already gets this right).
+    const dispatch = vi.fn();
+    const s: GameState = {
+      ...newGame(1, [0], { extensionKit: true }),
+      phase: "fight",
+      fight: { surprise: 0, round: 1, focus: 0 },
+      strangers: [3], // Troll — not magic-only, so the Scroll has someone to burn
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [19] }], // Hero carrying the Scroll
+    };
+    render(<FightSurface state={s} dispatch={dispatch} cards={cards} />);
+    const btn = screen.getByRole("button", { name: "Read the Scroll" });
+    fireEvent.click(btn);
+    expect(dispatch).not.toHaveBeenCalled(); // must confirm first — no immediate dispatch
+    expect(screen.getByTestId("confirm-prompt")).toHaveTextContent(
+      /destroys every enemy here save the magical — and curses the party/i,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "useArtifact", artifact: 19 });
+  });
+
   it("offers retreat after round 1", () => {
     const dispatch = vi.fn();
     // The gateway (card 175) has all four doorways, so legalActions offers N/E/S/W retreats at round > 1.

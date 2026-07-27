@@ -1,8 +1,9 @@
 import {
-  CREATURES, TREASURES, replay, decodeArea, scoreBreakdown,
+  ALL_CREATURES, ALL_TREASURES, replay, decodeArea, scoreBreakdown,
   SPECIAL_GATEWAY, SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_TOMB, SPECIAL_GREAT_HALL,
   SPECIAL_CHASM, SPECIAL_BELL_ROPE, SPECIAL_LAIR, SPECIAL_WHIRLPOOL, SPECIAL_GALLERY, SPECIAL_WELL,
   HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_MUTINY, HAZARD_TRAP,
+  HAZARD_DESERTION, HAZARD_HARPIES, HAZARD_QUARREL, HAZARD_SPELL,
   GS_ESCAPED, GS_DEAD, GS_QUIT,
   type GameAction, type GameEvent, type GameState,
 } from "@sorcerers-cave/engine";
@@ -29,8 +30,12 @@ const CURRENT_VERSION = 1;
 
 const DIR_WORD: Record<number, string> = { 1: "north", 2: "east", 3: "south", 4: "west", 5: "up the stair", 6: "down the stair" };
 const dir = (d: number) => DIR_WORD[d] ?? `dir ${d}`;
-const creature = (id: number) => CREATURES[id]?.name ?? `creature ${id}`;
-const treasure = (id: number) => TREASURES[id]?.name ?? `treasure ${id}`;
+// ALL_CREATURES/ALL_TREASURES (not the base-only tables, SC-EXT-29): a kit-on game's log can name a
+// kit id (14-21) in any action/event — the base tables would render "creature 18"/"treasure 19" in
+// the downloadable log instead of "Witch"/"Scroll" (review fix, Task 16). Byte-identical for base
+// ids (0-13/0-14), which both tables share verbatim.
+const creature = (id: number) => ALL_CREATURES[id]?.name ?? `creature ${id}`;
+const treasure = (id: number) => ALL_TREASURES[id]?.name ?? `treasure ${id}`;
 
 /** Name the strangers vs fighters in a fight round, using the state the round was fought from. */
 function matchups(matches: readonly { front: number[]; backers: number[]; strangers: number[] }[], state: GameState | null): string {
@@ -183,6 +188,39 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "whirlpoolRoll": return `whirlpool crossing (rolled ${e.roll}) — ${e.dragged ? "dragged the party down" : "safe"}`;
     case "wellDraw": return "drew a card from the well";
     case "bellRoll": return `bell rope (rolled ${e.roll}) — ${e.outcome} (${creature(e.creatureId)})`;
+    // Extension kit (review fix, Task 16): the remaining kit events — galleryStone through
+    // shieldWarded — previously fell through to the raw `default` type string below (e.g.
+    // "cryptRoll") rather than a readable line. Terse log-register, matching the style already
+    // established above (verbatim UI notice text lives in eventNotices.ts, not here).
+    case "galleryStone": return `the Gallery petrified ${e.creatureIds.length} creature(s): ${e.creatureIds.map(creature).join(", ")}`;
+    case "staffWake": return `the Magic Staff woke ${e.creatureIds.length} Gallery statue(s): ${e.creatureIds.map(creature).join(", ")}`;
+    case "lairStash": return `the Lair holds ${e.treasureIds.length} stashed item(s): ${e.treasureIds.map(treasure).join(", ")}`;
+    case "cryptParked": return "a sealed crypt is parked in this chamber";
+    case "cryptRoll": return `crypt roll (rolled ${e.roll}) — ${e.outcome === "trap" ? "a trap sprang" : "gems found"}`;
+    case "desertionRoll": return `desertion roll (rolled ${e.roll}) — ${creature(e.creatureId)} ` +
+      (e.deserted ? `vanished${e.items.length ? `, taking ${e.items.map(treasure).join(", ")}` : ""}` : "held firm");
+    case "wolfUnmoved": return `the Wolf is unmoved (hazard ${e.hazard})`;
+    case "harpiesSteal": return `Harpies stole ${e.treasureIds.length} item(s): ${e.treasureIds.map(treasure).join(", ")}` + (e.cursed ? " — the party is cursed" : "");
+    case "harpiesLurk": return "Harpies lurk, empty-handed";
+    case "quarrel": return `quarrel: ${creature(e.aId)} (${e.aRoll}) vs ${creature(e.bId)} (${e.bRoll}) — ` +
+      (e.loserId != null ? `${creature(e.loserId)} lost` : "a tie, no harm");
+    case "quarrelFizzled": return "a quarrel fizzled — too few eligible combatants";
+    case "spellRemap": return e.fizzled ? "the Spell fizzled — no eligible tile to remap" : "the Spell remapped a tile";
+    case "thiefPalmed": return `the Thief palmed ${treasure(e.tid)}`;
+    case "apprenticeTurned": return `${e.count} Apprentice(s) turned when the Sorcerer fell` + (e.items.length ? `, dropping ${e.items.map(treasure).join(", ")}` : "");
+    case "apprenticeStaysBehind": return `${e.count} Apprentice(s) stayed behind in the cave`;
+    case "demonSpawned": return "a Demon materialized";
+    case "demonDispersed": return "the Demon's area was destroyed — it dispersed";
+    case "demonUnfolds": return "the Demon unfolds — a forced hostile encounter";
+    case "demonSlew": return `the Demon slew ${creature(e.creatureId)}`;
+    case "elixirDrunk": return `${creature(e.creatureId)} drank the Elixir (rolled ${e.roll}) — ${e.outcome}`;
+    case "holyWaterRevived": return `Holy Water revived ${creature(e.creatureId)} from stone`;
+    case "holyWaterStatueWoke": return `Holy Water woke a stone ${creature(e.creatureId)}`;
+    case "holyWaterMedusaDestroyed": return "Holy Water destroyed Medusa's lurking marker";
+    case "holyWaterFoeDestroyed": return `Holy Water destroyed ${creature(e.creatureId)}`;
+    case "holyWaterWeakened": return `Holy Water weakened ${creature(e.creatureId)}`;
+    case "scrollRead": return `the Scroll was read — destroyed ${e.destroyed.length ? e.destroyed.map(creature).join(", ") : "none"}, ${e.survivors.length} magical survivor(s), a curse settles on the party`;
+    case "shieldWarded": return `the Magic Shield warded off ${creature(e.creatureId)} (${e.mode})`;
     default: return (e as { type: string }).type;
   }
 }
@@ -299,12 +337,27 @@ export function formatLog(log: GameLog): string {
 // Fixed-width, 7-bit ASCII, UPPERCASE, 3-letter codes. Every column holds the same kind of datum;
 // events that overflow the EVENTS column wrap onto continuation lines with the lead columns blank.
 
-const CR3: Record<number, string> = { 0: "HER", 1: "WHR", 2: "OGR", 3: "TRL", 4: "PRI", 5: "MAN", 6: "WMN", 7: "DWF", 8: "WIZ", 9: "SPC", 10: "DRG", 11: "SOR", 12: "GNT", 13: "UNI" };
-const TR3: Record<number, string> = { 0: "SLV", 1: "GLD", 2: "GEM", 3: "SWD", 4: "CPT", 5: "LOT", 6: "BLM", 7: "TAL", 8: "POT", 9: "STF", 10: "RNG", 11: "RBY", 12: "FLT", 13: "EYE", 14: "CHT" };
+const CR3_BASE: Record<number, string> = { 0: "HER", 1: "WHR", 2: "OGR", 3: "TRL", 4: "PRI", 5: "MAN", 6: "WMN", 7: "DWF", 8: "WIZ", 9: "SPC", 10: "DRG", 11: "SOR", 12: "GNT", 13: "UNI" };
+// Extension kit creature ids 14-20 (review fix, Task 16) — without these, cr3()/NAME3 below fell
+// back to "???"/a raw name-slice for nearly every kit event, since kit events mostly name kit
+// creatures (a Witch's galleryStone, a Wolf's wolfUnmoved, ...). Kept as a separate table (mirrors
+// KIT_CREATURES, data/creatures.ts) so `legend()` can list ONLY the base 14 for a kit-off game's KEY
+// block — a kit-off deck can never draw these ids, so listing their codes there would be new,
+// unreachable content in the printer report (kit-off byte-identity).
+const CR3_KIT: Record<number, string> = { 14: "APR", 15: "DEM", 16: "LIO", 17: "SCH", 18: "WIT", 19: "THF", 20: "WLF" };
+const CR3: Record<number, string> = { ...CR3_BASE, ...CR3_KIT };
+const TR3_BASE: Record<number, string> = { 0: "SLV", 1: "GLD", 2: "GEM", 3: "SWD", 4: "CPT", 5: "LOT", 6: "BLM", 7: "TAL", 8: "POT", 9: "STF", 10: "RNG", 11: "RBY", 12: "FLT", 13: "EYE", 14: "CHT" };
+// Extension kit treasure ids 15-21 (review fix, Task 16) — same rationale as CR3_KIT above.
+const TR3_KIT: Record<number, string> = { 15: "ELX", 16: "HLY", 17: "AXE", 18: "IDL", 19: "SCR", 20: "SHD", 21: "CRG" };
+const TR3: Record<number, string> = { ...TR3_BASE, ...TR3_KIT };
 const cr3 = (id: number) => CR3[id] ?? "???";
 const tr3 = (id: number) => TR3[id] ?? "???";
 // combatRoll carries creature NAMES, not ids — map them back to the 3-letter code (else first 3 letters).
-const NAME3: Record<string, string> = Object.fromEntries(CREATURES.map((c) => [c.name.toUpperCase(), CR3[c.id] ?? c.name.slice(0, 3).toUpperCase()]));
+// ALL_CREATURES (not the base-only table, SC-EXT-29): a kit-on fight's combatRoll can name a kit
+// creature (e.g. "Witch") — the base-only table left this to the raw name-slice fallback, which can
+// disagree with cr3()'s own kit code above (review fix, Task 16: e.g. "Wolf" sliced to "WOL", not
+// the "WLF" cr3(20) uses elsewhere in the SAME report — inconsistent within one hardcopy).
+const NAME3: Record<string, string> = Object.fromEntries(ALL_CREATURES.map((c) => [c.name.toUpperCase(), CR3[c.id] ?? c.name.slice(0, 3).toUpperCase()]));
 const name3 = (s: string) => (s.toUpperCase() === "GHOULS" ? "GHL" : NAME3[s.toUpperCase()] ?? s.slice(0, 3).toUpperCase());
 const DIR1: Record<number, string> = { 1: "N", 2: "E", 3: "S", 4: "W", 5: "U", 6: "D" };
 const d1 = (d: number) => DIR1[d] ?? "?";
@@ -317,7 +370,13 @@ const TYPE3: Record<number, string> = {
 const REACT3: Record<string, string> = { hostile: "HOS", indifferent: "IND", friendly: "FRD" };
 const RESULT3: Record<string, string> = { partyWon: "WON", enemyWon: "LOS", tie: "TIE" };
 const GS3: Record<number, string> = { 0: "PLY", 1: "ESC", 2: "DED", 3: "QIT" };
-const HZ3: Record<number, string> = { [HAZARD_EARTHQUAKE]: "ERQ", [HAZARD_MEDUSA]: "MDA", [HAZARD_GHOULS]: "GHL", [HAZARD_MUTINY]: "MUT", [HAZARD_TRAP]: "TRP" };
+const HZ3: Record<number, string> = {
+  [HAZARD_EARTHQUAKE]: "ERQ", [HAZARD_MEDUSA]: "MDA", [HAZARD_GHOULS]: "GHL", [HAZARD_MUTINY]: "MUT", [HAZARD_TRAP]: "TRP",
+  // Extension kit hazard ids 5-8 (review fix, Task 16) — the generic `hazardFired` event (and the
+  // new `wolfUnmoved` case below, whose one non-base source is Desertion) both index this map; a
+  // kit-on game could already reach `hazardFired{hazard: 5..8}` and silently print "HAZ ???".
+  [HAZARD_DESERTION]: "DES", [HAZARD_HARPIES]: "HRP", [HAZARD_QUARREL]: "QRL", [HAZARD_SPELL]: "RMP",
+};
 
 function tileCells(card: number): { typ: string; ext: string; str: string } {
   const d = decodeArea(card);
@@ -362,8 +421,9 @@ function actionCode(a: GameAction, state: GameState | null): { act: string; arg:
 }
 
 /** A terse code for one event. The `moved` event is rendered in the position/tile columns, so it (and
- *  the blocked no-op) return null here. Every other event type maps to a short uppercase code. */
-function eventCode(e: GameEvent): string | null {
+ *  the blocked no-op) return null here. Every other event type maps to a short uppercase code.
+ *  Exported for direct unit testing (review fix, Task 16) — same rationale as `describeEvent`. */
+export function eventCode(e: GameEvent): string | null {
   switch (e.type) {
     case "moved": case "blocked": return null;
     case "drewChamber": {
@@ -426,6 +486,38 @@ function eventCode(e: GameEvent): string | null {
     case "whirlpoolRoll": return `WHP R${e.roll} ${e.dragged ? "DRG" : "SAF"}`;
     case "wellDraw": return "WEL DRW";
     case "bellRoll": return `BEL R${e.roll} ${e.outcome.slice(0, 3).toUpperCase()}`;
+    // Extension kit (review fix, Task 16): the remaining kit events, each given its OWN distinct
+    // code — the `default` fallback below slices the raw type to 3 letters, which would silently
+    // collide several same-prefix kit types onto one ambiguous code (every demon* event → "DEM",
+    // every holyWater* event → "HOL", both apprentice* events → "APP", harpiesSteal/harpiesLurk →
+    // "HAR"). See describeEvent above for the human-readable prose equivalent of each.
+    case "galleryStone": return `PTR ${e.creatureIds.map(cr3).join(",")}`;
+    case "staffWake": return `WAK ${e.creatureIds.map(cr3).join(",")}`;
+    case "lairStash": return `LST ${e.treasureIds.map(tr3).join(",")}`;
+    case "cryptParked": return "CRP";
+    case "cryptRoll": return `CRL R${e.roll} ${e.outcome === "trap" ? "TRP" : "FND"}`;
+    case "desertionRoll": return `DSR ${cr3(e.creatureId)} R${e.roll} ${e.deserted ? "VAN" : "HLD"}`;
+    case "wolfUnmoved": return `WLF UNM ${HZ3[e.hazard] ?? "???"}`;
+    case "harpiesSteal": return `HRP STL ${e.treasureIds.map(tr3).join(",")}` + (e.cursed ? " CRS" : "");
+    case "harpiesLurk": return "HRP LRK";
+    case "quarrel": return `QRL ${cr3(e.aId)} R${e.aRoll} V ${cr3(e.bId)} R${e.bRoll} ${e.loserId != null ? `LOS ${cr3(e.loserId)}` : "TIE"}`;
+    case "quarrelFizzled": return "QRL FIZ";
+    case "spellRemap": return e.fizzled ? "RMP FIZ" : "RMP OK";
+    case "thiefPalmed": return `PLM ${tr3(e.tid)}`;
+    case "apprenticeTurned": return `APR TRN ${e.count}`;
+    case "apprenticeStaysBehind": return `APR STY ${e.count}`;
+    case "demonSpawned": return "DEM SPN";
+    case "demonDispersed": return "DEM DSP";
+    case "demonUnfolds": return "DEM UNF";
+    case "demonSlew": return `DEM SLW ${cr3(e.creatureId)}`;
+    case "elixirDrunk": return `ELX ${cr3(e.creatureId)} R${e.roll} ${e.outcome.slice(0, 3).toUpperCase()}`;
+    case "holyWaterRevived": return `HLY RVV ${cr3(e.creatureId)}`;
+    case "holyWaterStatueWoke": return `HLY WAK ${cr3(e.creatureId)}`;
+    case "holyWaterMedusaDestroyed": return "HLY MED";
+    case "holyWaterFoeDestroyed": return `HLY DST ${cr3(e.creatureId)}`;
+    case "holyWaterWeakened": return `HLY WKN ${cr3(e.creatureId)}`;
+    case "scrollRead": return `SCR ${e.destroyed.length ? e.destroyed.map(cr3).join(",") : "-"} SRV${e.survivors.length}`;
+    case "shieldWarded": return `SHW ${cr3(e.creatureId)} ${e.mode === "nullify" ? "NUL" : "WKN"}`;
     default: return (e as { type: string }).type.slice(0, 3).toUpperCase();
   }
 }
@@ -449,14 +541,22 @@ function packCodes(items: string[], w: number): string[] {
 }
 
 /** The KEY / legend block: decode the 3-letter codes so the hardcopy is self-documenting. Creature and
- *  treasure rows are generated from the code maps (kept in sync); the rest is a curated crib. */
-function legend(): string[] {
+ *  treasure rows are generated from the code maps (kept in sync); the rest is a curated crib.
+ *  `kitOn` (review fix, Task 16) gates the kit creature/treasure rows: a kit-off game's deck can
+ *  never draw those ids, so listing their codes there would be unreachable, misleading content in
+ *  an otherwise byte-identical report (SC-EXT-29 — same "kit-off byte-identity" rule as `formatLog`'s
+ *  "Extension kit active" line and `logReport`'s own "KIT ON" meta tag, just applied to the legend). */
+function legend(kitOn: boolean): string[] {
   const rows = (label: string, pairs: string[]): string[] => {
     const bodyW = 132 - 5 - 9 - 1; // "KEY  " (5) + label field (9) + a space
     return packCodes(pairs, bodyW).map((ln, i) => "KEY".padEnd(5) + (i === 0 ? label.padEnd(9) : " ".repeat(9)) + " " + ln);
   };
-  const creatures = Object.entries(CR3).map(([id, c]) => `${c}=${(CREATURES[Number(id)]?.name ?? "?").toUpperCase()}`);
-  const treasures = Object.entries(TR3).map(([id, c]) => `${c}=${(TREASURES[Number(id)]?.name ?? "?").toUpperCase()}`);
+  // ALL_CREATURES/ALL_TREASURES (not the base-only tables): CR3_KIT/TR3_KIT decode via the combined
+  // table regardless — the base-only tables would decode a kit row's name back to "?".
+  const cr3Rows = kitOn ? CR3 : CR3_BASE;
+  const tr3Rows = kitOn ? TR3 : TR3_BASE;
+  const creatures = Object.entries(cr3Rows).map(([id, c]) => `${c}=${(ALL_CREATURES[Number(id)]?.name ?? "?").toUpperCase()}`);
+  const treasures = Object.entries(tr3Rows).map(([id, c]) => `${c}=${(ALL_TREASURES[Number(id)]?.name ?? "?").toUpperCase()}`);
   return [
     ...rows("CREATURE", creatures),
     ...rows("TREASURE", treasures),
@@ -508,7 +608,7 @@ export function logReport(log: GameLog, printed = ""): string {
   out.push(THIN, centre(`* * *   E N D   O F   L O G   -   ${moves.length}   M O V E S   * * *`).replace(/\s+$/, ""), THIN);
   // Final score breakdown + validity (from the last replayed frame; null when the game can't be replayed).
   out.push(...scoreLinesPrinter(frames ? frames[frames.length - 1]!.state : null), THIN);
-  out.push(...legend(), RULE);
+  out.push(...legend(!!game.variants?.extensionKit), RULE);
   return out.join("\n") + "\n";
 }
 

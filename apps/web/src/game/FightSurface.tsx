@@ -11,6 +11,12 @@ import { FightCard, type CardKind } from "./FightCard";
 import { memberLabels } from "./memberLabels";
 import { emptyDraft, place, unplace, toMatches, freeMembers, type PlanDraft } from "./fightPlan";
 import { holyWaterTargetName } from "./holyWaterLabel";
+import { ConfirmButton } from "./ConfirmButton";
+
+// Extension kit blocking-confirm text (design US-21), verbatim — mirrors EncounterPanel.tsx's own
+// copy of the same constant (selectors.ts offers useArtifact(19) as legal in BOTH the encounter
+// AND fight phases, so this surface needs its own confirm-gated row too; review fix, Task 16).
+const SCROLL_CONFIRM = "Destroys every enemy here save the magical — and curses the party.";
 
 const DIR_NAME: Record<number, string> = { 1: "North", 2: "East", 3: "South", 4: "West", 5: "Up the stair", 6: "Down the stair" };
 const REASON: Record<string, string> = {
@@ -283,6 +289,13 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
         )}
         <button className="scv-fight-btn ghost" onClick={() => { setDraft(emptyDraft()); setSel(null); }}>Reset</button>
         {artifacts.map((a, i) => {
+          // The Scroll (19, SC-EXT-25/design US-21) is a blocking-confirm action — same verbatim
+          // popup as EncounterPanel's own row — never a one-click dispatch (review fix, Task 16:
+          // selectors.ts legally offers it in the fight phase too, but this loop used to render it
+          // as a plain button).
+          if (a.artifact === 19) {
+            return <ConfirmButton key={i} className="scv-fight-btn" label="Read the Scroll" confirmText={SCROLL_CONFIRM} onConfirm={() => dispatch(a)} />;
+          }
           // Name the artefact and its target so each option is distinct — Lotus Dust (5) targets a
           // stranger, Holy Water (16) its own four-pool offset encoding (SC-EXT-24 —
           // holyWaterLabel.ts; a mid-fight DESTROY/WEAKEN target is `HW_STRANGER_BASE+i`, NOT a

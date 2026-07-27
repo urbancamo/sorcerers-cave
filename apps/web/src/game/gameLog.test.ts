@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { newGame, reduce, replay, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
-import { actionLabel, describeEvent, formatLog, machineLog, downloadLog, logReport, type GameLog } from "./gameLog";
+import { newGame, reduce, replay, HAZARD_DESERTION, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
+import { actionLabel, describeEvent, eventCode, formatLog, machineLog, downloadLog, logReport, type GameLog } from "./gameLog";
 
 const SEED = 7;
 const PICKS = [0]; // Hero
@@ -248,6 +248,98 @@ describe("extension kit (SC-EXT-29, design US-01) — game log", () => {
     expect(formatLog(log)).toMatch(/Move north/);
     expect(formatLog(log)).toMatch(/Extension kit active/);
     expect(logReport(log)).toMatch(/MOV N/);
+  });
+});
+
+describe("extension kit event coverage (review fix, Task 16) — gameLog", () => {
+  it("names a kit creature/treasure by their real name, not 'creature N'/'treasure N' (SC-EXT-29)", () => {
+    // creature()/treasure() (gameLog.ts) previously resolved via the base-only CREATURES/TREASURES
+    // tables — a kit id (14-21) fell through to the raw-index fallback in the downloadable log.
+    expect(describeEvent({ type: "memberDied", creatureId: 18 })).toBe("Witch was slain"); // kit creature
+    expect(describeEvent({ type: "artifactUsed", artifact: 16 })).toBe("used Holy Water"); // kit treasure
+  });
+
+  it("describes every kit hazard/roll event instead of falling back to its raw type (SC-EXT-5..28)", () => {
+    // One assertion per kit event family so none of them silently reads as a bare type string.
+    expect(describeEvent({ type: "galleryStone", creatureIds: [18] })).toMatch(/gallery.*petrif.*witch/i);
+    expect(describeEvent({ type: "staffWake", creatureIds: [16] })).toMatch(/staff.*wo.*lion/i);
+    expect(describeEvent({ type: "lairStash", treasureIds: [16] })).toMatch(/lair.*holy water/i);
+    expect(describeEvent({ type: "cryptParked" })).toMatch(/crypt/i);
+    expect(describeEvent({ type: "cryptRoll", roll: 1, outcome: "trap" })).toMatch(/crypt.*rolled 1.*trap/i);
+    expect(describeEvent({ type: "cryptRoll", roll: 5, outcome: "find" })).toMatch(/crypt.*rolled 5/i);
+    expect(describeEvent({ type: "desertionRoll", creatureId: 19, roll: 1, deserted: true, items: [16] }))
+      .toMatch(/thief.*vanish.*holy water/i);
+    expect(describeEvent({ type: "desertionRoll", creatureId: 19, roll: 5, deserted: false, items: [] })).toMatch(/thief/i);
+    expect(describeEvent({ type: "wolfUnmoved", hazard: HAZARD_DESERTION })).toMatch(/wolf.*unmoved/i);
+    expect(describeEvent({ type: "harpiesSteal", treasureIds: [13], cursed: true })).toMatch(/harp.*eye of god.*curs/i);
+    expect(describeEvent({ type: "harpiesLurk" })).toMatch(/harp/i);
+    expect(describeEvent({ type: "quarrel", aId: 5, bId: 6, aRoll: 4, bRoll: 2, loserId: 6 })).toMatch(/quarrel.*man.*woman.*woman/i);
+    expect(describeEvent({ type: "quarrel", aId: 5, bId: 6, aRoll: 3, bRoll: 3, loserId: null })).toMatch(/quarrel.*tie/i);
+    expect(describeEvent({ type: "quarrelFizzled" })).toMatch(/quarrel.*fizzl/i);
+    expect(describeEvent({ type: "spellRemap", fizzled: false })).toMatch(/spell/i);
+    expect(describeEvent({ type: "spellRemap", fizzled: true })).toMatch(/spell.*fizzl/i);
+    expect(describeEvent({ type: "demonDispersed" })).toMatch(/demon.*disperse/i);
+    expect(describeEvent({ type: "demonUnfolds" })).toMatch(/demon.*unfold/i);
+    expect(describeEvent({ type: "demonSlew", creatureId: 5 })).toMatch(/demon slew man/i);
+    expect(describeEvent({ type: "elixirDrunk", creatureId: 0, roll: 4, outcome: "strength" })).toMatch(/hero.*elixir.*rolled 4.*strength/i);
+    expect(describeEvent({ type: "holyWaterRevived", creatureId: 0 })).toMatch(/holy water.*revive.*hero/i);
+    expect(describeEvent({ type: "holyWaterStatueWoke", creatureId: 16 })).toMatch(/holy water.*wo.*lion/i);
+    expect(describeEvent({ type: "holyWaterMedusaDestroyed" })).toMatch(/holy water.*medusa/i);
+    expect(describeEvent({ type: "holyWaterFoeDestroyed", creatureId: 15 })).toMatch(/holy water.*destroy.*demon/i);
+    expect(describeEvent({ type: "holyWaterWeakened", creatureId: 11 })).toMatch(/holy water.*weaken.*sorcerer/i);
+  });
+
+  it("describes the remaining kit events found by cross-checking actions.ts (not literally named in the review)", () => {
+    expect(describeEvent({ type: "thiefPalmed", tid: 16 })).toMatch(/thief.*palm.*holy water/i);
+    expect(describeEvent({ type: "apprenticeTurned", count: 1, items: [16] })).toMatch(/apprentice.*turn.*holy water/i);
+    expect(describeEvent({ type: "apprenticeStaysBehind", count: 1 })).toMatch(/apprentice.*stay/i);
+    expect(describeEvent({ type: "demonSpawned" })).toMatch(/demon/i);
+    expect(describeEvent({ type: "scrollRead", destroyed: [3], survivors: [9] })).toMatch(/scroll.*troll/i);
+    expect(describeEvent({ type: "shieldWarded", creatureId: 3, mode: "nullify" })).toMatch(/shield.*ward.*troll/i);
+  });
+
+  it("codes every kit event distinctly for the printer report — never the raw 3-letter type-slice", () => {
+    // eventCode()'s `default` case slices the raw type to 3 letters — that would silently COLLIDE
+    // several kit event types onto the same ambiguous code (e.g. "DEM" for every one of
+    // demonSpawned/demonDispersed/demonUnfolds/demonSlew; "HOL" for all five holyWater* events;
+    // "HAR" for harpiesSteal/harpiesLurk; "APP" for both apprentice* events). Each kit event must
+    // have its OWN real case, so same-prefix siblings stay distinguishable in the hardcopy.
+    const kitEvents: GameEvent[] = [
+      { type: "galleryStone", creatureIds: [18] }, { type: "staffWake", creatureIds: [16] },
+      { type: "lairStash", treasureIds: [16] }, { type: "cryptParked" },
+      { type: "cryptRoll", roll: 1, outcome: "trap" }, { type: "desertionRoll", creatureId: 19, roll: 1, deserted: true, items: [] },
+      { type: "wolfUnmoved", hazard: HAZARD_DESERTION }, { type: "harpiesSteal", treasureIds: [13], cursed: true },
+      { type: "harpiesLurk" }, { type: "quarrel", aId: 5, bId: 6, aRoll: 4, bRoll: 2, loserId: 6 },
+      { type: "quarrelFizzled" }, { type: "spellRemap", fizzled: false },
+      { type: "demonSpawned" }, { type: "demonDispersed" }, { type: "demonUnfolds" }, { type: "demonSlew", creatureId: 5 },
+      { type: "elixirDrunk", creatureId: 0, roll: 4, outcome: "strength" }, { type: "holyWaterRevived", creatureId: 0 },
+      { type: "holyWaterStatueWoke", creatureId: 16 }, { type: "holyWaterMedusaDestroyed" },
+      { type: "holyWaterFoeDestroyed", creatureId: 15 }, { type: "holyWaterWeakened", creatureId: 11 },
+      { type: "thiefPalmed", tid: 16 }, { type: "apprenticeTurned", count: 1, items: [] },
+      { type: "apprenticeStaysBehind", count: 1 }, { type: "scrollRead", destroyed: [3], survivors: [9] },
+      { type: "shieldWarded", creatureId: 3, mode: "nullify" },
+    ];
+    const codes = kitEvents.map(eventCode);
+    for (const code of codes) {
+      expect(code).not.toBeNull();
+      expect(code!.length).toBeLessThanOrEqual(80); // sane upper bound — no runaway string
+    }
+    expect(new Set(codes).size).toBe(codes.length); // every kit event's code is unique
+  });
+
+  it("gates the printer report's KEY legend on kit status, preserving kit-off byte-identity", () => {
+    // legend() unconditionally listing the kit creature/treasure codes would add new, unreachable
+    // content to a KIT-OFF game's report (that deck can never draw a Witch or Holy Water) — same
+    // "kit-off byte-identity" rule formatLog's "Extension kit active" line and logReport's own
+    // "KIT ON" meta tag already honour.
+    const kitOff = logReport(sampleLog());
+    expect(kitOff).not.toMatch(/APR=APPRENTICE/);
+    expect(kitOff).not.toMatch(/HLY=HOLY WATER/);
+    expect(kitOff).toMatch(/KEY  CREATURE  HER=HERO/); // unchanged base legend, still present
+
+    const kitOn = logReport(sampleLog({ variants: { extensionKit: true } }));
+    expect(kitOn).toMatch(/APR=APPRENTICE/);
+    expect(kitOn).toMatch(/HLY=HOLY WATER/);
   });
 });
 
