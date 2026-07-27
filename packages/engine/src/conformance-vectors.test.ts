@@ -122,6 +122,7 @@ function encodeAction(a: GameAction): string {
     case "descendChasm": return "DESCENDCHASM";
     case "drawFromWell": return "DRAWFROMWELL";
     case "pullBellRope": return `PULLBELLROPE ${a.mi}`;
+    case "enterCrypt": return "ENTERCRYPT";
   }
 }
 

@@ -7,6 +7,10 @@ const MAX_STRANGERS = 8;
 const MAX_TREASURE = 8;
 const MAX_HAZARDS = 4;
 
+// Extension kit (SC-EXT-13): Crypt/Gems (kit treasure 21) — a FRESH draw of this code parks as the
+// crypt (`state.cryptCoord`) instead of lying on the floor; see `classify` below.
+const T_CRYPT = 21;
+
 // Extension kit (SC-EXT-10): creatures the Gallery does NOT petrify on the draw — the Sorcerer and
 // Spectre arrive un-petrified with standard interaction, and so does the Demon (design US-06,
 // Resolved-14) — though the Demon's OWN draw-relocation behaviour (US-13) is not implemented yet
@@ -44,6 +48,18 @@ function reload(state: GameState, code: number): void {
  * standard interaction (Resolved-14). This distinction applies ONLY at draw time (see `reload`).
  */
 function classify(state: GameState, code: number): void {
+  if (code === 200 + T_CRYPT) {
+    // Extension kit (SC-EXT-13): the Crypt/Gems card doesn't lie on the floor when drawn — it PARKS
+    // as "the crypt" in this chamber (design US-08). Tracked as a single coordinate on `state`
+    // (mirrors `lairCoord`, SC-EXT-12) rather than a chamber-working-set bucket or a re-parked
+    // content code (unlike Medusa/Ghouls, SC-7.2-10, it never re-fires automatically on reload — it
+    // waits for the deliberate `enterCrypt` action, reduce.ts): there is exactly one Crypt/Gems card
+    // in the kit's small pack, so this can only ever fire once per game, and since the card never
+    // touches `area.contents`, a later revisit's `reload` loop never sees it — no ambiguity with the
+    // ordinary floor treasure the SAME code (221) represents once `enterCrypt` resolves a "find".
+    state.cryptCoord = state.areas[state.partyArea]!.coord;
+    return;
+  }
   if (code >= 100 && code < 200) {
     const creatureId = code - 100;
     const dec = decodeArea(state.areas[state.partyArea]!.card);

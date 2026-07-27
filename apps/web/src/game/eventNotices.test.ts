@@ -170,6 +170,44 @@ describe("eventNotices", () => {
     expect(stash.tone).toBe("good");
   });
 
+  it("reports the Crypt's two outcomes verbatim (US-08)", () => {
+    const trap = eventNotices([{ type: "cryptRoll", roll: 1, outcome: "trap" }])[0]!;
+    expect(trap.text).toBe("The floor gives way! The party plunges into darkness.");
+    expect(trap.tone).toBe("bad");
+
+    const find = eventNotices([{ type: "cryptRoll", roll: 5, outcome: "find" }])[0]!;
+    expect(find.text).toBe("Within the crypt: gems!");
+    expect(find.tone).toBe("good");
+  });
+
+  it("reports Desertion's per-ally lines, the Wolf's skip notice, and derives the all-stay summary (US-09/US-18)", () => {
+    const deserted = eventNotices([{ type: "desertionRoll", creatureId: 5, roll: 1, deserted: true }])[0]!;
+    expect(deserted.text).toMatch(/slips away into the dark/i);
+    expect(deserted.tone).toBe("bad");
+
+    const stayed = eventNotices([{ type: "desertionRoll", creatureId: 6, roll: 4, deserted: false }])[0]!;
+    expect(stayed.text).toMatch(/wavers… but stays/);
+
+    const wolf = eventNotices([{ type: "wolfUnmoved" }])[0]!;
+    expect(wolf.text).toBe("The Wolf is unmoved.");
+
+    // "The party holds together." is derived, not its own event: present only when every
+    // desertionRoll in the batch stayed, absent when the batch is empty OR someone deserted.
+    const allStay = eventNotices([
+      { type: "desertionRoll", creatureId: 5, roll: 4, deserted: false },
+      { type: "desertionRoll", creatureId: 6, roll: 5, deserted: false },
+    ]);
+    expect(allStay.some((n) => n.text === "The party holds together.")).toBe(true);
+
+    const oneDeserted = eventNotices([
+      { type: "desertionRoll", creatureId: 5, roll: 1, deserted: true },
+      { type: "desertionRoll", creatureId: 6, roll: 5, deserted: false },
+    ]);
+    expect(oneDeserted.some((n) => n.text === "The party holds together.")).toBe(false);
+
+    expect(eventNotices([]).some((n) => n.text === "The party holds together.")).toBe(false);
+  });
+
   it("noticeTone prefers bad, then good, then neutral", () => {
     expect(noticeTone([{ text: "", tone: "neutral" }, { text: "", tone: "good" }, { text: "", tone: "bad" }])).toBe("bad");
     expect(noticeTone([{ text: "", tone: "neutral" }, { text: "", tone: "good" }])).toBe("good");

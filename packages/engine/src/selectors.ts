@@ -171,6 +171,12 @@ export function legalActions(state: GameState): GameAction[] {
   if (dec.special === SPECIAL_WELL && state.smallIdx < state.smallPack.length) actions.push({ type: "drawFromWell" });
   // The Bell Rope, unlike the Well, is spent forever once pulled (AF_BELL_SPENT, design US-03).
   actions.push(...bellRopeActions(state));
+  // The Crypt (SC-EXT-13): offered only at rest ("the start of any turn", design US-08 — no
+  // Chasm/Well/Bell-style mid-encounter latitude) while standing on the area `cryptCoord` names;
+  // gone the instant `enterCrypt` resolves it, whatever the roll (no second entry).
+  if (state.cryptCoord !== undefined && state.areas[state.partyArea]!.coord === state.cryptCoord) {
+    actions.push({ type: "enterCrypt" });
+  }
   // A permanently-indifferent chamber is traversed in the explore phase, but the party may still choose
   // to attack its guards (to win the treasure they guard) — offer it while they're parked on the tile.
   if (state.pacifiedAreas?.includes(state.partyArea) &&

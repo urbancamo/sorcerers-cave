@@ -1,5 +1,5 @@
 import { CREATURES } from "./data/creatures";
-import { TREASURES, type TreasureKind } from "./data/treasures";
+import { ALL_TREASURES, type TreasureKind } from "./data/treasures";
 import { activeCurses } from "./effects";
 import { GS_DEAD, type GameState, type MemberStatus } from "./state";
 
@@ -39,8 +39,10 @@ export function scoreBreakdown(state: GameState): ScoreBreakdown {
     const dragonDoubled = m.dragonKills > 0;
     const base = CREATURES[m.creatureId]!.points;
     const creaturePoints = counts ? (dragonDoubled ? base * 2 : base) : 0; // doubling: creature points only
+    // `ALL_TREASURES` (base + kit, SC-EXT-2) so a kit heavy find (e.g. Crypt/Gems, SC-EXT-13) scores
+    // its real points instead of crashing on a `TREASURES` lookup miss; byte-identical for ids 0-14.
     const treasures: ScoredTreasure[] = m.treasure.map((tid) => {
-      const t = TREASURES[tid]!;
+      const t = ALL_TREASURES[tid]!;
       return { id: tid, name: t.name, points: t.points, kind: t.kind };
     });
     const treasureTotal = counts ? treasures.reduce((sum, t) => sum + t.points, 0) : 0;

@@ -34,7 +34,12 @@ export type GameAction =
   // (the "member picker" — same `mi` convention as takeTreasure/dropTreasure/setBorne). Legal on a
   // SPECIAL_BELL_ROPE tile in explore OR encounter phase, for a living member, ONCE per tile ever
   // (AF_BELL_SPENT on the area).
-  | { type: "pullBellRope"; mi: number };
+  | { type: "pullBellRope"; mi: number }
+  // Extension kit (SC-EXT-13): enter the parked Crypt (design US-08). Legal only at rest (`explore`
+  // phase — "the start of any turn", not the Chasm/Well/Bell Rope's mid-encounter escape-hatch
+  // latitude, since the design gives the Crypt no "legal mid-encounter too" note) while standing on
+  // the area `state.cryptCoord` names. No target/dir — the crypt is a per-area singleton.
+  | { type: "enterCrypt" };
 
 // What happened — the reducer is the only producer; the UI never infers game facts.
 // Encounter-resolution and fight events arrive with combat (Milestone C-2).
@@ -134,4 +139,17 @@ export type GameEvent =
   | { type: "staffWake"; creatureIds: number[] }
   // Extension kit (SC-EXT-12): Harpies-stolen treasure landed on the Lair's floor — either spilled
   // on the Lair's own placement/entry, or delivered straight there by a later theft (design US-04).
-  | { type: "lairStash"; treasureIds: number[] };
+  | { type: "lairStash"; treasureIds: number[] }
+  // Extension kit (SC-EXT-13): the Crypt's visible d6 and its band outcome (design US-08). 1-2 is an
+  // unavoidable trap (whole-party `relocateDown`, no Dwarf exemption); 3-6 converts the parked crypt
+  // into ordinary floor treasure id 21 (Crypt/Gems, ready for a normal carry-gated pickup).
+  | { type: "cryptRoll"; roll: number; outcome: "trap" | "find" }
+  // Extension kit (SC-EXT-14): one visible d6 for a status-1 ALLY rolled by Desertion (design US-09).
+  // `creatureId` (not a party index — deliberately deviates from the design brief's literal
+  // `memberId`, for the same post-splice-safety reason as `bellRoll.creatureId`, SC-EXT-8: a
+  // deserting ally is spliced out of `party`, so an index would go stale). `deserted` true = removed
+  // from the game outright, with everything carried (Bell Rope vanish semantics, SC-EXT-8).
+  | { type: "desertionRoll"; creatureId: number; roll: number; deserted: boolean }
+  // Extension kit (SC-EXT-14, design US-18): a Wolf ally was skipped by Desertion's rolls — immune,
+  // with its own visible notice ("The Wolf is unmoved.") so the immunity is seen, not silent.
+  | { type: "wolfUnmoved" };

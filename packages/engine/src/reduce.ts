@@ -19,6 +19,7 @@ import { CREATURES } from "./data/creatures";
 
 const T_EYE_OF_GOD = 13; // treasure id — must stay with its bearer or the party is cursed (§Eye of God)
 const C_GIANT = 12; // only a Giant can recover treasure cast into a Deep Pool (§Deep Pool)
+const T_CRYPT = 21; // extension-kit treasure — the crypt's find converts to this ordinary treasure (SC-EXT-13)
 
 /** Can a living Giant fish at least one dropped item out of a Deep Pool right now? Recovery is a
  *  Giant-only, capacity-limited pickup (§Deep Pool): a Man/Ogre/etc. can never lift pool treasure,
@@ -1036,6 +1037,38 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       drawSmallCards(next, 2); // two codes, appended onto whatever's already in the working set
       next.noWithdrawTurn = next.turn; // blocks withdraw this turn only (SC-EXT-9)
       resolveExtraDraw(next, events); // strangers/hazards resolve normally, same as any chamber draw
+      return { state: next, events };
+    }
+
+    case "enterCrypt": {
+      // Extension kit (SC-EXT-13): legal only at rest ("the start of any turn", design US-08 — unlike
+      // the Chasm/Well/Bell Rope's escape-hatch latitude, the design gives the Crypt no "legal
+      // mid-encounter too" note, so this is gated tighter, to `explore` only) while standing on the
+      // area `cryptCoord` names.
+      if (state.phase !== "explore") return { state, events: [{ type: "blocked" }] };
+      if (state.cryptCoord === undefined || state.areas[state.partyArea]!.coord !== state.cryptCoord) {
+        return { state, events: [{ type: "blocked" }] };
+      }
+      const next = structuredClone(state);
+      next.cryptCoord = undefined; // spent either way — no second entry (design US-08)
+      const r = rollDie(next.seed);
+      next.seed = r.seed;
+      const events: GameEvent[] = [];
+      if (r.value <= 2) {
+        // Unavoidable trap: the WHOLE party falls, whatever a Dwarf's GUIDES_PAST_TRAP would normally
+        // do (this bypasses `applyHazards`' HAZARD_TRAP case entirely — there is no Dwarf check here
+        // to bypass, by construction). `relocateDown` sets `fellThroughTrap`, blocking withdraw at the
+        // landing exactly like any other trap fall.
+        events.push({ type: "cryptRoll", roll: r.value, outcome: "trap" });
+        relocateDown(next);
+        events.push(...resolveArea(next));
+        return { state: next, events };
+      }
+      // A find: the crypt card itself becomes the gems — ordinary treasure 21 (25 kg), dropped for a
+      // normal, carry-capacity-gated pickup (design Resolved-13).
+      events.push({ type: "cryptRoll", roll: r.value, outcome: "find" });
+      next.treasures.push(T_CRYPT);
+      next.phase = "pickup";
       return { state: next, events };
     }
   }

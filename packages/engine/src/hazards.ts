@@ -2,7 +2,7 @@ import { rollDie } from "./rng";
 import { CREATURES, FLAG_GUIDES_PAST_TRAP } from "./data/creatures";
 import { TREASURES } from "./data/treasures";
 import {
-  HAZARD_MUTINY, HAZARD_TRAP, HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS,
+  HAZARD_MUTINY, HAZARD_TRAP, HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_DESERTION,
 } from "./data/hazards";
 import { AF_DESTROYED, type GameState, type PartyMember } from "./state";
 import type { GameEvent } from "./actions";
@@ -13,6 +13,7 @@ import { spillCarried, sweepFallen } from "./loot";
 const T_TALISMAN = 7;
 const T_MAGIC_STAFF = 9;
 const C_WIZARD = 8;
+const C_WOLF = 20; // extension-kit creature — immune to Desertion's rolls (design US-18, SC-EXT-14)
 
 function living(state: GameState): PartyMember[] {
   return state.party.filter((m) => m.status === 0 || m.status === 1);
@@ -31,7 +32,11 @@ export function hasStaffWizard(state: GameState): boolean {
 export function applyHazards(state: GameState): { events: GameEvent[]; fell: boolean } {
   const events: GameEvent[] = [];
   let fell = false;
-  const order = [HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_MUTINY, HAZARD_TRAP];
+  // Extension kit (SC-EXT-14): Desertion is appended strictly AFTER Trap — a kit-off game's `hazards`
+  // working set can never contain id 5 (the base small pack has no such code), so this extension is
+  // a no-op for the base game (SC-EXT-1 byte-identity); when the kit is on and BOTH fire together,
+  // Desertion still resolves in this same pass, before the trap's fall is handled by the caller.
+  const order = [HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_MUTINY, HAZARD_TRAP, HAZARD_DESERTION];
 
   for (const hz of order) {
     if (!state.hazards.includes(hz)) continue;
@@ -137,6 +142,28 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         const hasDwarf = living(state).some((m) => (CREATURES[m.creatureId]!.flags & FLAG_GUIDES_PAST_TRAP) !== 0);
         if (hasDwarf) events.push({ type: "trapAvoided" }); // the dwarf guides the party past it
         else fell = true;                                   // otherwise the party drops a level
+        break;
+      }
+      case HAZARD_DESERTION: {
+        // Extension kit (SC-EXT-14, design US-09): one visible d6 per ALLY (status 1), in roster
+        // order — original (status 0) members never roll. A Wolf ally (creature 20) is immune and
+        // simply skipped, with its own notice, rather than rolling (design US-18). A roll of 1-2
+        // removes the ally from the game OUTRIGHT, with everything carried (borne or merely
+        // carried alike) — Bell Rope's roll-1 "vanish" is the precedent (reduce.ts): not dropped to
+        // the floor, not revivable, and no `memberDied` fires. Deserters are collected by reference
+        // and filtered out in one pass afterward (Mutiny's own removal pattern, above) rather than
+        // spliced one at a time, since splicing mid-loop would shift the roster-order indices of the
+        // allies still to roll.
+        const allies = state.party.filter((m) => m.status === 1);
+        const deserted: PartyMember[] = [];
+        for (const a of allies) {
+          if (a.creatureId === C_WOLF) { events.push({ type: "wolfUnmoved" }); continue; }
+          const r = rollDie(state.seed); state.seed = r.seed;
+          const leaves = r.value <= 2;
+          events.push({ type: "desertionRoll", creatureId: a.creatureId, roll: r.value, deserted: leaves });
+          if (leaves) deserted.push(a);
+        }
+        if (deserted.length > 0) state.party = state.party.filter((m) => !deserted.includes(m));
         break;
       }
     }

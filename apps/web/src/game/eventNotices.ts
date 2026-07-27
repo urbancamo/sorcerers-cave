@@ -1,6 +1,6 @@
 import {
   CREATURES,
-  HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_MUTINY, HAZARD_TRAP,
+  HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_MUTINY, HAZARD_TRAP, HAZARD_DESERTION,
   SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_WHIRLPOOL,
   DIR_DOWN,
   type GameEvent,
@@ -32,6 +32,7 @@ function hazardNotice(hz: number): Notice | null {
     case HAZARD_GHOULS: return { text: "Ghouls fall upon the party!", tone: "bad" };
     case HAZARD_MUTINY: return null; // see the `mutinied` event
     case HAZARD_TRAP: return null;   // see trapSprung / trapAvoided (confirm modal)
+    case HAZARD_DESERTION: return null; // see the per-ally `desertionRoll` / `wolfUnmoved` events
     default: return { text: "A hazard strikes!", tone: "bad" };
   }
 }
@@ -236,10 +237,37 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "lairStash":
         out.push({ text: "The harpies' hoard glitters among the bones — the stolen artifacts are here.", tone: "good" });
         break;
+      case "cryptRoll":
+        out.push(
+          e.outcome === "trap"
+            ? { text: "The floor gives way! The party plunges into darkness.", tone: "bad" }
+            : { text: "Within the crypt: gems!", tone: "good" },
+        );
+        break;
+      case "desertionRoll":
+        // Individual rolls are shown via the per-ally dice lanes (Task 16's DiceRoll overlay); the
+        // "party holds together" summary (design US-09 Feedback) is appended once, below, after every
+        // event has been scanned — it needs to know whether ANY ally in the whole batch deserted.
+        out.push(
+          e.deserted
+            ? { text: `${name(e.creatureId)} slips away into the dark, taking everything they carried.`, tone: "bad" }
+            : { text: `${name(e.creatureId)} wavers… but stays.`, tone: "neutral" },
+        );
+        break;
+      case "wolfUnmoved":
+        out.push({ text: "The Wolf is unmoved.", tone: "neutral" });
+        break;
       default:
         assertNever(e);
         break;
     }
+  }
+  // Desertion's "everyone stayed" summary (design US-09 Feedback: "The party holds together.") isn't
+  // its own engine event — it's derived here from the batch of `desertionRoll` events the hazard
+  // always emits (one per ally, whatever the outcome): present, but none deserted.
+  const desertionRolls = events.filter((e): e is Extract<GameEvent, { type: "desertionRoll" }> => e.type === "desertionRoll");
+  if (desertionRolls.length > 0 && !desertionRolls.some((e) => e.deserted)) {
+    out.push({ text: "The party holds together.", tone: "good" });
   }
   return out;
 }

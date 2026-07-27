@@ -1,16 +1,19 @@
 import { CREATURES } from "./data/creatures";
-import { TREASURES } from "./data/treasures";
+import { ALL_TREASURES } from "./data/treasures";
 import type { GameState, PartyMember } from "./state";
 
-/** Total kg of heavy treasure a member is carrying (artifacts weigh 0). */
+/** Total kg of heavy treasure a member is carrying (artifacts weigh 0). Indexes `ALL_TREASURES`
+ *  (base 0-14 + kit 15-21, e.g. the Crypt/Gems find, SC-EXT-13) rather than the base-only
+ *  `TREASURES` — for ids 0-14 the two tables hold the identical objects, so this is byte-identical
+ *  for every kit-off game (SC-EXT-1); a kit-off game can never carry a ≥15 id in the first place. */
 export function carriedWeight(member: PartyMember): number {
-  return member.treasure.reduce((sum, tid) => sum + TREASURES[tid]!.weight, 0);
+  return member.treasure.reduce((sum, tid) => sum + ALL_TREASURES[tid]!.weight, 0);
 }
 
 /** Can the member take treasure `tid` without exceeding its carry capacity? */
 export function canCarry(member: PartyMember, tid: number): boolean {
   const capacity = CREATURES[member.creatureId]!.carry;
-  return carriedWeight(member) + TREASURES[tid]!.weight <= capacity;
+  return carriedWeight(member) + ALL_TREASURES[tid]!.weight <= capacity;
 }
 
 /** Assign chamber treasure index `ti` to party member index `mi`. Returns false if it won't fit. */

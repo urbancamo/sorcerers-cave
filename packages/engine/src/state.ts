@@ -175,4 +175,13 @@ export interface GameState {
   // moment it is placed and entered, or delivered straight there via `stashOrDeliver` if the Lair
   // already exists (`chamber.ts`). Empty/absent ⇒ no pending stash.
   harpyStash?: number[];
+  // Extension kit (SC-EXT-13): the packed coord of the area holding an unresolved, parked Crypt
+  // (design US-08) — set once, the moment the Crypt/Gems treasure card (id 21) is freshly drawn
+  // from the small pack (`chamber.ts`'s `classify`), and cleared the instant `enterCrypt` resolves
+  // it (either outcome — no second entry). There is exactly one Crypt/Gems card in the kit's small
+  // pack, so at most one crypt ever exists in a game; tracking it as a single coordinate (mirroring
+  // `lairCoord`) rather than a chamber-working-set bucket means it needs no persistence dance across
+  // visits — `enterCrypt`'s legality is simply "am I standing where `cryptCoord` points, at rest".
+  // Undefined ⇒ no crypt has been drawn yet, or the one that was has already been resolved.
+  cryptCoord?: number;
 }
