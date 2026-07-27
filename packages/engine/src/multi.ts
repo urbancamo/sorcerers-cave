@@ -58,6 +58,19 @@ export interface CaveState {
   smallPack: number[];
   smallIdx: number;
   seed: number;
+  // Extension kit (SC-EXT-32): the Crypt, MP-shared — unlike the Lair/Gallery/Demon (whose shared
+  // state already lives in `area.contents`, so composing them cave-wide needs no help), solo's own
+  // `cryptCoord` (state.ts) is a per-GameState scalar with no content-code presence at all
+  // ("since the card never touches area.contents", chamber.ts's own comment) — invisible to any
+  // seat but the one whose classify() call parked it, UNLESS this layer threads it through. There
+  // is exactly one Crypt/Gems card in the whole game (SC-EXT-13), so one coordinate suffices.
+  // `compose` always seeds a party's composed `cryptCoord` from HERE (never from the party's own
+  // stale copy), and every action resyncs this value from whatever that seat's own composed action
+  // just produced (see `mpReduceInner`) — propagating a fresh park (`classify`) or a spend
+  // (`enterCrypt`) to every other seat's NEXT composed view. The solo reducer itself
+  // (chamber.ts/reduce.ts) is untouched: this is pure MULTI-layer composition, so solo/kit-golden
+  // stay byte-identical (INV-2).
+  cryptCoord?: number;
 }
 
 /** Everything in a GameState that belongs to ONE party (i.e. a GameState minus the shared cave). */
@@ -180,6 +193,9 @@ function compose(mp: MpGameState, party: PartyState): GameState {
   // existed (SC-EXT-1's guarantee, extended to MP).
   return {
     ...party, ...mp.cave,
+    // SC-EXT-32: the Crypt is cave-shared, not per-seat — always compose from the cave's own
+    // knowledge (never the party's own possibly-stale copy; see CaveState.cryptCoord's doc).
+    cryptCoord: mp.cave.cryptCoord,
     ...(mp.variants?.extensionKit ? { variants: { extensionKit: true } } : {}),
   } as unknown as GameState;
 }
@@ -487,6 +503,11 @@ function mpReduceInner(mp: MpGameState, seat: number, action: MpAction, now = 0,
   const base = sessionGuard(mp, seat);
 
   const { cave, rest } = splitCave(next);
+  // SC-EXT-32: resync the cave's shared Crypt knowledge from whatever this seat's own composed
+  // action just produced — `compose` always fed it `mp.cave.cryptCoord` as the input, so `rest`'s
+  // value here is the complete, cave-wide truth post-action (unchanged, freshly parked, or spent
+  // by `enterCrypt`), not merely this seat's own. See CaveState.cryptCoord's doc comment.
+  cave.cryptCoord = rest.cryptCoord;
   const slain = events.filter((e) => e.type === "strangerKilled" || e.type === "annihilated").length;
   const updated: PartyState = {
     ...rest, seat: party.seat, color: party.color, name: party.name,
