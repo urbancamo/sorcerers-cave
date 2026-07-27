@@ -175,7 +175,7 @@ canvas{display:block;touch-action:none;}
 /* card reveal panel right */
 /* Sits in the top-right corner (where the compass used to be), clear of the bottom-right
    action panels (encounter / explore). */
-.cardpanel{position:absolute;right:26px;top:20px;width:236px;
+.cardpanel{position:absolute;right:26px;top:20px;width:283px;
   opacity:0;transition:.34s cubic-bezier(.2,.7,.2,1);pointer-events:none;}
 .cardpanel.show{opacity:1;pointer-events:auto;}
 .cardpanel .frame{background:linear-gradient(180deg,#efe3c4,#d8c393);
@@ -244,7 +244,7 @@ canvas{display:block;touch-action:none;}
   .prompt { top: 58px; max-width: 92vw; font-size: 12.5px; padding: 8px 15px; }
 
   /* inspect card: hidden until a card is selected (cave3d toggles .show); compact, top-right */
-  .cardpanel { right: 10px; top: 56px; width: 150px; }
+  .cardpanel { right: 10px; top: 56px; width: 180px; }
   .cardpanel .frame { transform: none; }
   .cardpanel .meta .nm { font-size: 17px; }
 
@@ -285,7 +285,7 @@ canvas{display:block;touch-action:none;}
 
   .prompt { top: 50px; max-width: 44vw; font-size: 12px; padding: 7px 14px; }
 
-  .cardpanel { top: 56px; right: 12px; width: 150px; }
+  .cardpanel { top: 56px; right: 12px; width: 180px; }
   .cardpanel .frame { transform: none; }
 
   .dock { bottom: calc(8px + env(safe-area-inset-bottom)); padding: 7px 8px;
@@ -308,7 +308,7 @@ canvas{display:block;touch-action:none;}
      Yield: the prompt becomes a left-hand band beside the card, so both stay readable. */
   #hud:has(.cardpanel.show) .prompt {
     left: 10px;
-    right: 170px; /* cardpanel: 150px wide + 10px inset + 10px gap */
+    right: 200px; /* cardpanel: 180px wide + 10px inset + 10px gap */
     transform: none;
     max-width: none;
     justify-content: flex-start;
