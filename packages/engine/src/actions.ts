@@ -157,9 +157,14 @@ export type GameEvent =
   // [treasure list]") — present whatever the outcome, but only meaningful (and only ever shown) when
   // `deserted` is true; `[]` when they carried nothing.
   | { type: "desertionRoll"; creatureId: number; roll: number; deserted: boolean; items: number[] }
-  // Extension kit (SC-EXT-14, design US-18): a Wolf ally was skipped by Desertion's rolls — immune,
-  // with its own visible notice ("The Wolf is unmoved.") so the immunity is seen, not silent.
-  | { type: "wolfUnmoved" }
+  // Extension kit (SC-EXT-14/18, design US-18): a Wolf was skipped by a hazard it's immune to —
+  // Desertion's rolls, Medusa's petrify dice, or Mutiny's desertion — with its own visible notice
+  // ("The Wolf is unmoved.") so the immunity is seen, not silent. `hazard` (a HAZARD_* id) names
+  // WHICH hazard skipped it — review fix (Task 10): reusing the SAME bare event for all three
+  // sites let a Medusa- or Mutiny-sourced skip masquerade as Desertion activity in the presentation
+  // layer's derived "The party holds together." summary (`apps/web/eventNotices.ts`), which must
+  // count only a Desertion-caused skip.
+  | { type: "wolfUnmoved"; hazard: number }
   // Extension kit (SC-EXT-15): Harpies actually struck (design US-10) — every living member's
   // artifacts (borne AND carried alike) are gone. `treasureIds` is the full stolen list (never
   // empty — this only fires when the party DOES hold artifacts, the mirror image of the park

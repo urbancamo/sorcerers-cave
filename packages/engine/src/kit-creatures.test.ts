@@ -5,7 +5,7 @@ import { applyHazards } from "./hazards";
 import { frontStrength, casterMP } from "./combat";
 import { scoreBreakdown } from "./score";
 import { makeState } from "./testkit";
-import { packCoord, DIR_E, DIR_DOWN } from "./coords";
+import { packCoord, DIR_E, DIR_S, DIR_DOWN } from "./coords";
 import { decodeArea } from "./decode";
 import { SPECIAL_GALLERY } from "./data/areaCards";
 import { HAZARD_MEDUSA, HAZARD_MUTINY } from "./data/hazards";
@@ -77,6 +77,25 @@ describe("Class-based artifact eligibility — Apprentice uses artifacts as a Wi
     const { state } = reduce(s, { type: "useArtifact", artifact: MAGIC_STAFF, target: 1 });
     expect(state.party[1]!.status).toBe(0);
     expect(state.party[1]!.stoneArea).toBeUndefined();
+  });
+
+  it("auto-revives a stoned member on RETURN to the chamber (reviveStoned, closes the Task 7 seam)", () => {
+    // Mirrors reduce.test.ts's Wizard+Staff pin exactly, substituting the Apprentice — proves
+    // `reviveStoned`'s own bearer check (not just `useArtifact`'s findBearer path) now counts her.
+    const A = { card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };
+    const B = { card: 31, coord: packCoord(1, 50, 49), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };
+    const s = makeState({
+      phase: "explore", areas: [A, B], partyArea: 1, prev: 0, level: 1,
+      party: [
+        member(APPRENTICE, [MAGIC_STAFF]),               // Apprentice bearing the Magic Staff
+        { ...member(MAN, [], 2), stoneArea: 0 },           // Man, left as stone in A
+      ],
+    });
+    const { state, events } = reduce(s, { type: "move", dir: DIR_S }); // B(50,49) -> A(50,50)
+    expect(state.partyArea).toBe(0);
+    expect(state.party[1]!.status).toBe(0);            // revived on arrival, no explicit useArtifact
+    expect(state.party[1]!.stoneArea).toBeUndefined();
+    expect(events).toContainEqual({ type: "memberRevived", creatureId: MAN });
   });
 
   it("plays the Charmed Flute to reveal a secret door (Hero/W-Hero/Priest/Man/Woman/Wizard list)", () => {
@@ -263,7 +282,9 @@ describe("Class-based artifact eligibility — explicit exceptions stay untouche
 // ---------------------------------------------------------------------------------------------
 // Wolf immunities (US-18, SC-EXT-18) — Medusa's petrify loop and Mutiny's desertion.
 // Quarrel's picker exclusion and Desertion's per-ally skip landed in Tasks 8-9 and already emit
-// the identical `{ type: "wolfUnmoved" }` shape reused here — nothing to unify.
+// the same `wolfUnmoved` event reused here, now discriminated by a `hazard` field (review fix,
+// Task 10) so the presentation layer's Desertion-only "party holds together" summary
+// (apps/web/eventNotices.ts) can't mistake a Medusa or Mutiny skip for Desertion activity.
 // ---------------------------------------------------------------------------------------------
 
 describe("Wolf immunities (US-18, SC-EXT-18)", () => {
@@ -271,14 +292,14 @@ describe("Wolf immunities (US-18, SC-EXT-18)", () => {
     const s = makeState({ party: [member(WOLF)], hazards: [HAZARD_MEDUSA], seed: 1 });
     const { events } = applyHazards(s);
     expect(s.party[0]!.status).toBe(0);
-    expect(events).toContainEqual({ type: "wolfUnmoved" });
+    expect(events).toContainEqual({ type: "wolfUnmoved", hazard: HAZARD_MEDUSA });
     expect(events.some((e) => e.type === "medusaGaze")).toBe(false); // no roll was made for anyone
   });
 
   it("other members still roll normally alongside an immune Wolf", () => {
     const s = makeState({ party: [member(WOLF), member(MAN)], hazards: [HAZARD_MEDUSA], seed: 3 });
     const { events } = applyHazards(s);
-    expect(events).toContainEqual({ type: "wolfUnmoved" });
+    expect(events).toContainEqual({ type: "wolfUnmoved", hazard: HAZARD_MEDUSA });
     const gaze = events.find((e) => e.type === "medusaGaze") as { rolls: { creatureId: number }[] } | undefined;
     expect(gaze?.rolls.map((r) => r.creatureId)).toEqual([MAN]); // only the Man was rolled for
   });
@@ -290,7 +311,7 @@ describe("Wolf immunities (US-18, SC-EXT-18)", () => {
       hazards: [HAZARD_MUTINY],
     });
     const { events } = applyHazards(s);
-    expect(events).toContainEqual({ type: "wolfUnmoved" });
+    expect(events).toContainEqual({ type: "wolfUnmoved", hazard: HAZARD_MUTINY });
     expect(s.party.some((m) => m.creatureId === WOLF && m.status === 1)).toBe(true); // still an ally
     expect(s.strangers).toContain(MAN); // the Man deserted
     expect(s.treasures).toContain(SILVER);
@@ -351,6 +372,38 @@ describe("Thief pickup — unlocks guarded treasure in an indifference-pacified 
     });
     const { state } = reduce(s, { type: "move", dir: DIR_E });
     expect(state.phase).toBe("explore"); // no Thief — no unlock
+    expect(state.thiefPickup).toBeUndefined();
+    expect(legalActions(state).some((a) => a.type === "takeTreasure")).toBe(false);
+  });
+
+  it("a womanless Unicorn's guard is NEVER Thief-unlockable on the settle turn (review fix — design says 'pacified BY INDIFFERENCE')", () => {
+    // The Unicorn (13) is always friendly (hostileMax/indiffMax both 0) and, with no Woman/W-Hero
+    // present, stays behind guarding rather than joining — a pacification by a FRIENDLY reaction,
+    // not indifference, so the Thief must never unlock it even though `pacifiedAreas` is set exactly
+    // the same way.
+    const s = makeState({
+      phase: "encounter", strangers: [13], treasures: [1], seed: 1,
+      party: [member(THIEF)], // no Woman/W-Hero — the Unicorn won't join
+      areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+    });
+    const { state, events } = reduce(s, { type: "test" });
+    expect(events).toContainEqual(expect.objectContaining({ type: "unicornGuards", creatureId: 13 }));
+    expect(state.pacifiedAreas).toContain(0);
+    expect(state.unicornGuardAreas).toContain(0); // marked as the Unicorn cause, not indifference
+    expect(state.phase).toBe("explore"); // NOT unlocked to pickup despite the Thief
+    expect(state.thiefPickup).toBeUndefined();
+    expect(legalActions(state).some((a) => a.type === "takeTreasure")).toBe(false);
+  });
+
+  it("a womanless Unicorn's guard is NEVER Thief-unlockable on RE-ENTRY either (review fix, US-17/SC-EXT-19)", () => {
+    const A = { card: 2, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };
+    const B = { card: 31, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents: [100 + 13, 200 + 1], flags: 0, indiffCount: 0 };
+    const s = makeState({
+      phase: "explore", areas: [A, B], partyArea: 0, prev: 0,
+      party: [member(THIEF)], pacifiedAreas: [1], unicornGuardAreas: [1],
+    });
+    const { state } = reduce(s, { type: "move", dir: DIR_E });
+    expect(state.phase).toBe("explore"); // still guarded — the generic pacifiedAreas gate alone must not unlock it
     expect(state.thiefPickup).toBeUndefined();
     expect(legalActions(state).some((a) => a.type === "takeTreasure")).toBe(false);
   });

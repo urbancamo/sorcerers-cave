@@ -312,7 +312,9 @@ describe("Desertion — per-ally rolls, removal, Wolf immunity (US-09, SC-EXT-14
     });
     const { events } = applyHazards(s);
 
-    expect(events).toContainEqual({ type: "wolfUnmoved" });
+    // `hazard: HAZARD_DESERTION` discriminates this skip from Medusa's/Mutiny's own (review fix,
+    // Task 10, SC-EXT-18) — the presentation layer's "party holds together" summary counts only this one.
+    expect(events).toContainEqual({ type: "wolfUnmoved", hazard: HAZARD_DESERTION });
     expect(events.some((e) => e.type === "desertionRoll")).toBe(false);
     expect(s.party).toHaveLength(2); // the Wolf stays, unconditionally
   });

@@ -152,6 +152,13 @@ export interface GameState {
   // party may leave by any exit but still cannot loot the (guarded) treasure.
   indiffStreak?: number;
   pacifiedAreas?: number[];
+  // Extension kit (SC-EXT-19, review fix): the SUBSET of `pacifiedAreas` pacified by the
+  // womanless-Unicorn-guard case (§Unicorn) rather than by indifference. Design US-17 is explicit —
+  // "pacified BY INDIFFERENCE" — so the Thief's pickup-unlock (`settlePacifiedArea`, reduce.ts) must
+  // exclude these areas even though they share the same generic `pacifiedAreas` re-entry gate;
+  // recorded only at the one site that sets it (the `test` action's friendly-Unicorn branch), so a
+  // kit-off or Unicorn-less game never gains this field. Default absent/`[]` = none.
+  unicornGuardAreas?: number[];
   // Areas this party retreated from: those strangers stay hostile to it for the rest of the game
   // (§Retreat) and attack on sight if the party returns. Per-party; other parties are unaffected.
   hostileAreas?: number[];

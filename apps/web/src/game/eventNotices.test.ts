@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
   SPECIAL_VIPER_PIT, SPECIAL_DEEP_POOL, SPECIAL_WHIRLPOOL,
-  HAZARD_MEDUSA, HAZARD_MUTINY, HAZARD_TRAP, HAZARD_EARTHQUAKE,
+  HAZARD_MEDUSA, HAZARD_MUTINY, HAZARD_TRAP, HAZARD_EARTHQUAKE, HAZARD_DESERTION,
   DIR_DOWN, DIR_UP,
   type GameEvent,
 } from "@sorcerers-cave/engine";
@@ -196,7 +196,7 @@ describe("eventNotices", () => {
     expect(stayed.text).toMatch(/wavers… but stays/);
     expect(stayed.text).not.toMatch(/Gold/); // a staying ally's items are never mentioned
 
-    const wolf = eventNotices([{ type: "wolfUnmoved" }])[0]!;
+    const wolf = eventNotices([{ type: "wolfUnmoved", hazard: HAZARD_DESERTION }])[0]!;
     expect(wolf.text).toBe("The Wolf is unmoved.");
 
     // "The party holds together." is derived, not its own event: present whenever Desertion had at
@@ -209,7 +209,10 @@ describe("eventNotices", () => {
     expect(allStay.some((n) => n.text === "The party holds together.")).toBe(true);
 
     // An all-Wolf-ally roster rolls nothing at all (every ally is skipped) but still holds together.
-    const allWolves = eventNotices([{ type: "wolfUnmoved" }, { type: "wolfUnmoved" }]);
+    const allWolves = eventNotices([
+      { type: "wolfUnmoved", hazard: HAZARD_DESERTION },
+      { type: "wolfUnmoved", hazard: HAZARD_DESERTION },
+    ]);
     expect(allWolves.some((n) => n.text === "The party holds together.")).toBe(true);
 
     const oneDeserted = eventNotices([
@@ -219,6 +222,30 @@ describe("eventNotices", () => {
     expect(oneDeserted.some((n) => n.text === "The party holds together.")).toBe(false);
 
     expect(eventNotices([]).some((n) => n.text === "The party holds together.")).toBe(false);
+  });
+
+  it("does NOT let a Medusa- or Mutiny-sourced wolfUnmoved feed Desertion's 'holds together' summary (review fix, US-18)", () => {
+    // A plain Medusa turn with an immune Wolf ally present must not spuriously read as Desertion's
+    // "everyone stayed" outcome — nothing was ever at risk of deserting.
+    const medusaWithWolf = eventNotices([{ type: "wolfUnmoved", hazard: HAZARD_MEDUSA }]);
+    expect(medusaWithWolf.some((n) => n.text === "The party holds together.")).toBe(false);
+
+    // A Mutiny batch where one Wolf ally is immune AND a different ally actually deserts must not
+    // show a contradictory "holds together" line alongside the `mutinied` desertion notice.
+    const mutinyMixed = eventNotices([
+      { type: "wolfUnmoved", hazard: HAZARD_MUTINY },
+      { type: "mutinied", deserters: [5], treasures: [1] },
+    ]);
+    expect(mutinyMixed.some((n) => n.text === "The party holds together.")).toBe(false);
+
+    // A Mutiny batch with ONLY a Wolf immune (nobody else to desert) is likewise not Desertion
+    // activity — it must not borrow Desertion's summary line either.
+    const mutinyWolfOnly = eventNotices([{ type: "wolfUnmoved", hazard: HAZARD_MUTINY }]);
+    expect(mutinyWolfOnly.some((n) => n.text === "The party holds together.")).toBe(false);
+
+    // Desertion's OWN all-Wolf "holds together" behaviour (pinned above, T8) still holds.
+    const desertionAllWolves = eventNotices([{ type: "wolfUnmoved", hazard: HAZARD_DESERTION }]);
+    expect(desertionAllWolves.some((n) => n.text === "The party holds together.")).toBe(true);
   });
 
   it("reports Harpies' theft (with lair-known wording), its park lurk, and the Eye-of-God curse line (US-10)", () => {

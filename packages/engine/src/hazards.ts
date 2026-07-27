@@ -109,7 +109,9 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
           if (m.status !== 0 && m.status !== 1) continue;
           // Extension kit (SC-EXT-18, design US-18): a Wolf is immune to Medusa's gaze — simply
           // skipped, no roll, with its own visible notice, rather than folded into `rolls` below.
-          if (m.creatureId === C_WOLF) { events.push({ type: "wolfUnmoved" }); continue; }
+          // `hazard: HAZARD_MEDUSA` (review fix) keeps this skip out of the presentation layer's
+          // Desertion-only "party holds together" derivation (SC-EXT-14).
+          if (m.creatureId === C_WOLF) { events.push({ type: "wolfUnmoved", hazard: HAZARD_MEDUSA }); continue; }
           const r = rollDie(state.seed);
           state.seed = r.seed;
           const petrified = r.value <= 2; // a 1 or 2 turns that creature to stone (§Medusa)
@@ -174,7 +176,8 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         // Quarrel's eligible-combatant filter, SC-EXT-16), with its own visible notice. It also
         // doesn't count toward the "one stays loyal" pool below — it was never going to desert.
         const wolves = allies.filter((m) => m.creatureId === C_WOLF);
-        for (const _w of wolves) events.push({ type: "wolfUnmoved" });
+        // `hazard: HAZARD_MUTINY` (review fix) — see the Medusa case above for why this matters.
+        for (const _w of wolves) events.push({ type: "wolfUnmoved", hazard: HAZARD_MUTINY });
         const eligible = allies.filter((m) => m.creatureId !== C_WOLF);
         // All eligible allies desert; if the party is now ALL allies, one stays loyal (spec §Mutiny).
         const desert = originals.length === 0 ? eligible.slice(1) : eligible;
@@ -209,7 +212,9 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         const allies = state.party.filter((m) => m.status === 1);
         const deserted: PartyMember[] = [];
         for (const a of allies) {
-          if (a.creatureId === C_WOLF) { events.push({ type: "wolfUnmoved" }); continue; }
+          // `hazard: HAZARD_DESERTION` (review fix, Task 10) — this is the ONE `wolfUnmoved` source
+          // the presentation layer's "party holds together" summary must count (SC-EXT-14).
+          if (a.creatureId === C_WOLF) { events.push({ type: "wolfUnmoved", hazard: HAZARD_DESERTION }); continue; }
           const r = rollDie(state.seed); state.seed = r.seed;
           const leaves = r.value <= 2;
           // `[...a.treasure]` snapshots what the ally is carrying at roll time (design US-09

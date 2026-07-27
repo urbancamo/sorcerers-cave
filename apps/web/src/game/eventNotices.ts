@@ -315,9 +315,16 @@ export function eventNotices(events: GameEvent[]): Notice[] {
   // the hazard emits (one per ally rolled or skipped): fires whenever Desertion had at least one
   // ally to consider and none of them actually left — including an all-Wolf-ally roster, which rolls
   // nothing at all (every ally is skipped) but should still read as "the party holds together", not
-  // silence.
+  // silence. Review fix (Task 10, SC-EXT-18): `wolfUnmoved` is now ALSO emitted by Medusa's petrify
+  // loop and Mutiny's desertion, whose own skip must NOT count as Desertion activity — a Medusa turn
+  // with a Wolf ally would otherwise wrongly append this line, and a Mutiny batch with one Wolf
+  // immune and another ally actually deserting would show it alongside the `mutinied` notice,
+  // contradicting it. Gated on `hazard === HAZARD_DESERTION` (the `wolfUnmoved` event's discriminant)
+  // so only Desertion's own skips (and rolls) ever feed this summary.
   const desertionRolls = events.filter((e): e is Extract<GameEvent, { type: "desertionRoll" }> => e.type === "desertionRoll");
-  const hadDesertionActivity = desertionRolls.length > 0 || events.some((e) => e.type === "wolfUnmoved");
+  const desertionWolfSkips = events.filter((e): e is Extract<GameEvent, { type: "wolfUnmoved" }> =>
+    e.type === "wolfUnmoved" && e.hazard === HAZARD_DESERTION);
+  const hadDesertionActivity = desertionRolls.length > 0 || desertionWolfSkips.length > 0;
   if (hadDesertionActivity && !desertionRolls.some((e) => e.deserted)) {
     out.push({ text: "The party holds together.", tone: "good" });
   }

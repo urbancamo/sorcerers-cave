@@ -93,21 +93,27 @@ function hasThief(state: GameState): boolean {
 }
 
 /**
- * Settle a chamber the party has already permanently pacified by indifference (§Reactions) — called
- * both the instant a party's 3rd indifferent test locks the area in (`test` case) and on every later
- * re-entry (`finishChamber`). Base behaviour: the guards and the treasure they watch both park back
- * onto the floor and the party returns to explore, unable to loot. With a living Thief ally present
- * AND treasure actually here to lift (design US-17: "in any area pacified by indifference where
- * treasure lies under the strangers' watch"), the Thief slips past the indifferent guards instead:
- * the strangers still park — unengaged, no fight offered or required — but the treasure stays in the
- * live pickup working set and the phase goes straight to `pickup`, `thiefPickup` marking the session
- * so `takeTreasure` can narrate each lift ("The Thief palms the [item]."). Any other working-set
- * leftovers (`sleeping`/`statues`/`lulled`/`fightDrops`) are simply left live in state rather than
- * flushed here — harmless, since nothing else touches them before the eventual real
- * `persistAndExplore` (pickup's end, or `leaveTreasure`) merges them back exactly as it always does.
+ * Settle a chamber the party has already permanently pacified — either by indifference (§Reactions)
+ * or by the womanless-Unicorn-guard case (§Unicorn) — called both the instant a party's 3rd
+ * indifferent test locks the area in (`test` case) and on every later re-entry (`finishChamber`).
+ * Base behaviour: the guards and the treasure they watch both park back onto the floor and the party
+ * returns to explore, unable to loot. With a living Thief ally present, treasure actually here to
+ * lift, AND the area pacified by INDIFFERENCE specifically — design US-17's literal wording, "in any
+ * area pacified by indifference where treasure lies under the strangers' watch" — the Thief slips
+ * past the guards instead: they still park — unengaged, no fight offered or required — but the
+ * treasure stays in the live pickup working set and the phase goes straight to `pickup`,
+ * `thiefPickup` marking the session so `takeTreasure` can narrate each lift ("The Thief palms the
+ * [item]."). Review fix (SC-EXT-19): a Unicorn-guarded area (`state.unicornGuardAreas`) is EXCLUDED
+ * from this unlock even though it shares the same `pacifiedAreas` re-entry gate — a friendly Unicorn
+ * standing guard is not "indifference," and this exclusion applies identically whether the area was
+ * JUST pacified this turn or is being re-entered later. Any other working-set leftovers
+ * (`sleeping`/`statues`/`lulled`/`fightDrops`) are simply left live in state rather than flushed here
+ * — harmless, since nothing else touches them before the eventual real `persistAndExplore`
+ * (pickup's end, or `leaveTreasure`) merges them back exactly as it always does.
  */
 function settlePacifiedArea(state: GameState): void {
-  if (hasThief(state) && state.treasures.length > 0) {
+  const unicornGuarded = state.unicornGuardAreas?.includes(state.partyArea) ?? false;
+  if (hasThief(state) && state.treasures.length > 0 && !unicornGuarded) {
     const area = state.areas[state.partyArea]!;
     area.contents = [...area.contents, ...state.strangers.map((id) => 100 + id)];
     state.strangers = [];
@@ -755,6 +761,12 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
           // The womanless Unicorn guards the area for THIS party (per-party): pass through, no loot.
           if (!next.pacifiedAreas?.includes(next.partyArea)) {
             next.pacifiedAreas = [...(next.pacifiedAreas ?? []), next.partyArea];
+          }
+          // Review fix (SC-EXT-19): mark this specifically as a Unicorn-guard pacification, NOT
+          // indifference — the Thief's pickup-unlock (`settlePacifiedArea`) must never fire here,
+          // on this turn or any later re-entry, per design US-17's literal "pacified by indifference".
+          if (!next.unicornGuardAreas?.includes(next.partyArea)) {
+            next.unicornGuardAreas = [...(next.unicornGuardAreas ?? []), next.partyArea];
           }
           persistAndExplore(next); // the party moves on, leaving the Unicorn (and guarded treasure) behind
         } else {
