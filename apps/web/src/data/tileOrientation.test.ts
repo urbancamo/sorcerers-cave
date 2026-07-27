@@ -49,6 +49,23 @@ function nonZeroRotation(card: number, mirrored = 0): string | null {
 const GATEWAY_INDEX = 21;
 const STAIR_UP_BIT = 32;
 
+// Twice (QFAR: x04-1; OQPX: six more) a manifest tileType correction left EXT_AREA_CARDS stale,
+// dealing chamber cards in tunnels. The manifest is the single authority: derive every expected
+// encoding from its tilesExtension rows so manifest/engine divergence fails the suite.
+describe("EXT_AREA_CARDS matches the manifest (the manifest is the authority)", () => {
+  it("every EXT_AREA_CARDS value equals its tilesExtension row's encoding", () => {
+    const SPECIAL_CODE: Record<string, number> = { chasm: 6, "bell-rope": 7, lair: 8, whirlpool: 9, gallery: 10, well: 11 };
+    const items = (manifest as AssetManifest).categories["tilesExtension"]!.items;
+    const expected = items.map((it) =>
+      (it.exits!.includes("N") ? 1 : 0) | (it.exits!.includes("E") ? 2 : 0) |
+      (it.exits!.includes("S") ? 4 : 0) | (it.exits!.includes("W") ? 8 : 0) |
+      (it.tileType === "chamber" ? 16 : 0) | (it.stairUp ? 32 : 0) | (it.stairDown ? 64 : 0) |
+      ((it.special ? SPECIAL_CODE[it.special]! : 0) << 7),
+    );
+    expect([...EXT_AREA_CARDS]).toEqual(expected);
+  });
+});
+
 describe("tile orientation (every area card renders un-rotated)", () => {
   it("resolves every area card — and its level-1 form — to a tile at rot 0", () => {
     const rotated: string[] = [];
