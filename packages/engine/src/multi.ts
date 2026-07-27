@@ -125,12 +125,15 @@ export interface MpGameState {
   // contention rule (deck draws serialise on the shared cursors; a rival's live stranger-fight
   // bars entry to its area) and the fleeGrace/forfeit adaptations.
   concurrent?: boolean;
-  // Game variants (M7, plan WS-6), fixed at buildMpGame for the whole game. Absent = today's
-  // behaviour, byte-identical. zombies = the rulebook's §Zombies option (spec I-15): a wiped
-  // party rises as a spoiler zombie party (multi-zombies.ts). fogLite = plan ⑦ fog-of-war-lite:
-  // each seat's served view masks areas it has never entered (fogFilter) — vague hints, not the
-  // full hidden-cards variation.
-  variants?: { zombies?: boolean; fogLite?: boolean; concurrent?: boolean };
+  // Game variants (M7, plan WS-6; extensionKit added SC-EXT-30), fixed at buildMpGame for the
+  // whole game. Absent = today's behaviour, byte-identical. zombies = the rulebook's §Zombies
+  // option (spec I-15): a wiped party rises as a spoiler zombie party (multi-zombies.ts). fogLite
+  // = plan ⑦ fog-of-war-lite: each seat's served view masks areas it has never entered
+  // (fogFilter) — vague hints, not the full hidden-cards variation. extensionKit mirrors solo's
+  // `GameState.variants.extensionKit` (state.ts:185, SC-EXT-1): gates the kit content in
+  // buildLargePack/buildSmallPack (SC-EXT-4) and is threaded into every composed seat's
+  // `GameState.variants` by `compose()` so solo kit rules see it (SC-EXT-30).
+  variants?: { zombies?: boolean; fogLite?: boolean; concurrent?: boolean; extensionKit?: boolean };
 }
 
 /** Multiplayer action = any engine action, plus the lobby-level "pass my turn" and the
@@ -167,10 +170,18 @@ export type MpAction =
 
 const TERMINAL: Record<number, SeatStatus> = { [GS_ESCAPED]: "left", [GS_DEAD]: "wiped", [GS_QUIT]: "quit" };
 
-function compose(cave: CaveState, party: PartyState): GameState {
+function compose(mp: MpGameState, party: PartyState): GameState {
   // party carries every non-cave field (+ seat/color/name/status, which reduce ignores); cave
-  // supplies the shared fields. The result is a valid single-party GameState view for this seat.
-  return { ...party, ...cave } as unknown as GameState;
+  // supplies the shared fields. variants.extensionKit (SC-EXT-30) threads from the game-level
+  // flag fixed at buildMpGame into the composed state's `variants`, mirroring solo's
+  // GameState.variants (state.ts:185) exactly — so kit rules and selection helpers keyed on
+  // `state.variants?.extensionKit` see it identically whether the state was built solo or
+  // composed here. Absent/false ⇒ no `variants` key at all — byte-identical to before this flag
+  // existed (SC-EXT-1's guarantee, extended to MP).
+  return {
+    ...party, ...mp.cave,
+    ...(mp.variants?.extensionKit ? { variants: { extensionKit: true } } : {}),
+  } as unknown as GameState;
 }
 
 function splitCave(g: GameState): { cave: CaveState; rest: PartyCore } {
@@ -229,13 +240,17 @@ const blocked = (mp: MpGameState): { state: MpGameState; events: GameEvent[] } =
 
 /** Build a fresh multiplayer game in the party-selection phase: one shared cave, a party per seat
  *  on the Gateway, and a random play order (pick order is its reverse). `variants` (M7) opts the
- *  whole game into the zombies option and/or fog-of-war-lite; omitted = exactly the old game. */
+ *  whole game into the zombies option and/or fog-of-war-lite; omitted = exactly the old game.
+ *  extensionKit (SC-EXT-30) is threaded straight into the deck builders — the same optional
+ *  `DeckVariants` param the solo builders already accept (decks.ts) — so a kit-on game shares one
+ *  90-card large pack / 101-card small pack across every seat, exactly as the solo kit widens
+ *  them (SC-EXT-4); absent/false leaves both packs byte-identical to today. */
 export function buildMpGame(
   seed: number, seats: { seat: number; color: string; name: string }[],
-  variants?: { zombies?: boolean; fogLite?: boolean; concurrent?: boolean },
+  variants?: { zombies?: boolean; fogLite?: boolean; concurrent?: boolean; extensionKit?: boolean },
 ): MpGameState {
-  const large = buildLargePack(seed);
-  const small = buildSmallPack(large.seed);
+  const large = buildLargePack(seed, variants);
+  const small = buildSmallPack(large.seed, variants);
   const ord = shuffle(small.seed, seats.map((s) => s.seat));
   const order = ord.result;
   const pickOrder = [...order].reverse();
@@ -465,7 +480,7 @@ function mpReduceInner(mp: MpGameState, seat: number, action: MpAction, now = 0,
     }
   }
 
-  const { state: next, events } = reduce(compose(mp.cave, party), action);
+  const { state: next, events } = reduce(compose(mp, party), action);
   if (events.length === 1 && events[0]!.type === "blocked") return { state: mp, events }; // no-op, no handoff
 
   // The action really dispatched: a participant wandering off abandons any trade it was in (I-5).
@@ -575,7 +590,7 @@ function mpReduceInner(mp: MpGameState, seat: number, action: MpAction, now = 0,
 /** The single-party GameState view for one seat (shared cave ⊕ that seat's party) — what the
  *  renderer consumes. Includes the cave decks (the client's optimistic move-reduce needs them). */
 export function partyView(mp: MpGameState, seat: number): GameState {
-  return compose(mp.cave, mp.parties[seat]!);
+  return compose(mp, mp.parties[seat]!);
 }
 
 /** The seat whose turn it is (null if not in the playing phase). */
@@ -614,7 +629,7 @@ export function fogFilter(mp: MpGameState, seat: number): GameState {
   const p = mp.parties[seat]!;
   const seen = new Set(p.seenAreas ?? []);
   seen.add(p.partyArea); // wherever the party stands, it has self-evidently arrived
-  const view = compose(mp.cave, p);
+  const view = compose(mp, p);
   return {
     ...view,
     areas: view.areas.map((a, i) => seen.has(i) ? a : {
