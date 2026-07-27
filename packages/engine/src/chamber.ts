@@ -114,6 +114,11 @@ export function enterChamber(state: GameState): GameEvent[] {
   // above) before layering on a fresh small-pack draw for a genuinely new visit. `area.contents` is
   // always empty here for every OTHER unvisited area (nothing writes to an area's contents before
   // its first visit) — so this is a no-op for the base game and every other kit tile (SC-EXT-1).
+  // Extension kit (SC-EXT-13): snapshot before a first-visit draw so a freshly-parked Crypt (there
+  // is at most one such card in the whole game) can be told apart from one already parked elsewhere
+  // — `classify` sets `cryptCoord` silently; this snapshot is what turns it into the design's
+  // on-screen notice ("A sealed crypt squats in the corner of this chamber.") below.
+  const hadCrypt = state.cryptCoord !== undefined;
   for (const code of area.contents) reload(state, code);
   if (!area.visited) {
     area.visited = true;
@@ -139,6 +144,11 @@ export function enterChamber(state: GameState): GameEvent[] {
   // petrified (design US-06 notice: "The strangers here are stone — silent, waiting.").
   if (state.statues?.length) {
     events.push({ type: "galleryStone", creatureIds: [...state.statues] });
+  }
+  // Extension kit (SC-EXT-13): announce a Crypt/Gems card parked by THIS entry's draw (never a
+  // reload of an already-parked one, and never one parked elsewhere).
+  if (!hadCrypt && state.cryptCoord === area.coord) {
+    events.push({ type: "cryptParked" });
   }
 
   return events;

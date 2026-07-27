@@ -5,8 +5,11 @@ import { makeState } from "./testkit";
 import { rollDie } from "./rng";
 import { packCoord } from "./coords";
 import { applyHazards } from "./hazards";
-import { HAZARD_DESERTION, HAZARD_TRAP } from "./data/hazards";
+import { HAZARD_DESERTION, HAZARD_TRAP, HAZARD_GHOULS } from "./data/hazards";
+import { resolvePlannedRound } from "./combatPlan";
+import { declarePvp } from "./multi-fight";
 import { GS_DEAD, GS_PLAYING, type GameState, type PartyMember } from "./state";
+import type { CaveState, PartyState, MpGameState } from "./multi";
 
 /**
  * Extension kit — the Crypt's draw-classify park + turn-start entry roll (US-08, SC-EXT-13) and
@@ -98,6 +101,19 @@ describe("The Crypt — draw-classify park (US-08, SC-EXT-13)", () => {
     expect(state.phase).toBe("explore"); // nothing else was drawn — the party moves straight through
     const drew = events.find((e) => e.type === "drewChamber") as { treasures: number[] };
     expect(drew.treasures).toEqual([]); // the crypt is invisible to the ordinary chamber-draw report
+    // The park itself is NOT silent — the design's on-screen text ("A sealed crypt squats in the
+    // corner of this chamber.") is a real event, not just an inferred side effect of `cryptCoord`.
+    expect(events).toContainEqual({ type: "cryptParked" });
+  });
+
+  it("fires cryptParked exactly once, only for the entry that actually parks it, not on a later revisit", () => {
+    const s = cryptState({ party: [member(HERO)] });
+    const entered = reduce(s, { type: "move", dir: DIR_E });
+    expect(entered.events).toContainEqual({ type: "cryptParked" });
+
+    const left = reduce(entered.state, { type: "move", dir: 4 }); // withdraw west
+    const back = reduce(left.state, { type: "move", dir: DIR_E }); // revisit the (already-visited) crypt area
+    expect(back.events.some((e) => e.type === "cryptParked")).toBe(false); // no reload, no re-announce
   });
 
   it("legalActions offers enterCrypt only at rest on the crypt's own area — not elsewhere, not mid-encounter/pickup", () => {
@@ -212,6 +228,27 @@ describe("The Crypt — draw-classify park (US-08, SC-EXT-13)", () => {
     expect(drawn.state.cryptCoord).toBe(wellArea.coord);
     expect(drawn.state.treasures).toEqual([]); // still parked, not floor treasure
     expect(legalActions(drawn.state)).toContainEqual({ type: "enterCrypt" });
+    expect(drawn.events).toContainEqual({ type: "cryptParked" }); // announced here too, not just on a fresh chamber entry
+  });
+
+  it("a Well draw that does NOT hit the crypt never fires a phantom cryptParked (no false positive from a stale cryptCoord)", () => {
+    // Park the crypt via an ordinary entry first, then take an UNRELATED Well draw elsewhere — the
+    // snapshot-diff must compare against `cryptCoord` immediately before THIS draw, not `undefined`,
+    // or every later unrelated Well/Bell draw would wrongly re-announce the same already-parked crypt.
+    const s = cryptState({ party: [member(HERO)] });
+    const parked = reduce(s, { type: "move", dir: DIR_E });
+    expect(parked.events).toContainEqual({ type: "cryptParked" });
+
+    const wellArea = { card: (11 << 7) | 31, coord: packCoord(1, 52, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };
+    const onWell: GameState = {
+      ...parked.state,
+      areas: [...parked.state.areas, wellArea],
+      partyArea: parked.state.areas.length,
+      smallPack: [100 + MAN], // an unrelated draw — not the crypt
+      smallIdx: 0,
+    };
+    const drawn = reduce(onWell, { type: "drawFromWell" });
+    expect(drawn.events.some((e) => e.type === "cryptParked")).toBe(false);
   });
 });
 
@@ -235,8 +272,8 @@ describe("Desertion — per-ally rolls, removal, Wolf immunity (US-09, SC-EXT-14
 
     const rolls = events.filter((e) => e.type === "desertionRoll");
     expect(rolls).toHaveLength(2); // only the two allies rolled
-    expect(rolls).toContainEqual(expect.objectContaining({ creatureId: MAN, deserted: true }));
-    expect(rolls).toContainEqual(expect.objectContaining({ creatureId: WOMAN, deserted: false }));
+    expect(rolls).toContainEqual(expect.objectContaining({ creatureId: MAN, deserted: true, items: [1] }));
+    expect(rolls).toContainEqual(expect.objectContaining({ creatureId: WOMAN, deserted: false, items: [3] }));
   });
 
   it("a deserting ally is removed from the game WITH everything carried, borne included — not dropped, not dead", () => {
@@ -255,6 +292,17 @@ describe("Desertion — per-ally rolls, removal, Wolf immunity (US-09, SC-EXT-14
     expect(s.party.map((m) => m.creatureId)).toEqual([HERO]); // the deserter is gone entirely
     expect(events.some((e) => e.type === "memberDied")).toBe(false); // Desertion, not death
     expect(s.treasures).toEqual([]); // nothing spills to the floor — it leaves the game with them
+    // The event itself carries the itemized loot (design US-09 Feedback "taking [treasure list]") —
+    // both the carried Gold AND the BORNE Magic Sword, since Desertion (unlike death) takes borne
+    // items too.
+    expect(events).toContainEqual(expect.objectContaining({ type: "desertionRoll", creatureId: MAN, deserted: true, items: [1, 3] }));
+  });
+
+  it("an all-empty-handed deserter reports an empty items list, not a crash or a phantom item", () => {
+    const seed = seedForRoll((v) => v <= 2);
+    const s = makeState({ party: [member(HERO, 0), member(MAN, 1)], hazards: [HAZARD_DESERTION], seed });
+    const { events } = applyHazards(s);
+    expect(events).toContainEqual(expect.objectContaining({ type: "desertionRoll", creatureId: MAN, deserted: true, items: [] }));
   });
 
   it("skips a Wolf ally with a visible notice — no roll for it, and it never deserts", () => {
@@ -347,5 +395,64 @@ describe("Desertion — per-ally rolls, removal, Wolf immunity (US-09, SC-EXT-14
     expect(state.party).toHaveLength(0);
     expect(state.gs).toBe(GS_DEAD);
     expect(events).toContainEqual({ type: "gameOver", gs: GS_DEAD });
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Kit heavy treasure must not crash the base fight/hazard/PvP machinery (code review finding):
+// combatPlan.ts, hazards.ts's Ghouls case, and multi-fight.ts's PvP declaration all filtered heavy
+// treasure via the BASE-only `TREASURES` table (ids 0-14) — a member carrying a kit heavy treasure
+// (Crypt/Gems 21, or Idol 18 once Task 12 lands) made `TREASURES[21]!.kind` throw on `undefined`.
+// All three sites are repointed to `ALL_TREASURES` (SC-EXT-2), mirroring the `pickup.ts`/`score.ts`
+// fix from this same task.
+// ---------------------------------------------------------------------------------------------
+
+describe("Kit heavy treasure does not crash the base fight/hazard/PvP machinery (ALL_TREASURES)", () => {
+  it("a front fighter carrying the Crypt gems (21) fights a round without crashing, dropping them to the floor", () => {
+    const s = makeState({
+      phase: "fight",
+      fight: { surprise: 0, round: 1, focus: 0 },
+      party: [{ creatureId: 12, status: 0, dragonKills: 0, treasure: [T_CRYPT] }], // Giant carrying the gems
+      strangers: [3],
+      seed: 5,
+      areas: [{ card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+    });
+    expect(() => resolvePlannedRound(s, { matches: [{ front: [0], backers: [], strangers: [0] }] })).not.toThrow();
+    expect(s.party[0]!.treasure).toEqual([]); // dropped to fight, same as any heavy treasure (§387)
+    expect(s.areas[0]!.contents).toContain(200 + T_CRYPT);
+  });
+
+  it("Ghouls force-drop heavy treasure correctly when a member carries the Crypt gems (21)", () => {
+    const s = makeState({
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [T_CRYPT] }],
+      hazards: [HAZARD_GHOULS],
+      treasures: [],
+      seed: 5,
+    });
+    expect(() => applyHazards(s)).not.toThrow();
+    expect(s.treasures).toContain(T_CRYPT);
+    expect(s.party[0]!.treasure).toEqual([]);
+  });
+
+  it("a PvP declaration drops kit heavy treasure from both commands without crashing", () => {
+    const member = (creatureId: number, treasure: number[] = []): PartyMember => ({ creatureId, status: 0, dragonKills: 0, treasure });
+    const partyAt = (seat: number, party: PartyMember[]): PartyState => ({
+      seat, color: (["green", "blue"] as const)[seat]!, name: `Party ${seat}`, status: "exploring", kills: 0,
+      gs: 0, phase: "explore", turn: 1, score: 0, curses: 0, bonusScore: 0, sorcererKilled: false,
+      partyArea: 0, level: 1, prev: 0, prev2: 0, party, strangers: [], treasures: [], hazards: [], fight: null,
+    });
+    const cave: CaveState = {
+      areas: [{ card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+      largePack: [], largeIdx: 0, smallPack: [], smallIdx: 0, seed: 1,
+    };
+    const mp: MpGameState = {
+      phase: "playing", cave,
+      parties: [partyAt(0, [member(12, [T_CRYPT])]), partyAt(1, [member(12, [])])],
+      order: [0, 1], pickOrder: [1, 0], active: 0, turnCount: 0,
+    };
+    let r: ReturnType<typeof declarePvp> | undefined;
+    expect(() => { r = declarePvp(mp, 0, 1, 0, 1000); }).not.toThrow();
+    expect(r!.events.filter((e) => e.type === "heavyDownForFight")).toHaveLength(1);
+    expect(r!.state.cave.areas[0]!.contents).toContain(200 + T_CRYPT);
   });
 });

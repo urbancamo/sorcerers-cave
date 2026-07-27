@@ -140,6 +140,10 @@ export type GameEvent =
   // Extension kit (SC-EXT-12): Harpies-stolen treasure landed on the Lair's floor — either spilled
   // on the Lair's own placement/entry, or delivered straight there by a later theft (design US-04).
   | { type: "lairStash"; treasureIds: number[] }
+  // Extension kit (SC-EXT-13): a Crypt/Gems card was freshly drawn and parked in this area (design
+  // US-08 on-screen text: "A sealed crypt squats in the corner of this chamber."). Fired once, the
+  // moment `classify` sets `cryptCoord` for a genuinely new draw — never on a reload/revisit.
+  | { type: "cryptParked" }
   // Extension kit (SC-EXT-13): the Crypt's visible d6 and its band outcome (design US-08). 1-2 is an
   // unavoidable trap (whole-party `relocateDown`, no Dwarf exemption); 3-6 converts the parked crypt
   // into ordinary floor treasure id 21 (Crypt/Gems, ready for a normal carry-gated pickup).
@@ -148,8 +152,11 @@ export type GameEvent =
   // `creatureId` (not a party index — deliberately deviates from the design brief's literal
   // `memberId`, for the same post-splice-safety reason as `bellRoll.creatureId`, SC-EXT-8: a
   // deserting ally is spliced out of `party`, so an index would go stale). `deserted` true = removed
-  // from the game outright, with everything carried (Bell Rope vanish semantics, SC-EXT-8).
-  | { type: "desertionRoll"; creatureId: number; roll: number; deserted: boolean }
+  // from the game outright, with everything carried (Bell Rope vanish semantics, SC-EXT-8). `items`
+  // is a snapshot of the ally's carried treasure ids at roll time (design US-09 Feedback: "taking
+  // [treasure list]") — present whatever the outcome, but only meaningful (and only ever shown) when
+  // `deserted` is true; `[]` when they carried nothing.
+  | { type: "desertionRoll"; creatureId: number; roll: number; deserted: boolean; items: number[] }
   // Extension kit (SC-EXT-14, design US-18): a Wolf ally was skipped by Desertion's rolls — immune,
   // with its own visible notice ("The Wolf is unmoved.") so the immunity is seen, not silent.
   | { type: "wolfUnmoved" };

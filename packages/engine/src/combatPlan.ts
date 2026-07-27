@@ -1,6 +1,6 @@
 import { rollDie } from "./rng";
 import { CREATURES } from "./data/creatures";
-import { TREASURES } from "./data/treasures";
+import { ALL_TREASURES } from "./data/treasures";
 import { frontStrength, casterMP, partyRollBonus, isCaster } from "./combat";
 import { eyeActive, ringInvincible, activeCurses, eyeForsakenByDeath } from "./effects";
 import type { GameState, PartyMember, BattlePlan } from "./state";
@@ -233,14 +233,16 @@ export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEve
 
   // §387: members fighting hand-to-hand drop heavy treasure onto the area floor for the duration — kept
   // off them so it is not lost if they fall (reclaimed into the pickup on a win, left behind on retreat).
+  // `ALL_TREASURES` (base + kit, SC-EXT-2) — a member carrying a kit heavy treasure (Crypt/Gems 21,
+  // Idol 18) would otherwise crash this lookup against the base-only `TREASURES` table.
   const area = state.areas[state.partyArea]!;
   for (const mt of plan.matches) {
     for (const i of mt.front) {
       const m = state.party[i]!;
-      const heavy = m.treasure.filter((t) => TREASURES[t]!.kind === "heavy");
+      const heavy = m.treasure.filter((t) => ALL_TREASURES[t]!.kind === "heavy");
       if (heavy.length) {
         area.contents.push(...heavy.map((t) => 200 + t));
-        m.treasure = m.treasure.filter((t) => TREASURES[t]!.kind !== "heavy");
+        m.treasure = m.treasure.filter((t) => ALL_TREASURES[t]!.kind !== "heavy");
         state.fightDrops = [...(state.fightDrops ?? []), ...heavy.map((t) => ({ mi: i, tid: t }))]; // remember who dropped what
       }
     }

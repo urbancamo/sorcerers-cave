@@ -170,7 +170,10 @@ describe("eventNotices", () => {
     expect(stash.tone).toBe("good");
   });
 
-  it("reports the Crypt's two outcomes verbatim (US-08)", () => {
+  it("reports the Crypt's park notice and its two roll outcomes verbatim (US-08)", () => {
+    const parked = eventNotices([{ type: "cryptParked" }])[0]!;
+    expect(parked.text).toBe("A sealed crypt squats in the corner of this chamber.");
+
     const trap = eventNotices([{ type: "cryptRoll", roll: 1, outcome: "trap" }])[0]!;
     expect(trap.text).toBe("The floor gives way! The party plunges into darkness.");
     expect(trap.tone).toBe("bad");
@@ -180,28 +183,38 @@ describe("eventNotices", () => {
     expect(find.tone).toBe("good");
   });
 
-  it("reports Desertion's per-ally lines, the Wolf's skip notice, and derives the all-stay summary (US-09/US-18)", () => {
-    const deserted = eventNotices([{ type: "desertionRoll", creatureId: 5, roll: 1, deserted: true }])[0]!;
+  it("reports Desertion's per-ally lines with the itemized loot, the Wolf's skip notice, and derives the all-stay summary (US-09/US-18)", () => {
+    const deserted = eventNotices([{ type: "desertionRoll", creatureId: 5, roll: 1, deserted: true, items: [1, 3] }])[0]!;
     expect(deserted.text).toMatch(/slips away into the dark/i);
+    expect(deserted.text).toMatch(/taking Gold, Magic Sword/); // itemized, by name (design "taking [treasure list]")
     expect(deserted.tone).toBe("bad");
 
-    const stayed = eventNotices([{ type: "desertionRoll", creatureId: 6, roll: 4, deserted: false }])[0]!;
+    const emptyHanded = eventNotices([{ type: "desertionRoll", creatureId: 5, roll: 1, deserted: true, items: [] }])[0]!;
+    expect(emptyHanded.text).toMatch(/taking nothing/); // no phantom list when there was nothing to take
+
+    const stayed = eventNotices([{ type: "desertionRoll", creatureId: 6, roll: 4, deserted: false, items: [1] }])[0]!;
     expect(stayed.text).toMatch(/wavers… but stays/);
+    expect(stayed.text).not.toMatch(/Gold/); // a staying ally's items are never mentioned
 
     const wolf = eventNotices([{ type: "wolfUnmoved" }])[0]!;
     expect(wolf.text).toBe("The Wolf is unmoved.");
 
-    // "The party holds together." is derived, not its own event: present only when every
-    // desertionRoll in the batch stayed, absent when the batch is empty OR someone deserted.
+    // "The party holds together." is derived, not its own event: present whenever Desertion had at
+    // least one ally to consider (a roll OR a Wolf skip) and none actually left; absent when the
+    // batch is empty, or someone deserted.
     const allStay = eventNotices([
-      { type: "desertionRoll", creatureId: 5, roll: 4, deserted: false },
-      { type: "desertionRoll", creatureId: 6, roll: 5, deserted: false },
+      { type: "desertionRoll", creatureId: 5, roll: 4, deserted: false, items: [] },
+      { type: "desertionRoll", creatureId: 6, roll: 5, deserted: false, items: [] },
     ]);
     expect(allStay.some((n) => n.text === "The party holds together.")).toBe(true);
 
+    // An all-Wolf-ally roster rolls nothing at all (every ally is skipped) but still holds together.
+    const allWolves = eventNotices([{ type: "wolfUnmoved" }, { type: "wolfUnmoved" }]);
+    expect(allWolves.some((n) => n.text === "The party holds together.")).toBe(true);
+
     const oneDeserted = eventNotices([
-      { type: "desertionRoll", creatureId: 5, roll: 1, deserted: true },
-      { type: "desertionRoll", creatureId: 6, roll: 5, deserted: false },
+      { type: "desertionRoll", creatureId: 5, roll: 1, deserted: true, items: [] },
+      { type: "desertionRoll", creatureId: 6, roll: 5, deserted: false, items: [] },
     ]);
     expect(oneDeserted.some((n) => n.text === "The party holds together.")).toBe(false);
 

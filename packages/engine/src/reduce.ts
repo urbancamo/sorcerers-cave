@@ -996,7 +996,9 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
       if (state.smallIdx >= state.smallPack.length) return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
       const events: GameEvent[] = [{ type: "wellDraw" }];
+      const hadCrypt = next.cryptCoord !== undefined; // SC-EXT-13: tell a freshly-parked Crypt apart
       drawSmallCards(next, 1); // exactly one code, appended onto whatever's already in the working set
+      if (!hadCrypt && next.cryptCoord === next.areas[next.partyArea]!.coord) events.push({ type: "cryptParked" });
       next.noWithdrawTurn = next.turn; // blocks withdraw this turn only (SC-EXT-9)
       resolveExtraDraw(next, events); // strangers/hazards resolve normally, same as any chamber draw
       return { state: next, events };
@@ -1034,7 +1036,9 @@ export function reduce(state: GameState, action: GameAction): { state: GameState
         return { state: next, events };
       }
       events.push({ type: "bellRoll", roll: r.value, outcome: "stir", creatureId });
+      const hadCrypt = next.cryptCoord !== undefined; // SC-EXT-13: tell a freshly-parked Crypt apart
       drawSmallCards(next, 2); // two codes, appended onto whatever's already in the working set
+      if (!hadCrypt && next.cryptCoord === next.areas[next.partyArea]!.coord) events.push({ type: "cryptParked" });
       next.noWithdrawTurn = next.turn; // blocks withdraw this turn only (SC-EXT-9)
       resolveExtraDraw(next, events); // strangers/hazards resolve normally, same as any chamber draw
       return { state: next, events };

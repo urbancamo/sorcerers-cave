@@ -1,5 +1,5 @@
 import {
-  CREATURES,
+  CREATURES, ALL_TREASURES,
   HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_MUTINY, HAZARD_TRAP, HAZARD_DESERTION,
   SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_WHIRLPOOL,
   DIR_DOWN,
@@ -18,6 +18,8 @@ export interface Notice {
 }
 
 const name = (cid: number): string => CREATURES[cid]?.name ?? "a creature";
+const treasureName = (tid: number): string => ALL_TREASURES[tid]?.name ?? "an item";
+const itemList = (ids: number[]): string => ids.map(treasureName).join(", ");
 const plural = (n: number, s: string) => `${n} ${s}${n === 1 ? "" : "s"}`;
 const DIR_WORD: Record<number, string> = { 1: "north", 2: "east", 3: "south", 4: "west", 5: "up the stair", 6: "down the stair" };
 // The Bell Rope's 2-3 "toll" band uses the design's exact foreboding wording (US-03 Feedback).
@@ -237,6 +239,9 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "lairStash":
         out.push({ text: "The harpies' hoard glitters among the bones — the stolen artifacts are here.", tone: "good" });
         break;
+      case "cryptParked":
+        out.push({ text: "A sealed crypt squats in the corner of this chamber.", tone: "neutral" });
+        break;
       case "cryptRoll":
         out.push(
           e.outcome === "trap"
@@ -248,9 +253,11 @@ export function eventNotices(events: GameEvent[]): Notice[] {
         // Individual rolls are shown via the per-ally dice lanes (Task 16's DiceRoll overlay); the
         // "party holds together" summary (design US-09 Feedback) is appended once, below, after every
         // event has been scanned — it needs to know whether ANY ally in the whole batch deserted.
+        // `items` itemizes exactly what leaves with a deserter (design Feedback "taking [treasure
+        // list]"); an empty list reads as a plain, no-loot departure rather than a dropped clause.
         out.push(
           e.deserted
-            ? { text: `${name(e.creatureId)} slips away into the dark, taking everything they carried.`, tone: "bad" }
+            ? { text: `${name(e.creatureId)} slips away into the dark, taking ${e.items.length ? itemList(e.items) : "nothing"}.`, tone: "bad" }
             : { text: `${name(e.creatureId)} wavers… but stays.`, tone: "neutral" },
         );
         break;
@@ -263,10 +270,14 @@ export function eventNotices(events: GameEvent[]): Notice[] {
     }
   }
   // Desertion's "everyone stayed" summary (design US-09 Feedback: "The party holds together.") isn't
-  // its own engine event — it's derived here from the batch of `desertionRoll` events the hazard
-  // always emits (one per ally, whatever the outcome): present, but none deserted.
+  // its own engine event — it's derived here from the batch of `desertionRoll`/`wolfUnmoved` events
+  // the hazard emits (one per ally rolled or skipped): fires whenever Desertion had at least one
+  // ally to consider and none of them actually left — including an all-Wolf-ally roster, which rolls
+  // nothing at all (every ally is skipped) but should still read as "the party holds together", not
+  // silence.
   const desertionRolls = events.filter((e): e is Extract<GameEvent, { type: "desertionRoll" }> => e.type === "desertionRoll");
-  if (desertionRolls.length > 0 && !desertionRolls.some((e) => e.deserted)) {
+  const hadDesertionActivity = desertionRolls.length > 0 || events.some((e) => e.type === "wolfUnmoved");
+  if (hadDesertionActivity && !desertionRolls.some((e) => e.deserted)) {
     out.push({ text: "The party holds together.", tone: "good" });
   }
   return out;

@@ -6,7 +6,7 @@ import { sweepFallen } from "./loot";
 import { rollDie } from "./rng";
 import { decodeArea } from "./decode";
 import { CREATURES } from "./data/creatures";
-import { TREASURES } from "./data/treasures";
+import { ALL_TREASURES } from "./data/treasures";
 import { canCarry } from "./pickup";
 import { DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, targetCoord, unpackCoord } from "./coords";
 import { areaInteractionMask, partyView, pvpSurprise, type MpGameState, type PartyState } from "./multi";
@@ -166,10 +166,12 @@ export function declarePvp(mp: MpGameState, attackerSeat: number, defenderSeat: 
     let count = 0;
     next.parties[seat]!.party.forEach((m, idx) => {
       if (!alive(m)) return;
-      const heavy = m.treasure.filter((t) => TREASURES[t]!.kind === "heavy");
+      // `ALL_TREASURES` (base + kit, SC-EXT-2) — a kit heavy treasure (Crypt/Gems 21, Idol 18) would
+      // otherwise crash this lookup against the base-only `TREASURES` table.
+      const heavy = m.treasure.filter((t) => ALL_TREASURES[t]!.kind === "heavy");
       if (!heavy.length) return;
       tile.contents.push(...heavy.map((t) => 200 + t));
-      m.treasure = m.treasure.filter((t) => TREASURES[t]!.kind !== "heavy");
+      m.treasure = m.treasure.filter((t) => ALL_TREASURES[t]!.kind !== "heavy");
       for (const tid of heavy) drops.push({ seat, id: mkId(seat, idx), tid });
       count += heavy.length;
     });

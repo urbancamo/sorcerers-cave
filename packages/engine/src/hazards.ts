@@ -1,6 +1,6 @@
 import { rollDie } from "./rng";
 import { CREATURES, FLAG_GUIDES_PAST_TRAP } from "./data/creatures";
-import { TREASURES } from "./data/treasures";
+import { ALL_TREASURES } from "./data/treasures";
 import {
   HAZARD_MUTINY, HAZARD_TRAP, HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_DESERTION,
 } from "./data/hazards";
@@ -89,12 +89,14 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
       }
       case HAZARD_GHOULS: {
         // The attack forces everyone to drop heavy treasure to fight; it lands on the chamber floor,
-        // visible and reclaimable at the end of the turn (§Ghouls).
+        // visible and reclaimable at the end of the turn (§Ghouls). `ALL_TREASURES` (base + kit,
+        // SC-EXT-2) — a kit heavy treasure (Crypt/Gems 21, Idol 18) would otherwise crash this
+        // lookup against the base-only `TREASURES` table.
         for (const m of state.party) {
           if (m.status !== 0 && m.status !== 1) continue;
-          const heavy = m.treasure.filter((t) => TREASURES[t]!.kind === "heavy");
+          const heavy = m.treasure.filter((t) => ALL_TREASURES[t]!.kind === "heavy");
           if (heavy.length) {
-            m.treasure = m.treasure.filter((t) => TREASURES[t]!.kind !== "heavy");
+            m.treasure = m.treasure.filter((t) => ALL_TREASURES[t]!.kind !== "heavy");
             state.treasures.push(...heavy);
           }
         }
@@ -160,7 +162,10 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
           if (a.creatureId === C_WOLF) { events.push({ type: "wolfUnmoved" }); continue; }
           const r = rollDie(state.seed); state.seed = r.seed;
           const leaves = r.value <= 2;
-          events.push({ type: "desertionRoll", creatureId: a.creatureId, roll: r.value, deserted: leaves });
+          // `[...a.treasure]` snapshots what the ally is carrying at roll time (design US-09
+          // Feedback: "taking [treasure list]") — taken BEFORE any removal, so it reflects exactly
+          // what leaves with them; harmless to compute even when they stay (`deserted: false`).
+          events.push({ type: "desertionRoll", creatureId: a.creatureId, roll: r.value, deserted: leaves, items: [...a.treasure] });
           if (leaves) deserted.push(a);
         }
         if (deserted.length > 0) state.party = state.party.filter((m) => !deserted.includes(m));
