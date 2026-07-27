@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { buildMpGame, mpReduce, fogFilter, distantFights, type CaveState, type PartyState, type MpGameState } from "./multi";
 import { isZombieParty, riseAsZombies, zombiePostSweep } from "./multi-zombies";
 import { declarePvp, setDefenderLine, setAttackerEngage, setDefenderCasters, resolveRoundPvp } from "./multi-fight";
-import { HAZARD_MEDUSA } from "./data/hazards";
+import { HAZARD_MEDUSA, HAZARD_DESERTION, HAZARD_QUARREL, HAZARD_HARPIES } from "./data/hazards";
 import { GS_PLAYING, GS_DEAD, type PartyMember, type PlacedArea } from "./state";
 import { packCoord, DIR_N, DIR_E, DIR_W, DIR_DOWN } from "./coords";
 
@@ -292,5 +292,78 @@ describe("fog-of-war-lite (M7, plan ⑦)", () => {
     expect(distantFights(pvp, 0)).toBe(2); // both combatants ring in the deep
     expect(distantFights(pvp, 1)).toBe(0); // a participant needs no hint
     expect(distantFights(pvp, 2)).toBe(0);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Part F — kit-hazard classifications for the dead (SC-EXT-33, task 4 of the extension-kit
+// multiplayer milestone; the design-Part-4 proposal, pending MSW's confirmation): Desertion and
+// Quarrel are the party turning on ITSELF, and the dead have none of that left in them, so both
+// are run-then-undo repaired like Medusa/Ghouls (multi-zombies.ts's POST-REPAIR section 1). Crypt
+// falls and Harpies' theft are ordinary hazards to a zombie party — no gate, no repair.
+// ---------------------------------------------------------------------------------------------
+
+const HERO = 0;
+const OGRE = 2;
+const MAGIC_SWORD = 3; // base artifact (kind "artifact") — Harpies' theft target
+
+describe("kit-hazard classifications for the dead (SC-EXT-33)", () => {
+  it("Desertion fires no rolls or removals for a zombie party — the announcement itself is repaired away", () => {
+    // cave.seed 2 rolls a 1 first — a guaranteed "leaves" roll for any ally that gets to roll.
+    const cave = {
+      seed: 2,
+      areas: [area(31, packCoord(1, 50, 50)), area(31, packCoord(1, 50, 49), { contents: [300 + HAZARD_DESERTION] })],
+    };
+    const dead = mpReduce(playing(cave, [partyAt(0, { zombie: true, party: [member(0), member(5)] }), partyAt(1)]), 0, { type: "move", dir: DIR_N });
+    expect(dead.state.parties[0]!.party).toEqual([member(0), member(5)]); // nobody removed, nobody rolled
+    expect(dead.events.some((e) => e.type === "desertionRoll")).toBe(false);
+    expect(dead.events.some((e) => e.type === "hazardFired" && e.hazard === HAZARD_DESERTION)).toBe(false);
+    // Control: the SAME hazard, on a living party, still announces itself — proving the zombie's
+    // silence above is the repair at work, not merely the hazard having nothing to do.
+    const alive = mpReduce(playing(cave, [partyAt(0, { party: [member(0), member(5)] }), partyAt(1)]), 0, { type: "move", dir: DIR_N });
+    expect(alive.events.some((e) => e.type === "hazardFired" && e.hazard === HAZARD_DESERTION)).toBe(true);
+  });
+
+  it("Quarrel fizzles for a zombie party — no duel, no casualty, reverted like a Medusa/Ghouls immunity", () => {
+    // cave.seed 2's first two rolls are 1 then 5 — Hero (a) rolls lower than Ogre (b) and would lose.
+    const cave = {
+      seed: 2,
+      areas: [area(31, packCoord(1, 50, 50)), area(31, packCoord(1, 50, 49), { contents: [300 + HAZARD_QUARREL] })],
+    };
+    const dead = mpReduce(playing(cave, [partyAt(0, { zombie: true, party: [member(HERO), member(OGRE)] }), partyAt(1)]), 0, { type: "move", dir: DIR_N });
+    const p = dead.state.parties[0]!;
+    expect(p.party.map((m) => m.status)).toEqual([0, 0]); // neither duelist dies
+    expect(p.gs).toBe(GS_PLAYING);
+    expect(dead.events.some((e) => e.type === "quarrel")).toBe(false);
+    expect(dead.events.some((e) => e.type === "hazardFired" && e.hazard === HAZARD_QUARREL)).toBe(false);
+    // Control: the identical setup on a LIVING party genuinely duels and loses a member — proving
+    // the roll sequence really would draw blood absent the repair.
+    const alive = mpReduce(playing(cave, [partyAt(0, { party: [member(HERO), member(OGRE)] }), partyAt(1)]), 0, { type: "move", dir: DIR_N });
+    const q = alive.events.find((e) => e.type === "quarrel") as { loserId: number | null } | undefined;
+    expect(q?.loserId).toBe(HERO);
+    expect(alive.state.parties[0]!.party.find((m) => m.creatureId === HERO)!.status).toBe(3);
+  });
+
+  it("Harpies still strips a zombie-held artifact to the stash — theft is not a hazard immunity", () => {
+    const cave = { areas: [area(31, packCoord(1, 50, 50)), area(31, packCoord(1, 50, 49), { contents: [300 + HAZARD_HARPIES] })] };
+    const mp = playing(cave, [partyAt(0, { zombie: true, party: [member(0, [MAGIC_SWORD])] }), partyAt(1)]);
+    const r = mpReduce(mp, 0, { type: "move", dir: DIR_N });
+    const p = r.state.parties[0]!;
+    expect(p.party[0]!.treasure).toEqual([]); // stolen, not merely carried
+    expect(r.events.some((e) => e.type === "harpiesSteal")).toBe(true);
+    expect(p.harpyStash ?? []).toEqual([MAGIC_SWORD]); // queued for the not-yet-placed Lair (SC-EXT-12)
+  });
+
+  it("a Crypt trap drops a zombie party exactly like a living one — no Dwarf, no exemption", () => {
+    const coord = packCoord(1, 50, 50);
+    const cave = { seed: 2, cryptCoord: coord, areas: [area(31, coord)] }; // seed 2's first roll is 1 — trap
+    const mp = playing(cave, [partyAt(0, { zombie: true, party: [member(0)] }), partyAt(1)]);
+    const r = mpReduce(mp, 0, { type: "enterCrypt" });
+    const roll = r.events.find((e) => e.type === "cryptRoll") as { roll: number; outcome: string } | undefined;
+    expect(roll?.outcome).toBe("trap");
+    const p = r.state.parties[0]!;
+    expect(p.level).toBe(2);            // the whole party fell a level
+    expect(p.fellThroughTrap).toBe(true);
+    expect(r.state.cave.cryptCoord).toBeUndefined(); // spent either way
   });
 });

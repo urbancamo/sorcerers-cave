@@ -2,7 +2,7 @@ import { GS_PLAYING, GS_DEAD, type PartyMember } from "./state";
 import type { GameEvent } from "./actions";
 import { decodeArea } from "./decode";
 import { SPECIAL_DEEP_POOL } from "./data/areaCards";
-import { HAZARD_MEDUSA, HAZARD_GHOULS } from "./data/hazards";
+import { HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_DESERTION, HAZARD_QUARREL } from "./data/hazards";
 import { DIR_UP, DIR_DOWN, targetCoord, unpackCoord } from "./coords";
 import { advanceTurn, type MpGameState, type MpAction, type PartyState } from "./multi";
 
@@ -23,6 +23,25 @@ import { advanceTurn, type MpGameState, type MpAction, type PartyState } from ".
  *    zombie entry uncovered are parked back onto the tile untested (strangers are indifferent to
  *    zombies and zombies will not attack), and any treasure that reached the working set goes
  *    back to the floor. Traps apply normally: a zombie party has no LIVING dwarf.
+ *  - KIT HAZARDS (SC-EXT-33, extending the same POST-REPAIR seam — the design-Part-4 proposal,
+ *    pending MSW's confirmation): Desertion and Quarrel are the kit's own "the party turns on
+ *    itself" hazards, and the dead have no politics left to fall out over, so both are run-then-
+ *    undo repaired the same way as Medusa/Ghouls above (Desertion's per-ALLY roll is already
+ *    inert for a risen party — status is always 0, never 1, since a zombie party can never test a
+ *    stranger to recruit one — so its repair only strips the announcement; Quarrel's top-two duel
+ *    picks from ALL living members regardless of origin, so a 2+-member zombie party can genuinely
+ *    lose a duelist without this repair, reverted by the same index-matched status restore). Crypt
+ *    falls and Harpies' theft are NOT hazards immune to the dead: a Crypt fall is an unavoidable
+ *    trap by design (no Dwarf check to bypass, same "no LIVING dwarf" logic as an ordinary Trap),
+ *    and Harpies' theft targets *artifacts*, not "treasure" in the cannot-carry-or-use sense the
+ *    pre-gate/treasure-strip enforce — both apply to a zombie party exactly as they would a living
+ *    one, needing no gate or repair of their own. The kit's other five specials (Chasm, Bell Rope,
+ *    Lair, Whirlpool, Gallery, Well) are ordinary CHAMBERS (`decodeArea(card).chamber === true`) —
+ *    zombies enter them like any chamber, with no gate entry needed; a Whirlpool drag in
+ *    particular needs no twin to the Deep-Pool special-case below, since (unlike Deep Pool) it is
+ *    entered normally and its crossing-drag (SC-EXT-6) runs entirely inside solo `reduce`'s "move"
+ *    case (reduce.ts:612-634) — the same solo-composed channel a Crypt/Trap fall uses — so it
+ *    already applies to a zombie party by construction, with no MP/zombie-layer code of its own.
  *  - GAME SWEEP (`zombiePostSweep`, run by the mpReduce wrapper on EVERY result and by the Convex
  *    reaction-window expiry): auto-rise of freshly wiped living seats (MVP: no "Rise as the
  *    dead?" prompt — the dead simply rise, announced by a system line), annihilation of every
@@ -127,12 +146,16 @@ export function zombieAfterAction(
   let cloned = false;
   const ensure = (): void => { if (!cloned) { out = structuredClone(mp); cloned = true; } };
 
-  // 1. Hazard immunity ("not affected by Medusa, vipers, or ghouls"): revert what they just did.
-  //    Members are index-matched against the snapshot — a zombie party array is stable across one
-  //    action (no allies to desert, no trades, appends only).
+  // 1. Hazard immunity ("not affected by Medusa, vipers, or ghouls" — extended by SC-EXT-33 to
+  //    Desertion and Quarrel, the kit's own party-turns-on-itself hazards: the dead have no
+  //    politics to fall out over). Revert what they just did. Members are index-matched against
+  //    the snapshot — a zombie party array is stable across one action (no allies to desert, no
+  //    trades, appends only).
   const immuneFired = evs.some((e) =>
-    e.type === "medusaGaze" || e.type === "viperPit" ||
-    (e.type === "hazardFired" && (e.hazard === HAZARD_MEDUSA || e.hazard === HAZARD_GHOULS)));
+    e.type === "medusaGaze" || e.type === "viperPit" || e.type === "quarrel" ||
+    (e.type === "hazardFired" && (
+      e.hazard === HAZARD_MEDUSA || e.hazard === HAZARD_GHOULS ||
+      e.hazard === HAZARD_DESERTION || e.hazard === HAZARD_QUARREL)));
   if (immuneFired) {
     ensure();
     const p = out.parties[seat]!;
@@ -147,8 +170,10 @@ export function zombieAfterAction(
     });
     const restoredLeft = [...restored];
     evs = evs.filter((e) => {
-      if (e.type === "medusaGaze" || e.type === "viperPit" || e.type === "petrifiedOut") return false;
-      if (e.type === "hazardFired" && (e.hazard === HAZARD_MEDUSA || e.hazard === HAZARD_GHOULS)) return false;
+      if (e.type === "medusaGaze" || e.type === "viperPit" || e.type === "petrifiedOut" || e.type === "quarrel") return false;
+      if (e.type === "hazardFired" && (
+        e.hazard === HAZARD_MEDUSA || e.hazard === HAZARD_GHOULS ||
+        e.hazard === HAZARD_DESERTION || e.hazard === HAZARD_QUARREL)) return false;
       if (e.type === "combatRoll" && e.enemy === "Ghouls") return false;
       if (e.type === "memberDied") {
         const at = restoredLeft.indexOf(e.creatureId);
