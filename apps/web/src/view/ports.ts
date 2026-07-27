@@ -30,6 +30,10 @@ export interface Card {
   entityId?: string;     // your engine's canonical entity id, if any
   file: string;          // path/URL to the card-art PNG
   asleep?: boolean;      // a creature put to sleep by Lotus Dust — drawn with a sleep effect, inert
+  // Extension kit (SC-EXT-10/11, design US-06): a Gallery statue — a stone stranger, inert scenery
+  // until reanimated (Magic Staff group-wake or Holy Water single-target). Distinct from `asleep`
+  // (Lotus Dust): different cause, different renderer overlay (a STONE marker, not a "Zzz").
+  stone?: boolean;
 }
 
 /** A placed tile = one "area" (chamber or tunnel) on the grid. */

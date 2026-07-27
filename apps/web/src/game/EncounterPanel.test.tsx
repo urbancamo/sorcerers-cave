@@ -87,6 +87,77 @@ describe("EncounterPanel", () => {
     expect(screen.getByText(/elixir/i)).toBeInTheDocument();
   });
 
+  it("offers the Chasm's descend button with a blocking confirm before dispatching (US-02)", () => {
+    const dispatch = vi.fn();
+    const base = newGame(1, [0]);
+    const s: GameState = { ...base, phase: "encounter", strangers: [3], areas: base.areas.map((a, i) => (i === 0 ? { ...a, card: 16 | (6 << 7) } : a)) };
+    render(<EncounterPanel state={s} dispatch={dispatch} />);
+    fireEvent.click(screen.getByRole("button", { name: "Descend the chasm" }));
+    expect(dispatch).not.toHaveBeenCalled();
+    expect(screen.getByTestId("confirm-prompt")).toHaveTextContent(/cannot return this way/i);
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "descendChasm" });
+  });
+
+  it("offers the Well's draw button with a blocking confirm before dispatching (US-07)", () => {
+    const dispatch = vi.fn();
+    const base = newGame(1, [0]);
+    const s: GameState = { ...base, phase: "encounter", strangers: [3], areas: base.areas.map((a, i) => (i === 0 ? { ...a, card: 16 | (11 << 7) } : a)) };
+    render(<EncounterPanel state={s} dispatch={dispatch} />);
+    fireEvent.click(screen.getByRole("button", { name: "Draw from the well" }));
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "drawFromWell" });
+  });
+
+  it("offers the Bell Rope as a member-picker dropdown, then a confirm (US-03)", () => {
+    const dispatch = vi.fn();
+    const base = newGame(1, [5, 6]); // Man + Woman
+    const s: GameState = { ...base, phase: "encounter", strangers: [3], areas: base.areas.map((a, i) => (i === 0 ? { ...a, card: 16 | (7 << 7) } : a)) };
+    render(<EncounterPanel state={s} dispatch={dispatch} />);
+    fireEvent.change(screen.getByLabelText("Bell Rope"), { target: { value: "0" } });
+    expect(screen.getByTestId("confirm-prompt")).toHaveTextContent(/pull the bell rope with man/i);
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "pullBellRope", mi: 0 });
+  });
+
+  it("offers the Elixir as a drinker-picker dropdown, then the verbatim confirm (US-19)", () => {
+    const dispatch = vi.fn();
+    const s: GameState = { ...newGame(1, [0]), phase: "encounter", strangers: [3] };
+    s.party[0]!.treasure.push(15); // Hero carries the Elixir
+    render(<EncounterPanel state={s} dispatch={dispatch} />);
+    fireEvent.change(screen.getByLabelText("Elixir"), { target: { value: "0" } });
+    expect(screen.getByTestId("confirm-prompt")).toHaveTextContent(/1: death\. 2–3: nothing\. 4–6: \+2 strength, forever\./);
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "useArtifact", artifact: 15, target: 0 });
+  });
+
+  it("offers the Scroll as a single confirm button, verbatim text (US-21)", () => {
+    const dispatch = vi.fn();
+    const s: GameState = { ...newGame(1, [0]), phase: "encounter", strangers: [3] }; // Hero (HUMAN) vs Troll
+    s.party[0]!.treasure.push(19); // carries the Scroll
+    render(<EncounterPanel state={s} dispatch={dispatch} />);
+    fireEvent.click(screen.getByRole("button", { name: "Read the Scroll" }));
+    expect(screen.getByTestId("confirm-prompt")).toHaveTextContent(/curses the party/i);
+    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "useArtifact", artifact: 19 });
+  });
+
+  it("offers Holy Water's target picker, naming a stone statue distinctly from a stranger (US-20)", () => {
+    const dispatch = vi.fn();
+    const s: GameState = {
+      ...newGame(1, [0], { extensionKit: true }),
+      phase: "encounter",
+      strangers: [15], // Demon (DESTROY target)
+    };
+    s.party[0]!.treasure.push(16); // Hero carries Holy Water
+    render(<EncounterPanel state={s} dispatch={dispatch} />);
+    const select = screen.getByLabelText(/use holy water/i);
+    const opts = [...(select as HTMLSelectElement).options].map((o) => o.textContent ?? "");
+    expect(opts.some((t) => /demon/i.test(t))).toBe(true);
+    fireEvent.change(select, { target: { value: "0" } });
+    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "useArtifact", artifact: 16 }));
+  });
+
   it("offers the Medusa-pause choice as two plain buttons (throw the dust / proceed)", () => {
     const dispatch = vi.fn();
     const s: GameState = { ...newGame(1, [5, 6]), phase: "medusa", hazards: [3], medusaPause: { freshEntry: true } };

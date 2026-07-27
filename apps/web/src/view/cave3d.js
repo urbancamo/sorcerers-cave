@@ -58,6 +58,19 @@ function zzzTexture(){
   cx.fillText('Z',44,86);cx.font='bold 30px Georgia, serif';cx.fillText('z',74,62);cx.font='bold 22px Georgia, serif';cx.fillText('z',96,42);
   _zzzTex=new THREE.CanvasTexture(cv);_zzzTex.colorSpace=THREE.SRGBColorSpace;return _zzzTex;
 }
+// Extension kit (SC-EXT-10, design US-06): a small "STONE" marker for a Gallery statue — a stone
+// stranger laid on the chamber floor, distinct from `zzzTexture`'s Lotus-Dust sleep glyph (different
+// cause, different overlay). Mirrors `zzzTexture`'s own cached-canvas-texture pattern.
+let _stoneTex=null;
+function stoneTexture(){
+  if(_stoneTex) return _stoneTex;
+  const s=128,cv=document.createElement('canvas');cv.width=cv.height=s;
+  const cx=cv.getContext('2d');
+  cx.font='bold 22px Georgia, serif';cx.textAlign='center';cx.textBaseline='middle';
+  cx.fillStyle='#b8b1a2';cx.shadowColor='rgba(0,0,0,0.8)';cx.shadowBlur=6;
+  cx.fillText('STONE',64,64);
+  _stoneTex=new THREE.CanvasTexture(cv);_stoneTex.colorSpace=THREE.SRGBColorSpace;return _stoneTex;
+}
 // Secret-door card art (door-01.png = "A", door-02 = "B", …), cached and shared across rebuilds.
 const _texLoader=new THREE.TextureLoader();
 const doorTexCache=new Map();
@@ -369,7 +382,11 @@ function makeCardObject(card, yaw){
   // the card face
   const face=new THREE.Mesh(new THREE.PlaneGeometry(CARD_W,CARD_H),
     new THREE.MeshBasicMaterial({map:loadPlainTexture(card.file),transparent:true,depthWrite:false}));
+  // Extension kit (SC-EXT-10): a Gallery statue reuses the SAME "greyed = stone" tint token
+  // `makeStoneCard` already established for petrified party members (below), just applied to the
+  // ordinary floor-card face instead of a dedicated overlay group.
   if(card.asleep) face.material.color.setHex(0x8a8aa6); // a sleeping creature: cool, dimmed
+  else if(card.stone) face.material.color.setHex(0x6a6a72); // a Gallery statue: stone-grey
   face.rotation.x=-Math.PI/2; face.position.y=0.001; face.renderOrder=6;
   face.userData.card=card;
   regMat(mat.material);regMat(edge.material);regMat(face.material);
@@ -379,6 +396,11 @@ function makeCardObject(card, yaw){
       new THREE.MeshBasicMaterial({map:zzzTexture(),transparent:true,depthWrite:false}));
     zzz.rotation.x=-Math.PI/2; zzz.position.set(CARD_W*0.24,0.02,-CARD_H*0.30); zzz.renderOrder=7;
     regMat(zzz.material); g.add(zzz);
+  } else if(card.stone){ // "STONE" marker so it reads as scenery, not a threat (design US-06)
+    const stone=new THREE.Mesh(new THREE.PlaneGeometry(CARD_W*0.7,CARD_W*0.7),
+      new THREE.MeshBasicMaterial({map:stoneTexture(),transparent:true,depthWrite:false}));
+    stone.rotation.x=-Math.PI/2; stone.position.set(0,0.02,-CARD_H*0.30); stone.renderOrder=7;
+    regMat(stone.material); g.add(stone);
   }
   g.userData.face=face;
   contentMeshes.push(face);

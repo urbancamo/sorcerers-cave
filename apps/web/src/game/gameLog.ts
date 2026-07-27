@@ -1,6 +1,7 @@
 import {
   CREATURES, TREASURES, replay, decodeArea, scoreBreakdown,
   SPECIAL_GATEWAY, SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_TOMB, SPECIAL_GREAT_HALL,
+  SPECIAL_CHASM, SPECIAL_BELL_ROPE, SPECIAL_LAIR, SPECIAL_WHIRLPOOL, SPECIAL_GALLERY, SPECIAL_WELL,
   HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_MUTINY, HAZARD_TRAP,
   GS_ESCAPED, GS_DEAD, GS_QUIT,
   type GameAction, type GameEvent, type GameState,
@@ -91,6 +92,13 @@ const SPECIAL_NAME: Record<number, string> = {
   [SPECIAL_VIPER_PIT]: "Viper Pit",
   [SPECIAL_TOMB]: "Tomb of Kings",
   [SPECIAL_GREAT_HALL]: "Great Hall",
+  // Extension kit (design Part 2 US-02..07) — the six kit special areas (carry-forward, Task 16).
+  [SPECIAL_CHASM]: "the Chasm",
+  [SPECIAL_BELL_ROPE]: "the Bell Rope",
+  [SPECIAL_LAIR]: "the Lair",
+  [SPECIAL_WHIRLPOOL]: "the Whirlpool",
+  [SPECIAL_GALLERY]: "the Gallery",
+  [SPECIAL_WELL]: "the Well",
 };
 
 /** Human description of a tile's type and layout from its card value: kind (special / chamber / tunnel),
@@ -300,7 +308,12 @@ const NAME3: Record<string, string> = Object.fromEntries(CREATURES.map((c) => [c
 const name3 = (s: string) => (s.toUpperCase() === "GHOULS" ? "GHL" : NAME3[s.toUpperCase()] ?? s.slice(0, 3).toUpperCase());
 const DIR1: Record<number, string> = { 1: "N", 2: "E", 3: "S", 4: "W", 5: "U", 6: "D" };
 const d1 = (d: number) => DIR1[d] ?? "?";
-const TYPE3: Record<number, string> = { [SPECIAL_GATEWAY]: "GTW", [SPECIAL_DEEP_POOL]: "POL", [SPECIAL_VIPER_PIT]: "VPT", [SPECIAL_TOMB]: "TMB", [SPECIAL_GREAT_HALL]: "HAL" };
+// Extension kit specials (carry-forward, Task 16): CHM is already the generic "ordinary chamber"
+// fallback below, so the Chasm gets its own distinct CSM code.
+const TYPE3: Record<number, string> = {
+  [SPECIAL_GATEWAY]: "GTW", [SPECIAL_DEEP_POOL]: "POL", [SPECIAL_VIPER_PIT]: "VPT", [SPECIAL_TOMB]: "TMB", [SPECIAL_GREAT_HALL]: "HAL",
+  [SPECIAL_CHASM]: "CSM", [SPECIAL_BELL_ROPE]: "BEL", [SPECIAL_LAIR]: "LAR", [SPECIAL_WHIRLPOOL]: "WHP", [SPECIAL_GALLERY]: "GAL", [SPECIAL_WELL]: "WEL",
+};
 const REACT3: Record<string, string> = { hostile: "HOS", indifferent: "IND", friendly: "FRD" };
 const RESULT3: Record<string, string> = { partyWon: "WON", enemyWon: "LOS", tie: "TIE" };
 const GS3: Record<number, string> = { 0: "PLY", 1: "ESC", 2: "DED", 3: "QIT" };

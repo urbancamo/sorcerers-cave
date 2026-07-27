@@ -86,6 +86,19 @@ describe("describeEvent", () => {
   it("omits tile info when no state is available (a game that predates logging)", () => {
     expect(describeEvent({ type: "moved", area: 0, level: 1 })).toBe("moved to area 0 (level 1)");
   });
+
+  it("names the six extension-kit special areas (carry-forward, Task 16)", () => {
+    // A chamber (bit16) card whose special nibble (bits 7-10, SC-EXT-1 width) is the given code.
+    const cardFor = (special: number) => 16 | (special << 7);
+    const namesOf = [
+      [6, "the Chasm"], [7, "the Bell Rope"], [8, "the Lair"],
+      [9, "the Whirlpool"], [10, "the Gallery"], [11, "the Well"],
+    ] as const;
+    for (const [special, tileName] of namesOf) {
+      const state = { areas: [{ card: cardFor(special) }] } as unknown as GameState;
+      expect(describeEvent({ type: "moved", area: 0, level: 1 }, state)).toContain(tileName);
+    }
+  });
 });
 
 describe("formatLog", () => {

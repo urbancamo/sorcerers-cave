@@ -1,11 +1,21 @@
-import { decodeArea, unpackCoord, TREASURES, AF_DESTROYED, fluteLulls, type GameState, type PlacedArea } from "@sorcerers-cave/engine";
+// ALL_TREASURES (not the base-only TREASURES): a kit-on game's floor lanes can hold a kit treasure
+// (15-21) — the base table's lookup miss silently misclassified every kit ARTIFACT (Elixir, Holy
+// Water, Magic Axe, Scroll, Magic Shield) as a plain "treasure" category card (wrong border tint,
+// wrong bucket wherever a consumer branches on `card.category === "artifact"`) — found live via the
+// Task 16 manual smoke test (a drawn Magic Axe showed category "treasure").
+import { decodeArea, unpackCoord, ALL_TREASURES, AF_DESTROYED, AF_UNRESOLVED, fluteLulls, type GameState, type PlacedArea } from "@sorcerers-cave/engine";
 import { resolveTile, resolveCardVariant, normExits, type TileArt, type CardArt, type Rot } from "../data/manifest";
 import type { Area, Card } from "./ports";
 
 export interface ArtTables { tiles: TileArt[]; cards: CardArt[]; }
 
-/** engine special int -> ports/manifest special key */
-const SPECIAL: (string | null)[] = [null, "gateway", "deep-pool", "viper-pit", "tomb-of-kings", "great-hall"];
+/** engine special int -> ports/manifest special key. Indices 6-11 are the extension kit's six
+ *  special areas (design §1.2/Part 2 US-02..07); their manifest `special` strings are verified
+ *  against `docs/assets/manifest.json`'s `tilesExtension` entries (carry-forward from Task 5). */
+const SPECIAL: (string | null)[] = [
+  null, "gateway", "deep-pool", "viper-pit", "tomb-of-kings", "great-hall",
+  "chasm", "bell-rope", "lair", "whirlpool", "gallery", "well",
+];
 
 export const areaKey = (level: number, col: number, row: number): string => `${level},${col},${row}`;
 
@@ -16,6 +26,10 @@ export function encodeWorkingSet(state: GameState): number[] {
     ...state.treasures.map((id) => 200 + id),
     ...state.hazards.map((id) => 300 + id),
     ...(state.sleeping ?? []).map((id) => 400 + id),
+    // Extension kit (SC-EXT-10, design US-06): Gallery statues in the party's LIVE chamber working
+    // set — carry-forward from Task 5/7 (this branch was missing, so live statues rendered as
+    // nothing until the party moved on and the persisted 500+id codes took over, reduce.ts:74).
+    ...(state.statues ?? []).map((id) => 500 + id),
     ...(state.lulled ?? []).map((id) => 100 + id), // flute-lulled Dragons; rendered asleep via the dragonsAsleep flag
   ];
 }
@@ -32,9 +46,10 @@ export function laneCards(
   const strangers: Card[] = [], treasure: Card[] = [], hazards: Card[] = [];
   const seen = new Map<string, number>();
   for (const code of codes) {
-    const lotusAsleep = code >= 400; // 400+cid = a creature put to sleep by Lotus Dust (permanent)
-    const kind = lotusAsleep ? "creature" : code >= 300 ? "hazard" : code >= 200 ? "treasure" : "creature";
-    const entityId = lotusAsleep ? code - 400 : code >= 300 ? code - 300 : code >= 200 ? code - 200 : code - 100;
+    const stone = code >= 500; // 500+cid = a Gallery statue (SC-EXT-10) — inert, stone scenery
+    const lotusAsleep = !stone && code >= 400; // 400+cid = a creature put to sleep by Lotus Dust (permanent)
+    const kind = stone || lotusAsleep ? "creature" : code >= 300 ? "hazard" : code >= 200 ? "treasure" : "creature";
+    const entityId = stone ? code - 500 : lotusAsleep ? code - 400 : code >= 300 ? code - 300 : code >= 200 ? code - 200 : code - 100;
     // A Dragon (id 10) sleeps while the party holds the Charmed Flute (dynamic; see fluteLulls).
     const asleep = lotusAsleep || (kind === "creature" && entityId === 10 && dragonsAsleep);
     // The nth copy of an entity in this lane gets the nth physical card's art, so duplicates (e.g.
@@ -46,14 +61,15 @@ export function laneCards(
     const category: Card["category"] =
       kind === "creature" ? "creature"
       : kind === "hazard" ? "hazard"
-      : TREASURES[entityId]?.kind === "artifact" ? "artifact" : "treasure";
+      : ALL_TREASURES[entityId]?.kind === "artifact" ? "artifact" : "treasure";
     const card: Card = {
-      id: `${baseId}#${n}` + (asleep ? "·z" : ""),
+      id: `${baseId}#${n}` + (asleep ? "·z" : stone ? "·s" : ""),
       name: art?.name ?? `${kind} ${entityId}`,
       category,
       entityId: String(entityId),
       file: art?.file ?? "",
       asleep,
+      stone,
     };
     if (kind === "creature") strangers.push(card);
     else if (kind === "hazard") hazards.push(card);
@@ -69,6 +85,13 @@ function displayName(special: string | null, isChamber: boolean): string {
     case "viper-pit": return "Viper Pit";
     case "tomb-of-kings": return "Tomb of Kings";
     case "great-hall": return "Great Hall";
+    // Extension kit (design Part 2 US-02..07) — the six kit special areas.
+    case "chasm": return "The Chasm";
+    case "bell-rope": return "The Bell Rope";
+    case "lair": return "The Lair";
+    case "whirlpool": return "The Whirlpool";
+    case "gallery": return "The Gallery";
+    case "well": return "The Well";
     default: return isChamber ? "Chamber" : "Tunnel";
   }
 }
@@ -94,10 +117,18 @@ export function projectArea(
   const dragonsAsleep = idx === state.partyArea && fluteLulls(state);
   // Heavy treasure left in a Deep Pool lives on `dropped` (reclaimable on return); display-only
   // hazard scars (e.g. an Earthquake) live on `markers`. Show both on the floor alongside contents.
+  // Extension kit (SC-EXT-13, design US-08): a parked Crypt has no content code of its own (unlike
+  // Medusa's lurk, `state.cryptCoord` is a bare coordinate pointer, not an `area.contents` entry) —
+  // without this, nothing renders at all while it waits to be entered, contradicting the design's
+  // "the crypt card lays down and stays visible in the area (lurk presentation, like Medusa's parked
+  // card)". Reuses the SAME code (200+21, Crypt/Gems) a "find" resolves onto the floor, so the visual
+  // provenance is identical whether the crypt is still sealed or has already been opened.
+  const cryptLurk = state.cryptCoord !== undefined && pa.coord === state.cryptCoord ? [200 + 21] : [];
   const floor = [
     ...(liveContents ?? pa.contents),
     ...(pa.dropped ?? []).map((t) => 200 + t),
     ...(pa.markers ?? []),
+    ...cryptLurk,
   ];
   const lanes = laneCards(floor, art.cards, dragonsAsleep);
   return {
@@ -112,7 +143,16 @@ export function projectArea(
     note: null,
     party: idx === state.partyArea,
     visited: pa.visited,
-    faceDown: !pa.faceUp,
+    // Extension kit (SC-EXT-28, design US-22): a Spell-remapped area is placed `faceUp:true` (it is
+    // NOT the ordinary dead-end-frontier face-down case) but must still render as an unrevealed card
+    // back until it is genuinely (re-)entered — `AF_UNRESOLVED` is the renderer's own signal for
+    // that, cleared by `resolveArea` the moment a forward entry resolves it (reduce.ts:355). Without
+    // this the map would show the freshly-drawn tile's real art immediately on the remap, before
+    // anyone has set foot on it — contradicting the design's "the map visibly swaps the previous
+    // tile for a face-down card back." A `withdraw` landing on this tile does NOT clear the flag
+    // (disclosed engine gap, reduce.ts:353) — the tile stays face-down under the party until a later
+    // forward entry resolves it; documented, not fixed here (no engine change in this pass).
+    faceDown: !pa.faceUp || (pa.flags & AF_UNRESOLVED) !== 0,
     destroyed: (pa.flags & AF_DESTROYED) !== 0,
     secretDoor: pa.secretDoor ?? null,
     strangers: lanes.strangers,

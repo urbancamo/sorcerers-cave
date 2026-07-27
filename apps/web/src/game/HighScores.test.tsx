@@ -81,6 +81,20 @@ describe("HighScores", () => {
     expect(screen.getByTestId("high-scores")).toBeInTheDocument(); // table again
   });
 
+  it("names a kit party member/artifact in the detail, not a raw id fallback (SC-EXT-29)", () => {
+    const rows = [
+      row({
+        _id: "a", name: "Kitter", extensionKit: true, score: 10,
+        party: [{ creatureId: 16, status: 0, dragonKills: 0, treasure: [15] }], // Lion carrying the Elixir
+      }),
+    ];
+    render(<HighScores rows={rows} />);
+    fireEvent.click(screen.getByText("Kitter"));
+    const detail = screen.getByTestId("hs-detail");
+    expect(within(detail).getByText("Lion")).toBeInTheDocument();
+    expect(within(detail).getByText("Elixir")).toBeInTheDocument();
+  });
+
   it("shows expedition stats in the detail once they load", () => {
     useQueryMock.mockReturnValue({
       maxDepth: 4, turns: 23, areasMapped: 30, roundsFought: 7, enemiesSlain: 12, artifactsUsed: 5,

@@ -45,6 +45,25 @@ describe("PartyPanel", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "setBorne", mi: 0, idx: 1, borne: false });
   });
 
+  it("does not dim the Magic Shield when borne by an eligible member (Man, US-23)", () => {
+    const s = partyState(); // Man (idx 0) + Dwarf (idx 1)
+    s.party[0]!.treasure.push(20); // Man carries and bears the Shield
+    s.party[0]!.borne = [20];
+    render(<PartyPanel state={s} dispatch={() => {}} onClose={() => {}} />);
+    const live = screen.getByRole("button", { name: /magic shield \(borne\)$/i });
+    expect(live.className).not.toContain("inert");
+  });
+
+  it("marks the Shield inert when borne by a Dwarf (not Man/Woman/Hero/W-Hero)", () => {
+    const s = partyState(); // Man (idx 0) + Dwarf (idx 1)
+    s.party[1]!.treasure.push(20); // the Dwarf carries and bears the Shield
+    s.party[1]!.borne = [20];
+    render(<PartyPanel state={s} dispatch={() => {}} onClose={() => {}} />);
+    const inert = screen.getByRole("button", { name: /magic shield \(borne\) \(inert\)/i });
+    expect(inert.className).toContain("inert");
+    expect(inert.title).toMatch(/inert — needs a man, woman, hero, or w-hero/i);
+  });
+
   it("moves a carried treasure to another member", () => {
     const dispatch = vi.fn();
     render(<PartyPanel state={partyState()} dispatch={dispatch} onClose={() => {}} />);

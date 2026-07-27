@@ -183,6 +183,43 @@ describe("FightSurface", () => {
     expect(screen.getByTestId("tray-0")).toHaveTextContent(/witch/i);
   });
 
+  it("names a Holy Water mid-fight target via its own offset encoding, not a crash (SC-EXT-24, US-20)", () => {
+    // Holy Water's `target` for a DESTROY/WEAKEN mid-fight use is HW_STRANGER_BASE(3000)+strangerIdx —
+    // NOT a party index. The bottom artefact-buttons row previously named EVERY non-Lotus-Dust target
+    // as a party member (`state.party[a.target]!.creatureId`), which crashes for any offset target.
+    const dispatch = vi.fn();
+    const s: GameState = {
+      ...newGame(1, [0], { extensionKit: true }),
+      phase: "fight",
+      fight: { surprise: 0, round: 1, focus: 0 },
+      strangers: [15], // Demon — a DESTROY target
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [16] }], // Hero carrying Holy Water
+    };
+    expect(() => render(<FightSurface state={s} dispatch={dispatch} cards={cards} />)).not.toThrow();
+    const btn = screen.getByRole("button", { name: /holy water.*demon/i });
+    fireEvent.click(btn);
+    expect(dispatch).toHaveBeenCalledWith({ type: "useArtifact", artifact: 16, target: 3000 });
+  });
+
+  it("extends the forced doom banner to an unfightable, unengaged Demon, naming it (not the Spectre) (US-13)", () => {
+    const dispatch = vi.fn();
+    // A lone Man (no magic, no Axe) facing a single Demon: nothing can be placed, but the round must
+    // be fought — the Demon follows the Spectre's own forced-round/auto-slay rule (SC-EXT-21).
+    const s: GameState = {
+      ...newGame(1, [5], { extensionKit: true }),
+      phase: "fight",
+      fight: { surprise: 0, round: 2, focus: 0 },
+      strangers: [15], // Demon
+    };
+    render(<FightSurface state={s} dispatch={dispatch} cards={cards} />);
+    expect(screen.getByTestId("forced-spectre")).toHaveTextContent(/no one can fight the demon/i);
+    expect(screen.getByTestId("forced-spectre")).not.toHaveTextContent(/spectre/i);
+    const roll = screen.getByRole("button", { name: /face the demon/i });
+    expect(roll).not.toBeDisabled();
+    fireEvent.click(roll);
+    expect(dispatch).toHaveBeenCalledWith({ type: "resolveRound", matches: [] });
+  });
+
   it("offers retreat after round 1", () => {
     const dispatch = vi.fn();
     // The gateway (card 175) has all four doorways, so legalActions offers N/E/S/W retreats at round > 1.

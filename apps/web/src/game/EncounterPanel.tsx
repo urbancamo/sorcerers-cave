@@ -4,6 +4,8 @@
 // would crash here before a kit-on game gets past its first encounter.
 import { ALL_CREATURES, ALL_TREASURES, carriedWeight, legalActions, type GameState, type GameAction } from "@sorcerers-cave/engine";
 import { memberLabel } from "./memberLabels";
+import { ConfirmButton, ConfirmPicker } from "./ConfirmButton";
+import { holyWaterTargetName } from "./holyWaterLabel";
 
 // The `fight` phase is owned by the FightSurface (drag-card pairing); this panel keeps
 // encounter + pickup + the Medusa pause (throw the Lotus Dust at her, or proceed).
@@ -12,7 +14,14 @@ const ACTIVE = new Set<GameState["phase"]>(["encounter", "pickup", "medusa"]);
 const RETREAT_DIR: Record<number, string> = { 1: "north", 2: "east", 3: "south", 4: "west", 5: "up the stair", 6: "down the stair" };
 
 // Verb shown in an artefact's "use on…" prompt, by treasure id.
-const ART_VERB: Record<number, string> = { 5: "put to sleep", 6: "revive", 8: "strengthen", 9: "free from stone" };
+const ART_VERB: Record<number, string> = { 5: "put to sleep", 6: "revive", 8: "strengthen", 9: "free from stone", 16: "use on" };
+
+// Extension kit blocking-confirm popups (design Part 2 — Trap-fall pattern), verbatim per story.
+const CHASM_CONFIRM = "Descend? You cannot return this way.";
+const WELL_CONFIRM = "Draw 1 card — you cannot withdraw this turn.";
+const CRYPT_CONFIRM = "Enter? A trap here cannot be avoided.";
+const ELIXIR_CONFIRM = "One draught. 1: death. 2–3: nothing. 4–6: +2 strength, forever.";
+const SCROLL_CONFIRM = "Destroys every enemy here save the magical — and curses the party.";
 
 /** Disambiguate identical option labels (e.g. two Men) by appending “ #2”, “ #3” to the repeats. */
 function dedupeLabels(labels: string[]): string[] {
@@ -62,6 +71,13 @@ function label(a: GameAction, state: GameState): string {
       return `Use ${tname}`;
     }
     case "proceed": return "Proceed — brave her gaze";
+    // Extension kit — these are pulled out into their own ConfirmButton/ConfirmPicker rows below
+    // (design's blocking-confirm pattern), but a plain label here keeps `label()` total over every
+    // GameAction the panel might legally see, for any caller that doesn't special-case them first.
+    case "descendChasm": return "Descend the chasm";
+    case "drawFromWell": return "Draw from the well";
+    case "enterCrypt": return "Enter the crypt";
+    case "pullBellRope": return `Pull the bell rope → ${memberLabel(state.party, a.mi)}`;
     default: return a.type;
   }
 }
@@ -75,18 +91,33 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
   // Collapse the action explosion into one control per treasure / per artefact:
   //  - each treasure is listed once, with a dropdown of the members who can carry it;
   //  - each artefact is listed once, with a dropdown of the targets it can be used on.
-  // Everything else (test, attack, withdraw, leave, retake) stays a plain button.
+  // Everything else (test, attack, withdraw, leave, retake) stays a plain button. The extension
+  // kit's own confirm-gated actions (Chasm/Well/Crypt/Bell Rope/Elixir/Scroll) are pulled out into
+  // their own ConfirmButton/ConfirmPicker rows (design's blocking-confirm pattern) rather than
+  // falling into the generic buckets below.
   const takeByTi = new Map<number, number[]>();        // treasure index -> member indices that can carry it
   const artByArtifact = new Map<number, GameAction[]>(); // artefact id -> its target actions
   const simple: GameAction[] = [];
   // "Retake dropped treasure (as before)" is the one-tap shortcut after a won fight — surface it FIRST,
   // ahead of the per-item assignment dropdowns.
   let retake: GameAction | null = null;
+  let descendChasm: Extract<GameAction, { type: "descendChasm" }> | null = null;
+  let drawFromWell: Extract<GameAction, { type: "drawFromWell" }> | null = null;
+  let enterCrypt: Extract<GameAction, { type: "enterCrypt" }> | null = null;
+  const pullBellRope: Extract<GameAction, { type: "pullBellRope" }>[] = [];
+  const useElixir: Extract<GameAction, { type: "useArtifact" }>[] = [];
+  let readScroll: Extract<GameAction, { type: "useArtifact" }> | null = null;
   // The Medusa pause offers exactly two choices (throw the dust / proceed) — both plain buttons,
   // not a target dropdown: the target (Medusa) is implicit.
   const medusaPause = state.phase === "medusa";
   for (const a of actions) {
     if (a.type === "takeTreasure") (takeByTi.get(a.ti) ?? takeByTi.set(a.ti, []).get(a.ti)!).push(a.mi);
+    else if (a.type === "descendChasm") descendChasm = a;
+    else if (a.type === "drawFromWell") drawFromWell = a;
+    else if (a.type === "enterCrypt") enterCrypt = a;
+    else if (a.type === "pullBellRope") pullBellRope.push(a);
+    else if (a.type === "useArtifact" && a.artifact === 15 && !medusaPause) useElixir.push(a);
+    else if (a.type === "useArtifact" && a.artifact === 19 && !medusaPause) readScroll = a;
     else if (a.type === "useArtifact" && !medusaPause) (artByArtifact.get(a.artifact) ?? artByArtifact.set(a.artifact, []).get(a.artifact)!).push(a);
     else if (a.type === "retakeDropped") retake = a;
     else simple.push(a);
@@ -97,10 +128,12 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
     const base = memberLabel(state.party, mi); // party-wide "#N" for duplicate classes
     return c.carry > 0 ? `${base} (${carriedWeight(m)}/${c.carry}kg)` : base;
   };
-  // An artefact action's target, named: Lotus Dust (5) targets a stranger; the others a party member.
+  // An artefact action's target, named: Lotus Dust (5) targets a stranger; Holy Water (16) spans its
+  // own four-pool offset encoding (SC-EXT-24 — see holyWaterLabel.ts); everything else a party member.
   const artTargetName = (a: Extract<GameAction, { type: "useArtifact" }>) =>
     a.target === undefined ? "the party"
       : a.artifact === 5 ? ALL_CREATURES[state.strangers[a.target]!]!.name
+      : a.artifact === 16 ? holyWaterTargetName(state, a.target, (mi) => memberLabel(state.party, mi))
       : memberLabel(state.party, a.target);
 
   return (
@@ -178,6 +211,42 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
               </label>
             );
           })}
+        </div>
+      )}
+
+      {/* Extension kit: the Bell Rope's member picker + confirm (design US-03). */}
+      {pullBellRope.length > 0 && (
+        <div className="scv-enc-assign">
+          <ConfirmPicker
+            rowLabel="Bell Rope"
+            placeholder="Pull the bell rope…"
+            options={dedupeLabels(pullBellRope.map((a) => memberLabel(state.party, a.mi))).map((lbl, k) => ({ label: lbl, value: pullBellRope[k]! }))}
+            confirmText={(a) => `Pull the bell rope with ${memberLabel(state.party, a.mi)}? Declining is always allowed.`}
+            onConfirm={(a) => dispatch(a)}
+          />
+        </div>
+      )}
+
+      {/* Extension kit: the Elixir's drinker picker + verbatim confirm (design US-19). */}
+      {useElixir.length > 0 && (
+        <div className="scv-enc-assign">
+          <ConfirmPicker
+            rowLabel="Elixir"
+            placeholder="Elixir — choose a drinker…"
+            options={dedupeLabels(useElixir.map((a) => memberLabel(state.party, a.target!))).map((lbl, k) => ({ label: lbl, value: useElixir[k]! }))}
+            confirmText={() => ELIXIR_CONFIRM}
+            onConfirm={(a) => dispatch(a)}
+          />
+        </div>
+      )}
+
+      {/* Extension kit: single-confirm actions (design's blocking-confirm/Trap-fall pattern). */}
+      {(descendChasm || drawFromWell || enterCrypt || readScroll) && (
+        <div className="scv-enc-actions">
+          {descendChasm && <ConfirmButton label="Descend the chasm" confirmText={CHASM_CONFIRM} onConfirm={() => dispatch(descendChasm!)} />}
+          {drawFromWell && <ConfirmButton label="Draw from the well" confirmText={WELL_CONFIRM} onConfirm={() => dispatch(drawFromWell!)} />}
+          {enterCrypt && <ConfirmButton label="Enter the crypt" confirmText={CRYPT_CONFIRM} onConfirm={() => dispatch(enterCrypt!)} />}
+          {readScroll && <ConfirmButton label="Read the Scroll" confirmText={SCROLL_CONFIRM} onConfirm={() => dispatch(readScroll!)} />}
         </div>
       )}
 

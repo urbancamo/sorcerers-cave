@@ -1,5 +1,5 @@
 import {
-  CREATURES, ALL_CREATURES, ALL_TREASURES,
+  ALL_CREATURES, ALL_TREASURES,
   HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_MUTINY, HAZARD_TRAP, HAZARD_DESERTION,
   HAZARD_HARPIES, HAZARD_QUARREL, HAZARD_SPELL,
   SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_WHIRLPOOL,
@@ -18,18 +18,17 @@ export interface Notice {
   tone: Tone;
 }
 
-const name = (cid: number): string => CREATURES[cid]?.name ?? "a creature";
-// Holy Water/Scroll (US-20/US-21) can name ANY creature id, base or kit (a stoned party member, a
-// Gallery statue, a destroyed Spectre/Demon or a scrolled-away stranger) — routed through
-// `ALL_CREATURES` rather than extending the base-only `name()` helper above (a known gap other kit
-// notices deliberately hardcode around instead of widening — see `demonSlew`/`apprenticeTurned`).
-const allName = (cid: number): string => ALL_CREATURES[cid]?.name ?? "a creature";
+// ALL_CREATURES (not the base-only CREATURES, carry-forward from Task 15): any creatureId here can
+// be a kit id (14-20) — a kit ally naming itself in bellRoll/quarrel/demonSlew/elixirDrunk/etc., or a
+// kit stranger/statue in Holy Water's/Scroll's notices. Byte-identical for ids 0-13.
+const name = (cid: number): string => ALL_CREATURES[cid]?.name ?? "a creature";
+const allName = name; // former base/kit split retired — every site now goes through the same widened lookup
 const treasureName = (tid: number): string => ALL_TREASURES[tid]?.name ?? "an item";
 const itemList = (ids: number[]): string => ids.map(treasureName).join(", ");
 const plural = (n: number, s: string) => `${n} ${s}${n === 1 ? "" : "s"}`;
 const DIR_WORD: Record<number, string> = { 1: "north", 2: "east", 3: "south", 4: "west", 5: "up the stair", 6: "down the stair" };
-// The Bell Rope's 2-3 "toll" band uses the design's exact foreboding wording (US-03 Feedback).
-const BELL_TOLL_TEXT = "A bell tolls once, far above — and is answered by silence. Something, somewhere, now knows you are here.";
+// US-04 Feedback, verbatim — shared by the `lairStash` and `harpiesSteal` cases (ordering fix, T9 minor).
+const LAIR_STASH_TEXT: Notice = { text: "The harpies' hoard glitters among the bones — the stolen artifacts are here.", tone: "good" };
 
 /** A short notice for a fired hazard's effect. Mutiny and Trap are surfaced elsewhere
  *  (the `mutinied` event and the trap confirm modal), so they produce nothing here. */
@@ -225,55 +224,48 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "chasmDescend":
         out.push({ text: "The party climbs down into the chasm.", tone: "neutral" });
         break;
-      case "whirlpoolRoll":
-        out.push(
-          e.dragged
-            ? { text: "The whirlpool drags the whole party under!", tone: "bad" }
-            : { text: "The party wades the shallows safely.", tone: "good" },
-        );
+      case "whirlpoolRoll": // rollView's single-die overlay (Task 16) — dragged/safe message + tone
         break;
       case "wellDraw":
         out.push({ text: "The bucket rises from the dark…", tone: "neutral" });
         break;
-      case "bellRoll":
-        if (e.outcome === "vanish") {
-          out.push({ text: `The rope yanks ${name(e.creatureId)} upward. They are never seen again.`, tone: "bad" });
-        } else if (e.outcome === "toll") {
-          out.push({ text: BELL_TOLL_TEXT, tone: "neutral" });
-        } else {
-          out.push({ text: "The bell's echo shakes something loose — two cards are drawn. The party cannot withdraw this turn.", tone: "neutral" });
-        }
+      case "bellRoll": // rollView's single-die overlay (Task 16) — vanish/toll/stir message + tone
         break;
       case "galleryStone":
-        out.push({ text: "The strangers here are stone — silent, waiting.", tone: "neutral" });
+        // UX ruling (T7 minor): when a Staff-Wizard's `staffWake` fires in this SAME batch (first
+        // entry into a Gallery already carrying the Staff — `enterChamber` then `wakeGalleryStatues`,
+        // reduce.ts), the statues never actually stay stone long enough to narrate — skip this line
+        // so the beat reads as one event ("the Staff blazes…"), not "stone… then immediately awake".
+        if (!events.some((ev) => ev.type === "staffWake")) {
+          out.push({ text: "The strangers here are stone — silent, waiting.", tone: "neutral" });
+        }
         break;
       case "staffWake":
         out.push({ text: "The Magic Staff blazes — every stone figure in the gallery cracks and stirs!", tone: "neutral" });
         break;
       case "lairStash":
-        out.push({ text: "The harpies' hoard glitters among the bones — the stolen artifacts are here.", tone: "good" });
+        // Ordering fix (T9 minor): when Harpies deliver straight to an already-placed Lair,
+        // `stashOrDeliver` (chamber.ts) emits `lairStash` BEFORE `harpiesSteal` in the hazard's own
+        // event batch — pushing this text in natural iteration order would read "the hoard glitters"
+        // ahead of "Harpies swoop!", backwards (the theft should read first). When a companion
+        // `harpiesSteal` fires in the SAME batch, its own case (below) pushes this exact line itself,
+        // right after the theft text, so skip it here to avoid a duplicate in the wrong order. Fires
+        // normally when the Lair is entered/placed independently of a theft (design US-04).
+        if (!events.some((ev) => ev.type === "harpiesSteal")) {
+          out.push(LAIR_STASH_TEXT);
+        }
         break;
       case "cryptParked":
         out.push({ text: "A sealed crypt squats in the corner of this chamber.", tone: "neutral" });
         break;
-      case "cryptRoll":
-        out.push(
-          e.outcome === "trap"
-            ? { text: "The floor gives way! The party plunges into darkness.", tone: "bad" }
-            : { text: "Within the crypt: gems!", tone: "good" },
-        );
+      case "cryptRoll": // rollView's single-die overlay (Task 16) — trap/find message + tone
         break;
       case "desertionRoll":
-        // Individual rolls are shown via the per-ally dice lanes (Task 16's DiceRoll overlay); the
-        // "party holds together" summary (design US-09 Feedback) is appended once, below, after every
-        // event has been scanned — it needs to know whether ANY ally in the whole batch deserted.
-        // `items` itemizes exactly what leaves with a deserter (design Feedback "taking [treasure
-        // list]"); an empty list reads as a plain, no-loot departure rather than a dropped clause.
-        out.push(
-          e.deserted
-            ? { text: `${name(e.creatureId)} slips away into the dark, taking ${e.items.length ? itemList(e.items) : "nothing"}.`, tone: "bad" }
-            : { text: `${name(e.creatureId)} wavers… but stays.`, tone: "neutral" },
-        );
+        // Individual rolls are shown via the per-ally dice LANES (rollView's desertionView, Task 16)
+        // — one lane per ally, no per-roll text notice here. The "party holds together" summary
+        // (design US-09 Feedback) is still derived below, after every event has been scanned — it
+        // needs to know whether ANY ally in the whole batch deserted, straight from `events` (not
+        // from `out`), so silencing this case's own text doesn't affect it.
         break;
       case "wolfUnmoved":
         out.push({ text: "The Wolf is unmoved.", tone: "neutral" });
@@ -283,24 +275,21 @@ export function eventNotices(events: GameEvent[]): Notice[] {
         // turns on whether the Lair is already on the map — inferred from a companion `lairStash`
         // in this SAME batch (`stashOrDeliver`, chamber.ts, emits it exactly when it delivers
         // straight to a placed Lair) rather than a redundant field on this event.
-        const lairKnown = events.some((ev) => ev.type === "lairStash");
+        const lairStashed = events.find((ev): ev is Extract<GameEvent, { type: "lairStash" }> => ev.type === "lairStash");
         out.push({
-          text: `Harpies swoop! They snatch ${itemList(e.treasureIds)} and wheel away toward ${lairKnown ? "their lair" : "a lair you have not yet found"}.`,
+          text: `Harpies swoop! They snatch ${itemList(e.treasureIds)} and wheel away toward ${lairStashed ? "their lair" : "a lair you have not yet found"}.`,
           tone: "bad",
         });
+        // Ordering fix (T9 minor, see the `lairStash` case above): the delivery line belongs right
+        // after the theft line, not wherever `lairStash` happens to sit in the raw event order.
+        if (lairStashed) out.push(LAIR_STASH_TEXT);
         if (e.cursed) out.push({ text: "The Eye of God is torn away — its curse descends upon you.", tone: "bad" });
         break;
       }
       case "harpiesLurk":
         out.push({ text: "Harpies circle overhead, eyeing your baggage.", tone: "neutral" });
         break;
-      case "quarrel":
-        out.push({ text: `Tempers flare — ${name(e.aId)} and ${name(e.bId)} come to blows!`, tone: "neutral" });
-        out.push(
-          e.loserId !== null
-            ? { text: `${name(e.loserId)} falls to ${name(e.loserId === e.aId ? e.bId : e.aId)}'s fury.`, tone: "bad" }
-            : { text: "They are pulled apart, fuming but unhurt.", tone: "good" },
-        );
+      case "quarrel": // rollView's side-by-side dice overlay (Task 16) — "flare"/loser-or-tie message
         break;
       case "quarrelFizzled":
         out.push({ text: "Tempers flare, but there's no one left to settle it with — the moment passes.", tone: "neutral" });
@@ -334,12 +323,10 @@ export function eventNotices(events: GameEvent[]): Notice[] {
         out.push({ text: `The Demon's malice claims ${name(e.creatureId)}!`, tone: "bad" });
         break;
       case "elixirDrunk":
-        // Design US-19 Feedback, verbatim per band. `deathPrevented`/`eyeForsaken`/`itemsSpilled`
-        // (the ordinary death machinery) fire alongside this on the death band, each with their own
-        // notice, exactly as any other "killing die-roll" site (e.g. Quarrel).
-        if (e.outcome === "death") out.push({ text: `${name(e.creatureId)} convulses — poison!`, tone: "bad" });
-        else if (e.outcome === "nothing") out.push({ text: "It tastes of pond water. Nothing happens.", tone: "neutral" });
-        else out.push({ text: `${name(e.creatureId)} feels power settle into their bones. (+2 fs)`, tone: "good" });
+        // rollView's single-die overlay (Task 16) — death/nothing/strength message + tone, verbatim
+        // per design US-19 Feedback. `deathPrevented`/`eyeForsaken`/`itemsSpilled` (the ordinary death
+        // machinery) still fire alongside this on the death band, each with their OWN notice, exactly
+        // as any other "killing die-roll" site (e.g. Quarrel) — only this event's own text moved.
         break;
       // Holy Water's four outcomes (design US-20 Feedback, verbatim per mode, SC-EXT-24).
       case "holyWaterRevived":

@@ -366,6 +366,17 @@
   color: var(--cream);
   background: rgba(201, 161, 78, 0.14);
 }
+.scv-enc-btn.ghost { background: transparent; border-color: var(--line-strong); }
+
+/* Extension kit blocking-confirm popup (design's Trap-fall pattern — ConfirmButton.tsx): a second
+   tap reveals the consequence text + Confirm/Cancel before the action actually dispatches. */
+.scv-confirm {
+  display: flex; flex-direction: column; gap: 8px;
+  padding: 10px 12px; border-radius: 10px;
+  border: 1px solid var(--crimson); background: rgba(168, 68, 58, 0.1);
+}
+.scv-confirm-text { margin: 0; font-family: var(--ui); font-size: 13px; color: var(--cream); line-height: 1.4; }
+.scv-confirm-actions { display: flex; flex-wrap: wrap; gap: 6px; }
 
 /* Treasure / artefact assignment: one row per item with a dropdown of targets (collapses the
    take-per-member / use-per-target action explosion into a compact menu). Styled to match the
@@ -1084,6 +1095,10 @@
   font-family: var(--display); font-size: 11px; font-weight: 700; color: var(--brass-bright);
   background: rgba(13, 13, 17, 0.78); text-shadow: 0 0 3px #000;
 }
+/* Extension kit (SC-EXT-27, design US-23): the Magic Shield borne by an ineligible member — the
+   ward is inert (no Man/Woman/Hero/W-Hero holding it), shown dimmed rather than a full brass glow. */
+.scv-pp-item.inert { opacity: .5; filter: grayscale(.6); }
+.scv-pp-item.inert::after { color: var(--parchment); text-shadow: 0 0 3px #000; }
 /* Large floating card preview — fixed to the viewport, above the panel, never clipped. */
 .scv-pp-preview {
   position: fixed; inset: 0; z-index: 80; display: grid; place-items: center;

@@ -2,7 +2,10 @@ import { useEffect, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { CREATURES, TREASURES, GS_ESCAPED, GS_DEAD, GS_QUIT, type PartyMember } from "@sorcerers-cave/engine";
+// ALL_CREATURES/ALL_TREASURES (not the base-only tables): a saved kit-on game's leaderboard detail
+// can show a kit id (14-21) in its party/loot — the base tables would fall back to "Creature 16" /
+// "Treasure 15" instead of the real name (cosmetic-fallback carry-forward, Task 15/16).
+import { ALL_CREATURES, ALL_TREASURES, GS_ESCAPED, GS_DEAD, GS_QUIT, type PartyMember } from "@sorcerers-cave/engine";
 import { loadManifest, resolveCard, resolveCardVariant, type CardArt } from "../data/manifest";
 import { downloadLog, type GameLog } from "./gameLog";
 
@@ -53,7 +56,7 @@ function ScoreDetail({ row, rank, onBack, onReplay }: {
   const log = useQuery(api.highScores.log, { id: row._id as Id<"highScores"> }) as GameLog | null | undefined;
 
   const left = row.party.filter(survived);
-  const artifacts = left.flatMap((m) => m.treasure).filter((t) => TREASURES[t]?.kind === "artifact").length;
+  const artifacts = left.flatMap((m) => m.treasure).filter((t) => ALL_TREASURES[t]?.kind === "artifact").length;
   // Each member's copy-index among same-creature members → its own card illustration (so two Men
   // don't share one image), mirroring the in-game party panel.
   const copyIdx = new Map<number, number>(), tally = new Map<number, number>();
@@ -93,7 +96,7 @@ function ScoreDetail({ row, rank, onBack, onReplay }: {
       )}
       <ul className="scv-hsd-list">
         {row.party.map((m, i) => {
-          const c = CREATURES[m.creatureId];
+          const c = ALL_CREATURES[m.creatureId];
           const note = STATUS_NOTE[m.status];
           const cimg = resolveCardVariant("creature", m.creatureId, copyIdx.get(i) ?? 0, cards)?.file ?? null;
           return (
@@ -110,7 +113,7 @@ function ScoreDetail({ row, rank, onBack, onReplay }: {
                 <div className="scv-hsd-items">
                   {m.treasure.length === 0 && <span className="scv-hsd-empty">carried nothing out</span>}
                   {m.treasure.map((tid, j) => {
-                    const t = TREASURES[tid];
+                    const t = ALL_TREASURES[tid];
                     const timg = resolveCard("treasure", tid, cards)?.file ?? null;
                     return (
                       <span

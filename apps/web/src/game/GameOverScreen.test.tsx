@@ -1,5 +1,5 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
-import { describe, it, expect, vi } from "vitest";
+import { render, screen, fireEvent, waitFor, act } from "@testing-library/react";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { newGame, GS_ESCAPED, GS_DEAD, GS_QUIT, type GameState } from "@sorcerers-cave/engine";
 
 const { downloadLogMock } = vi.hoisted(() => ({ downloadLogMock: vi.fn() }));
@@ -116,6 +116,36 @@ describe("GameOverScreen", () => {
     const escaped: GameState = { ...newGame(1, [0]), gs: GS_ESCAPED };
     render(<GameOverScreen state={escaped} onNewGame={() => {}} />);
     expect(screen.queryByTestId("game-code")).toBeNull();
+  });
+
+  describe("Idol reveal (US-25)", () => {
+    beforeEach(() => vi.useFakeTimers());
+    afterEach(() => vi.useRealTimers());
+
+    it("animates the Idol's reveal (a visible d6) before showing the roll call, then its final value", () => {
+      const base = newGame(1, [0], { extensionKit: true });
+      const escaped: GameState = { ...base, gs: GS_ESCAPED, party: [{ ...base.party[0]!, treasure: [18] }] }; // Hero carrying the Idol
+      render(<GameOverScreen state={escaped} onNewGame={() => {}} />);
+      // The dice overlay renders on top of the game-over screen (the established DiceRoll pattern —
+      // GameScreen shows it the same way), so both coexist; "Continue" gates the outcome text.
+      expect(screen.getByRole("dialog", { name: /dice roll/i })).toBeInTheDocument();
+      expect(screen.getByTestId("game-over")).toBeInTheDocument();
+      act(() => vi.advanceTimersByTime(11 * 80)); // run the tumble so Continue appears
+      expect(screen.getByText(/the idol's eyes open/i)).toBeInTheDocument();
+      fireEvent.click(screen.getByRole("button", { name: /continue/i }));
+      expect(screen.queryByRole("dialog", { name: /dice roll/i })).toBeNull();
+      expect(screen.getByTestId("game-over")).toBeInTheDocument();
+      // scoreBreakdown's own deterministic roll (seed 1) — the Idol's line shows the resolved 10×roll,
+      // and the total includes it (Hero 10 + Idol).
+      expect(screen.getByText("Idol")).toBeInTheDocument();
+    });
+  });
+
+  it("skips the Idol overlay entirely when no surviving member carries it", () => {
+    const escaped: GameState = { ...newGame(1, [0]), gs: GS_ESCAPED }; // no Idol at all
+    render(<GameOverScreen state={escaped} onNewGame={() => {}} />);
+    expect(screen.queryByRole("dialog", { name: /dice roll/i })).toBeNull();
+    expect(screen.getByTestId("game-over")).toBeInTheDocument();
   });
 
   it("offers no name entry when saving is unavailable", () => {

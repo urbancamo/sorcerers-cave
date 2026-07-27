@@ -22,6 +22,13 @@ const STATUS_BADGE: Record<number, { label: string; cls: string }> = {
 // like any other heavy treasure; only the value stays a mystery until the game-over reveal.
 const T_IDOL = 18;
 
+// Extension kit (SC-EXT-27, design US-23/Resolved-15): the Magic Shield is holdable by ANY member
+// (BORNEABLE, loot.ts) but its ward is only ACTIVE for an eligible bearer — Hero/W-Hero/Man/Woman.
+// The party-row icon renders dimmed ("inert") when borne by anyone else, so the ward's true state
+// is visible at a glance rather than silently doing nothing.
+const T_MAGIC_SHIELD = 20;
+const SHIELD_ELIGIBLE = new Set([0, 1, 5, 6]); // Hero, W-Hero, Man, Woman
+
 /** Expanded party view: each member as their card, what they carry as cards, a carry-weight
  *  bar, and (outside combat) controls to move treasure between members or drop it. */
 export function PartyPanel({
@@ -122,14 +129,16 @@ export function PartyPanel({
                     const selected = sel?.mi === mi && sel?.idx === idx;
                     const borne = isBorne(m, tid);
                     const isIdol = tid === T_IDOL;
+                    // Inert = borne, but the current holder can't make the ward do anything (US-23).
+                    const shieldInert = tid === T_MAGIC_SHIELD && borne && !SHIELD_ELIGIBLE.has(m.creatureId);
                     return (
                       <button
                         key={idx}
                         type="button"
-                        className={"scv-pp-item" + (t.kind === "artifact" ? " art" : "") + (selected ? " sel" : "") + (borne ? " borne" : "")}
+                        className={"scv-pp-item" + (t.kind === "artifact" ? " art" : "") + (selected ? " sel" : "") + (borne ? " borne" : "") + (shieldInert ? " inert" : "")}
                         disabled={!canManage}
-                        aria-label={t.name + (borne ? " (borne)" : "")}
-                        title={t.name + (t.kind === "artifact" ? " · artifact" : ` · ${t.weight}kg`) + (borne ? " · borne (wielded — stays with the body if the holder falls)" : "") + (isIdol ? " · value revealed at game's end" : "")}
+                        aria-label={t.name + (borne ? " (borne)" : "") + (shieldInert ? " (inert)" : "")}
+                        title={t.name + (t.kind === "artifact" ? " · artifact" : ` · ${t.weight}kg`) + (borne ? " · borne (wielded — stays with the body if the holder falls)" : "") + (isIdol ? " · value revealed at game's end" : "") + (shieldInert ? " · inert — needs a Man, Woman, Hero, or W-Hero to bear it" : "")}
                         onClick={() => setSel(selected ? null : { mi, idx })}
                         onMouseEnter={() => setPreview(timg)}
                         onMouseLeave={() => setPreview((p) => (p === timg ? null : p))}

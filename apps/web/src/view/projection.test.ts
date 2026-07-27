@@ -109,6 +109,72 @@ describe("encodeWorkingSet", () => {
     const s = { strangers: [10, 5], treasures: [3], hazards: [0] } as unknown as GameState;
     expect(encodeWorkingSet(s)).toEqual([110, 105, 203, 300]);
   });
+
+  it("encodes live Gallery statues to 500+id codes (SC-EXT-10, carry-forward)", () => {
+    const s = { strangers: [], treasures: [], hazards: [], statues: [18, 20] } as unknown as GameState;
+    expect(encodeWorkingSet(s)).toEqual([518, 520]);
+  });
+});
+
+describe("extension kit specials (Part 2 US-02..07)", () => {
+  const specialKeys = ["chasm", "bell-rope", "lair", "whirlpool", "gallery", "well"];
+
+  it.each([
+    [6, "chasm", "The Chasm"],
+    [7, "bell-rope", "The Bell Rope"],
+    [8, "lair", "The Lair"],
+    [9, "whirlpool", "The Whirlpool"],
+    [10, "gallery", "The Gallery"],
+    [11, "well", "The Well"],
+  ])("resolves special code %i to '%s' art key and display name %s", (code, key, displayName) => {
+    const state = newGame(1, [0]);
+    // A chamber (bit16) card whose special nibble is `code` — bits 7-10 (mask 15, SC-EXT-1 width).
+    const a = projectArea(area({ card: 16 | (code << 7) }), 0, state, art);
+    expect(a.special).toBe(key);
+    expect(a.name).toBe(displayName);
+    expect(specialKeys).toContain(a.special);
+  });
+
+  it("projects a Gallery statue (500+id) as a stone creature card", () => {
+    const state = newGame(1, [0]);
+    const a = projectArea(area({ card: 16, contents: [500 + 18] }), 0, state, art); // Witch, stoned
+    expect(a.strangers).toHaveLength(1);
+    expect(a.strangers[0]!.stone).toBe(true);
+    expect(a.strangers[0]!.asleep).toBe(false); // distinct overlay from Lotus Dust sleep
+    expect(a.strangers[0]!.entityId).toBe("18");
+  });
+
+  it("categorizes a kit artifact as 'artifact', not 'treasure' (found via the manual smoke test)", () => {
+    const state = newGame(1, [0]);
+    // Magic Axe (kit treasure 17, an artifact) — the base-only TREASURES table lookup used to miss
+    // every kit id and silently fall back to the plain "treasure" category.
+    const a = projectArea(area({ card: 16, contents: [200 + 17] }), 0, state, art);
+    expect(a.treasure[0]!.category).toBe("artifact");
+    // A kit heavy treasure (Idol, 18) correctly stays "treasure" (not an artifact).
+    const idol = projectArea(area({ card: 16, contents: [200 + 18] }), 0, state, art);
+    expect(idol.treasure[0]!.category).toBe("treasure");
+  });
+
+  it("shows a parked Crypt lurking on its floor as the Crypt/Gems card (SC-EXT-13, design US-08)", () => {
+    const state = { ...newGame(1, [0]), cryptCoord: 12345 } as unknown as GameState;
+    const parked = projectArea(area({ coord: 12345 }), 1, state, art);
+    expect(parked.treasure.some((c) => c.entityId === "21")).toBe(true);
+    // A different area — the crypt doesn't lurk everywhere.
+    const elsewhere = projectArea(area({ coord: 99999 }), 1, state, art);
+    expect(elsewhere.treasure.some((c) => c.entityId === "21")).toBe(false);
+    // Once resolved (cryptCoord cleared, whatever the roll), it no longer lurks.
+    const resolved = { ...state, cryptCoord: undefined } as unknown as GameState;
+    expect(projectArea(area({ coord: 12345 }), 1, resolved, art).treasure).toHaveLength(0);
+  });
+
+  it("renders a Spell-remapped (AF_UNRESOLVED) area face-down even though faceUp is true (SC-EXT-28)", () => {
+    const state = newGame(1, [0]);
+    const remapped = area({ faceUp: true, visited: false, flags: 16 }); // AF_UNRESOLVED = 16
+    expect(projectArea(remapped, 1, state, art).faceDown).toBe(true);
+    // Once resolved (the flag cleared on a genuine forward entry), it renders normally again.
+    const resolved = area({ faceUp: true, visited: true, flags: 0 });
+    expect(projectArea(resolved, 1, state, art).faceDown).toBe(false);
+  });
 });
 
 describe("areaKey", () => {

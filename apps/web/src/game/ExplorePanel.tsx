@@ -1,9 +1,14 @@
+// ALL_TREASURES (not the base-only TREASURES): a kit-on game can offer a kit artefact (Holy Water,
+// Scroll's cousin the Elixir) in the explore phase — the base table would show "artifact 16"
+// instead of "Holy Water" (Task 15's carry-forward cosmetic-fallback list).
 import {
-  TREASURES, legalActions,
+  ALL_TREASURES, legalActions,
   DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN,
   type GameState, type GameAction,
 } from "@sorcerers-cave/engine";
 import { memberLabel } from "./memberLabels";
+import { ConfirmButton, ConfirmPicker } from "./ConfirmButton";
+import { holyWaterTargetName } from "./holyWaterLabel";
 
 // Explore-phase actions that aren't movement (movement lives on the 3D exit markers / keys, and
 // the Cave exit on the up-stair marker). These need a real menu — this is it.
@@ -18,6 +23,12 @@ const memberName = (state: GameState, target: number | undefined): string =>
 
 type UseArtifact = Extract<GameAction, { type: "useArtifact" }>;
 
+// Extension kit blocking-confirm popups (design Part 2 — Trap-fall pattern), verbatim per story.
+const CHASM_CONFIRM = "Descend? You cannot return this way.";
+const WELL_CONFIRM = "Draw 1 card — you cannot withdraw this turn.";
+const CRYPT_CONFIRM = "Enter? A trap here cannot be avoided.";
+const ELIXIR_CONFIRM = "One draught. 1: death. 2–3: nothing. 4–6: +2 strength, forever.";
+
 /** The target/direction of one artifact use, e.g. "fly north", "revive Priest" — the dropdown option. */
 function optionLabel(a: UseArtifact, state: GameState): string {
   switch (a.artifact) {
@@ -25,6 +36,9 @@ function optionLabel(a: UseArtifact, state: GameState): string {
     case 9: return `free ${memberName(state, a.target)} from stone`;
     case 4: return `fly ${DIR_NAME[a.dir ?? -1] ?? "?"}`;
     case 12: return `reveal the secret stair ${a.dir === DIR_DOWN ? "below" : "above"}`;
+    // Extension kit (SC-EXT-24, design US-20): Holy Water's revive/wake/destroyMedusa modes are
+    // offered at rest — the same four-pool offset encoding as the encounter/fight modes.
+    case 16: return a.target !== undefined ? holyWaterTargetName(state, a.target, (mi) => memberLabel(state.party, mi)) : "use";
     default: return "use";
   }
 }
@@ -32,7 +46,7 @@ function optionLabel(a: UseArtifact, state: GameState): string {
 /** A full, single-option label (target/direction included) for a one-click button. */
 function fullLabel(a: ExploreAction, state: GameState): string {
   if (a.type === "openChest") return "Open the Treasure Chest";
-  const name = TREASURES[a.artifact]?.name ?? "artifact";
+  const name = ALL_TREASURES[a.artifact]?.name ?? "artifact";
   return `${name} — ${optionLabel(a, state)}`;
 }
 
@@ -47,8 +61,17 @@ export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: 
   const all = legalActions(state);
   // A permanently-indifferent chamber is traversed in explore, but the party may still attack its guards.
   const attack = all.find((a) => a.type === "attack") ?? null;
-  const actions = all.filter(isExploreAction);
-  if (actions.length === 0 && !attack) return null;
+  // Extension kit: the Chasm/Well/Crypt/Bell Rope escape-hatches and the Elixir get their own
+  // ConfirmButton/ConfirmPicker rows below (design's blocking-confirm pattern) — pulled out of the
+  // generic `legalActions` sweep so they don't also land in the plain-button/dropdown buckets.
+  const descendChasm = all.find((a): a is Extract<GameAction, { type: "descendChasm" }> => a.type === "descendChasm") ?? null;
+  const drawFromWell = all.find((a): a is Extract<GameAction, { type: "drawFromWell" }> => a.type === "drawFromWell") ?? null;
+  const enterCrypt = all.find((a): a is Extract<GameAction, { type: "enterCrypt" }> => a.type === "enterCrypt") ?? null;
+  const pullBellRope = all.filter((a): a is Extract<GameAction, { type: "pullBellRope" }> => a.type === "pullBellRope");
+  const useElixir = all.filter((a): a is UseArtifact => a.type === "useArtifact" && a.artifact === 15);
+  const actions = all.filter(isExploreAction).filter((a) => !(a.type === "useArtifact" && a.artifact === 15));
+  const hasKitActions = !!descendChasm || !!drawFromWell || !!enterCrypt || pullBellRope.length > 0 || useElixir.length > 0;
+  if (actions.length === 0 && !attack && !hasKitActions) return null;
 
   // Group artifact uses by artifact; openChest (and any single-option artifact) stays a plain button.
   const artByArtifact = new Map<number, UseArtifact[]>();
@@ -76,7 +99,7 @@ export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: 
       {dropdowns.length > 0 && (
         <div className="scv-enc-assign">
           {dropdowns.map(([artifact, acts]) => {
-            const name = TREASURES[artifact]?.name ?? `artifact ${artifact}`;
+            const name = ALL_TREASURES[artifact]?.name ?? `artifact ${artifact}`;
             return (
               <label key={`a${artifact}`} className="scv-enc-row">
                 <span className="scv-enc-row-nm">{name}</span>
@@ -92,6 +115,41 @@ export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: 
               </label>
             );
           })}
+        </div>
+      )}
+
+      {/* Extension kit: the Bell Rope's member picker + confirm (design US-03). */}
+      {pullBellRope.length > 0 && (
+        <div className="scv-enc-assign">
+          <ConfirmPicker
+            rowLabel="Bell Rope"
+            placeholder="Pull the bell rope…"
+            options={pullBellRope.map((a) => ({ label: memberLabel(state.party, a.mi), value: a }))}
+            confirmText={(a) => `Pull the bell rope with ${memberLabel(state.party, a.mi)}? Declining is always allowed.`}
+            onConfirm={(a) => dispatch(a)}
+          />
+        </div>
+      )}
+
+      {/* Extension kit: the Elixir's drinker picker + verbatim confirm (design US-19). */}
+      {useElixir.length > 0 && (
+        <div className="scv-enc-assign">
+          <ConfirmPicker
+            rowLabel="Elixir"
+            placeholder="Elixir — choose a drinker…"
+            options={useElixir.map((a) => ({ label: memberLabel(state.party, a.target!), value: a }))}
+            confirmText={() => ELIXIR_CONFIRM}
+            onConfirm={(a) => dispatch(a)}
+          />
+        </div>
+      )}
+
+      {/* Extension kit: single-confirm escape-hatches (design's blocking-confirm/Trap-fall pattern). */}
+      {(descendChasm || drawFromWell || enterCrypt) && (
+        <div className="scv-enc-actions">
+          {descendChasm && <ConfirmButton label="Descend the chasm" confirmText={CHASM_CONFIRM} onConfirm={() => dispatch(descendChasm)} />}
+          {drawFromWell && <ConfirmButton label="Draw from the well" confirmText={WELL_CONFIRM} onConfirm={() => dispatch(drawFromWell)} />}
+          {enterCrypt && <ConfirmButton label="Enter the crypt" confirmText={CRYPT_CONFIRM} onConfirm={() => dispatch(enterCrypt)} />}
         </div>
       )}
 

@@ -1,8 +1,14 @@
-import { CREATURES, TREASURES, type GameEvent } from "@sorcerers-cave/engine";
+// ALL_CREATURES/ALL_TREASURES (not the base-only tables): the kit's dice-overlay events can name a
+// kit ally/stranger (14-21) — a Bell Rope puller, a Quarrel combatant, a Desertion roll, an Elixir
+// drinker. Byte-identical for ids 0-13.
+import { CREATURES, TREASURES, ALL_CREATURES, ALL_TREASURES, type GameEvent } from "@sorcerers-cave/engine";
 import type { Lane } from "./DiceRoll";
 
 export type Tone = "good" | "bad" | "neutral";
 export type RollView = { title: string; lanes: Lane[]; message: string; tone: Tone };
+
+// The Bell Rope's 2-3 "toll" band uses the design's exact foreboding wording (US-03 Feedback).
+const BELL_TOLL_TEXT = "A bell tolls once, far above — and is answered by silence. Something, somewhere, now knows you are here.";
 
 /** Turn a reaction event (+ any join) into a single-die overlay. */
 function reactionView(reaction: Extract<GameEvent, { type: "reaction" }>, joined: number, pacified: boolean, guarded: boolean): RollView {
@@ -127,7 +133,92 @@ function viperView(events: GameEvent[]): RollView | null {
   return { title: "The Viper Pit", lanes, message, tone: lost > 0 ? "bad" : "good" };
 }
 
-/** Build the dice overlay (if any) for the events an action produced — reaction, chest, casualty, Medusa, Viper, else combat. */
+/** Turn the Whirlpool's crossing roll into a single-die overlay (design US-05 Feedback, verbatim). */
+function whirlpoolView(events: GameEvent[]): RollView | null {
+  const w = events.find((e): e is Extract<GameEvent, { type: "whirlpoolRoll" }> => e.type === "whirlpoolRoll");
+  if (!w) return null;
+  const message = w.dragged ? "The whirlpool drags the whole party under!" : "The party wades the shallows safely.";
+  return { title: "The Whirlpool", lanes: [{ enemy: { value: w.roll } }], message, tone: w.dragged ? "bad" : "good" };
+}
+
+/** Turn the Bell Rope's roll into a single-die overlay, one message per band (design US-03 Feedback, verbatim). */
+function bellRopeView(events: GameEvent[]): RollView | null {
+  const b = events.find((e): e is Extract<GameEvent, { type: "bellRoll" }> => e.type === "bellRoll");
+  if (!b) return null;
+  const puller = ALL_CREATURES[b.creatureId]?.name ?? "A companion";
+  const message =
+    b.outcome === "vanish" ? `The rope yanks ${puller} upward. They are never seen again.`
+      : b.outcome === "toll" ? BELL_TOLL_TEXT
+        : "The bell's echo shakes something loose — two cards are drawn. The party cannot withdraw this turn.";
+  return { title: "The Bell Rope", lanes: [{ enemy: { value: b.roll } }], message, tone: b.outcome === "vanish" ? "bad" : "neutral" };
+}
+
+/** Turn the Crypt's roll into a single-die overlay (design US-08 Feedback, verbatim). */
+function cryptView(events: GameEvent[]): RollView | null {
+  const c = events.find((e): e is Extract<GameEvent, { type: "cryptRoll" }> => e.type === "cryptRoll");
+  if (!c) return null;
+  const message = c.outcome === "trap" ? "The floor gives way! The party plunges into darkness." : "Within the crypt: gems!";
+  return { title: "The Crypt", lanes: [{ enemy: { value: c.roll } }], message, tone: c.outcome === "trap" ? "bad" : "good" };
+}
+
+/** Turn Desertion's per-ally rolls into a die-per-ally overlay (design US-09 Feedback) — one lane per
+ *  ally actually rolled (Wolves are skipped by the hazard itself, so they never appear here). */
+function desertionView(events: GameEvent[]): RollView | null {
+  const rolls = events.filter((e): e is Extract<GameEvent, { type: "desertionRoll" }> => e.type === "desertionRoll");
+  if (rolls.length === 0) return null;
+  const nameOf = (cid: number) => ALL_CREATURES[cid]?.name ?? "A companion";
+  const itemsOf = (ids: number[]) => (ids.length ? ids.map((id) => ALL_TREASURES[id]?.name ?? "an item").join(", ") : "nothing");
+  const lanes: Lane[] = rolls.map((r) => ({
+    enemy: { name: nameOf(r.creatureId), value: r.roll, outcome: r.deserted ? "lose" : "win" },
+  }));
+  const deserters = rolls.filter((r) => r.deserted);
+  const message = deserters.length
+    ? deserters.map((r) => `${nameOf(r.creatureId)} slips away into the dark, taking ${itemsOf(r.items)}.`).join(" ")
+    : "The party holds together.";
+  return { title: "Desertion", lanes, message, tone: deserters.length ? "bad" : "good" };
+}
+
+/** Turn Quarrel's one-round mini-fight into a side-by-side dice overlay (design US-11 Feedback,
+ *  verbatim) — the two forced combatants' d6s shown against each other, like a combat lane. */
+function quarrelView(events: GameEvent[]): RollView | null {
+  const q = events.find((e): e is Extract<GameEvent, { type: "quarrel" }> => e.type === "quarrel");
+  if (!q) return null;
+  const aName = ALL_CREATURES[q.aId]?.name ?? "?";
+  const bName = ALL_CREATURES[q.bId]?.name ?? "?";
+  const aOutcome = q.loserId === null ? "tie" : q.loserId === q.aId ? "lose" : "win";
+  const bOutcome = q.loserId === null ? "tie" : q.loserId === q.bId ? "lose" : "win";
+  const lanes: Lane[] = [{
+    enemy: { name: aName, value: q.aRoll, outcome: aOutcome },
+    party: { name: bName, value: q.bRoll, outcome: bOutcome },
+  }];
+  const outcome = q.loserId === null
+    ? "They are pulled apart, fuming but unhurt."
+    : `${ALL_CREATURES[q.loserId]?.name ?? "?"} falls to ${ALL_CREATURES[q.loserId === q.aId ? q.bId : q.aId]?.name ?? "?"}'s fury.`;
+  return {
+    title: "Quarrel",
+    lanes,
+    message: `Tempers flare — ${aName} and ${bName} come to blows! ${outcome}`,
+    tone: q.loserId === null ? "good" : "bad",
+  };
+}
+
+/** Turn the Elixir's draught into a single-die overlay, one message per band (design US-19 Feedback,
+ *  verbatim). The ordinary death machinery's own notices (deathPrevented/eyeForsaken/itemsSpilled) on
+ *  the death band still surface separately via `eventNotices` — only this event's own line lives here. */
+function elixirView(events: GameEvent[]): RollView | null {
+  const d = events.find((e): e is Extract<GameEvent, { type: "elixirDrunk" }> => e.type === "elixirDrunk");
+  if (!d) return null;
+  const drinker = ALL_CREATURES[d.creatureId]?.name ?? "A companion";
+  const message =
+    d.outcome === "death" ? `${drinker} convulses — poison!`
+      : d.outcome === "nothing" ? "It tastes of pond water. Nothing happens."
+        : `${drinker} feels power settle into their bones. (+2 fs)`;
+  const tone: Tone = d.outcome === "death" ? "bad" : d.outcome === "nothing" ? "neutral" : "good";
+  return { title: "The Elixir", lanes: [{ enemy: { value: d.roll } }], message, tone };
+}
+
+/** Build the dice overlay (if any) for the events an action produced — reaction, chest, casualty,
+ *  Medusa, Viper, the extension kit's own roll events, else combat. */
 export function rollFromEvents(events: GameEvent[]): RollView | null {
   const reaction = events.find((e): e is Extract<GameEvent, { type: "reaction" }> => e.type === "reaction");
   if (reaction) {
@@ -136,5 +227,10 @@ export function rollFromEvents(events: GameEvent[]): RollView | null {
     const guarded = events.some((e) => e.type === "unicornGuards");
     return reactionView(reaction, joined, pacified, guarded);
   }
-  return chestView(events) ?? casualtyView(events) ?? medusaView(events) ?? viperView(events) ?? combatView(events);
+  return (
+    chestView(events) ?? casualtyView(events) ?? medusaView(events) ?? viperView(events)
+    ?? whirlpoolView(events) ?? bellRopeView(events) ?? cryptView(events) ?? desertionView(events)
+    ?? quarrelView(events) ?? elixirView(events)
+    ?? combatView(events)
+  );
 }

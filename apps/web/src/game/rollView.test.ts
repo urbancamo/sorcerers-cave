@@ -114,6 +114,98 @@ describe("rollFromEvents", () => {
     expect(view.message).toBe("Round resolved — 0 foe(s) down, 0 of yours lost.");
   });
 
+  it("shows the Whirlpool's crossing roll as a single-die overlay, dragged or safe (US-05)", () => {
+    const dragged = rollFromEvents([{ type: "whirlpoolRoll", roll: 1, dragged: true }])!;
+    expect(dragged.title).toBe("The Whirlpool");
+    expect(dragged.lanes).toHaveLength(1);
+    expect(dragged.lanes[0]!.enemy.value).toBe(1);
+    expect(dragged.message).toMatch(/drags the whole party under/i);
+    expect(dragged.tone).toBe("bad");
+    const safe = rollFromEvents([{ type: "whirlpoolRoll", roll: 5, dragged: false }])!;
+    expect(safe.message).toMatch(/wades the shallows safely/i);
+    expect(safe.tone).toBe("good");
+  });
+
+  it("shows the Bell Rope's roll as a single-die overlay, one message per band (US-03)", () => {
+    const vanish = rollFromEvents([{ type: "bellRoll", roll: 1, outcome: "vanish", creatureId: 0 }])!;
+    expect(vanish.title).toBe("The Bell Rope");
+    expect(vanish.lanes[0]!.enemy.value).toBe(1);
+    expect(vanish.message).toMatch(/rope yanks hero upward/i);
+    expect(vanish.message).toMatch(/never seen again/i);
+    expect(vanish.tone).toBe("bad");
+    const toll = rollFromEvents([{ type: "bellRoll", roll: 2, outcome: "toll", creatureId: 0 }])!;
+    expect(toll.message).toMatch(/bell tolls once/i);
+    expect(toll.tone).toBe("neutral");
+    const stir = rollFromEvents([{ type: "bellRoll", roll: 5, outcome: "stir", creatureId: 0 }])!;
+    expect(stir.message).toMatch(/two cards are drawn/i);
+    expect(stir.message).toMatch(/cannot withdraw this turn/i);
+  });
+
+  it("shows the Crypt's roll as a single-die overlay, trap or find (US-08)", () => {
+    const trap = rollFromEvents([{ type: "cryptRoll", roll: 1, outcome: "trap" }])!;
+    expect(trap.title).toBe("The Crypt");
+    expect(trap.message).toBe("The floor gives way! The party plunges into darkness.");
+    expect(trap.tone).toBe("bad");
+    const find = rollFromEvents([{ type: "cryptRoll", roll: 5, outcome: "find" }])!;
+    expect(find.message).toBe("Within the crypt: gems!");
+    expect(find.tone).toBe("good");
+  });
+
+  it("shows Desertion's per-ally rolls as one lane per ally, with an itemized deserters message (US-09)", () => {
+    const some = rollFromEvents([
+      { type: "desertionRoll", creatureId: 5, roll: 1, deserted: true, items: [1, 3] }, // Man, Gold+Sword
+      { type: "desertionRoll", creatureId: 6, roll: 5, deserted: false, items: [] },     // Woman stays
+    ])!;
+    expect(some.title).toBe("Desertion");
+    expect(some.lanes).toHaveLength(2);
+    expect(some.lanes[0]).toMatchObject({ enemy: { name: "Man", value: 1, outcome: "lose" } });
+    expect(some.lanes[1]).toMatchObject({ enemy: { name: "Woman", value: 5, outcome: "win" } });
+    expect(some.message).toMatch(/man slips away into the dark, taking gold, magic sword/i);
+    expect(some.tone).toBe("bad");
+
+    const none = rollFromEvents([{ type: "desertionRoll", creatureId: 6, roll: 4, deserted: false, items: [] }])!;
+    expect(none.message).toBe("The party holds together.");
+    expect(none.tone).toBe("good");
+  });
+
+  it("shows Quarrel's forced duel as a side-by-side dice overlay, loser or tie (US-11)", () => {
+    const duel = rollFromEvents([{ type: "quarrel", aId: 0, bId: 5, aRoll: 2, bRoll: 5, loserId: 0 }])!; // Hero vs Man
+    expect(duel.title).toBe("Quarrel");
+    expect(duel.lanes).toHaveLength(1);
+    expect(duel.lanes[0]!.party).toBeDefined(); // side-by-side (versus) presentation
+    expect(duel.lanes[0]).toMatchObject({
+      enemy: { name: "Hero", value: 2, outcome: "lose" },
+      party: { name: "Man", value: 5, outcome: "win" },
+    });
+    expect(duel.message).toMatch(/tempers flare/i);
+    expect(duel.message).toMatch(/hero falls to man's fury/i);
+    expect(duel.tone).toBe("bad");
+
+    const tie = rollFromEvents([{ type: "quarrel", aId: 0, bId: 5, aRoll: 4, bRoll: 4, loserId: null }])!;
+    expect(tie.message).toMatch(/pulled apart, fuming but unhurt/i);
+    expect(tie.tone).toBe("good");
+  });
+
+  it("shows the Elixir's draught as a single-die overlay, one message per band (US-19)", () => {
+    const death = rollFromEvents([{ type: "elixirDrunk", creatureId: 0, roll: 1, outcome: "death" }])!;
+    expect(death.title).toBe("The Elixir");
+    expect(death.message).toBe("Hero convulses — poison!");
+    expect(death.tone).toBe("bad");
+    const nothing = rollFromEvents([{ type: "elixirDrunk", creatureId: 0, roll: 2, outcome: "nothing" }])!;
+    expect(nothing.message).toBe("It tastes of pond water. Nothing happens.");
+    expect(nothing.tone).toBe("neutral");
+    const strength = rollFromEvents([{ type: "elixirDrunk", creatureId: 0, roll: 6, outcome: "strength" }])!;
+    expect(strength.message).toBe("Hero feels power settle into their bones. (+2 fs)");
+    expect(strength.tone).toBe("good");
+  });
+
+  it("names a kit combatant in the Quarrel/Desertion/Bell Rope/Elixir overlays, not '?' (SC-EXT-29)", () => {
+    const duel = rollFromEvents([{ type: "quarrel", aId: 16, bId: 5, aRoll: 6, bRoll: 1, loserId: 5 }])!; // Lion vs Man
+    expect(duel.lanes[0]!.enemy.name).toBe("Lion");
+    const bell = rollFromEvents([{ type: "bellRoll", roll: 1, outcome: "vanish", creatureId: 18 }])!; // Witch
+    expect(bell.message).toMatch(/witch/i);
+  });
+
   it("shows one lane per pairing and a slain message when the party falls", () => {
     const events: GameEvent[] = [
       { type: "combatRoll", party: "Dwarf", enemy: "Dragon", partyRoll: 2, enemyRoll: 6, partyTotal: 4, enemyTotal: 12, result: "enemyWon" },

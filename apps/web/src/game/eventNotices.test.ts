@@ -130,31 +130,19 @@ describe("eventNotices", () => {
     expect(eventNotices([{ type: "enteredSpecial", special: SPECIAL_WHIRLPOOL }])[0]!.text).toMatch(/whirlpool/i);
   });
 
-  it("reports the Chasm descent (US-02) and Whirlpool crossing roll (US-05)", () => {
+  it("reports the Chasm descent (US-02); the Whirlpool crossing roll has its own dice overlay (US-05)", () => {
     expect(eventNotices([{ type: "chasmDescend" }])[0]!.text).toMatch(/climbs down into the chasm/i);
-    const dragged = eventNotices([{ type: "whirlpoolRoll", roll: 1, dragged: true }])[0]!;
-    expect(dragged.text).toMatch(/drags the whole party under/i);
-    expect(dragged.tone).toBe("bad");
-    const safe = eventNotices([{ type: "whirlpoolRoll", roll: 5, dragged: false }])[0]!;
-    expect(safe.text).toMatch(/wades the shallows safely/i);
-    expect(safe.tone).toBe("good");
+    // whirlpoolRoll moved to rollView's single-die overlay (Task 16) — no text notice here.
+    expect(eventNotices([{ type: "whirlpoolRoll", roll: 1, dragged: true }])).toHaveLength(0);
+    expect(eventNotices([{ type: "whirlpoolRoll", roll: 5, dragged: false }])).toHaveLength(0);
   });
 
-  it("reports the Well's draw (US-07) and the Bell Rope's three bands (US-03)", () => {
+  it("reports the Well's draw (US-07); the Bell Rope's three bands have their own dice overlay (US-03)", () => {
     expect(eventNotices([{ type: "wellDraw" }])[0]!.text).toMatch(/bucket rises/i);
-
-    const vanish = eventNotices([{ type: "bellRoll", roll: 1, outcome: "vanish", creatureId: 0 }])[0]!;
-    expect(vanish.text).toMatch(/rope yanks .* upward/i);
-    expect(vanish.text).toMatch(/never seen again/i);
-    expect(vanish.tone).toBe("bad");
-
-    const toll = eventNotices([{ type: "bellRoll", roll: 2, outcome: "toll", creatureId: 0 }])[0]!;
-    expect(toll.text).toMatch(/bell tolls once/i);
-    expect(toll.text).toMatch(/now knows you are here/i);
-
-    const stir = eventNotices([{ type: "bellRoll", roll: 5, outcome: "stir", creatureId: 0 }])[0]!;
-    expect(stir.text).toMatch(/two cards are drawn/i);
-    expect(stir.text).toMatch(/cannot withdraw this turn/i);
+    // bellRoll moved to rollView's single-die overlay (Task 16) — no text notice here.
+    expect(eventNotices([{ type: "bellRoll", roll: 1, outcome: "vanish", creatureId: 0 }])).toHaveLength(0);
+    expect(eventNotices([{ type: "bellRoll", roll: 2, outcome: "toll", creatureId: 0 }])).toHaveLength(0);
+    expect(eventNotices([{ type: "bellRoll", roll: 5, outcome: "stir", creatureId: 0 }])).toHaveLength(0);
   });
 
   it("reports the Gallery's stone arrival, the Staff's group wake, and the Lair's stash landing (US-04/US-06)", () => {
@@ -165,36 +153,37 @@ describe("eventNotices", () => {
     expect(wake.text).toMatch(/magic staff blazes/i);
     expect(wake.text).toMatch(/cracks and stirs/i);
 
+    // UX ruling (T7 minor): a Staff-Wizard's first entry into a Gallery fires BOTH galleryStone and
+    // staffWake in the same batch — suppress the stone line so it reads as one beat, not two.
+    const bothInOneBeat = eventNotices([
+      { type: "galleryStone", creatureIds: [5] },
+      { type: "staffWake", creatureIds: [5] },
+    ]);
+    expect(bothInOneBeat).toHaveLength(1);
+    expect(bothInOneBeat[0]!.text).toMatch(/magic staff blazes/i);
+
     const stash = eventNotices([{ type: "lairStash", treasureIds: [1] }])[0]!;
     expect(stash.text).toMatch(/harpies' hoard glitters/i);
     expect(stash.tone).toBe("good");
   });
 
-  it("reports the Crypt's park notice and its two roll outcomes verbatim (US-08)", () => {
+  it("reports the Crypt's park notice verbatim; its two roll outcomes have their own dice overlay (US-08)", () => {
     const parked = eventNotices([{ type: "cryptParked" }])[0]!;
     expect(parked.text).toBe("A sealed crypt squats in the corner of this chamber.");
 
-    const trap = eventNotices([{ type: "cryptRoll", roll: 1, outcome: "trap" }])[0]!;
-    expect(trap.text).toBe("The floor gives way! The party plunges into darkness.");
-    expect(trap.tone).toBe("bad");
-
-    const find = eventNotices([{ type: "cryptRoll", roll: 5, outcome: "find" }])[0]!;
-    expect(find.text).toBe("Within the crypt: gems!");
-    expect(find.tone).toBe("good");
+    // cryptRoll moved to rollView's single-die overlay (Task 16) — no text notice here.
+    expect(eventNotices([{ type: "cryptRoll", roll: 1, outcome: "trap" }])).toHaveLength(0);
+    expect(eventNotices([{ type: "cryptRoll", roll: 5, outcome: "find" }])).toHaveLength(0);
   });
 
-  it("reports Desertion's per-ally lines with the itemized loot, the Wolf's skip notice, and derives the all-stay summary (US-09/US-18)", () => {
-    const deserted = eventNotices([{ type: "desertionRoll", creatureId: 5, roll: 1, deserted: true, items: [1, 3] }])[0]!;
-    expect(deserted.text).toMatch(/slips away into the dark/i);
-    expect(deserted.text).toMatch(/taking Gold, Magic Sword/); // itemized, by name (design "taking [treasure list]")
-    expect(deserted.tone).toBe("bad");
-
-    const emptyHanded = eventNotices([{ type: "desertionRoll", creatureId: 5, roll: 1, deserted: true, items: [] }])[0]!;
-    expect(emptyHanded.text).toMatch(/taking nothing/); // no phantom list when there was nothing to take
-
-    const stayed = eventNotices([{ type: "desertionRoll", creatureId: 6, roll: 4, deserted: false, items: [1] }])[0]!;
-    expect(stayed.text).toMatch(/wavers… but stays/);
-    expect(stayed.text).not.toMatch(/Gold/); // a staying ally's items are never mentioned
+  it("reports Desertion's Wolf-skip notice and derives the all-stay summary; per-ally rolls have their own dice lanes (US-09/US-18)", () => {
+    // desertionRoll moved to rollView's per-ally dice lanes (Task 16) — no text notice per roll; a
+    // deserting roll alone produces nothing (no "holds together" summary — someone left).
+    expect(eventNotices([{ type: "desertionRoll", creatureId: 5, roll: 1, deserted: true, items: [1, 3] }])).toHaveLength(0);
+    // A single non-deserting roll alone still triggers the derived "holds together" summary below —
+    // that's the ONLY text this event type can still produce.
+    expect(eventNotices([{ type: "desertionRoll", creatureId: 6, roll: 4, deserted: false, items: [1] }]))
+      .toEqual([{ text: "The party holds together.", tone: "good" }]);
 
     const wolf = eventNotices([{ type: "wolfUnmoved", hazard: HAZARD_DESERTION }])[0]!;
     expect(wolf.text).toBe("The Wolf is unmoved.");
@@ -270,15 +259,10 @@ describe("eventNotices", () => {
     expect(lurk[0]!.text).toBe("Harpies circle overhead, eyeing your baggage.");
   });
 
-  it("reports Quarrel's duel, its loser/tie outcomes, and its too-few-combatants fizzle (US-11)", () => {
-    const duel = eventNotices([{ type: "quarrel", aId: 0, bId: 5, aRoll: 2, bRoll: 5, loserId: 0 }]);
-    expect(duel[0]!.text).toMatch(/tempers flare/i);
-    expect(duel[1]!.text).toMatch(/falls to/i);
-    expect(duel[1]!.tone).toBe("bad");
-
-    const tie = eventNotices([{ type: "quarrel", aId: 0, bId: 5, aRoll: 4, bRoll: 4, loserId: null }]);
-    expect(tie[1]!.text).toBe("They are pulled apart, fuming but unhurt.");
-    expect(tie[1]!.tone).toBe("good");
+  it("reports Quarrel's too-few-combatants fizzle; the duel itself has its own dice overlay (US-11)", () => {
+    // quarrel moved to rollView's side-by-side dice overlay (Task 16) — no text notice here.
+    expect(eventNotices([{ type: "quarrel", aId: 0, bId: 5, aRoll: 2, bRoll: 5, loserId: 0 }])).toHaveLength(0);
+    expect(eventNotices([{ type: "quarrel", aId: 0, bId: 5, aRoll: 4, bRoll: 4, loserId: null }])).toHaveLength(0);
 
     const fizzled = eventNotices([{ type: "quarrelFizzled" }]);
     expect(fizzled).toHaveLength(1);
@@ -323,18 +307,13 @@ describe("eventNotices", () => {
     expect(slew.tone).toBe("bad");
   });
 
-  it("reports the Elixir's three outcome bands verbatim (US-19)", () => {
-    const death = eventNotices([{ type: "elixirDrunk", creatureId: 0, roll: 1, outcome: "death" }])[0]!;
-    expect(death.text).toBe("Hero convulses — poison!");
-    expect(death.tone).toBe("bad");
-
-    const nothing = eventNotices([{ type: "elixirDrunk", creatureId: 0, roll: 2, outcome: "nothing" }])[0]!;
-    expect(nothing.text).toBe("It tastes of pond water. Nothing happens.");
-    expect(nothing.tone).toBe("neutral");
-
-    const strength = eventNotices([{ type: "elixirDrunk", creatureId: 0, roll: 6, outcome: "strength" }])[0]!;
-    expect(strength.text).toBe("Hero feels power settle into their bones. (+2 fs)");
-    expect(strength.tone).toBe("good");
+  it("stays silent for the Elixir's three outcome bands — its own single-die dice overlay covers them (US-19)", () => {
+    // elixirDrunk moved to rollView's single-die overlay (Task 16) — no text notice here.
+    expect(eventNotices([{ type: "elixirDrunk", creatureId: 0, roll: 1, outcome: "death" }])).toHaveLength(0);
+    expect(eventNotices([{ type: "elixirDrunk", creatureId: 0, roll: 2, outcome: "nothing" }])).toHaveLength(0);
+    expect(eventNotices([{ type: "elixirDrunk", creatureId: 0, roll: 6, outcome: "strength" }])).toHaveLength(0);
+    // The ordinary death machinery (a companion event on the death band) is unaffected.
+    expect(eventNotices([{ type: "itemsSpilled", creatureId: 0, items: [1] }])).toHaveLength(1);
   });
 
   it("reports Holy Water's four outcomes verbatim, by kit-inclusive creature name where relevant (US-20)", () => {
@@ -389,6 +368,15 @@ describe("eventNotices", () => {
 
     // An ordinary foe (e.g. a Troll) stays folded into combatView's generic "N foe(s) down".
     expect(eventNotices([{ type: "strangerKilled", creatureId: 3 }])).toHaveLength(0);
+  });
+
+  it("names a kit ally by its real name, not 'a creature' (Task 16 carry-forward: name() -> ALL_CREATURES)", () => {
+    // The Demon's own kill line can name a kit victim (e.g. a Witch ally).
+    expect(eventNotices([{ type: "demonSlew", creatureId: 18 }])[0]!.text).toBe("The Demon's malice claims Witch!");
+    // Every other base(name)-driven site is widened the same way — pinned via a representative site
+    // (itemsSpilled) rather than re-testing all of them individually.
+    expect(eventNotices([{ type: "itemsSpilled", creatureId: 19, items: [] }])[0]!.text).toBe("Thief's carried items spill onto the floor.");
+    expect(eventNotices([{ type: "spectreSlew", creatureId: 16 }])[0]!.text).toBe("A Spectre's touch slays Lion!");
   });
 
   it("noticeTone prefers bad, then good, then neutral", () => {

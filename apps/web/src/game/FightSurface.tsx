@@ -10,6 +10,7 @@ import type { CardArt } from "../data/manifest";
 import { FightCard, type CardKind } from "./FightCard";
 import { memberLabels } from "./memberLabels";
 import { emptyDraft, place, unplace, toMatches, freeMembers, type PlanDraft } from "./fightPlan";
+import { holyWaterTargetName } from "./holyWaterLabel";
 
 const DIR_NAME: Record<number, string> = { 1: "North", 2: "East", 3: "South", 4: "West", 5: "Up the stair", 6: "Down the stair" };
 const REASON: Record<string, string> = {
@@ -17,11 +18,15 @@ const REASON: Record<string, string> = {
   backerNotCaster: "Only a Priest or Wizard may fight from the background.",
   backerNoFront: "Put a fighter in front for your caster to support.",
   spectreNeedsMagic: "A Spectre can only be fought with magic or the Magic Sword.",
+  // Extension kit (SC-EXT-21, design US-13): mirrors spectreNeedsMagic's wording for the Demon's own
+  // magic-only gate (a caster, or a Magic Axe bearer — canAxeDemon, combatPlan.ts).
+  demonNeedsMagic: "A Demon can only be fought with magic or the Magic Axe.",
   mustEngageAll: "Engage every stranger you can before rolling.",
   emptyPlan: "Set at least one fighter against a foe.",
 };
 
 const C_SPECTRE = 9;
+const C_DEMON = 15; // extension kit (SC-EXT-21) — the Demon follows the Spectre's own magic-only/doom rules
 const living = (s: GameState) => s.party.map((_, i) => i).filter((i) => { const m = s.party[i]!; return m.status === 0 || m.status === 1; });
 // A Priest/Wizard is a caster by creature type — even when an active Eye of God has zeroed its power.
 const isCaster = (s: GameState, i: number) => ALL_CREATURES[s.party[i]!.creatureId]!.mp > 0;
@@ -86,6 +91,14 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
   // spectreNeedsMagic) still gets the escape instead of a disabled button + dead-end message. Without this
   // the fight soft-locks: no legal placement, and round-1 retreat is not yet allowed (§Retreat).
   const forcedSpectre = livingIdx.length > 0 && state.strangers.length > 0 && validatePlan(state, { matches: [] }).ok;
+  // Extension kit (SC-EXT-21, design US-13): the Demon follows the SAME forced-round/auto-slay rule
+  // as the Spectre (`validatePlan`'s empty-plan branch already generalizes over both — MAGIC_ONLY_IDS,
+  // combatPlan.ts) — this just names the doom banner/button correctly for whichever magic-only
+  // foe(s) are actually present, instead of hardcoding "the Spectre" (a kit-off game never draws a
+  // Demon, so this is inert/byte-identical there — always "the Spectre").
+  const hasSpectre = forcedSpectre && state.strangers.includes(C_SPECTRE);
+  const hasDemon = forcedSpectre && state.strangers.includes(C_DEMON);
+  const doomFoeWord = hasSpectre && hasDemon ? "the Spectre and the Demon" : hasDemon ? "the Demon" : "the Spectre";
   // The round can be rolled when the plan is legal, or when it's a forced-Spectre round (fought empty,
   // ignoring any illegal placement). Suppress the pairing error in the forced case — the doom note explains.
   const canResolve = valid.ok || forcedSpectre;
@@ -247,14 +260,14 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
       {reason && <p className="scv-fight-reason">{reason}</p>}
       {forcedSpectre && doomedIdx !== null && (
         <p className="scv-fight-reason scv-fight-doom" data-testid="forced-spectre">
-          No one can fight the Spectre and no magic remains — {labels[doomedIdx] ?? ALL_CREATURES[state.party[doomedIdx]!.creatureId]!.name},
-          your strongest, will be slain this round (§Spectre). Retreat if you can; otherwise you must face it.
+          No one can fight {doomFoeWord} and no magic remains — {labels[doomedIdx] ?? ALL_CREATURES[state.party[doomedIdx]!.creatureId]!.name},
+          your strongest, will be slain this round (§{hasDemon ? "Demon" : "Spectre"}). Retreat if you can; otherwise you must face it.
         </p>
       )}
 
       <div className="scv-fight-actions">
         <button className="scv-fight-btn primary" disabled={!canResolve} onClick={() => dispatch({ type: "resolveRound", matches: resolveMatches })}>
-          {forcedSpectre ? "Face the Spectre — lose your strongest ☠" : "Roll the round ⚔"}
+          {forcedSpectre ? `Face ${doomFoeWord} — lose your strongest ☠` : "Roll the round ⚔"}
         </button>
         {retreats.length > 0 && (
           <div className="scv-retreat">
@@ -271,10 +284,14 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
         <button className="scv-fight-btn ghost" onClick={() => { setDraft(emptyDraft()); setSel(null); }}>Reset</button>
         {artifacts.map((a, i) => {
           // Name the artefact and its target so each option is distinct — Lotus Dust (5) targets a
-          // stranger, Strength Potion (8) a party member (§ artefacts).
+          // stranger, Holy Water (16) its own four-pool offset encoding (SC-EXT-24 —
+          // holyWaterLabel.ts; a mid-fight DESTROY/WEAKEN target is `HW_STRANGER_BASE+i`, NOT a
+          // party index — reading it as one crashes on `state.party[3000+i]`), Strength Potion (8)
+          // a party member (§ artefacts).
           const nm = ALL_TREASURES[a.artifact]?.name ?? "artefact";
           const tgt = a.target === undefined ? null
             : a.artifact === 5 ? ALL_CREATURES[state.strangers[a.target]!]!.name
+            : a.artifact === 16 ? holyWaterTargetName(state, a.target, (mi) => labels[mi] ?? ALL_CREATURES[state.party[mi]?.creatureId ?? -1]?.name ?? "?")
             : (labels[a.target] ?? ALL_CREATURES[state.party[a.target]!.creatureId]!.name);
           return (
             <button key={i} className="scv-fight-btn" onClick={() => dispatch(a)}>
