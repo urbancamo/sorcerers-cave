@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { scoreBreakdown, GS_ESCAPED, GS_DEAD, GS_QUIT, type GameState } from "@sorcerers-cave/engine";
-import { HighScores, type LeaderboardRow } from "./HighScores";
+import { LeaderboardPanel } from "./HighScores";
 import { downloadLog, type GameLog } from "./gameLog";
 import { DiceRoll } from "./DiceRoll";
 
@@ -16,7 +16,6 @@ export function GameOverScreen({
   state,
   onNewGame,
   onSaveScore,
-  leaderboard,
   newGameLabel,
   log,
   code,
@@ -29,7 +28,6 @@ export function GameOverScreen({
   /** Persist the score under `name`; returns the new record id (to highlight it). */
   onSaveScore?: (name: string) => Promise<string | void>;
   /** Leaderboard rows for the post-save table (undefined = loading). */
-  leaderboard?: LeaderboardRow[];
   /** This game's move log, if available — enables the .txt / .log downloads. */
   log?: GameLog | null;
   /** The game's four-letter code — the handle for replay-by-code on the splash screen. */
@@ -166,7 +164,7 @@ export function GameOverScreen({
         {saved && (
           <div className="scv-hs-wrap">
             <h3 className="scv-hs-heading">High Scores</h3>
-            <HighScores rows={leaderboard} highlightId={savedId || undefined} onReplay={onReplay} />
+            <LeaderboardPanel defaultKit={!!state.variants?.extensionKit} highlightId={savedId || undefined} onReplay={onReplay} />
           </div>
         )}
 

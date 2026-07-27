@@ -47,23 +47,28 @@ export const save = mutation({
       state,
       createdAt: Date.now(),
       mode: "solo",
-      // Extension kit (SC-EXT-29): labels this entry so the leaderboard can show a kit tag.
+      // Extension kit (SC-EXT-29): keys this entry into the kit-mode leaderboard (base and kit
+      // keep entirely separate tables — scores aren't comparable across deck compositions).
       extensionKit: state.variants?.extensionKit ?? undefined,
     });
   },
 });
 
-/** Top SOLO scores across all players (highest first). Multiplayer results live separately. */
+/** Top SOLO scores across all players (highest first), split by game mode: base vs extension
+ *  kit (SC-EXT-29 — separate tables, each with its own top-N, since scores aren't comparable
+ *  across deck compositions). Omitted/false = the base table; absent flags on pre-kit rows are
+ *  base by construction. Multiplayer results live separately. */
 export const list = query({
-  args: {},
-  handler: async (ctx) => {
+  args: { extensionKit: v.optional(v.boolean()) },
+  handler: async (ctx, { extensionKit }) => {
+    const wantKit = extensionKit === true;
     const rows = await ctx.db
       .query("highScores")
       .withIndex("by_score")
       .order("desc")
-      .take(LEADERBOARD_LIMIT * 2); // over-fetch, then drop multiplayer entries
+      .take(LEADERBOARD_LIMIT * 4); // over-fetch, then drop multiplayer + other-mode entries
     return rows
-      .filter((r) => r.mode !== "multi")
+      .filter((r) => r.mode !== "multi" && (r.extensionKit ?? false) === wantKit)
       .slice(0, LEADERBOARD_LIMIT)
       .map((r) => ({
       _id: r._id,

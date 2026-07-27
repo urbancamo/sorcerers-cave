@@ -1,14 +1,14 @@
 import { render, screen, fireEvent, within } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { GS_ESCAPED, GS_DEAD } from "@sorcerers-cave/engine";
-import { HighScores, type LeaderboardRow } from "./HighScores";
+import { LeaderboardPanel, HighScores, type LeaderboardRow } from "./HighScores";
 import type { GameLog } from "./gameLog";
 
 // The detail view subscribes to highScores.stats and highScores.log via Convex's useQuery; mock it
 // (no provider in unit tests). Stub the generated api so a test can tell the two queries apart by their
 // (string) reference.
 vi.mock("../../convex/_generated/api", () => ({
-  api: { highScores: { stats: "highScores:stats", log: "highScores:log" } },
+  api: { highScores: { list: "highScores:list", stats: "highScores:stats", log: "highScores:log" } },
 }));
 const { useQueryMock } = vi.hoisted(() => ({ useQueryMock: vi.fn() }));
 vi.mock("convex/react", () => ({ useQuery: (...args: unknown[]) => useQueryMock(...args) }));
@@ -171,16 +171,36 @@ describe("HighScores", () => {
     expect(within(screen.getByTestId("download-log")).queryByRole("button", { name: /replay/i })).toBeNull();
   });
 
-  it("labels a kit-on row's outcome cell EXT, and doesn't for a kit-off row (SC-EXT-29)", () => {
-    const rows = [
-      row({ _id: "a", name: "Kitter", extensionKit: true, party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }] }),
-      row({ _id: "b", name: "Plain", party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }] }),
-    ];
+  // SC-EXT-29 (revised): base and kit games keep entirely SEPARATE tables behind a segmented
+  // toggle — scores aren't comparable across deck compositions. The per-row EXT badge is gone;
+  // the selected tab supplies the context.
+  it("LeaderboardPanel defaults to the Base tab and queries base scores", () => {
+    useQueryMock.mockReturnValue([]);
+    render(<LeaderboardPanel />);
+    expect(screen.getByRole("tab", { name: "Base Game" })).toHaveAttribute("aria-selected", "true");
+    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ extensionKit: false });
+  });
+
+  it("LeaderboardPanel opens on the Extension Kit tab when defaultKit is set (post-kit-game)", () => {
+    useQueryMock.mockReturnValue([]);
+    render(<LeaderboardPanel defaultKit />);
+    expect(screen.getByRole("tab", { name: "Extension Kit" })).toHaveAttribute("aria-selected", "true");
+    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ extensionKit: true });
+  });
+
+  it("switching tabs re-queries the other table", () => {
+    useQueryMock.mockReturnValue([]);
+    render(<LeaderboardPanel />);
+    fireEvent.click(screen.getByRole("tab", { name: "Extension Kit" }));
+    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ extensionKit: true });
+    fireEvent.click(screen.getByRole("tab", { name: "Base Game" }));
+    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ extensionKit: false });
+  });
+
+  it("rows no longer carry a per-row EXT badge (the tab supplies the context)", () => {
+    const rows = [row({ _id: "a", name: "Kitter", extensionKit: true, party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }] })];
     render(<HighScores rows={rows} />);
-    const kitterRow = screen.getByText("Kitter").closest("tr")!;
-    expect(within(kitterRow).getByText("EXT")).toBeInTheDocument();
-    const plainRow = screen.getByText("Plain").closest("tr")!;
-    expect(within(plainRow).queryByText("EXT")).toBeNull();
+    expect(screen.queryByText("EXT")).toBeNull();
   });
 
   it("notes the kit in the score detail header for a kit-on game", () => {

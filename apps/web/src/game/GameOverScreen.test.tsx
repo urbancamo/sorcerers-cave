@@ -4,6 +4,10 @@ import { newGame, GS_ESCAPED, GS_DEAD, GS_QUIT, type GameState } from "@sorcerer
 
 const { downloadLogMock } = vi.hoisted(() => ({ downloadLogMock: vi.fn() }));
 vi.mock("./gameLog", () => ({ downloadLog: (...a: unknown[]) => downloadLogMock(...a) }));
+// GameOverScreen embeds the self-fetching LeaderboardPanel (base/kit tabs) — mock its query.
+const useQueryMock = vi.hoisted(() => vi.fn());
+vi.mock("convex/react", () => ({ useQuery: (...a: unknown[]) => useQueryMock(...a) }));
+vi.mock("../../convex/_generated/api", () => ({ api: { highScores: { list: "highScores.list", stats: "s", log: "l" } } }));
 
 import { GameOverScreen } from "./GameOverScreen";
 import type { LeaderboardRow } from "./HighScores";
@@ -83,8 +87,9 @@ describe("GameOverScreen", () => {
     const leaderboard: LeaderboardRow[] = [
       { _id: "hs1", name: "Gandalf", score: 10, outcome: GS_ESCAPED, party: escaped.party, createdAt: 0 },
     ];
+    useQueryMock.mockReturnValue(leaderboard);
     render(
-      <GameOverScreen state={escaped} onNewGame={() => {}} onSaveScore={onSaveScore} leaderboard={leaderboard} />,
+      <GameOverScreen state={escaped} onNewGame={() => {}} onSaveScore={onSaveScore} />,
     );
     fireEvent.change(screen.getByPlaceholderText(/your name/i), { target: { value: "  Gandalf  " } });
     fireEvent.click(screen.getByRole("button", { name: /save score/i }));

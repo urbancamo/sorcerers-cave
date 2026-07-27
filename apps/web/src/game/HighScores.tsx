@@ -208,10 +208,7 @@ export function HighScores({ rows, highlightId, onReplay }: {
             >
               <td className="scv-hs-rank">{i + 1}</td>
               <td>{r.name}</td>
-              <td>
-                {OUTCOME_LABEL[r.outcome] ?? "—"}
-                {r.extensionKit && <span className="scv-ext-badge" title="Extension kit game">EXT</span>}
-              </td>
+              <td>{OUTCOME_LABEL[r.outcome] ?? "—"}</td>
               <td className="scv-hs-num">{survivors}/{r.party.length}</td>
               <td className="scv-hs-num">{r.score}</td>
               <td className="scv-hs-chev" aria-hidden="true">›</td>
@@ -223,17 +220,41 @@ export function HighScores({ rows, highlightId, onReplay }: {
   );
 }
 
+/** Self-fetching leaderboard with the base/kit segmented toggle (SC-EXT-29: the two modes keep
+ *  entirely separate tables — scores aren't comparable across deck compositions). `defaultKit`
+ *  opens on the mode the player just finished. */
+export function LeaderboardPanel({ defaultKit = false, highlightId, onReplay }: {
+  defaultKit?: boolean;
+  highlightId?: string;
+  onReplay?: (code: string) => Promise<string | null>;
+}) {
+  const [kit, setKit] = useState(defaultKit);
+  const rows = useQuery(api.highScores.list, { extensionKit: kit }) as LeaderboardRow[] | undefined;
+  return (
+    <div>
+      <div className="scv-hs-tabs" role="tablist" aria-label="score table mode">
+        <button role="tab" aria-selected={!kit} className={"scv-hs-tab" + (!kit ? " scv-hs-tab-on" : "")} onClick={() => setKit(false)}>
+          Base Game
+        </button>
+        <button role="tab" aria-selected={kit} className={"scv-hs-tab" + (kit ? " scv-hs-tab-on" : "")} onClick={() => setKit(true)}>
+          Extension Kit
+        </button>
+      </div>
+      <HighScores rows={rows} highlightId={highlightId} onReplay={onReplay} />
+    </div>
+  );
+}
+
 /** Self-fetching modal used from the splash screen (only mounts when opened). */
 export function HighScoresModal({ onClose, onReplay }: {
   onClose: () => void;
   onReplay?: (code: string) => Promise<string | null>;
 }) {
-  const rows = useQuery(api.highScores.list) as LeaderboardRow[] | undefined;
   return (
     <div className="scv-hs-overlay" role="dialog" aria-label="high scores" onClick={onClose}>
       <div className="scv-hs-modal" onClick={(e) => e.stopPropagation()}>
         <h2 className="scv-hd">High Scores</h2>
-        <HighScores rows={rows} onReplay={onReplay} />
+        <LeaderboardPanel onReplay={onReplay} />
         <button className="scv-primary" onClick={onClose}>Close</button>
       </div>
     </div>

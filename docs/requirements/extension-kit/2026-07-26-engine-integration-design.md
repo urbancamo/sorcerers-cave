@@ -31,7 +31,7 @@ implementation plan; nothing here is code yet.
   the same seed — the byte-identity guarantee.
 - **Persistence:** save-load serializes `variants` with the state. Replay codes gain a kit flag; a
   code without the flag is a base-game replay, so all existing codes remain valid. High-score
-  entries record `extensionKit` so kit scores are labeled in the table.
+  entries record `extensionKit`; the leaderboard keeps entirely SEPARATE base/kit tables behind a segmented toggle (revised 2026-07-27 by MSW — scores aren't comparable across deck compositions; supersedes the original single-labeled-table design), defaulting to the mode just played.
 - **Multiplayer (later):** `extensionKit` joins the MP variants shape (schema.ts:33 `variantsV`,
   MultiplayerLobby host-only checkbox pattern, `buildMpGame` pass-through). The solo reducer
   reads the same field from the composed state — no MP fork.

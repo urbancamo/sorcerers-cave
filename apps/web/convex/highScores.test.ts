@@ -112,12 +112,21 @@ test("a kit-off game's score has no extensionKit flag", async () => {
   expect(row?.extensionKit).toBeFalsy();
 });
 
-test("list surfaces extensionKit on each row", async () => {
+test("list splits the tables: kit scores only under extensionKit true, base only under default (SC-EXT-29)", async () => {
   const t = convexTest(schema, modules);
   const { as } = await asUser(t);
-  const id = await as.mutation(api.game.newGame, { seed: 1, picks: [18, 20], variants: { extensionKit: true } });
-  await as.mutation(api.game.applyAction, { id, action: { type: "exitCave" } });
-  await as.mutation(api.highScores.save, { gameId: id, name: "Kitter" });
-  const rows = await t.query(api.highScores.list, {});
-  expect(rows.find((r) => r.name === "Kitter")?.extensionKit).toBe(true);
+  const kitId = await as.mutation(api.game.newGame, { seed: 1, picks: [18, 20], variants: { extensionKit: true } });
+  await as.mutation(api.game.applyAction, { id: kitId, action: { type: "exitCave" } });
+  await as.mutation(api.highScores.save, { gameId: kitId, name: "Kitter" });
+  const baseId = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+  await as.mutation(api.game.applyAction, { id: baseId, action: { type: "exitCave" } });
+  await as.mutation(api.highScores.save, { gameId: baseId, name: "Plain" });
+
+  const baseRows = await t.query(api.highScores.list, {});
+  expect(baseRows.find((r) => r.name === "Plain")).toBeDefined();
+  expect(baseRows.find((r) => r.name === "Kitter")).toBeUndefined();
+
+  const kitRows = await t.query(api.highScores.list, { extensionKit: true });
+  expect(kitRows.find((r) => r.name === "Kitter")?.extensionKit).toBe(true);
+  expect(kitRows.find((r) => r.name === "Plain")).toBeUndefined();
 });

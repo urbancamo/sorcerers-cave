@@ -1454,6 +1454,14 @@
   background: rgba(7, 7, 9, 0.6);
   backdrop-filter: blur(2px);
 }
+.scv-hs-tabs { display: flex; gap: 6px; margin-bottom: 10px; }
+.scv-hs-tab {
+  flex: 1; padding: 7px 10px; font-size: 13px; letter-spacing: .04em;
+  background: transparent; color: var(--stone-dim);
+  border: 1px solid var(--line-strong); border-radius: 9px; cursor: pointer;
+}
+.scv-hs-tab-on { background: var(--brass); color: var(--ink); border-color: var(--brass); font-weight: 600; }
+
 .scv-hs-modal {
   width: 100%;
   max-width: 520px;

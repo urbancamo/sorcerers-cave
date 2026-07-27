@@ -10,7 +10,6 @@ import { SplashScreen } from "./SplashScreen";
 import { PartySelect } from "./PartySelect";
 import { PartyPanel } from "./PartyPanel";
 import { GameOverScreen } from "./GameOverScreen";
-import type { LeaderboardRow } from "./HighScores";
 import { EncounterPanel } from "./EncounterPanel";
 import { ExplorePanel } from "./ExplorePanel";
 import { FightSurface } from "./FightSurface";
@@ -69,11 +68,7 @@ export default function GameScreen() {
   const { roll, notices, holding, heldState, dispatchWithRolls, holdMove, clearRoll, clearNotices } = useDispatchWithRolls(dispatch, getSnapshot);
   onHoldMoveRef.current = holdMove;
   const cards = useManifestCards();
-  // Leaderboard for the post-game screen; only subscribed once a game has ended.
   const gameOver = !!state && state.gs !== GS_PLAYING;
-  const leaderboard = useQuery(api.highScores.list, gameOver ? {} : "skip") as
-    | LeaderboardRow[]
-    | undefined;
   // The finished game's move log, for the post-game .txt / .log downloads (fetched only at game over).
   const gameLog = useQuery(api.game.log, gameOver && gameId ? { id: gameId } : "skip") as GameLog | null | undefined;
 
@@ -181,7 +176,6 @@ export default function GameScreen() {
           // Return to the splash screen (the home / high-scores entry), not straight to party select.
           onNewGame={() => { clearRoll(); clearNotices(); setGameId(null); setStarted(false); }}
           onSaveScore={(name) => saveScore({ gameId, name })}
-          leaderboard={leaderboard}
           log={gameLog ?? null}
           code={code ?? gameLog?.game.code ?? null}
           onReplay={handleReplay}
