@@ -104,7 +104,7 @@ describe("describeEvent", () => {
 describe("formatLog", () => {
   it("renders a header and one block per move with described consequences", () => {
     const text = formatLog(sampleLog());
-    expect(text).toMatch(/Sorcerer's Cave — Game Log/);
+    expect(text).toMatch(/The Sorcerer's Cave — Game Log/);
     expect(text).toMatch(/Code: ABCD/);
     expect(text).toMatch(/Seed: 7/);
     expect(text).toMatch(/Party: Hero/);

@@ -16,7 +16,7 @@ export function CaveHud({ mountRef, onPartyClick, onSave, onLog, code, turnLabel
 
         <div id="hud">
           <div className="brand">
-            <div className="title">Sorcerer's Cave</div>
+            <div className="title">The Sorcerer's Cave</div>
             <div className="mode">
               <span className="pulse"></span>
               <span id="modelabel">Free orbit</span>
@@ -238,7 +238,7 @@ export function CaveHud({ mountRef, onPartyClick, onSave, onLog, code, turnLabel
 
       <div id="loader">
         <div className="inner">
-          <div className="ttl">SORCERER'S CAVE</div>
+          <div className="ttl">THE SORCERER'S CAVE</div>
           <div className="sub">Lighting the torches…</div>
           <div className="bar">
             <i></i>

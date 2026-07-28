@@ -305,7 +305,7 @@ export function formatLog(log: GameLog): string {
   const party = game.picks ? game.picks.map(creature).join(", ") : "unknown (game predates logging)";
   const started = new Date(game.createdAt).toISOString();
   const lines: string[] = [
-    "Sorcerer's Cave — Game Log",
+    "The Sorcerer's Cave — Game Log",
     `Code: ${game.code ?? "—"}   ·   Seed: ${game.seed ?? "unavailable"}   ·   Party: ${party}`,
     `Colour: ${game.color ?? "—"}   ·   Started: ${started}   ·   Status: ${game.status}   ·   Moves: ${moves.length}`,
   ];
