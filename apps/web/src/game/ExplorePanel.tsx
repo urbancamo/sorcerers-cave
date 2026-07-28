@@ -9,6 +9,7 @@ import {
 import { memberLabel } from "./memberLabels";
 import { ConfirmButton, ConfirmPicker } from "./ConfirmButton";
 import { holyWaterTargetName } from "./holyWaterLabel";
+import { uncarryableNotes } from "./uncarryableNotes";
 
 // Explore-phase actions that aren't movement (movement lives on the 3D exit markers / keys, and
 // the Cave exit on the up-stair marker). These need a real menu — this is it.
@@ -71,7 +72,14 @@ export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: 
   const useElixir = all.filter((a): a is UseArtifact => a.type === "useArtifact" && a.artifact === 15);
   const actions = all.filter(isExploreAction).filter((a) => !(a.type === "useArtifact" && a.artifact === 15));
   const hasKitActions = !!descendChasm || !!drawFromWell || !!enterCrypt || pullBellRope.length > 0 || useElixir.length > 0;
-  if (actions.length === 0 && !attack && !hasKitActions) return null;
+  // Uncarryable treasure parked on this tile (design 2026-07-28): pickup auto-skips when nothing
+  // can be taken, so the standing explanation lives here while the party remains in the chamber.
+  // Parked contents encode treasure as 200+tid.
+  const notes = uncarryableNotes(
+    state,
+    state.areas[state.partyArea]!.contents.filter((c) => c >= 200 && c < 300).map((c) => c - 200),
+  );
+  if (actions.length === 0 && !attack && !hasKitActions && notes.length === 0) return null;
 
   // Group artifact uses by artifact; openChest (and any single-option artifact) stays a plain button.
   const artByArtifact = new Map<number, UseArtifact[]>();
@@ -89,6 +97,10 @@ export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: 
   return (
     <div className="scv-enc" data-testid="explore-panel">
       <h3 className="scv-enc-hd">Actions</h3>
+
+      {notes.map((msg) => (
+        <p key={msg} className="scv-enc-line scv-muted">{msg}</p>
+      ))}
 
       {attack && (
         <div className="scv-enc-actions">

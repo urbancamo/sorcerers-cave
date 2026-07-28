@@ -31,11 +31,25 @@ Artifacts weigh 0 and always fit, so they can never trigger the message by
 construction. Encounter/medusa phases are untouched (takes are never offered there).
 Styling reuses `scv-enc-line` plus muted text; at most one small CSS addition.
 
-## Testing (component tests, `EncounterPanel.test.tsx`)
+## Amendment (approved 2026-07-28, follow-up): auto-skip the leave-only window
 
-1. Chest with no eligible carrier in pickup → message shown, no dropdown for it.
-2. A carryable treasure → no message, dropdown as today.
-3. Deep Pool, no Giant → pool wording.
-4. Deep Pool, Giant present but at capacity → too-heavy wording.
-5. All members down → no message (today's silence preserved).
-6. Encounter phase → no message.
+MSW: the window with only "Leave the treasure" interrupts play. Approved shape:
+
+- When a pickup's ONLY legal action is `leaveTreasure` (nothing takeable, nothing
+  usable), the window never opens — `EncounterPanel` auto-dispatches the leave
+  (ref-guarded per state object, StrictMode/MP-async safe) and renders nothing.
+- The explanation becomes a standing chamber note in `ExplorePanel` while the party
+  remains on the tile: parked `200+tid` contents that nobody can take get the same
+  wording (too heavy / Giant-only pool), from the shared `uncarryableNotes.ts`
+  helper. Silent when the whole party is down.
+- A mixed chamber (something takeable or usable, e.g. a Healing-Balm revive) still
+  opens the window, with the info line beside the takeable rows as before.
+
+## Testing (component tests)
+
+`EncounterPanel.test.tsx`: mixed chamber shows message + rows, no auto-skip; auto-skip
+dispatches leave exactly once (incl. across re-renders) and renders nothing; revive
+available keeps the window; all-down auto-skips without a too-heavy claim; carryable
+treasure and encounter phase show no message.
+`ExplorePanel.test.tsx`: parked chest note; Deep Pool no-Giant pool wording; Deep Pool
+loaded-Giant too-heavy wording; carryable parked gold silent; all-down silent.

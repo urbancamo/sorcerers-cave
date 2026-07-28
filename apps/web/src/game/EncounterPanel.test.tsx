@@ -158,13 +158,16 @@ describe("EncounterPanel", () => {
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "useArtifact", artifact: 16 }));
   });
 
-  it("explains an uncarryable treasure instead of offering a pickup row", () => {
-    // Man (50 kg) + Woman (25 kg) vs the 100 kg Treasure Chest: nobody qualifies, so the engine
-    // offers no takeTreasure — the panel must say why instead of a silent, row-less listing.
-    const pickup: GameState = { ...newGame(1, [5, 6]), phase: "pickup", treasures: [14] };
-    render(<EncounterPanel state={pickup} dispatch={() => {}} />);
+  it("explains an uncarryable treasure beside the rows for what CAN be taken", () => {
+    // Man (50 kg) + Woman (25 kg), Gold takeable but the 100 kg Treasure Chest is not: the window
+    // opens for the Gold, and the chest gets an info line instead of a silent, row-less listing.
+    const dispatch = vi.fn();
+    const pickup: GameState = { ...newGame(1, [5, 6]), phase: "pickup", treasures: [14, 1] };
+    render(<EncounterPanel state={pickup} dispatch={dispatch} />);
     expect(screen.getByText("The Treasure Chest is too heavy for anyone to carry.")).toBeInTheDocument();
     expect(screen.queryByLabelText(/assign treasure chest/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/assign gold/i)).toBeInTheDocument();
+    expect(dispatch).not.toHaveBeenCalled(); // something is takeable — no auto-skip
   });
 
   it("shows no too-heavy message when the treasure is carryable", () => {
@@ -174,33 +177,45 @@ describe("EncounterPanel", () => {
     expect(screen.getByLabelText(/assign gold/i)).toBeInTheDocument();
   });
 
-  it("words a Giant-less Deep Pool pickup as needing a Giant, not as too heavy", () => {
-    const base = newGame(1, [5, 6]); // no Giant; Gold is light enough for the Man
-    const pickup: GameState = {
-      ...base, phase: "pickup", treasures: [1],
-      areas: base.areas.map((a, i) => (i === 0 ? { ...a, card: 16 | (2 << 7) } : a)), // Deep Pool (special 2)
-    };
-    render(<EncounterPanel state={pickup} dispatch={() => {}} />);
-    expect(screen.getByText("Only a Giant can lift the Gold from the pool.")).toBeInTheDocument();
-    expect(screen.queryByLabelText(/assign gold/i)).not.toBeInTheDocument();
+  it("auto-skips a pickup where leaving is the only option (design 2026-07-28)", () => {
+    // Nothing can be taken and nothing else is actionable: don't interrupt play with a window
+    // whose only button is "Leave the treasure" — leave automatically and render nothing.
+    const dispatch = vi.fn();
+    const pickup: GameState = { ...newGame(1, [5, 6]), phase: "pickup", treasures: [14] };
+    const { container } = render(<EncounterPanel state={pickup} dispatch={dispatch} />);
+    expect(container).toBeEmptyDOMElement();
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch).toHaveBeenCalledWith({ type: "leaveTreasure" });
   });
 
-  it("words a Deep Pool pickup as too heavy when a Giant is present but already loaded", () => {
-    const base = newGame(1, [0]); // party fixture; swap in a fully-loaded Giant below
-    const pickup: GameState = {
-      ...base, phase: "pickup", treasures: [14],
-      areas: base.areas.map((a, i) => (i === 0 ? { ...a, card: 16 | (2 << 7) } : a)), // Deep Pool
-    };
-    pickup.party = [{ creatureId: 12, status: 0, treasure: [14, 1, 2], dragonKills: 0 }]; // Giant at 150/150 kg
-    render(<EncounterPanel state={pickup} dispatch={() => {}} />);
+  it("auto-skip dispatches once per state, not once per render", () => {
+    const dispatch = vi.fn();
+    const pickup: GameState = { ...newGame(1, [5, 6]), phase: "pickup", treasures: [14] };
+    const { rerender } = render(<EncounterPanel state={pickup} dispatch={dispatch} />);
+    rerender(<EncounterPanel state={pickup} dispatch={dispatch} />);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+  });
+
+  it("keeps the window (message included) while anything besides leaving is possible", () => {
+    // The chest is uncarryable, but the fallen Man can be revived with the Woman's Healing Balm
+    // (Balm users: Woman/W-Hero/Priest/Wizard) — the pause is real, so the window stays and
+    // explains the chest.
+    const dispatch = vi.fn();
+    const pickup: GameState = { ...newGame(1, [5, 6]), phase: "pickup", treasures: [14] };
+    pickup.party[1]!.treasure.push(6); // the Woman carries the Healing Balm
+    pickup.party[0]!.status = 3;      // the Man has fallen — revivable while looting
+    render(<EncounterPanel state={pickup} dispatch={dispatch} />);
     expect(screen.getByText("The Treasure Chest is too heavy for anyone to carry.")).toBeInTheDocument();
+    expect(dispatch).not.toHaveBeenCalled();
   });
 
-  it("stays silent about uncarryable treasure when no member is active", () => {
+  it("auto-skips without a too-heavy claim when the whole party is down", () => {
+    const dispatch = vi.fn();
     const pickup: GameState = { ...newGame(1, [5]), phase: "pickup", treasures: [14] };
     pickup.party = pickup.party.map((m) => ({ ...m, status: 3 })); // everyone down
-    render(<EncounterPanel state={pickup} dispatch={() => {}} />);
-    expect(screen.queryByText(/too heavy/i)).not.toBeInTheDocument();
+    const { container } = render(<EncounterPanel state={pickup} dispatch={dispatch} />);
+    expect(container).toBeEmptyDOMElement(); // no window, so no wrong "too heavy" wording either
+    expect(dispatch).toHaveBeenCalledWith({ type: "leaveTreasure" });
   });
 
   it("shows no too-heavy message outside the pickup phase", () => {
