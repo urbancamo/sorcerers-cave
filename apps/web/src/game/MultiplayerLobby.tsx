@@ -75,6 +75,14 @@ export function MultiplayerLobby({ code, onExit }: { code: string; onExit: () =>
               />
               Concurrent exploration <span className="scv-muted">(explore freely — no waiting for turns; fights still pause their combatants)</span>
             </label>
+            <label className="scv-lobby-variant">
+              <input
+                type="checkbox"
+                checked={!!lob.variants?.extensionKit}
+                onChange={(e) => void setVariants({ gameId, variants: { ...(lob.variants ?? {}), extensionKit: e.target.checked } })}
+              />
+              Extension kit <span className="scv-muted">(adds 30 area tiles and 30 cards to the decks)</span>
+            </label>
           </>
         ) : (
           <>
@@ -86,6 +94,9 @@ export function MultiplayerLobby({ code, onExit }: { code: string; onExit: () =>
             </span>
             <span className={"scv-lobby-varchip" + (lob.variants?.concurrent ? " on" : "")}>
               Concurrent {lob.variants?.concurrent ? "✓" : "—"}
+            </span>
+            <span className={"scv-lobby-varchip" + (lob.variants?.extensionKit ? " on" : "")}>
+              Extension kit {lob.variants?.extensionKit ? "✓" : "—"}
             </span>
           </>
         )}
