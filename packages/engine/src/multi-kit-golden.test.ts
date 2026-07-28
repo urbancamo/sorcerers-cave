@@ -5,7 +5,7 @@ import { validatePlan } from "./combatPlan";
 import { casterMP } from "./combat";
 import { eyeActive } from "./effects";
 import { scoreGame } from "./score";
-import type { GameAction, GameState } from "./index";
+import type { GameAction, GameEvent, GameState, PartyMember } from "./index";
 
 /**
  * MP-KIT GOLDEN FIREWALL (multiplayer extension-kit milestone, Task 9).
@@ -145,11 +145,26 @@ const MAX_STEPS = 300;
 /** First step at which the commander may dissolve the union (it waits for its own at-rest turn). */
 const DISSOLVE_FROM = 40;
 
-/** Drive one multiplayer game with the fixed script + policy above; return its narrative and a
- *  fingerprint of the whole final `MpGameState` (cave + both seats, not just one party's view). */
+/**
+ * Named probes lifted out of the run so the milestone's HEADLINE contract is asserted in the open
+ * rather than buried in the state fingerprint. The narrative lines carry event TYPES only
+ * (`…,hazardFired,quarrel,itemsSpilled`), which cannot show that a duel crossed owners or which
+ * side lost — without these, an SC-EXT-34 regression would surface as nothing but a changed
+ * `stateHash`, i.e. exactly the failure someone "fixes" with `vitest -u`.
+ */
+interface Probes {
+  /** The first `quarrel` event of the run, with the step it fired on and whether a union was live. */
+  unionQuarrel: { step: number; unionLive: boolean; event: Extract<GameEvent, { type: "quarrel" }> } | null;
+  /** Both seats' rosters immediately AFTER the scripted `dissolveUnion` resolved. */
+  dissolve: { step: number; commanderParty: PartyMember[]; subSeat: number; subParty: PartyMember[] } | null;
+}
+
+/** Drive one multiplayer game with the fixed script + policy above; return its narrative, the
+ *  probes above, and a fingerprint of the whole final `MpGameState` (cave + both seats, not just
+ *  one party's view). */
 function run(
   seed: number, picks: number[][], variants?: { extensionKit?: boolean },
-): { narrative: string[]; final: Record<string, unknown>; state: MpGameState } {
+): { narrative: string[]; final: Record<string, unknown>; state: MpGameState; probes: Probes } {
   const rnd = lcg(seed * 2654435761);
   let mp = variants === undefined ? buildMpGame(seed, SEATS) : buildMpGame(seed, SEATS, variants);
   const narrative: string[] = [];
@@ -176,12 +191,14 @@ function run(
     mp = r.state;
   }
 
+  const probes: Probes = { unionQuarrel: null, dissolve: null };
   let dissolved = false;
   let stuck = 0;
   for (let step = 0; step < MAX_STEPS && mp.phase === "playing"; step++) {
     const seat = currentSeat(mp);
     if (seat === null) break;
 
+    const unionLive = !dissolved; // read BEFORE the dissolve script below can flip it
     let action: MpAction | null = null;
     if (!dissolved && step >= DISSOLVE_FROM && seat === cmd &&
         mp.parties[cmd]!.phase === "explore" && !mp.session) {
@@ -239,10 +256,21 @@ function run(
     } else stuck = 0;
     narrative.push(`#${step} s${seat} ${code} => ${r.events.map((e) => e.type).join(",") || "-"}`);
     mp = r.state;
+
+    // --- probes (see the `Probes` doc): payloads the narrative's event-type list cannot carry ---
+    for (const e of r.events) {
+      if (e.type === "quarrel" && !probes.unionQuarrel) probes.unionQuarrel = { step, unionLive, event: e };
+    }
+    if (action.type === "dissolveUnion" && !probes.dissolve) {
+      probes.dissolve = {
+        step, commanderParty: mp.parties[cmd]!.party, subSeat: sub, subParty: mp.parties[sub]!.party,
+      };
+    }
   }
 
   return {
     narrative,
+    probes,
     state: mp, // not snapshotted — the kit-off spot-check below compares whole states directly
     final: {
       phase: mp.phase, turnCount: mp.turnCount, areas: mp.cave.areas.length,
@@ -273,6 +301,41 @@ describe("MP-kit golden firewall — kit-on multiplayer behaviour is frozen", ()
     expect(narrative.length).toBeGreaterThan(5);          // sanity: the run actually did something
     expect(final.phase).toBe("finished");                 // a natural end, not a step-cap truncation
     expect({ final, narrative }).toMatchSnapshot();
+  });
+
+  // The run's HEADLINE beat, asserted in the open rather than left to the state fingerprint. The
+  // snapshot above freezes the whole game, but its narrative lines carry event TYPES only — step
+  // #12 reads `moved,drewChamber,hazardFired,quarrel,itemsSpilled`, which cannot show that the duel
+  // crossed owners, nor that the loser was the loaned member, nor that the corpse went home at the
+  // dissolve. Without this test an SC-EXT-34 regression would show up as a changed `stateHash` and
+  // 150 unchanged narrative lines — the shape of failure that invites a thoughtless `vitest -u`.
+  it("SC-EXT-34: the union Quarrel crosses owners, and the loaned casualty goes home dead at the dissolve", () => {
+    const { probes } = run(SEED, PICKS, { extensionKit: true });
+    const [ownPicks, loanedPicks] = [PICKS[0]!, PICKS[1]!]; // seat 0 commands, seat 1 lends
+
+    // (1) The duel itself: the commander's OWN Ogre (2) called out against seat 1's LOANED Man (5),
+    // while the union was live — a pairing no solo game can produce (SC-EXT-16 picks the two
+    // strongest of the roster; under a union that roster is the COMBINED force).
+    const q = probes.unionQuarrel;
+    expect(q).not.toBeNull();
+    expect(q!.step).toBe(12);
+    expect(q!.unionLive).toBe(true);
+    expect(q!.event).toMatchObject({ type: "quarrel", aId: 2, bId: 5, loserId: 5 });
+    expect(ownPicks).toContain(q!.event.aId);       // duellist A is the commander's own
+    expect(loanedPicks).toContain(q!.event.bId);    // duellist B is on loan from seat 1
+    expect(loanedPicks).toContain(q!.event.loserId); // …and the loan is the side that fell
+
+    // (2) Death does NOT end the loan: the corpse rides in the commander's array until the union
+    // breaks, then goes home to its OWNER — untagged, still dead. (The plan's own guess, "death
+    // ends the loan naturally", would have returned him at step 12 and is contradicted here.)
+    const d = probes.dissolve;
+    expect(d).not.toBeNull();
+    expect(d!.step).toBe(40);
+    expect(d!.subSeat).toBe(1);
+    expect(d!.subParty).toContainEqual(expect.objectContaining({ creatureId: 5, status: 3 }));
+    for (const m of d!.subParty) expect(m.mpTag).toBeUndefined();     // came home, loan record gone
+    for (const m of d!.commanderParty) expect(m.mpTag).toBeUndefined(); // …and left none behind
+    expect(d!.commanderParty.map((m) => m.creatureId)).toEqual(ownPicks);
   });
 
   // Kit-OFF byte-identity spot-check (SC-EXT-1's guarantee, carried through the WHOLE harness
