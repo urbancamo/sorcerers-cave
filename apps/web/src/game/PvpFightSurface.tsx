@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import {
-  CREATURES, frontStrength, casterMP, isCaster, decodeArea,
+  ALL_CREATURES, frontStrength, casterMP, isCaster, decodeArea,
   DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN,
   type GameState, type PartyMember, type PvpSession, type PvpView,
 } from "@sorcerers-cave/engine";
@@ -134,9 +134,9 @@ export function PvpFightSurface({
     return c ? (resolveCardVariant("creature", c.creatureId, c.copy, cardArt)?.file ?? null) : null;
   };
   const nameOf = (id: string): string => {
-    if (isMine(id)) return labels[idxOf(id)] ?? CREATURES[memberOf(id)?.creatureId ?? -1]?.name ?? "?";
+    if (isMine(id)) return labels[idxOf(id)] ?? ALL_CREATURES[memberOf(id)?.creatureId ?? -1]?.name ?? "?";
     const c = pvp?.cards?.[id];
-    if (c) return (CREATURES[c.creatureId]?.name ?? "?") + (c.copy > 0 ? ` #${c.copy + 1}` : "");
+    if (c) return (ALL_CREATURES[c.creatureId]?.name ?? "?") + (c.copy > 0 ? ` #${c.copy + 1}` : "");
     return rivalNames.get(id) ?? `Fighter ${idxOf(id) + 1}`;
   };
   // The rival roster this side can see right now: the laid-out line plus anyone named in an engagement.

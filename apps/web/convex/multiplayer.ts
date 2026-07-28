@@ -4,7 +4,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Id, Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { uniqueCode } from "./game";
-import { buildMpGame, choosePartyFor, mpReduce, partyView, fogFilter, distantFights, zombiePostSweep, repairTurnFlow, mpScore, occupants, areaInteractionMask, expireTrade, expirePvp, expireUnionProposal, pvpView, PVP_WINDOW_MS, CREATURES, TREASURES, PARTY_BUDGET, type MpGameState, type MpAction, type PartyState, type GameEvent } from "@sorcerers-cave/engine";
+import { buildMpGame, choosePartyFor, mpReduce, partyView, fogFilter, distantFights, zombiePostSweep, repairTurnFlow, mpScore, occupants, areaInteractionMask, expireTrade, expirePvp, expireUnionProposal, pvpView, PVP_WINDOW_MS, CREATURES, TREASURES, KIT_CREATURES, PARTY_BUDGET, type MpGameState, type MpAction, type PartyState, type GameEvent } from "@sorcerers-cave/engine";
 
 // Permissive action shape; the engine (mpReduce) enforces semantics. Includes the lobby-level endTurn.
 const mpActionValidator = v.object({
@@ -49,6 +49,10 @@ const PRESENCE_FRESH_MS = 30_000;
 // Multiplayer lobby (Phase 1), the multi-party game state + turn-based party draft (Phase 2/3).
 // Inert until the client's production-off feature flag exposes it.
 const SELECTABLE = [0, 1, 2, 3, 4, 5, 6, 7]; // creature ids with a selection value
+// Extension kit (SC-EXT-29 MP parity, Task 7): the five kit starters, drafted onto SELECTABLE only
+// when the game's flag is on — Apprentice/Demon carry `cost: null` in KIT_CREATURES so they're
+// naturally excluded here, same as the base filter above.
+const KIT_SELECTABLE = KIT_CREATURES.filter((c) => c.cost !== null).map((c) => c.id); // [16,17,18,19,20]
 
 const COLORS = ["green", "blue", "yellow", "red"] as const;
 const colorV = v.union(v.literal("green"), v.literal("blue"), v.literal("yellow"), v.literal("red"));
@@ -373,9 +377,11 @@ export const gameState = query({
     const mp = game.state as MpGameState | null;
     if (!mp) return { phase: "lobby" as const, youSeat: me.seat };
 
+    const kitOn = mp.variants?.extensionKit === true;
     const remaining: Record<number, number> = {};
     if (mp.phase === "partySelect") {
-      for (const id of SELECTABLE) remaining[id] = mp.cave.smallPack.filter((c) => c === 100 + id).length;
+      const selectable = kitOn ? [...SELECTABLE, ...KIT_SELECTABLE] : SELECTABLE;
+      for (const id of selectable) remaining[id] = mp.cave.smallPack.filter((c) => c === 100 + id).length;
     }
     return {
       phase: mp.phase,
@@ -391,7 +397,10 @@ export const gameState = query({
         score: p.party.length ? mpScore(mp, p.seat) : 0, // bounty-split aware (I-19)
         depth: p.level, turns: p.turn, kills: p.kills ?? 0, // live scoreboard stats
       })),
-      draft: mp.phase === "partySelect" ? { remaining, budget: PARTY_BUDGET } : null,
+      // `extensionKit` (SC-EXT-29 MP parity): the game's kit flag, already fixed at lobby start —
+      // PartyDraft has no per-pick toggle, unlike solo's PartySelect. Absent/false ⇒ kit-off,
+      // byte-identical to `remaining` covering only the base SELECTABLE ids as before.
+      draft: mp.phase === "partySelect" ? { remaining, budget: PARTY_BUDGET, ...(kitOn ? { extensionKit: true } : {}) } : null,
     };
   },
 });

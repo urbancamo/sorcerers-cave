@@ -648,3 +648,42 @@ test("kit-off startGame keeps the pre-kit 60/71-card packs — no extensionKit k
   expect(stored.cave.largePack).toHaveLength(60);
   expect(stored.cave.smallPack).toHaveLength(71);
 });
+
+// --- Task 7 (SC-EXT-29 MP web parity): gameState's draft.remaining reads the kit flag -----------
+// The shared small pack already carries the kit starters when extensionKit is on (Task 1-3); this
+// pins that the DRAFT PROJECTION actually surfaces them (and the flag itself) instead of silently
+// dropping every kit id, which would leave PartyDraft's kit-aware rendering permanently inert.
+
+test("gameState draft.remaining includes the kit starters, from the real shared pack, when extensionKit is on", async () => {
+  const t = convexTest(schema, modules);
+  const host = await asUser(t);
+  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, {
+    partyName: "Alpha", color: "green", variants: { extensionKit: true },
+  });
+  const p2 = await asUser(t);
+  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await host.mutation(api.multiplayer.startGame, { gameId });
+
+  const proj = await host.query(api.multiplayer.gameState, { gameId });
+  expect(proj!.phase).toBe("partySelect");
+  expect(proj!.draft!.extensionKit).toBe(true);
+  // Official kit stock (smallPack.ts's smallPackExtension): Lion/Scholar/Thief/Wolf ×1, Witch ×3.
+  expect(proj!.draft!.remaining[16]).toBe(1); // Lion
+  expect(proj!.draft!.remaining[17]).toBe(1); // Scholar
+  expect(proj!.draft!.remaining[18]).toBe(3); // Witch
+  expect(proj!.draft!.remaining[19]).toBe(1); // Thief
+  expect(proj!.draft!.remaining[20]).toBe(1); // Wolf
+});
+
+test("kit-off gameState draft.remaining stays base-only — no extensionKit key, byte-identical", async () => {
+  const t = convexTest(schema, modules);
+  const host = await asUser(t);
+  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
+  const p2 = await asUser(t);
+  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await host.mutation(api.multiplayer.startGame, { gameId });
+
+  const proj = await host.query(api.multiplayer.gameState, { gameId });
+  expect(proj!.draft!.extensionKit).toBeUndefined();
+  expect(Object.keys(proj!.draft!.remaining).map(Number).sort((a, b) => a - b)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
+});

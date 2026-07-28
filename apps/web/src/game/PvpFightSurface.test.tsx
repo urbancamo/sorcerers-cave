@@ -148,6 +148,32 @@ describe("PvpFightSurface (spec I-10)", () => {
   });
 });
 
+describe("extension kit (SC-EXT-29): kit fighters render by name, not the base-only '?' fallback", () => {
+  it("shows a kit creature's real name for both the rival card and your own kit member — no crash", () => {
+    const dispatch = vi.fn();
+    const pvp: PvpView = {
+      round: 1, activeSide: "attacker", stage: "attackerEngage", surprise: 0,
+      attackerName: "Green Wyrms", defenderName: "Red Talons",
+      engagements: [], window: null, stopProposedBy: null,
+      cards: { "1:0": { creatureId: 18, copy: 0, alive: true } }, // the rival's Witch (kit id 18)
+    };
+    render(
+      <PvpFightSurface
+        session={session({ attacker: [0], defender: [1], stage: "attackerEngage", defenderLine: ["1:0"],
+          window: { seat: 0, deadline: Date.now() + 45_000, kind: "pvpLayout" } })}
+        pvp={pvp} youSeat={0} parties={parties}
+        yourState={newGame(1, [20, 6], { extensionKit: true })} // your own Wolf (kit id 20) + Woman
+        dispatch={dispatch} />,
+    );
+    // The rival's Witch card names correctly (base CREATURES[18] is undefined — a kit-safe lookup
+    // is required or this falls back to "?").
+    expect(screen.getAllByText("Witch").length).toBeGreaterThanOrEqual(1);
+    // Your own kit member (Wolf) also names correctly in the "Your command" roster.
+    expect(screen.getAllByText(/Wolf/).length).toBeGreaterThanOrEqual(1);
+    expect(screen.queryByText("?")).toBeNull(); // never the base-only-lookup placeholder
+  });
+});
+
 describe("card art on the fight chips (rulebook §Hidden Cards — creature cards are displayed)", () => {
   it("renders both sides' creature card images: yours from your state, the rival's from pvp.cards", async () => {
     const dispatch = vi.fn();

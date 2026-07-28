@@ -1,7 +1,7 @@
 import { useMutation } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
-import { CREATURES } from "@sorcerers-cave/engine";
+import { ALL_CREATURES } from "@sorcerers-cave/engine";
 import { PARTY_COLOR_HEX, type PartyColor } from "./partyColors";
 import { PartySelect } from "./PartySelect";
 
@@ -9,7 +9,10 @@ export interface DraftProjection {
   youSeat: number;
   currentPicker: number | null;
   parties: { seat: number; name: string; color: string; status: string; members: number[] }[];
-  draft: { remaining: Record<number, number>; budget: number } | null;
+  // `extensionKit` (SC-EXT-29 MP parity): the game's kit flag, already fixed at lobby start — the
+  // draft has no per-pick toggle, unlike solo's PartySelect. Absent/false ⇒ the base-only roster,
+  // byte-identical to the kit's absence.
+  draft: { remaining: Record<number, number>; budget: number; extensionKit?: boolean } | null;
 }
 
 /** Turn-based party draft: the current picker drafts from the shared pack's remaining cards; everyone
@@ -28,6 +31,7 @@ export function PartyDraft({ gameId, proj }: { gameId: Id<"games">; proj: DraftP
         stock={proj.draft.remaining}
         lockedColor={me.color as PartyColor}
         confirmLabel={(n) => `Confirm party (${n})`}
+        variants={proj.draft.extensionKit ? { extensionKit: true } : undefined}
         onConfirm={(picks) => void pick({ gameId, picks })}
       />
     );
@@ -44,7 +48,7 @@ export function PartyDraft({ gameId, proj }: { gameId: Id<"games">; proj: DraftP
             <span className="scv-lobby-nm">{p.name}{p.seat === proj.youSeat && <span className="scv-muted"> (you)</span>}</span>
             <span className="scv-lobby-ready">
               {p.members.length > 0
-                ? p.members.map((id) => CREATURES[id]!.name).join(", ")
+                ? p.members.map((id) => ALL_CREATURES[id]!.name).join(", ")
                 : p.seat === proj.currentPicker ? "choosing…" : "—"}
             </span>
           </li>

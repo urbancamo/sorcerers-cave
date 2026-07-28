@@ -28,6 +28,7 @@ export function PartySelect({
   title = "Choose your party",
   confirmLabel = (n) => `Enter the cave (${n})`,
   kitToggle = false,
+  variants: fixedVariants,
 }: {
   onConfirm: (picks: number[], color: PartyColor, variants?: { extensionKit: boolean }) => void;
   stock?: Readonly<Record<number, number>>;
@@ -35,6 +36,9 @@ export function PartySelect({
   title?: string;
   confirmLabel?: (count: number) => string;
   kitToggle?: boolean;
+  /** MP draft only (never combined with `kitToggle`): the game's kit flag is already fixed by the
+   *  lobby, so render the kit-on/off roster directly — no interactive switch. */
+  variants?: { extensionKit: boolean };
 }) {
   const [counts, setCounts] = useState<Record<number, number>>({});
   const [kit, setKit] = useState(false);
@@ -43,7 +47,7 @@ export function PartySelect({
   // Click a card to read its printed attributes full-size (a dismissable lightbox).
   const [zoom, setZoom] = useState<{ file: string; name: string } | null>(null);
 
-  const kitOn = kitToggle && kit;
+  const kitOn = fixedVariants ? fixedVariants.extensionKit : (kitToggle && kit);
   const variants = kitOn ? { extensionKit: true } : undefined;
   const SELECTABLE = kitOn ? [...BASE_SELECTABLE, ...KIT_SELECTABLE] : BASE_SELECTABLE;
   const effectiveStock = stock ?? startingStock(variants);

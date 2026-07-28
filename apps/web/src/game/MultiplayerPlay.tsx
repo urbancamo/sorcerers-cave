@@ -13,6 +13,8 @@ import { CaveCanvas, type OtherPartyToken } from "../view/CaveCanvas";
 import { EncounterPanel } from "./EncounterPanel";
 import { ExplorePanel } from "./ExplorePanel";
 import { FightSurface } from "./FightSurface";
+import { useDispatchWithRolls } from "./useDispatchWithRolls";
+import { showFightSurface } from "./fightGate";
 import { useManifestCards } from "../data/useManifestCards";
 import { PartyPanel } from "./PartyPanel";
 import { DiceRoll } from "./DiceRoll";
@@ -182,6 +184,25 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
     return res;
   }, [actMut, gameId]);
 
+  // Presentation hold for the cave-stranger fight surface (hook-level reuse of solo's
+  // GameScreen.tsx): MP's own `act` mutation has the SAME subscription-vs-mutation race
+  // useDispatchWithRolls/fightGate close for solo — the query subscription can push
+  // `phase: "fight"` before the dispatch that caused it has resolved its reaction roll. Only the
+  // fight-adjacent panels (EncounterPanel/FightSurface/ExplorePanel) route through it; every other
+  // MP flow (trade/attack/union/pvp/quit/canvas moves, and the battle-outcome announcement above)
+  // keeps the existing `dispatch`/local roll-notices, unchanged (sessions/turn gating untouched).
+  // No `getSnapshot` is passed: MP's `act` mutation returns no `midState` (mpReduce has no per-seat
+  // relocation snapshot, unlike solo's reduce() — SC-4-43 is a solo-only mechanism) and freezing the
+  // whole live multi-party background isn't safe here (other seats keep moving concurrently) — so
+  // `heldState` simply never activates and `holding` degrades to exactly `pending`, which is all the
+  // fight-surface gate needs.
+  const fightDispatch = useCallback(
+    (action: GameAction) => actMut({ gameId, action }) as unknown as Promise<{ events?: GameEvent[] } | null>,
+    [actMut, gameId],
+  );
+  const { roll: fightRoll, notices: fightNotices, pending: fightPending, dispatchWithRolls, clearRoll: clearFightRoll, clearNotices: clearFightNotices } = useDispatchWithRolls(fightDispatch);
+  const fightShownRef = useRef(false); // FightSurface already on screen (see fightGate.ts)
+
   if (view === undefined || view === null || !art || !state || !adapterRef.current) {
     return <p className="scv-mp-loading">Loading cave…</p>;
   }
@@ -196,6 +217,12 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   const myColor = (me?.color as PartyColor) ?? DEFAULT_PARTY_COLOR;
   const terminal = state.gs !== GS_PLAYING;
   const yourTurn = view.yourTurn && !terminal;
+  // Fight-surface gate (see fightGate.ts): defer the INITIAL mount while a fight-adjacent dispatch
+  // is in flight; once shown, mid-fight dispatches (resolve round, retreat…) must not unmount it.
+  // `yourTurn && phase === "fight"` is the exact pre-existing mount condition — the gate only adds
+  // the presentation-hold on top of it, turn-gating itself is untouched.
+  const fightVisible = showFightSurface(yourTurn && state.phase === "fight", fightPending, fightShownRef.current);
+  fightShownRef.current = fightVisible;
   // Concurrent mode has no table turn, so "no current seat" no longer implies the game ended —
   // use the explicit phase (with the old heuristic as a fallback for mid-flight games).
   const concurrent = view.concurrent === true;
@@ -208,7 +235,7 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   const turnColor = currentParty ? PARTY_COLOR_HEX[currentParty.color as PartyColor] : undefined;
   // Don't pop the scoreboard over the final combat roll / death notice from your last action —
   // wait until that outcome dialog is dismissed (otherwise a wipe hides how it happened).
-  const outcomeDialogOpen = roll !== null || notices !== null;
+  const outcomeDialogOpen = roll !== null || notices !== null || fightRoll !== null || fightNotices !== null;
   const showScoreboard = ((terminal || gameOver) || peeking) && !outcomeDialogOpen;
 
   // Other active parties' pins on the shared map (positions read from the shared areas).
@@ -335,12 +362,14 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
           <div key={t.id} className={"scv-mp-toast" + (t.tone === "you" ? " you" : t.tone === "chat" ? " chat" : "")}>{t.text}</div>
         ))}
       </div>
-      {yourTurn && <EncounterPanel state={state} dispatch={dispatch} />}
-      {yourTurn && state.phase === "fight" && cards && <FightSurface state={state} dispatch={dispatch} cards={cards} />}
-      {yourTurn && <ExplorePanel state={state} dispatch={dispatch} />}
+      {yourTurn && <EncounterPanel state={state} dispatch={dispatchWithRolls} />}
+      {fightVisible && cards && <FightSurface state={state} dispatch={dispatchWithRolls} cards={cards} />}
+      {yourTurn && <ExplorePanel state={state} dispatch={dispatchWithRolls} />}
       {showParty && <PartyPanel state={state} dispatch={dispatch} onClose={() => setShowParty(false)} />}
       {roll && <DiceRoll title={roll.title} lanes={roll.lanes} message={roll.message} tone={roll.tone} onContinue={() => setRoll(null)} />}
       {notices && <NoticeModal notices={notices} onClose={() => setNotices(null)} />}
+      {!roll && fightRoll && <DiceRoll title={fightRoll.title} lanes={fightRoll.lanes} message={fightRoll.message} tone={fightRoll.tone} onContinue={clearFightRoll} />}
+      {!notices && fightNotices && <NoticeModal notices={fightNotices} onClose={clearFightNotices} />}
       <div className={"scv-mp-chatdock" + (showChat ? " open" : "")}>
         <button className={"scv-mp-chattoggle" + (unreadChat ? " unread" : "")} onClick={() => setShowChat((s) => !s)}>
           {showChat ? "Hide chat ▾" : "Chat ▸"}

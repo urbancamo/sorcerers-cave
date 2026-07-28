@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { CREATURES, TREASURES, type TradeSession, type GameState } from "@sorcerers-cave/engine";
+import { ALL_CREATURES, ALL_TREASURES, type TradeSession, type GameState } from "@sorcerers-cave/engine";
 
 /** Live countdown to a reaction-window deadline (spec §1.3) — re-renders once a second.
  *  Shared with UnionPanel (the union proposal runs on the same reaction-window plumbing). */
@@ -47,7 +47,7 @@ export function TradeModal({
   // Everything your party holds, flattened to offerable rows.
   const holdings = yourState.party.flatMap((m, mi) =>
     m.status === 0 || m.status === 1
-      ? m.treasure.map((tid, ti) => ({ key: `${mi}:${ti}`, tid, owner: CREATURES[m.creatureId]?.name ?? "?" }))
+      ? m.treasure.map((tid, ti) => ({ key: `${mi}:${ti}`, tid, owner: ALL_CREATURES[m.creatureId]?.name ?? "?" }))
       : [],
   );
   const offerableMembers = yourState.party
@@ -63,7 +63,7 @@ export function TradeModal({
     dispatch.updateBasket(mine.treasure, has ? mine.members.filter((i) => i !== mi) : [...mine.members, mi]);
   };
 
-  const name = (tid: number) => TREASURES[tid]?.name ?? `#${tid}`;
+  const name = (tid: number) => ALL_TREASURES[tid]?.name ?? `#${tid}`;
 
   return (
     <div className="scv-mp-modal" role="dialog" aria-label="trade" data-testid="trade-modal">
@@ -84,7 +84,7 @@ export function TradeModal({
               <button key={`m${mi}`} type="button"
                 className={"scv-trade-item member" + (mine.members.includes(mi) ? " offered" : "")}
                 onClick={() => toggleMember(mi)}>
-                {CREATURES[m.creatureId]?.name ?? "?"} <span className="scv-trade-owner">(creature)</span>
+                {ALL_CREATURES[m.creatureId]?.name ?? "?"} <span className="scv-trade-owner">(creature)</span>
               </button>
             ))}
             {holdings.length === 0 && offerableMembers.length === 0 && <p className="scv-muted">nothing to offer</p>}

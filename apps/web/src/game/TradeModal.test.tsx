@@ -47,3 +47,17 @@ describe("TradeModal (spec I-5)", () => {
     expect(btn.textContent).toMatch(/waiting/i);
   });
 });
+
+describe("extension kit (SC-EXT-29): kit creatures/artifacts render by name, not '#id'/'?'", () => {
+  it("names a kit member and a kit artefact in your offer — no base-only fallback", () => {
+    const d = mkDispatch();
+    const s = newGame(1, [20, 7], { extensionKit: true }); // Wolf (kit id 20) + Dwarf
+    s.party[0]!.treasure.push(16); // Holy Water (kit treasure id 16)
+    render(<TradeModal session={session()} youSeat={0} yourState={s} otherName="Red Talons" dispatch={d} />);
+    const yours = screen.getByTestId("trade-yours");
+    expect(yours.textContent).toMatch(/holy water/i);
+    expect(yours.textContent).toMatch(/wolf/i);
+    expect(yours.textContent).not.toMatch(/#16/); // never the base-only TREASURES id fallback
+    expect(yours.textContent).not.toMatch(/\(creature\).*\?/i);
+  });
+});
