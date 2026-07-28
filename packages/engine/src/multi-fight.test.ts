@@ -2,10 +2,12 @@ import { describe, it, expect } from "vitest";
 import {
   declarePvp, setDefenderLine, setAttackerEngage, setDefenderCasters, resolveRoundPvp,
   retreatPvp, proposeStop, acceptStop, expirePvp, pvpView,
-  type PvpFightSession, type PvpEngagement,
+  type PvpFightSession, type PvpEngagement, type PvpBacker,
 } from "./multi-fight";
 import type { CaveState, PartyState, MpGameState } from "./multi";
 import type { PartyMember, PlacedArea } from "./state";
+import type { GameEvent } from "./actions";
+import { ALL_CREATURES, selectionCost } from "./data/creatures";
 import { packCoord, DIR_N, DIR_E } from "./coords";
 
 // Builders copied from multi.test.ts (kept local — this suite may not edit existing files).
@@ -317,5 +319,120 @@ describe("pvpView", () => {
       attackerStr: 7, defenderStr: 9, // Giant 7 + the backing Priest's MP 2
     });
     expect(v.engagements[1]).toMatchObject({ attackerStr: 3, defenderStr: 3 });
+  });
+});
+
+// --- Extension kit: the Magic Shield in a PvP pairing (M8, milestone task 5) -----------------------
+
+const SHIELD = 20, EYE_OF_GOD = 13;
+
+/** Run the three layout steps WITHOUT resolving — the session sits at "resolved" (laid out, dice
+ *  un-rolled), which is exactly what `pvpView` previews and what `resolveRoundPvp` then fights. */
+function laidOut(att: PartyMember[], def: PartyMember[], line: string[], engs: PvpEngagement[], backers: PvpBacker[] = []) {
+  const d = declared(att, def);
+  let r = setDefenderLine(d.state, 1, line, 0, 1000);
+  r = setAttackerEngage(r.state, 0, engs, [], 0, 1000);
+  return setDefenderCasters(r.state, 1, backers, 0, 1000);
+}
+
+const wardNotices = (events: GameEvent[]) => events.filter((e) => e.type === "shieldWarded");
+
+describe("Magic Shield in a PvP pairing (SC-EXT-35, design US-23 MP note)", () => {
+  it("held by a Man: the paired enemy contributes 0 mp, while an enemy paired elsewhere keeps its mp", () => {
+    // Attacker: Man bearing the Shield (0:0) + Hero (0:1). Defender: Wizard (1:0) + Priest (1:1).
+    // The Shield-bearing Man is paired against the Wizard, so that Wizard's mp 5 is turned aside
+    // (7 → 2). The Priest, paired against the plain Hero in the OTHER engagement, keeps its mp
+    // (fs 2 + mp 2 = 4) — pairing-scoped, exactly as the solo `matchShielded` is.
+    const laid = laidOut(
+      [member(5, [SHIELD]), member(0)], [member(8), member(4)],
+      ["1:0", "1:1"],
+      [{ attackers: ["0:0"], defenders: ["1:0"] }, { attackers: ["0:1"], defenders: ["1:1"] }],
+    );
+    const v = pvpView(pvp(laid.state), laid.state);
+    expect(v.engagements[0]).toMatchObject({ attackerStr: 3, defenderStr: 2 }); // Wizard 7 → 2
+    expect(v.engagements[1]).toMatchObject({ attackerStr: 5, defenderStr: 4 }); // Priest, unwarded
+
+    const r = resolveRoundPvp(laid.state, 0, 1000);
+    expect(wardNotices(r.events)).toEqual([{ type: "shieldWarded", creatureId: 8, mode: "nullify" }]);
+    expect(r.events).toContainEqual({
+      type: "combatRoll", party: "Party 0", enemy: "Party 1",
+      partyRoll: 4, enemyRoll: 2, partyTotal: 7, enemyTotal: 4, result: "partyWon",
+    });
+    expect(r.events).toContainEqual({
+      type: "combatRoll", party: "Party 0", enemy: "Party 1",
+      partyRoll: 2, enemyRoll: 4, partyTotal: 7, enemyTotal: 8, result: "enemyWon",
+    });
+  });
+
+  it("wards only the fighter it is paired against — a background caster's magic is never turned aside", () => {
+    // Defender (3 living, so casters may deploy behind) lines up Hero + Priest and keeps the Wizard
+    // in the background backing engagement 0. The Shield-bearing Man is paired against the Priest:
+    // her mp 2 goes (4 → 2), the backing Wizard's mp 5 does not (it is not paired with anyone —
+    // the PvP twin of solo's `enemyBackers` exclusion). Engagement total: 2 + 5 = 7.
+    const laid = laidOut(
+      [member(5, [SHIELD]), member(0)], [member(0), member(4), member(8)],
+      ["1:0", "1:1"],
+      [{ attackers: ["0:0"], defenders: ["1:1"] }, { attackers: ["0:1"], defenders: ["1:0"] }],
+      [{ caster: "1:2", at: 0 }],
+    );
+    const v = pvpView(pvp(laid.state), laid.state);
+    expect(v.engagements[0]).toMatchObject({ attackerStr: 3, defenderStr: 7 });
+
+    const r = resolveRoundPvp(laid.state, 0, 1000);
+    expect(wardNotices(r.events)).toEqual([{ type: "shieldWarded", creatureId: 4, mode: "nullify" }]);
+  });
+
+  it("vs an Apprentice ally: −2 instead of a full nullify — her own resistance, reported as `weaken`", () => {
+    // The Apprentice (kit creature 14, fs 2 / mp 7) is the ONLY creature able to bring the solo
+    // Sorcerer/Apprentice weaken branch into a PvP line — she can be befriended, the Sorcerer never
+    // can (see the reachability pin below). 9 → 9 − (7 − 5) = 7.
+    const laid = laidOut(
+      [member(5, [SHIELD])], [member(14, [], { status: 1 })],
+      ["1:0"], [{ attackers: ["0:0"], defenders: ["1:0"] }],
+    );
+    expect(pvpView(pvp(laid.state), laid.state).engagements[0]).toMatchObject({ defenderStr: 7 });
+    const r = resolveRoundPvp(laid.state, 0, 1000);
+    expect(wardNotices(r.events)).toEqual([{ type: "shieldWarded", creatureId: 14, mode: "weaken" }]);
+  });
+
+  it("is inert when held by an ineligible bearer (a Wizard) — the paired enemy's mp counts in full", () => {
+    const laid = laidOut([member(8, [SHIELD])], [member(8)], ["1:0"], [{ attackers: ["0:0"], defenders: ["1:0"] }]);
+    expect(pvpView(pvp(laid.state), laid.state).engagements[0]).toMatchObject({ attackerStr: 7, defenderStr: 7 });
+    expect(wardNotices(resolveRoundPvp(laid.state, 0, 1000).events)).toEqual([]);
+  });
+
+  it("an active Eye of God in the bearer's OWN party nullifies the ward (artefact parity)", () => {
+    const laid = laidOut([member(5, [SHIELD, EYE_OF_GOD])], [member(8)], ["1:0"], [{ attackers: ["0:0"], defenders: ["1:0"] }]);
+    expect(pvpView(pvp(laid.state), laid.state).engagements[0]).toMatchObject({ attackerStr: 3, defenderStr: 7 });
+    expect(wardNotices(resolveRoundPvp(laid.state, 0, 1000).events)).toEqual([]);
+  });
+
+  it("fires no notice against an enemy it never bites (mp already 0)", () => {
+    const laid = laidOut([member(5, [SHIELD])], [member(2)], ["1:0"], [{ attackers: ["0:0"], defenders: ["1:0"] }]);
+    expect(pvpView(pvp(laid.state), laid.state).engagements[0]).toMatchObject({ defenderStr: 5 }); // Ogre, untouched
+    expect(wardNotices(resolveRoundPvp(laid.state, 0, 1000).events)).toEqual([]);
+  });
+
+  it("the Sorcerer can never stand in a PvP line — the weaken branch is only ever the Apprentice's", () => {
+    // A PvP line is drawn from a seat's own party, which can only ever hold selected starters and
+    // befriended allies. The Sorcerer (11) is unselectable at ANY variant setting and his reaction
+    // band is hostile on every face of the die (hostileMax 6) — he can never be befriended, so no
+    // party, union or otherwise, can field him.
+    expect(selectionCost(11)).toBeNull();
+    expect(selectionCost(11, { extensionKit: true })).toBeNull();
+    expect(ALL_CREATURES[11]!.hostileMax).toBe(6);
+    // The Apprentice is likewise unselectable, but IS befriendable (design US-14) — which is why the
+    // weaken branch above is reachable at all.
+    expect(selectionCost(14, { extensionKit: true })).toBeNull();
+    expect(ALL_CREATURES[14]!.hostileMax).toBe(5);
+  });
+
+  it("an Elixir's permanent +2 rides into PvP totals — the strength path reads frontStrength", () => {
+    const laid = laidOut([member(5, [], { fsBonus: 2 })], [member(5)], ["1:0"], [{ attackers: ["0:0"], defenders: ["1:0"] }]);
+    expect(pvpView(pvp(laid.state), laid.state).engagements[0]).toMatchObject({ attackerStr: 5, defenderStr: 3 });
+    expect(resolveRoundPvp(laid.state, 0, 1000).events).toContainEqual({
+      type: "combatRoll", party: "Party 0", enemy: "Party 1",
+      partyRoll: 4, enemyRoll: 2, partyTotal: 9, enemyTotal: 5, result: "partyWon",
+    });
   });
 });

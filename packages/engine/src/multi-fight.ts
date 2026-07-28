@@ -1,7 +1,8 @@
 import { AF_DESTROYED, GS_DEAD, type GameState, type PartyMember, type PlacedArea } from "./state";
 import type { GameEvent } from "./actions";
 import { frontStrength, casterMP, isCaster, partyRollBonus } from "./combat";
-import { eyeForsakenByDeath, ringInvincible } from "./effects";
+import { shieldedMP } from "./combatPlan";
+import { eyeForsakenByDeath, ringInvincible, shieldWardActive } from "./effects";
 import { sweepFallen } from "./loot";
 import { rollDie } from "./rng";
 import { decodeArea } from "./decode";
@@ -112,6 +113,56 @@ function backerMP(mp: MpGameState, id: string): number {
   const seat = parseId(id).seat;
   if (mp.variants?.zombies === true && mp.parties[seat]?.zombie === true) return 0;
   return casterMP(memberAt(mp, id)!, partyView(mp, seat));
+}
+
+// --- the Magic Shield's PvP pairing ward (extension kit, SC-EXT-35, design US-23 MP note) ---------
+//
+// The solo Shield (SC-EXT-27) is PAIRING-scoped: `combatPlan.ts`'s `matchShielded` asks whether THIS
+// match's own front line holds a live, eligible bearer, and `strangerMP` then turns aside the magic
+// of the foes slotted directly against it — never another match's foes, and never a background
+// caster folded in from elsewhere (`enemyBackers`, §395), which are not literally "paired" against
+// anyone. The PvP layer's engagement IS that pairing, so the same two helpers reappear here in the
+// same shape, one engagement at a time, and share `shieldedMP` verbatim with the solo path.
+
+/** Does this group of ENGAGED fighters include a live, eligible Magic Shield bearer? Eligibility
+ *  (Man / Woman / Hero / W-Hero), liveness and the Eye's nullification are all read through the
+ *  bearer's OWN seat view, exactly as `shieldWardActive` reads them in solo. */
+function pairShielded(mp: MpGameState, ids: readonly string[]): boolean {
+  return ids.some((id) => shieldWardActive(partyView(mp, parseId(id).seat), memberAt(mp, id)!));
+}
+
+/** One engaged fighter's contribution to its side's strength, with the enemy Shield's ward applied
+ *  when `warded`: its magic is turned aside (the Apprentice's own resistance instead takes only the
+ *  −2 `shieldedMP` gives it — the Sorcerer shares that branch but can never stand in a PvP line, see
+ *  the test). PHYSICAL strength is untouched, so an Elixir's `fsBonus`, a Sword/Axe bonus, dragon
+ *  kills and a Strength Potion all survive the ward exactly as they do in solo. */
+function wardedStrength(mp: MpGameState, id: string, warded: boolean): number {
+  const m = memberAt(mp, id)!;
+  const view = partyView(mp, parseId(id).seat);
+  const base = frontStrength(m, view);
+  if (!warded) return base;
+  const power = casterMP(m, view);
+  return base - (power - shieldedMP(m.creatureId, power));
+}
+
+// The two creatures whose own resistance downgrades the ward from nullify to −2 (design US-23) —
+// the same pair `shieldedMP` branches on. Declared locally (hazards.ts's own C_WOLF/C_LION pattern)
+// so this module reads the mode without reaching into combatPlan's private constants.
+const C_SORCERER = 11, C_APPRENTICE = 14;
+
+/** One `shieldWarded` per warded fighter the ward ACTUALLY bit (base mp > 0) — the solo notice
+ *  contract verbatim (SC-EXT-27): never fired merely because a Shield is in play. `mode` keys off
+ *  the CREATURE, not the resulting number, so an already-weakened Apprentice still reads "weaken". */
+function wardNotices(mp: MpGameState, ids: readonly string[], warded: boolean): GameEvent[] {
+  if (!warded) return [];
+  const out: GameEvent[] = [];
+  for (const id of ids) {
+    const m = memberAt(mp, id)!;
+    if (casterMP(m, partyView(mp, parseId(id).seat)) === 0) continue;
+    const resists = m.creatureId === C_SORCERER || m.creatureId === C_APPRENTICE;
+    out.push({ type: "shieldWarded", creatureId: m.creatureId, mode: resists ? "weaken" : "nullify" });
+  }
+  return out;
 }
 
 /** Pull every parked 200+tid item off the tile into `party`'s working treasure set (a pickup). */
@@ -388,10 +439,17 @@ export function resolveRoundPvp(mp: MpGameState, now: number, windowMs: number =
     // Zombie commands lend no magical power (M7, §Zombies) — a risen caster backs for zero.
     const zombieMP = (id: string): boolean =>
       next.variants?.zombies === true && next.parties[parseId(id).seat]?.zombie === true;
-    let attStr = 0; for (const id of eng.attackers) attStr += frontStrength(memberOf(id), viewOfId(id));
+    // Extension kit (SC-EXT-35): the Magic Shield's ward, scoped to THIS engagement's own pairing —
+    // a bearer among one side's engaged fighters turns aside the magic of the fighters facing it,
+    // and of nobody else (the backers below are deliberately outside the ward; see pairShielded).
+    const attWarded = pairShielded(next, eng.defenders); // a bearer among the DEFENDING fighters wards…
+    const defWarded = pairShielded(next, eng.attackers); // …the attackers, and vice versa
+    let attStr = 0; for (const id of eng.attackers) attStr += wardedStrength(next, id, attWarded);
     for (const b of s.attackerBackers) if (b.at === ei) attStr += zombieMP(b.caster) ? 0 : casterMP(memberOf(b.caster), viewOfId(b.caster));
-    let defStr = 0; for (const id of eng.defenders) defStr += frontStrength(memberOf(id), viewOfId(id));
+    let defStr = 0; for (const id of eng.defenders) defStr += wardedStrength(next, id, defWarded);
     for (const b of s.defenderBackers) if (b.at === ei) defStr += zombieMP(b.caster) ? 0 : casterMP(memberOf(b.caster), viewOfId(b.caster));
+    // One notice per foe the ward actually bit, before the dice — solo's own ordering (SC-EXT-27).
+    events.push(...wardNotices(next, eng.attackers, attWarded), ...wardNotices(next, eng.defenders, defWarded));
 
     const ar = rollFor("attacker");
     const dr = rollFor("defender");
@@ -405,7 +463,10 @@ export function resolveRoundPvp(mp: MpGameState, now: number, windowMs: number =
     if (attTotal === defTotal) continue; // tie: no one is slain in that match
 
     // The higher total slays the STRONGEST creature of the losing group; the Ring's bearer (4th
-    // level or deeper) cannot be chosen — if nobody in the group is mortal, no one falls.
+    // level or deeper) cannot be chosen — if nobody in the group is mortal, no one falls. The
+    // victim is picked on UN-warded strength, matching solo, whose own strongest-foe pick weighs
+    // `fs + enemyMP` rather than the Shield-reduced `strangerMP` (combatPlan.ts, SC-EXT-27): the
+    // ward turns a foe's magic aside for the round, it does not make him a lesser creature.
     const losers = attTotal > defTotal ? eng.defenders : eng.attackers;
     let victim: string | null = null;
     for (const id of losers) {
@@ -658,9 +719,15 @@ export function pvpView(session: PvpSession, mp: MpGameState): PvpView {
   // this lookup against the base-only `CREATURES` table (SC-EXT-31).
   const nameOf = (id: string) => ALL_CREATURES[memberAt(mp, id)!.creatureId]!.name;
   const engagements: PvpEngagementView[] = session.engagements.map((eng, ei) => {
-    let a = 0; for (const id of eng.attackers) a += strengthOf(mp, id);
+    // The preview must show exactly what the round will fight, so it applies the SAME pairing-scoped
+    // Shield ward `resolveRoundPvp` does (SC-EXT-35). (The layout-time helpers — `defaultEngagements`
+    // and the union fairness check — keep using raw `strengthOf`: the ward depends on which pairing
+    // is chosen, so weighing candidate pairings by it would be circular.)
+    const attWarded = pairShielded(mp, eng.defenders);
+    const defWarded = pairShielded(mp, eng.attackers);
+    let a = 0; for (const id of eng.attackers) a += wardedStrength(mp, id, attWarded);
     for (const b of session.attackerBackers) if (b.at === ei) a += backerMP(mp, b.caster);
-    let d = 0; for (const id of eng.defenders) d += strengthOf(mp, id);
+    let d = 0; for (const id of eng.defenders) d += wardedStrength(mp, id, defWarded);
     for (const b of session.defenderBackers) if (b.at === ei) d += backerMP(mp, b.caster);
     return {
       attackers: [...eng.attackers], defenders: [...eng.defenders],

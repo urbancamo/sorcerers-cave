@@ -265,6 +265,16 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         // bonus — so a Priest/Wizard's magic counts exactly as it would fighting a stranger. Ranking
         // by a stable sort over roster order gives "ties by roster order" for free: `state.party`'s
         // own order is preserved among equal-fs members.
+        //
+        // MULTIPLAYER (SC-EXT-34): a UNION quarrels as ONE force — the two strongest are ranked
+        // across the COMBINED roster, so a subordinate's loaned Ogre can outrank the commander's own
+        // Man. That falls out of `state.party` with no fork here: the union loan model physically
+        // moves each subordinate's living members INTO the commander's array (multi-union.ts's
+        // module doc), and `compose()` hands that array straight to this reducer. So this picker must
+        // keep reading `state.party` WHOLE — narrowing it to "the acting seat's own members" would
+        // silently break the combined-force rule (there is no seat-ownership signal here to narrow
+        // by, and `mpTag` is bookkeeping, not membership). Solo is unaffected: with no union the
+        // array is simply the one party's own roster, exactly as before.
         const ranked = state.party
           .filter((m) => (m.status === 0 || m.status === 1) && m.creatureId !== C_WOLF && m.creatureId !== C_LION)
           .map((m) => ({ m, fs: frontStrength(m, state) }))

@@ -451,3 +451,126 @@ describe("loan-index stability under solo array reshaping (mutiny regression)", 
     expect(left.state.parties[0]!.party).toEqual([member(0)]);
   });
 });
+
+// --- Extension kit × unions (M8, extension-kit multiplayer milestone task 5) -----------------------
+
+const KIT = { extensionKit: true } as const;
+const HAZARD_QUARREL_CODE = 300 + 7;   // small-pack code for the kit's Quarrel hazard (id 7)
+const HAZARD_DESERTION_CODE = 300 + 5; // …and Desertion (id 5)
+const BELL_CARD = (7 << 7) | 31;       // SPECIAL_BELL_ROPE on an all-exits chamber tile
+
+/** A kit-on playing game: `playing` plus the game-level extensionKit variant, which `compose`
+ *  threads into every seat's composed `GameState.variants` (SC-EXT-30). */
+const kitPlaying = (cave: Partial<CaveState>, parties: PartyState[]): MpGameState =>
+  ({ ...playing(cave, parties), variants: { ...KIT } });
+
+describe("union Quarrel — the union fights, quarrels and dies as ONE force (SC-EXT-34)", () => {
+  it("ranks the two strongest ACROSS the union: a loaned Ogre outranks the commander's own Man", () => {
+    // Commander seat 0 fields a Man (fs 3) and a Dwarf (fs 1); seat 1 has loaned in an Ogre (fs 5).
+    // Under the loan model the commander's array IS the combined force, so Quarrel's picker ranks
+    // all three together: the loaned Ogre and the commander's Man duel — NOT the commander-only
+    // pair (Man + Dwarf) a per-seat picker would have chosen.
+    const mp = kitPlaying(
+      { largePack: [17], smallPack: [HAZARD_QUARREL_CODE] }, // N+chamber to the south; the draw is a Quarrel
+      [
+        partyAt(0, { party: [member(5), member(7), member(2, [], { mpTag: "loan:1" })] }),
+        partyAt(1, { party: [] }),
+      ],
+    );
+    mp.unions = [union({ onLoan: [{ fromSeat: 1, idx: 2 }] })];
+
+    const moved = mpReduce(mp, 0, { type: "move", dir: 3 });
+    expect(moved.events).toContainEqual({ type: "hazardFired", hazard: 7 });
+    expect(moved.events.find((e) => e.type === "quarrel")).toMatchObject({ aId: 2, bId: 5 }); // Ogre v Man
+  });
+
+  it("a seat commanding NO union quarrels over its own party alone — co-location is not a union", () => {
+    // Seats 0 and 1 stand on the same tile but are not united. Seat 0's own Man + Dwarf duel; seat
+    // 1's Ogre is not part of the acting seat's force and is never ranked (the solo picker, intact).
+    const mp = kitPlaying(
+      { largePack: [17], smallPack: [HAZARD_QUARREL_CODE] },
+      [partyAt(0, { party: [member(5), member(7)] }), partyAt(1, { party: [member(2)] })],
+    );
+    expect(mp.unions ?? []).toHaveLength(0);
+
+    const moved = mpReduce(mp, 0, { type: "move", dir: 3 });
+    expect(moved.events.find((e) => e.type === "quarrel")).toMatchObject({ aId: 5, bId: 7 }); // Man v Dwarf
+  });
+
+  it("the loaned loser dies where he stands — the loan does NOT end, the body goes home on leave", () => {
+    // Commander seat 0's own Ogre (fs 5) against seat 1's loaned Man (fs 3). Seed-1 dice 4 then 2:
+    // 5+4=9 beats 3+2=5, so the LOANED member falls. Per the loan model's own contract
+    // ("casualties among loaned members are the OWNING seat's loss — they return dead on
+    // leave/dissolve") death leaves the corpse in the commander's array, tag intact: the loan
+    // stands, and only leaving/dissolving hands the body back.
+    const mp = kitPlaying(
+      { largePack: [17], smallPack: [HAZARD_QUARREL_CODE] },
+      [partyAt(0, { party: [member(2), member(5, [], { mpTag: "loan:1" })] }), partyAt(1, { party: [] })],
+    );
+    mp.unions = [union({ onLoan: [{ fromSeat: 1, idx: 1 }] })];
+
+    const moved = mpReduce(mp, 0, { type: "move", dir: 3 });
+    expect(moved.events).toContainEqual({ type: "quarrel", aId: 2, bId: 5, aRoll: 4, bRoll: 2, loserId: 5 });
+    const cmd = moved.state.parties[0]!.party;
+    expect(cmd).toHaveLength(2);
+    expect(cmd[1]).toMatchObject({ creatureId: 5, status: 3, mpTag: "loan:1" }); // still on loan, dead
+    expect(moved.state.unions![0]!.onLoan).toEqual([{ fromSeat: 1, idx: 1 }]); // the loan is untouched
+
+    const left = leaveUnion(moved.state, 1, 0);
+    expect(left.ok).toBe(true);
+    expect(left.state.parties[1]!.party).toMatchObject([{ creatureId: 5, status: 3 }]); // the body comes home
+    expect(left.state.parties[1]!.status).toBe("wiped"); // its whole roster came back dead
+    expect(left.state.parties[0]!.party).toMatchObject([{ creatureId: 2 }]);
+  });
+});
+
+describe("a loaned ally lost to the kit's own removal rules ends its loan cleanly (SC-EXT-34)", () => {
+  it("Desertion: the deserter leaves the game and its loan record goes with it — no dangling index", () => {
+    // Commander seat 0: own Hero (status 0), own Troll ALLY, seat 1's loaned Man ALLY and loaned
+    // Dwarf. Desertion rolls one d6 per ally in roster order — seed-1 gives 4 (the Troll holds)
+    // then 2 (the loaned Man walks out of the game). The splice shifts the Dwarf from index 3 to 2,
+    // so only the tag reindex keeps the loan honest.
+    const mp = kitPlaying(
+      { largePack: [17], smallPack: [HAZARD_DESERTION_CODE] },
+      [
+        partyAt(0, {
+          party: [
+            member(0), member(3, [], { status: 1 }),
+            member(5, [], { status: 1, mpTag: "loan:1" }), member(7, [], { mpTag: "loan:1" }),
+          ],
+        }),
+        partyAt(1, { party: [] }),
+      ],
+    );
+    mp.unions = [union({ onLoan: [{ fromSeat: 1, idx: 2 }, { fromSeat: 1, idx: 3 }] })];
+
+    const moved = mpReduce(mp, 0, { type: "move", dir: 3 });
+    expect(moved.events).toContainEqual({ type: "desertionRoll", creatureId: 3, roll: 4, deserted: false, items: [] });
+    expect(moved.events).toContainEqual({ type: "desertionRoll", creatureId: 5, roll: 2, deserted: true, items: [] });
+    expect(moved.state.parties[0]!.party.map((m) => m.creatureId)).toEqual([0, 3, 7]);
+    expect(moved.state.unions![0]!.onLoan).toEqual([{ fromSeat: 1, idx: 2 }]); // just the Dwarf, reindexed
+
+    const left = leaveUnion(moved.state, 1, 0);
+    expect(left.ok).toBe(true);
+    expect(left.state.parties[1]!.party).toEqual([member(7)]); // the deserter never comes home
+    expect(left.state.parties[0]!.party.map((m) => m.creatureId)).toEqual([0, 3]);
+  });
+
+  it("Bell Rope: a loaned member who vanishes on a roll of 1 ends its loan the same way", () => {
+    // Seed 2's first d6 is a 1 — the Bell Rope's "vanish" (design Resolved-3, SC-EXT-8): removed
+    // from the game outright, exactly like a desertion. Pulled BY the loaned Man himself.
+    const mp = kitPlaying(
+      { areas: [area(BELL_CARD, packCoord(1, 50, 50))], seed: 2 },
+      [
+        partyAt(0, { party: [member(0), member(5, [], { mpTag: "loan:1" }), member(7, [], { mpTag: "loan:1" })] }),
+        partyAt(1, { party: [] }),
+      ],
+    );
+    mp.unions = [union({ onLoan: [{ fromSeat: 1, idx: 1 }, { fromSeat: 1, idx: 2 }] })];
+
+    const pulled = mpReduce(mp, 0, { type: "pullBellRope", mi: 1 });
+    expect(pulled.events).toContainEqual({ type: "bellRoll", roll: 1, outcome: "vanish", creatureId: 5 });
+    expect(pulled.state.parties[0]!.party.map((m) => m.creatureId)).toEqual([0, 7]);
+    expect(pulled.state.unions![0]!.onLoan).toEqual([{ fromSeat: 1, idx: 1 }]); // the Dwarf, reindexed
+  });
+});

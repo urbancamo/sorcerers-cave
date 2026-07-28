@@ -50,11 +50,11 @@ const MAGIC_ONLY_IDS = [C_SPECTRE, C_DEMON];
 const matchShielded = (state: GameState, front: readonly number[]): boolean =>
   front.some((i) => { const m = state.party[i]; return !!m && shieldWardActive(state, m); });
 
-/** The Shield's effect on one stranger's mp CONTRIBUTION, given its un-warded `base` (from
- *  `enemyMP`, which already folds in the Eye/Lotus Dust/Holy Water): an ordinary foe is fully
- *  nullified; the Sorcerer/Apprentice's own partial resistance instead takes an extra −2, stacking
- *  with whatever already reduced `base`, floored at 0 (design US-23). */
-const shieldedMP = (sid: number, base: number): number =>
+/** The Shield's effect on one foe's mp CONTRIBUTION, given its un-warded `base` (from `enemyMP`,
+ *  which folds in the Eye/Lotus Dust/Holy Water): an ordinary foe is fully nullified; the Sorcerer/
+ *  Apprentice's own resistance instead takes an extra −2, floored at 0 (design US-23). EXPORTED so
+ *  multi-fight.ts's PvP pairing ward (SC-EXT-35) weakens by this same arithmetic — one source. */
+export const shieldedMP = (sid: number, base: number): number =>
   sid === C_SORCERER || sid === C_APPRENTICE ? Math.max(0, base - 2) : 0;
 
 /** Does `m` have the enabling artifact for the specific magic-only foe `sid` (Sword for a
