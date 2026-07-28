@@ -599,3 +599,52 @@ test("the concurrent variant frees both seats to act at once (M6 wiring, plan �
   expect((a as { events: { type: string }[] }).events).not.toContainEqual({ type: "blocked" });
   expect((b as { events: { type: string }[] }).events).not.toContainEqual({ type: "blocked" });
 });
+
+// --- Task 6 (SC-EXT-30 MP plumbing): extensionKit threaded through create/setVariants/start -----
+// Still INERT — no UI sets this flag on an MP game yet (a later task exposes the lobby toggle).
+// This suite only proves the backend plumbing: the flag persists, and startGame hands it to
+// buildMpGame exactly like zombies/fogLite/concurrent already do.
+
+test("setVariants persists extensionKit: true, surfaced in the lobby (host-only, mirrors zombies/fogLite)", async () => {
+  const t = convexTest(schema, modules);
+  const host = await asUser(t);
+  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
+  const p2 = await asUser(t);
+  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  expect((await p2.mutation(api.multiplayer.setVariants, { gameId, variants: { extensionKit: true } })).reason).toBe("host_only");
+  await host.mutation(api.multiplayer.setVariants, { gameId, variants: { extensionKit: true } });
+  expect((await p2.query(api.multiplayer.lobby, { code }))!.variants).toEqual({ extensionKit: true });
+});
+
+test("startGame with extensionKit builds a shared kit cave: 90/101-card packs, flag on the composed state", async () => {
+  const t = convexTest(schema, modules);
+  const host = await asUser(t);
+  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, {
+    partyName: "Alpha", color: "green", variants: { extensionKit: true },
+  });
+  const p2 = await asUser(t);
+  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await host.mutation(api.multiplayer.startGame, { gameId });
+
+  // Probe the stored engine state directly (multi-kit.test.ts already pins compose()'s own
+  // variants pass-through at the engine level; this pins that the Convex layer actually hands the
+  // flag to buildMpGame at start).
+  const stored = await t.run(async (ctx) => (await ctx.db.get(gameId))!.state as MpGameState);
+  expect(stored.variants).toEqual({ extensionKit: true });
+  expect(stored.cave.largePack).toHaveLength(90);  // SC-EXT-4 kit-widened large pack
+  expect(stored.cave.smallPack).toHaveLength(101); // SC-EXT-4 kit-widened small pack
+});
+
+test("kit-off startGame keeps the pre-kit 60/71-card packs — no extensionKit key at all (byte-identical)", async () => {
+  const t = convexTest(schema, modules);
+  const host = await asUser(t);
+  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
+  const p2 = await asUser(t);
+  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await host.mutation(api.multiplayer.startGame, { gameId });
+
+  const stored = await t.run(async (ctx) => (await ctx.db.get(gameId))!.state as MpGameState);
+  expect(stored.variants).toBeUndefined();
+  expect(stored.cave.largePack).toHaveLength(60);
+  expect(stored.cave.smallPack).toHaveLength(71);
+});

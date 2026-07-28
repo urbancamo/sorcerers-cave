@@ -59,7 +59,15 @@ const MSG_MAX = 280;
 const cleanName = (n: string) => n.trim().slice(0, NAME_MAX);
 
 // Game variants (M7, plan WS-6): the zombies option (spec I-15) and fog-of-war-lite (plan ⑦).
-const variantsV = v.object({ zombies: v.optional(v.boolean()), fogLite: v.optional(v.boolean()), concurrent: v.optional(v.boolean()) });
+// extensionKit (Task 6, SC-EXT-30) mirrors schema.ts:38's own variants shape (shared with solo) —
+// still INERT here: no UI sets it on an MP game yet, this is backend plumbing only (a later task
+// wires the lobby toggle). createMultiplayer/setVariants/startGame already pass `variants` through
+// generically (no other code change needed) straight into buildMpGame, which threads the flag into
+// the composed decks and every seat's GameState.
+const variantsV = v.object({
+  zombies: v.optional(v.boolean()), fogLite: v.optional(v.boolean()), concurrent: v.optional(v.boolean()),
+  extensionKit: v.optional(v.boolean()),
+});
 
 // How a finished party's outcome reads in the broadcast feed (keyed by terminal SeatStatus).
 const OUTCOME_VERB: Record<string, string> = {
