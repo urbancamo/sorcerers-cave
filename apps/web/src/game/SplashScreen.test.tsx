@@ -100,4 +100,12 @@ describe("SplashScreen", () => {
       "https://github.com/urbancamo/sorcerers-cave",
     );
   });
+
+  it("lists 'Replay a game' below the multiplayer entries (start-panel order)", () => {
+    render(<SplashScreen onStartSolitaire={() => {}} />);
+    const join = screen.getByRole("button", { name: "Join Multiplayer Game" });
+    const replay = screen.getByTestId("replay");
+    // compareDocumentPosition: FOLLOWING (4) means `replay` comes after `join` in the DOM.
+    expect(join.compareDocumentPosition(replay) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
 });

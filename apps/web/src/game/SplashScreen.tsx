@@ -136,7 +136,25 @@ export function SplashScreen({
           {resumeErr && <p className="scv-resume-err" role="alert">{resumeErr}</p>}
         </div>
 
-        {/* Replay-by-code (§RB-3-1): visually parallel to Resume; any player's solo game code works. */}
+        <button
+          className="scv-primary"
+          disabled={!onStartMultiplayer}
+          title={onStartMultiplayer ? undefined : "Coming soon"}
+          onClick={onStartMultiplayer}
+        >
+          Start Multiplayer Game
+        </button>
+        <button
+          className="scv-primary"
+          disabled={!onJoinMultiplayer}
+          title={onJoinMultiplayer ? undefined : "Coming soon"}
+          onClick={onJoinMultiplayer}
+        >
+          Join Multiplayer Game
+        </button>
+
+        {/* Replay-by-code (§RB-3-1): visually parallel to Resume; any player's solo game code works.
+            Sits below the multiplayer entries (MSW, 2026-07-28). */}
         <div className="scv-resume" data-testid="replay">
           <label className="scv-resume-label" htmlFor="scv-replay-code">Replay a game</label>
           <div className="scv-resume-row">
@@ -162,23 +180,6 @@ export function SplashScreen({
           </div>
           {replayErr && <p className="scv-resume-err" role="alert">{replayErr}</p>}
         </div>
-
-        <button
-          className="scv-primary"
-          disabled={!onStartMultiplayer}
-          title={onStartMultiplayer ? undefined : "Coming soon"}
-          onClick={onStartMultiplayer}
-        >
-          Start Multiplayer Game
-        </button>
-        <button
-          className="scv-primary"
-          disabled={!onJoinMultiplayer}
-          title={onJoinMultiplayer ? undefined : "Coming soon"}
-          onClick={onJoinMultiplayer}
-        >
-          Join Multiplayer Game
-        </button>
         <button className="scv-primary" onClick={() => setShowScores(true)}>High Scores</button>
         <a
           className="scv-primary"
