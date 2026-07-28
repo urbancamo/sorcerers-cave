@@ -87,6 +87,15 @@ describe("EncounterPanel", () => {
     expect(screen.getByText(/elixir/i)).toBeInTheDocument();
   });
 
+  it("labels the Sorcerer's Lotus Dust option as weakening — he cannot be slept (SC-11-12)", () => {
+    const s: GameState = { ...newGame(1, [0]), phase: "encounter", strangers: [11] }; // the Sorcerer
+    s.party[0]!.treasure.push(5); // Hero carries Lotus Dust
+    render(<EncounterPanel state={s} dispatch={() => {}} />);
+    const select = screen.getByLabelText(/use lotus dust/i) as HTMLSelectElement;
+    const sorcerer = [...select.options].map((o) => o.textContent ?? "").find((t) => /sorcerer/i.test(t));
+    expect(sorcerer).toMatch(/weakens him.*cannot be slept/i); // never the bare sleep promise
+  });
+
   it("offers the Chasm's descend button with a blocking confirm before dispatching (US-02)", () => {
     const dispatch = vi.fn();
     const base = newGame(1, [0]);

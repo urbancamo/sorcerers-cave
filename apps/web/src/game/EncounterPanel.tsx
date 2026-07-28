@@ -153,9 +153,13 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
   };
   // An artefact action's target, named: Lotus Dust (5) targets a stranger; Holy Water (16) spans its
   // own four-pool offset encoding (SC-EXT-24 — see holyWaterLabel.ts); everything else a party member.
+  // The Sorcerer under Lotus Dust is the one target the dropdown's "put to sleep" verb would lie
+  // about — he is only weakened (−2 magic, SC-11-12) — so his option says what actually happens.
   const artTargetName = (a: Extract<GameAction, { type: "useArtifact" }>) =>
     a.target === undefined ? "the party"
-      : a.artifact === 5 ? ALL_CREATURES[state.strangers[a.target]!]!.name
+      : a.artifact === 5 ? (state.strangers[a.target] === 11
+        ? "Sorcerer — weakens him by 2, he cannot be slept"
+        : ALL_CREATURES[state.strangers[a.target]!]!.name)
       : a.artifact === 16 ? holyWaterTargetName(state, a.target, (mi) => memberLabel(state.party, mi))
       : memberLabel(state.party, a.target);
 
