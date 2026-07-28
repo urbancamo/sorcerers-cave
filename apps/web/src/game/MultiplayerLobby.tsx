@@ -49,16 +49,11 @@ export function MultiplayerLobby({ code, onExit }: { code: string; onExit: () =>
       {/* Game variants (M7): the host chooses, everyone else reads the chips; locked at start. */}
       <div className="scv-lobby-variants" data-testid="variants">
         <span className="scv-muted">Variants:</span>
+        {/* Zombies is withdrawn from the UI while its interaction with the kit is rethought
+            (MSW, 2026-07-28) — engine and backend keep supporting it, so a game already carrying
+            the flag still runs (and still labels itself in the chips below). */}
         {lob.isHost ? (
           <>
-            <label className="scv-lobby-variant">
-              <input
-                type="checkbox"
-                checked={!!lob.variants?.zombies}
-                onChange={(e) => void setVariants({ gameId, variants: { ...(lob.variants ?? {}), zombies: e.target.checked } })}
-              />
-              Zombies <span className="scv-muted">(the wiped rise as spoilers)</span>
-            </label>
             <label className="scv-lobby-variant">
               <input
                 type="checkbox"
@@ -86,9 +81,9 @@ export function MultiplayerLobby({ code, onExit }: { code: string; onExit: () =>
           </>
         ) : (
           <>
-            <span className={"scv-lobby-varchip" + (lob.variants?.zombies ? " on" : "")}>
-              Zombies {lob.variants?.zombies ? "✓" : "—"}
-            </span>
+            {lob.variants?.zombies && (
+              <span className="scv-lobby-varchip on">Zombies ✓</span>
+            )}
             <span className={"scv-lobby-varchip" + (lob.variants?.fogLite ? " on" : "")}>
               Fog of war {lob.variants?.fogLite ? "✓" : "—"}
             </span>
