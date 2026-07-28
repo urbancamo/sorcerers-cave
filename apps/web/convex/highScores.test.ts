@@ -2,7 +2,7 @@ import { convexTest } from "convex-test";
 import { expect, test } from "vitest";
 import { api } from "./_generated/api";
 import schema from "./schema";
-import { packCoord, GS_ESCAPED } from "@sorcerers-cave/engine";
+import { packCoord, GS_ESCAPED, GS_DEAD } from "@sorcerers-cave/engine";
 import { asUser } from "./game.test";
 
 const modules = import.meta.glob("./**/*.*s");
@@ -129,4 +129,48 @@ test("list splits the tables: kit scores only under extensionKit true, base only
   const kitRows = await t.query(api.highScores.list, { extensionKit: true });
   expect(kitRows.find((r) => r.name === "Kitter")?.extensionKit).toBe(true);
   expect(kitRows.find((r) => r.name === "Plain")).toBeUndefined();
+});
+
+// --- Four leaderboards: mode (solo/multi) × extensionKit (design 2026-07-28) ---------------------
+
+/** Seed one solo row and four multiplayer rows spanning kit stamping, the state-derived kit
+ *  fallback, and a wiped (non-escaped) seat. Scores descend in insert order so the by_score
+ *  index returns them in a deterministic order. */
+async function seedModeRows(t: ReturnType<typeof convexTest>) {
+  await t.run(async (ctx) => {
+    const now = 0;
+    const base = { turn: 1, areas: [], party: [] };
+    const gameId = await ctx.db.insert("games", {
+      state: { ...base, gs: GS_ESCAPED }, status: "finished", createdAt: now, updatedAt: now,
+    });
+    const mk = (name: string, score: number, extra: Record<string, unknown> = {}, outcome: number = GS_ESCAPED, state?: unknown) =>
+      ctx.db.insert("highScores", {
+        gameId, name, score, outcome, party: [], createdAt: now,
+        state: state ?? { ...base, gs: outcome }, ...extra,
+      });
+    await mk("SoloBase", 50); // legacy row: no mode field ⇒ solo base
+    await mk("MpBase", 40, { mode: "multi", seatCount: 2 });
+    await mk("MpKitStamped", 30, { mode: "multi", extensionKit: true, seatCount: 3 });
+    // Recorded between the MP-kit deploy and the stamping fix: kit only visible in the state.
+    await mk("MpKitByState", 20, { mode: "multi" }, GS_ESCAPED, { ...base, gs: GS_ESCAPED, variants: { extensionKit: true } });
+    await mk("MpKitWipe", 10, { mode: "multi", extensionKit: true, seatCount: 3 }, GS_DEAD);
+  });
+}
+
+test("list splits the four leaderboards and lists only escaped multiplayer seats", async () => {
+  const t = convexTest(schema, modules);
+  await seedModeRows(t);
+  expect((await t.query(api.highScores.list, {})).map((r) => r.name)).toEqual(["SoloBase"]);
+  expect((await t.query(api.highScores.list, { mode: "multi" })).map((r) => r.name)).toEqual(["MpBase"]);
+  // Kit MP table: the stamped row AND the state-derived fallback row; never the wipe.
+  expect((await t.query(api.highScores.list, { mode: "multi", extensionKit: true })).map((r) => r.name))
+    .toEqual(["MpKitStamped", "MpKitByState"]);
+});
+
+test("multiplayer rows surface the recorded player count (absent on legacy rows)", async () => {
+  const t = convexTest(schema, modules);
+  await seedModeRows(t);
+  const rows = await t.query(api.highScores.list, { mode: "multi", extensionKit: true });
+  expect(rows.find((r) => r.name === "MpKitStamped")?.seatCount).toBe(3);
+  expect(rows.find((r) => r.name === "MpKitByState")?.seatCount).toBeUndefined();
 });

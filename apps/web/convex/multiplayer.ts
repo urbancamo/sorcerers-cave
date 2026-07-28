@@ -572,6 +572,9 @@ async function recordTerminals(
       gameId, ownerId: row?.userId, name: p.name,
       score, outcome: view.gs, party: view.party, state: view, createdAt: now,
       mode: "multi", gameCode: game.code, partyName: p.name,
+      // Leaderboard keys (design 2026-07-28): kit games and shared caves each get their own table.
+      extensionKit: after.variants?.extensionKit ?? undefined,
+      seatCount: after.parties.length,
     });
     const verb = OUTCOME_VERB[p.status] ?? "finished";
     if (row) await postAction(ctx, gameId, p.seat, p.name, row.color, `${verb} (score ${score})`, now);

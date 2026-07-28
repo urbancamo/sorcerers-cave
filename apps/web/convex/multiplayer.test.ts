@@ -278,6 +278,26 @@ test("a finished party is recorded to the multiplayer high-score table, kept apa
   expect(feed.some((m) => m.kind === "action" && m.seat === current && m.partyName === quitterName && m.text.includes("abandoned the expedition"))).toBe(true);
 });
 
+test("a kit-on game's terminal rows are stamped for the MP-kit leaderboard (mode, kit flag, seat count)", async () => {
+  const t = convexTest(schema, modules);
+  const host = await asUser(t);
+  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
+  const p2 = await asUser(t);
+  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await host.mutation(api.multiplayer.setVariants, { gameId, variants: { extensionKit: true } });
+  await host.mutation(api.multiplayer.startGame, { gameId });
+  const userBySeat = [host, p2];
+  for (let i = 0; i < 2; i++) {
+    const picker = (await host.query(api.multiplayer.gameState, { gameId }))!.currentPicker!;
+    await userBySeat[picker]!.mutation(api.multiplayer.pickParty, { gameId, picks: [5] });
+  }
+  const current = (await userBySeat[0]!.query(api.multiplayer.playView, { gameId }))!.currentSeat;
+  await userBySeat[current]!.mutation(api.multiplayer.act, { gameId, action: { type: "quit" } });
+  const rows = await t.run((ctx) => ctx.db.query("highScores").collect());
+  expect(rows).toHaveLength(1);
+  expect(rows[0]).toMatchObject({ mode: "multi", extensionKit: true, seatCount: 2 });
+});
+
 test("playView still returns a state once the whole game is finished", async () => {
   const t = convexTest(schema, modules);
   const { gameId, userBySeat } = await reachPlaying(t);

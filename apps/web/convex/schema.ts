@@ -87,9 +87,12 @@ export default defineSchema({
     gameCode: v.optional(v.string()),  // the four-letter code (group a multi game's parties)
     partyName: v.optional(v.string()),
     // Extension kit (SC-EXT-29, design US-01): labels a kit-on game's leaderboard entry. Set from
-    // the final state's `variants.extensionKit` at `highScores.save`; absent on every pre-kit row
-    // (reads as kit-off, same as everywhere else the flag is threaded).
+    // the final state's `variants.extensionKit` at `highScores.save` (solo) and `recordTerminals`
+    // (multi); absent on every pre-kit row (reads as kit-off, same as everywhere else).
     extensionKit: v.optional(v.boolean()),
+    // Multiplayer only: how many seats shared the cave — treasure is split, so the count is the
+    // context a reader needs to judge the score. Absent on rows recorded before 2026-07-28.
+    seatCount: v.optional(v.number()),
   })
     .index("by_game", ["gameId"])
     .index("by_score", ["score"]),

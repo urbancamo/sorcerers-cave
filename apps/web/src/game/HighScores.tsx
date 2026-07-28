@@ -19,6 +19,9 @@ export interface LeaderboardRow {
   // Extension kit (SC-EXT-29, design US-01): labels this score as a kit game. Absent/false on
   // every score recorded before the kit existed.
   extensionKit?: boolean;
+  // Multiplayer only: seats that shared the cave (treasure is split, so the count is the score's
+  // context). Absent on rows recorded before 2026-07-28 — rendered as "—".
+  seatCount?: number;
 }
 
 const OUTCOME_LABEL: Record<number, string> = {
@@ -32,13 +35,15 @@ const survived = (m: PartyMember) => m.status === 0 || m.status === 1;
 
 /** Roll-call detail for one score: who walked out, and the treasure & artifacts they carried —
  *  shown with the actual card art (progressive enhancement; falls back to names if art can't load). */
-function ScoreDetail({ row, rank, onBack, onReplay }: {
+function ScoreDetail({ row, rank, onBack, onReplay, multiplayer }: {
   row: LeaderboardRow;
   rank?: number;
   onBack: () => void;
   /** Open the replay viewer for a game code — resolves null on success, or an explanatory
    *  message (e.g. the game predates full logging) to surface here. */
   onReplay?: (code: string) => Promise<string | null>;
+  /** This score comes from the multiplayer tables — label it (with its player count if recorded). */
+  multiplayer?: boolean;
 }) {
   const [cards, setCards] = useState<CardArt[]>([]);
   const [replayErr, setReplayErr] = useState<string | null>(null);
@@ -69,6 +74,7 @@ function ScoreDetail({ row, rank, onBack, onReplay }: {
         <span className="scv-hs-detail-name">{rank ? `#${rank} ` : ""}{row.name}</span>
         <span className="scv-hs-detail-meta">
           {OUTCOME_LABEL[row.outcome] ?? "—"} · {row.score} pts{row.extensionKit ? " · Extension kit" : ""}
+          {multiplayer ? ` · Multiplayer${row.seatCount ? ` of ${row.seatCount}` : ""}` : ""}
         </span>
       </div>
       <p className="scv-muted scv-hs-detail-sub">
@@ -165,11 +171,13 @@ function ScoreDetail({ row, rank, onBack, onReplay }: {
 
 /** Presentational leaderboard. Rows are clickable to reveal the party & artifacts that left the
  *  cave. `rows === undefined` means still loading. */
-export function HighScores({ rows, highlightId, onReplay }: {
+export function HighScores({ rows, highlightId, onReplay, multiplayer }: {
   rows: LeaderboardRow[] | undefined;
   highlightId?: string;
   /** When provided, the score detail offers a "Replay" of the recorded game (see ScoreDetail). */
   onReplay?: (code: string) => Promise<string | null>;
+  /** Multiplayer tables add a Players column — the cave's treasure was split that many ways. */
+  multiplayer?: boolean;
 }) {
   const [openId, setOpenId] = useState<string | null>(null);
   if (rows === undefined) return <p className="scv-muted scv-hs-status">Loading high scores…</p>;
@@ -177,7 +185,7 @@ export function HighScores({ rows, highlightId, onReplay }: {
 
   const openIndex = rows.findIndex((r) => r._id === openId);
   if (openIndex !== -1) {
-    return <ScoreDetail row={rows[openIndex]!} rank={openIndex + 1} onBack={() => setOpenId(null)} onReplay={onReplay} />;
+    return <ScoreDetail row={rows[openIndex]!} rank={openIndex + 1} onBack={() => setOpenId(null)} onReplay={onReplay} multiplayer={multiplayer} />;
   }
 
   return (
@@ -187,6 +195,7 @@ export function HighScores({ rows, highlightId, onReplay }: {
           <th className="scv-hs-rank">#</th>
           <th>Name</th>
           <th>Outcome</th>
+          {multiplayer && <th className="scv-hs-num">Players</th>}
           <th className="scv-hs-num">Party</th>
           <th className="scv-hs-num">Score</th>
           <th aria-hidden="true"></th>
@@ -209,6 +218,7 @@ export function HighScores({ rows, highlightId, onReplay }: {
               <td className="scv-hs-rank">{i + 1}</td>
               <td>{r.name}</td>
               <td>{OUTCOME_LABEL[r.outcome] ?? "—"}</td>
+              {multiplayer && <td className="scv-hs-num">{r.seatCount ?? "—"}</td>}
               <td className="scv-hs-num">{survivors}/{r.party.length}</td>
               <td className="scv-hs-num">{r.score}</td>
               <td className="scv-hs-chev" aria-hidden="true">›</td>
@@ -220,18 +230,30 @@ export function HighScores({ rows, highlightId, onReplay }: {
   );
 }
 
-/** Self-fetching leaderboard with the base/kit segmented toggle (SC-EXT-29: the two modes keep
- *  entirely separate tables — scores aren't comparable across deck compositions). `defaultKit`
- *  opens on the mode the player just finished. */
-export function LeaderboardPanel({ defaultKit = false, highlightId, onReplay }: {
+/** Self-fetching leaderboard with two segmented toggles selecting one of FOUR independent tables
+ *  (design 2026-07-28): Solitaire|Multiplayer × Base|Extension Kit. Neither axis is comparable
+ *  across — a shared cave splits its treasure between seats, and the kit changes the deck
+ *  composition (SC-EXT-29). `defaultKit`/`defaultMode` open on the game the player just finished. */
+export function LeaderboardPanel({ defaultKit = false, defaultMode = "solo", highlightId, onReplay }: {
   defaultKit?: boolean;
+  defaultMode?: "solo" | "multi";
   highlightId?: string;
   onReplay?: (code: string) => Promise<string | null>;
 }) {
   const [kit, setKit] = useState(defaultKit);
-  const rows = useQuery(api.highScores.list, { extensionKit: kit }) as LeaderboardRow[] | undefined;
+  const [mode, setMode] = useState<"solo" | "multi">(defaultMode);
+  const rows = useQuery(api.highScores.list, { mode, extensionKit: kit }) as LeaderboardRow[] | undefined;
+  const multi = mode === "multi";
   return (
     <div>
+      <div className="scv-hs-tabs" role="tablist" aria-label="score table players">
+        <button role="tab" aria-selected={!multi} className={"scv-hs-tab" + (!multi ? " scv-hs-tab-on" : "")} onClick={() => setMode("solo")}>
+          Solitaire
+        </button>
+        <button role="tab" aria-selected={multi} className={"scv-hs-tab" + (multi ? " scv-hs-tab-on" : "")} onClick={() => setMode("multi")}>
+          Multiplayer
+        </button>
+      </div>
       <div className="scv-hs-tabs" role="tablist" aria-label="score table mode">
         <button role="tab" aria-selected={!kit} className={"scv-hs-tab" + (!kit ? " scv-hs-tab-on" : "")} onClick={() => setKit(false)}>
           Base Game
@@ -243,7 +265,7 @@ export function LeaderboardPanel({ defaultKit = false, highlightId, onReplay }: 
       {/* Stable footprint across tab switches: the body keeps the same height whether the
           selected table is full, short, empty, or still loading — only its scroll varies. */}
       <div className="scv-hs-body">
-        <HighScores rows={rows} highlightId={highlightId} onReplay={onReplay} />
+        <HighScores rows={rows} highlightId={highlightId} onReplay={onReplay} multiplayer={multi} />
       </div>
     </div>
   );

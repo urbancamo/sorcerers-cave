@@ -54,21 +54,35 @@ export const save = mutation({
   },
 });
 
-/** Top SOLO scores across all players (highest first), split by game mode: base vs extension
- *  kit (SC-EXT-29 — separate tables, each with its own top-N, since scores aren't comparable
- *  across deck compositions). Omitted/false = the base table; absent flags on pre-kit rows are
- *  base by construction. Multiplayer results live separately. */
+/** Top scores across all players (highest first), split into FOUR independent tables keyed
+ *  mode × extensionKit (design 2026-07-28): solitaire and multiplayer scores aren't comparable
+ *  (a shared cave splits its treasure between seats), and neither are base and kit decks
+ *  (SC-EXT-29). Omitted args = the solitaire base table; absent flags on legacy rows read as
+ *  solo/base by construction. Multiplayer lists only ESCAPED seats — wipes and abandons stay
+ *  recorded in the archive (`recordTerminals` writes every terminal) but a 0-score wipe is not
+ *  leaderboard material, matching the solo save rule. */
 export const list = query({
-  args: { extensionKit: v.optional(v.boolean()) },
-  handler: async (ctx, { extensionKit }) => {
+  args: {
+    mode: v.optional(v.union(v.literal("solo"), v.literal("multi"))),
+    extensionKit: v.optional(v.boolean()),
+  },
+  handler: async (ctx, { mode, extensionKit }) => {
+    const wantMode = mode ?? "solo";
     const wantKit = extensionKit === true;
+    // A multi row's kit flag falls back to its stored final state: rows recorded between the
+    // MP-kit deploy and the `recordTerminals` stamping fix carry the variant only in `state`.
+    const kitOf = (r: { extensionKit?: boolean; state: unknown }) =>
+      r.extensionKit ?? (r.state as GameState).variants?.extensionKit ?? false;
     const rows = await ctx.db
       .query("highScores")
       .withIndex("by_score")
       .order("desc")
-      .take(LEADERBOARD_LIMIT * 4); // over-fetch, then drop multiplayer + other-mode entries
+      .take(LEADERBOARD_LIMIT * 4); // over-fetch, then drop other-table entries
     return rows
-      .filter((r) => r.mode !== "multi" && (r.extensionKit ?? false) === wantKit)
+      .filter((r) =>
+        (r.mode ?? "solo") === wantMode &&
+        kitOf(r) === wantKit &&
+        (wantMode === "solo" || r.outcome === GS_ESCAPED))
       .slice(0, LEADERBOARD_LIMIT)
       .map((r) => ({
       _id: r._id,
@@ -78,6 +92,7 @@ export const list = query({
       party: r.party,
       createdAt: r.createdAt,
       extensionKit: r.extensionKit ?? undefined,
+      seatCount: r.seatCount ?? undefined,
     }));
   },
 });

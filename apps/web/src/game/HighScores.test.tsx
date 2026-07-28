@@ -178,23 +178,60 @@ describe("HighScores", () => {
     useQueryMock.mockReturnValue([]);
     render(<LeaderboardPanel />);
     expect(screen.getByRole("tab", { name: "Base Game" })).toHaveAttribute("aria-selected", "true");
-    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ extensionKit: false });
+    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "solo", extensionKit: false });
   });
 
   it("LeaderboardPanel opens on the Extension Kit tab when defaultKit is set (post-kit-game)", () => {
     useQueryMock.mockReturnValue([]);
     render(<LeaderboardPanel defaultKit />);
     expect(screen.getByRole("tab", { name: "Extension Kit" })).toHaveAttribute("aria-selected", "true");
-    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ extensionKit: true });
+    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "solo", extensionKit: true });
   });
 
   it("switching tabs re-queries the other table", () => {
     useQueryMock.mockReturnValue([]);
     render(<LeaderboardPanel />);
     fireEvent.click(screen.getByRole("tab", { name: "Extension Kit" }));
-    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ extensionKit: true });
+    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "solo", extensionKit: true });
     fireEvent.click(screen.getByRole("tab", { name: "Base Game" }));
-    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ extensionKit: false });
+    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "solo", extensionKit: false });
+  });
+
+  // Four leaderboards (design 2026-07-28): a second segmented toggle splits solitaire from
+  // multiplayer — shared-cave treasure makes the two score pools incomparable.
+  it("LeaderboardPanel offers the Solitaire/Multiplayer toggle and re-queries on switch", () => {
+    useQueryMock.mockReturnValue([]);
+    render(<LeaderboardPanel />);
+    expect(screen.getByRole("tab", { name: "Solitaire" })).toHaveAttribute("aria-selected", "true");
+    fireEvent.click(screen.getByRole("tab", { name: "Multiplayer" }));
+    expect(screen.getByRole("tab", { name: "Multiplayer" })).toHaveAttribute("aria-selected", "true");
+    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "multi", extensionKit: false });
+  });
+
+  it("LeaderboardPanel opens on Multiplayer when defaultMode says so", () => {
+    useQueryMock.mockReturnValue([]);
+    render(<LeaderboardPanel defaultMode="multi" />);
+    expect(screen.getByRole("tab", { name: "Multiplayer" })).toHaveAttribute("aria-selected", "true");
+    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "multi", extensionKit: false });
+  });
+
+  it("the multiplayer table adds a Players column, dashed for legacy rows", () => {
+    useQueryMock.mockReturnValue([
+      row({ _id: "a", name: "Trio", seatCount: 3 }),
+      row({ _id: "b", name: "Legacy" }),
+    ]);
+    render(<LeaderboardPanel defaultMode="multi" />);
+    expect(screen.getByRole("columnheader", { name: "Players" })).toBeInTheDocument();
+    const trio = screen.getByText("Trio").closest("tr")!;
+    expect(within(trio).getByText("3")).toBeInTheDocument();
+    const legacy = screen.getByText("Legacy").closest("tr")!;
+    expect(within(legacy).getByText("—")).toBeInTheDocument();
+  });
+
+  it("the solitaire table has no Players column", () => {
+    useQueryMock.mockReturnValue([row({ _id: "a", name: "Alone" })]);
+    render(<LeaderboardPanel />);
+    expect(screen.queryByRole("columnheader", { name: "Players" })).not.toBeInTheDocument();
   });
 
   it("keeps a stable-size body across tab switches (same wrapper for full and empty tables)", () => {
