@@ -300,13 +300,17 @@ export function buildMpGame(
 }
 
 /** Turn-based party selection from the ONE shared small pack (drafted in pick order). When the last
- *  seat has chosen, the game transitions to "playing" with the first mover (order[0]) active. */
+ *  seat has chosen, the game transitions to "playing" with the first mover (order[0]) active.
+ *  `validatePicks` is called with `mp.variants` (SC-EXT-36) so a kit-on game's kit starters
+ *  (ids 14-20) and the Ogre/Troll 5→4 / 4→3 cost revision validate exactly like solo's own
+ *  `newGame`/`validatePicks(picks, variants)` call (setup.ts) — kit-off (`mp.variants` absent)
+ *  is byte-identical to before this threading existed. */
 export function choosePartyFor(mp: MpGameState, seat: number, picks: number[]): { state: MpGameState; ok: boolean; reason?: string } {
   if (mp.phase !== "partySelect") return { state: mp, ok: false, reason: "not_selecting" };
   if (mp.pickOrder[mp.active] !== seat) return { state: mp, ok: false, reason: "not_your_pick" };
   const party = mp.parties[seat];
   if (!party || party.party.length > 0) return { state: mp, ok: false, reason: "already_picked" };
-  if (!validatePicks(picks)) return { state: mp, ok: false, reason: "invalid" };
+  if (!validatePicks(picks, mp.variants)) return { state: mp, ok: false, reason: "invalid" };
 
   // Availability against the live shared pack — another seat may already have taken a card.
   const pack = mp.cave.smallPack.slice();

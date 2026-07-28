@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { buildMpGame, mpReduce, partyView, type CaveState, type PartyState, type MpGameState } from "./multi";
+import { buildMpGame, choosePartyFor, mpReduce, partyView, type CaveState, type PartyState, type MpGameState } from "./multi";
 import { buildLargePack, buildSmallPack } from "./decks";
 import { shuffle, nextSeed, rollDie } from "./rng";
 import { GS_PLAYING, GATEWAY_START_COORD, AF_BELL_SPENT } from "./state";
@@ -438,5 +438,45 @@ describe("Shared kit content across seats (SC-EXT-32)", () => {
       expect(settled.state.parties[0]!.cryptCoord).toBe(packCoord(1, 51, 50)); // A's own field: stale, unspent
       expect(mpReduce(settled.state, 0, { type: "enterCrypt" }).events).toEqual([{ type: "blocked" }]);
     });
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// SC-EXT-36: choosePartyFor threads mp.variants into validatePicks. Before this fix, `validatePicks`
+// was called with no third argument (multi.ts:309), so ANY kit id (14-20) was rejected as
+// unselectable regardless of the game's own `mp.variants.extensionKit` flag, and the kit-on
+// Ogre/Troll cost revision (5→4 / 4→3, SC-EXT-29's KIT_COST_OVERRIDES) never applied to MP drafts
+// either — even though `gameState`'s `draft.remaining` (Task 7) already displays kit ids as
+// draftable with real stock. Currently unreachable in production (no UI sets the flag on an MP
+// game yet — that's Task 8), but this MUST be fixed first so a kit-on lobby toggle doesn't ship an
+// undraftable game.
+// ---------------------------------------------------------------------------------------------
+
+describe("choosePartyFor threads mp.variants into validatePicks (SC-EXT-36)", () => {
+  it("kit-on: a pick containing a kit starter (Witch, id 18, cost 5) is ACCEPTED", () => {
+    const mp0 = buildMpGame(4242, SEATS, { extensionKit: true });
+    const first = mp0.pickOrder[0]!;
+    const r = choosePartyFor(mp0, first, [18]); // Witch alone: cost 5 <= PARTY_BUDGET (6)
+    expect(r.ok).toBe(true);
+    expect(r.state.parties[first]!.party.map((m) => m.creatureId)).toEqual([18]);
+  });
+
+  it("kit-on: an Ogre pick validates at the revised cost 4, not the base cost 5", () => {
+    const mp0 = buildMpGame(4242, SEATS, { extensionKit: true });
+    const first = mp0.pickOrder[0]!;
+    // Ogre(id 2) + Woman(id 6): totals 6 (= PARTY_BUDGET) only if the Ogre costs 4 (kit-on
+    // override); at the base cost of 5 this would total 7 and be rejected — so ACCEPTED here
+    // pins the KIT_COST_OVERRIDES threading specifically, not just "kit ids selectable at all".
+    const r = choosePartyFor(mp0, first, [2, 6]);
+    expect(r.ok).toBe(true);
+    expect(r.state.parties[first]!.party.map((m) => m.creatureId)).toEqual([2, 6]);
+  });
+
+  it("kit-off: a kit id pick is still REJECTED — this fix does not loosen kit-off validation", () => {
+    const mp0 = buildMpGame(4242, SEATS); // no variants: byte-identical to today
+    const first = mp0.pickOrder[0]!;
+    const r = choosePartyFor(mp0, first, [18]); // Witch: unselectable without the kit
+    expect(r.ok).toBe(false);
+    expect(r.reason).toBe("invalid");
   });
 });
