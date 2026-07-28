@@ -23,14 +23,18 @@ const KIT_SELECTABLE = KIT_CREATURES.filter((c) => c.cost !== null);
  */
 export function PartySelect({
   onConfirm,
+  onBack,
   stock,
   lockedColor,
   title = "Choose your party",
-  confirmLabel = (n) => `Enter the cave (${n})`,
+  confirmLabel = () => "Enter the cave", // no pick count (MSW, 2026-07-28)
   kitToggle = false,
   variants: fixedVariants,
 }: {
   onConfirm: (picks: number[], color: PartyColor, variants?: { extensionKit: boolean }) => void;
+  /** Solo only: return to the title screen without starting. The MP draft passes no handler —
+   *  leaving a lobby is its own flow — so no Back is rendered there. */
+  onBack?: () => void;
   stock?: Readonly<Record<number, number>>;
   lockedColor?: PartyColor;
   title?: string;
@@ -93,6 +97,7 @@ export function PartySelect({
 
   return (
     <section className="scv-panel scv-party">
+      {onBack && <button className="scv-hs-back" onClick={onBack}>← Back</button>}
       <h2 className="scv-hd">{title}</h2>
       <p className={"scv-budget" + (total > PARTY_BUDGET ? " over" : "")}>
         Budget <b>{total}</b> / {PARTY_BUDGET}

@@ -119,4 +119,18 @@ describe("PartySelect — extension kit toggle (SC-EXT-29, design US-01/§1.3)",
     fireEvent.click(screen.getByRole("button", { name: /^Enter the cave/i }));
     expect(onConfirm).toHaveBeenCalledWith([0], "yellow"); // no trailing variants arg — byte-identical call shape
   });
+
+  it("labels the confirm button 'Enter the cave' with no pick count (MSW, 2026-07-28)", () => {
+    render(<PartySelect onConfirm={() => {}} />);
+    expect(screen.getByRole("button", { name: "Enter the cave" })).toBeInTheDocument();
+  });
+
+  it("offers a Back option when a handler is provided, and none otherwise", () => {
+    const onBack = vi.fn();
+    const { rerender } = render(<PartySelect onConfirm={() => {}} onBack={onBack} />);
+    fireEvent.click(screen.getByRole("button", { name: /back/i }));
+    expect(onBack).toHaveBeenCalledTimes(1);
+    rerender(<PartySelect onConfirm={() => {}} />); // the MP draft passes no handler
+    expect(screen.queryByRole("button", { name: /back/i })).toBeNull();
+  });
 });

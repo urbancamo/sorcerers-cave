@@ -145,6 +145,7 @@ export default function GameScreen() {
     return (
       <PartySelect
         kitToggle
+        onBack={() => setStarted(false)}
         onConfirm={async (picks, color, variants) => setGameId(await newGame({ seed: Date.now(), picks, color, variants }))}
       />
     );
