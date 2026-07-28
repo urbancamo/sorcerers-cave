@@ -2,7 +2,7 @@
 // draw a kit id (14-21) into `state.strangers`/`state.treasures` on ANY chamber, regardless of the
 // starting party — this panel is the very first thing that renders such a draw, so the base tables
 // would crash here before a kit-on game gets past its first encounter.
-import { ALL_CREATURES, ALL_TREASURES, carriedWeight, legalActions, type GameState, type GameAction } from "@sorcerers-cave/engine";
+import { ALL_CREATURES, ALL_TREASURES, carriedWeight, legalActions, decodeArea, SPECIAL_DEEP_POOL, type GameState, type GameAction } from "@sorcerers-cave/engine";
 import { memberLabel } from "./memberLabels";
 import { ConfirmButton, ConfirmPicker } from "./ConfirmButton";
 import { holyWaterTargetName } from "./holyWaterLabel";
@@ -123,6 +123,24 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
     else simple.push(a);
   }
 
+  // Treasure nobody can take (design 2026-07-28): the engine already withholds `takeTreasure` when
+  // no active member has the spare capacity — or, in a Deep Pool, is a Giant (§Deep Pool) — so a
+  // row-less listing would be silent. Explain it instead. Only when someone is still standing:
+  // with the whole party down the problem isn't the weight, and today's silence stays honest.
+  const uncarryable: string[] = [];
+  if (state.phase === "pickup" && state.party.some((m) => m.status === 0 || m.status === 1)) {
+    const deepPool = decodeArea(state.areas[state.partyArea]!.card).special === SPECIAL_DEEP_POOL;
+    // 12 = Giant, the engine's own C_GIANT (selectors.ts) — a loaded Giant is a weight problem, not a pool problem.
+    const activeGiant = state.party.some((m) => (m.status === 0 || m.status === 1) && m.creatureId === 12);
+    state.treasures.forEach((tid, ti) => {
+      if (takeByTi.has(ti)) return;
+      const name = ALL_TREASURES[tid]!.name;
+      uncarryable.push(deepPool && !activeGiant
+        ? `Only a Giant can lift the ${name} from the pool.`
+        : `The ${name} is too heavy for anyone to carry.`);
+    });
+  }
+
   const memberName = (mi: number) => {
     const m = state.party[mi]!, c = ALL_CREATURES[m.creatureId]!;
     const base = memberLabel(state.party, mi); // party-wide "#N" for duplicate classes
@@ -189,6 +207,11 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
           })}
         </div>
       )}
+
+      {/* Treasure nobody can take: an info line in place of the assignment row it can't have. */}
+      {uncarryable.map((msg) => (
+        <p key={msg} className="scv-enc-line scv-muted">{msg}</p>
+      ))}
 
       {/* Artefacts: one row per artefact; pick the target to use it on. */}
       {artByArtifact.size > 0 && (

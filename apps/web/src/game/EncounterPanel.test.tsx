@@ -158,6 +158,57 @@ describe("EncounterPanel", () => {
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "useArtifact", artifact: 16 }));
   });
 
+  it("explains an uncarryable treasure instead of offering a pickup row", () => {
+    // Man (50 kg) + Woman (25 kg) vs the 100 kg Treasure Chest: nobody qualifies, so the engine
+    // offers no takeTreasure — the panel must say why instead of a silent, row-less listing.
+    const pickup: GameState = { ...newGame(1, [5, 6]), phase: "pickup", treasures: [14] };
+    render(<EncounterPanel state={pickup} dispatch={() => {}} />);
+    expect(screen.getByText("The Treasure Chest is too heavy for anyone to carry.")).toBeInTheDocument();
+    expect(screen.queryByLabelText(/assign treasure chest/i)).not.toBeInTheDocument();
+  });
+
+  it("shows no too-heavy message when the treasure is carryable", () => {
+    const pickup: GameState = { ...newGame(1, [5, 6]), phase: "pickup", treasures: [1] }; // Gold, 25 kg
+    render(<EncounterPanel state={pickup} dispatch={() => {}} />);
+    expect(screen.queryByText(/too heavy for anyone to carry/i)).not.toBeInTheDocument();
+    expect(screen.getByLabelText(/assign gold/i)).toBeInTheDocument();
+  });
+
+  it("words a Giant-less Deep Pool pickup as needing a Giant, not as too heavy", () => {
+    const base = newGame(1, [5, 6]); // no Giant; Gold is light enough for the Man
+    const pickup: GameState = {
+      ...base, phase: "pickup", treasures: [1],
+      areas: base.areas.map((a, i) => (i === 0 ? { ...a, card: 16 | (2 << 7) } : a)), // Deep Pool (special 2)
+    };
+    render(<EncounterPanel state={pickup} dispatch={() => {}} />);
+    expect(screen.getByText("Only a Giant can lift the Gold from the pool.")).toBeInTheDocument();
+    expect(screen.queryByLabelText(/assign gold/i)).not.toBeInTheDocument();
+  });
+
+  it("words a Deep Pool pickup as too heavy when a Giant is present but already loaded", () => {
+    const base = newGame(1, [0]); // party fixture; swap in a fully-loaded Giant below
+    const pickup: GameState = {
+      ...base, phase: "pickup", treasures: [14],
+      areas: base.areas.map((a, i) => (i === 0 ? { ...a, card: 16 | (2 << 7) } : a)), // Deep Pool
+    };
+    pickup.party = [{ creatureId: 12, status: 0, treasure: [14, 1, 2], dragonKills: 0 }]; // Giant at 150/150 kg
+    render(<EncounterPanel state={pickup} dispatch={() => {}} />);
+    expect(screen.getByText("The Treasure Chest is too heavy for anyone to carry.")).toBeInTheDocument();
+  });
+
+  it("stays silent about uncarryable treasure when no member is active", () => {
+    const pickup: GameState = { ...newGame(1, [5]), phase: "pickup", treasures: [14] };
+    pickup.party = pickup.party.map((m) => ({ ...m, status: 3 })); // everyone down
+    render(<EncounterPanel state={pickup} dispatch={() => {}} />);
+    expect(screen.queryByText(/too heavy/i)).not.toBeInTheDocument();
+  });
+
+  it("shows no too-heavy message outside the pickup phase", () => {
+    const s: GameState = { ...newGame(1, [5, 6]), phase: "encounter", strangers: [3], treasures: [14] };
+    render(<EncounterPanel state={s} dispatch={() => {}} />);
+    expect(screen.queryByText(/too heavy/i)).not.toBeInTheDocument();
+  });
+
   it("offers the Medusa-pause choice as two plain buttons (throw the dust / proceed)", () => {
     const dispatch = vi.fn();
     const s: GameState = { ...newGame(1, [5, 6]), phase: "medusa", hazards: [3], medusaPause: { freshEntry: true } };
