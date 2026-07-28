@@ -35,7 +35,7 @@ import { advanceTurn, type MpGameState, type MpAction, type PartyState } from ".
  *    trap by design (no Dwarf check to bypass, same "no LIVING dwarf" logic as an ordinary Trap),
  *    and Harpies' theft targets *artifacts*, not "treasure" in the cannot-carry-or-use sense the
  *    pre-gate/treasure-strip enforce — both apply to a zombie party exactly as they would a living
- *    one, needing no gate or repair of their own. The kit's other five specials (Chasm, Bell Rope,
+ *    one, needing no gate or repair of their own. The kit's other six specials (Chasm, Bell Rope,
  *    Lair, Whirlpool, Gallery, Well) are ordinary CHAMBERS (`decodeArea(card).chamber === true`) —
  *    zombies enter them like any chamber, with no gate entry needed; a Whirlpool drag in
  *    particular needs no twin to the Deep-Pool special-case below, since (unlike Deep Pool) it is

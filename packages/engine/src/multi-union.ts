@@ -1,4 +1,4 @@
-import { GS_PLAYING, GS_DEAD, type PartyMember, type GameState } from "./state";
+import { GS_PLAYING, GS_DEAD, type GamePhase, type PartyMember, type GameState } from "./state";
 import type { GameEvent } from "./actions";
 import { scoreBreakdown } from "./score";
 import { revertApprenticesOnSorcererDeath } from "./effects";
@@ -394,12 +394,23 @@ export function hostileDetachmentAt(mp: MpGameState, seat: number): boolean {
 // --- the post-action hook (wired into mpReduce) --------------------------------------------------------
 
 /**
+ * The phases in which a seat's chamber working set (`strangers`/`treasures`) is LIVE — an open
+ * session the solo lifecycle will eventually persist back onto its tile (`persistAndExplore`,
+ * reduce.ts). In every other phase — "explore" (at rest) above all — the working set is empty by
+ * invariant, nothing ever parks it, and the next `enterChamber` RESETS it (chamber.ts): anything
+ * left there is silently destroyed. Used by step 3b below to decide where a cave-global consequence
+ * may land on a seat that is not the one acting (SC-EXT-31).
+ */
+const LIVE_WORKING_SET: ReadonlySet<GamePhase> = new Set<GamePhase>(["encounter", "fight", "medusa", "pickup"]);
+
+/**
  * Runs after EVERY successful solo action in mpReduce. In order:
  *  1. a terminal commander auto-dissolves his union (loans home, recruits stay with him — doc'd);
  *  2. the acting seat's own detachment at its current area auto-merges back (I-8 "rejoin");
  *  3. guarded loot: a rival detachment re-parks the actor's whole working treasure set (doc'd);
  *  3b. cave-global Apprentice revert (SC-EXT-31, design US-14): ANY seat's Sorcerer kill — union
- *      or not — reverts every Apprentice ally, cave-wide;
+ *      or not — reverts every Apprentice ally, cave-wide (into the working set of a seat with an
+ *      open session, onto the shared tile for a bystander at rest);
  *  4. recruits: strangersJoined during a commander's action are recorded on the union (I-7);
  *  5. Sorcerer bounty (I-19): a union kill stamps sorcererKilled + sorcererSharedWith on EVERY member;
  *  6. the union travels together: subordinates relocate to the commander's position after his action.
@@ -457,9 +468,34 @@ export function unionPostAction(mp: MpGameState, seat: number, events: GameEvent
   //     vanishes from her commander's array along with her tag, so every active union (not just one
   //     the killer commands) is re-indexed afterward to end the loan cleanly (mirrors the
   //     mutiny-desertion path in reindexUnion's own doc comment).
+  //     WHERE the ex-ally lands is per-seat, though. The solo revert puts her (and her spilled
+  //     items) into the seat's LIVE working set, which is coherent only while that seat has an open
+  //     session — the ACTING seat mid-fight, or a bystander already in an encounter/fight/medusa/
+  //     pickup, all of which end in `persistAndExplore` parking the set back onto their tile. A
+  //     bystander AT REST has no such session: its working set is empty by invariant, nothing parks
+  //     it, and its next `enterChamber` resets it — the promised hostile stranger would never
+  //     materialize and her carried items would be deleted from the game (item conservation). For
+  //     those seats the revert is written straight to the SHARED tile as `100+cid` / `200+tid`, the
+  //     same channel every other cave-shared consequence uses (a neutral recruit at dissolution,
+  //     guarded loot in step 3, the zombies variant's working-set park) — so she waits there for
+  //     whoever enters next, her seat's own working set untouched.
   if (events.some((e) => e.type === "sorcererSlain")) {
     ensure();
-    for (const p of out.parties) extra.push(...revertApprenticesOnSorcererDeath(p as unknown as GameState));
+    for (let i = 0; i < out.parties.length; i++) {
+      const p = out.parties[i]!;
+      const sBefore = p.strangers.length;
+      const tBefore = p.treasures.length;
+      const evs = revertApprenticesOnSorcererDeath(p as unknown as GameState);
+      if (evs.length === 0) continue; // nothing reverted here (every kit-off seat, always)
+      extra.push(...evs);
+      if (i === seat || LIVE_WORKING_SET.has(p.phase)) continue; // an open session: solo semantics stand
+      const tile = out.cave.areas[p.partyArea]!;
+      tile.contents = [
+        ...tile.contents,
+        ...p.strangers.splice(sBefore).map((id) => 100 + id),
+        ...p.treasures.splice(tBefore).map((t) => 200 + t),
+      ];
+    }
     for (const other of out.unions ?? []) if (!other.dissolved) reindexUnion(out, other);
   }
 

@@ -379,8 +379,12 @@ describe("cave-global Apprentice revert on an MP Sorcerer kill (SC-EXT-31, desig
     expect(mp.unions ?? []).toHaveLength(0); // no union ever formed
     const r = unionPostAction(mp, 0, [{ type: "sorcererSlain" }]);
     expect(r.state.parties[3]!.party).toEqual([member(6)]);
-    expect(r.state.parties[3]!.strangers).toEqual([14]);
-    expect(r.state.parties[3]!.treasures).toEqual([4]); // her carried item spills
+    // Seat 3 is a BYSTANDER at rest, so she and her carried item land on the shared tile she stands
+    // on (100+cid / 200+tid) rather than in a live working set the next entry would reset — see
+    // "parks a BYSTANDER seat's reverted Apprentice…" below for why.
+    expect(r.state.cave.areas[0]!.contents).toEqual([100 + 14, 200 + 4]);
+    expect(r.state.parties[3]!.strangers).toEqual([]);
+    expect(r.state.parties[3]!.treasures).toEqual([]);
     expect(r.events).toContainEqual({ type: "apprenticeTurned", count: 1, items: [4] });
     expect(r.state.unions ?? []).toHaveLength(0); // still no union — this never touches union state
   });
@@ -406,8 +410,10 @@ describe("cave-global Apprentice revert on an MP Sorcerer kill (SC-EXT-31, desig
     mp.unions = [union()]; // union between seats 0 and 1 only
     const r = unionPostAction(mp, 0, [{ type: "sorcererSlain" }]);
     expect(r.state.parties[2]!.party).toEqual([member(5)]);
-    expect(r.state.parties[2]!.strangers).toEqual([14]);
-    expect(r.state.parties[2]!.treasures).toEqual([3]); // her carried item spills, solo semantics
+    // …and, seat 2 being a bystander at rest, onto the tile she stands on (not her working set):
+    expect(r.state.cave.areas[0]!.contents).toEqual([100 + 14, 200 + 3]);
+    expect(r.state.parties[2]!.strangers).toEqual([]);
+    expect(r.state.parties[2]!.treasures).toEqual([]);
   });
 
   it("a LOANED Apprentice ends her loan cleanly when she reverts, and her item spills", () => {
@@ -422,6 +428,70 @@ describe("cave-global Apprentice revert on an MP Sorcerer kill (SC-EXT-31, desig
     expect(r.state.parties[0]!.treasures).toEqual([2]); // her item spilled into the working set
     expect(r.state.unions![0]!.onLoan).toEqual([]); // the loan ended — no dangling record
     expect(r.state.parties[1]!.party).toEqual([]); // she does NOT come home — she never exits the cave
+  });
+
+  it("parks a BYSTANDER seat's reverted Apprentice on her tile, where the next chamber entry cannot erase her", () => {
+    // Seat 1 stands AT REST (phase "explore") with an Apprentice ally carrying a gem. Solo semantics
+    // would push her into seat 1's LIVE working set — but "explore" means that set is empty by
+    // invariant: nothing parks it (persistAndExplore only runs at the end of an open session) and the
+    // very next `enterChamber` RESETS it (chamber.ts). The promised hostile stranger would never
+    // materialize and her item would be DELETED from the game. A bystander's revert therefore lands
+    // on the SHARED tile (100+cid / 200+tid) — the channel every other cave-shared consequence uses.
+    const mp = playing(
+      { largePack: [17] }, // card 17 = N+chamber to the south: somewhere for seat 1 to step out to
+      [partyAt(0, { party: [member(0)] }), partyAt(1, { party: [member(6), member(14, [4], { status: 1 })] })],
+      [1, 0], // seat 1 is on turn — it walks out and back below
+    );
+    const r = unionPostAction(mp, 0, [{ type: "sorcererSlain" }]);
+    expect(r.state.parties[1]!.party).toEqual([member(6)]);
+    expect(r.state.cave.areas[0]!.contents).toEqual([100 + 14, 200 + 4]); // parked where she stands
+    expect(r.state.parties[1]!.strangers).toEqual([]); // …and NOT in the resting seat's working set
+    expect(r.state.parties[1]!.treasures).toEqual([]);
+    expect(r.events).toContainEqual({ type: "apprenticeTurned", count: 1, items: [4] });
+
+    // Seat 1 now takes the very step that used to erase her — a chamber entry — and comes back:
+    const away = mpReduce(r.state, 1, { type: "move", dir: 3 });
+    expect(away.state.cave.areas[0]!.contents).toEqual([100 + 14, 200 + 4]); // untouched on the tile
+    const back = mpReduce({ ...away.state, active: 0 }, 1, { type: "move", dir: 1 }); // turn handed back
+    expect(back.events).toContainEqual({ type: "drewChamber", strangers: [14], treasures: [4], hazards: [] });
+    expect(back.state.parties[1]!.strangers).toContain(14); // drawable and encounterable, item intact
+    expect(back.state.parties[1]!.treasures).toEqual([4]);
+  });
+
+  it("two seats each holding an Apprentice both revert at one kill — the acting seat live, the bystander parked", () => {
+    // The ledger's missing case. Seat 0 is mid-fight (it just killed the Sorcerer); seat 1 is at rest
+    // in a DIFFERENT area. Each seat's ex-ally turns where that seat stands, by that seat's own rules.
+    const mp = playing(
+      { areas: [area(31, packCoord(1, 50, 50)), area(31, packCoord(1, 51, 50))] },
+      [
+        partyAt(0, { phase: "fight", party: [member(0), member(14, [2], { status: 1 })] }),
+        partyAt(1, { partyArea: 1, party: [member(6), member(14, [3], { status: 1 })] }),
+      ],
+    );
+    const r = unionPostAction(mp, 0, [{ type: "sorcererSlain" }]);
+    // The acting seat's chamber is open: solo semantics, straight into the working set it is fighting in.
+    expect(r.state.parties[0]!.party).toEqual([member(0)]);
+    expect(r.state.parties[0]!.strangers).toEqual([14]);
+    expect(r.state.parties[0]!.treasures).toEqual([2]);
+    expect(r.state.cave.areas[0]!.contents).toEqual([]); // nothing parked — its own lifecycle persists it
+    // The bystander is at rest elsewhere: hers parks on HER tile.
+    expect(r.state.parties[1]!.party).toEqual([member(6)]);
+    expect(r.state.parties[1]!.strangers).toEqual([]);
+    expect(r.state.cave.areas[1]!.contents).toEqual([100 + 14, 200 + 3]);
+    expect(r.events.filter((e) => e.type === "apprenticeTurned")).toHaveLength(2);
+  });
+
+  it("a bystander already mid-encounter keeps the live working-set semantics — her chamber is still open", () => {
+    // Not every bystander is at rest: a seat with an open encounter/fight WILL persist its working set
+    // (persistAndExplore) when the session ends, so the solo placement is coherent there and stands.
+    const mp = playing({}, [
+      partyAt(0, { party: [member(0)] }),
+      partyAt(1, { phase: "encounter", strangers: [5], party: [member(6), member(14, [3], { status: 1 })] }),
+    ]);
+    const r = unionPostAction(mp, 0, [{ type: "sorcererSlain" }]);
+    expect(r.state.parties[1]!.strangers).toEqual([5, 14]); // she joins the strangers already faced
+    expect(r.state.parties[1]!.treasures).toEqual([3]);
+    expect(r.state.cave.areas[0]!.contents).toEqual([]); // nothing parked
   });
 });
 
