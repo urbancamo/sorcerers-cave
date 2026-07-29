@@ -590,7 +590,7 @@ In solitaire play there is only one exploring party, and all rules governing tur
 
 ### Elaborations
 
-The cards and the basic rules can be used to explore any situation that imagination suggests. New dimensions may be added to characters, or new creatures, hazards, and treasures may. be created with the blank cards provided. (Use pencil, as new ideas may take some time to solidify.) Here are a few suggestions for new dimensions, creatures, and artifacts.
+The cards and the basic rules can be used to explore any situation that imagination suggests. New dimensions may be added to characters, or new creatures, hazards, and treasures may be created with the blank cards provided. (Use pencil, as new ideas may take some time to solidify.) Here are a few suggestions for new dimensions, creatures, and artifacts.
 
 Damsels in distress. Any woman found in a group of strangers who are all inhuman, or in the company of the Sorcerer, is considered to be a captive of the strangers, and will be friendly to any party which slays them.
 
