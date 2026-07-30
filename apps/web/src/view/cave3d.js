@@ -627,15 +627,14 @@ function doMove(dir){
         :('You enter <b>'+n+'</b>.'), 'event');
     }
     refreshExitMarkers();
-    // Surface otherwise-silent outcomes (viper deaths, hazards, Deep Pool, effects) first,
-    // then the trap modal if the move sprung one. Chain so the player acks each in turn.
-    const notices = ev.notices || [];
-    const showNotices = notices.length
-      ? () => {
-          const tone = notices.some(n=>n.tone==='bad')?'bad':notices.some(n=>n.tone==='good')?'good':'';
-          return showConfirm('Aftermath', notices.map(n=>n.text).join('<br>'), tone);
-        }
-      : null;
+    // Bug fix: ev.notices used to show its OWN "Aftermath" confirm here, from this adapter's local
+    // (optimistic) reduce() result — duplicating the SAME notices a beat later when the Convex
+    // round-trip resolves and GameScreen's onMoveResolved/holdMove surfaces them again via
+    // NoticeModal (added for SC-4-43's mid-relocation backdrop fix, which also needed to reach
+    // dice rolls this local path never showed). holdMove's is the snapshot-correct one (it
+    // presents against the room events actually happened in, not the post-relocation landing
+    // tile) — this local echo was the redundant one. The trap modal isn't duplicated anywhere
+    // else, so it stays.
     const showTrap = ev.trap
       ? () => {
           // The trap itself is one-way, but if the chamber below happens to have its own ascending
@@ -647,8 +646,7 @@ function doMove(dir){
           return showConfirm(c[0],c[1],c[2]);
         }
       : null;
-    (showNotices ? showNotices() : Promise.resolve())
-      .then(()=> showTrap ? showTrap() : null)
+    (showTrap ? showTrap() : Promise.resolve())
       .then(()=>{ busy=false; });
   }, drop?620:420);
 }
