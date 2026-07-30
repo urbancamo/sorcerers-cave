@@ -56,6 +56,10 @@ export interface Area {
   name: string;          // display name ("Dragon's Lair", "Tunnel")
   note?: string | null;  // optional flavour line for empty areas
   party: boolean;        // the party currently stands here
+  // Precise Locations (engine SC-10.5): where the party sits on THIS tile — only ever set on the
+  // current area (`party === true`). "doorway" carries the compass side it's standing in; "centre"
+  // and "island" (the four special areas only, never "centre") have no direction of their own.
+  subLocation?: { at: 'doorway' | 'centre' | 'island'; dir?: 'N' | 'E' | 'S' | 'W' };
   visited: boolean;
   faceDown: boolean;     // placed but unrevealed (excluded from edge-matching)
   destroyed: boolean;    // collapsed by an earthquake — impassable, drawn as rubble
@@ -66,6 +70,11 @@ export interface Area {
   strangers: Card[];     // creatures
   treasure: Card[];      // treasure + artifacts
   hazards: Card[];       // hazards (resolved on entry; retained for the record)
+  // Precise Locations (engine SC-10.5-9): treasure deliberately cast onto one of the four special
+  // areas, precisely positioned at the sub-location it was cast from — distinct from `treasure`
+  // above (which already includes the OTHER, un-bucketed Deep-Pool `dropped` pile). Absent/empty
+  // on every ordinary area.
+  sunkTreasure?: { at: 'island' | 'N' | 'E' | 'S' | 'W'; items: Card[] }[];
 }
 
 /** Immutable snapshot for binding the HUD. */

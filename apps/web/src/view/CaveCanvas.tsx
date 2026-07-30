@@ -11,7 +11,14 @@ const TILE_AR = 1728 / 1210; // all tiles are 1728×1210 landscape (manifest)
 
 /** Mounts the vanilla Three.js renderer, booted from the injected engine adapter. */
 /** Other parties' map positions in a multiplayer game (small coloured pins). */
-export interface OtherPartyToken { color: string; col: number; row: number; level: number; }
+export interface OtherPartyToken {
+  color: string; col: number; row: number; level: number;
+  // Precise Locations (engine SC-10.5): a rival's sub-location, when the caller has it available —
+  // renders at its own doorway offset instead of the generic same-tile fan. Optional/forward-
+  // compatible: no current caller populates this yet (playView's per-seat projection would need
+  // prev/phase/fellThroughTrap/subLocation added to compute it — a follow-up, not wired in this pass).
+  subLocation?: { at: 'doorway' | 'centre' | 'island'; dir?: 'N' | 'E' | 'S' | 'W' };
+}
 
 export function CaveCanvas({ engine, state, color, onPartyClick, onSave, onLog, onQuit, code, otherParties, onReady, multiplayer, turnLabel, turnColor }: { engine: CaveEngine; state: GameState; color: PartyColor; onPartyClick?: () => void; onSave?: () => void; onLog?: () => void; onQuit?: () => void; code?: string; otherParties?: OtherPartyToken[]; onReady?: (api: { focusArea: (a: { col: number; row: number; level: number }) => void }) => void; multiplayer?: boolean; turnLabel?: string; turnColor?: string }) {
   const mountRef = useRef<HTMLDivElement>(null);
