@@ -18,6 +18,10 @@ import {
 } from "./effects";
 import { BORNEABLE, isBorne, sweepFallen, spillCarried } from "./loot";
 import { rollDie } from "./rng";
+import {
+  getSubLocation, oppositeDir, RING_ADJACENCY_SPECIALS, ISLAND_JUMP_SPECIALS, SUB_LOCATION_SPECIALS,
+  type SubAt,
+} from "./subLocation";
 // Extension kit (SC-EXT-17): aliases `ALL_CREATURES` — `strongestStranger`'s fight-focus pick and
 // the Lost-Ruby wrestler's combat-roll name both index by an actual creatureId that may already be
 // a kit id (14-20); byte-identical for ids 0-13.
@@ -40,6 +44,24 @@ function giantCanRecover(state: GameState, dropped: readonly number[]): boolean 
   return state.party.some(
     (m) => (m.status === 0 || m.status === 1) && m.creatureId === C_GIANT && dropped.some((t) => canCarry(m, t)),
   );
+}
+
+/** Precise Locations (§10.5): the `sunkTreasure` bucket key for a given sub-location, or undefined
+ *  when there isn't one to sink into/reclaim from (centre, or an undetermined doorway direction). */
+function sunkKey(sub: { at: SubAt; dir?: number }): "island" | 1 | 2 | 3 | 4 | undefined {
+  if (sub.at === "island") return "island";
+  if (sub.at === "doorway" && sub.dir !== undefined) return sub.dir as 1 | 2 | 3 | 4;
+  return undefined;
+}
+
+/** Precise Locations (§10.5): pull (and remove) the sunk-treasure bucket at `key` from `area`, or
+ *  undefined if there isn't one / it's empty. */
+function takeSunkBucket(area: PlacedArea, key: "island" | 1 | 2 | 3 | 4 | undefined): number[] | undefined {
+  if (key === undefined || !area.sunkTreasure?.length) return undefined;
+  const bucket = area.sunkTreasure.find((b) => b.at === key);
+  if (!bucket || bucket.items.length === 0) return undefined;
+  area.sunkTreasure = area.sunkTreasure.filter((b) => b !== bucket);
+  return bucket.items;
 }
 
 /** First living member who may bear+use `artifact` now (some artifacts need a specific creature).
@@ -388,6 +410,20 @@ function resolveAreaLoop(state: GameState): GameEvent[] {
         state.phase = "pickup"; // Giant-only, weight-limited (see legalActions / takeTreasure)
         return events;
       }
+      // Precise Locations (§10.5): a deliberate `dropTreasure` cast into THIS sub-location, same
+      // Giant-only gate as the automatic pile above — checked separately (only one bucket reclaims
+      // per visit; a rare double-stash waits for a later trip, a named simplification).
+      {
+        const key = sunkKey(getSubLocation(state));
+        const sunk = takeSunkBucket(area, key);
+        if (sunk && giantCanRecover(state, sunk)) {
+          state.treasures = sunk;
+          events.push({ type: "treasureReclaimed", count: sunk.length });
+          state.phase = "pickup";
+          return events;
+        }
+        if (sunk) area.sunkTreasure = [...(area.sunkTreasure ?? []), { at: key!, items: sunk }]; // no Giant yet — put it back
+      }
       events.push({ type: "enteredSpecial", special: dec.special });
       state.phase = "explore";
       return events;
@@ -396,6 +432,21 @@ function resolveAreaLoop(state: GameState): GameEvent[] {
       // Extension kit (SC-EXT-21, fix round): same Demon pull-in as Deep Pool above — the Viper
       // Pit is likewise a non-chamber special that returns before the generic tunnel branch.
       if (pullParkedDemon(state, state.areas[state.partyArea]!)) { ambushIfDemon(state, events); return events; }
+      // Precise Locations (§10.5): treasure cast into the Viper Pit is recoverable only by a party
+      // with the Charmed Flute (Peter's notes; mirrors Deep Pool's Giant-only gate, §10.2). Once
+      // eligible, ordinary capacity-gated pickup rules decide who actually carries it out.
+      {
+        const area = state.areas[state.partyArea]!;
+        const key = sunkKey(getSubLocation(state));
+        const sunk = takeSunkBucket(area, key);
+        if (sunk && fluteLulls(state)) {
+          state.treasures = sunk;
+          events.push({ type: "treasureReclaimed", count: sunk.length });
+          state.phase = "pickup";
+          return events;
+        }
+        if (sunk) area.sunkTreasure = [...(area.sunkTreasure ?? []), { at: key!, items: sunk }]; // no Flute yet — put it back
+      }
       events.push({ type: "enteredSpecial", special: dec.special });
       state.phase = "explore";
       return events;
@@ -510,6 +561,7 @@ function relocateDown(state: GameState): void {
   state.partyArea = idx;
   state.level = level + 1;
   state.fellThroughTrap = true; // one-way: prev is the (unreachable) level above — no withdraw/retreat
+  delete state.subLocation; // Precise Locations (§10.5): a real position change invalidates any jump override
 }
 
 /** Teleport the party one step in `dir`, ignoring doors; place a new face-up card if the target is unexplored. */
@@ -535,6 +587,7 @@ function carpetMove(state: GameState, dir: number): void {
   state.partyArea = idx;
   state.level = targetLevel;
   state.fellThroughTrap = false; // carpet links both ways
+  delete state.subLocation; // Precise Locations (§10.5): a real position change invalidates any jump override
 }
 
 export function reduce(
@@ -584,6 +637,17 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
     case "move": {
       if (state.phase !== "explore") return { state, events: [{ type: "blocked" }] };
       const fromSpecial = decodeArea(state.areas[state.partyArea]!.card).special;
+      // Precise Locations (§10.5, §8.1): a Viper-Pit/Whirlpool ledge only reaches its two ADJACENT
+      // doorways — block the one directly opposite the party's current doorway (retrace and an
+      // island-sourced crossing are unaffected). Mirrors the same gate in selectors.ts's
+      // legalActions (defense in depth: the reducer must not trust the client to only ever send a
+      // legal dir).
+      if (RING_ADJACENCY_SPECIALS.has(fromSpecial)) {
+        const sub = getSubLocation(state);
+        if (sub.at === "doorway" && sub.dir !== undefined && action.dir === oppositeDir(sub.dir)) {
+          return { state, events: [{ type: "blocked" }] };
+        }
+      }
       const fromIdx = state.partyArea;
       const oldPrev = state.prev;
       const areasBefore = state.areas.length; // snapshot: did tryMove place a brand-new target tile?
@@ -594,6 +658,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       }
       const next = { ...res.state, turn: res.state.turn + 1 };
       next.fellThroughTrap = false; // a normal move reaches a reachable area (resolveArea re-sets it if a trap fires)
+      delete next.subLocation; // Precise Locations (§10.5): a real move invalidates any jump override
       const events: GameEvent[] = [];
       const crossing = next.partyArea !== oldPrev; // not simply going back the way we came
 
@@ -634,6 +699,32 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       }
 
       events.push(...resolveArea(next));
+      return { state: next, events };
+    }
+
+    // Precise Locations (§10.5, §8.2): jump from a doorway onto the island without leaving the
+    // tile — Peter's house rule, Viper Pit/Deep Pool only. Never changes partyArea/prev; only the
+    // explicit `subLocation` override moves. Reuses the ordinary crossing risk verbatim (viperPit's
+    // per-creature fatal d6 / deepPoolCrossing's auto-drop), so the mechanical events are identical
+    // to an ordinary crossing — `islandJump` alone distinguishes "stayed here" from "left."
+    case "jumpToIsland": {
+      if (state.phase !== "explore") return { state, events: [{ type: "blocked" }] };
+      const dec = decodeArea(state.areas[state.partyArea]!.card);
+      if (!ISLAND_JUMP_SPECIALS.has(dec.special)) return { state, events: [{ type: "blocked" }] };
+      if (getSubLocation(state).at !== "doorway") return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      next.subLocation = { area: next.partyArea, at: "island" };
+      const events: GameEvent[] = [{ type: "islandJump", special: dec.special }];
+      if (dec.special === SPECIAL_VIPER_PIT) {
+        events.push(...viperCrossing(next));
+        if (!next.party.some((m) => m.status === 0 || m.status === 1)) {
+          next.gs = GS_DEAD;
+          next.phase = "gameOver";
+          events.push({ type: "gameOver", gs: GS_DEAD });
+        }
+      } else {
+        events.push(...deepPoolCrossing(next, next.partyArea));
+      }
       return { state: next, events };
     }
 
@@ -809,9 +900,25 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       if (isBorne(m, tid)) m.borne = m.borne!.filter((t) => t !== tid); // dropping it un-bears it
       // During an active pickup the chamber floor IS the live working set, so a member dropping
       // treasure to free capacity (e.g. a Giant clearing room for the 100kg Chest) lands it back on
-      // the floor where it can be re-taken this same visit. Otherwise (at rest) it parks on contents.
-      if (next.phase === "pickup") next.treasures.push(tid);
-      else next.areas[next.partyArea]!.contents.push(200 + tid); // left on the chamber floor
+      // the floor where it can be re-taken this same visit. Otherwise (at rest) it parks on contents —
+      // UNLESS this is one of the four special areas (§10.5, §8.3 fix): a deliberate drop there sinks
+      // into the sub-location it was cast from (a doorway or the island), protected/precise rather
+      // than ordinary open contents anyone can find.
+      if (next.phase === "pickup") {
+        next.treasures.push(tid);
+      } else {
+        const area = next.areas[next.partyArea]!;
+        const special = decodeArea(area.card).special;
+        const key = SUB_LOCATION_SPECIALS.has(special) ? sunkKey(getSubLocation(next)) : undefined;
+        if (key !== undefined) {
+          area.sunkTreasure = area.sunkTreasure ?? [];
+          let bucket = area.sunkTreasure.find((b) => b.at === key);
+          if (!bucket) { bucket = { at: key, items: [] }; area.sunkTreasure.push(bucket); }
+          bucket.items.push(tid);
+        } else {
+          area.contents.push(200 + tid); // left on the chamber floor
+        }
+      }
       // Forsaking the Eye of God curses the party (§Eye of God).
       if (tid === T_EYE_OF_GOD) { next.curses += 1; return { state: next, events: [{ type: "eyeForsaken" }] }; }
       return { state: next, events: [] };

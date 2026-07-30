@@ -52,11 +52,15 @@ Checkpoint fields: `TRN` turn · `LVL` level · `ARA` partyArea index · `PH` ph
 borne subset. AREA: `CARD` area-card value, `COORD` packed `level*10000+y*100+x`, `FU` faceUp,
 `VIS` visited, `FLG` flags (4 = earthquake-destroyed), `MIR` mirroredStairs bits, `SD` secret-door
 ordinal, `CONT` parked contents codes (100+cid / 200+tid / 300+hid / 400+cid, and — kit-on runs only,
-SC-EXT-10 — 500+cid for a parked Gallery statue), `DROP` Deep-Pool dropped treasure ids.
+SC-EXT-10 — 500+cid for a parked Gallery statue), `DROP` Deep-Pool dropped treasure ids, `SUNK`
+Precise Locations' per-sub-location cast treasure (SC-10.5-9): `<at>:<item>[,<item>…]` per non-empty
+bucket, `;`-joined, `-` when there are none — `at` is `island` or a doorway direction (1 N, 2 E, 3
+S, 4 W, same numbering as `MOVE`/`RETREAT`).
 
 ## Action grammar
 
-Covers the full 22-action catalog (spec SC-4-41 — 18 base + 4 kit-only, SC-EXT-5/7/8/13). Indices
+Covers the full 23-action catalog (spec SC-4-41 — 18 base + 4 kit-only (SC-EXT-5/7/8/13) + 1
+kit-independent house rule (SC-10.5-5)). Indices
 refer to the engine's state arrays (`party` / `strangers` / `treasures` / a member's `treasure`) **at
 the moment the action is applied**. Directions: 1 N, 2 E, 3 S, 4 W, 5 up, 6 down.
 
@@ -76,6 +80,7 @@ the moment the action is applied**. Directions: 1 N, 2 E, 3 S, 4 W, 5 up, 6 down
 | `DRAWFROMWELL` | drawFromWell — kit-only, Well tile (SC-EXT-7) |
 | `PULLBELLROPE <mi>` | pullBellRope: living member `mi` pulls it — kit-only, Bell Rope tile (SC-EXT-8) |
 | `ENTERCRYPT` | enterCrypt — kit-only, on the area a parked Crypt/Gems names (SC-EXT-13) |
+| `JUMPISLAND` | jumpToIsland — Viper Pit/Deep Pool only, kit-independent; Peter's house rule, not the printed rulebook (SC-10.5-5) |
 
 ## Coverage
 

@@ -179,6 +179,7 @@ describe("PvP kit-creature lookups (SC-EXT-31) — no base-only CREATURES[]/TREA
 // ---------------------------------------------------------------------------------------------
 
 const DIR_E = 2;
+const DIR_S = 3;
 
 const MAN = 5;
 const WIZARD = 8;
@@ -310,16 +311,20 @@ describe("Shared kit content across seats (SC-EXT-32)", () => {
 
   it("a Whirlpool drag relocates only the crossing seat — a co-located seat is untouched (US-05)", () => {
     const WHIRLPOOL_CARD = (SPECIAL_WHIRLPOOL << 7) | 31;
-    const PLAIN_WEST_TUNNEL = 8;
+    // Precise Locations (§10.5, §8.1): entering from the west (area 1), the ledge only reaches the
+    // two ADJACENT doorways (N/S) — straight across to E is blocked, so this crosses south instead;
+    // PLAIN_NORTH_TUNNEL "sits SOUTH of a special tile, connects back on a southward move" (mirrors
+    // kit-descents.test.ts's own fix for the same gate).
+    const PLAIN_NORTH_TUNNEL = 1;
     const seed = seedForRoll((v) => v <= 2); // drag
     const mp: MpGameState = {
       ...playing(
         {
           areas: [
             area(WHIRLPOOL_CARD, packCoord(1, 50, 50)),
-            area(2, packCoord(1, 49, 50)), // both seats' entry doorway (so moving east is a genuine crossing)
+            area(2, packCoord(1, 49, 50)), // both seats' entry doorway (so moving south is a genuine crossing)
           ],
-          largePack: [PLAIN_WEST_TUNNEL],
+          largePack: [PLAIN_NORTH_TUNNEL],
           seed,
         },
         [partyAt(0, { partyArea: 0, prev: 1 }), partyAt(1, { partyArea: 0, prev: 1 })],
@@ -328,7 +333,7 @@ describe("Shared kit content across seats (SC-EXT-32)", () => {
     };
     const bBefore = mp.parties[1]!;
 
-    const dragged = mpReduce(mp, 0, { type: "move", dir: DIR_E });
+    const dragged = mpReduce(mp, 0, { type: "move", dir: DIR_S });
 
     const roll = dragged.events.find((e) => e.type === "whirlpoolRoll");
     expect(roll).toMatchObject({ dragged: true });

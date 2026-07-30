@@ -39,7 +39,15 @@ export type GameAction =
   // phase — "the start of any turn", not the Chasm/Well/Bell Rope's mid-encounter escape-hatch
   // latitude, since the design gives the Crypt no "legal mid-encounter too" note) while standing on
   // the area `state.cryptCoord` names. No target/dir — the crypt is a per-area singleton.
-  | { type: "enterCrypt" };
+  | { type: "enterCrypt" }
+  // Precise Locations (§10.5, §8.2): jump from a doorway onto a Viper-Pit/Deep-Pool island without
+  // leaving the tile — Peter's explicit house rule (2026-07-30 design sign-off), not the rulebook
+  // itself. Legal only in `explore` phase, standing in a doorway sub-location of one of those two
+  // specials (subLocation.ts's ISLAND_JUMP_SPECIALS). Viper Pit risks the same per-creature fatal
+  // d6 as an ordinary crossing (`viperCrossing` reused verbatim); Deep Pool auto-drops any
+  // non-Giant-carried heavy treasure exactly like an ordinary crossing (`deepPoolCrossing` reused
+  // verbatim) — no roll. No target/dir: the destination is always this tile's own island.
+  | { type: "jumpToIsland" };
 
 // What happened — the reducer is the only producer; the UI never infers game facts.
 // Encounter-resolution and fight events arrive with combat (Milestone C-2).
@@ -258,4 +266,9 @@ export type GameEvent =
   // extra −2, stacking with Lotus Dust/Holy Water/Eye, floor 0). Fires once per stranger the ward
   // actually reduced (base mp>0) in `resolvePlannedRound` — never for a stranger with mp===0
   // already (nothing to turn aside) and never merely because the Shield is in play.
-  | { type: "shieldWarded"; creatureId: number; mode: "nullify" | "weaken" };
+  | { type: "shieldWarded"; creatureId: number; mode: "nullify" | "weaken" }
+  // Precise Locations (§10.5, §8.2): narrates a jumpToIsland — the mechanical roll/drop is reported
+  // by the SAME `viperPit`/`treasureDropped` events an ordinary crossing already emits (special.ts
+  // is reused verbatim for the risk); this event exists only so the presentation layer can tell
+  // "jumped to the island" apart from "crossed and left."
+  | { type: "islandJump"; special: number };

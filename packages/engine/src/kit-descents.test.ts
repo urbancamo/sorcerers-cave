@@ -161,73 +161,79 @@ describe("The Whirlpool — crossing roll (US-05, SC-EXT-6)", () => {
     expect(state.partyArea).toBe(1);
   });
 
+  // Precise Locations (§10.5, §8.1): entering from the west, the ledge only reaches the two
+  // ADJACENT doorways (N/S) — straight across to E is now blocked (kit-descents.test.ts was
+  // written before that gate existed and used E throughout; the crossings below moved to S,
+  // reusing PLAIN_NORTH_TUNNEL — "sits SOUTH of a special tile, connects back on a southward
+  // move" — as the freshly-drawn landing card). See precise-locations.test.ts for the gate itself.
+
   it("a roll of 1-2 drags the whole party down one level, cancelling the lateral move", () => {
     const seed = seedForDragRoll();
-    const s = whirlpoolState({ party: [member(HERO)], seed, largePack: [PLAIN_WEST_TUNNEL, PLAIN_CHAMBER] });
-    const { state, events } = reduce(s, { type: "move", dir: DIR_E });
+    const s = whirlpoolState({ party: [member(HERO)], seed, largePack: [PLAIN_NORTH_TUNNEL, PLAIN_CHAMBER] });
+    const { state, events } = reduce(s, { type: "move", dir: DIR_S });
 
     const roll = events.find((e) => e.type === "whirlpoolRoll");
     expect(roll).toMatchObject({ dragged: true });
     expect((roll as { roll: number }).roll).toBeLessThanOrEqual(2);
     // The lateral move never happened: the party is one level below the WHIRLPOOL's own coords,
-    // not below the eastward tile it tried to move onto.
+    // not below the southward tile it tried to move onto.
     expect(state.level).toBe(2);
     expect(unpackCoord(state.areas[state.partyArea]!.coord)).toEqual({ level: 2, x: 50, y: 50 });
     expect(state.fellThroughTrap).toBe(true);
     // The cancelled lateral move must leave no trace: tryMove already placed a fresh, face-up
-    // tile at (1,51,50) and burned largePack[0] for it BEFORE the roll — undoing the move must pop
+    // tile at (1,50,51) and burned largePack[0] for it BEFORE the roll — undoing the move must pop
     // that phantom tile and give its card back, so only relocateDown's OWN landing draw remains.
     // Areas: whirlpool(0) + west origin(1) [both pre-placed by whirlpoolState] + relocateDown's
-    // landing = 3, not 4 (the leaked phantom eastward tile would make it 4). largeIdx: exactly one
+    // landing = 3, not 4 (the leaked phantom southward tile would make it 4). largeIdx: exactly one
     // draw consumed (the landing, off the now-restored largePack[0]) = 1, not 2.
     expect(state.areas.length).toBe(3);
-    expect(state.areas.some((a) => unpackCoord(a.coord).x === 51 && unpackCoord(a.coord).level === 1)).toBe(false);
+    expect(state.areas.some((a) => unpackCoord(a.coord).y === 51 && unpackCoord(a.coord).level === 1)).toBe(false);
     expect(state.largeIdx).toBe(1);
   });
 
   it("an explored-target drag pops nothing and burns no extra card (undo is a no-op when tryMove found an existing area)", () => {
     const seed = seedForDragRoll();
-    // Pre-place the eastward target (already explored) so tryMove takes its "existing area" branch —
+    // Pre-place the southward target (already explored) so tryMove takes its "existing area" branch —
     // no push, no largePack draw — before the whirlpool roll ever fires.
-    const eastTile = { card: PLAIN_WEST_TUNNEL, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };
+    const southTile = { card: PLAIN_NORTH_TUNNEL, coord: packCoord(1, 50, 51), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };
     const s = whirlpoolState({
       party: [member(HERO)],
       seed,
       areas: [
         { card: WHIRLPOOL_CARD, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
         { card: 2, coord: packCoord(1, 49, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
-        eastTile,
+        southTile,
       ],
       largePack: [PLAIN_CHAMBER], // nothing to draw for the (already-placed) lateral target
       largeIdx: 0,
     });
-    const areasBefore = s.areas.length; // 3: whirlpool, origin, pre-placed east tile
+    const areasBefore = s.areas.length; // 3: whirlpool, origin, pre-placed south tile
 
-    const { state } = reduce(s, { type: "move", dir: DIR_E });
+    const { state } = reduce(s, { type: "move", dir: DIR_S });
 
-    // Only relocateDown's landing is new — the pre-existing east tile is untouched, not popped.
+    // Only relocateDown's landing is new — the pre-existing south tile is untouched, not popped.
     expect(state.areas.length).toBe(areasBefore + 1);
-    expect(state.areas.some((a) => unpackCoord(a.coord).level === 1 && unpackCoord(a.coord).x === 51)).toBe(true);
+    expect(state.areas.some((a) => unpackCoord(a.coord).level === 1 && unpackCoord(a.coord).y === 51)).toBe(true);
     expect(state.largeIdx).toBe(1); // exactly one draw — the landing — nothing consumed for the lateral part
   });
 
   it("a roll of 3-6 lets the lateral move complete normally", () => {
     const seed = seedForSafeRoll();
-    const s = whirlpoolState({ party: [member(HERO)], seed });
-    const { state, events } = reduce(s, { type: "move", dir: DIR_E });
+    const s = whirlpoolState({ party: [member(HERO)], seed, largePack: [PLAIN_NORTH_TUNNEL] });
+    const { state, events } = reduce(s, { type: "move", dir: DIR_S });
 
     const roll = events.find((e) => e.type === "whirlpoolRoll");
     expect(roll).toMatchObject({ dragged: false });
     expect((roll as { roll: number }).roll).toBeGreaterThanOrEqual(3);
     expect(state.level).toBe(1); // no descent — the party arrives on the lateral tile
-    expect(unpackCoord(state.areas[state.partyArea]!.coord)).toEqual({ level: 1, x: 51, y: 50 });
+    expect(unpackCoord(state.areas[state.partyArea]!.coord)).toEqual({ level: 1, x: 50, y: 51 });
     expect(state.fellThroughTrap).toBe(false);
   });
 
   it("withdraw is illegal at a dragged-down landing (fellThroughTrap), same as a trap fall", () => {
     const seed = seedForDragRoll();
-    // A single card: PLAIN_CHAMBER (a NESW chamber) has a W-facing door, so tryMove accepts it for
-    // the (soon-cancelled) eastward attempt; the fix gives it back, and relocateDown redraws the
+    // A single card: PLAIN_CHAMBER (a NESW chamber) has a N-facing door, so tryMove accepts it for
+    // the (soon-cancelled) southward attempt; the fix gives it back, and relocateDown redraws the
     // SAME card off the top of the pack for the landing — which must be a real chamber so the
     // landing can actually draw a stranger into an encounter.
     const s = whirlpoolState({
@@ -236,30 +242,31 @@ describe("The Whirlpool — crossing roll (US-05, SC-EXT-6)", () => {
       largePack: [PLAIN_CHAMBER],
       smallPack: [100 + MAN],
     });
-    const { state } = reduce(s, { type: "move", dir: DIR_E });
+    const { state } = reduce(s, { type: "move", dir: DIR_S });
 
     expect(state.phase).toBe("encounter");
     expect(legalActions(state)).not.toContainEqual({ type: "withdraw" });
   });
 
   it("repeated crossings of the same Whirlpool each roll their own d6", () => {
-    // Cross east safely (a genuine crossing — prev was the west tile), then come back onto the
-    // Whirlpool (a retrace, no roll), then leave again to the south (a second genuine crossing).
+    // Cross south safely (a genuine crossing — prev was the west tile; S is adjacent to a W entry),
+    // then come back onto the Whirlpool (a retrace, no roll — now entering via the SOUTH doorway),
+    // then leave again to the east (adjacent to a S entry — a second genuine crossing).
     const seed = seedForSafeRoll();
-    const s = whirlpoolState({ party: [member(HERO)], seed, largePack: [PLAIN_WEST_TUNNEL, PLAIN_NORTH_TUNNEL] });
+    const s = whirlpoolState({ party: [member(HERO)], seed, largePack: [PLAIN_NORTH_TUNNEL, PLAIN_WEST_TUNNEL] });
 
-    const first = reduce(s, { type: "move", dir: DIR_E });
+    const first = reduce(s, { type: "move", dir: DIR_S });
     const firstRoll = first.events.find((e) => e.type === "whirlpoolRoll");
     expect(firstRoll).toMatchObject({ dragged: false });
-    expect(first.state.partyArea).toBe(2); // the freshly-drawn eastward tile
+    expect(first.state.partyArea).toBe(2); // the freshly-drawn southward tile
     expect(first.state.prev).toBe(0); // came from the Whirlpool
 
-    const back = reduce(first.state, { type: "move", dir: DIR_W });
+    const back = reduce(first.state, { type: "move", dir: DIR_N });
     expect(back.events.some((e) => e.type === "whirlpoolRoll")).toBe(false); // entering, not a crossing
     expect(back.state.partyArea).toBe(0);
     expect(back.state.prev).toBe(2);
 
-    const second = reduce(back.state, { type: "move", dir: DIR_S });
+    const second = reduce(back.state, { type: "move", dir: DIR_E });
     const secondRoll = second.events.find((e) => e.type === "whirlpoolRoll");
     expect(secondRoll).toBeDefined(); // a fresh roll fires again — not a one-time/cached flag
     expect(second.state.seed).not.toBe(back.state.seed); // the seed genuinely advanced for this roll

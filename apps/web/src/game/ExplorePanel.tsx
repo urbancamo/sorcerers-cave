@@ -2,7 +2,7 @@
 // Scroll's cousin the Elixir) in the explore phase — the base table would show "artifact 16"
 // instead of "Holy Water" (Task 15's carry-forward cosmetic-fallback list).
 import {
-  ALL_TREASURES, legalActions,
+  ALL_TREASURES, legalActions, decodeArea, SPECIAL_VIPER_PIT,
   DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN,
   type GameState, type GameAction,
 } from "@sorcerers-cave/engine";
@@ -29,6 +29,11 @@ const CHASM_CONFIRM = "Descend? You cannot return this way.";
 const WELL_CONFIRM = "Draw 1 card — you cannot withdraw this turn.";
 const CRYPT_CONFIRM = "Enter? A trap here cannot be avoided.";
 const ELIXIR_CONFIRM = "One draught. 1: death. 2–3: nothing. 4–6: +2 strength, forever.";
+// Precise Locations (house rule, designer-approved 2026-07-30): jumping to the island without
+// leaving the tile carries the ordinary crossing's own risk — the Pit's fatal per-creature roll,
+// the Pool's non-Giant heavy-treasure loss — so it gets the same blocking-confirm treatment.
+const JUMP_ISLAND_CONFIRM_VIPER = "Jump for the island? Each member risks a fatal fall (a roll of 1–2).";
+const JUMP_ISLAND_CONFIRM_POOL = "Swim for the island? Anyone but a Giant leaves their heavy treasure behind.";
 
 /** The target/direction of one artifact use, e.g. "fly north", "revive Priest" — the dropdown option. */
 function optionLabel(a: UseArtifact, state: GameState): string {
@@ -70,8 +75,11 @@ export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: 
   const enterCrypt = all.find((a): a is Extract<GameAction, { type: "enterCrypt" }> => a.type === "enterCrypt") ?? null;
   const pullBellRope = all.filter((a): a is Extract<GameAction, { type: "pullBellRope" }> => a.type === "pullBellRope");
   const useElixir = all.filter((a): a is UseArtifact => a.type === "useArtifact" && a.artifact === 15);
+  // Precise Locations (kit-independent house rule): pulled out alongside the kit escape-hatches
+  // above for the same reason — it needs its own blocking confirm, not a plain button.
+  const jumpToIsland = all.find((a): a is Extract<GameAction, { type: "jumpToIsland" }> => a.type === "jumpToIsland") ?? null;
   const actions = all.filter(isExploreAction).filter((a) => !(a.type === "useArtifact" && a.artifact === 15));
-  const hasKitActions = !!descendChasm || !!drawFromWell || !!enterCrypt || pullBellRope.length > 0 || useElixir.length > 0;
+  const hasKitActions = !!descendChasm || !!drawFromWell || !!enterCrypt || pullBellRope.length > 0 || useElixir.length > 0 || !!jumpToIsland;
   // Uncarryable treasure parked on this tile (design 2026-07-28): pickup auto-skips when nothing
   // can be taken, so the standing explanation lives here while the party remains in the chamber.
   // Parked contents encode treasure as 200+tid.
@@ -162,6 +170,21 @@ export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: 
           {descendChasm && <ConfirmButton label="Descend the chasm" confirmText={CHASM_CONFIRM} onConfirm={() => dispatch(descendChasm)} />}
           {drawFromWell && <ConfirmButton label="Draw from the well" confirmText={WELL_CONFIRM} onConfirm={() => dispatch(drawFromWell)} />}
           {enterCrypt && <ConfirmButton label="Enter the crypt" confirmText={CRYPT_CONFIRM} onConfirm={() => dispatch(enterCrypt)} />}
+        </div>
+      )}
+
+      {/* Precise Locations (house rule): jump to the island without leaving the tile. */}
+      {jumpToIsland && (
+        <div className="scv-enc-actions">
+          <ConfirmButton
+            label="Jump to the island"
+            confirmText={
+              decodeArea(state.areas[state.partyArea]!.card).special === SPECIAL_VIPER_PIT
+                ? JUMP_ISLAND_CONFIRM_VIPER
+                : JUMP_ISLAND_CONFIRM_POOL
+            }
+            onConfirm={() => dispatch(jumpToIsland)}
+          />
         </div>
       )}
 

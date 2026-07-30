@@ -3,7 +3,10 @@
 // Water, Magic Axe, Scroll, Magic Shield) as a plain "treasure" category card (wrong border tint,
 // wrong bucket wherever a consumer branches on `card.category === "artifact"`) — found live via the
 // Task 16 manual smoke test (a drawn Magic Axe showed category "treasure").
-import { decodeArea, unpackCoord, ALL_TREASURES, AF_DESTROYED, AF_UNRESOLVED, fluteLulls, type GameState, type PlacedArea } from "@sorcerers-cave/engine";
+import {
+  decodeArea, unpackCoord, ALL_TREASURES, AF_DESTROYED, AF_UNRESOLVED, fluteLulls, getSubLocation,
+  DIR_N, DIR_E, DIR_S, DIR_W, type GameState, type PlacedArea,
+} from "@sorcerers-cave/engine";
 import { resolveTile, resolveCardVariant, normExits, type TileArt, type CardArt, type Rot } from "../data/manifest";
 import type { Area, Card } from "./ports";
 
@@ -18,6 +21,8 @@ const SPECIAL: (string | null)[] = [
 ];
 
 export const areaKey = (level: number, col: number, row: number): string => `${level},${col},${row}`;
+
+const DIR_NUM_TO_LETTER: Record<number, 'N' | 'E' | 'S' | 'W'> = { [DIR_N]: 'N', [DIR_E]: 'E', [DIR_S]: 'S', [DIR_W]: 'W' };
 
 /** Encode the live chamber working set into persisted-content codes (100+cid / 200+tid / 300+hid). */
 export function encodeWorkingSet(state: GameState): number[] {
@@ -131,6 +136,19 @@ export function projectArea(
     ...cryptLurk,
   ];
   const lanes = laneCards(floor, art.cards, dragonsAsleep);
+  // Precise Locations (SC-10.5-9): treasure sunk at a specific sub-location, kept apart from the
+  // generic `treasure` lane above so it can be rendered precisely (a doorway or the island), not
+  // lumped into the tile-wide floor.
+  const sunkTreasure = pa.sunkTreasure?.length
+    ? pa.sunkTreasure.map((b) => ({
+        at: b.at === "island" ? ("island" as const) : DIR_NUM_TO_LETTER[b.at]!,
+        items: laneCards(b.items.map((tid) => 200 + tid), art.cards).treasure,
+      }))
+    : undefined;
+  // Precise Locations (SC-10.5): only the party's own (current) area has a meaningful sub-location.
+  const subLocation = idx === state.partyArea
+    ? (({ at, dir }) => (dir !== undefined ? { at, dir: DIR_NUM_TO_LETTER[dir] } : { at }))(getSubLocation(state))
+    : undefined;
   return {
     tileId: resolved?.tileId ?? art.tiles[0]!.tileId,
     rot: (resolved?.rot ?? 0) as Area["rot"],
@@ -142,6 +160,8 @@ export function projectArea(
     name: displayName(special, d.chamber),
     note: null,
     party: idx === state.partyArea,
+    subLocation,
+    sunkTreasure,
     visited: pa.visited,
     // Extension kit (SC-EXT-28, design US-22): a Spell-remapped area is placed `faceUp:true` (it is
     // NOT the ordinary dead-end-frontier face-down case) but must still render as an unrevealed card

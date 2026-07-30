@@ -18,235 +18,315 @@ BEGIN MOVES
   12 MOVE 2                   -> TRN 6 LVL 1 ARA 4 PH EXP GS 0 SEED 429992993 EV deadEnd
   13 MOVE 4                   -> TRN 7 LVL 1 ARA 2 PH EXP GS 0 SEED 901998941 EV moved,drewChamber,hazardFired,combatRoll,combatRoll
   14 MOVE 3                   -> TRN 8 LVL 1 ARA 6 PH EXP GS 0 SEED 901998941 EV moved,enteredSpecial
-  15 MOVE 2                   -> TRN 9 LVL 1 ARA 7 PH EXP GS 0 SEED 901998941 EV crossedSpecial,moved
-  16 MOVE 2                   -> TRN 10 LVL 1 ARA 8 PH EXP GS 0 SEED 901998941 EV moved
-  17 MOVE 6                   -> TRN 11 LVL 2 ARA 9 PH EXP GS 0 SEED 901998941 EV moved
-  18 MOVE 6                   -> TRN 12 LVL 3 ARA 10 PH EXP GS 0 SEED 901998941 EV moved
-  19 MOVE 2                   -> TRN 13 LVL 3 ARA 11 PH PKP GS 0 SEED 901998941 EV moved,drewChamber
-  20 TAKE 2 2                 -> TRN 13 LVL 3 ARA 11 PH PKP GS 0 SEED 901998941 EV -
-  21 LEAVE                    -> TRN 13 LVL 3 ARA 11 PH EXP GS 0 SEED 901998941 EV -
-  22 MOVE 1                   -> TRN 14 LVL 3 ARA 12 PH ENC GS 0 SEED 901998941 EV moved,drewChamber
-  23 TEST                     -> TRN 14 LVL 3 ARA 12 PH FGT GS 0 SEED 154952402 EV reaction,fightStarted
-  24 FIGHT 2>1                -> TRN 14 LVL 3 ARA 12 PH FGT GS 0 SEED 502723232 EV combatRoll,strangerKilled
-  25 FIGHT 2>1                -> TRN 14 LVL 3 ARA 12 PH FGT GS 0 SEED 1968822814 EV combatRoll,strangerKilled
-  26 FIGHT 2>0                -> TRN 14 LVL 3 ARA 12 PH EXP GS 0 SEED 1172871372 EV combatRoll,strangerKilled,fightWon
-  27 MOVE 1                   -> TRN 15 LVL 3 ARA 13 PH EXP GS 0 SEED 1172871372 EV moved
-  28 MOVE 6                   -> TRN 16 LVL 4 ARA 14 PH EXP GS 0 SEED 1172871372 EV moved
-  29 MOVE 4                   -> TRN 17 LVL 4 ARA 15 PH ENC GS 0 SEED 1172871372 EV moved,drewChamber,hazardFired
-  30 TEST                     -> TRN 17 LVL 4 ARA 15 PH FGT GS 0 SEED 476014357 EV reaction,fightStarted
-  31 FIGHT 2>0                -> TRN 17 LVL 4 ARA 15 PH FGT GS 0 SEED 4849691 EV combatRoll,strangerKilled
-  32 FIGHT 2>0                -> TRN 17 LVL 4 ARA 15 PH FGT GS 0 SEED 2103205777 EV combatRoll
-  33 FIGHT 2>0                -> TRN 17 LVL 4 ARA 15 PH FGT GS 0 SEED 738099959 EV combatRoll,strangerKilled
-  34 FIGHT 2>0                -> TRN 17 LVL 4 ARA 15 PH EXP GS 0 SEED 139879373 EV combatRoll,strangerKilled,fightWon
-  35 MOVE 2                   -> TRN 17 LVL 4 ARA 15 PH EXP GS 0 SEED 139879373 EV deadEnd
-  36 MOVE 4                   -> TRN 18 LVL 4 ARA 16 PH ENC GS 0 SEED 139879373 EV moved,drewChamber,medusaAverted
-  37 TEST                     -> TRN 18 LVL 4 ARA 16 PH FGT GS 0 SEED 482288770 EV reaction,fightStarted
-  38 FIGHT 2>0                -> TRN 18 LVL 4 ARA 16 PH PKP GS 0 SEED 947667920 EV combatRoll,strangerKilled,fightWon
-  39 LEAVE                    -> TRN 18 LVL 4 ARA 16 PH EXP GS 0 SEED 947667920 EV -
-  40 MOVE 2                   -> TRN 19 LVL 4 ARA 15 PH EXP GS 0 SEED 947667920 EV moved,drewChamber
-  41 MOVE 4                   -> TRN 20 LVL 4 ARA 16 PH PKP GS 0 SEED 947667920 EV moved,drewChamber,medusaAverted
-  42 LEAVE                    -> TRN 20 LVL 4 ARA 16 PH EXP GS 0 SEED 947667920 EV -
-  43 MOVE 3                   -> TRN 20 LVL 4 ARA 16 PH EXP GS 0 SEED 947667920 EV deadEnd
-  44 MOVE 1                   -> TRN 20 LVL 4 ARA 16 PH EXP GS 0 SEED 947667920 EV deadEnd
-  45 MOVE 2                   -> TRN 21 LVL 4 ARA 15 PH EXP GS 0 SEED 947667920 EV moved,drewChamber
-  46 MOVE 1                   -> TRN 22 LVL 4 ARA 19 PH EXP GS 0 SEED 947667920 EV moved
-  47 MOVE 4                   -> TRN 22 LVL 4 ARA 19 PH EXP GS 0 SEED 947667920 EV deadEnd
-  48 MOVE 2                   -> TRN 23 LVL 4 ARA 20 PH EXP GS 0 SEED 947667920 EV moved
-  49 MOVE 6                   -> TRN 24 LVL 5 ARA 21 PH ENC GS 0 SEED 947667920 EV moved,drewChamber,hazardFired
-  50 TEST                     -> TRN 24 LVL 5 ARA 21 PH ENC GS 0 SEED 745697225 EV reaction
-  51 TEST                     -> TRN 24 LVL 5 ARA 21 PH ENC GS 0 SEED 1228867278 EV reaction
-  52 TEST                     -> TRN 24 LVL 5 ARA 21 PH EXP GS 0 SEED 1966922223 EV reaction,strangersJoined
-  53 MOVE 5                   -> TRN 24 LVL 5 ARA 21 PH EXP GS 0 SEED 1966922223 EV deadEnd
-  54 MOVE 4                   -> TRN 25 LVL 5 ARA 22 PH ENC GS 0 SEED 1966922223 EV moved,drewChamber
-  55 TEST                     -> TRN 25 LVL 5 ARA 22 PH FGT GS 0 SEED 858377468 EV reaction,fightStarted
-  56 FIGHT 3+5>1;2>2;4>0      -> TRN 25 LVL 5 ARA 22 PH FGT GS 0 SEED 385950118 EV combatRoll,combatRoll,strangerKilled,combatRoll,strangerKilled
-  57 FIGHT 3+5|2+4>0          -> TRN 25 LVL 5 ARA 22 PH PKP GS 0 SEED 144490388 EV combatRoll,strangerKilled,fightWon
-  58 TAKE 0 3                 -> TRN 25 LVL 5 ARA 22 PH EXP GS 0 SEED 144490388 EV -
-  59 MOVE 2                   -> TRN 26 LVL 5 ARA 21 PH EXP GS 0 SEED 144490388 EV moved,drewChamber
-  60 MOVE 4                   -> TRN 27 LVL 5 ARA 22 PH EXP GS 0 SEED 144490388 EV moved,drewChamber
-  61 MOVE 4                   -> TRN 27 LVL 5 ARA 22 PH EXP GS 0 SEED 144490388 EV deadEnd
-  62 MOVE 1                   -> TRN 28 LVL 5 ARA 24 PH ENC GS 0 SEED 144490388 EV moved,drewChamber
-  63 TEST                     -> TRN 28 LVL 5 ARA 24 PH FGT GS 0 SEED 764729917 EV reaction,fightStarted
-  64 FIGHT 3+5>2;2>0;4>1      -> TRN 28 LVL 5 ARA 24 PH FGT GS 0 SEED 25042143 EV combatRoll,combatRoll,strangerKilled,combatRoll,strangerKilled
-  65 CASUALTY 3               -> TRN 28 LVL 5 ARA 24 PH FGT GS 0 SEED 49835308 EV casualtyChosen,memberDied
-  66 FIGHT 3+2|4>0            -> TRN 28 LVL 5 ARA 24 PH PKP GS 0 SEED 1799705994 EV combatRoll,strangerKilled,fightWon
-  67 TAKE 0 3                 -> TRN 28 LVL 5 ARA 24 PH PKP GS 0 SEED 1799705994 EV -
-  68 TAKE 0 3                 -> TRN 28 LVL 5 ARA 24 PH EXP GS 0 SEED 1799705994 EV -
-  69 MOVE 2                   -> TRN 28 LVL 5 ARA 24 PH EXP GS 0 SEED 1799705994 EV deadEnd
-  70 MOVE 1                   -> TRN 29 LVL 5 ARA 26 PH ENC GS 0 SEED 1799705994 EV moved,drewChamber
-  71 TEST                     -> TRN 29 LVL 5 ARA 26 PH PKP GS 0 SEED 2136057851 EV reaction,strangersJoined
-  72 TAKE 0 7                 -> TRN 29 LVL 5 ARA 26 PH PKP GS 0 SEED 775748209 EV combatRoll,memberDied,statueAroused
-  73 TAKE 0 3                 -> TRN 29 LVL 5 ARA 26 PH PKP GS 0 SEED 386451671 EV combatRoll,memberDied,statueAroused,itemsSpilled
-  74 TAKE 2 6                 -> TRN 29 LVL 5 ARA 26 PH PKP GS 0 SEED 386451671 EV -
-  75 TAKE 1 4                 -> TRN 29 LVL 5 ARA 26 PH PKP GS 0 SEED 386451671 EV -
-  76 TAKE 0 2                 -> TRN 29 LVL 5 ARA 26 PH EXP GS 0 SEED 357944493 EV combatRoll,rubyTaken
-  77 MOVE 2                   -> TRN 30 LVL 5 ARA 27 PH EXP GS 0 SEED 357944493 EV moved
-  78 MOVE 2                   -> TRN 31 LVL 5 ARA 28 PH EXP GS 0 SEED 357944493 EV moved
-  79 MOVE 2                   -> TRN 31 LVL 5 ARA 28 PH EXP GS 0 SEED 357944493 EV deadEnd
-  80 MOVE 4                   -> TRN 32 LVL 5 ARA 27 PH EXP GS 0 SEED 357944493 EV moved
-  81 MOVE 2                   -> TRN 33 LVL 5 ARA 28 PH EXP GS 0 SEED 357944493 EV moved
-  82 MOVE 3                   -> TRN 33 LVL 5 ARA 28 PH EXP GS 0 SEED 357944493 EV deadEnd
-  83 MOVE 4                   -> TRN 34 LVL 5 ARA 27 PH EXP GS 0 SEED 357944493 EV moved
-  84 MOVE 2                   -> TRN 35 LVL 5 ARA 28 PH EXP GS 0 SEED 357944493 EV moved
-  85 MOVE 4                   -> TRN 36 LVL 5 ARA 27 PH EXP GS 0 SEED 357944493 EV moved
-  86 MOVE 1                   -> TRN 37 LVL 5 ARA 31 PH EXP GS 0 SEED 357944493 EV moved
-  87 MOVE 4                   -> TRN 38 LVL 5 ARA 32 PH EXP GS 0 SEED 357944493 EV moved,enteredSpecial
-  88 MOVE 1                   -> TRN 39 LVL 5 ARA 33 PH EXP GS 0 SEED 357944493 EV crossedSpecial,vipersLulled,moved
-  89 MOVE 1                   -> TRN 40 LVL 6 ARA 35 PH ENC GS 0 SEED 357944493 EV moved,drewChamber,hazardFired,trapSprung,moved,drewChamber
-  90 TEST                     -> TRN 40 LVL 6 ARA 35 PH PKP GS 0 SEED 1957891042 EV reaction,strangersJoined
-  91 TAKE 1 8                 -> TRN 40 LVL 6 ARA 35 PH PKP GS 0 SEED 1957891042 EV -
-  92 TAKE 0 8                 -> TRN 40 LVL 6 ARA 35 PH EXP GS 0 SEED 1957891042 EV -
-  93 MOVE 4                   -> TRN 40 LVL 6 ARA 35 PH EXP GS 0 SEED 1957891042 EV deadEnd
-  94 MOVE 2                   -> TRN 41 LVL 6 ARA 37 PH ENC GS 0 SEED 1957891042 EV moved,drewChamber
-  95 TEST                     -> TRN 41 LVL 6 ARA 37 PH ENC GS 0 SEED 1353128819 EV reaction
-  96 TEST                     -> TRN 41 LVL 6 ARA 37 PH ENC GS 0 SEED 796256816 EV reaction
-  97 TEST                     -> TRN 41 LVL 6 ARA 37 PH PKP GS 0 SEED 1940883113 EV reaction,strangersJoined
-  98 TAKE 1 6                 -> TRN 41 LVL 6 ARA 37 PH PKP GS 0 SEED 1940883113 EV -
-  99 TAKE 0 10                -> TRN 41 LVL 6 ARA 37 PH EXP GS 0 SEED 1940883113 EV -
- 100 USE 6 T0                 -> TRN 41 LVL 6 ARA 37 PH EXP GS 0 SEED 1940883113 EV artifactUsed
- 101 MOVE 4                   -> TRN 42 LVL 6 ARA 35 PH EXP GS 0 SEED 1940883113 EV moved,drewChamber
- 102 MOVE 2                   -> TRN 43 LVL 6 ARA 37 PH EXP GS 0 SEED 1940883113 EV moved,drewChamber
- 103 MOVE 2                   -> TRN 44 LVL 6 ARA 38 PH PKP GS 0 SEED 1940883113 EV moved,drewChamber,annihilated
- 104 TAKE 1 9                 -> TRN 44 LVL 6 ARA 38 PH PKP GS 0 SEED 1940883113 EV -
- 105 TAKE 1 4                 -> TRN 44 LVL 6 ARA 38 PH PKP GS 0 SEED 1940883113 EV -
- 106 TAKE 0 8                 -> TRN 44 LVL 6 ARA 38 PH EXP GS 0 SEED 1940883113 EV -
- 107 MOVE 3                   -> TRN 45 LVL 6 ARA 39 PH ENC GS 0 SEED 1940883113 EV moved,drewChamber
- 108 TEST                     -> TRN 45 LVL 6 ARA 39 PH FGT GS 0 SEED 1283064878 EV reaction,fightStarted
- 109 USE 8 T11                -> TRN 45 LVL 6 ARA 39 PH FGT GS 0 SEED 1283064878 EV artifactUsed
- 110 FIGHT 9+0>0;6>1;8>2      -> TRN 45 LVL 6 ARA 39 PH FGT GS 0 SEED 499175240 EV combatRoll,combatRoll,memberDied,combatRoll,strangerKilled
- 111 CASUALTY 9               -> TRN 45 LVL 6 ARA 39 PH FGT GS 0 SEED 66085345 EV casualtyChosen,memberDied
- 112 FIGHT 9+8>0;11>1         -> TRN 45 LVL 6 ARA 39 PH FGT GS 0 SEED 1395669789 EV combatRoll,combatRoll,memberDied
- 113 CASUALTY 8               -> TRN 45 LVL 6 ARA 39 PH FGT GS 0 SEED 855257490 EV casualtyChosen,memberDied
- 114 FIGHT 8+2>0;4>1          -> TRN 45 LVL 6 ARA 39 PH FGT GS 0 SEED 1023792350 EV combatRoll,combatRoll,memberDied
- 115 CASUALTY 8               -> TRN 45 LVL 6 ARA 39 PH FGT GS 0 SEED 1141601983 EV casualtyChosen,memberDied,eyeForsaken
- 116 FIGHT 2+10>0;12>1        -> TRN 45 LVL 6 ARA 39 PH FGT GS 0 SEED 1703591899 EV combatRoll,strangerKilled,sorcererSlain,combatRoll,memberDied
- 117 FIGHT 2+10>0             -> TRN 45 LVL 6 ARA 39 PH PKP GS 0 SEED 1338279249 EV combatRoll,strangerKilled,itemsSpilled,itemsSpilled,fightWon
- 118 TAKE 7 10                -> TRN 45 LVL 6 ARA 39 PH PKP GS 0 SEED 1338279249 EV -
- 119 TAKE 6 2                 -> TRN 45 LVL 6 ARA 39 PH PKP GS 0 SEED 1338279249 EV -
- 120 LEAVE                    -> TRN 45 LVL 6 ARA 39 PH EXP GS 0 SEED 1338279249 EV -
- 121 MOVE 2                   -> TRN 46 LVL 6 ARA 40 PH EXP GS 0 SEED 1338279249 EV moved
- 122 MOVE 6                   -> TRN 47 LVL 7 ARA 41 PH EXP GS 0 SEED 1338279249 EV moved
- 123 MOVE 5                   -> TRN 48 LVL 6 ARA 40 PH EXP GS 0 SEED 1338279249 EV moved
- 124 MOVE 3                   -> TRN 48 LVL 6 ARA 40 PH EXP GS 0 SEED 1338279249 EV deadEnd
- 125 MOVE 6                   -> TRN 49 LVL 7 ARA 41 PH EXP GS 0 SEED 1338279249 EV moved
- 126 MOVE 5                   -> TRN 50 LVL 6 ARA 40 PH EXP GS 0 SEED 1338279249 EV moved
- 127 MOVE 4                   -> TRN 51 LVL 6 ARA 39 PH PKP GS 0 SEED 1338279249 EV moved,drewChamber
- 128 LEAVE                    -> TRN 51 LVL 6 ARA 39 PH EXP GS 0 SEED 1338279249 EV -
- 129 MOVE 3                   -> TRN 52 LVL 6 ARA 43 PH EXP GS 0 SEED 1338279249 EV moved
- 130 MOVE 1                   -> TRN 53 LVL 6 ARA 39 PH PKP GS 0 SEED 1338279249 EV moved,drewChamber
- 131 LEAVE                    -> TRN 53 LVL 6 ARA 39 PH EXP GS 0 SEED 1338279249 EV -
- 132 MOVE 2                   -> TRN 54 LVL 6 ARA 40 PH EXP GS 0 SEED 1338279249 EV moved
- 133 MOVE 4                   -> TRN 55 LVL 6 ARA 39 PH PKP GS 0 SEED 1338279249 EV moved,drewChamber
- 134 LEAVE                    -> TRN 55 LVL 6 ARA 39 PH EXP GS 0 SEED 1338279249 EV -
- 135 MOVE 1                   -> TRN 56 LVL 6 ARA 38 PH EXP GS 0 SEED 1338279249 EV moved,drewChamber
- 136 MOVE 1                   -> TRN 56 LVL 6 ARA 38 PH EXP GS 0 SEED 1338279249 EV deadEnd
- 137 MOVE 3                   -> TRN 57 LVL 6 ARA 39 PH PKP GS 0 SEED 1338279249 EV moved,drewChamber
- 138 LEAVE                    -> TRN 57 LVL 6 ARA 39 PH EXP GS 0 SEED 1338279249 EV -
- 139 MOVE 1                   -> TRN 58 LVL 6 ARA 38 PH EXP GS 0 SEED 1338279249 EV moved,drewChamber
- 140 MOVE 4                   -> TRN 59 LVL 6 ARA 37 PH EXP GS 0 SEED 1338279249 EV moved,drewChamber
- 141 MOVE 1                   -> TRN 60 LVL 6 ARA 45 PH EXP GS 0 SEED 1338279249 EV moved
- 142 MOVE 3                   -> TRN 61 LVL 6 ARA 37 PH EXP GS 0 SEED 1338279249 EV moved,drewChamber
- 143 MOVE 3                   -> TRN 61 LVL 6 ARA 37 PH EXP GS 0 SEED 1338279249 EV deadEnd
- 144 MOVE 2                   -> TRN 62 LVL 6 ARA 38 PH EXP GS 0 SEED 1338279249 EV moved,drewChamber
- 145 MOVE 3                   -> TRN 63 LVL 6 ARA 39 PH PKP GS 0 SEED 1338279249 EV moved,drewChamber
- 146 LEAVE                    -> TRN 63 LVL 6 ARA 39 PH EXP GS 0 SEED 1338279249 EV -
- 147 MOVE 3                   -> TRN 64 LVL 6 ARA 43 PH EXP GS 0 SEED 1338279249 EV moved
- 148 MOVE 4                   -> TRN 65 LVL 6 ARA 47 PH EXP GS 0 SEED 1338279249 EV moved
- 149 USE 12 D5                -> TRN 65 LVL 6 ARA 47 PH EXP GS 0 SEED 1338279249 EV artifactUsed,secretDoorRevealed
- 150 MOVE 5                   -> TRN 66 LVL 5 ARA 31 PH EXP GS 0 SEED 1338279249 EV moved
- 151 MOVE 1                   -> TRN 67 LVL 5 ARA 48 PH EXP GS 0 SEED 1338279249 EV moved
- 152 MOVE 6                   -> TRN 68 LVL 6 ARA 46 PH EXP GS 0 SEED 1338279249 EV moved
- 153 MOVE 3                   -> TRN 69 LVL 6 ARA 47 PH EXP GS 0 SEED 1338279249 EV moved
- 154 MOVE 5                   -> TRN 70 LVL 5 ARA 31 PH EXP GS 0 SEED 1338279249 EV moved
- 155 MOVE 6                   -> TRN 71 LVL 6 ARA 47 PH EXP GS 0 SEED 1338279249 EV moved
- 156 MOVE 2                   -> TRN 72 LVL 6 ARA 43 PH EXP GS 0 SEED 1338279249 EV moved
- 157 MOVE 2                   -> TRN 73 LVL 6 ARA 42 PH EXP GS 0 SEED 1338279249 EV moved
- 158 MOVE 4                   -> TRN 74 LVL 6 ARA 43 PH EXP GS 0 SEED 1338279249 EV moved
- 159 MOVE 2                   -> TRN 75 LVL 6 ARA 42 PH EXP GS 0 SEED 1338279249 EV moved
- 160 MOVE 4                   -> TRN 76 LVL 6 ARA 43 PH EXP GS 0 SEED 1338279249 EV moved
- 161 MOVE 4                   -> TRN 77 LVL 6 ARA 47 PH EXP GS 0 SEED 1338279249 EV moved
- 162 MOVE 5                   -> TRN 78 LVL 5 ARA 31 PH EXP GS 0 SEED 1338279249 EV moved
- 163 MOVE 1                   -> TRN 79 LVL 5 ARA 48 PH EXP GS 0 SEED 1338279249 EV moved
- 164 MOVE 1                   -> TRN 80 LVL 5 ARA 49 PH EXP GS 0 SEED 1338279249 EV moved
- 165 MOVE 4                   -> TRN 80 LVL 5 ARA 49 PH EXP GS 0 SEED 1338279249 EV deadEnd
- 166 MOVE 3                   -> TRN 81 LVL 5 ARA 48 PH EXP GS 0 SEED 1338279249 EV moved
- 167 MOVE 1                   -> TRN 82 LVL 5 ARA 49 PH EXP GS 0 SEED 1338279249 EV moved
- 168 MOVE 3                   -> TRN 83 LVL 5 ARA 48 PH EXP GS 0 SEED 1338279249 EV moved
- 169 MOVE 6                   -> TRN 84 LVL 6 ARA 46 PH EXP GS 0 SEED 1338279249 EV moved
- 170 MOVE 5                   -> TRN 85 LVL 5 ARA 48 PH EXP GS 0 SEED 1338279249 EV moved
- 171 MOVE 6                   -> TRN 86 LVL 6 ARA 46 PH EXP GS 0 SEED 1338279249 EV moved
- 172 MOVE 4                   -> TRN 87 LVL 6 ARA 50 PH EXP GS 0 SEED 1338279249 EV moved
- 173 MOVE 4                   -> TRN 88 LVL 7 ARA 52 PH EXP GS 0 SEED 1338279249 EV moved,drewChamber,annihilated,hazardFired,trapSprung,moved
- 174 MOVE 1                   -> TRN 89 LVL 7 ARA 53 PH ENC GS 0 SEED 1338279249 EV moved,drewChamber,hazardFired,mutinied
- 175 TEST                     -> TRN 89 LVL 7 ARA 53 PH FGT GS 0 SEED 82944438 EV reaction,fightStarted
- 176 FIGHT 2>1                -> TRN 89 LVL 7 ARA 53 PH END GS 2 SEED 2003494436 EV combatRoll,memberDied,itemsSpilled,gameOver
-END MOVES 176
-FINAL GS 2 PH END TRN 89 LVL 7 AREAS 54 LARGEIDX 53 SMALLIDX 63 SEED 2003494436 SCORE 0
-STATE CURSES 1 BONUS 0 SORCKILLED 1 STRANGERS 4,8 TREASURES 0,4,0,13 HAZARDS -
+  15 JUMPISLAND               -> TRN 8 LVL 1 ARA 6 PH EXP GS 0 SEED 901998941 EV islandJump
+  16 MOVE 1                   -> TRN 9 LVL 1 ARA 2 PH EXP GS 0 SEED 356401059 EV moved,drewChamber,hazardFired,combatRoll
+  17 MOVE 4                   -> TRN 10 LVL 1 ARA 1 PH EXP GS 0 SEED 356401059 EV moved
+  18 MOVE 4                   -> TRN 11 LVL 1 ARA 0 PH EXP GS 0 SEED 356401059 EV moved
+  19 MOVE 2                   -> TRN 12 LVL 1 ARA 1 PH EXP GS 0 SEED 356401059 EV moved
+  20 MOVE 3                   -> TRN 12 LVL 1 ARA 1 PH EXP GS 0 SEED 356401059 EV deadEnd
+  21 MOVE 4                   -> TRN 13 LVL 1 ARA 0 PH EXP GS 0 SEED 356401059 EV moved
+  22 MOVE 3                   -> TRN 13 LVL 1 ARA 0 PH EXP GS 0 SEED 356401059 EV deadEnd
+  23 MOVE 2                   -> TRN 14 LVL 1 ARA 1 PH EXP GS 0 SEED 356401059 EV moved
+  24 MOVE 2                   -> TRN 15 LVL 1 ARA 2 PH EXP GS 0 SEED 1204960857 EV moved,drewChamber,hazardFired,combatRoll
+  25 MOVE 4                   -> TRN 16 LVL 1 ARA 1 PH EXP GS 0 SEED 1204960857 EV moved
+  26 MOVE 2                   -> TRN 17 LVL 1 ARA 2 PH EXP GS 0 SEED 686502655 EV moved,drewChamber,hazardFired,combatRoll
+  27 MOVE 2                   -> TRN 18 LVL 1 ARA 4 PH EXP GS 0 SEED 686502655 EV moved
+  28 MOVE 3                   -> TRN 19 LVL 1 ARA 9 PH EXP GS 0 SEED 686502655 EV moved
+  29 MOVE 6                   -> TRN 20 LVL 2 ARA 10 PH EXP GS 0 SEED 686502655 EV moved
+  30 MOVE 3                   -> TRN 21 LVL 2 ARA 11 PH PKP GS 0 SEED 686502655 EV moved,drewChamber
+  31 LEAVE                    -> TRN 21 LVL 2 ARA 11 PH EXP GS 0 SEED 686502655 EV -
+  32 MOVE 3                   -> TRN 22 LVL 2 ARA 12 PH ENC GS 0 SEED 686502655 EV moved,drewChamber
+  33 TEST                     -> TRN 22 LVL 2 ARA 12 PH ENC GS 0 SEED 1172871372 EV reaction
+  34 TEST                     -> TRN 22 LVL 2 ARA 12 PH FGT GS 0 SEED 476014357 EV reaction,fightStarted
+  35 FIGHT 2>0                -> TRN 22 LVL 2 ARA 12 PH PKP GS 0 SEED 4849691 EV combatRoll,strangerKilled,fightWon
+  36 TAKE 0 2                 -> TRN 22 LVL 2 ARA 12 PH EXP GS 0 SEED 4849691 EV -
+  37 MOVE 1                   -> TRN 23 LVL 2 ARA 11 PH PKP GS 0 SEED 4849691 EV moved,drewChamber
+  38 LEAVE                    -> TRN 23 LVL 2 ARA 11 PH EXP GS 0 SEED 4849691 EV -
+  39 MOVE 4                   -> TRN 24 LVL 2 ARA 13 PH EXP GS 0 SEED 4849691 EV moved
+  40 MOVE 2                   -> TRN 25 LVL 2 ARA 11 PH PKP GS 0 SEED 4849691 EV moved,drewChamber
+  41 LEAVE                    -> TRN 25 LVL 2 ARA 11 PH EXP GS 0 SEED 4849691 EV -
+  42 MOVE 4                   -> TRN 26 LVL 2 ARA 13 PH EXP GS 0 SEED 4849691 EV moved
+  43 MOVE 3                   -> TRN 27 LVL 2 ARA 14 PH EXP GS 0 SEED 4849691 EV moved
+  44 MOVE 2                   -> TRN 28 LVL 2 ARA 12 PH EXP GS 0 SEED 4849691 EV moved,drewChamber
+  45 MOVE 1                   -> TRN 29 LVL 2 ARA 11 PH PKP GS 0 SEED 4849691 EV moved,drewChamber
+  46 LEAVE                    -> TRN 29 LVL 2 ARA 11 PH EXP GS 0 SEED 4849691 EV -
+  47 MOVE 3                   -> TRN 30 LVL 2 ARA 12 PH EXP GS 0 SEED 4849691 EV moved,drewChamber
+  48 MOVE 2                   -> TRN 31 LVL 2 ARA 15 PH ENC GS 0 SEED 4849691 EV moved,drewChamber
+  49 TEST                     -> TRN 31 LVL 2 ARA 15 PH FGT GS 0 SEED 460092856 EV reaction,fightStarted
+  50 FIGHT 2>0                -> TRN 31 LVL 2 ARA 15 PH FGT GS 0 SEED 1083772662 EV combatRoll,strangerKilled
+  51 FIGHT 2>0                -> TRN 31 LVL 2 ARA 15 PH EXP GS 0 SEED 1229927780 EV combatRoll,strangerKilled,fightWon
+  52 MOVE 2                   -> TRN 31 LVL 2 ARA 15 PH EXP GS 0 SEED 1229927780 EV deadEnd
+  53 MOVE 1                   -> TRN 32 LVL 2 ARA 17 PH ENC GS 0 SEED 1229927780 EV moved,drewChamber,hazardFired
+  54 TEST                     -> TRN 32 LVL 2 ARA 17 PH FGT GS 0 SEED 139879373 EV reaction,fightStarted
+  55 FIGHT 2>0                -> TRN 32 LVL 2 ARA 17 PH FGT GS 0 SEED 957241235 EV combatRoll
+  56 FIGHT 2>0                -> TRN 32 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV combatRoll,strangerKilled,fightWon
+  57 MOVE 4                   -> TRN 32 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV deadEnd
+  58 MOVE 3                   -> TRN 32 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV deadEnd
+  59 MOVE 2                   -> TRN 33 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+  60 MOVE 4                   -> TRN 34 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+  61 MOVE 2                   -> TRN 35 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+  62 MOVE 4                   -> TRN 36 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+  63 MOVE 2                   -> TRN 37 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+  64 MOVE 4                   -> TRN 38 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+  65 MOVE 2                   -> TRN 39 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+  66 MOVE 4                   -> TRN 40 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+  67 MOVE 2                   -> TRN 41 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+  68 MOVE 4                   -> TRN 42 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+  69 MOVE 2                   -> TRN 43 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+  70 MOVE 4                   -> TRN 44 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+  71 MOVE 2                   -> TRN 45 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+  72 MOVE 4                   -> TRN 46 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+  73 MOVE 2                   -> TRN 47 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+  74 MOVE 4                   -> TRN 48 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+  75 MOVE 2                   -> TRN 49 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+  76 MOVE 4                   -> TRN 50 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+  77 MOVE 2                   -> TRN 51 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+  78 MOVE 4                   -> TRN 52 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+  79 MOVE 2                   -> TRN 53 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+  80 MOVE 4                   -> TRN 54 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+  81 MOVE 2                   -> TRN 55 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+  82 MOVE 4                   -> TRN 56 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+  83 MOVE 2                   -> TRN 57 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+  84 MOVE 4                   -> TRN 58 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+  85 MOVE 2                   -> TRN 59 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+  86 MOVE 4                   -> TRN 60 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+  87 MOVE 2                   -> TRN 61 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+  88 MOVE 4                   -> TRN 62 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+  89 MOVE 2                   -> TRN 63 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+  90 MOVE 4                   -> TRN 64 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+  91 MOVE 2                   -> TRN 65 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+  92 MOVE 4                   -> TRN 66 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+  93 MOVE 2                   -> TRN 67 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+  94 MOVE 4                   -> TRN 68 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+  95 MOVE 2                   -> TRN 69 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+  96 MOVE 4                   -> TRN 70 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+  97 MOVE 2                   -> TRN 71 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+  98 MOVE 4                   -> TRN 72 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+  99 MOVE 2                   -> TRN 73 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 100 MOVE 4                   -> TRN 74 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 101 MOVE 2                   -> TRN 75 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 102 MOVE 4                   -> TRN 76 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 103 MOVE 2                   -> TRN 77 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 104 MOVE 4                   -> TRN 78 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 105 MOVE 2                   -> TRN 79 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 106 MOVE 4                   -> TRN 80 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 107 MOVE 2                   -> TRN 81 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 108 MOVE 4                   -> TRN 82 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 109 MOVE 2                   -> TRN 83 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 110 MOVE 4                   -> TRN 84 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 111 MOVE 2                   -> TRN 85 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 112 MOVE 4                   -> TRN 86 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 113 MOVE 2                   -> TRN 87 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 114 MOVE 4                   -> TRN 88 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 115 MOVE 2                   -> TRN 89 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 116 MOVE 4                   -> TRN 90 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 117 MOVE 2                   -> TRN 91 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 118 MOVE 4                   -> TRN 92 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 119 MOVE 2                   -> TRN 93 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 120 MOVE 4                   -> TRN 94 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 121 MOVE 2                   -> TRN 95 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 122 MOVE 4                   -> TRN 96 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 123 MOVE 2                   -> TRN 97 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 124 MOVE 4                   -> TRN 98 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 125 MOVE 2                   -> TRN 99 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 126 MOVE 4                   -> TRN 100 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 127 MOVE 2                   -> TRN 101 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 128 MOVE 4                   -> TRN 102 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 129 MOVE 2                   -> TRN 103 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 130 MOVE 4                   -> TRN 104 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 131 MOVE 2                   -> TRN 105 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 132 MOVE 4                   -> TRN 106 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 133 MOVE 2                   -> TRN 107 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 134 MOVE 4                   -> TRN 108 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 135 MOVE 2                   -> TRN 109 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 136 MOVE 4                   -> TRN 110 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 137 MOVE 2                   -> TRN 111 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 138 MOVE 4                   -> TRN 112 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 139 MOVE 2                   -> TRN 113 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 140 MOVE 4                   -> TRN 114 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 141 MOVE 2                   -> TRN 115 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 142 MOVE 4                   -> TRN 116 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 143 MOVE 2                   -> TRN 117 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 144 MOVE 4                   -> TRN 118 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 145 MOVE 2                   -> TRN 119 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 146 MOVE 4                   -> TRN 120 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 147 MOVE 2                   -> TRN 121 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 148 MOVE 4                   -> TRN 122 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 149 MOVE 2                   -> TRN 123 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 150 MOVE 4                   -> TRN 124 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 151 MOVE 2                   -> TRN 125 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 152 MOVE 4                   -> TRN 126 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 153 MOVE 2                   -> TRN 127 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 154 MOVE 4                   -> TRN 128 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 155 MOVE 2                   -> TRN 129 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 156 MOVE 4                   -> TRN 130 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 157 MOVE 2                   -> TRN 131 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 158 MOVE 4                   -> TRN 132 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 159 MOVE 2                   -> TRN 133 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 160 MOVE 4                   -> TRN 134 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 161 MOVE 2                   -> TRN 135 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 162 MOVE 4                   -> TRN 136 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 163 MOVE 2                   -> TRN 137 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 164 MOVE 4                   -> TRN 138 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 165 MOVE 2                   -> TRN 139 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 166 MOVE 4                   -> TRN 140 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 167 MOVE 2                   -> TRN 141 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 168 MOVE 4                   -> TRN 142 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 169 MOVE 2                   -> TRN 143 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 170 MOVE 4                   -> TRN 144 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 171 MOVE 2                   -> TRN 145 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 172 MOVE 4                   -> TRN 146 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 173 MOVE 2                   -> TRN 147 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 174 MOVE 4                   -> TRN 148 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 175 MOVE 2                   -> TRN 149 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 176 MOVE 4                   -> TRN 150 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 177 MOVE 2                   -> TRN 151 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 178 MOVE 4                   -> TRN 152 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 179 MOVE 2                   -> TRN 153 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 180 MOVE 4                   -> TRN 154 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 181 MOVE 2                   -> TRN 155 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 182 MOVE 4                   -> TRN 156 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 183 MOVE 2                   -> TRN 157 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 184 MOVE 4                   -> TRN 158 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 185 MOVE 2                   -> TRN 159 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 186 MOVE 4                   -> TRN 160 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 187 MOVE 2                   -> TRN 161 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 188 MOVE 4                   -> TRN 162 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 189 MOVE 2                   -> TRN 163 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 190 MOVE 4                   -> TRN 164 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 191 MOVE 2                   -> TRN 165 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 192 MOVE 4                   -> TRN 166 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 193 MOVE 2                   -> TRN 167 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 194 MOVE 4                   -> TRN 168 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 195 MOVE 2                   -> TRN 169 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 196 MOVE 4                   -> TRN 170 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 197 MOVE 2                   -> TRN 171 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 198 MOVE 4                   -> TRN 172 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 199 MOVE 2                   -> TRN 173 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 200 MOVE 4                   -> TRN 174 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 201 MOVE 2                   -> TRN 175 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 202 MOVE 4                   -> TRN 176 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 203 MOVE 2                   -> TRN 177 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 204 MOVE 4                   -> TRN 178 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 205 MOVE 2                   -> TRN 179 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 206 MOVE 4                   -> TRN 180 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 207 MOVE 2                   -> TRN 181 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 208 MOVE 4                   -> TRN 182 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 209 MOVE 2                   -> TRN 183 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 210 MOVE 4                   -> TRN 184 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 211 MOVE 2                   -> TRN 185 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 212 MOVE 4                   -> TRN 186 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 213 MOVE 2                   -> TRN 187 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 214 MOVE 4                   -> TRN 188 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 215 MOVE 2                   -> TRN 189 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 216 MOVE 4                   -> TRN 190 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 217 MOVE 2                   -> TRN 191 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 218 MOVE 4                   -> TRN 192 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 219 MOVE 2                   -> TRN 193 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 220 MOVE 4                   -> TRN 194 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 221 MOVE 2                   -> TRN 195 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 222 MOVE 4                   -> TRN 196 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 223 MOVE 2                   -> TRN 197 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 224 MOVE 4                   -> TRN 198 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 225 MOVE 2                   -> TRN 199 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 226 MOVE 4                   -> TRN 200 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 227 MOVE 2                   -> TRN 201 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 228 MOVE 4                   -> TRN 202 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 229 MOVE 2                   -> TRN 203 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 230 MOVE 4                   -> TRN 204 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 231 MOVE 2                   -> TRN 205 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 232 MOVE 4                   -> TRN 206 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 233 MOVE 2                   -> TRN 207 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 234 MOVE 4                   -> TRN 208 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 235 MOVE 2                   -> TRN 209 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 236 MOVE 4                   -> TRN 210 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 237 MOVE 2                   -> TRN 211 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 238 MOVE 4                   -> TRN 212 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 239 MOVE 2                   -> TRN 213 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 240 MOVE 4                   -> TRN 214 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 241 MOVE 2                   -> TRN 215 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 242 MOVE 4                   -> TRN 216 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 243 MOVE 2                   -> TRN 217 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 244 MOVE 4                   -> TRN 218 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 245 MOVE 2                   -> TRN 219 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 246 MOVE 4                   -> TRN 220 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 247 MOVE 2                   -> TRN 221 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 248 MOVE 4                   -> TRN 222 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 249 MOVE 2                   -> TRN 223 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 250 MOVE 4                   -> TRN 224 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 251 MOVE 2                   -> TRN 225 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 252 MOVE 4                   -> TRN 226 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 253 MOVE 2                   -> TRN 227 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 254 MOVE 4                   -> TRN 228 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 255 MOVE 2                   -> TRN 229 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 256 MOVE 4                   -> TRN 230 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 257 MOVE 2                   -> TRN 231 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 258 MOVE 4                   -> TRN 232 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 259 MOVE 2                   -> TRN 233 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 260 MOVE 4                   -> TRN 234 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 261 MOVE 2                   -> TRN 235 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 262 MOVE 4                   -> TRN 236 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 263 MOVE 2                   -> TRN 237 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 264 MOVE 4                   -> TRN 238 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 265 MOVE 2                   -> TRN 239 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 266 MOVE 4                   -> TRN 240 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 267 MOVE 2                   -> TRN 241 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 268 MOVE 4                   -> TRN 242 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 269 MOVE 2                   -> TRN 243 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 270 MOVE 4                   -> TRN 244 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 271 MOVE 2                   -> TRN 245 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 272 MOVE 4                   -> TRN 246 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 273 MOVE 2                   -> TRN 247 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 274 MOVE 4                   -> TRN 248 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 275 MOVE 2                   -> TRN 249 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 276 MOVE 4                   -> TRN 250 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 277 MOVE 2                   -> TRN 251 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 278 MOVE 4                   -> TRN 252 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 279 MOVE 2                   -> TRN 253 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 280 MOVE 4                   -> TRN 254 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 281 MOVE 2                   -> TRN 255 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 282 MOVE 4                   -> TRN 256 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 283 MOVE 2                   -> TRN 257 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 284 MOVE 4                   -> TRN 258 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 285 MOVE 2                   -> TRN 259 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 286 MOVE 4                   -> TRN 260 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 287 MOVE 2                   -> TRN 261 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 288 MOVE 4                   -> TRN 262 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 289 MOVE 2                   -> TRN 263 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 290 MOVE 4                   -> TRN 264 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 291 MOVE 2                   -> TRN 265 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 292 MOVE 4                   -> TRN 266 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 293 MOVE 2                   -> TRN 267 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 294 MOVE 4                   -> TRN 268 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 295 MOVE 2                   -> TRN 269 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 296 MOVE 4                   -> TRN 270 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 297 MOVE 2                   -> TRN 271 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 298 MOVE 4                   -> TRN 272 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+ 299 MOVE 2                   -> TRN 273 LVL 2 ARA 18 PH EXP GS 0 SEED 745697225 EV moved
+ 300 MOVE 4                   -> TRN 274 LVL 2 ARA 17 PH EXP GS 0 SEED 745697225 EV moved,drewChamber
+END MOVES 300
+FINAL GS 0 PH EXP TRN 274 LVL 2 AREAS 19 LARGEIDX 18 SMALLIDX 12 SEED 745697225 SCORE 30
+STATE CURSES 0 BONUS 0 SORCKILLED 0 STRANGERS - TREASURES - HAZARDS -
 PARTY 0 CID 1 ST 3 DK 0 CARRY - BORNE -
 PARTY 1 CID 7 ST 3 DK 0 CARRY - BORNE -
-PARTY 2 CID 8 ST 3 DK 0 CARRY - BORNE -
-PARTY 3 CID 2 ST 3 DK 0 CARRY - BORNE -
-PARTY 4 CID 8 ST 3 DK 0 CARRY - BORNE -
-PARTY 5 CID 3 ST 3 DK 0 CARRY - BORNE -
-PARTY 6 CID 5 ST 3 DK 0 CARRY - BORNE -
-PARTY 7 CID 0 ST 3 DK 0 CARRY - BORNE -
-PARTY 8 CID 5 ST 3 DK 0 CARRY - BORNE -
-PARTY 9 CID 2 ST 3 DK 0 CARRY - BORNE -
-PARTY 10 CID 5 ST 3 DK 0 CARRY - BORNE -
-PARTY 11 CID 4 ST 3 DK 0 CARRY - BORNE -
-AREA 0 CARD 175 COORD 15050 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 1 CARD 14 COORD 15051 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 2 CARD 671 COORD 15052 FU 1 VIS 1 FLG 0 MIR 0 SD - CONT 304 DROP -
-AREA 3 CARD 29 COORD 14952 FU 1 VIS 1 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 4 CARD 44 COORD 15053 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 5 CARD 3 COORD 15054 FU 0 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 6 CARD 287 COORD 15152 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 7 CARD 10 COORD 15153 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 8 CARD 78 COORD 15154 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 9 CARD 99 COORD 25154 FU 1 VIS 0 FLG 0 MIR 32 SD 0 CONT - DROP -
-AREA 10 CARD 39 COORD 35154 FU 1 VIS 0 FLG 0 MIR 32 SD 1 CONT - DROP -
-AREA 11 CARD 29 COORD 35155 FU 1 VIS 1 FLG 0 MIR 0 SD - CONT 201,201 DROP -
-AREA 12 CARD 31 COORD 35055 FU 1 VIS 1 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 13 CARD 71 COORD 34955 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 14 CARD 43 COORD 44955 FU 1 VIS 0 FLG 4 MIR 0 SD - CONT - DROP -
-AREA 15 CARD 25 COORD 44954 FU 1 VIS 1 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 16 CARD 18 COORD 44953 FU 1 VIS 1 FLG 0 MIR 0 SD - CONT 303,200,200 DROP -
-AREA 17 CARD 30 COORD 45053 FU 0 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 18 CARD 9 COORD 44853 FU 0 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 19 CARD 6 COORD 44854 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 20 CARD 78 COORD 44855 FU 1 VIS 0 FLG 4 MIR 0 SD - CONT - DROP -
-AREA 21 CARD 59 COORD 54855 FU 1 VIS 1 FLG 0 MIR 32 SD 2 CONT - DROP -
-AREA 22 CARD 19 COORD 54854 FU 1 VIS 1 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 23 CARD 5 COORD 54853 FU 0 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 24 CARD 21 COORD 54754 FU 1 VIS 1 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 25 CARD 39 COORD 54755 FU 0 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 26 CARD 23 COORD 54654 FU 1 VIS 1 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 27 CARD 47 COORD 54655 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 28 CARD 9 COORD 54656 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 29 CARD 3 COORD 54657 FU 0 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 30 CARD 30 COORD 54756 FU 0 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 31 CARD 111 COORD 54555 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 32 CARD 415 COORD 54554 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 33 CARD 13 COORD 54454 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 34 CARD 29 COORD 54354 FU 1 VIS 1 FLG 0 MIR 0 SD - CONT 110,106,200 DROP -
-AREA 35 CARD 23 COORD 64354 FU 1 VIS 1 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 36 CARD 9 COORD 64353 FU 0 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 37 CARD 27 COORD 64355 FU 1 VIS 1 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 38 CARD 28 COORD 64356 FU 1 VIS 1 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 39 CARD 23 COORD 64456 FU 1 VIS 1 FLG 0 MIR 0 SD - CONT 201,200,201,201,202,202 DROP -
-AREA 40 CARD 73 COORD 64457 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 41 CARD 44 COORD 74457 FU 1 VIS 0 FLG 0 MIR 32 SD 3 CONT - DROP -
-AREA 42 CARD 10 COORD 64557 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 43 CARD 11 COORD 64556 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 44 CARD 9 COORD 64256 FU 0 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 45 CARD 5 COORD 64255 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 46 CARD 108 COORD 64455 FU 1 VIS 0 FLG 0 MIR 32 SD 4 CONT - DROP -
-AREA 47 CARD 43 COORD 64555 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 48 CARD 69 COORD 54455 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 49 CARD 5 COORD 54355 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 50 CARD 79 COORD 64454 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 51 CARD 31 COORD 64453 FU 1 VIS 1 FLG 0 MIR 0 SD - CONT 112,202 DROP -
-AREA 52 CARD 7 COORD 74453 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP -
-AREA 53 CARD 543 COORD 74353 FU 1 VIS 1 FLG 0 MIR 0 SD - CONT 209,211,212 DROP -
+PARTY 2 CID 8 ST 1 DK 0 CARRY 9 BORNE -
+AREA 0 CARD 171 COORD 15050 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP - SUNK -
+AREA 1 CARD 10 COORD 15051 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP - SUNK -
+AREA 2 CARD 671 COORD 15052 FU 1 VIS 1 FLG 0 MIR 0 SD - CONT 304 DROP - SUNK -
+AREA 3 CARD 29 COORD 14952 FU 1 VIS 1 FLG 0 MIR 0 SD - CONT - DROP - SUNK -
+AREA 4 CARD 44 COORD 15053 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP - SUNK -
+AREA 5 CARD 3 COORD 15054 FU 0 VIS 0 FLG 0 MIR 0 SD - CONT - DROP - SUNK -
+AREA 6 CARD 287 COORD 15152 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP - SUNK -
+AREA 7 CARD 10 COORD 15151 FU 0 VIS 0 FLG 0 MIR 0 SD - CONT - DROP - SUNK -
+AREA 8 CARD 78 COORD 15150 FU 0 VIS 0 FLG 0 MIR 0 SD - CONT - DROP - SUNK -
+AREA 9 CARD 67 COORD 15153 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP - SUNK -
+AREA 10 CARD 39 COORD 25153 FU 1 VIS 0 FLG 0 MIR 32 SD 0 CONT - DROP - SUNK -
+AREA 11 CARD 29 COORD 25253 FU 1 VIS 1 FLG 0 MIR 0 SD - CONT 201,201 DROP - SUNK -
+AREA 12 CARD 31 COORD 25353 FU 1 VIS 1 FLG 0 MIR 0 SD - CONT - DROP - SUNK -
+AREA 13 CARD 71 COORD 25252 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP - SUNK -
+AREA 14 CARD 43 COORD 25352 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP - SUNK -
+AREA 15 CARD 25 COORD 25354 FU 1 VIS 1 FLG 4 MIR 0 SD - CONT - DROP - SUNK -
+AREA 16 CARD 23 COORD 25355 FU 0 VIS 0 FLG 0 MIR 0 SD - CONT - DROP - SUNK -
+AREA 17 CARD 18 COORD 25254 FU 1 VIS 1 FLG 0 MIR 0 SD - CONT - DROP - SUNK -
+AREA 18 CARD 9 COORD 25255 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP - SUNK -
 END

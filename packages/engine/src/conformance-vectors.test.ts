@@ -112,6 +112,11 @@ function lcg(seed: number): () => number {
 
 const PHASE_CODE: Record<string, string> = { explore: "EXP", medusa: "MDS", encounter: "ENC", fight: "FGT", pickup: "PKP", gameOver: "END" };
 const list = (xs: readonly number[] | undefined): string => (xs && xs.length ? xs.join(",") : "-");
+// Precise Locations (§10.5): `PlacedArea.sunkTreasure` buckets — `<at>:<items>` per non-empty
+// bucket, `;`-joined, `-` when there are none. `at` is `island` or DIR_N..DIR_W's own 1-4 (same
+// numbering MOVE/RETREAT already use).
+const sunkStr = (buckets: { at: "island" | 1 | 2 | 3 | 4; items: number[] }[] | undefined): string =>
+  buckets && buckets.length ? buckets.map((b) => `${b.at}:${b.items.join(",")}`).join(";") : "-";
 
 /** One action in the vector grammar — covers the full 21-action catalog (SC-4-41). */
 function encodeAction(a: GameAction): string {
@@ -147,6 +152,10 @@ function encodeAction(a: GameAction): string {
     case "drawFromWell": return "DRAWFROMWELL";
     case "pullBellRope": return `PULLBELLROPE ${a.mi}`;
     case "enterCrypt": return "ENTERCRYPT";
+    // Precise Locations (§10.5, §8.2): Peter's jump-to-island house rule, Viper Pit/Deep Pool only —
+    // none of the policies below choose it deliberately, but it appears in `legalActions` for any
+    // run that lands a doorway on one of those two tiles, so it must stay exhaustive here.
+    case "jumpToIsland": return "JUMPISLAND";
   }
 }
 
@@ -259,7 +268,7 @@ function buildVector(seed: number, picks: number[], policy: Policy, maxSteps: nu
   );
   state.areas.forEach((a, i) =>
     lines.push(
-      `AREA ${i} CARD ${a.card} COORD ${a.coord} FU ${a.faceUp ? 1 : 0} VIS ${a.visited ? 1 : 0} FLG ${a.flags} MIR ${a.mirroredStairs ?? 0} SD ${a.secretDoor ?? "-"} CONT ${list(a.contents)} DROP ${list(a.dropped)}`,
+      `AREA ${i} CARD ${a.card} COORD ${a.coord} FU ${a.faceUp ? 1 : 0} VIS ${a.visited ? 1 : 0} FLG ${a.flags} MIR ${a.mirroredStairs ?? 0} SD ${a.secretDoor ?? "-"} CONT ${list(a.contents)} DROP ${list(a.dropped)} SUNK ${sunkStr(a.sunkTreasure)}`,
     ),
   );
   lines.push("END");

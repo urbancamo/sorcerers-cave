@@ -66,6 +66,16 @@ export interface PlacedArea {
   flags: number; // AF bits (Milestone C)
   indiffCount: number; // AI permanent-indifference counter (Milestone C)
   dropped?: number[]; // heavy treasure ids left in a Deep Pool, reclaimable on return (§10.2)
+  // Precise Locations (§10.5): treasure deliberately CAST onto any of the four special areas (Deep
+  // Pool, Viper Pit, Whirlpool, Chasm), bucketed by the sub-location it was cast from — a doorway
+  // direction (DIR_N..DIR_W) or the island (subLocation.ts). Distinct from `dropped` above (Deep
+  // Pool's automatic, un-bucketed heavy-treasure-left-behind-on-crossing pile, §10.2) — this is the
+  // separate voluntary-drop mechanic (§8.3 fix: `dropTreasure` never special-cased these tiles at
+  // all before). Recovery is gated per area: Giant-only for Deep Pool (mirrors `dropped`), a
+  // Charmed-Flute-eligible carrier for Viper Pit, unrestricted for Whirlpool/Chasm (the rulebook
+  // names no creature gate for either) — see reduce.ts's resolveAreaLoop and chamber.ts's
+  // enterChamber.
+  sunkTreasure?: { at: "island" | 1 | 2 | 3 | 4; items: number[] }[];
   markers?: number[]; // display-only hazard cards left on the tile (300+hid), e.g. an Earthquake scar — never re-fire
   // Stair bits (32=up, 64=down) added for level connectivity on descent/carpet, NOT printed on
   // the card. They keep `card` traversable both ways but are excluded from rendering, so the tile
@@ -135,6 +145,13 @@ export interface GameState {
   // True while the party's current position was reached by a one-way trap fall: prev is the level
   // above, which is unreachable, so withdraw/retreat are disallowed. Cleared on the next move.
   fellThroughTrap?: boolean;
+  // Precise Locations (§10.5): an explicit override for the one same-tile sub-location shift the
+  // engine can't derive from geometry alone — the party jumped from a doorway onto a Viper-Pit/
+  // Deep-Pool island (Peter's house rule, `jumpToIsland`) without partyArea/prev changing. Valid
+  // only while `area === partyArea`; every real move invalidates it (cleared in the "move" case,
+  // relocateDown and carpetMove) so a stale entry never survives a later revisit. See
+  // subLocation.ts's `getSubLocation`, which everything else reads through.
+  subLocation?: { area: number; at: "island" };
   // True only for the turn the party freshly enters a chamber with strangers by an unused doorway
   // or magic carpet (NOT a trap fall): the party gains the advantage of surprise if it attacks now.
   // Cleared once the party tests reaction (no longer an immediate attack) or the fight begins.

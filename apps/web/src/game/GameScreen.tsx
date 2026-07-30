@@ -58,7 +58,17 @@ export default function GameScreen() {
     const ns = eventNotices(events);
     if (view || ns.length) onHoldMoveRef.current(midState ?? null, view, ns);
   }, []);
-  const { engine, loading, state, color, code, dispatch, present } = useCaveGame(gameId, onMoveResolved);
+  // Bug fix (HQTZ-log.json): refuse a canvas-initiated move while a previous one's dice/notice is
+  // still presenting — otherwise the Convex round-trip for THIS move can resolve after the player
+  // has already moved again, and its notice pops up over the wrong (later) tile. NOT just `holding`:
+  // `holding` is `pending || heldState !== null`, but a canvas move's own `holdMove(mid, view, ns)`
+  // only sets `heldState` when `mid` (SC-4-43's relocation snapshot) is non-null — an ORDINARY
+  // move's notice (no relocation involved, e.g. entering a Whirlpool without being dragged down)
+  // sets `notices` alone, leaving `holding` false while the modal is still up. Ref for the same
+  // reason as onHoldMoveRef: useCaveGame runs before useDispatchWithRolls owns this state.
+  const presentingRef = useRef(false);
+  const canActRef = useRef(() => !presentingRef.current);
+  const { engine, loading, state, color, code, dispatch, present } = useCaveGame(gameId, onMoveResolved, canActRef.current);
   // Presentation hold (see useDispatchWithRolls): the pre-action snapshot stays on screen —
   // canvas, panels, everything — until the die roll completes. getSnapshot reads a ref so the
   // capture always sees the freshest authoritative state without re-creating the callback.
@@ -67,6 +77,7 @@ export default function GameScreen() {
   const getSnapshot = useCallback(() => stateRef.current, []);
   const { roll, notices, holding, heldState, dispatchWithRolls, holdMove, clearRoll, clearNotices } = useDispatchWithRolls(dispatch, getSnapshot);
   onHoldMoveRef.current = holdMove;
+  presentingRef.current = holding || !!roll || !!notices;
   const cards = useManifestCards();
   const gameOver = !!state && state.gs !== GS_PLAYING;
   // The finished game's move log, for the post-game .txt / .log downloads (fetched only at game over).

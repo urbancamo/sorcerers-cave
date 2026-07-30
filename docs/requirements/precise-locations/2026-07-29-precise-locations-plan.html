@@ -1,0 +1,601 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>The Sorcerer's Cave — Precise Locations Implementation Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=EB+Garamond:ital@0;1&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --void:#070709; --panel:#15151b; --panel-2:#1b1b22; --stone:#b8b1a2; --stone-dim:#6f6a5f;
+    --parchment:#e8dbbb; --cream:#f6efce; --brass:#c9a14e; --brass-bright:#e6c578;
+    --crimson:#a8443a; --teal:#5f8f8a; --line:rgba(232,219,187,.13); --line-strong:rgba(232,219,187,.26);
+    --display:"Cinzel",serif; --body:"EB Garamond",serif; --ui:ui-sans-serif,system-ui,-apple-system,sans-serif;
+  }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--void); color:var(--parchment); font-family:var(--body); font-size:18px; line-height:1.55; }
+  .wrap { max-width:1120px; margin:0 auto; padding:32px 22px 120px; display:grid; grid-template-columns:230px 1fr; gap:34px; }
+  @media (max-width:860px){ .wrap{ grid-template-columns:1fr; } nav.toc{ position:static!important; } }
+  header.hero { grid-column:1/-1; text-align:center; padding:18px 0 6px; }
+  header.hero h1 { font-family:var(--display); font-weight:700; font-size:34px; color:var(--cream); margin:0 0 6px; letter-spacing:.01em; }
+  header.hero .sub { color:var(--stone); font-style:italic; }
+  header.hero .meta { color:var(--stone-dim); font-family:var(--ui); font-size:12px; letter-spacing:.08em; text-transform:uppercase; margin-top:10px; }
+  nav.toc { position:sticky; top:18px; align-self:start; border:1px solid var(--line); border-radius:14px;
+            background:rgba(21,21,27,.7); backdrop-filter:blur(6px); padding:16px 14px; font-family:var(--ui); font-size:13.5px; }
+  nav.toc .toc-hd { font-family:var(--display); font-size:11px; letter-spacing:.22em; text-transform:uppercase; color:var(--brass-bright); margin:0 0 10px; }
+  nav.toc a { display:block; color:var(--stone); padding:3px 0; }
+  nav.toc a:hover { color:var(--cream); }
+  main { min-width:0; }
+  section { border:1px solid var(--line); border-radius:14px; background:rgba(21,21,27,.55); padding:22px 26px; margin:0 0 22px; }
+  h2 { font-family:var(--display); color:var(--cream); font-size:23px; margin:0 0 12px; display:flex; gap:12px; align-items:baseline; }
+  h2 .n { color:var(--brass); font-size:15px; font-weight:600; }
+  h3 { font-family:var(--display); color:var(--brass-bright); font-size:17px; margin:22px 0 8px; font-weight:600; }
+  h4 { font-family:var(--ui); text-transform:uppercase; letter-spacing:.08em; font-size:12px; color:var(--stone-dim); margin:16px 0 6px; }
+  p { margin:0 0 12px; }
+  a { color:var(--brass-bright); text-decoration:none; } a:hover { text-decoration:underline; }
+  ul,ol { margin:0 0 12px; padding-left:22px; } li { margin:5px 0; }
+  code { font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:14px; background:rgba(0,0,0,.34); border:1px solid var(--line); border-radius:5px; padding:1px 5px; color:var(--brass-bright); }
+  pre { background:rgba(0,0,0,.42); border:1px solid var(--line-strong); border-radius:10px; padding:14px 16px; overflow:auto; margin:0 0 14px; }
+  pre code { background:none; border:none; padding:0; color:var(--parchment); font-size:13.5px; line-height:1.5; }
+  table { width:100%; border-collapse:collapse; margin:0 0 16px; font-size:14.5px; }
+  th,td { text-align:left; padding:7px 10px; border-bottom:1px solid var(--line); vertical-align:top; }
+  th { font-family:var(--ui); font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:var(--stone-dim); }
+  td code { font-size:13px; }
+  .lede { font-size:19px; color:var(--cream); }
+  .tag { font-family:var(--ui); font-size:10.5px; letter-spacing:.06em; text-transform:uppercase; padding:1px 7px; border-radius:20px; border:1px solid var(--brass); color:var(--brass-bright); white-space:nowrap; }
+  .pill-row { display:flex; flex-wrap:wrap; gap:8px; margin:0 0 14px; }
+  .callout { border-left:3px solid var(--brass); background:rgba(201,161,78,.07); border-radius:0 10px 10px 0; padding:12px 16px; margin:0 0 14px; }
+  .callout.gap { border-left-color:var(--crimson); background:rgba(168,68,58,.08); }
+  .callout.ok { border-left-color:var(--teal); background:rgba(95,143,138,.08); }
+  .callout .lbl { font-family:var(--ui); font-size:11px; letter-spacing:.1em; text-transform:uppercase; color:var(--brass-bright); display:block; margin-bottom:4px; }
+  .callout.gap .lbl { color:#e0938a; } .callout.ok .lbl { color:#8fc9c2; }
+  .steps { counter-reset:step; list-style:none; padding-left:0; }
+  .steps > li { counter-increment:step; position:relative; padding:10px 0 10px 46px; border-bottom:1px solid var(--line); }
+  .steps > li::before { content:counter(step); position:absolute; left:0; top:9px; width:30px; height:30px; border-radius:50%;
+    border:1px solid var(--brass); color:var(--brass-bright); font-family:var(--display); font-weight:700; display:grid; place-items:center; font-size:14px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; } @media(max-width:680px){ .grid2{ grid-template-columns:1fr; } }
+  .phase { border:1px solid var(--line); border-radius:12px; padding:14px 16px; margin:0 0 12px; background:rgba(0,0,0,.18); }
+  .phase .ph-hd { display:flex; align-items:center; gap:10px; margin-bottom:6px; }
+  .phase .ph-n { font-family:var(--display); color:var(--brass-bright); font-weight:700; }
+  hr { border:none; border-top:1px solid var(--line); margin:18px 0; }
+  .muted { color:var(--stone-dim); }
+  /* ---- tile diagrams ---- */
+  .diagrams { display:flex; flex-wrap:wrap; gap:20px; margin:6px 0 16px; }
+  .diagram { flex:1 1 230px; max-width:260px; }
+  .diagram svg { width:100%; height:auto; display:block; background:rgba(0,0,0,.22); border:1px solid var(--line); border-radius:10px; }
+  .diagram .cap { font-family:var(--ui); font-size:12px; color:var(--stone-dim); line-height:1.45; margin-top:8px; }
+  .diagram .cap b { color:var(--stone); }
+  .tile-outline { fill:rgba(255,255,255,.02); stroke:var(--line-strong); stroke-width:1.5; }
+  .dot-door { fill:var(--panel-2); stroke:var(--brass); stroke-width:2; }
+  .dot-door.entry { fill:var(--brass-bright); stroke:var(--cream); }
+  .dot-door.unreach { fill:var(--panel-2); stroke:var(--crimson); stroke-dasharray:2,2; opacity:.65; }
+  .dot-centre { fill:var(--teal); stroke:var(--cream); stroke-width:2; }
+  .dot-island { fill:var(--brass); stroke:var(--cream); stroke-width:2; }
+  .svg-lbl { font-family:var(--ui); font-size:9.5px; fill:var(--stone); text-anchor:middle; }
+  .svg-lbl.bright { fill:var(--cream); font-weight:600; }
+  .edge-reach { stroke:var(--brass-bright); stroke-width:2.4; fill:none; marker-end:url(#arrBrass); }
+  .edge-unreach { stroke:var(--crimson); stroke-width:1.5; stroke-dasharray:2,3; fill:none; opacity:.55; }
+  .edge-spoke { stroke:var(--teal); stroke-width:2.2; fill:none; marker-end:url(#arrTeal); }
+  .edge-retrace { stroke:var(--stone-dim); stroke-width:1.4; stroke-dasharray:4,3; fill:none; }
+  .marker-diamond { fill:var(--crimson); stroke:var(--cream); stroke-width:1; }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute">
+  <defs>
+    <marker id="arrBrass" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--brass-bright)"/>
+    </marker>
+    <marker id="arrTeal" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="var(--teal)"/>
+    </marker>
+  </defs>
+</svg>
+<div class="wrap">
+  <header class="hero">
+    <h1>Precise Locations — Implementation Plan</h1>
+    <p class="sub">Giving every party token — and every dropped treasure — an exact spot on the tile: a doorway, the chamber's centre, or a special-area's island.</p>
+    <p class="meta">The Sorcerer's Cave · planning document, for designer sign-off · 2026-07-29</p>
+  </header>
+
+  <nav class="toc">
+    <p class="toc-hd">Contents</p>
+    <a href="#goals">1 · Goals &amp; scope</a>
+    <a href="#today">2 · What already exists today</a>
+    <a href="#model">3 · The sub-location model</a>
+    <a href="#chambers">4 · The four special chambers, case by case</a>
+    <a href="#derive">5 · How the engine computes it</a>
+    <a href="#render">6 · Rendering plan</a>
+    <a href="#treasure">7 · Precise dropped treasure</a>
+    <a href="#gaps">8 · Rules gaps this work surfaces</a>
+    <a href="#multiplayer">9 · Multiplayer considerations</a>
+    <a href="#roadmap">10 · Phased roadmap</a>
+    <a href="#decisions">11 · Questions for the designer</a>
+  </nav>
+
+  <main>
+
+  <!-- 1 -->
+  <section id="goals">
+    <h2><span class="n">1</span> Goals &amp; scope</h2>
+    <p class="lede">Today, a party's location is just "the area" — rendered at the centre of the tile, whichever
+      doorway it actually walked in through. This plan gives every party (and every dropped item) a
+      <b>precise sub-tile position</b>: which doorway it's standing in, whether it has settled into the
+      chamber's centre, or — in the Viper Pit, Deep Pool, Whirlpool and Chasm — whether it's on the
+      central island.</p>
+    <ul>
+      <li><b>Every chamber and tunnel</b> gets a doorway-vs-centre distinction, not just the four special
+        areas — this is Peter's original, broader house rule (see §2).</li>
+      <li><b>The four special areas</b> (Viper Pit, Deep Pool, Whirlpool, Chasm) get a doorway-vs-island
+        distinction, matching the rulebook's own "stop at the edge, cross next turn" language and Peter's
+        Case 1/2/3 walkthroughs.</li>
+      <li><b>Dropped treasure</b> gets the same precision: a Deep Pool drop sits in the doorway (or on the
+        island) it was left in, colour-coded to the dropping party, not lumped into one tile-wide pile.</li>
+      <li><b>This is a design-review document, not code.</b> Per the brief, no code changes ship from this
+        plan alone — it exists so the designer can confirm the model below matches intent before
+        implementation starts.</li>
+    </ul>
+    <div class="callout"><span class="lbl">Sources</span> This plan synthesises three documents: the brief
+      (<code>docs/requirements/precise-locations/2027-07-29-precise-locations-requirements.md</code>), Peter's
+      detailed walkthrough (<code>precise-locations-peters-notes.md</code>, same folder — Viper Pit/Deep
+      Pool/Whirlpool/Chasm Cases 1–3, plus the dropped-treasure section and mock-ups), and his earlier,
+      broader note on chambers &amp; doorways in
+      <code>docs/requirements/multiplayer/sorcerers-cave-notes-from-peter.md:105-131</code>. It also
+      reconciles with two places this idea was already sketched but never built: the multiplayer plan's
+      <a href="../multiplayer/2026-06-15-multiplayer-plan.html#revisions">§12 item ③ "doorway/scout vs
+      entered sub-state"</a> and <code>multiplayer-interaction-specification.md</code>'s <b>I-14</b>
+      ("a party stands on the island/doorway per its own crossing state").</div>
+  </section>
+
+  <!-- 2 -->
+  <section id="today">
+    <h2><span class="n">2</span> What already exists today</h2>
+    <p>Good news first: the hard part of the underlying <em>rule</em> — "you stop when you first enter, and
+      only cross on a later turn" — is already implemented at the engine level. This plan is mostly a
+      <b>presentation and data-precision</b> layer on top of a sound foundation, plus a handful of genuine
+      rules decisions called out in §8.</p>
+    <div class="callout ok"><span class="lbl">Already correct — the two-turn gate</span>
+      <code>SC-10-3</code>: "Entry stops at the edge: on the entry turn the party lands on a Pit/Pool tile
+      and the turn ends in explore — no crossing yet." <code>SC-10-4</code>: crossing fires only when
+      <code>partyArea !== oldPrev</code> — i.e. leaving by a <em>different</em> doorway than you arrived by,
+      never on retracing. (<code>reduce.ts:598-634</code>, <code>docs/specs/engine-spec.md:309-310</code>)
+      Because every move consumes a turn, this structurally already forces "enter this turn, decide next
+      turn" — we don't need to invent that gate, only make it <em>visible</em>.</div>
+    <h3>2.1 The compass is already a first-class concept</h3>
+    <p>Directions are not an abstract adjacency graph — every area card decodes to explicit
+      <code>n/e/s/w/stairUp/stairDown</code> exit bits (<code>packages/engine/src/decode.ts:1-28</code>), and
+      <code>DIR_N=1, DIR_E=2, DIR_S=3, DIR_W=4, DIR_UP=5, DIR_DOWN=6</code>
+      (<code>coords.ts:1-6</code>) resolve to real grid coordinates via <code>targetCoord</code>
+      (<code>coords.ts:19-29</code>), since every <code>PlacedArea.coord</code> is a packed
+      <code>level·10000 + y·100 + x</code> (<code>state.ts:62</code>). This means the compass direction a
+      party arrived by is <b>always geometrically recoverable</b> — compare the current area's coordinate to
+      <code>state.prev</code>'s — even though nothing stores it explicitly today (see §5).</p>
+    <h3>2.2 The renderer already has the geometry for doorways</h3>
+    <p>The 3D view (<code>apps/web/src/view/cave3d.js</code>) already computes exactly the offsets we need,
+      just for a different purpose — exit chevrons:</p>
+    <pre><code>// cave3d.js:288 — the North/South/East/West edge offsets from tile-centre
+const off={N:[0,0,-(TILE_D/2+edge)],S:[0,0,TILE_D/2+edge],E:[TILE_W/2+edge,0,0],W:[-(TILE_W/2+edge),0,0]}[m.dir];</code></pre>
+    <p>Two more precedents already exist for "more than one thing on a tile": the secret-door card marker
+      sits at a fixed tile corner (<code>cave3d.js:220</code>), and multiplayer already fans overlapping
+      party tokens in a small ring around the centre so they don't overlap
+      (<code>cave3d.js:759-761</code>). Treasure/creature/hazard cards are already laid in fixed lanes
+      offset from tile-centre, not stacked dead-centre (<code>cave3d.js:429-433</code>). None of these are
+      <em>doorway-aware</em> yet, but they are the exact mechanism this plan reuses.</p>
+    <div class="callout gap"><span class="lbl">What's missing</span> No code anywhere models a sub-tile
+      position: no <code>arrivedDir</code>/<code>entryDir</code> field, no "island" concept, and the party
+      token is always placed at exactly <code>worldPos(area)</code> — tile-centre, full stop
+      (<code>cave3d.js:19,236</code>). Dropped treasure is a single flat list per tile
+      (<code>PlacedArea.contents</code>, <code>PlacedArea.dropped</code> — <code>state.ts:65,68</code>),
+      never tagged with a sub-location. <code>docs/specs/engine-spec.md</code> Appendix B says so explicitly:
+      "Deep-Pool drops all heavy treasure to a single <code>dropped</code> list on the tile (no per-doorway
+      model)"; the Milestone C-3 plan names the same simplification on delivery: <em>"stair/trap arrival 'on
+      the island' is not specially modelled"</em> (<code>docs/requirements/2026-06-12-milestone-c3-special-areas-plan.md:355</code>).</div>
+  </section>
+
+  <!-- 3 -->
+  <section id="model">
+    <h2><span class="n">3</span> The sub-location model</h2>
+    <p>Three positions cover every case in Peter's notes. This is the vocabulary the rest of the plan uses:</p>
+    <div class="diagrams">
+      <div class="diagram">
+        <svg viewBox="0 0 200 200">
+          <rect class="tile-outline" x="14" y="14" width="172" height="172" rx="12"/>
+          <circle class="dot-door" cx="100" cy="30" r="10"/>
+          <circle class="dot-door" cx="170" cy="100" r="7"/>
+          <circle class="dot-door" cx="100" cy="170" r="7"/>
+          <circle class="dot-door entry" cx="30" cy="100" r="12"/>
+          <circle class="dot-centre" cx="100" cy="100" r="9"/>
+          <line class="edge-retrace" x1="42" y1="103" x2="88" y2="103"/>
+          <text class="svg-lbl bright" x="30" y="120">entered W</text>
+          <text class="svg-lbl" x="100" y="20">N</text>
+          <text class="svg-lbl" x="182" y="104">E</text>
+          <text class="svg-lbl" x="100" y="188">S</text>
+          <text class="svg-lbl" x="100" y="140">centre</text>
+        </svg>
+        <p class="cap"><b>Doorway.</b> The default on arrival: party token sits at the edge it walked in
+          through. Withdraw is live; the party is "scouting."</p>
+      </div>
+      <div class="diagram">
+        <svg viewBox="0 0 200 200">
+          <rect class="tile-outline" x="14" y="14" width="172" height="172" rx="12"/>
+          <circle class="dot-door" cx="100" cy="30" r="9"/>
+          <circle class="dot-door" cx="170" cy="100" r="9"/>
+          <circle class="dot-door" cx="100" cy="170" r="9"/>
+          <circle class="dot-door" cx="30" cy="100" r="9"/>
+          <circle class="dot-centre" cx="100" cy="100" r="14"/>
+          <text class="svg-lbl bright" x="100" y="104">centre</text>
+        </svg>
+        <p class="cap"><b>Centre.</b> Once settled — small cards drawn, traps/hazards survived, and the
+          player has committed (Approach/Attack/Loot) rather than merely tested or withdrawn.</p>
+      </div>
+      <div class="diagram">
+        <svg viewBox="0 0 200 200">
+          <rect class="tile-outline" x="14" y="14" width="172" height="172" rx="12"/>
+          <circle class="dot-door" cx="100" cy="30" r="9"/>
+          <circle class="dot-door" cx="170" cy="100" r="9"/>
+          <circle class="dot-door" cx="100" cy="170" r="9"/>
+          <circle class="dot-door" cx="30" cy="100" r="9"/>
+          <circle class="dot-island" cx="100" cy="100" r="15"/>
+          <text class="svg-lbl bright" x="100" y="104">island</text>
+        </svg>
+        <p class="cap"><b>Island.</b> Special areas only (Viper Pit, Deep Pool, Chasm) — reached via a secret
+          Up/Down stair, or a trap fall. Whirlpool has no island (§4).</p>
+      </div>
+    </div>
+    <h3>3.1 For every ordinary chamber and tunnel</h3>
+    <p>Peter's broader house rule, from his original note: <em>"I always play a house rule for new areas
+      whereby I place my party token initially in the entrance doorway (for all chambers, not just e.g.
+      Viper Pit etc.)... this is where they 'scout' the chamber, draw small cards, encounter traps and
+      hazards, and wait... versus the party token being moved into, across or around the centre of the
+      chamber, approaching or surprise attacking strangers, looting, traversing."</em> His follow-up note is
+      the precise trigger list: the token stays in the doorway until <b>any</b> of "drawn small cards,"
+      "survived traps &amp; hazards," or "been presented with the Withdraw/Approach/Attack options" — i.e.
+      it moves to centre only once the player <em>acts</em> on one of those options, not merely because they
+      were offered.</p>
+    <h3>3.2 For the four special areas</h3>
+    <p>Doorway vs. island, gated by <em>how</em> the party arrived — laterally (N/E/S/W) vs. vertically (a
+      secret stair or a trap fall). Whirlpool is the outlier: Peter's rules make it structurally
+      island-less (see §4).</p>
+  </section>
+
+  <!-- 4 -->
+  <section id="chambers">
+    <h2><span class="n">4</span> The four special chambers, case by case</h2>
+    <p>Peter's notes give each area distinct connectivity rules once you're inside — these are <b>not</b>
+      the same shape, and the diagrams below (redrawn from his three Viper Pit mock-ups,
+      <code>viper-pit-case-1/2/3.png</code>) make the differences explicit for sign-off.</p>
+    <div class="diagrams">
+      <div class="diagram">
+        <svg viewBox="0 0 200 200">
+          <rect class="tile-outline" x="14" y="14" width="172" height="172" rx="12"/>
+          <path class="edge-reach" d="M30,100 Q50,50 100,30"/>
+          <path class="edge-reach" d="M30,100 Q50,150 100,170"/>
+          <path class="edge-unreach" d="M30,100 Q100,70 170,100"/>
+          <line class="edge-spoke" x1="100" y1="100" x2="100" y2="34"/>
+          <line class="edge-spoke" x1="100" y1="100" x2="166" y2="100"/>
+          <line class="edge-spoke" x1="100" y1="100" x2="100" y2="166"/>
+          <line class="edge-spoke" x1="100" y1="100" x2="34" y2="100"/>
+          <circle class="dot-island" cx="100" cy="100" r="11"/>
+          <circle class="dot-door entry" cx="30" cy="100" r="10"/>
+          <circle class="dot-door" cx="100" cy="30" r="8"/>
+          <circle class="dot-door" cx="170" cy="100" r="8"/>
+          <circle class="dot-door" cx="100" cy="170" r="8"/>
+          <text class="svg-lbl bright" x="30" y="120">entry (W)</text>
+        </svg>
+        <p class="cap"><b>Viper Pit.</b> From a doorway: the <b>two adjacent</b> doorways only (N and S from a
+          W entry), around the ledge, one d6/creature (brass curves) — never straight across to E (dashed
+          red). From the island: any of the four, jump-risk d6/creature (teal spokes, house rule).
+          <code>special.ts:15-37</code>.</p>
+      </div>
+      <div class="diagram">
+        <svg viewBox="0 0 200 200">
+          <rect class="tile-outline" x="14" y="14" width="172" height="172" rx="12"/>
+          <line class="edge-reach" x1="30" y1="100" x2="100" y2="30"/>
+          <path class="edge-reach" d="M30,100 Q100,130 170,100"/>
+          <line class="edge-reach" x1="30" y1="100" x2="100" y2="170"/>
+          <line class="edge-spoke" x1="100" y1="100" x2="100" y2="34"/>
+          <line class="edge-spoke" x1="100" y1="100" x2="166" y2="100"/>
+          <line class="edge-spoke" x1="100" y1="100" x2="100" y2="166"/>
+          <line class="edge-spoke" x1="100" y1="100" x2="34" y2="100"/>
+          <circle class="dot-island" cx="100" cy="100" r="11"/>
+          <circle class="dot-door entry" cx="30" cy="100" r="10"/>
+          <circle class="dot-door" cx="100" cy="30" r="8"/>
+          <circle class="dot-door" cx="170" cy="100" r="8"/>
+          <circle class="dot-door" cx="100" cy="170" r="8"/>
+          <text class="svg-lbl bright" x="30" y="120">entry (W)</text>
+        </svg>
+        <p class="cap"><b>Deep Pool.</b> From a doorway: <b>any</b> of the other three (brass), gated only by
+          Giant/heavy-treasure carrying capacity — no adjacency limit, no fatal roll. From the island: same,
+          any doorway. <code>special.ts:39-56</code>.</p>
+      </div>
+      <div class="diagram">
+        <svg viewBox="0 0 200 200">
+          <rect class="tile-outline" x="14" y="14" width="172" height="172" rx="12"/>
+          <path class="edge-reach" d="M30,100 Q50,50 100,30"/>
+          <path class="edge-reach" d="M30,100 Q50,150 100,170"/>
+          <line class="edge-unreach" x1="30" y1="100" x2="170" y2="100"/>
+          <circle class="dot-door entry" cx="30" cy="100" r="10"/>
+          <circle class="dot-door" cx="100" cy="30" r="8"/>
+          <circle class="dot-door" cx="170" cy="100" r="8"/>
+          <circle class="dot-door" cx="100" cy="170" r="8"/>
+          <text class="svg-lbl bright" x="30" y="120">entry (W)</text>
+          <text class="svg-lbl" x="100" y="105" style="opacity:.5">no island</text>
+        </svg>
+        <p class="cap"><b>Whirlpool.</b> Same adjacent-only shallows as the Pit (N and S from a W entry,
+          never straight across to E), but <b>one shared roll</b>
+          for the whole party — and <b>no island at all</b>: a stairway here is blocked outright, a trap
+          sends you a level further down. <code>special.ts:58-68</code>.</p>
+      </div>
+      <div class="diagram">
+        <svg viewBox="0 0 200 200">
+          <rect class="tile-outline" x="14" y="14" width="172" height="172" rx="12"/>
+          <line class="edge-spoke" x1="100" y1="100" x2="34" y2="100"/>
+          <circle class="dot-island" cx="100" cy="100" r="12"/>
+          <circle class="dot-door entry" cx="30" cy="100" r="10"/>
+          <circle class="dot-door unreach" cx="100" cy="30" r="8"/>
+          <circle class="dot-door unreach" cx="170" cy="100" r="8"/>
+          <circle class="dot-door unreach" cx="100" cy="170" r="8"/>
+          <text class="svg-lbl bright" x="30" y="120">entry (W)</text>
+          <text class="svg-lbl" x="100" y="65">↓ descend</text>
+        </svg>
+        <p class="cap"><b>Chasm.</b> No lateral crossing at all — only retrace, descend, or (island only) an
+          already-discovered secret door. Descent is the only real "crossing." <code>reduce.ts:1258-1271</code>.</p>
+      </div>
+    </div>
+    <table>
+      <tr><th>Chamber</th><th>From a doorway</th><th>From the island</th><th>Risk / gate</th></tr>
+      <tr><td>Viper Pit</td><td>2 adjacent doorways only</td><td>any of the 4 (house rule, §8)</td><td>d6 per creature, 1–2 falls in</td></tr>
+      <tr><td>Deep Pool</td><td>any of the other 3</td><td>any of the 4</td><td>Giant/heavy-treasure capacity only, no roll</td></tr>
+      <tr><td>Whirlpool</td><td>2 adjacent doorways only</td><td class="muted">no island exists</td><td>one d6 for the whole party, 1–2 drags down a level</td></tr>
+      <tr><td>Chasm</td><td>none (retrace or descend)</td><td>an already-discovered secret door, or descend</td><td>no roll — a decision only</td></tr>
+    </table>
+    <div class="callout"><span class="lbl">Verified against Peter's mock-ups</span> <code>viper-pit-case-1.png</code>
+      shows curved ledge arrows to the two neighbours only (no straight-across arrow); <code>case-2.png</code>
+      and <code>case-3.png</code> show straight arrows from the island to all four sides — confirming the
+      asymmetry modelled above (ledge = adjacent-only, island = omnidirectional).</div>
+  </section>
+
+  <!-- 5 -->
+  <section id="derive">
+    <h2><span class="n">5</span> How the engine computes it</h2>
+    <p class="lede">The reassuring finding: for the common cases, sub-location needs <b>no new persisted
+      state</b> — it's a pure function of fields that already exist. Only dropped-treasure precision and the
+      "adjacency"/"jump" rules (§8) need real engine changes.</p>
+    <h3>5.1 Doorway direction — geometry, not a new field</h3>
+    <p>Since every <code>PlacedArea.coord</code> is an absolute packed grid coordinate
+      (<code>state.ts:62</code>), the compass direction of arrival is recoverable by comparing the current
+      area's <code>(x,y,level)</code> to <code>state.prev</code>'s via <code>unpackCoord</code>
+      (<code>coords.ts:12-16</code>): same level, y−1 → arrived from the south (standing in the <b>North</b>
+      doorway of a fresh tile is wrong framing — restated: the doorway a party stands in is the one whose
+      compass direction points back at <code>prev</code>). A level change with the same (x,y) is a vertical
+      arrival (secret stair or trap) → <b>island</b>. This is a pure, stateless helper — no reducer change,
+      no new field, callable from the renderer alone.</p>
+    <h3>5.2 Doorway vs. centre — already encoded in <code>phase</code></h3>
+    <p>This is the pleasant surprise. <code>GamePhase</code> is <code>"explore" | "medusa" | "encounter" |
+      "fight" | "pickup" | "gameOver"</code> (<code>state.ts:28</code>). <code>phase</code> is set to
+      <code>"encounter"</code> the moment a fresh chamber is drawn (<code>reduce.ts:325</code>), and
+      <code>withdraw</code>/<code>test</code>/<code>attack</code> are only legal while
+      <code>phase === "encounter"</code> (<code>reduce.ts:641,841,908</code>) — i.e. exactly the window
+      Peter describes as "scouting from the doorway." The instant the party commits — a won/skipped fight
+      moves to <code>"explore"</code> or a loot session opens <code>"pickup"</code> — is exactly the moment
+      his notes say the token moves to centre. So: <code>phase === "encounter"</code> ⇒ doorway;
+      otherwise ⇒ centre. No new field.</p>
+    <h3>5.3 Island vs. doorway for the specials — mostly free, one caveat</h3>
+    <p>Combine §5.1 (vertical vs. lateral arrival) with the existing <code>fellThroughTrap</code> flag
+      (<code>state.ts:137</code>, already distinguishes a trap landing from a secret-stair landing for the
+      withdraw-legality check) to tell a stair-island from a trap-island apart where the distinction matters
+      for legal actions — it never matters for <em>position</em>, since both land you on the island
+      (confirmed by Peter's Case 2 vs. Case 3, which differ only in whether "go back" is offered, not in
+      where you stand).</p>
+    <div class="callout gap"><span class="lbl">The one real gap</span> None of this tells the renderer
+      <em>which</em> doorway a party is in once it has taken further in-place actions without moving (e.g. a
+      multi-turn Viper Pit ledge-walk, §4) — today's state has no "current sub-location" field, only "last
+      area moved from." <b>Recommendation:</b> add one small, explicit field rather than lean on fragile
+      geometry for the special-area ledge-walk: <code>GameState.subLocation?: { area: number; at: "doorway" |
+      "island"; dir?: 1|2|3|4 }</code> (mirrored per-seat on <code>PartyState</code> for multiplayer, §9),
+      set by <code>tryMove</code>/<code>resolveAreaLoop</code> alongside the existing <code>prev</code>/
+      <code>prev2</code> bookkeeping. Ordinary chambers don't need it (phase already covers them, §5.2);
+      it's scoped to the four specials only.</div>
+  </section>
+
+  <!-- 6 -->
+  <section id="render">
+    <h2><span class="n">6</span> Rendering plan</h2>
+    <p>Reuses existing geometry and precedents from §2.2 — no new visual language, just doorway-aware
+      placement of things that are currently always tile-centred.</p>
+    <h3>6.1 The party's own token</h3>
+    <table>
+      <tr><th>Sub-location</th><th>Position</th><th>Basis</th></tr>
+      <tr><td>Centre</td><td><code>worldPos(area)</code> — unchanged</td><td>today's only behaviour, <code>cave3d.js:19,236</code></td></tr>
+      <tr><td>Doorway (N/E/S/W)</td><td><code>worldPos(area) + off[dir] · k</code>, <code>k≈0.55</code> (partway to the edge, not all the way like an exit chevron)</td><td>reuses <code>off</code> from <code>cave3d.js:288</code></td></tr>
+      <tr><td>Doorway (Up/Down)</td><td>tile-centre, distinguished by a small raised/lowered pedestal mesh (new, minor)</td><td>no lateral edge to offset toward</td></tr>
+      <tr><td>Island</td><td>tile-centre, on a small distinct island/pedestal mesh (new)</td><td>needs new geometry — see §6.3</td></tr>
+    </table>
+    <p>Moving between sub-locations on the same tile (e.g. doorway → centre once settled, or a Viper Pit
+      ledge-walk) is a same-tile lerp, exactly like the existing <code>tokenMove</code> animation used for
+      full tile-to-tile moves (<code>cave3d.js</code>, <code>doMove</code>/<code>refresh</code>) — just a
+      shorter hop.</p>
+    <h3>6.2 Other parties (multiplayer)</h3>
+    <p><code>OtherPartyToken</code> (<code>CaveCanvas.tsx:14</code>) is <code>{color, col, row, level}</code>
+      — no sub-location field. Extend it with the same <code>{at, dir}</code> shape as §5.3, and replace the
+      generic radial fan in <code>setOtherParties</code> (<code>cave3d.js:759-761</code>, currently just
+      "which arrival order are you, fan by 120°") with the doorway offset from §6.1 — this is a strict
+      upgrade: two rival parties in different doorways of the same Deep Pool now render exactly where they
+      are, rather than jittered around the centre regardless of truth.</p>
+    <h3>6.3 New geometry: the island</h3>
+    <p>Today <code>buildAreaMesh</code> renders every tile identically — a flat textured plane, no per-special
+      geometry (<code>cave3d.js:96-111</code>). A believable island needs a small raised disc/rock mesh at
+      tile-centre for Viper Pit/Deep Pool/Chasm tiles only (checked via <code>decodeArea(card).special</code>,
+      already available). This is the one place this plan asks for new 3D art/geometry rather than pure
+      repositioning — scope it modestly (a simple raised cylinder + rim, not bespoke sculpted art) unless the
+      designer wants more.</p>
+  </section>
+
+  <!-- 7 -->
+  <section id="treasure">
+    <h2><span class="n">7</span> Precise dropped treasure</h2>
+    <p class="lede">Peter's own example, verbatim: <em>"The party stops in the East doorway of the Deep
+      Pool. Next turn, they drop heavy treasure and swim to the South doorway. The dropped treasure is
+      represented by a Dropped Item Token... Now the party have 3 chances to find an open route."</em></p>
+    <div class="diagram" style="max-width:320px;margin:0 auto 16px;">
+      <svg viewBox="0 0 200 200">
+        <rect class="tile-outline" x="14" y="14" width="172" height="172" rx="12"/>
+        <path class="edge-retrace" d="M170,100 Q140,140 100,170" marker-end="url(#arrTeal)"/>
+        <circle class="dot-island" cx="100" cy="100" r="10"/>
+        <circle class="dot-door" cx="100" cy="30" r="8"/>
+        <rect class="marker-diamond" x="163" y="93" width="14" height="14" transform="rotate(45 170 100)"/>
+        <circle class="dot-door" cx="170" cy="100" r="9" fill="none" stroke="var(--brass)" stroke-width="1.5"/>
+        <circle class="dot-door entry" cx="100" cy="170" r="10"/>
+        <text class="svg-lbl bright" x="100" y="188">now: S</text>
+        <text class="svg-lbl" x="170" y="80">dropped (E)</text>
+      </svg>
+      <p class="cap" style="text-align:center">Heavy treasure left in the East doorway (red marker,
+        colour-coded to the party in play) while the party swims on to the South doorway — exactly Peter's
+        walkthrough.</p>
+    </div>
+    <h3>7.1 Data model change (this one is real)</h3>
+    <p>Today <code>PlacedArea.dropped?: number[]</code> is one flat list per tile, written by
+      <code>deepPoolCrossing</code> (<code>special.ts:41-56</code>) and read back by
+      <code>resolveAreaLoop</code>'s Giant-only reclaim (<code>reduce.ts:381-390</code>) — no sub-location
+      tag. Proposed shape:</p>
+    <pre><code>// PlacedArea, state.ts:68 — was: dropped?: number[]
+dropped?: { at: "island" | 1 | 2 | 3 | 4; owner?: PartyColor; items: number[] }[];
+// 1..4 = DIR_N..DIR_W (coords.ts); owner is solo-optional, required in multiplayer (§9)</code></pre>
+    <p>Every read site (the Giant-reclaim check, the pool crossing that pushes to it) narrows to "the bucket
+      matching the party's <em>current</em> sub-location" rather than the whole tile — matching the rulebook
+      language for both areas ("recoverable only by a giant" says nothing about location; Peter's notes are
+      the ones that make it precise).</p>
+    <div class="callout gap"><span class="lbl">Depends on §8</span> This data model is only worth building
+      once "voluntarily cast treasure into the pit/pool" actually sinks it (see §8.3) — today
+      <code>dropTreasure</code> never special-cases these tiles at all, so a designer sign-off on <em>where</em>
+      a drop lands is moot until sign-off on <em>whether</em> it's protected.</p></div>
+    <h3>7.2 Scope: Deep Pool first, or all four?</h3>
+    <p>The brief calls Deep Pool "the most obvious" case; Peter's notes (§DROPPED TREASURE/ARTEFACTS) argue
+      for all four — Viper Pit becomes "your very own safe deposit box" with the Charmed Flute, and precise
+      Chasm/Whirlpool drops support the Eye-of-God-hiding strategies he describes. This is flagged as a
+      scope decision in §11, not assumed.</p>
+  </section>
+
+  <!-- 8 -->
+  <section id="gaps">
+    <h2><span class="n">8</span> Rules gaps this work surfaces</h2>
+    <p>Building precise sub-locations forces four latent rules questions into the open — they were
+      invisible while position was purely cosmetic (tile-centre for everyone), but a designer sign-off on
+      <em>where</em> a party stands has to also cover <em>what it can do from there</em>.</p>
+    <h3>8.1 Adjacency-gated crossing (Viper Pit &amp; Whirlpool)</h3>
+    <p><code>openMoves()</code> (<code>apps/web/src/view/engineAdapter.ts:64-79</code>) offers every
+      compass exit the card has, unconditionally, via <code>legalActions</code>
+      (<code>packages/engine/src/selectors.ts:105</code>) — there is no concept of "reachable from your
+      current sub-location." Implementing §4's "adjacent doorways only" for the Pit and Whirlpool is a real
+      legality change, not just a rendering one: <code>openMoves</code>/<code>legalActions</code> need to
+      consult <code>subLocation</code> (§5.3) and mask out the non-adjacent doorway(s).</p>
+    <h3>8.2 "Jump to the island" is an undocumented house rule</h3>
+    <p>Peter is explicit that this is <em>his</em> addition, not the printed rules: <em>"I play the
+      jumping/swimming house rule for Viper Pit and Deep Pool, even though the rules do not specify that you
+      can... without the jumping action... falling down a trap onto the central island would be an
+      unavoidable Total Party Kill."</em> No <code>GameAction</code> for this exists in the current 22-action
+      catalog (<code>actions.ts:4-42</code>, <code>SC-4-41</code>). Building it means a new action (e.g.
+      <code>jumpToIsland</code>), legal only from a lateral doorway of a Pit/Pool tile, with Viper Pit rolling
+      a die per creature (fatal on the same 1–2, mirroring <code>viperCrossing</code>) and Deep Pool gating
+      on Giant/heavy-treasure capacity exactly like its ordinary crossing.</p>
+    <h3>8.3 Deliberately casting treasure into the Pit/Pool doesn't sink it today</h3>
+    <div class="callout gap"><span class="lbl">Found while researching this plan</span>
+      <code>dropTreasure</code> (<code>reduce.ts:798-818</code>) always lands an item as ordinary floor
+      contents (<code>200+tid</code>) or the live pickup set — it has <b>no special case</b> for standing on
+      a Deep Pool or Viper Pit tile. So "treasure may be deliberately cast into the pool[/pit], and is
+      recoverable only by a giant[/the Charmed Flute]" (rulebook, both areas) is not modelled: a deliberate
+      drop today is ordinary, unprotected, anyone-can-loot-it treasure. This is exactly the mechanic Peter's
+      "safe deposit box" strategy (§DROPPED TREASURE/ARTEFACTS, point 1) depends on, and it needs fixing
+      <em>before</em> §7's per-doorway precision is worth building — otherwise we'd be precisely rendering a
+      mechanic that doesn't protect anything.</div>
+    <h3>8.4 The Whirlpool's "stairway blocked" rule isn't enforced</h3>
+    <p>Peter's notes: <em>"Any stairway leading to this area is considered blocked."</em> Nothing in
+      <code>map.ts</code>'s stair-mirroring (<code>mirrorReturnStair</code>, <code>map.ts:56-64</code>) or
+      <code>reduce.ts</code>'s Whirlpool branch (<code>403-408, 612-634</code>) special-cases
+      <code>SPECIAL_WHIRLPOOL</code> — a secret stair could in principle land a party there today, which this
+      plan's design assumes never happens (§4 draws no island for the Whirlpool). Low-severity — the base
+      card set may never produce this configuration in practice — but worth an explicit ruling since this
+      plan's "Whirlpool has no island" claim depends on it never happening.</p>
+  </section>
+
+  <!-- 9 -->
+  <section id="multiplayer">
+    <h2><span class="n">9</span> Multiplayer considerations</h2>
+    <p>Everything above is written engine-first, matching Peter's own framing of the doorway/scout idea as
+      "engine-level, so solitaire benefits too" (multiplayer plan §12 ③) — but two multiplayer-specific
+      needs are worth flagging now rather than retrofitting later.</p>
+    <ul>
+      <li><b>Per-seat sub-location.</b> The sketched <code>MpGameState</code>/<code>PartyState</code> shape
+        (multiplayer plan §5.2) already carries <code>partyArea/prev/prev2</code> per party, so §5's
+        derivation and §5.3's new <code>subLocation</code> field apply per-<code>PartyState</code>
+        unchanged — no new concept, just N copies of the same one.</li>
+      <li><b>Independent crossings, already specified.</b> <code>multiplayer-interaction-specification.md</code>
+        I-14 already states the target behaviour precisely: "each party crosses independently; a party
+        stands on the island/doorway per its own crossing state... PvP is illegal while either party is in
+        the pool[/pit]." This plan is the missing engine/render layer under that already-agreed spec row —
+        no new design decision needed here, just cross-referencing it as the multiplayer acceptance
+        criterion.</li>
+      <li><b>Ownership on dropped markers is mandatory, not optional.</b> The brief itself flags this: solo
+        play never needs to know whose drop a marker is, but "in multiplayer, the tokens would have to be
+        identifiable in case there were more than one pile of dropped stuff" — hence <code>owner</code> on
+        the per-doorway bucket in §7.1's data model is required once <code>variants</code>/multiplayer is
+        live, using the existing <code>PARTY_COLOR_HEX</code> palette
+        (<code>apps/web/src/game/partyColors.ts:8-13</code>) for the marker tint — the same colours already
+        used for tokens and secret-door washes.</li>
+    </ul>
+  </section>
+
+  <!-- 10 -->
+  <section id="roadmap">
+    <h2><span class="n">10</span> Phased roadmap</h2>
+    <div class="phase"><div class="ph-hd"><span class="ph-n">Phase 1 — Doorway vs. centre, ordinary chambers</span> <span class="tag">presentation only</span> <span class="tag">no engine change</span></div>
+      Implement §5.1 (geometry-derived direction) and §5.2 (<code>phase</code>-derived doorway/centre) as a
+      pure renderer helper; offset the local party token per §6.1. Zero engine/data changes — the lowest-risk,
+      most broadly visible slice, and matches Peter's simplest ask ("for all chambers, not just Viper Pit").</div>
+    <div class="phase"><div class="ph-hd"><span class="ph-n">Phase 2 — Island positioning for the four specials</span> <span class="tag">small engine change</span></div>
+      Add <code>subLocation</code> (§5.3) to <code>GameState</code>/<code>PartyState</code>; render the
+      island for Viper Pit/Deep Pool/Chasm (§6.3); Whirlpool stays doorway-only pending §8.4's ruling.</div>
+    <div class="phase"><div class="ph-hd"><span class="ph-n">Phase 3 — Fix the underlying rules gaps</span> <span class="tag">real rules work</span></div>
+      §8.3 (deliberate cast-into-pit/pool actually sinks the item) is a prerequisite for Phase 4, not
+      optional polish. §8.1 (adjacency-gated crossing) and §8.2 (jump-to-island action) are bundled here
+      since they share the same <code>legalActions</code>/<code>openMoves</code> surface.</div>
+    <div class="phase"><div class="ph-hd"><span class="ph-n">Phase 4 — Precise dropped treasure</span></div>
+      The per-doorway <code>dropped</code> shape (§7.1), scoped per §11's decision on Deep-Pool-only vs. all
+      four; colour-coded markers reusing <code>PARTY_COLOR_HEX</code>.</div>
+    <div class="phase"><div class="ph-hd"><span class="ph-n">Phase 5 — Multiplayer wiring</span></div>
+      Extend <code>OtherPartyToken</code> with sub-location (§6.2); mandatory <code>owner</code> on dropped
+      markers (§9); confirm against <code>multiplayer-interaction-specification.md</code> I-14's
+      already-agreed acceptance criteria.</div>
+  </section>
+
+  <!-- 11 -->
+  <section id="decisions">
+    <h2><span class="n">11</span> Questions for the designer</h2>
+    <ul>
+      <li><b>Scope of precise dropped treasure (§7.2).</b> Deep Pool only (the brief's "most obvious" case),
+        or all four specials as Peter's fuller notes argue for (the safe-deposit-box and Eye-hiding
+        strategies depend on Viper Pit/Whirlpool/Chasm too)?</li>
+      <li><b>Jump-to-island (§8.2).</b> Confirm adopting Peter's explicit house rule (otherwise a trap fall
+        onto the Viper Pit island with no Magic Carpet is an unavoidable Total Party Kill, which he
+        argues can't have been the designer's intent) — and confirm the proposed resolution (Viper Pit:
+        per-creature d6, same fatal 1–2; Deep Pool: Giant/heavy-treasure gate, no roll).</li>
+      <li><b>Whirlpool stairway-block (§8.4).</b> Should this plan also close that gap (stairs never mirror
+        onto a Whirlpool tile), or is it low-enough risk to leave as a known, separate gap?</li>
+      <li><b>New geometry budget (§6.3).</b> A modest raised-island mesh for three special tiles, or is
+        bespoke art wanted for this — and if so, is that this plan's scope or a separate art pass?</li>
+      <li><b>Sequencing (§10).</b> Does Phase 1 (ordinary chambers, zero engine risk) ship alone as a
+        visible early win, or does the whole plan land together?</li>
+    </ul>
+    <div class="callout ok"><span class="lbl">Bottom line</span> Most of this feature is cheap: doorway vs.
+      centre for every ordinary chamber is a derived, stateless render change (Phase 1). The genuine new
+      engine work is small and well-scoped (one <code>subLocation</code> field, one per-doorway treasure
+      shape) — the real decisions the designer needs to make aren't about the engine at all, they're the
+      four rules questions in §8 that this exercise surfaced.</div>
+  </section>
+
+  </main>
+</div>
+</body>
+</html>

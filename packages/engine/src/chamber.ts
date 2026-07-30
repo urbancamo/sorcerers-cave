@@ -1,7 +1,8 @@
 import { decodeArea } from "./decode";
-import { SPECIAL_TOMB, SPECIAL_GREAT_HALL, SPECIAL_LAIR, SPECIAL_GALLERY } from "./data/areaCards";
+import { SPECIAL_TOMB, SPECIAL_GREAT_HALL, SPECIAL_LAIR, SPECIAL_GALLERY, SPECIAL_WHIRLPOOL, SPECIAL_CHASM } from "./data/areaCards";
 import { AF_DESTROYED, type GameState } from "./state";
 import type { GameEvent } from "./actions";
+import { getSubLocation } from "./subLocation";
 
 const MAX_STRANGERS = 8;
 const MAX_TREASURE = 8;
@@ -151,6 +152,22 @@ export function enterChamber(state: GameState): GameEvent[] {
   // — `classify` sets `cryptCoord` silently; this snapshot is what turns it into the design's
   // on-screen notice ("A sealed crypt squats in the corner of this chamber.") below.
   const hadCrypt = state.cryptCoord !== undefined;
+  // Precise Locations (§10.5): Whirlpool/Chasm have no creature-gate on sunk treasure (unlike Deep
+  // Pool/Viper Pit's Giant/Flute-gated reclaim in reduce.ts's resolveAreaLoop, which never reaches
+  // here — those two return before enterChamber runs at all) — fold whatever is sunk at THIS
+  // sub-location straight into the ordinary reload pass below, precisely positioned but otherwise
+  // just like any other parked floor treasure.
+  if (dec.special === SPECIAL_WHIRLPOOL || dec.special === SPECIAL_CHASM) {
+    const sub = getSubLocation(state);
+    const key = sub.at === "island" ? "island" : sub.dir;
+    if (key !== undefined && area.sunkTreasure?.length) {
+      const bucket = area.sunkTreasure.find((b) => b.at === key);
+      if (bucket && bucket.items.length) {
+        area.contents = [...area.contents, ...bucket.items.map((tid) => 200 + tid)];
+        area.sunkTreasure = area.sunkTreasure.filter((b) => b !== bucket);
+      }
+    }
+  }
   for (const code of area.contents) reload(state, code);
   if (!area.visited) {
     area.visited = true;

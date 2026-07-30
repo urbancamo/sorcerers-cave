@@ -5,6 +5,7 @@ import { SPECIAL_DEEP_POOL, SPECIAL_CHASM, SPECIAL_WELL, SPECIAL_BELL_ROPE } fro
 import type { GameAction } from "./actions";
 import { canCarry } from "./pickup";
 import { usesArtifactsAs, holyWaterTargets, hasLivingHuman } from "./effects";
+import { getSubLocation, oppositeDir, RING_ADJACENCY_SPECIALS, ISLAND_JUMP_SPECIALS } from "./subLocation";
 
 const C_GIANT = 12; // only a Giant may lift treasure out of a Deep Pool (§Deep Pool)
 
@@ -188,15 +189,26 @@ export function legalActions(state: GameState): GameAction[] {
 
   const dec = decodeArea(state.areas[state.partyArea]!.card);
   const actions: GameAction[] = [];
-  if (dec.n) actions.push({ type: "move", dir: DIR_N });
-  if (dec.e) actions.push({ type: "move", dir: DIR_E });
-  if (dec.s) actions.push({ type: "move", dir: DIR_S });
-  if (dec.w) actions.push({ type: "move", dir: DIR_W });
+  // Precise Locations (§10.5, §8.1): a Viper-Pit/Whirlpool ledge only reaches its two ADJACENT
+  // doorways — the one directly opposite the party's current doorway is unreachable without first
+  // jumping to the island (Viper Pit only — Whirlpool has none). Retracing the entry doorway is
+  // unaffected (it's never the opposite of itself); an island-sourced crossing is unrestricted.
+  const sub = getSubLocation(state);
+  const blockedDir = RING_ADJACENCY_SPECIALS.has(dec.special) && sub.at === "doorway" && sub.dir !== undefined
+    ? oppositeDir(sub.dir) : undefined;
+  if (dec.n && blockedDir !== DIR_N) actions.push({ type: "move", dir: DIR_N });
+  if (dec.e && blockedDir !== DIR_E) actions.push({ type: "move", dir: DIR_E });
+  if (dec.s && blockedDir !== DIR_S) actions.push({ type: "move", dir: DIR_S });
+  if (dec.w && blockedDir !== DIR_W) actions.push({ type: "move", dir: DIR_W });
   if (dec.stairDown) actions.push({ type: "move", dir: DIR_DOWN });
   if (dec.stairUp) {
     if (state.level === 1) actions.push({ type: "exitCave" });
     else actions.push({ type: "move", dir: DIR_UP });
   }
+  // Precise Locations (§10.5, §8.2): jump from a doorway onto the island — Viper Pit/Deep Pool only
+  // (Peter's house rule), never from the island itself (an ordinary `move` already crosses out
+  // unrestricted from there) and never once already jumped this visit.
+  if (ISLAND_JUMP_SPECIALS.has(dec.special) && sub.at === "doorway") actions.push({ type: "jumpToIsland" });
   if (state.party.some((m) => (m.status === 0 || m.status === 1) && m.treasure.includes(14))) actions.push({ type: "openChest" });
   // The Chasm is reusable terrain: always offered while resting on it, not a one-shot (design US-02).
   if (dec.special === SPECIAL_CHASM) actions.push({ type: "descendChasm" });

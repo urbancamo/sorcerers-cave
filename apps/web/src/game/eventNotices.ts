@@ -367,6 +367,17 @@ export function eventNotices(events: GameEvent[]): Notice[] {
         out.push({ text: "A curse settles on the party.", tone: "bad" });
         break;
       }
+      case "islandJump":
+        // Precise Locations (SC-10.5, house rule): narrates the jump itself; the mechanical outcome
+        // (a Viper Pit fall or a Deep Pool treasure drop) is reported by the SAME viperPit/
+        // treasureDropped events an ordinary crossing already emits, handled above.
+        out.push({
+          text: e.special === SPECIAL_VIPER_PIT
+            ? "The party leaps for the island in the middle of the pit."
+            : "The party swims for the island in the middle of the pool.",
+          tone: "neutral",
+        });
+        break;
       default:
         assertNever(e);
         break;
