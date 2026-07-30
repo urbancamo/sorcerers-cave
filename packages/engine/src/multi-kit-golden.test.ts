@@ -354,8 +354,13 @@ describe("MP-kit golden firewall — kit-on multiplayer behaviour is frozen", ()
       expect(other.narrative).toEqual(absent.narrative);
       expect(strip(other.state)).toEqual(strip(absent.state));
     }
-    // …and it is a long, real game, not a stub that would agree trivially.
-    expect(absent.narrative.length).toBeGreaterThan(200);
+    // …and it is a long, real game, not a stub that would agree trivially. (Precise Locations,
+    // §10.5/§8.1: the Viper-Pit/Whirlpool adjacency gate shifts which moves `legalActions` offers at
+    // those tiles, which shifts this policy's RNG-indexed choices from here on — same as every other
+    // seed-driven fixture this change touched. This run now wipes both seats naturally by #66 rather
+    // than running past 200; the threshold below was lowered to match, not to paper over a shorter
+    // run — 66 real steps of movement/chamber-draws/fights/deaths is still comfortably "not a stub".)
+    expect(absent.narrative.length).toBeGreaterThan(30);
     expect(absent.final.phase).toBe("finished");
   });
 

@@ -17,6 +17,21 @@ const DIRV={N:[0,-1],S:[0,1],E:[1,0],W:[-1,0]};
 let engine, startLevel, tiles, PARTY=[], partyColorHex, isMultiplayer=false;
 const lvlIndex=l=>l-startLevel;
 function worldPos(a){ return new THREE.Vector3(a.col*TILE_W, -lvlIndex(a.level)*LEVEL_GAP, a.row*TILE_D); }
+// Precise Locations (engine SC-10.5): offset toward the doorway a sub-location names, reusing the
+// same edge geometry refreshExitMarkers already computes for exit chevrons (just short of the
+// tile edge, not hugging it). "island"/"centre"/no-direction all resolve to worldPos unchanged —
+// an island has no bespoke geometry yet (a later art pass, MSW 2026-07-30).
+const DOORWAY_TOKEN_FRAC=0.62;
+function subOffsetPos(a,dir){
+  const p=worldPos(a);
+  if(!dir||dir==='island') return p;
+  const off={N:[0,0,-(TILE_D/2)*DOORWAY_TOKEN_FRAC],S:[0,0,(TILE_D/2)*DOORWAY_TOKEN_FRAC],E:[(TILE_W/2)*DOORWAY_TOKEN_FRAC,0,0],W:[-(TILE_W/2)*DOORWAY_TOKEN_FRAC,0,0]}[dir];
+  return new THREE.Vector3(p.x+off[0], p.y, p.z+off[2]);
+}
+// The party's OWN token position, from the current area's `subLocation` (engine SC-10.5).
+function partyTokenPos(a){
+  return subOffsetPos(a, a.subLocation&&a.subLocation.at==='doorway'?a.subLocation.dir:null);
+}
 const akey=a=>a.level+','+a.col+','+a.row; // one tile per (level,col,row)
 
 /* ---- renderer / scene / camera ---- */
@@ -233,7 +248,7 @@ function buildPartyToken(){
   const halo=new THREE.Mesh(new THREE.RingGeometry(0.5,0.8,40),new THREE.MeshBasicMaterial({color:base,transparent:true,opacity:0.5,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));
   halo.rotation.x=-Math.PI/2;halo.position.y=0.05;
   g.add(disc,pillar,gem,halo);g.scale.setScalar(0.5); // party marker reduced by 50%
-  g.userData={gem,halo};g.position.copy(worldPos(engine.current));fxGroup.add(g);partyToken=g;
+  g.userData={gem,halo};g.position.copy(partyTokenPos(engine.current));fxGroup.add(g);partyToken=g;
 }
 function buildSelectRing(){
   selectRing=new THREE.Mesh(new THREE.RingGeometry(TILE_D*0.4,TILE_D*0.45,56),
@@ -338,11 +353,11 @@ function refresh(){
   updateHUD(); selectCurrent(); refreshExitMarkers(); reconcileTiles(); layPetrified();
   // Re-lay every chamber whose on-floor cards changed (e.g. a treasure was picked up);
   // layContents is a no-op when an area's contents are unchanged.
-  engine.areas.forEach(a=>layContents(a,false));
+  engine.areas.forEach(a=>{ layContents(a,false); laySunkTreasure(a); });
   // Move the party token + camera to the current tile after a panel-driven move
   // (withdraw/retreat send the party back to the previous tile, outside doMove's animation).
   if(partyToken){
-    const to=worldPos(engine.current);
+    const to=partyTokenPos(engine.current);
     // A sync can land while a previous token move is still animating (rapid panel moves, replay
     // auto-play): retarget from wherever the token is instead of dropping the move — dropping it
     // left the token a tile behind (it "skipped" locations) until a later sync caught up.
@@ -459,6 +474,43 @@ function layContents(area, animated){
   contentGroups.set(key,{group:grp,sig,faces});
 }
 
+// Precise Locations (engine SC-10.5-9): treasure sunk at a specific sub-location (a doorway or the
+// island) — laid at that doorway's own offset (subOffsetPos), NOT the generic treasure lane, so it
+// reads as precisely placed rather than lumped into the tile-wide floor. Same cache/dispose
+// pattern as layContents, keyed separately since the two signatures change independently.
+const sunkGroups=new Map();                              // "lvl,col,row" -> {group,sig,faces}
+function sunkSig(area){
+  return (area.sunkTreasure||[]).map(b=>`${b.at}:${b.items.map(c=>c.id).join(',')}`).join('|');
+}
+function laySunkTreasure(area){
+  const key=area.level+','+area.col+','+area.row;
+  const sig=sunkSig(area);
+  const existing=sunkGroups.get(key);
+  if(existing){
+    if(existing.sig===sig) return;
+    disposeContentGroup(existing); sunkGroups.delete(key);
+  }
+  if(!area.sunkTreasure||!area.sunkTreasure.length) return;
+  const base=worldPos(area);
+  const grp=new THREE.Group(); grp.position.copy(base);
+  const faces=[];
+  area.sunkTreasure.forEach(bucket=>{
+    const pos=subOffsetPos(area,bucket.at);
+    const lx=pos.x-base.x, lz=pos.z-base.z;
+    const n=bucket.items.length, center=(n-1)/2, dx=0.2, fanStep=n>1?Math.min(0.15,0.5/(n-1)):0;
+    bucket.items.forEach((card,i)=>{
+      const off=i-center;
+      const o=makeCardObject(card,-off*fanStep);
+      faces.push(o.userData.face);
+      o.userData.face.userData.area=area;
+      o.position.set(lx+off*dx, 0.07+i*0.014, lz);
+      grp.add(o);
+    });
+  });
+  grp.userData.lvl=area.level; contentGroup.add(grp);
+  sunkGroups.set(key,{group:grp,sig,faces});
+}
+
 /* Members turned to stone by Medusa: their creature card laid greyed-out on the party's tile with the
    stone marker card on top (docs/assets/tokens/markers/marker-02.png). Rebuilt whenever the party or
    its position changes; they remain until cured by the Magic Staff. */
@@ -555,7 +607,7 @@ function doMove(dir){
   if(ev.placed){ buildAreaMesh(ev.area,true).then(()=>{rebuildPlatforms();rebuildStairs();rebuildSecretDoors();rebuildLevelButtons();}); }
   // move token (a sprung trap drops the party a level, animated like a descent)
   const drop = ev.descended||ev.ascended||ev.fell;
-  const from=partyToken.position.clone(), to=worldPos(ev.area);
+  const from=partyToken.position.clone(), to=partyTokenPos(ev.area);
   tokenMove={from,to,t0:clock.elapsedTime,dur: drop?0.9:0.55};
   // camera follow
   if(drop) setTimeout(()=>flyFollow(to),120); else flyFollow(to);
@@ -602,6 +654,7 @@ function doMove(dir){
 }
 function onChamber(area,chamber){
   layContents(area, chamber.firstVisit);           // lay the cards on the chamber floor (persists)
+  laySunkTreasure(area);                           // Precise Locations: any per-doorway/island stash
   const draws=chamber.draws;
   const strangers=draws.filter(c=>c.category==='creature');
   const haz=draws.filter(c=>c.category==='hazard');
@@ -754,11 +807,20 @@ function setOtherParties(list){
     const disc=new THREE.Mesh(new THREE.CylinderGeometry(0.26,0.32,0.08,22),new THREE.MeshBasicMaterial({color:base}));disc.position.y=0.1;
     const pin=new THREE.Mesh(new THREE.ConeGeometry(0.17,0.52,14),new THREE.MeshBasicMaterial({color:base.clone().lerp(new THREE.Color(0xffffff),0.3)}));pin.position.y=0.5;
     g.add(disc,pin); g.scale.setScalar(0.5);
-    const wp=worldPos({col:p.col,row:p.row,level:p.level});
-    // Cluster near the tile centre; if several share a tile, fan them in a small ring so they don't overlap.
-    const key=p.level+','+p.col+','+p.row, n=seen.get(key)??0; seen.set(key,n+1);
-    const r=n===0?0:TILE_W*0.13, ang=(n-1)*(Math.PI*2/3);
-    g.position.set(wp.x+Math.cos(ang)*r, wp.y, wp.z+Math.sin(ang)*r);
+    const tile={col:p.col,row:p.row,level:p.level};
+    // Precise Locations (engine SC-10.5): a doorway sub-location places this pin exactly, no fan
+    // needed. Without one (today's only caller — the generic same-tile fan is the pre-existing
+    // fallback, kept for when several rivals share a tile with no positional info to tell them apart).
+    const dir=p.subLocation&&p.subLocation.at==='doorway'?p.subLocation.dir:null;
+    if(dir){
+      const wp=subOffsetPos(tile,dir);
+      g.position.set(wp.x,wp.y,wp.z);
+    } else {
+      const wp=worldPos(tile);
+      const key=p.level+','+p.col+','+p.row, n=seen.get(key)??0; seen.set(key,n+1);
+      const r=n===0?0:TILE_W*0.13, ang=(n-1)*(Math.PI*2/3);
+      g.position.set(wp.x+Math.cos(ang)*r, wp.y, wp.z+Math.sin(ang)*r);
+    }
     g.userData.lvl=p.level;
     otherGroup.add(g);
   });
@@ -918,7 +980,7 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
     onResolved:(a)=>{ setPrompt('You finish exploring <b>'+a.name+'</b>. Choose a doorway to continue.','event'); refreshExitMarkers(); },
   });
   for(const a of engine.areas) await buildAreaMesh(a,false);
-  engine.areas.forEach(a=>{ if(a.strangers.length||a.treasure.length) layContents(a,false); });
+  engine.areas.forEach(a=>{ if(a.strangers.length||a.treasure.length) layContents(a,false); laySunkTreasure(a); });
   rebuildPlatforms();rebuildStairs();rebuildSecretDoors();rebuildLevelButtons();refreshExitMarkers();
   renderRoster();updateHUD();selectCurrent();
   // default to an overhead 'snap to tile' view of the start tile, North up the screen

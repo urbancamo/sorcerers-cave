@@ -23,6 +23,7 @@ export * from "./reaction";
 export * from "./combat";
 export * from "./combatPlan";
 export * from "./special";
+export * from "./subLocation";
 export * from "./effects";
 export * from "./multi";
 export * from "./multi-session";
