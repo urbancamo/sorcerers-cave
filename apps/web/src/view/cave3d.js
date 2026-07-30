@@ -169,6 +169,7 @@ function updateIsolation(){
   secretGroup.children.forEach(applyFadeObj);
   contentGroup.children.forEach(applyFadeObj);
   otherGroup.children.forEach(applyFadeObj);
+  petrifiedGroup.children.forEach(applyFadeObj);
 }
 
 function rebuildPlatforms(){
@@ -541,7 +542,7 @@ function layPetrified(){
   stoned.forEach(m=>{ const a=byArea.get(m.stoneArea)||[]; a.push(m); byArea.set(m.stoneArea,a); });
   byArea.forEach((members,ai)=>{
     const area=areas[ai]; if(!area) return;
-    const grp=new THREE.Group(); grp.position.copy(worldPos(area));
+    const grp=new THREE.Group(); grp.position.copy(worldPos(area)); grp.userData.lvl=area.level;
     const n=members.length, center=(n-1)/2, dx=0.27, fanStep=n>1?Math.min(0.17,0.62/(n-1)):0;
     members.forEach((m,i)=>{
       const off=i-center;
