@@ -16,6 +16,16 @@ import { DEFAULT_PARTY_COLOR, type PartyColor } from "./partyColors";
 export function useCaveGame(
   id: Id<"games"> | null,
   onResolved?: (events: GameEvent[], midState?: GameState) => void,
+  // Bug fix (HQTZ-log.json): a canvas-initiated move used to stay `busy` (blocking a further move)
+  // until its LOCAL "Aftermath" notice was dismissed — removed as a duplicate-notice fix, which
+  // silently dropped the only thing pacing rapid re-moves against the Convex round-trip's async
+  // notice arrival. A player who moved again before that round-trip resolved would see an EARLIER
+  // move's notice pop up over whatever tile they'd since moved to. `canAct` closes that gap:
+  // GameScreen passes `() => !holding` so tryMove refuses a new move while a previous one's
+  // dice/notice is still presenting — mirroring multiplayer's own turn-gate (MultiplayerPlay.tsx's
+  // `canAct: () => yourTurnRef.current`), which never had this race because turn-order already
+  // blocks it.
+  canAct?: () => boolean,
 ) {
   const game = useQuery(api.game.get, id ? { id } : "skip");
   const apply = useMutation(api.game.applyAction);
@@ -25,6 +35,8 @@ export function useCaveGame(
   const syncedRef = useRef<GameState | null>(null);
   const onResolvedRef = useRef(onResolved);
   onResolvedRef.current = onResolved;
+  const canActRef = useRef(canAct);
+  canActRef.current = canAct;
 
   useEffect(() => { void loadManifest().then(setArt); }, []);
 
@@ -50,6 +62,7 @@ export function useCaveGame(
             onResolvedRef.current?.(r?.events ?? [], r?.midState);
           });
         },
+        canAct: () => !canActRef.current || canActRef.current(),
       });
       syncedRef.current = state;
     }
