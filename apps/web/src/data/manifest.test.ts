@@ -89,6 +89,17 @@ describe("resolveTile", () => {
   it("resolves a merged extension tile (chasm, x06-2) at rot 0", () => {
     expect(resolveTile(topo({ exits: "NESW", isChamber: true, special: "chasm" }), tiles)).toEqual({ tileId: "x06-2", rot: 0 });
   });
+  it("still resolves a special whose exits were pruned mid-game (map.ts's pruneExit)", () => {
+    // The chasm's only art is printed with all four exits; a dead-end draw off it prunes one
+    // doorway from the LIVE card, but the printed art itself hasn't changed — still x06-2.
+    expect(resolveTile(topo({ exits: "NES", isChamber: true, special: "chasm" }), tiles)).toEqual({ tileId: "x06-2", rot: 0 });
+    expect(resolveTile(topo({ exits: "N", isChamber: true, special: "chasm" }), tiles)).toEqual({ tileId: "x06-2", rot: 0 });
+  });
+  it("does not relax the exits match for an ordinary (non-special) tile", () => {
+    // "N" is a subset of "NESW" (s14-2's gateway) or "NE" (s01-1) — but subset-matching is only
+    // for specials; an ordinary tile still needs its own exact art or none exists for it.
+    expect(resolveTile(topo({ exits: "N", isChamber: false }), tiles)).toBeNull();
+  });
 });
 
 describe("resolveCard", () => {

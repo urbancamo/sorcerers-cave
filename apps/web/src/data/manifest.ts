@@ -86,16 +86,27 @@ export function parseManifest(m: AssetManifest): { tiles: TileArt[]; cards: Card
  * Tiles are LANDSCAPE and the cave grid is landscape-celled, so a rotated tile never fits a
  * cell — every area card is therefore drawn in its printed orientation (rot 0). The full deck
  * is covered at rot 0 (enforced by tileOrientation.test); rotation is intentionally not done.
+ *
+ * A special area (one printed card, one manifest entry) can have a doorway pruned mid-game
+ * (map.ts's pruneExit — a draw that doesn't connect back, or an earthquake-collapsed neighbour):
+ * pruning only ever REMOVES a doorway from the printed card, never adds one, so a special's
+ * live exits are matched as a subset of the art's printed exits rather than requiring equality.
+ * Without this, a pruned special silently fell back to `art.tiles[0]` (an arbitrary, non-special
+ * tile) — mechanically still the Whirlpool/Viper Pit/etc., but visually indistinguishable from
+ * a plain tunnel (found live: a Whirlpool tile pruned by an earlier dead-end draw). Ordinary
+ * tiles keep the exact match — the base deck has many similarly-shaped variants that aren't
+ * interchangeable the way a special's single art asset is.
  */
 export function resolveTile(topo: Topology, tiles: TileArt[]): { tileId: string; rot: Rot } | null {
   const want = normExits(topo.exits);
   for (const t of tiles) {
+    const exitsMatch = topo.special !== null ? [...want].every((d) => t.exits.includes(d)) : t.exits === want;
     if (
       t.special === topo.special &&
       t.stairUp === topo.stairUp &&
       t.stairDown === topo.stairDown &&
       (topo.special !== null || (t.type === "chamber") === topo.isChamber) &&
-      t.exits === want
+      exitsMatch
     ) {
       return { tileId: t.tileId, rot: 0 };
     }
