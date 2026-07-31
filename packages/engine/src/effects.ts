@@ -16,8 +16,12 @@ const C_SORCERER = 11; // extension-kit Holy Water target — WEAKEN mode (desig
 const C_UNICORN = 13;
 const C_APPRENTICE = 14; // extension-kit creature — deserts to a hostile stranger the instant the Sorcerer dies (design US-14, SC-EXT-20)
 const C_DEMON = 15; // extension-kit creature — Holy Water's DESTROY mode target (design US-20, SC-EXT-24)
-// The Charmed Flute only works when played by a Man, Woman, Hero, Priest or Wizard (§ Charmed Flute).
-const FLUTE_BASE = [0, 4, 5, 6, 8]; // Hero, Priest, Man, Woman, Wizard
+// The Charmed Flute only works when played by a Man, Woman, Hero, W-Hero, Priest or Wizard
+// (§ Charmed Flute; SC-11-29) — the Sword's own "HERO includes W-Hero" roster (Resolved-9),
+// same as SHIELD_WARD_ELIGIBLE above. W-Hero(1) was missing here (found live, docs/bugs/ONRN-log.json:
+// a W-Hero-held Flute failed to lull a Dragon), even though selectors.ts/reduce.ts's own Flute
+// eligibility checks already included it — this list is the one that fell out of sync.
+const FLUTE_BASE = [0, 1, 4, 5, 6, 8]; // Hero, W-Hero, Priest, Man, Woman, Wizard
 
 /**
  * Extension kit (SC-EXT-17, design §1.3): a kit creature that "uses artifacts as" a base class

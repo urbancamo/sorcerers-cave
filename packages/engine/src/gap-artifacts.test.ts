@@ -127,6 +127,11 @@ describe("SC-11-29: Charmed Flute creature-type gate (§Charmed Flute)", () => {
     const s = makeState({ party: [member(0, [12])] });
     expect(fluteLulls(s)).toBe(true);
   });
+
+  it("a W-Hero (id 1) carrying the Flute DOES lull — fluteLulls true (docs/bugs/ONRN-log.json)", () => {
+    const s = makeState({ party: [member(1, [12])] });
+    expect(fluteLulls(s)).toBe(true);
+  });
 });
 
 describe("SC-11-31: Charmed Flute lulls the vipers (§10.1, viperCrossing)", () => {
