@@ -9,7 +9,7 @@ export type CardKind = "ally" | "caster" | "foe";
  *  party members) drag + click to assign. `strength` is the value shown in the badge. */
 export function FightCard({
   creatureId, kind, strength, caption, treasure = [], cards, state,
-  draggable, onPick, dim, selected, testId, onRelicClick, artifactsOnly, dragId, label,
+  draggable, onPick, dim, selected, testId, onRelicClick, artifactsOnly, dragId, label, variantIdx,
 }: {
   creatureId: number; kind: CardKind; strength: number; caption?: string;
   label?: string; // party members: the party-wide "#N" display name (foes keep the creature name)
@@ -18,8 +18,14 @@ export function FightCard({
   onRelicClick?: (relic: { id: number; file: string; name: string }) => void;
   artifactsOnly?: boolean; // in a matchup, heavy treasure is dropped to fight — show only kept artefacts
   dragId?: number; // the party-member index this card carries when dragged (read by the drop targets)
+  // Which physical copy of this creature to illustrate — the nth same-creatureId member/stranger by
+  // stable array order (party index, or position among state.strangers), matching how PartyPanel's
+  // own `copyIdx` and the chamber floor's `laneCards` pick a variant. Without this, every card of the
+  // same creature type showed the SAME fixed image (derived from creatureId, not from which physical
+  // copy it is) — inconsistent with whatever the chamber/party panel had already shown for that member.
+  variantIdx?: number;
 }) {
-  const art = resolveCardVariant("creature", creatureId, creatureId, cards) ?? resolveCard("creature", creatureId, cards);
+  const art = resolveCardVariant("creature", creatureId, variantIdx ?? 0, cards) ?? resolveCard("creature", creatureId, cards);
   const name = ALL_CREATURES[creatureId]?.name ?? "?";
   const relics = treasure
     .filter((t) => !artifactsOnly || ALL_TREASURES[t]?.kind === "artifact")

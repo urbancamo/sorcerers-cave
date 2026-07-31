@@ -61,6 +61,18 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
 
   // Party-wide "#N" labels so duplicate classes are told apart on every card and in the casualty prompt.
   const labels = memberLabels(state.party);
+  // Each member/stranger's copy-index among same-creatureId entries (by stable array order) → its own
+  // card art, so two Men show different illustrations instead of both defaulting to the same fixed
+  // image — and so the SAME stranger keeps the SAME picture it already showed on the chamber floor
+  // (laneCards, projection.ts, uses this identical nth-occurrence rule over the same state.strangers
+  // order). Mirrors PartyPanel.tsx's own `copyIdx` for the ally side.
+  const copyIdxOf = (ids: readonly number[]): Map<number, number> => {
+    const idx = new Map<number, number>(), tally = new Map<number, number>();
+    ids.forEach((id, i) => { const k = tally.get(id) ?? 0; idx.set(i, k); tally.set(id, k + 1); });
+    return idx;
+  };
+  const partyCopyIdx = copyIdxOf(state.party.map((m) => m.creatureId));
+  const strangerCopyIdx = copyIdxOf(state.strangers);
 
   // Casualty choice takes over the surface until resolved.
   const pair = state.fight.casualtyQueue?.[0];
@@ -148,13 +160,13 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
           {pm.strangers.map((si) => (
             <FightCard key={si} creatureId={state.strangers[si]!} kind="foe" strength={enemyStrOf(si)}
                        caption={state.strangers[si] === C_SPECTRE ? "magic only" : pm.attached.includes(si) ? "gangs up" : undefined}
-                       dim={pm.attached.includes(si)} cards={cards} state={state} />
+                       dim={pm.attached.includes(si)} cards={cards} state={state} variantIdx={strangerCopyIdx.get(si)} />
           ))}
           {/* Leftover enemy casters lending magical power from the background (§395) — shown so the
               enemy total reflects who is actually in the fight, not a mystery number. */}
           {pm.enemyBackers.map((si) => (
             <FightCard key={`b${si}`} creatureId={state.strangers[si]!} kind="foe" strength={enemyMpOf(si)}
-                       caption="lends magic" dim cards={cards} state={state} />
+                       caption="lends magic" dim cards={cards} state={state} variantIdx={strangerCopyIdx.get(si)} />
           ))}
         </div>
         <div className="scv-match-vs"><span className="them">{pm.enemyStr}</span><span className="x">vs</span><span className="me">{pm.partyStr}</span></div>
@@ -167,7 +179,8 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
                 const i = pm.front[slot];
                 return i !== undefined ? (
                   <FightCard key={slot} creatureId={state.party[i]!.creatureId} label={labels[i]} kind={kindOf(state, i)} strength={memberStrength(i, spectre)}
-                             treasure={state.party[i]!.treasure} artifactsOnly cards={cards} state={state} draggable dragId={i} onRelicClick={showRelic} onPick={() => setDraft((d) => unplace(d, i))} />
+                             treasure={state.party[i]!.treasure} artifactsOnly cards={cards} state={state} draggable dragId={i} onRelicClick={showRelic}
+                             onPick={() => setDraft((d) => unplace(d, i))} variantIdx={partyCopyIdx.get(i)} />
                 ) : <span key={slot} className="scv-slot-empty">drop a fighter</span>;
               })}
             </div>
@@ -177,7 +190,8 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
               <span className="scv-match-slotlbl">✦ behind</span>
               {pm.backers.length ? pm.backers.map((i) => (
                 <FightCard key={i} creatureId={state.party[i]!.creatureId} label={labels[i]} kind="caster" strength={casterMP(state.party[i]!, state)}
-                           treasure={state.party[i]!.treasure} cards={cards} state={state} draggable dragId={i} onRelicClick={showRelic} onPick={() => setDraft((d) => unplace(d, i))} />
+                           treasure={state.party[i]!.treasure} cards={cards} state={state} draggable dragId={i} onRelicClick={showRelic}
+                           onPick={() => setDraft((d) => unplace(d, i))} variantIdx={partyCopyIdx.get(i)} />
               )) : <span className="scv-match-hint">magic user</span>}
             </div>
           </div>
@@ -207,7 +221,8 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
     <div key={`i${si}`} className="scv-match scv-match-idle">
       <div className="scv-match-foes">
         <FightCard creatureId={state.strangers[si]!} kind="foe" strength={enemyStrOf(si)}
-                   caption={state.strangers[si] === C_SPECTRE ? "magic only" : "unengaged"} dim cards={cards} state={state} />
+                   caption={state.strangers[si] === C_SPECTRE ? "magic only" : "unengaged"} dim cards={cards} state={state}
+                   variantIdx={strangerCopyIdx.get(si)} />
       </div>
       <div className="scv-match-vs"><span className="them">{enemyStrOf(si)}</span><span className="x">vs</span><span className="me">0</span></div>
       <div className="scv-match-party">
@@ -259,7 +274,7 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
         {tray.length ? tray.map((i) => (
           <FightCard key={i} testId={`tray-${i}`} creatureId={state.party[i]!.creatureId} label={labels[i]} kind={kindOf(state, i)} strength={frontStrength(state.party[i]!, state)}
                      treasure={state.party[i]!.treasure} cards={cards} state={state} draggable dragId={i} selected={sel === i}
-                     onPick={() => setSel(sel === i ? null : i)} />
+                     onPick={() => setSel(sel === i ? null : i)} variantIdx={partyCopyIdx.get(i)} />
         )) : <span className="scv-fight-hint">all fighters assigned</span>}
       </div>
 

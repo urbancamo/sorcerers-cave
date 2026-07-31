@@ -1,8 +1,11 @@
-import { describe, it, expect, vi } from "vitest";
+import { describe, it, expect, vi, beforeAll } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import type { AssetManifest } from "@sorcerers-cave/assets";
 import { newGame, type GameState } from "@sorcerers-cave/engine";
 import { FightSurface } from "./FightSurface";
-import type { CardArt } from "../data/manifest";
+import { parseManifest, resolveCardVariant, type CardArt } from "../data/manifest";
 
 const cards: CardArt[] = []; // art is optional in tests — FightCard falls back to a name block
 
@@ -251,5 +254,42 @@ describe("FightSurface", () => {
     fireEvent.click(screen.getByRole("button", { name: /retreat/i }));
     fireEvent.click(within(screen.getByTestId("retreat-menu")).getAllByRole("button")[0]!);
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "retreat" }));
+  });
+});
+
+describe("FightCard art — same picture the chamber floor already showed", () => {
+  // Real manifest art (the same fixture projection.test.ts uses): the Dragon has 3 distinct images,
+  // so a mismatch between "which copy" the chamber and the fight popup pick is actually visible.
+  let realCards: CardArt[];
+  beforeAll(() => {
+    const m = JSON.parse(readFileSync(resolve(process.cwd(), "../../docs/assets/manifest.json"), "utf8")) as AssetManifest;
+    realCards = parseManifest(m).cards;
+  });
+
+  it("gives two duplicate foes their own distinct art, matching the chamber's own nth-copy rule", () => {
+    // Two Dragons (id 10) as strangers — projection.ts's laneCards assigns them variants 0 and 1 by
+    // array order (see projection.test.ts's "unique ids even for repeats"); the fight popup must
+    // pick the SAME two images for the SAME two Dragons, not a single fixed image derived from id 10.
+    const s: GameState = { ...newGame(1, [6, 4]), phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, strangers: [10, 10] };
+    const dispatch = vi.fn();
+    const { container } = render(<FightSurface state={s} dispatch={dispatch} cards={realCards} />);
+    const foeArt = [...container.querySelectorAll<HTMLImageElement>(".scv-fc-art")].slice(0, 2);
+    expect(foeArt).toHaveLength(2);
+    expect(foeArt[0]!.src).toContain(resolveCardVariant("creature", 10, 0, realCards)!.file);
+    expect(foeArt[1]!.src).toContain(resolveCardVariant("creature", 10, 1, realCards)!.file);
+    expect(foeArt[0]!.src).not.toBe(foeArt[1]!.src); // the bug: both used to render the SAME fixed image
+  });
+
+  it("gives two duplicate allies their own distinct art, matching PartyPanel's own copy-index rule", () => {
+    // Two Men (id 5) in the party tray — PartyPanel.tsx assigns copy 0/1 by original party order;
+    // the fight tray must pick the same two images for the same two Men.
+    const s: GameState = { ...newGame(1, [5, 5]), phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, strangers: [3] };
+    const dispatch = vi.fn();
+    render(<FightSurface state={s} dispatch={dispatch} cards={realCards} />);
+    const tray0 = within(screen.getByTestId("tray-0")).getByRole("img") as HTMLImageElement;
+    const tray1 = within(screen.getByTestId("tray-1")).getByRole("img") as HTMLImageElement;
+    expect(tray0.src).toContain(resolveCardVariant("creature", 5, 0, realCards)!.file);
+    expect(tray1.src).toContain(resolveCardVariant("creature", 5, 1, realCards)!.file);
+    expect(tray0.src).not.toBe(tray1.src);
   });
 });
