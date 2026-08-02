@@ -10,12 +10,15 @@ const REPO_URL = "https://github.com/urbancamo/sorcerers-cave";
 
 export function SplashScreen({
   onStartSolitaire,
+  onStartTestGame,
   onResume,
   onReplay,
   onStartMultiplayer,
   onJoinMultiplayer,
 }: {
   onStartSolitaire: () => void;
+  /** Test Mode (§Test Mode) — present only when the page was opened with a ?test= param. */
+  onStartTestGame?: () => void;
   onResume?: (code: string) => Promise<boolean>;
   /** Replay a (any player's) solo game by code — resolves null when the viewer opened, or an
    *  explanatory message (not found / predates logging / multiplayer) to surface here (§RB-3-3). */
@@ -109,6 +112,11 @@ export function SplashScreen({
       <section className="scv-panel scv-start">
         <h2 className="scv-hd">Start new game</h2>
         <button className="scv-primary" onClick={onStartSolitaire}>Start Solitaire Game</button>
+        {onStartTestGame && (
+          <button className="scv-primary" data-testid="start-test-game" onClick={onStartTestGame}>
+            Start Test Game
+          </button>
+        )}
 
         <div className="scv-resume" data-testid="resume">
           <label className="scv-resume-label" htmlFor="scv-resume-code">Resume a game</label>

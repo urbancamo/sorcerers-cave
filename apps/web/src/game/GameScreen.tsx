@@ -27,15 +27,19 @@ import { MULTIPLAYER_ENABLED } from "./featureFlags";
 import { MultiplayerSetup } from "./MultiplayerSetup";
 import { MultiplayerLobby } from "./MultiplayerLobby";
 import { ReplayView, type ReplayBundle } from "./ReplayView";
+import { getTestSecret } from "./testMode";
 
 export default function GameScreen() {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const { signIn } = useAuthActions();
   const newGame = useMutation(api.game.newGame);
+  const startTestGame = useMutation(api.game.startTestGame);
   const saveGame = useMutation(api.game.save);
   const resumeByCode = useMutation(api.game.resumeByCode);
   const saveScore = useMutation(api.highScores.save);
   const [gameId, setGameId] = useState<Id<"games"> | null>(null);
+  const [wantTestGame, setWantTestGame] = useState(false); // Test Mode: PartySelect confirms into startTestGame instead
+  const testSecret = getTestSecret();
   const [started, setStarted] = useState(false); // dismissed the splash
   const [showParty, setShowParty] = useState(false); // expanded party panel
   const [savedCode, setSavedCode] = useState<string | null>(null); // shows the save modal when set
@@ -85,7 +89,7 @@ export default function GameScreen() {
 
   // Return to the splash screen, clearing all in-game overlays and the current game binding.
   const goHome = useCallback(() => {
-    clearRoll(); clearNotices(); setSavedCode(null); setShowParty(false); setGameId(null); setStarted(false);
+    clearRoll(); clearNotices(); setSavedCode(null); setShowParty(false); setGameId(null); setStarted(false); setWantTestGame(false);
   }, [clearRoll, clearNotices]);
 
   // Save from the HUD: the state is already authoritative in Convex, so this just surfaces the
@@ -145,6 +149,7 @@ export default function GameScreen() {
     return (
       <SplashScreen
         onStartSolitaire={() => setStarted(true)}
+        onStartTestGame={testSecret ? () => { setWantTestGame(true); setStarted(true); } : undefined}
         onResume={handleResume}
         onReplay={handleReplay}
         onStartMultiplayer={MULTIPLAYER_ENABLED ? () => setMp({ view: "create" }) : undefined}
@@ -156,8 +161,13 @@ export default function GameScreen() {
     return (
       <PartySelect
         kitToggle
-        onBack={() => setStarted(false)}
-        onConfirm={async (picks, color, variants) => setGameId(await newGame({ seed: Date.now(), picks, color, variants }))}
+        onBack={() => { setStarted(false); setWantTestGame(false); }}
+        onConfirm={async (picks, color, variants) => {
+          const id = wantTestGame && testSecret
+            ? await startTestGame({ secret: testSecret, seed: Date.now(), picks, color, variants })
+            : await newGame({ seed: Date.now(), picks, color, variants });
+          setGameId(id);
+        }}
       />
     );
   }
@@ -186,8 +196,8 @@ export default function GameScreen() {
         <GameOverScreen
           state={displayState}
           // Return to the splash screen (the home / high-scores entry), not straight to party select.
-          onNewGame={() => { clearRoll(); clearNotices(); setGameId(null); setStarted(false); }}
-          onSaveScore={(name) => saveScore({ gameId, name })}
+          onNewGame={() => { clearRoll(); clearNotices(); setGameId(null); setStarted(false); setWantTestGame(false); }}
+          onSaveScore={displayState.testMode ? undefined : (name) => saveScore({ gameId, name })}
           log={gameLog ?? null}
           code={code ?? gameLog?.game.code ?? null}
           onReplay={handleReplay}
