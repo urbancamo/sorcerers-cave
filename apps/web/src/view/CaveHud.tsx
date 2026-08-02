@@ -7,7 +7,7 @@ import "./cave.css";
  * discovery overlay (`reveal.js`) is preserved verbatim. The `#scene` div
  * receives the React container ref so `boot` can append its WebGL canvas there.
  */
-export function CaveHud({ mountRef, onPartyClick, onSave, onLog, code, turnLabel, turnColor, curses, kitActive }: { mountRef: RefObject<HTMLDivElement | null>; onPartyClick?: () => void; onSave?: () => void; onLog?: () => void; code?: string; turnLabel?: string; turnColor?: string; curses?: number; kitActive?: boolean }) {
+export function CaveHud({ mountRef, onPartyClick, onSave, onLog, code, turnLabel, turnColor, curses, kitActive, testMode }: { mountRef: RefObject<HTMLDivElement | null>; onPartyClick?: () => void; onSave?: () => void; onLog?: () => void; code?: string; turnLabel?: string; turnColor?: string; curses?: number; kitActive?: boolean; testMode?: boolean }) {
   return (
     <>
       <div id="bg"></div>
@@ -34,6 +34,11 @@ export function CaveHud({ mountRef, onPartyClick, onSave, onLog, code, turnLabel
               <div className="chip scv-turnchip" title="Whose turn it is now">
                 <span className="k">Now</span>
                 <span className="v" style={turnColor ? { color: turnColor } : undefined}>{turnLabel}</span>
+              </div>
+            )}
+            {testMode && (
+              <div className="chip scv-testchip" title="Test Mode — scripted scenario, never eligible for the leaderboard">
+                <span className="v">TEST</span>
               </div>
             )}
             {kitActive && (

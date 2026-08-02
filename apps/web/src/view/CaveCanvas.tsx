@@ -73,5 +73,5 @@ export function CaveCanvas({ engine, state, color, onPartyClick, onSave, onLog, 
     ctrl.current?.setOtherParties?.(otherParties ?? []);
   }, [otherParties]);
 
-  return <CaveHud mountRef={mountRef} onPartyClick={onPartyClick} onSave={onSave} onLog={onLog} code={code} turnLabel={turnLabel} turnColor={turnColor} curses={state.curses} kitActive={!!state.variants?.extensionKit} />;
+  return <CaveHud mountRef={mountRef} onPartyClick={onPartyClick} onSave={onSave} onLog={onLog} code={code} turnLabel={turnLabel} turnColor={turnColor} curses={state.curses} kitActive={!!state.variants?.extensionKit} testMode={!!state.testMode} />;
 }
