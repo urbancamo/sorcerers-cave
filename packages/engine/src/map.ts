@@ -4,6 +4,7 @@ import {
   targetCoord, unpackCoord,
 } from "./coords";
 import { AF_DESTROYED, type GameState, type PlacedArea } from "./state";
+import { SPECIAL_CANONICAL_CARD } from "./data/areaCards";
 
 export interface MoveResult {
   state: GameState;
@@ -107,15 +108,32 @@ export function tryMove(state: GameState, dir: number): MoveResult {
     return { state: next, moved: false, deadEnd: true };
   }
 
-  // No existing area — draw a card.
-  if (next.largeIdx >= next.largePack.length) return { state, moved: false, deadEnd: false };
-  let drawn = next.largePack[next.largeIdx]!;
-  next.largeIdx += 1;
+  // No existing area — draw a card. Test Mode (§Test Mode): an armed testNextArea for THIS exact
+  // direction takes over the draw entirely — including bypassing the empty-pack early return, since
+  // nothing is actually drawn from largePack. Consumed here, once, whether or not the placement
+  // below ends up connecting (it always will — see the `connects` override two lines down). Checks
+  // `testMode` explicitly rather than trusting testNextArea's mere presence — defense in depth
+  // against a hand-crafted state, matching this codebase's existing style elsewhere (e.g. the
+  // Precise Locations adjacency gate, enforced independently in both selectors.ts and reduce.ts).
+  const override = next.testMode && next.testNextArea?.dir === dir ? next.testNextArea : undefined;
+  let drawn: number;
+  if (override) {
+    drawn = SPECIAL_CANONICAL_CARD[override.special]!;
+    delete next.testNextArea;
+  } else {
+    if (next.largeIdx >= next.largePack.length) return { state, moved: false, deadEnd: false };
+    drawn = next.largePack[next.largeIdx]!;
+    next.largeIdx += 1;
+  }
   // A printed stair-up on a level-1 card is a *cave exit*, not a stair to a level above (§ level-1 exits:
   // "any stairway leading up from the first level is an exit from the Cave"). It is kept — exiting is the
   // `exitCave` action (a DIR_UP move stays blocked on level 1), so several cards, not only the Gateway,
   // can let a party escape. Without this a party whose Gateway is destroyed can be trapped forever.
-  const connects = dir === DIR_UP || dir === DIR_DOWN || hasReverseDoor(decodeArea(drawn), dir);
+  // Test Mode (§Test Mode): a scripted placement always connects, regardless of the special's
+  // printed orientation — the whole point is guaranteeing the tester reaches the scenario asked
+  // for. (In practice every SPECIAL_CANONICAL_CARD entry has all four exits anyway — see Task 1's
+  // own test — so this only matters if that ever changes.)
+  const connects = !!override || dir === DIR_UP || dir === DIR_DOWN || hasReverseDoor(decodeArea(drawn), dir);
 
   if (connects) {
     // A stairway leading to an area with no matching stair pictured has a secret door at that end

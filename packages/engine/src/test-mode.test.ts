@@ -95,3 +95,45 @@ describe("test-* action gating (SC-Test-1)", () => {
     expect(state.testNextArea).toEqual({ dir: 2, special: SPECIAL_CHASM });
   });
 });
+
+import { tryMove } from "./index";
+import { DIR_N, DIR_E } from "./index";
+
+describe("testNextArea consumed by tryMove (SC-Test-2)", () => {
+  it("places the canonical special card, connects regardless of orientation, and clears the override", () => {
+    let s = newGame(1, [0], undefined, true); // Gateway has all 4 exits — every direction is open
+    s = reduce(s, { type: "testPlaceArea", dir: DIR_N, special: SPECIAL_WHIRLPOOL }).state;
+    const r = tryMove(s, DIR_N);
+    expect(r.moved).toBe(true);
+    expect(r.deadEnd).toBe(false);
+    const placed = r.state.areas[r.state.partyArea]!;
+    expect(placed.card).toBe(SPECIAL_CANONICAL_CARD[SPECIAL_WHIRLPOOL]);
+    expect(placed.faceUp).toBe(true);
+    expect(r.state.testNextArea).toBeUndefined();
+  });
+
+  it("leaves the override armed when the party moves a DIFFERENT direction first", () => {
+    let s = newGame(1, [0], undefined, true);
+    s = reduce(s, { type: "testPlaceArea", dir: DIR_N, special: SPECIAL_WHIRLPOOL }).state;
+    const r = tryMove(s, DIR_E); // an ordinary draw — override is for North, not East
+    expect(r.state.testNextArea).toEqual({ dir: DIR_N, special: SPECIAL_WHIRLPOOL });
+    expect(decodeArea(r.state.areas[r.state.partyArea]!.card).special).not.toBe(SPECIAL_WHIRLPOOL);
+  });
+
+  it("does not consume the large pack (largeIdx unchanged) when placing from the override", () => {
+    let s = newGame(1, [0], undefined, true);
+    s = reduce(s, { type: "testPlaceArea", dir: DIR_N, special: SPECIAL_WHIRLPOOL }).state;
+    const before = s.largeIdx;
+    const r = tryMove(s, DIR_N);
+    expect(r.state.largeIdx).toBe(before);
+  });
+
+  it("ignores an armed testNextArea on a non-test game (defense in depth against a hand-crafted state)", () => {
+    const s = newGame(1, [0]); // testMode absent — testNextArea can never be armed this way through
+    s.testNextArea = { dir: DIR_N, special: SPECIAL_WHIRLPOOL }; // real play; set directly to prove map.ts doesn't just trust its presence
+    const r = tryMove(s, DIR_N);
+    expect(r.moved).toBe(true); // an ordinary draw still happens
+    expect(decodeArea(r.state.areas[r.state.partyArea]!.card).special).not.toBe(SPECIAL_WHIRLPOOL);
+    expect(r.state.testNextArea).toEqual({ dir: DIR_N, special: SPECIAL_WHIRLPOOL }); // left untouched, not silently consumed
+  });
+});
