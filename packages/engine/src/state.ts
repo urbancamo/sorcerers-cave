@@ -237,4 +237,17 @@ export interface GameState {
   // runs. Undefined for every ordinary pickup (won fight, floor find, Deep Pool, Lost Ruby, …) and
   // for every kit-off game (SC-EXT-1 byte-identity).
   thiefPickup?: boolean;
+  // Test Mode (§Test Mode): set only by `newGame(..., testMode: true)`; never toggled mid-game.
+  // Gates the four test-* actions (reduce.ts) — every other game rejects them with `blocked`.
+  testMode?: true;
+  // Armed by `testPlaceArea`; consumed by the next fresh-draw `move` in this exact direction
+  // (map.ts's `tryMove`), which always connects regardless of the special's printed orientation.
+  testNextArea?: { dir: number; special: number };
+  // Armed by `testSetChamber`; consumed by the next chamber freshly entered by any means (an
+  // ordinary move, the Magic Carpet, a trap fall, a Chasm descent — chamber.ts's `enterChamber`).
+  // Replaces the normal smallPack draw; smallIdx is left untouched.
+  testNextChamber?: { strangers: number[]; treasures: number[]; hazards: number[] };
+  // Armed by `testForceReaction`; consumed by the next `test` (reaction) action in place of
+  // reactionRoll's die.
+  testNextReaction?: "friendly" | "indifferent" | "hostile";
 }

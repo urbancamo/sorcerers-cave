@@ -42,3 +42,19 @@ export const EXT_AREA_CARDS: readonly number[] = [
   1055, 1183, 1311, 1439,  // x07: lair, whirlpool, gallery, well
   10, 10,                  // x08: EW tunnels
 ];
+
+// Test Mode (§Test Mode): the one deck card value each real special decodes to — verified against
+// AREA_CARDS/EXT_AREA_CARDS by test-mode.test.ts. Every entry happens to be a full 4-exit chamber
+// card already, so a test-mode placement (map.ts) needs no orientation trick to connect.
+export const SPECIAL_CANONICAL_CARD: Readonly<Record<number, number>> = {
+  [SPECIAL_DEEP_POOL]: 287,
+  [SPECIAL_VIPER_PIT]: 415,
+  [SPECIAL_TOMB]: 543,
+  [SPECIAL_GREAT_HALL]: 671,
+  [SPECIAL_CHASM]: 799,
+  [SPECIAL_BELL_ROPE]: 927,
+  [SPECIAL_LAIR]: 1055,
+  [SPECIAL_WHIRLPOOL]: 1183,
+  [SPECIAL_GALLERY]: 1311,
+  [SPECIAL_WELL]: 1439,
+};
