@@ -472,7 +472,10 @@
 }
 .scv-tc-row-nm { flex: 1 1 auto; color: var(--cream); font-weight: 600; }
 .scv-tc-chips { display: flex; flex-wrap: wrap; gap: 4px; }
-.scv-tc-chip {
+/* Scoped under .scv-tc (rather than bare .scv-tc-chip) so this rule's specificity (0,2,0) beats
+   .scv-tc button's (0,1,1) below — otherwise the generic button rule would win and the chips
+   would render as boxy buttons instead of pills. See .scv-tc-clear below for the same issue. */
+.scv-tc .scv-tc-chip {
   font-family: var(--ui);
   font-size: 11px;
   padding: 3px 8px;
@@ -482,7 +485,7 @@
   background: rgba(201, 161, 78, 0.1);
   cursor: pointer;
 }
-.scv-tc-chip:hover { border-color: var(--brass); color: var(--cream); }
+.scv-tc .scv-tc-chip:hover { border-color: var(--brass); color: var(--cream); }
 .scv-tc-armed { margin: 0; color: var(--brass-bright); font-style: italic; }
 .scv-tc button {
   font-family: var(--ui);
@@ -495,8 +498,10 @@
   cursor: pointer;
 }
 .scv-tc button:hover { border-color: var(--brass); color: var(--cream); background: rgba(201, 161, 78, 0.14); }
-.scv-tc-clear { align-self: flex-start; border-color: var(--crimson); color: var(--crimson); }
-.scv-tc-clear:hover { background: rgba(168, 68, 58, 0.12); color: var(--cream); }
+/* Scoped under .scv-tc so (0,2,0) beats .scv-tc button's (0,1,1) — otherwise the "Clear all
+   overrides" button would lose its crimson warning styling to the generic button rule above. */
+.scv-tc .scv-tc-clear { align-self: flex-start; border-color: var(--crimson); color: var(--crimson); }
+.scv-tc .scv-tc-clear:hover { background: rgba(168, 68, 58, 0.12); color: var(--cream); }
 
 /* Dice-roll overlay: a modal die that tumbles, settles, then reports the outcome. */
 .scv-dice-overlay {
