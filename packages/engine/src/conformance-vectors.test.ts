@@ -156,6 +156,13 @@ function encodeAction(a: GameAction): string {
     // none of the policies below choose it deliberately, but it appears in `legalActions` for any
     // run that lands a doorway on one of those two tiles, so it must stay exhaustive here.
     case "jumpToIsland": return "JUMPISLAND";
+    // Test Mode (§Test Mode): QA-only actions, never offered via `legalActions` and so never chosen
+    // by any policy below (base/slayer/artifacts/kit) — kept here purely so this switch stays
+    // exhaustive over the full GameAction union; no committed vector file will ever contain them.
+    case "testPlaceArea": return `TESTPLACEAREA ${a.dir} ${a.special}`;
+    case "testSetChamber": return `TESTSETCHAMBER ${list(a.strangers)}/${list(a.treasures)}/${list(a.hazards)}`;
+    case "testForceReaction": return `TESTFORCEREACTION ${a.outcome.toUpperCase()}`;
+    case "testClearOverrides": return "TESTCLEAROVERRIDES";
   }
 }
 

@@ -47,7 +47,13 @@ export type GameAction =
   // d6 as an ordinary crossing (`viperCrossing` reused verbatim); Deep Pool auto-drops any
   // non-Giant-carried heavy treasure exactly like an ordinary crossing (`deepPoolCrossing` reused
   // verbatim) — no roll. No target/dir: the destination is always this tile's own island.
-  | { type: "jumpToIsland" };
+  | { type: "jumpToIsland" }
+  // Test Mode (§Test Mode): arm/clear the next draw or reaction override. Rejected with `blocked`
+  // on any game whose `state.testMode` isn't true (reduce.ts) — never legal in a real game.
+  | { type: "testPlaceArea"; dir: number; special: number }
+  | { type: "testSetChamber"; strangers: number[]; treasures: number[]; hazards: number[] }
+  | { type: "testForceReaction"; outcome: "friendly" | "indifferent" | "hostile" }
+  | { type: "testClearOverrides" };
 
 // What happened — the reducer is the only producer; the UI never infers game facts.
 // Encounter-resolution and fight events arrive with combat (Milestone C-2).
@@ -271,4 +277,10 @@ export type GameEvent =
   // by the SAME `viperPit`/`treasureDropped` events an ordinary crossing already emits (special.ts
   // is reused verbatim for the risk); this event exists only so the presentation layer can tell
   // "jumped to the island" apart from "crossed and left."
-  | { type: "islandJump"; special: number };
+  | { type: "islandJump"; special: number }
+  // Test Mode (§Test Mode): acknowledges one of the four test-* actions above. Purely
+  // informational — the TestControlsPanel (apps/web) already shows the armed override directly.
+  | { type: "testAreaQueued"; dir: number; special: number }
+  | { type: "testChamberQueued"; strangers: number[]; treasures: number[]; hazards: number[] }
+  | { type: "testReactionQueued"; outcome: "friendly" | "indifferent" | "hostile" }
+  | { type: "testOverridesCleared" };

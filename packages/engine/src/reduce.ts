@@ -1465,5 +1465,36 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       next.phase = "pickup";
       return { state: next, events };
     }
+
+    case "testPlaceArea": {
+      if (!state.testMode) return { state, events: [{ type: "blocked" }] };
+      if (action.special < SPECIAL_DEEP_POOL || action.special > SPECIAL_WELL) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      next.testNextArea = { dir: action.dir, special: action.special };
+      return { state: next, events: [{ type: "testAreaQueued", dir: action.dir, special: action.special }] };
+    }
+
+    case "testSetChamber": {
+      if (!state.testMode) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      next.testNextChamber = { strangers: [...action.strangers], treasures: [...action.treasures], hazards: [...action.hazards] };
+      return { state: next, events: [{ type: "testChamberQueued", strangers: [...action.strangers], treasures: [...action.treasures], hazards: [...action.hazards] }] };
+    }
+
+    case "testForceReaction": {
+      if (!state.testMode) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      next.testNextReaction = action.outcome;
+      return { state: next, events: [{ type: "testReactionQueued", outcome: action.outcome }] };
+    }
+
+    case "testClearOverrides": {
+      if (!state.testMode) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      delete next.testNextArea;
+      delete next.testNextChamber;
+      delete next.testNextReaction;
+      return { state: next, events: [{ type: "testOverridesCleared" }] };
+    }
   }
 }

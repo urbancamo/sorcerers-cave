@@ -37,3 +37,61 @@ describe("newGame testMode flag", () => {
     expect(s.testMode).toBe(true);
   });
 });
+
+import { reduce } from "./index";
+
+describe("test-* action gating (SC-Test-1)", () => {
+  it("rejects all four test-* actions with `blocked` on a non-test game", () => {
+    const s = newGame(1, [0]);
+    expect(reduce(s, { type: "testPlaceArea", dir: 1, special: SPECIAL_WHIRLPOOL }).events).toEqual([{ type: "blocked" }]);
+    expect(reduce(s, { type: "testSetChamber", strangers: [10], treasures: [], hazards: [] }).events).toEqual([{ type: "blocked" }]);
+    expect(reduce(s, { type: "testForceReaction", outcome: "friendly" }).events).toEqual([{ type: "blocked" }]);
+    expect(reduce(s, { type: "testClearOverrides" }).events).toEqual([{ type: "blocked" }]);
+  });
+
+  it("testPlaceArea arms testNextArea and announces testAreaQueued on a test game", () => {
+    const s = newGame(1, [0], undefined, true);
+    const { state, events } = reduce(s, { type: "testPlaceArea", dir: 1, special: SPECIAL_WHIRLPOOL });
+    expect(state.testNextArea).toEqual({ dir: 1, special: SPECIAL_WHIRLPOOL });
+    expect(events).toEqual([{ type: "testAreaQueued", dir: 1, special: SPECIAL_WHIRLPOOL }]);
+  });
+
+  it("rejects an out-of-range special (SPECIAL_NONE/SPECIAL_GATEWAY) even on a test game", () => {
+    const s = newGame(1, [0], undefined, true);
+    expect(reduce(s, { type: "testPlaceArea", dir: 1, special: 0 }).events).toEqual([{ type: "blocked" }]);
+    expect(reduce(s, { type: "testPlaceArea", dir: 1, special: 1 }).events).toEqual([{ type: "blocked" }]);
+  });
+
+  it("testSetChamber arms testNextChamber and announces testChamberQueued", () => {
+    const s = newGame(1, [0], undefined, true);
+    const { state, events } = reduce(s, { type: "testSetChamber", strangers: [10], treasures: [3], hazards: [] });
+    expect(state.testNextChamber).toEqual({ strangers: [10], treasures: [3], hazards: [] });
+    expect(events).toEqual([{ type: "testChamberQueued", strangers: [10], treasures: [3], hazards: [] }]);
+  });
+
+  it("testForceReaction arms testNextReaction and announces testReactionQueued", () => {
+    const s = newGame(1, [0], undefined, true);
+    const { state, events } = reduce(s, { type: "testForceReaction", outcome: "hostile" });
+    expect(state.testNextReaction).toBe("hostile");
+    expect(events).toEqual([{ type: "testReactionQueued", outcome: "hostile" }]);
+  });
+
+  it("testClearOverrides drops all three armed overrides at once", () => {
+    let s = newGame(1, [0], undefined, true);
+    s = reduce(s, { type: "testPlaceArea", dir: 1, special: SPECIAL_WHIRLPOOL }).state;
+    s = reduce(s, { type: "testSetChamber", strangers: [10], treasures: [], hazards: [] }).state;
+    s = reduce(s, { type: "testForceReaction", outcome: "hostile" }).state;
+    const { state, events } = reduce(s, { type: "testClearOverrides" });
+    expect(state.testNextArea).toBeUndefined();
+    expect(state.testNextChamber).toBeUndefined();
+    expect(state.testNextReaction).toBeUndefined();
+    expect(events).toEqual([{ type: "testOverridesCleared" }]);
+  });
+
+  it("queuing a second testPlaceArea replaces the first (single slot, not a queue)", () => {
+    let s = newGame(1, [0], undefined, true);
+    s = reduce(s, { type: "testPlaceArea", dir: 1, special: SPECIAL_WHIRLPOOL }).state;
+    const { state } = reduce(s, { type: "testPlaceArea", dir: 2, special: SPECIAL_CHASM });
+    expect(state.testNextArea).toEqual({ dir: 2, special: SPECIAL_CHASM });
+  });
+});
