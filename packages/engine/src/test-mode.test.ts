@@ -191,3 +191,54 @@ describe("testNextChamber consumed by enterChamber (SC-Test-3)", () => {
     expect(s.testNextChamber).toEqual({ strangers: [10], treasures: [], hazards: [] }); // left untouched
   });
 });
+
+import { forcedReactionRoll } from "./index";
+
+describe("testNextReaction consumed by the test action (SC-Test-4)", () => {
+  const withEncounter = (): GameState => {
+    const s = newGame(1, [0], undefined, true);
+    s.phase = "encounter";
+    s.strangers = [10]; // a Dragon — hostileMax/indiffMax give it a real 3-band split
+    return s;
+  };
+
+  it("forces the exact declared outcome, does not touch state.seed, and clears the override", () => {
+    const s = withEncounter();
+    s.testNextReaction = "friendly";
+    const before = s.seed;
+    const { state, events } = reduce(s, { type: "test" });
+    expect(events[0]).toMatchObject({ type: "reaction", outcome: "friendly" });
+    expect(state.seed).toBe(before);
+    expect(state.testNextReaction).toBeUndefined();
+  });
+
+  it("forcedReactionRoll returns a value in the correct band for hostile/indifferent/friendly", () => {
+    const s = withEncounter();
+    const hostileRoll = forcedReactionRoll(s, "hostile");
+    const indiffRoll = forcedReactionRoll(s, "indifferent");
+    const friendlyRoll = forcedReactionRoll(s, "friendly");
+    expect(hostileRoll).toBeGreaterThanOrEqual(1);
+    expect(hostileRoll).toBeLessThanOrEqual(6);
+    expect(indiffRoll).toBeGreaterThanOrEqual(1);
+    expect(indiffRoll).toBeLessThanOrEqual(6);
+    expect(friendlyRoll).toBeGreaterThanOrEqual(1);
+    expect(friendlyRoll).toBeLessThanOrEqual(6);
+  });
+
+  it("falls back to an ordinary rolled reaction when no override is armed", () => {
+    const s = withEncounter(); // testNextReaction absent
+    const before = s.seed;
+    const { state } = reduce(s, { type: "test" });
+    expect(state.seed).not.toBe(before); // the die was genuinely rolled
+  });
+
+  it("ignores an armed testNextReaction on a non-test game (defense in depth against a hand-crafted state)", () => {
+    const s = withEncounter();
+    delete (s as { testMode?: true }).testMode; // real play can never reach `test` with testMode absent
+    s.testNextReaction = "friendly"; // AND testNextReaction armed at once — set directly to prove reduce.ts doesn't just trust its presence
+    const before = s.seed;
+    const { state, events } = reduce(s, { type: "test" });
+    expect(events[0]).not.toMatchObject({ outcome: "friendly" }); // the die was genuinely rolled instead
+    expect(state.seed).not.toBe(before);
+  });
+});

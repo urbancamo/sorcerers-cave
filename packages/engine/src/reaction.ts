@@ -50,3 +50,20 @@ export function reactionRoll(state: GameState): { seed: number; outcome: Reactio
   if (leaderId === C_APPRENTICE && outcome === "friendly" && state.sorcererKilled) outcome = "hostile";
   return { seed: r.seed, outcome, roll: r.value };
 }
+
+/**
+ * Test Mode (§Test Mode): a representative d6 value that would have produced `outcome` for the
+ * CURRENT leader — gives a forced reaction an honest-looking roll in the UI without consuming the
+ * RNG. Picks the lowest value in the outcome's own band; clamped to 1-6 so an outcome that isn't
+ * actually reachable for this particular leader (e.g. forcing "friendly" from an always-hostile
+ * leader) still returns a sane display value rather than an out-of-range number.
+ */
+export function forcedReactionRoll(state: GameState, outcome: Reaction): number {
+  const leaderId = state.strangers[findLeader(state.strangers)]!;
+  const leader = CREATURES[leaderId]!;
+  const hostileMax = leader.hostileMax ?? 0;
+  const indiffMax = leader.indiffMax ?? 6;
+  if (outcome === "hostile") return 1;
+  if (outcome === "indifferent") return Math.min(6, hostileMax + 1);
+  return Math.min(6, indiffMax + 1);
+}

@@ -9,7 +9,7 @@ import { HAZARD_MEDUSA } from "./data/hazards";
 import { takeTreasure, canCarry } from "./pickup";
 import { unpackCoord, packCoord, targetCoord, DIR_UP, DIR_DOWN } from "./coords";
 import type { GameAction, GameEvent } from "./actions";
-import { reactionRoll } from "./reaction";
+import { reactionRoll, forcedReactionRoll } from "./reaction";
 import { frontStrength } from "./combat";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import {
@@ -949,10 +949,25 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       if ((state.indiffStreak ?? 0) >= 3) return { state, events: [{ type: "blocked" }] }; // permanently indifferent
       const next = structuredClone(state);
       next.surpriseReady = false; // approaching to test forfeits the chance of a surprise attack (§Surprise)
-      const roll = reactionRoll(next);
-      next.seed = roll.seed;
-      const events: GameEvent[] = [{ type: "reaction", outcome: roll.outcome, roll: roll.roll }];
-      if (roll.outcome === "friendly") {
+      // Test Mode (§Test Mode): an armed testNextReaction replaces the die roll outright — the RNG
+      // (state.seed) is never touched, so this doesn't perturb any later, non-overridden roll.
+      // Checks `testMode` explicitly rather than trusting testNextReaction's mere presence —
+      // defense in depth against a hand-crafted state (same reasoning as map.ts's testNextArea
+      // check and chamber.ts's testNextChamber check).
+      let outcome: ReturnType<typeof reactionRoll>["outcome"];
+      let rollValue: number;
+      if (next.testMode && next.testNextReaction) {
+        outcome = next.testNextReaction;
+        rollValue = forcedReactionRoll(next, outcome);
+        delete next.testNextReaction;
+      } else {
+        const roll = reactionRoll(next);
+        next.seed = roll.seed;
+        outcome = roll.outcome;
+        rollValue = roll.roll;
+      }
+      const events: GameEvent[] = [{ type: "reaction", outcome, roll: rollValue }];
+      if (outcome === "friendly") {
         const womanPresent = hasWoman(next);
         // A friendly group is added to the party in full — the original rules impose no party-size
         // limit (§8, "the player immediately adds them to his party as allies"). The only stranger
@@ -980,7 +995,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           if (next.treasures.length > 0) next.phase = "pickup";
           else persistAndExplore(next);
         }
-      } else if (roll.outcome === "indifferent") {
+      } else if (outcome === "indifferent") {
         next.indiffStreak = (next.indiffStreak ?? 0) + 1;
         if (next.indiffStreak >= 3) {
           // Permanently indifferent to this party: treasure stays guarded (no pickup) UNLESS a
