@@ -4,6 +4,7 @@ import {
   SPECIAL_CANONICAL_CARD, SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_TOMB, SPECIAL_GREAT_HALL,
   SPECIAL_CHASM, SPECIAL_BELL_ROPE, SPECIAL_LAIR, SPECIAL_WHIRLPOOL, SPECIAL_GALLERY, SPECIAL_WELL,
 } from "./index";
+import type { GameState } from "./index";
 
 describe("SPECIAL_CANONICAL_CARD", () => {
   it("has exactly one entry per real special (2-11), each decoding back to that special", () => {
