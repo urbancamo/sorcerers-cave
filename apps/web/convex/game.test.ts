@@ -1,5 +1,5 @@
 import { convexTest } from "convex-test";
-import { expect, test } from "vitest";
+import { expect, test, describe, beforeEach, afterEach } from "vitest";
 import { api } from "./_generated/api";
 import schema from "./schema";
 import { newGame as createGameState } from "@sorcerers-cave/engine";
@@ -424,4 +424,41 @@ test("replayByCode log replays to the stored final state", async () => {
   expect(frames[0]!.action).toBeNull();
   const game = await as.query(api.game.get, { id });
   expect(frames[frames.length - 1]!.state).toEqual(game?.state);
+});
+
+// ---------------------------------------------------------------------------
+// Test Mode: startTestGame
+// ---------------------------------------------------------------------------
+describe("startTestGame", () => {
+  const ORIGINAL_SECRET = process.env.TEST_MODE_SECRET;
+  beforeEach(() => { process.env.TEST_MODE_SECRET = "correct-uuid"; });
+  afterEach(() => { process.env.TEST_MODE_SECRET = ORIGINAL_SECRET; });
+
+  test("creates a testMode:true game when the secret matches", async () => {
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const id = await as.mutation(api.game.startTestGame, { secret: "correct-uuid", seed: 1, picks: [0] });
+    const game = await as.query(api.game.get, { id });
+    expect(game?.state.testMode).toBe(true);
+  });
+
+  test("rejects a wrong secret and creates no game", async () => {
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    await expect(as.mutation(api.game.startTestGame, { secret: "wrong", seed: 1, picks: [0] })).rejects.toThrow();
+    const mine = await as.query(api.game.listMine, {});
+    expect(mine).toHaveLength(0);
+  });
+
+  test("fails closed when TEST_MODE_SECRET is not configured", async () => {
+    delete process.env.TEST_MODE_SECRET;
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    await expect(as.mutation(api.game.startTestGame, { secret: "anything", seed: 1, picks: [0] })).rejects.toThrow();
+  });
+
+  test("requires authentication", async () => {
+    const t = convexTest(schema, modules);
+    await expect(t.mutation(api.game.startTestGame, { secret: "correct-uuid", seed: 1, picks: [0] })).rejects.toThrow();
+  });
 });

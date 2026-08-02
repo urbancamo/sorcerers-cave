@@ -29,6 +29,15 @@ const actionValidator = v.object({
     backers: v.array(v.number()),
     strangers: v.array(v.number()),
   }))),
+
+  // Test Mode (§Test Mode): testPlaceArea's special id, testSetChamber's three id lists, and
+  // testForceReaction's outcome. reduce() enforces semantics (including the testMode gate) — this
+  // validator only needs to admit the shape.
+  special: v.optional(v.number()),
+  strangers: v.optional(v.array(v.number())),
+  treasures: v.optional(v.array(v.number())),
+  hazards: v.optional(v.array(v.number())),
+  outcome: v.optional(v.union(v.literal("friendly"), v.literal("indifferent"), v.literal("hostile"))),
 });
 
 /** Start a new authoritative game: validate the party, build the engine state, persist it (owned by the caller). */
@@ -70,6 +79,27 @@ export const newGame = mutation({
     const code = await uniqueCode(ctx);
     // Persist the initial conditions (seed + picks + variants) alongside the state so the full game
     // is replayable from scratch via the engine's replay() over the gameEvents action log.
+    return await ctx.db.insert("games", { ownerId, code, seed, picks, variants, state, status: "active", color, createdAt: now, updatedAt: now });
+  },
+});
+
+/**
+ * Start a new TEST-MODE game (§Test Mode): identical to `newGame`, except the caller must supply
+ * the magic-string secret (compared against the Convex-only `TEST_MODE_SECRET` env var — never a
+ * `VITE_`-prefixed variable, so it is never bundled into the client) and the resulting game carries
+ * `state.testMode: true`. Fails closed: an unconfigured secret rejects every attempt.
+ */
+export const startTestGame = mutation({
+  args: { secret: v.string(), seed: v.number(), picks: v.array(v.number()), color: v.optional(colorValidator), variants: v.optional(variantsValidator) },
+  handler: async (ctx, { secret, seed, picks, color, variants }) => {
+    const ownerId = await getAuthUserId(ctx);
+    if (!ownerId) throw new Error("Unauthenticated");
+    const expected = process.env.TEST_MODE_SECRET;
+    if (!expected || secret !== expected) throw new Error("Invalid test mode secret");
+    if (!validatePicks(picks, variants)) throw new Error("Invalid party selection");
+    const state = createGameState(seed, picks, variants, true);
+    const now = Date.now();
+    const code = await uniqueCode(ctx);
     return await ctx.db.insert("games", { ownerId, code, seed, picks, variants, state, status: "active", color, createdAt: now, updatedAt: now });
   },
 });
