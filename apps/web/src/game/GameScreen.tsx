@@ -28,6 +28,7 @@ import { MultiplayerSetup } from "./MultiplayerSetup";
 import { MultiplayerLobby } from "./MultiplayerLobby";
 import { ReplayView, type ReplayBundle } from "./ReplayView";
 import { getTestSecret } from "./testMode";
+import { TestControlsPanel } from "./TestControlsPanel";
 
 export default function GameScreen() {
   const { isAuthenticated, isLoading } = useConvexAuth();
@@ -213,6 +214,7 @@ export default function GameScreen() {
       <EncounterPanel state={displayState} dispatch={dispatchWithRolls} />
       {fightVisible && cards && <FightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
       <ExplorePanel state={displayState} dispatch={dispatchWithRolls} />
+      {displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} />}
       {showParty && <PartyPanel state={displayState} dispatch={dispatch} onClose={() => setShowParty(false)} />}
       {overlay}
       {notices && <NoticeModal notices={notices} onClose={clearNotices} />}

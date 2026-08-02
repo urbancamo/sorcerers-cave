@@ -405,6 +405,99 @@
 /* The popped-open option list is OS-drawn; give it readable dark-on-parchment colours. */
 .scv-enc-select option { color: #1b1b22; background: var(--parchment); }
 
+/* Test Mode's override controls (TestControlsPanel.tsx, §Test Mode): a QA-only overlay, so it
+   follows the same fixed-position/z-index pattern as .scv-enc above rather than sitting in normal
+   document flow — without this it renders behind the fixed 3D canvas and is unreachable. Placed on
+   the right edge, clear of .scv-enc (bottom-center) and the roster panel (left). */
+.scv-tc {
+  position: fixed;
+  top: 96px;
+  right: 14px;
+  z-index: 50;
+  width: min(320px, 90vw);
+  max-height: calc(100vh - 116px);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px 16px;
+  background: rgba(15, 15, 20, 0.88);
+  border: 1px solid var(--crimson);
+  border-radius: 14px;
+  backdrop-filter: blur(8px);
+  box-shadow: 0 18px 50px -18px rgba(0, 0, 0, 0.85);
+  color: var(--parchment);
+  font-family: var(--ui);
+  font-size: 12.5px;
+}
+.scv-tc-hd {
+  font-family: var(--display);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--crimson);
+}
+.scv-tc-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--line);
+}
+.scv-tc-section:last-of-type { border-bottom: none; padding-bottom: 0; }
+.scv-tc-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+.scv-tc-row label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--stone-dim);
+}
+.scv-tc-row select {
+  font-family: var(--ui);
+  font-size: 12.5px;
+  color: var(--cream);
+  background: rgba(201, 161, 78, 0.1);
+  border: 1px solid var(--line-strong);
+  border-radius: 7px;
+  padding: 5px 8px;
+}
+.scv-tc-row-nm { flex: 1 1 auto; color: var(--cream); font-weight: 600; }
+.scv-tc-chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.scv-tc-chip {
+  font-family: var(--ui);
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid var(--line-strong);
+  color: var(--parchment);
+  background: rgba(201, 161, 78, 0.1);
+  cursor: pointer;
+}
+.scv-tc-chip:hover { border-color: var(--brass); color: var(--cream); }
+.scv-tc-armed { margin: 0; color: var(--brass-bright); font-style: italic; }
+.scv-tc button {
+  font-family: var(--ui);
+  font-size: 12.5px;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid var(--line-strong);
+  color: var(--parchment);
+  background: rgba(201, 161, 78, 0.06);
+  cursor: pointer;
+}
+.scv-tc button:hover { border-color: var(--brass); color: var(--cream); background: rgba(201, 161, 78, 0.14); }
+.scv-tc-clear { align-self: flex-start; border-color: var(--crimson); color: var(--crimson); }
+.scv-tc-clear:hover { background: rgba(168, 68, 58, 0.12); color: var(--cream); }
+
 /* Dice-roll overlay: a modal die that tumbles, settles, then reports the outcome. */
 .scv-dice-overlay {
   position: fixed;
