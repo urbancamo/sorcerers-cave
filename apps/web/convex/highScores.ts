@@ -34,6 +34,7 @@ export const save = mutation({
     // Only a party that climbed back to the surface earns a recordable score — an abandoned or
     // wiped-out expedition is not valid for the leaderboard (§Scoring).
     if (state.gs !== GS_ESCAPED) throw new Error("Only a party that escapes the cave can record a score");
+    if (state.testMode) throw new Error("Test-mode games cannot be recorded on the leaderboard"); // §Test Mode
     const cleanName = name.trim().slice(0, MAX_NAME) || "Anonymous";
     const score = scoreGame(state); // authoritative — never trust a client score
 

@@ -174,3 +174,13 @@ test("multiplayer rows surface the recorded player count (absent on legacy rows)
   expect(rows.find((r) => r.name === "MpKitStamped")?.seatCount).toBe(3);
   expect(rows.find((r) => r.name === "MpKitByState")?.seatCount).toBeUndefined();
 });
+
+test("save rejects a test-mode game", async () => {
+  const t = convexTest(schema, modules);
+  const { as, userId } = await asUser(t);
+  const gameId = await t.run((ctx) => {
+    const state = { gs: GS_ESCAPED, testMode: true, party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }] };
+    return ctx.db.insert("games", { ownerId: userId, state, status: "finished", createdAt: 0, updatedAt: 0 });
+  });
+  await expect(as.mutation(api.highScores.save, { gameId, name: "Tester" })).rejects.toThrow();
+});
