@@ -137,3 +137,57 @@ describe("testNextArea consumed by tryMove (SC-Test-2)", () => {
     expect(r.state.testNextArea).toEqual({ dir: DIR_N, special: SPECIAL_WHIRLPOOL }); // left untouched, not silently consumed
   });
 });
+
+import { enterChamber } from "./index";
+
+describe("testNextChamber consumed by enterChamber (SC-Test-3)", () => {
+  it("replaces the normal draw with exactly the named strangers/treasures/hazards, leaving smallIdx untouched", () => {
+    const s = newGame(1, [0], undefined, true);
+    s.testNextChamber = { strangers: [10, 12], treasures: [3], hazards: [1] };
+    const beforeSmallIdx = s.smallIdx;
+    const area = s.areas[s.partyArea]!;
+    area.visited = false;
+    const events = enterChamber(s);
+    expect(s.strangers).toEqual([10, 12]);
+    expect(s.treasures).toEqual([3]);
+    expect(s.hazards).toEqual([1]);
+    expect(s.smallIdx).toBe(beforeSmallIdx);
+    expect(s.testNextChamber).toBeUndefined();
+    expect(events).toContainEqual({ type: "drewChamber", strangers: [10, 12], treasures: [3], hazards: [1] });
+  });
+
+  it("still petrifies an overridden creature drawn into a Gallery (classify() reused verbatim)", () => {
+    const s = newGame(1, [0], undefined, true);
+    s.testNextChamber = { strangers: [10], treasures: [], hazards: [] }; // a Dragon (not Spectre/Sorcerer-exempt)
+    const area = s.areas[s.partyArea]!;
+    area.card = SPECIAL_CANONICAL_CARD[SPECIAL_GALLERY]!;
+    area.visited = false;
+    enterChamber(s);
+    expect(s.strangers).toEqual([]); // never joins strangers — arrives as a statue instead
+    expect(s.statues).toEqual([10]);
+  });
+
+  it("does nothing when the area was already visited (a revisit reloads parked contents as normal)", () => {
+    const s = newGame(1, [0], undefined, true);
+    s.testNextChamber = { strangers: [10], treasures: [], hazards: [] };
+    const area = s.areas[s.partyArea]!;
+    area.visited = true; // already resolved once
+    enterChamber(s);
+    expect(s.strangers).toEqual([]); // the override is only for a FRESH draw — untouched here
+    expect(s.testNextChamber).toEqual({ strangers: [10], treasures: [], hazards: [] }); // still armed
+  });
+
+  it("ignores an armed testNextChamber on a non-test game (defense in depth against a hand-crafted state)", () => {
+    const s = newGame(1, [0]); // testMode absent — testNextChamber can never be armed this way through
+    s.testNextChamber = { strangers: [10], treasures: [], hazards: [] }; // real play; set directly to prove chamber.ts doesn't just trust its presence
+    const beforeSmallIdx = s.smallIdx;
+    const area = s.areas[s.partyArea]!;
+    area.visited = false;
+    enterChamber(s);
+    // Seed-independent check: the override path NEVER advances smallIdx (Task 4's own first test
+    // asserts this directly), so an advance here proves the ordinary small-pack draw ran instead — regardless
+    // of what that draw's first card actually was.
+    expect(s.smallIdx).toBeGreaterThan(beforeSmallIdx);
+    expect(s.testNextChamber).toEqual({ strangers: [10], treasures: [], hazards: [] }); // left untouched
+  });
+});

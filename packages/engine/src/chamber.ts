@@ -171,12 +171,29 @@ export function enterChamber(state: GameState): GameEvent[] {
   for (const code of area.contents) reload(state, code);
   if (!area.visited) {
     area.visited = true;
-    let draw = Math.min(state.level, 4);
-    if (dec.special === SPECIAL_TOMB) draw += 1;
-    if (dec.special === SPECIAL_GREAT_HALL) draw += 2;
-    draw = Math.min(draw, 8);
-    for (let i = 0; i < draw && state.smallIdx < state.smallPack.length; i++) {
-      classify(state, state.smallPack[state.smallIdx++]!, events);
+    // Test Mode (§Test Mode): an armed testNextChamber replaces the normal small-pack draw outright
+    // — smallIdx is untouched, so the shuffled deck stays intact for every other, non-overridden
+    // chamber. Routed through the SAME classify() as a real draw, so Gallery petrification, the
+    // Demon's relocate-to-`prev`, and the Crypt's park-on-draw all still apply to scripted content.
+    // Checks `testMode` explicitly rather than trusting testNextChamber's mere presence — defense
+    // in depth against a hand-crafted state (same reasoning as map.ts's testNextArea check).
+    if (state.testMode && state.testNextChamber) {
+      const { strangers, treasures, hazards } = state.testNextChamber;
+      delete state.testNextChamber;
+      const codes = [
+        ...strangers.map((id) => 100 + id),
+        ...treasures.map((id) => 200 + id),
+        ...hazards.map((id) => 300 + id),
+      ];
+      for (const code of codes) classify(state, code, events);
+    } else {
+      let draw = Math.min(state.level, 4);
+      if (dec.special === SPECIAL_TOMB) draw += 1;
+      if (dec.special === SPECIAL_GREAT_HALL) draw += 2;
+      draw = Math.min(draw, 8);
+      for (let i = 0; i < draw && state.smallIdx < state.smallPack.length; i++) {
+        classify(state, state.smallPack[state.smallIdx++]!, events);
+      }
     }
   }
   // Clear the parked snapshot: during an active session the working set IS the truth.
