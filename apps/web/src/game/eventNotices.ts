@@ -106,6 +106,12 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "viperPit": // rollView.viperView's die-per-member overlay (see `hasViper` above)
       case "trapSprung": // the move-result trap indicator / confirm modal
       case "trapAvoided": // the move-result trap indicator / confirm modal
+      // Test Mode (§Test Mode): the TestControlsPanel already shows the armed override directly —
+      // nothing to narrate here.
+      case "testAreaQueued":
+      case "testChamberQueued":
+      case "testReactionQueued":
+      case "testOverridesCleared":
         break;
       case "strangerKilled":
         // Folded into combatView's "N foe(s) down" message for every ordinary foe — EXCEPT the

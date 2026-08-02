@@ -221,6 +221,10 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "holyWaterWeakened": return `Holy Water weakened ${creature(e.creatureId)}`;
     case "scrollRead": return `the Scroll was read — destroyed ${e.destroyed.length ? e.destroyed.map(creature).join(", ") : "none"}, ${e.survivors.length} magical survivor(s), a curse settles on the party`;
     case "shieldWarded": return `the Magic Shield warded off ${creature(e.creatureId)} (${e.mode})`;
+    case "testAreaQueued": return `test mode: next area queued (special ${e.special}, dir ${dir(e.dir)})`;
+    case "testChamberQueued": return `test mode: next chamber queued (S:${e.strangers.length} T:${e.treasures.length} H:${e.hazards.length})`;
+    case "testReactionQueued": return `test mode: next reaction forced to ${e.outcome}`;
+    case "testOverridesCleared": return "test mode: overrides cleared";
     default: return (e as { type: string }).type;
   }
 }
@@ -518,6 +522,10 @@ export function eventCode(e: GameEvent): string | null {
     case "holyWaterWeakened": return `HLY WKN ${cr3(e.creatureId)}`;
     case "scrollRead": return `SCR ${e.destroyed.length ? e.destroyed.map(cr3).join(",") : "-"} SRV${e.survivors.length}`;
     case "shieldWarded": return `SHW ${cr3(e.creatureId)} ${e.mode === "nullify" ? "NUL" : "WKN"}`;
+    case "testAreaQueued": return "TST A";
+    case "testChamberQueued": return "TST C";
+    case "testReactionQueued": return `TST R ${e.outcome.slice(0, 3).toUpperCase()}`;
+    case "testOverridesCleared": return "TST X";
     default: return (e as { type: string }).type.slice(0, 3).toUpperCase();
   }
 }
