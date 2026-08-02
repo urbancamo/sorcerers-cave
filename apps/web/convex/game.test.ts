@@ -432,7 +432,14 @@ test("replayByCode log replays to the stored final state", async () => {
 describe("startTestGame", () => {
   const ORIGINAL_SECRET = process.env.TEST_MODE_SECRET;
   beforeEach(() => { process.env.TEST_MODE_SECRET = "correct-uuid"; });
-  afterEach(() => { process.env.TEST_MODE_SECRET = ORIGINAL_SECRET; });
+  // Assigning `undefined` to a process.env property does NOT delete it in Node — it coerces to the
+  // literal (truthy) string "undefined". Since TEST_MODE_SECRET is unset in any normal dev/CI
+  // environment, ORIGINAL_SECRET is undefined here, so restoring must delete the key rather than
+  // assign undefined, or every afterEach would leave the env polluted with "undefined".
+  afterEach(() => {
+    if (ORIGINAL_SECRET === undefined) delete process.env.TEST_MODE_SECRET;
+    else process.env.TEST_MODE_SECRET = ORIGINAL_SECRET;
+  });
 
   test("creates a testMode:true game when the secret matches", async () => {
     const t = convexTest(schema, modules);
