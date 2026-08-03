@@ -10,8 +10,9 @@ const STORAGE_KEY = "scv-test-secret";
 export function getTestSecret(): string | null {
   const fromUrl = new URLSearchParams(window.location.search).get("test");
   if (fromUrl) {
-    sessionStorage.setItem(STORAGE_KEY, fromUrl);
+    // storage may be blocked (e.g. SecurityError) — the URL param itself still works this load
+    try { sessionStorage.setItem(STORAGE_KEY, fromUrl); } catch { /* ignore */ }
     return fromUrl;
   }
-  return sessionStorage.getItem(STORAGE_KEY);
+  try { return sessionStorage.getItem(STORAGE_KEY); } catch { return null; }
 }
