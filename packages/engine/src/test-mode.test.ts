@@ -246,7 +246,10 @@ describe("testNextReaction consumed by the test action (SC-Test-4)", () => {
   const withEncounter = (): GameState => {
     const s = newGame(1, [0], undefined, true);
     s.phase = "encounter";
-    s.strangers = [10]; // a Dragon — hostileMax/indiffMax give it a real 3-band split
+    // a Giant (hostileMax 3 / indiffMax 5) — unlike a Dragon (hostileMax 4 / indiffMax 6, for whom
+    // "friendly" is UNREACHABLE: a roll of 6 bands as indifferent, never friendly), all three bands
+    // are genuinely reachable, so a forced outcome can actually be checked to re-band correctly.
+    s.strangers = [12];
     return s;
   };
 
@@ -260,17 +263,18 @@ describe("testNextReaction consumed by the test action (SC-Test-4)", () => {
     expect(state.testNextReaction).toBeUndefined();
   });
 
-  it("forcedReactionRoll returns a value in the correct band for hostile/indifferent/friendly", () => {
+  it("forcedReactionRoll returns a value that re-bands to the SAME outcome for hostile/indifferent/friendly", () => {
     const s = withEncounter();
-    const hostileRoll = forcedReactionRoll(s, "hostile");
-    const indiffRoll = forcedReactionRoll(s, "indifferent");
-    const friendlyRoll = forcedReactionRoll(s, "friendly");
-    expect(hostileRoll).toBeGreaterThanOrEqual(1);
-    expect(hostileRoll).toBeLessThanOrEqual(6);
-    expect(indiffRoll).toBeGreaterThanOrEqual(1);
-    expect(indiffRoll).toBeLessThanOrEqual(6);
-    expect(friendlyRoll).toBeGreaterThanOrEqual(1);
-    expect(friendlyRoll).toBeLessThanOrEqual(6);
+    // Giant bands: 1-3 hostile, 4-5 indifferent, 6 friendly (mirrors reaction.ts's own reactionRoll
+    // formula) — a mis-banded forcedReactionRoll would still satisfy a mere 1-6 range check, so this
+    // re-derives the band from the returned roll and checks it matches the outcome that was forced.
+    const band = (roll: number) => (roll <= 3 ? "hostile" : roll <= 5 ? "indifferent" : "friendly");
+    for (const outcome of ["hostile", "indifferent", "friendly"] as const) {
+      const roll = forcedReactionRoll(s, outcome);
+      expect(roll).toBeGreaterThanOrEqual(1);
+      expect(roll).toBeLessThanOrEqual(6);
+      expect(band(roll)).toBe(outcome);
+    }
   });
 
   it("falls back to an ordinary rolled reaction when no override is armed", () => {
