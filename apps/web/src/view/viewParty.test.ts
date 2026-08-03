@@ -72,10 +72,10 @@ describe("viewParty", () => {
 
   it("resolves a kit treasure carried by a member (SC-EXT-29): no crash, real name/weight not '?'", () => {
     const state = newGame(1, [18, 20], { extensionKit: true });
-    state.party[0]!.treasure.push(18); // Idol (heavy, 25kg) — id 18 in TREASURES' kit range too
+    state.party[0]!.treasure.push(18); // Idol (heavy, 50kg, corrected 2026-08-03) — id 18 in TREASURES' kit range too
     const p = viewParty(state);
-    expect(p[0]!.items[0]).toMatchObject({ name: "Idol", weight: 25 });
-    expect(p[0]!.load).toBe(25);
+    expect(p[0]!.items[0]).toMatchObject({ name: "Idol", weight: 50 });
+    expect(p[0]!.load).toBe(50);
   });
 
   it("flags ally and petrified members for status badges", () => {

@@ -69,7 +69,7 @@ describe("extension-kit data tables (SC-EXT-2)", () => {
       [15, "Elixir", 0, 0, "artifact"],
       [16, "Holy Water", 5, 0, "artifact"],
       [17, "Magic Axe", 15, 0, "artifact"],
-      [18, "Idol", 0, 25, "heavy"],
+      [18, "Idol", 0, 50, "heavy"], // corrected 2026-08-03: the original transcription omitted the weight; the designer's page-12 PDF confirms 50 kg
       [19, "Scroll", 0, 0, "artifact"],
       [20, "Magic Shield", 15, 0, "artifact"],
       [21, "Crypt/Gems", 20, 25, "heavy"],

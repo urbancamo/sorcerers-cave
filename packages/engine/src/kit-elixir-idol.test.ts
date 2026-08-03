@@ -129,7 +129,7 @@ describe("useArtifact — Elixir (US-19, SC-EXT-22)", () => {
 });
 
 describe("Idol (US-25, SC-EXT-23) — carry gating", () => {
-  it("is heavy (25 kg): a carry-0 member cannot take it; an ordinary member can", () => {
+  it("is heavy (50 kg, corrected 2026-08-03): a carry-0 member cannot take it; an ordinary member can", () => {
     expect(canCarry(member(WIZARD), T_IDOL)).toBe(false); // Wizard carry 0
     expect(canCarry(member(HERO), T_IDOL)).toBe(true); // Hero carry 75
 
@@ -139,10 +139,21 @@ describe("Idol (US-25, SC-EXT-23) — carry gating", () => {
     expect(acts).toContainEqual({ type: "takeTreasure", ti: 0, mi: 1 }); // Hero fine
   });
 
-  it("counts toward carriedWeight like Silver/Gold/Gems (a Woman at capacity can't also take it)", () => {
-    // Woman: carry 25 — exactly one Idol's worth, nothing more.
+  it("counts toward carriedWeight like Silver/Gold/Gems (a Woman already at capacity can't also take it)", () => {
+    // Woman: carry 25 — already exhausted by Silver (25 kg) alone; the (now 50 kg) Idol would push
+    // her doubly over regardless, but this still demonstrates carriedWeight gating, not exactness.
     const s = makeState({ phase: "pickup", areas: [area], treasures: [T_IDOL], party: [member(6, [0])] }); // already holding Silver (25 kg)
     expect(legalActions(s)).not.toContainEqual({ type: "takeTreasure", ti: 0, mi: 0 });
+  });
+
+  it("a member with exactly 50 kg of spare capacity can take it, one more kg cannot (bug fix 2026-08-03)", () => {
+    // Hero: carry 75. Already holding Silver (25 kg) leaves exactly 50 kg spare — just enough.
+    const exact = makeState({ phase: "pickup", areas: [area], treasures: [T_IDOL], party: [member(HERO, [0])] });
+    expect(legalActions(exact)).toContainEqual({ type: "takeTreasure", ti: 0, mi: 0 });
+
+    // Already holding Silver + Gems (25 + 25 = 50 kg) leaves only 25 kg spare — one kg short.
+    const short = makeState({ phase: "pickup", areas: [area], treasures: [T_IDOL], party: [member(HERO, [0, 2])] });
+    expect(legalActions(short)).not.toContainEqual({ type: "takeTreasure", ti: 0, mi: 0 });
   });
 });
 
