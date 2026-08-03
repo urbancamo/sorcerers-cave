@@ -87,12 +87,30 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "itemsSpilled":
         out.push({ text: `${name(e.creatureId)}'s carried items spill onto the floor.`, tone: "neutral" });
         break;
+      case "reaction": {
+        // `certain` (bug fix 2026-08-02): set only when the leader's hostileMax/indiffMax make
+        // `outcome` the same regardless of the roll — currently only the Unicorn (always
+        // friendly), so this only ever needs the join/guard split, mirroring rollView.ts's
+        // reactionView exactly. A non-certain reaction stays silent — rollView.ts's own single-die
+        // overlay already covers it (see the silent group below).
+        if (!e.certain) break;
+        const joined = events.find((ev) => ev.type === "strangersJoined")?.count ?? 0;
+        const guarded = events.some((ev) => ev.type === "unicornGuards");
+        out.push({
+          text: joined > 0
+            ? "Friendly — they join your party!"
+            : guarded
+              ? "Friendly — but it stays to guard the chamber."
+              : "Friendly — they join your party!",
+          tone: "good",
+        });
+        break;
+      }
       // Dice-overlay events (rollView.ts / FightSurface.tsx) already narrate their own outcome —
       // a text notice here would duplicate that dedicated UI, so these are handled-silence.
       case "moved": // reflected directly by the area/map display; nothing to narrate
       case "drewChamber": // the chamber-draw display (engineAdapter's `ev.chamber`)
       case "gameOver": // GameOverScreen / rollView's `over`/`wipedOut` messaging
-      case "reaction": // rollView.reactionView's single-die overlay
       case "pacified": // folded into reactionView's "Indifferent again…" message
       case "strangersJoined": // folded into reactionView's "…they join your party!" message
       case "fightStarted": // FightSurface's surprise banner reads state.fight.surprise directly
@@ -222,8 +240,11 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "deathPrevented":
         out.push({ text: `The Ring renders ${name(e.creatureId)} invincible — the blow fails!`, tone: "good" });
         break;
+      // `unicornGuards` (bug fix 2026-08-02): only ever fires alongside a `reaction` event, which
+      // — now that every Unicorn reaction carries `certain: true` — already narrates the guard
+      // outcome above ("Friendly — but it stays to guard the chamber."); a second notice here
+      // would double up.
       case "unicornGuards":
-        out.push({ text: `A unicorn joins the party to guard ${name(e.creatureId)}.`, tone: "good" });
         break;
       case "unicornDeparted":
         out.push({ text: `The unicorn departs from ${name(e.creatureId)}.`, tone: "neutral" });

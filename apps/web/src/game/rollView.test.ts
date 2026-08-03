@@ -21,7 +21,7 @@ describe("rollFromEvents", () => {
     expect(view.tone).toBe("good");
   });
 
-  it("reports a friendly womanless Unicorn staying to guard the chamber (no recruit)", () => {
+  it("reports a friendly womanless Unicorn staying to guard the chamber (no recruit) — a non-certain reaction, retained as unit coverage of the underlying view logic", () => {
     const view = rollFromEvents([
       { type: "reaction", outcome: "friendly", roll: 5 },
       { type: "strangersJoined", count: 0 },
@@ -29,6 +29,18 @@ describe("rollFromEvents", () => {
     ])!;
     expect(view.message).toMatch(/guard the chamber/i);
     expect(view.tone).toBe("good");
+  });
+
+  it("a `certain` reaction (bug fix 2026-08-02: the Unicorn's die has no informational content) shows no dice overlay at all — eventNotices.ts covers it with plain text instead", () => {
+    expect(rollFromEvents([
+      { type: "reaction", outcome: "friendly", roll: 5, certain: true },
+      { type: "strangersJoined", count: 1 },
+    ])).toBeNull();
+    expect(rollFromEvents([
+      { type: "reaction", outcome: "friendly", roll: 5, certain: true },
+      { type: "strangersJoined", count: 0 },
+      { type: "unicornGuards", creatureId: 13 },
+    ])).toBeNull();
   });
 
   it("shows an opened Treasure Chest as a single-die loot view", () => {

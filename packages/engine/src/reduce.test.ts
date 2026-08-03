@@ -175,6 +175,32 @@ describe("reduce — stranger encounters (C-2 §8)", () => {
     expect(events).toContainEqual(expect.objectContaining({ type: "reaction", outcome: "friendly" }));
   });
 
+  it("a Unicorn-led reaction marks its event `certain` — the die is genuinely rolled (seed advances) but has no informational content, since hostileMax/indiffMax are both 0 (bug fix 2026-08-02)", () => {
+    const s = makeState({
+      phase: "encounter",
+      party: [{ creatureId: 6, status: 0, dragonKills: 0, treasure: [] }], // Woman present
+      strangers: [13], // Unicorn alone — its leaderPri (0) is lowest, so grouping with anything
+      // else would make a DIFFERENT creature the leader; this fixture isolates the Unicorn case.
+      treasures: [],
+      areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+    });
+    const before = s.seed;
+    const { state, events } = reduce(s, { type: "test" });
+    expect(events).toContainEqual({ type: "reaction", outcome: "friendly", roll: expect.any(Number), certain: true });
+    expect(state.seed).not.toBe(before); // still a genuine roll — determinism/replay parity is untouched
+  });
+
+  it("a non-Unicorn reaction never carries `certain`", () => {
+    const s = makeState({
+      phase: "encounter", strangers: [11], // Sorcerer — hostile on every roll (SC-8.5-1), not deterministic-by-coincidence like the Unicorn
+      areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+    });
+    const { events } = reduce(s, { type: "test" });
+    const reaction = events.find((e) => e.type === "reaction");
+    expect(reaction).toMatchObject({ outcome: "hostile" });
+    expect((reaction as { certain?: true }).certain).toBeUndefined();
+  });
+
   it("a friendly result recruits EVERY stranger regardless of party size (original rules: no party cap)", () => {
     // 13 living members already (more than the old 12-cap) + a friendly Unicorn with a Woman present.
     // The original rules impose no party-size limit — a friendly group is always added in full.

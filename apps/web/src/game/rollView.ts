@@ -222,6 +222,10 @@ function elixirView(events: GameEvent[]): RollView | null {
 export function rollFromEvents(events: GameEvent[]): RollView | null {
   const reaction = events.find((e): e is Extract<GameEvent, { type: "reaction" }> => e.type === "reaction");
   if (reaction) {
+    // `certain` (bug fix 2026-08-02): the leader's hostileMax/indiffMax make `outcome` the same
+    // regardless of the roll (currently only the Unicorn) — nothing worth animating a die for.
+    // eventNotices.ts covers this with plain text instead, so no dice overlay at all here.
+    if (reaction.certain) return null;
     const joined = events.find((e): e is Extract<GameEvent, { type: "strangersJoined" }> => e.type === "strangersJoined")?.count ?? 0;
     const pacified = events.some((e) => e.type === "pacified");
     const guarded = events.some((e) => e.type === "unicornGuards");

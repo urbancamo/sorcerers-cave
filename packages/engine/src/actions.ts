@@ -79,7 +79,11 @@ export type GameEvent =
   | { type: "sorcererSlain" } // the Sorcerer himself has been defeated — the cave's master is no more
   | { type: "spectreSlew"; creatureId: number }
   | { type: "memberRevived"; creatureId: number } // a stoned member freed by a returning Wizard's Magic Staff
-  | { type: "reaction"; outcome: "hostile" | "indifferent" | "friendly"; roll: number }
+  // `certain` (bug fix 2026-08-02): set only when the leader's hostileMax/indiffMax make `outcome`
+  // the same regardless of the roll (currently only the Unicorn, hostileMax 0/indiffMax 0 — always
+  // friendly) — the die is still genuinely rolled (state.seed advances, for replay parity), but has
+  // no informational content, so the UI (rollView.ts) skips the dice overlay for it.
+  | { type: "reaction"; outcome: "hostile" | "indifferent" | "friendly"; roll: number; certain?: true }
   | { type: "pacified" } // a 3rd indifferent test — the strangers are now permanently indifferent to this party
   | { type: "strangersJoined"; count: number }
   | { type: "fightStarted"; surprise: number }

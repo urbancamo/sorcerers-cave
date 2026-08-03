@@ -9,7 +9,7 @@ import { HAZARD_MEDUSA, HAZARD_NAMES } from "./data/hazards";
 import { takeTreasure, canCarry } from "./pickup";
 import { unpackCoord, packCoord, targetCoord, DIR_UP, DIR_DOWN } from "./coords";
 import type { GameAction, GameEvent } from "./actions";
-import { reactionRoll, forcedReactionRoll } from "./reaction";
+import { reactionRoll, forcedReactionRoll, findLeader } from "./reaction";
 import { frontStrength } from "./combat";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import {
@@ -37,6 +37,7 @@ const T_CRYPT = 21; // extension-kit treasure — the crypt's find converts to t
 const C_APPRENTICE = 14; // extension-kit creature — never leaves the cave (design US-14, SC-EXT-20)
 const C_DEMON = 15; // extension-kit creature — forces immediate hostile combat on sight (design US-13, SC-EXT-21)
 const C_SORCERER = 11; // Holy Water's WEAKEN mode target, alongside the Apprentice (design US-20, SC-EXT-24)
+const C_UNICORN = 13; // hostileMax 0 / indiffMax 0 — always friendly regardless of the roll (§ Unicorn, bug fix 2026-08-02)
 
 /** Can a living Giant fish at least one dropped item out of a Deep Pool right now? Recovery is a
  *  Giant-only, capacity-limited pickup (§Deep Pool): a Man/Ogre/etc. can never lift pool treasure,
@@ -967,7 +968,14 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         outcome = roll.outcome;
         rollValue = roll.roll;
       }
-      const events: GameEvent[] = [{ type: "reaction", outcome, roll: rollValue }];
+      // `certain` (bug fix 2026-08-02): the Unicorn's hostileMax/indiffMax (0/0) make `outcome`
+      // "friendly" no matter what the die shows — the roll above still genuinely advanced the seed
+      // (or, under Test Mode, still returned a representative display value), but the UI has
+      // nothing worth animating for it. Computed from the SAME leader `reactionRoll`/
+      // `forcedReactionRoll` just used, not re-derived independently.
+      const leaderId = next.strangers[findLeader(next.strangers)];
+      const certain = leaderId === C_UNICORN;
+      const events: GameEvent[] = [{ type: "reaction", outcome, roll: rollValue, ...(certain ? { certain: true as const } : {}) }];
       if (outcome === "friendly") {
         const womanPresent = hasWoman(next);
         // A friendly group is added to the party in full — the original rules impose no party-size

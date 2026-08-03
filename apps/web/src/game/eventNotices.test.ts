@@ -26,6 +26,35 @@ describe("eventNotices exhaustiveness (base hardening)", () => {
     expect(eventNotices([{ type: "enteredSpecial", special: SPECIAL_DEEP_POOL }])[0]!.text).toMatch(/deep pool/i);
   });
 
+  it("narrates a `certain` reaction in plain text instead of a dice overlay (bug fix 2026-08-02) — join case", () => {
+    const out = eventNotices([
+      { type: "reaction", outcome: "friendly", roll: 5, certain: true },
+      { type: "strangersJoined", count: 1 },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.text).toMatch(/join your party/i);
+    expect(out[0]!.tone).toBe("good");
+  });
+
+  it("narrates a `certain` reaction in plain text instead of a dice overlay (bug fix 2026-08-02) — guard case", () => {
+    const out = eventNotices([
+      { type: "reaction", outcome: "friendly", roll: 5, certain: true },
+      { type: "strangersJoined", count: 0 },
+      { type: "unicornGuards", creatureId: 13 },
+    ]);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.text).toMatch(/guard the chamber/i);
+    expect(out[0]!.tone).toBe("good");
+  });
+
+  it("stays silent for a non-certain reaction — the dice overlay (rollView.ts) already covers it", () => {
+    const out = eventNotices([
+      { type: "reaction", outcome: "hostile", roll: 2 },
+      { type: "fightStarted", surprise: -1 },
+    ]);
+    expect(out).toHaveLength(0);
+  });
+
   it("reports a downed member's items spilling onto the floor (previously silent)", () => {
     const out = eventNotices([{ type: "itemsSpilled", creatureId: 0, items: [1, 2] }]);
     expect(out).toHaveLength(1);
@@ -86,7 +115,6 @@ describe("eventNotices", () => {
     expect(eventNotices([{ type: "dragonsLulled", count: 3 }])[0]!.text).toMatch(/3 dragons/i);
     expect(eventNotices([{ type: "annihilated", creatureId: 9 }])[0]!.text).toMatch(/eye of god/i);
     expect(eventNotices([{ type: "carpetUsed", dir: DIR_DOWN }])[0]!.text).toMatch(/magic carpet/i);
-    expect(eventNotices([{ type: "unicornGuards", creatureId: 6 }])[0]!.tone).toBe("good");
   });
 
   it("reports Balm/Staff via their generic artifactUsed, but not carpet/flute (which have their own events)", () => {
