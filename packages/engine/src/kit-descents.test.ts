@@ -129,7 +129,7 @@ describe("The Chasm — one-way descent (US-02, SC-EXT-5)", () => {
     expect(state.level).toBe(2); // still fell through, undeterred by the abandoned encounter
   });
 
-  it("a FRESH arrival draws nothing — unlike Whirlpool, the Chasm never draws a chamber (bug fix 2026-08-02)", () => {
+  it("a FRESH arrival draws nothing — the Chasm never draws a chamber (bug fix 2026-08-02; Whirlpool followed suit 2026-08-03, see below)", () => {
     const s = makeState({
       gs: GS_PLAYING,
       phase: "explore",
@@ -297,5 +297,33 @@ describe("The Whirlpool — crossing roll (US-05, SC-EXT-6)", () => {
     const secondRoll = second.events.find((e) => e.type === "whirlpoolRoll");
     expect(secondRoll).toBeDefined(); // a fresh roll fires again — not a one-time/cached flag
     expect(second.state.seed).not.toBe(back.state.seed); // the seed genuinely advanced for this roll
+  });
+
+  it("a FRESH arrival draws nothing — the Whirlpool's only mechanic is the crossing roll (bug fix 2026-08-03)", () => {
+    const s = makeState({
+      gs: GS_PLAYING,
+      phase: "explore",
+      areas: [
+        { card: PLAIN_CHAMBER, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+      ],
+      partyArea: 0,
+      prev: 0,
+      party: [member(HERO)],
+      largePack: [WHIRLPOOL_CARD],
+      largeIdx: 0,
+      smallPack: [100 + MAN], // present so a bugged draw would be visible
+      smallIdx: 0,
+    });
+    const { state, events } = reduce(s, { type: "move", dir: DIR_E });
+
+    const landed = state.areas[state.partyArea]!;
+    expect(decodeArea(landed.card).special).toBe(SPECIAL_WHIRLPOOL);
+    expect(landed.visited).toBe(true); // still marked visited, so a later re-entry isn't "fresh" again
+    expect(state.strangers).toEqual([]);
+    expect(state.treasures).toEqual([]);
+    expect(state.hazards).toEqual([]);
+    expect(state.smallIdx).toBe(0); // the small pack is never touched by a Whirlpool entry
+    expect(state.phase).toBe("explore"); // no encounter/pickup triggered by an (absent) draw
+    expect(events.some((e) => e.type === "whirlpoolRoll")).toBe(false); // arriving is not crossing
   });
 });

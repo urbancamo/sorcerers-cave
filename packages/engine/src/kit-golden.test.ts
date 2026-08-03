@@ -21,20 +21,26 @@ import type { GameAction, GameState } from "./index";
  * Seed/party: seed 165018, party [18, 20] (Witch, Wolf) — the cheapest kit-only-heavy 6-budget party
  * (Witch 5 + Wolf 1). Originally seed 397 (chosen by a scratchpad seed sweep, ~10,500 candidates
  * scored); re-swept to seed 165018 (bug fix 2026-08-02, ~240,000 candidates at this same party) after
- * the Chasm stopped drawing a small-pack card on arrival — a rules change that shifts the RNG cascade
- * of every kit-on playthrough that ever touches a Chasm, including the original seed 397's. This run
- * plays out to a natural GS_DEAD ending (a full party wipe at step 140, no step-cap truncation):
+ * the Chasm stopped drawing a small-pack card on arrival. A second rules change (bug fix 2026-08-03 —
+ * the Whirlpool/Well/Bell Rope also stopped drawing on fresh arrival) shifted this SAME seed's
+ * narrative again from the point its Whirlpool/Well tiles are first freshly entered onward (step
+ * numbers before that point are untouched — chasmDescend, cryptParked, spellRemap, demonSpawned all
+ * still fall on their original steps below), no reseed needed this time since 165018 still clears the
+ * coverage bar and still ends in a natural GS_DEAD (a full party wipe at step 140, no step-cap
+ * truncation):
  *
  *   - Kit special areas (need ≥1): ALL FOUR fire — descendChasm (#5, the Chasm is reusable terrain,
- *     SC-EXT-5), a Whirlpool crossing rolls `whirlpoolRoll` (#70, SC-EXT-6), the Well is drawn from
- *     repeatedly (`wellDraw`, first at #76, SC-EXT-7), and a Crypt/Gems card parks (`cryptParked`, #43,
+ *     SC-EXT-5), a Whirlpool crossing rolls `whirlpoolRoll` (#58, SC-EXT-6), the Well is drawn from
+ *     repeatedly (`wellDraw`, first at #68, SC-EXT-7), and a Crypt/Gems card parks (`cryptParked`, #43,
  *     SC-EXT-13).
  *   - Kit hazards (need ≥2): all FOUR kit hazard types fire — Quarrel (#93, SC-EXT-16), Spell remaps a
- *     tunnel (#50, SC-EXT-28), Desertion rolls (#97, SC-EXT-14), and Harpies actually strikes (#133,
- *     SC-EXT-15, delivering to a placed Lair the same step).
+ *     tunnel (#50, SC-EXT-28), Desertion rolls ×4 (#97, SC-EXT-14), and Harpies LURKS (#133, SC-EXT-15
+ *     — nothing worth stealing on this pass, unlike the pre-2026-08-03 narrative where this same step
+ *     happened to strike; the strike/lurk split is exhaustively covered by its own dedicated test in
+ *     `kit-harpies-quarrel-spell.test.ts`, so this integration fixture only needs either outcome).
  *   - Kit artifact uses (need ≥1 here — Holy Water's own destroy-a-stranger band is exhaustively pinned
  *     separately in `kit-holywater-scroll.test.ts`, so this integration fixture only needs to prove ONE
- *     kit artifact resolves correctly in context): the Scroll is read (#58, SC-EXT-25).
+ *     kit artifact resolves correctly in context): the Scroll is read (#59, SC-EXT-25).
  *   - Kit creature reactions (need ≥1): THREE — two reactions to a mixed stranger group including the
  *     Thief (#9-10, `strangers=[2,5,19]`) and one to a Dragon/Apprentice pair (#16, `strangers=[14,10]`).
  *   - Bonus (not required, pinned incidentally): a Demon materializes mid-run (`demonSpawned`, #15,

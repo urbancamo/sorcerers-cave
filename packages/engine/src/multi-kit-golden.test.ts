@@ -22,43 +22,48 @@ import type { GameAction, GameEvent, GameState, PartyMember } from "./index";
  * NEITHER `solo-golden.test.ts`'s nor `kit-golden.test.ts`'s own fixtures — solo and solo-kit stay
  * frozen (INV-2).
  *
- * SEED / PARTIES: seed 215, seat 0 = [2, 7] (Ogre, Dwarf), seat 1 = [5, 17] (Man, Scholar) —
- * chosen by a scratchpad seed sweep (not committed; solo Task-17's own methodology) that scored
- * 16,800 seed × party-pair runs (1,200 seeds × 14 pairs) against the kit-biased policy below for
- * coverage of the milestone's required surfaces. Seat 1's Scholar (id 17) is a KIT creature, so the draft itself
- * only validates with the kit on (SC-EXT-36) — a kit-off game rejects this fixture outright, which
- * is the cheapest possible proof that the run really is kit-gated end to end.
+ * SEED / PARTIES: seed 93917, seat 0 = [2, 7] (Ogre, Dwarf), seat 1 = [5, 17] (Man, Scholar) —
+ * originally seed 215 (chosen by a scratchpad seed sweep, not committed, that scored 16,800 seed ×
+ * party-pair runs); re-swept to seed 93917 (bug fix 2026-08-03, same party-pair, ~150,000 candidate
+ * seeds scored) after the Whirlpool/Well/Bell Rope stopped drawing a small-pack card on fresh
+ * arrival — see `kit-golden.test.ts`'s header for the same rules change hitting solo's own fixture.
+ * Seat 1's Scholar (id 17) is a KIT creature, so the draft itself only validates with the kit on
+ * (SC-EXT-36) — a kit-off game rejects this fixture outright, the cheapest possible proof the run
+ * really is kit-gated end to end.
  *
- * The run plays out to a natural finish at step #149 (both seats wiped, `phase: "finished"`,
- * turnCount 119, 45 areas placed) — no step-cap truncation. What it pins:
+ * The run plays out to a natural finish at step #219 (both seats wiped, `phase: "finished"`,
+ * turnCount 115, 42 areas placed) — no step-cap truncation. What it pins:
  *
  *   - UNION BEAT (scripted, see below; SC-MP-32/33, SC-EXT-34). Seat 0 commands, seat 1's Man and
- *     Scholar march in its array tagged `loan:1` for steps #0-#39; the union is dissolved on the
- *     commander's turn at #40 and both seats then explore independently for #41-#149.
- *   - UNION QUARREL ACROSS THE COMBINED FORCE (SC-EXT-34, the headline). #12 draws hazard 7 into
+ *     Scholar march in its array tagged `loan:1` from step #0; the union is dissolved on the
+ *     commander's first at-rest turn from #40 onward — #42 here — and both seats then explore
+ *     independently afterward.
+ *   - UNION QUARREL ACROSS THE COMBINED FORCE (SC-EXT-34, the headline). #21 draws a Quarrel into
  *     the commander's chamber and the duel picks the commander's OWN Ogre (aId 2) against seat 1's
- *     LOANED Man (bId 5) — a pairing no solo game can produce. The Man loses and dies; his corpse
- *     stays in the commander's array as `status: 3` with its `loan:1` tag intact all the way to the
- *     dissolve (death does NOT end a loan), and only then goes home to seat 1 (visible at #43,
- *     where seat 1's own party holds the untagged corpse).
- *   - KIT HAZARDS, ≥2, both zombie-classified by SC-EXT-33: Harpies (SC-EXT-15) LURKS at #0 with
- *     nothing worth stealing and comes back to STRIKE at #5 on the revisit, taking the Charmed
- *     Flute (`harpiesSteal treasureIds:[12]`); Quarrel (SC-EXT-16) fires at #12 as above. Under the
- *     zombies variant SC-EXT-33 would repair the Quarrel away and let the theft stand — this golden
- *     pins the LIVING-party behaviour both classifications are measured against.
- *   - KIT SPECIAL AREAS, ≥1 — three of them, and one across seats: the Bell Rope (SC-EXT-8) is
- *     pulled once ever at #1 for a `stir` (which itself draws in an Earthquake); the Whirlpool
- *     (SC-EXT-6) is crossed nine times between the two seats (#31/#36 by the commander, then
- *     #52/#66/#88/#99/#107/#143/#145 by seat 1 alone), four of those crossings dragging a party a
- *     level down — the SAME shared tile serving both seats; and the Lair (SC-EXT-12) is finally
- *     found at #89, 84 steps and one dissolution after the theft, delivering the stolen Flute
- *     (`lairStash treasureIds:[12]`).
- *   - KIT CREATURE THROUGH THE MP COMPOSED PATH (SC-EXT-31): seat 0's expedition ends at #116
- *     against the APPRENTICE (id 14) — a kit creature met, named and fought through `mpReduce`'s
- *     composed reduce, which is exactly the base-only-table indexing Task 2 widened.
+ *     LOANED Man (bId 5) — a pairing no solo game can produce, matching the ORIGINAL seed 215's
+ *     exact same aId/bId/loserId (only the step moved, #12 → #21). The Man loses and dies; his
+ *     corpse stays in the commander's array as `status: 3` with its `loan:1` tag intact all the way
+ *     to the dissolve (death does NOT end a loan), and only then goes home to seat 1, untagged.
+ *   - KIT HAZARDS, ≥2 — all FOUR fire, an improvement on the original's two: Quarrel (#21, as
+ *     above), Spell remaps a tunnel (#102), Desertion rolls twice (#119), and Mutiny/Harpies/the
+ *     Lair all land on the SAME step (#151, one fresh chamber drawing both hazards) — Harpies
+ *     (SC-EXT-15) STRIKES (unlike solo's own re-swept fixture, where this same fix left Harpies
+ *     merely lurking), and the Lair (SC-EXT-12) receives the stolen goods (`lairStash`) that same
+ *     step — no 84-step gap this time.
+ *   - KIT SPECIAL AREAS, ≥1 — FIVE mechanics fire: the Bell Rope (SC-EXT-8) is pulled once ever at
+ *     #20 for a `toll` (no mechanical effect); the Whirlpool (SC-EXT-6) is crossed three times, all
+ *     by the commander during the union (#11/#14/#16); `jumpToIsland` fires at #175 (Precise
+ *     Locations house rule, SC-10.5-5); and the Crypt (SC-EXT-13) is both parked (#179) and entered
+ *     for its roll (#186) — the original fixture only ever parked one, never entered it.
+ *   - KIT ARTIFACT USE (≥1): Holy Water weakens a foe (`holyWaterWeakened`, #159, SC-EXT-24).
+ *   - KIT CREATURE THROUGH THE MP COMPOSED PATH (SC-EXT-31): a kit creature (the Witch, id 18)
+ *     stands among the mixed 8-strong stranger group that wipes the commander's own expedition at
+ *     the final #219 fight — met, named and fought through `mpReduce`'s composed reduce, the same
+ *     base-only-table indexing Task 2 widened; the Apprentice (id 14) is ALSO met earlier in the
+ *     run as an ordinary stranger, though not in this final fight.
  *   - Bonus, pinned incidentally: ordinary base machinery rides along beside the kit's and is
- *     frozen with it — a chamber talked down to indifference (`pacified`, #58), the Dwarf's
- *     `trapAvoided` (#45/#112), and the Spectre that takes seat 1's last member at #149.
+ *     frozen with it — a Talisman wards off a Spectre (`wardedOff`, #179) and repeatedly wards the
+ *     Ghouls (`ghoulsWarded` ×5, #188-#204).
  *
  * POLICY: identical in shape to `kit-golden.test.ts`'s own kit-biased policy — kit specials first
  * (2-in-3 rather than outright, so a Well/Bell tile cannot pin the bot in a draw loop), then
@@ -286,7 +291,7 @@ function run(
 }
 
 // Seed × seat parties chosen by a scratchpad seed sweep — see the header doc comment.
-const SEED = 215;
+const SEED = 93917;
 const PICKS = [[2, 7], [5, 17]];
 // The kit-OFF identity spot-check runs the same harness on a base-only draft (Ogre+Dwarf,
 // Man+Woman). Its own seed is picked purely for LENGTH — seed 215's base cave wipes both parties
@@ -318,7 +323,7 @@ describe("MP-kit golden firewall — kit-on multiplayer behaviour is frozen", ()
     // strongest of the roster; under a union that roster is the COMBINED force).
     const q = probes.unionQuarrel;
     expect(q).not.toBeNull();
-    expect(q!.step).toBe(12);
+    expect(q!.step).toBe(21);
     expect(q!.unionLive).toBe(true);
     expect(q!.event).toMatchObject({ type: "quarrel", aId: 2, bId: 5, loserId: 5 });
     expect(ownPicks).toContain(q!.event.aId);       // duellist A is the commander's own
@@ -330,7 +335,7 @@ describe("MP-kit golden firewall — kit-on multiplayer behaviour is frozen", ()
     // ends the loan naturally", would have returned him at step 12 and is contradicted here.)
     const d = probes.dissolve;
     expect(d).not.toBeNull();
-    expect(d!.step).toBe(40);
+    expect(d!.step).toBe(42);
     expect(d!.subSeat).toBe(1);
     expect(d!.subParty).toContainEqual(expect.objectContaining({ creatureId: 5, status: 3 }));
     for (const m of d!.subParty) expect(m.mpTag).toBeUndefined();     // came home, loan record gone

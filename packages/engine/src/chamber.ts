@@ -1,5 +1,5 @@
 import { decodeArea } from "./decode";
-import { SPECIAL_TOMB, SPECIAL_GREAT_HALL, SPECIAL_LAIR, SPECIAL_GALLERY, SPECIAL_WHIRLPOOL, SPECIAL_CHASM } from "./data/areaCards";
+import { SPECIAL_TOMB, SPECIAL_GREAT_HALL, SPECIAL_LAIR, SPECIAL_GALLERY, SPECIAL_WHIRLPOOL, SPECIAL_CHASM, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
 import { AF_DESTROYED, type GameState } from "./state";
 import type { GameEvent } from "./actions";
 import { getSubLocation } from "./subLocation";
@@ -171,15 +171,20 @@ export function enterChamber(state: GameState): GameEvent[] {
   for (const code of area.contents) reload(state, code);
   if (!area.visited) {
     area.visited = true;
-    // The Chasm (bug fix 2026-08-02): unlike the Whirlpool, a fresh Chasm arrival draws NOTHING —
-    // its only mechanic is the one-way descend action (`descendChasm`, reduce.ts, SC-EXT-5). The
-    // sunk-treasure fold-in above still applies (Chasm has no creature-gate on it, same as
-    // Whirlpool); only the small-pack draw below is skipped. `area.visited` is still set so a later
-    // re-entry isn't treated as fresh again, and `smallIdx` stays untouched, matching Deep Pool/
-    // Viper Pit's own "never draws a chamber" carve-out (those two skip `enterChamber` entirely
-    // instead, in reduce.ts's `resolveAreaLoop` — they have no Chasm-style sunk-treasure fold-in to
+    // No arrival draw for the Chasm (bug fix 2026-08-02) or the Whirlpool/Well/Bell Rope (bug fix
+    // 2026-08-03): none of these four has a card-drawing mechanic tied to mere ARRIVAL — the Chasm's
+    // only mechanic is the one-way descend action (`descendChasm`, SC-EXT-5); the Whirlpool's is the
+    // crossing roll (`whirlpoolCrossing`, SC-EXT-6); the Well's and Bell Rope's are their own
+    // explicit, player-chosen interact actions (`drawFromWell`/`pullBellRope`, SC-EXT-7/8) — drawing
+    // there is conditional on the player choosing to interact, not automatic on arrival. The
+    // sunk-treasure fold-in above still applies to Whirlpool/Chasm (no creature-gate on either);
+    // only the small-pack draw below is skipped. `area.visited` is still set so a later re-entry
+    // isn't treated as fresh again, and `smallIdx` stays untouched, matching Deep Pool/Viper Pit's
+    // own "never draws a chamber" carve-out (those two skip `enterChamber` entirely instead, in
+    // reduce.ts's `resolveAreaLoop` — they have no Chasm/Whirlpool-style sunk-treasure fold-in to
     // preserve, so bypassing this whole function is simpler for them than it would be here).
-    if (dec.special !== SPECIAL_CHASM) {
+    if (dec.special !== SPECIAL_CHASM && dec.special !== SPECIAL_WHIRLPOOL
+      && dec.special !== SPECIAL_WELL && dec.special !== SPECIAL_BELL_ROPE) {
       // Test Mode (§Test Mode): an armed testNextChamber replaces the normal small-pack draw outright
       // — smallIdx is untouched, so the shuffled deck stays intact for every other, non-overridden
       // chamber. Routed through the SAME classify() as a real draw, so Gallery petrification, the
