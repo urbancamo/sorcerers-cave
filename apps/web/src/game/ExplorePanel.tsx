@@ -78,6 +78,10 @@ export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: 
   // Precise Locations (kit-independent house rule): pulled out alongside the kit escape-hatches
   // above for the same reason — it needs its own blocking confirm, not a plain button.
   const jumpToIsland = all.find((a): a is Extract<GameAction, { type: "jumpToIsland" }> => a.type === "jumpToIsland") ?? null;
+  // Deep Pool/Viper Pit stationary reclaim (bug fix 2026-08-02): a live pickup for treasure already
+  // sitting at the party's current sub-location — no risk, so a plain button like `attack` rather
+  // than a `jumpToIsland`-style blocking confirm.
+  const reclaimTreasure = all.find((a): a is Extract<GameAction, { type: "reclaimTreasure" }> => a.type === "reclaimTreasure") ?? null;
   const actions = all.filter(isExploreAction).filter((a) => !(a.type === "useArtifact" && a.artifact === 15));
   const hasKitActions = !!descendChasm || !!drawFromWell || !!enterCrypt || pullBellRope.length > 0 || useElixir.length > 0 || !!jumpToIsland;
   // Uncarryable treasure parked on this tile (design 2026-07-28): pickup auto-skips when nothing
@@ -87,7 +91,7 @@ export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: 
     state,
     state.areas[state.partyArea]!.contents.filter((c) => c >= 200 && c < 300).map((c) => c - 200),
   );
-  if (actions.length === 0 && !attack && !hasKitActions && notes.length === 0) return null;
+  if (actions.length === 0 && !attack && !hasKitActions && !reclaimTreasure && notes.length === 0) return null;
 
   // Group artifact uses by artifact; openChest (and any single-option artifact) stays a plain button.
   const artByArtifact = new Map<number, UseArtifact[]>();
@@ -113,6 +117,12 @@ export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: 
       {attack && (
         <div className="scv-enc-actions">
           <button className="scv-enc-btn" onClick={() => dispatch(attack)}>Attack the guardians</button>
+        </div>
+      )}
+
+      {reclaimTreasure && (
+        <div className="scv-enc-actions">
+          <button className="scv-enc-btn" onClick={() => dispatch(reclaimTreasure)}>Reclaim the sunk treasure</button>
         </div>
       )}
 

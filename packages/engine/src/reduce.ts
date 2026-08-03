@@ -2,7 +2,7 @@ import { GS_PLAYING, GS_QUIT, GS_ESCAPED, GS_DEAD, AF_DESTROYED, AF_BELL_SPENT, 
 import { tryMove } from "./map";
 import { decodeArea } from "./decode";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WHIRLPOOL, SPECIAL_WELL, SPECIAL_BELL_ROPE, SPECIAL_GREAT_HALL } from "./data/areaCards";
-import { viperCrossing, deepPoolCrossing, whirlpoolCrossing } from "./special";
+import { viperCrossing, deepPoolCrossing, whirlpoolCrossing, giantCanRecover, sunkKey, tryReclaimSunk } from "./special";
 import { enterChamber, drawSmallCards } from "./chamber";
 import { applyHazards, hasStaffWizard } from "./hazards";
 import { HAZARD_MEDUSA, HAZARD_NAMES } from "./data/hazards";
@@ -38,33 +38,6 @@ const C_APPRENTICE = 14; // extension-kit creature — never leaves the cave (de
 const C_DEMON = 15; // extension-kit creature — forces immediate hostile combat on sight (design US-13, SC-EXT-21)
 const C_SORCERER = 11; // Holy Water's WEAKEN mode target, alongside the Apprentice (design US-20, SC-EXT-24)
 const C_UNICORN = 13; // hostileMax 0 / indiffMax 0 — always friendly regardless of the roll (§ Unicorn, bug fix 2026-08-02)
-
-/** Can a living Giant fish at least one dropped item out of a Deep Pool right now? Recovery is a
- *  Giant-only, capacity-limited pickup (§Deep Pool): a Man/Ogre/etc. can never lift pool treasure,
- *  and a Giant already loaded to capacity can't either. Multiple Giants each count. */
-function giantCanRecover(state: GameState, dropped: readonly number[]): boolean {
-  return state.party.some(
-    (m) => (m.status === 0 || m.status === 1) && m.creatureId === C_GIANT && dropped.some((t) => canCarry(m, t)),
-  );
-}
-
-/** Precise Locations (§10.5): the `sunkTreasure` bucket key for a given sub-location, or undefined
- *  when there isn't one to sink into/reclaim from (centre, or an undetermined doorway direction). */
-function sunkKey(sub: { at: SubAt; dir?: number }): "island" | 1 | 2 | 3 | 4 | undefined {
-  if (sub.at === "island") return "island";
-  if (sub.at === "doorway" && sub.dir !== undefined) return sub.dir as 1 | 2 | 3 | 4;
-  return undefined;
-}
-
-/** Precise Locations (§10.5): pull (and remove) the sunk-treasure bucket at `key` from `area`, or
- *  undefined if there isn't one / it's empty. */
-function takeSunkBucket(area: PlacedArea, key: "island" | 1 | 2 | 3 | 4 | undefined): number[] | undefined {
-  if (key === undefined || !area.sunkTreasure?.length) return undefined;
-  const bucket = area.sunkTreasure.find((b) => b.at === key);
-  if (!bucket || bucket.items.length === 0) return undefined;
-  area.sunkTreasure = area.sunkTreasure.filter((b) => b !== bucket);
-  return bucket.items;
-}
 
 /** First living member who may bear+use `artifact` now (some artifacts need a specific creature).
  *  Extension kit (SC-EXT-17): each class-keyed check runs through `usesArtifactsAs` so a kit
@@ -402,30 +375,11 @@ function resolveAreaLoop(state: GameState): GameEvent[] {
       // logic (that logic only matters once the party has survived arriving; the pool's own
       // CROSSING effects, elsewhere, only fire when the party later LEAVES by a fresh doorway).
       if (pullParkedDemon(state, area)) { ambushIfDemon(state, events); return events; }
-      // Treasure cast into a Deep Pool is recoverable only by a Giant (§Deep Pool). Reclaim it into a
-      // Giant-only pickup only when a living Giant has the spare capacity to lift some of it; otherwise
-      // it stays sunk in the pool for a future visit.
-      if (area.dropped && area.dropped.length > 0 && giantCanRecover(state, area.dropped)) {
-        state.treasures = area.dropped;
-        area.dropped = [];
-        events.push({ type: "treasureReclaimed", count: state.treasures.length });
-        state.phase = "pickup"; // Giant-only, weight-limited (see legalActions / takeTreasure)
-        return events;
-      }
-      // Precise Locations (§10.5): a deliberate `dropTreasure` cast into THIS sub-location, same
-      // Giant-only gate as the automatic pile above — checked separately (only one bucket reclaims
-      // per visit; a rare double-stash waits for a later trip, a named simplification).
-      {
-        const key = sunkKey(getSubLocation(state));
-        const sunk = takeSunkBucket(area, key);
-        if (sunk && giantCanRecover(state, sunk)) {
-          state.treasures = sunk;
-          events.push({ type: "treasureReclaimed", count: sunk.length });
-          state.phase = "pickup";
-          return events;
-        }
-        if (sunk) area.sunkTreasure = [...(area.sunkTreasure ?? []), { at: key!, items: sunk }]; // no Giant yet — put it back
-      }
+      // Treasure cast into a Deep Pool is recoverable only by a Giant (§Deep Pool) — the auto-
+      // dropped pile first, else a deliberate `dropTreasure` cast into THIS sub-location (§10.5).
+      // Shared with the stationary `reclaimTreasure` action (bug fix 2026-08-02) so the two paths
+      // can never diverge.
+      if (tryReclaimSunk(state, area, (items) => giantCanRecover(state, items), events)) return events;
       events.push({ type: "enteredSpecial", special: dec.special });
       state.phase = "explore";
       return events;
@@ -433,22 +387,12 @@ function resolveAreaLoop(state: GameState): GameEvent[] {
     if (dec.special === SPECIAL_VIPER_PIT) {
       // Extension kit (SC-EXT-21, fix round): same Demon pull-in as Deep Pool above — the Viper
       // Pit is likewise a non-chamber special that returns before the generic tunnel branch.
-      if (pullParkedDemon(state, state.areas[state.partyArea]!)) { ambushIfDemon(state, events); return events; }
+      const area = state.areas[state.partyArea]!;
+      if (pullParkedDemon(state, area)) { ambushIfDemon(state, events); return events; }
       // Precise Locations (§10.5): treasure cast into the Viper Pit is recoverable only by a party
       // with the Charmed Flute (Peter's notes; mirrors Deep Pool's Giant-only gate, §10.2). Once
       // eligible, ordinary capacity-gated pickup rules decide who actually carries it out.
-      {
-        const area = state.areas[state.partyArea]!;
-        const key = sunkKey(getSubLocation(state));
-        const sunk = takeSunkBucket(area, key);
-        if (sunk && fluteLulls(state)) {
-          state.treasures = sunk;
-          events.push({ type: "treasureReclaimed", count: sunk.length });
-          state.phase = "pickup";
-          return events;
-        }
-        if (sunk) area.sunkTreasure = [...(area.sunkTreasure ?? []), { at: key!, items: sunk }]; // no Flute yet — put it back
-      }
+      if (tryReclaimSunk(state, area, () => fluteLulls(state), events)) return events;
       events.push({ type: "enteredSpecial", special: dec.special });
       state.phase = "explore";
       return events;
@@ -727,6 +671,24 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       } else {
         events.push(...deepPoolCrossing(next, next.partyArea));
       }
+      return { state: next, events };
+    }
+
+    case "reclaimTreasure": {
+      // Deep Pool/Viper Pit stationary reclaim (bug fix 2026-08-02): reuses the SAME
+      // `tryReclaimSunk` the (re-)entry path in `resolveAreaLoop` already runs, so a party parked
+      // on the tile has a legal way to pick up treasure dropped/left there without first leaving
+      // by a doorway and walking back in.
+      if (state.phase !== "explore") return { state, events: [{ type: "blocked" }] };
+      const dec = decodeArea(state.areas[state.partyArea]!.card);
+      if (dec.special !== SPECIAL_DEEP_POOL && dec.special !== SPECIAL_VIPER_PIT) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      const area = next.areas[next.partyArea]!;
+      const events: GameEvent[] = [];
+      const eligible = dec.special === SPECIAL_DEEP_POOL
+        ? (items: readonly number[]) => giantCanRecover(next, items)
+        : () => fluteLulls(next);
+      if (!tryReclaimSunk(next, area, eligible, events)) return { state, events: [{ type: "blocked" }] };
       return { state: next, events };
     }
 

@@ -48,6 +48,14 @@ export type GameAction =
   // non-Giant-carried heavy treasure exactly like an ordinary crossing (`deepPoolCrossing` reused
   // verbatim) — no roll. No target/dir: the destination is always this tile's own island.
   | { type: "jumpToIsland" }
+  // Deep Pool/Viper Pit stationary reclaim (bug fix 2026-08-02): legal only in `explore` phase,
+  // standing on one of these two specials, when the auto-dropped pile or the sunk bucket at the
+  // party's EXACT current sub-location (§10.5) holds an eligible carrier's worth of treasure — a
+  // living Giant for the Deep Pool, the Charmed Flute for the Viper Pit. Before this fix, reclaim
+  // only ran on (re-)entry (`resolveAreaLoop`); a party already parked on the tile — having just
+  // dropped treasure there themselves, or resting on an earlier visit's still-sunk treasure — had
+  // no legal way to pick it up without first leaving by a doorway and walking back in.
+  | { type: "reclaimTreasure" }
   // Test Mode (§Test Mode): arm/clear the next draw or reaction override. Rejected with `blocked`
   // on any game whose `state.testMode` isn't true (reduce.ts) — never legal in a real game.
   | { type: "testPlaceArea"; dir: number; special: number }

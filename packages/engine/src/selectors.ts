@@ -1,11 +1,12 @@
 import { decodeArea } from "./decode";
 import { DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, unpackCoord, packCoord } from "./coords";
 import { GS_PLAYING, AF_DESTROYED, AF_BELL_SPENT, type GameState } from "./state";
-import { SPECIAL_DEEP_POOL, SPECIAL_CHASM, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
+import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
 import type { GameAction } from "./actions";
 import { canCarry } from "./pickup";
-import { usesArtifactsAs, holyWaterTargets, hasLivingHuman } from "./effects";
+import { usesArtifactsAs, holyWaterTargets, hasLivingHuman, fluteLulls } from "./effects";
 import { getSubLocation, oppositeDir, RING_ADJACENCY_SPECIALS, ISLAND_JUMP_SPECIALS } from "./subLocation";
+import { giantCanRecover, sunkKey } from "./special";
 
 const C_GIANT = 12; // only a Giant may lift treasure out of a Deep Pool (§Deep Pool)
 
@@ -228,6 +229,18 @@ export function legalActions(state: GameState): GameAction[] {
   if (state.pacifiedAreas?.includes(state.partyArea) &&
       state.areas[state.partyArea]!.contents.some((c) => c >= 100 && c < 200)) {
     actions.push({ type: "attack" });
+  }
+  // Deep Pool/Viper Pit stationary reclaim (bug fix 2026-08-02): offer a live pickup for treasure
+  // already sitting at the party's current area — the auto-dropped pile, or the sunk bucket at the
+  // EXACT current sub-location (§10.5) — while they're simply parked there, not just on (re-)entry.
+  // Read-only mirror of `tryReclaimSunk`'s own eligibility check (reduce.ts); never mutates state.
+  if (dec.special === SPECIAL_DEEP_POOL || dec.special === SPECIAL_VIPER_PIT) {
+    const area = state.areas[state.partyArea]!;
+    const key = sunkKey(sub);
+    const sunkItems = key !== undefined ? area.sunkTreasure?.find((b) => b.at === key)?.items : undefined;
+    const reclaimable = area.dropped?.length ? area.dropped : sunkItems;
+    const eligible = dec.special === SPECIAL_DEEP_POOL ? giantCanRecover(state, reclaimable ?? []) : fluteLulls(state);
+    if (reclaimable?.length && eligible) actions.push({ type: "reclaimTreasure" });
   }
   actions.push(...artifactActions(state));
   return actions; // quitting is via the HUD Quit button, not an in-menu action

@@ -328,3 +328,102 @@ describe("precise dropped treasure — reclaim on (re)entry (§10.5, §8.3)", ()
     expect(state.areas[1]!.sunkTreasure ?? []).toEqual([]);
   });
 });
+
+describe("stationary reclaim — Deep Pool/Viper Pit (bug fix 2026-08-02)", () => {
+  // Before this fix, reclaim only ran on (re-)entry (resolveAreaLoop) — a party already PARKED on
+  // the tile (having just dropped treasure there themselves, or simply resting there with an
+  // earlier visit's sunk treasure still waiting) had no legal way to pick it back up without first
+  // leaving by a doorway and walking back in.
+
+  it("legalActions offers reclaimTreasure when a capable Giant is parked at a Deep Pool doorway with sunk treasure there", () => {
+    const s = makeState({
+      areas: [
+        area(DEEP_POOL_CARD, packCoord(1, 50, 50), { sunkTreasure: [{ at: DIR_W, items: [1] }] }),
+        area(2, packCoord(1, 49, 50)),
+      ],
+      partyArea: 0, prev: 1, party: [member(12)], // a Giant
+    });
+    expect(legalActions(s)).toContainEqual({ type: "reclaimTreasure" });
+  });
+
+  it("does not offer reclaimTreasure without an eligible carrier", () => {
+    const s = makeState({
+      areas: [
+        area(DEEP_POOL_CARD, packCoord(1, 50, 50), { sunkTreasure: [{ at: DIR_W, items: [1] }] }),
+        area(2, packCoord(1, 49, 50)),
+      ],
+      partyArea: 0, prev: 1, party: [member(5)], // a Man — no Giant
+    });
+    expect(legalActions(s)).not.toContainEqual({ type: "reclaimTreasure" });
+  });
+
+  it("does not offer reclaimTreasure when there's nothing sunk/dropped to reclaim", () => {
+    const s = westEntryState(DEEP_POOL_CARD, { party: [member(12)] });
+    expect(legalActions(s)).not.toContainEqual({ type: "reclaimTreasure" });
+  });
+
+  it("dispatching reclaimTreasure transitions to pickup, populates state.treasures, and empties the sunk bucket", () => {
+    const s = makeState({
+      areas: [
+        area(DEEP_POOL_CARD, packCoord(1, 50, 50), { sunkTreasure: [{ at: DIR_W, items: [1] }] }),
+        area(2, packCoord(1, 49, 50)),
+      ],
+      partyArea: 0, prev: 1, party: [member(12)],
+    });
+    const { state, events } = reduce(s, { type: "reclaimTreasure" });
+    expect(state.phase).toBe("pickup");
+    expect(state.treasures).toEqual([1]);
+    expect(state.areas[0]!.sunkTreasure ?? []).toEqual([]);
+    expect(events).toContainEqual({ type: "treasureReclaimed", count: 1 });
+  });
+
+  it("blocks reclaimTreasure when ineligible or when there's nothing to reclaim", () => {
+    const noGiant = makeState({
+      areas: [
+        area(DEEP_POOL_CARD, packCoord(1, 50, 50), { sunkTreasure: [{ at: DIR_W, items: [1] }] }),
+        area(2, packCoord(1, 49, 50)),
+      ],
+      partyArea: 0, prev: 1, party: [member(5)],
+    });
+    expect(reduce(noGiant, { type: "reclaimTreasure" }).events).toEqual([{ type: "blocked" }]);
+
+    const nothingThere = westEntryState(DEEP_POOL_CARD, { party: [member(12)] });
+    expect(reduce(nothingThere, { type: "reclaimTreasure" }).events).toEqual([{ type: "blocked" }]);
+  });
+
+  it("blocks reclaimTreasure off a non-Deep-Pool/Viper-Pit tile, even with sunk treasure somehow present", () => {
+    const s = makeState({
+      areas: [area(PLAIN_CHAMBER, packCoord(1, 50, 50), { sunkTreasure: [{ at: DIR_W, items: [1] }] })],
+      partyArea: 0, party: [member(12)],
+    });
+    expect(reduce(s, { type: "reclaimTreasure" }).events).toEqual([{ type: "blocked" }]);
+  });
+
+  it("also works for the Viper Pit, gated by the Charmed Flute instead of a Giant", () => {
+    const s = makeState({
+      areas: [
+        area(VIPER_PIT_CARD, packCoord(1, 50, 50), { sunkTreasure: [{ at: DIR_W, items: [12] }] }),
+        area(2, packCoord(1, 49, 50)),
+      ],
+      partyArea: 0, prev: 1, party: [member(0, [12])], // Hero carrying the Charmed Flute
+    });
+    expect(legalActions(s)).toContainEqual({ type: "reclaimTreasure" });
+    const { state } = reduce(s, { type: "reclaimTreasure" });
+    expect(state.phase).toBe("pickup");
+    expect(state.treasures).toEqual([12]);
+  });
+
+  it("also reclaims the auto-dropped pile (crossing without a Giant), not just a deliberate sunk bucket, while stationary", () => {
+    const s = makeState({
+      areas: [
+        area(DEEP_POOL_CARD, packCoord(1, 50, 50), { dropped: [1, 2] }),
+        area(2, packCoord(1, 49, 50)),
+      ],
+      partyArea: 0, prev: 1, party: [member(12)],
+    });
+    expect(legalActions(s)).toContainEqual({ type: "reclaimTreasure" });
+    const { state } = reduce(s, { type: "reclaimTreasure" });
+    expect(state.treasures).toEqual([1, 2]);
+    expect(state.areas[0]!.dropped ?? []).toEqual([]);
+  });
+});

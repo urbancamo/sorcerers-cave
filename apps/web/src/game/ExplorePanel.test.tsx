@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import { newGame, type GameState } from "@sorcerers-cave/engine";
+import { newGame, packCoord, DIR_W, SPECIAL_DEEP_POOL, type GameState } from "@sorcerers-cave/engine";
 import { ExplorePanel } from "./ExplorePanel";
 
 describe("ExplorePanel", () => {
@@ -33,6 +33,26 @@ describe("ExplorePanel", () => {
     render(<ExplorePanel state={s} dispatch={dispatch} />);
     fireEvent.click(screen.getByRole("button", { name: /attack the guardians/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "attack" });
+  });
+
+  it("offers 'Reclaim the sunk treasure' when parked at a Deep Pool doorway with a Giant and sunk treasure there (bug fix 2026-08-02), and dispatches reclaimTreasure", () => {
+    const dispatch = vi.fn();
+    const base = newGame(1, [0]); // Hero — swapped out below for a Giant
+    const DEEP_POOL_CARD = (SPECIAL_DEEP_POOL << 7) | 31; // NESW + chamber
+    const s: GameState = {
+      ...base,
+      phase: "explore",
+      party: [{ creatureId: 12, status: 0, dragonKills: 0, treasure: [] }], // a Giant
+      areas: [
+        { card: DEEP_POOL_CARD, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0, sunkTreasure: [{ at: DIR_W, items: [1] }] },
+        { card: 2, coord: packCoord(1, 49, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+      ],
+      partyArea: 0,
+      prev: 1, // entered from the west neighbour — sub-location is the WEST doorway
+    };
+    render(<ExplorePanel state={s} dispatch={dispatch} />);
+    fireEvent.click(screen.getByRole("button", { name: /reclaim the sunk treasure/i }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "reclaimTreasure" });
   });
 
   it("condenses the Magic Carpet's directions into a single dropdown", () => {
