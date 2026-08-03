@@ -97,6 +97,7 @@
     section > h2 .num { font-size: 15px; color: var(--brass); opacity: 0.8; font-variant-numeric: tabular-nums; }
     section .lede { color: var(--stone); margin: 4px 0 18px; font-size: 19px; }
     h3 { font-family: var(--display); font-weight: 600; color: var(--cream); font-size: 19px; letter-spacing: 0.02em; margin: 26px 0 8px; }
+    h4 { font-family: var(--ui); font-weight: 700; color: var(--brass-bright); font-size: 13px; letter-spacing: 0.1em; text-transform: uppercase; margin: 20px 0 6px; }
     p { margin: 12px 0; }
     strong { color: var(--cream); }
     em.term { color: var(--brass-bright); font-style: normal; }
@@ -192,6 +193,7 @@
           <li><a href="#secret">Secret Doors</a></li>
           <li><a href="#scoring">Leaving &amp; Scoring</a></li>
           <li><a href="#multiplayer">Multiplayer Games</a></li>
+          <li><a href="#kit">The Extension Kit</a></li>
           <li><a href="#reference">Quick Reference</a></li>
         </ol>
       </nav>
@@ -290,7 +292,7 @@
 
           <h3>Moving</h3>
           <ul>
-            <li><strong>Click a glowing doorway marker</strong>, or press <strong>N / E / S / W</strong>, to step that way.</li>
+            <li><strong>Click a glowing doorway marker</strong>, or press <strong>N / E / S / W</strong> (or the <strong>arrow keys</strong> — ↑ is North, → East, ↓ South, ← West), to step that way.</li>
             <li>Press <strong>U / D</strong> (or click the corner stair markers) to climb or descend a stairway.</li>
             <li><strong>Drag</strong> to orbit, <strong>scroll</strong> to zoom. <em>Snap to current tile</em> gives a clean overhead view; the <em>Levels</em> buttons focus a single floor; <em>Free orbit</em> shows the whole cave.</li>
           </ul>
@@ -661,15 +663,145 @@
           <div class="note"><span class="tag">Note</span> This first multiplayer release runs the beginner ruleset: parties race the same cave but don't fight, trade with, or block one another — the whole map is open to all.</div>
         </section>
 
+        <!-- ===================== EXTENSION KIT ===================== -->
+        <section id="kit">
+          <h2><span class="num">XIII</span> The Extension Kit</h2>
+          <p class="lede">An optional expansion: six new special areas, four new hazards, five new recruits (plus two you'll only ever meet), and six new artefacts and treasures.</p>
+          <p>
+            Every rule described so far assumes the base game's 60 area tiles and 71 small cards.
+            Tick the <strong>Extension kit</strong> box on the party selection screen — solo, or as
+            the host in a multiplayer lobby — before you set out, and the decks grow by 30 tiles and
+            30 small cards for that game only, drawing in everything below. Leave it unticked and
+            none of this applies; every rule described elsewhere in this manual is unaffected.
+          </p>
+
+          <h3>New special areas</h3>
+          <div class="grid tiles">
+            <figure class="tile"><img src="/assets/tiles/area-tile-x06-2.png" alt="The Chasm tile" /><figcaption><b>The Chasm</b><span>A one-way plunge on demand — no roll needed. Descend it any turn, in or out of an encounter, and any strangers or treasure waiting there are left parked for later. It never dries up.</span></figcaption></figure>
+            <figure class="tile"><img src="/assets/tiles/area-tile-x07-2.png" alt="The Whirlpool tile" /><figcaption><b>The Whirlpool</b><span>Enters like an ordinary chamber. Leave by any doorway but the one you came in by and the shallows roll a d6: 1–2 drags the party down a level; 3–6 and the crossing is safe.</span></figcaption></figure>
+            <figure class="tile"><img src="/assets/tiles/area-tile-x07-4.png" alt="The Well tile" /><figcaption><b>The Well</b><span>Draw one extra small card straight into the chamber — no move required. Legal any turn, as many times as the small pack allows.</span></figcaption></figure>
+            <figure class="tile"><img src="/assets/tiles/area-tile-x06-4.png" alt="The Bell Rope tile" /><figcaption><b>The Bell Rope</b><span>Pull it once per visit and a d6 decides the toll: a 1 spirits the puller away for good, with everything they carried; 2–3 is nothing but an eerie sound; 4–6 draws two cards at once.</span></figcaption></figure>
+            <figure class="tile"><img src="/assets/tiles/area-tile-x07-3.png" alt="The Gallery tile" /><figcaption><b>The Gallery</b><span>Every creature drawn here on a fresh visit arrives as a stone statue, not a living stranger — free to loot around, no fight. A Wizard bearing the Magic Staff cracks the whole room awake at a glance.</span></figcaption></figure>
+            <figure class="tile"><img src="/assets/tiles/area-tile-x07-1.png" alt="The Lair tile" /><figcaption><b>The Lair</b><span>An unremarkable chamber on its own — until Harpies (below) come calling. Once placed and entered, it's the one address their stolen hoard is ever delivered to.</span></figcaption></figure>
+          </div>
+
+          <h3>New hazards</h3>
+          <p>With the kit on, the resolution order lengthens to: <strong>Earthquake → Medusa → Ghouls → Mutiny → Trap → Desertion → Harpies → Quarrel → Spell</strong>.</p>
+          <div class="grid cards wide">
+            <figure class="card"><img src="/assets/cards/small-card-x01-2.png" alt="Desertion card" /><figcaption>Desertion</figcaption></figure>
+            <figure class="card"><img src="/assets/cards/small-card-x02-6.png" alt="Harpies card" /><figcaption>Harpies</figcaption></figure>
+            <figure class="card"><img src="/assets/cards/small-card-x03-1.png" alt="Quarrel card" /><figcaption>Quarrel</figcaption></figure>
+            <figure class="card"><img src="/assets/cards/small-card-x03-4.png" alt="Spell card" /><figcaption>Spell</figcaption></figure>
+          </div>
+
+          <h4>Desertion</h4>
+          <p>Roll a die for every ally in the party — original party members never risk this one. A roll of <strong>1 or 2</strong> and that ally disappears for good, taking everything they carried, worn or wielded alike; nothing is left behind to loot. A <strong>Wolf</strong> ally never rolls at all. A clean sweep of safe rolls earns the party a quiet line of reassurance instead.</p>
+
+          <h4>Harpies</h4>
+          <p>If the party carries no artefacts at all, or holds the <strong>Talisman</strong>, they simply circle off and lurk — the same check runs again on your next visit. Otherwise every artefact any living member holds, worn or merely carried, is gone at once — swept away to the <strong>Lair</strong>, straight onto its floor if you've already found it, or held in reserve until you do. Losing the <strong>Eye of God</strong> this way still curses the party, exactly as losing it any other way would. A card that strikes is spent for good; one that only lurked comes back to try again.</p>
+
+          <h4>Quarrel</h4>
+          <p>The two members who'd hit hardest in an ordinary fight — by strength, magic, and artefacts combined — turn on each other for one round. Each rolls a die; the loser falls exactly as a stranger's blow would, revivable by the <strong>Healing Balm</strong> like any other casualty. The <strong>Wolf</strong> and the <strong>Lion</strong> never take part, however strong they are — and if no one else is left to fight, the card simply fizzles.</p>
+
+          <h4>Spell</h4>
+          <p>The last ordinary tunnel the party walked through — not a chamber, not the Gateway, never one already collapsed by an earthquake — is shuffled back into the large pack, and a fresh, sealed tile takes its place, to be discovered again as if for the first time. Any secret door it held vanishes with it. With nothing eligible behind you, or the large pack empty, the spell simply fizzles.</p>
+
+          <h3>New creatures</h3>
+          <p>
+            Five new creatures join the selectable roster — the <strong>Witch</strong>,
+            <strong>Scholar</strong>, <strong>Thief</strong>, <strong>Lion</strong> and
+            <strong>Wolf</strong> — at the costs below. Turning the kit on also revises two familiar
+            prices: the <strong>Ogre</strong> drops to cost <strong>4</strong> (was 5) and the
+            <strong>Troll</strong> to cost <strong>3</strong> (was 4), and the kit's extra Woman and
+            Dwarf cards raise each of their stocks from 3 to 4.
+          </p>
+          <div class="grid cards">
+            <figure class="card"><img src="/assets/cards/small-card-x04-1.png" alt="Witch card" /><figcaption>Witch<span class="meta">cost 5 · 10 pts</span></figcaption></figure>
+            <figure class="card"><img src="/assets/cards/small-card-x03-6.png" alt="Scholar card" /><figcaption>Scholar<span class="meta">cost 3 · 5 pts</span></figcaption></figure>
+            <figure class="card"><img src="/assets/cards/small-card-x04-5.png" alt="Thief card" /><figcaption>Thief<span class="meta">cost 3 · 5 pts</span></figcaption></figure>
+            <figure class="card"><img src="/assets/cards/small-card-x02-3.png" alt="Lion card" /><figcaption>Lion<span class="meta">cost 2 · 3 pts</span></figcaption></figure>
+            <figure class="card"><img src="/assets/cards/small-card-x04-7.png" alt="Wolf card" /><figcaption>Wolf<span class="meta">cost 1 · 2 pts</span></figcaption></figure>
+          </div>
+          <table>
+            <thead>
+              <tr><th>Creature</th><th class="num">Fight</th><th class="num">Magic</th><th class="num">Carry&nbsp;(kg)</th><th class="num">Cost</th><th class="num">Points</th><th>Special</th></tr>
+            </thead>
+            <tbody>
+              <tr><td class="nm">Witch</td><td class="num">1</td><td class="num">4</td><td class="num">—</td><td class="num">5</td><td class="num">10</td><td>Uses artefacts as a Priest</td></tr>
+              <tr><td class="nm">Scholar</td><td class="num">2</td><td class="num">1</td><td class="num">25</td><td class="num">3</td><td class="num">5</td><td>Uses artefacts as a Priest</td></tr>
+              <tr><td class="nm">Thief</td><td class="num">2</td><td class="num">—</td><td class="num">25</td><td class="num">3</td><td class="num">5</td><td>Steals from a pacified chamber</td></tr>
+              <tr><td class="nm">Lion</td><td class="num">3</td><td class="num">—</td><td class="num">—</td><td class="num">2</td><td class="num">3</td><td>Will not quarrel</td></tr>
+              <tr><td class="nm">Wolf</td><td class="num">2</td><td class="num">—</td><td class="num">—</td><td class="num">1</td><td class="num">2</td><td>Immune to Medusa, Mutiny, Desertion &amp; Quarrel</td></tr>
+            </tbody>
+          </table>
+          <p>
+            The <strong>Scholar</strong> and the <strong>Witch</strong> use artefacts exactly as a
+            Priest does; the <strong>Thief</strong> plays a Man's part with the Charmed Flute. The
+            <strong>Lion</strong> and the <strong>Wolf</strong> touch no artefact at all and carry
+            nothing — pure, cheaply-priced muscle. The Wolf is the hardiest constitution in the kit:
+            Medusa's gaze passes over it, Mutiny and Desertion's rolls don't touch it, and it's
+            excused from ever standing in a Quarrel. The Thief, uniquely, can walk treasure out of a
+            chamber the party has talked down to <em>permanent indifference</em> — no fight, no test,
+            just a name on the card. In the leadership order that decides a whole group's reaction
+            (see <a href="#strangers">Strangers &amp; Reactions</a>), the Scholar and Witch rank
+            beside the Priest, the Thief beside a Man or Woman, the Lion beside an Ogre, and the Wolf
+            beside a Troll.
+          </p>
+
+          <h4>Two you'll never recruit</h4>
+          <div class="two-col">
+            <div>
+              <div class="grid cards" style="grid-template-columns:repeat(2,1fr);max-width:240px;">
+                <figure class="card"><img src="/assets/cards/small-card-x01-5.png" alt="Apprentice card" /><figcaption>Apprentice</figcaption></figure>
+                <figure class="card"><img src="/assets/cards/small-card-x01-6.png" alt="Demon card" /><figcaption>Demon</figcaption></figure>
+              </div>
+            </div>
+            <div>
+              <p><strong>The Apprentice's</strong> loyalty is a bet on the Sorcerer's own life: while he lives, only a roll of six wins her reaction over, hostile the rest of the way — no indifferent middle ground at all. The moment he falls, that same six turns hostile too. Win that prize and she turns on the party in the same instant, wherever she's standing, taking nothing with her. She's worth nothing at the final count regardless — even a clean escape leaves her behind.</p>
+              <p><strong>The Demon</strong> never takes a seat among a chamber's ordinary strangers. Drawn from the small pack, it steps into whichever area the party has just left and waits there, springing the instant they return — no reaction test, just a fight. Only magic reaches it, and so, in any hand at all, does the <strong>Magic Axe</strong>; without either, it cuts down the party's strongest member before a blow is even considered. Win, and it collapses to ash rather than joining the usual tally of the fallen.</p>
+            </div>
+          </div>
+
+          <h3>New heavy treasure</h3>
+          <div class="grid cards wide">
+            <figure class="card"><img src="/assets/cards/small-card-x02-7.png" alt="Idol card" /><figcaption>Idol<span class="meta">10×d6 pts · 50 kg</span></figcaption></figure>
+            <figure class="card"><img src="/assets/cards/small-card-x01-1.png" alt="Crypt / Gems card" /><figcaption>Crypt&nbsp;/&nbsp;Gems<span class="meta">20 pts (if found) · 25 kg</span></figcaption></figure>
+          </div>
+          <p><strong>The Idol</strong> is fifty kilograms of stone — twice the burden of a haul of Silver or Gold — and does nothing at all along the way: no use, no passive gift. Only at the final reckoning does it speak: a die is cast for it there, once, and its worth is ten times whatever that die shows, from as little as 10 points to as much as 60. Carried out by the dead or the stone-turned, like any other loot, it's worth nothing.</p>
+          <p><strong>Crypt / Gems</strong> doesn't drop onto the floor when drawn — it parks, remembered as a single spot in that chamber, and from then on, any turn you're at rest there, an <em>Enter the crypt</em> option is on offer. One d6 decides it for good: <strong>1–2</strong> is an inescapable trap — the whole party falls a level, and even a Dwarf's usual trap-guiding talent doesn't apply here. A <strong>3–6</strong> turns the parked card into the gems themselves: 25&nbsp;kg, 20 points, an ordinary pickup from there. Either roll spends the crypt for good.</p>
+
+          <h3>New artefacts</h3>
+          <div class="grid cards wide">
+            <figure class="card art"><img src="/assets/cards/small-card-x01-3.png" alt="Elixir card" /><figcaption>Elixir<span class="meta">0 pts · used up</span></figcaption></figure>
+            <figure class="card art"><img src="/assets/cards/small-card-x02-2.png" alt="Holy Water card" /><figcaption>Holy Water<span class="meta">5 pts · used up</span></figcaption></figure>
+            <figure class="card art"><img src="/assets/cards/small-card-x02-4.png" alt="Magic Axe card" /><figcaption>Magic Axe<span class="meta">15 pts</span></figcaption></figure>
+            <figure class="card art"><img src="/assets/cards/small-card-x03-2.png" alt="Scroll card" /><figcaption>Scroll<span class="meta">0 pts · used up</span></figcaption></figure>
+            <figure class="card art"><img src="/assets/cards/small-card-x03-5.png" alt="Magic Shield card" /><figcaption>Magic Shield<span class="meta">15 pts</span></figcaption></figure>
+          </div>
+          <p>Each card's own wording is below, with notes where this edition simplifies it. (Click any card above to read it full size.)</p>
+          <table>
+            <thead><tr><th>Artefact</th><th>What the card says</th><th>In this game</th></tr></thead>
+            <tbody>
+              <tr><td class="nm">Elixir<br><span class="meta" style="color:var(--stone-dim);font-size:11px;">0 pts · used up</span></td><td><em>“Artefact. Any creature may drink it. Roll a die: 1 poison kills. 2-3 nothing happens. 4-6 permanently increases strength by 2.”</em></td><td>As written — may be drunk almost anywhere, the one exception being mid-fight itself. The Ring's protection still applies to a fatal draught, and the bonus stacks visibly alongside the Sword's and the Potion's own.</td></tr>
+              <tr><td class="nm">Holy Water<br><span class="meta" style="color:var(--stone-dim);font-size:11px;">5 pts · used up</span></td><td><em>“Artefact. Reanimate creature of STONE. Destroys MEDUSA, SPECTRE, or DEMON, or weakens SORCERER or APPRENTICE by 2. One use only.”</em></td><td>Four uses, pick one: free a petrified party member, or wake a whole Gallery statue instead (with a reaction roll of its own); destroy a lurking Medusa, Spectre, or Demon for good; or weaken the Sorcerer's or Apprentice's magical power by 2, stacking with whatever Lotus Dust or the Eye of God have already done to them.</td></tr>
+              <tr><td class="nm">Magic Axe<br><span class="meta" style="color:var(--stone-dim);font-size:11px;">15 pts</span></td><td><em>“Artefact. Adds 1 to the Strength of a MAN, WOMAN, or HERO; 3 to that of a DWARF. Also enables the bearer to fight a DEMON.”</em></td><td>As written — the Woman&nbsp;Hero counts as a Hero (+1, not +3). An active Eye of God silences the bonus exactly as it silences the Sword's, but any bearer at all, bonus or not, may still stand against a Demon. Not used up.</td></tr>
+              <tr><td class="nm">Scroll<br><span class="meta" style="color:var(--stone-dim);font-size:11px;">0 pts · used up</span></td><td><em>“Artefact. On being read by any HUMAN, destroys all enemies in an area other than those with Magical Power. Any party using it is CURSED.”</em></td><td>As written — no target picker, just a living human present. It reads magical power as the dividing line: a Man, Woman, Ogre, Troll, Dwarf, Lion, Wolf, even a Dragon (all magical power 0) fall to it, while any caster — Priest, Wizard, Scholar, Witch, Apprentice, Sorcerer — or the Spectre and Demon shrug it off untouched; a fight already under way continues against whoever's left. The curse it settles lasts until the Sorcerer falls, like any other.</td></tr>
+              <tr><td class="nm">Magic Shield<br><span class="meta" style="color:var(--stone-dim);font-size:11px;">15 pts</span></td><td><em>“Artefact. When borne by a MAN, WOMAN, or HERO, nullifies the opponent's magical power. Reduces the power of SORCERER or APPRENTICE by 2.”</em></td><td>As written — the Woman&nbsp;Hero counts too. It only wakes in a Hero, Woman&nbsp;Hero, Man, or Woman's hands; in anyone else's grip it's inert baggage. Its ward is narrow: it covers only the one foe paired directly against its bearer, not the whole fight. An active Eye of God silences it exactly as it silences the Sword's. Not used up.</td></tr>
+            </tbody>
+          </table>
+
+          <div class="note"><span class="tag">Also in multiplayer</span> The same switch — labelled <strong>Extension kit</strong> — appears in the host's lobby too (see <a href="#multiplayer">Multiplayer Games</a>), widening the one shared cave's decks for every party in the game at once.</div>
+        </section>
+
         <!-- ===================== REFERENCE ===================== -->
         <section id="reference">
-          <h2><span class="num">XIII</span> Quick Reference</h2>
+          <h2><span class="num">XIV</span> Quick Reference</h2>
           <div class="two-col">
             <div>
               <h3>Controls</h3>
               <table>
                 <tbody>
-                  <tr><td class="nm">N E S W</td><td>Move through a doorway</td></tr>
+                  <tr><td class="nm">N E S W<br><span style="color:var(--stone-dim);font-size:11px;">or ↑ → ↓ ←</span></td><td>Move through a doorway</td></tr>
                   <tr><td class="nm">U / D</td><td>Climb / descend a stairway</td></tr>
                   <tr><td class="nm">Click marker</td><td>Move that way</td></tr>
                   <tr><td class="nm">Drag · Scroll</td><td>Orbit · zoom the cave</td></tr>
@@ -695,7 +827,7 @@
         </section>
 
         <footer>
-          <p>The Sorcerer's Cave — an online adaptation. This manual reflects the rules as the game actually plays them. <span class="pill">Updated 2026-06-19</span></p>
+          <p>The Sorcerer's Cave — an online adaptation. This manual reflects the rules as the game actually plays them. <span class="pill">Updated 2026-08-03</span></p>
           <p class="hd">Original game</p>
           <p>© 1978 &amp; 1982 Terence Peter Donnelly, published by Ariel Productions Ltd / Gibsons / Philmar.</p>
           <p class="hd">Graphics</p>
