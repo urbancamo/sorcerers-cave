@@ -503,6 +503,7 @@
 | SC-Test-3 | `testSetChamber{strangers,treasures,hazards}` arms `testNextChamber`; consumed by the next chamber freshly entered by any means, replacing the normal small-pack draw via the same `classify()` every real draw uses (so Gallery petrification/Demon relocation/Crypt parking still apply) — `smallIdx` is left untouched. | chamber.ts:172-196, reduce.ts (`testSetChamber` case) | test-mode.test.ts › testNextChamber consumed by enterChamber |
 | SC-Test-4 | `testForceReaction{outcome}` arms `testNextReaction`; consumed by the next `test` action in place of `reactionRoll`'s die — `state.seed` is left untouched, and the displayed roll is a representative value for the outcome's band (`forcedReactionRoll`). | reaction.ts (`forcedReactionRoll`), reduce.ts (`case "test"`) | test-mode.test.ts › testNextReaction consumed by the test action |
 | SC-Test-5 | `testClearOverrides` drops all three armed overrides (`testNextArea`/`testNextChamber`/`testNextReaction`) at once. Queuing a new override of the same kind replaces, rather than queues alongside, any prior one (single slot per kind). | reduce.ts (`testClearOverrides` case) | test-mode.test.ts › testClearOverrides drops all three armed overrides at once; › queuing a second testPlaceArea replaces the first |
+| SC-Test-6 | Variant gating (design plan §8): `testPlaceArea`/`testSetChamber` reject content invalid for the game's active variant set, matching how every other engine feature gates kit content — a tester cannot use Test Mode to bypass a kit-off game's own rules. `testPlaceArea` rejects a kit-only special (6 `SPECIAL_CHASM` .. 11 `SPECIAL_WELL`, i.e. `special > SPECIAL_GREAT_HALL`) unless `state.variants?.extensionKit`. `testSetChamber` rejects a `strangers`/`treasures`/`hazards` id at or beyond its base table's own length (`CREATURES.length`/`TREASURES.length`/`HAZARD_NAMES.length` — an id is kit-only iff `id >= base.length`, correct even if a future kit expansion changes the counts) unless `state.variants?.extensionKit`; each of the three fields is checked independently. The web `TestControlsPanel` mirrors this by filtering its special/creature/treasure/hazard pickers down to base-only options on a kit-off game, so a tester cannot even select what the engine would reject. | reduce.ts:1488-1491 (`testPlaceArea` kit check), reduce.ts:1499-1508 (`testSetChamber` kit check), apps/web/src/game/TestControlsPanel.tsx (picker filtering) | test-mode.test.ts › testPlaceArea/testSetChamber reject kit-only content on a kit-off game (SC-Test-6); apps/web/src/game/TestControlsPanel.test.tsx › omits/offers kit-only specials/creatures/treasures/hazards |
 
 ---
 
@@ -657,9 +658,16 @@ flag set once at game creation. Four actions let a tester script the next area d
 real specials, from a chosen direction), a chamber's contents (any mix of creatures, treasures, and
 hazards), or the outcome of the next reaction test — each armed by its own action and consumed the
 moment the corresponding real draw or roll would otherwise happen, so a scripted scenario still runs
-through the exact same move/chamber/reaction machinery as an ordinary game (SC-Test-1 … SC-Test-5).
+through the exact same move/chamber/reaction machinery as an ordinary game (SC-Test-1 … SC-Test-6).
 Every `test*` action is rejected outright on any game without the flag — there is no way to reach
-this behaviour from a real game, by construction.
+this behaviour from a real game, by construction. A scripted area or chamber is still held to the
+game's own active variant set: `testPlaceArea`/`testSetChamber` reject a kit-only special, creature,
+treasure, or hazard on a kit-off game exactly as `legalActions` already rejects anything else invalid
+for that variant set, and the web `TestControlsPanel` filters its own pickers to match, so a tester
+can't even select content Test Mode would then refuse (SC-Test-6). Replaying a test-mode game (the
+same `replay()` a game's downloadable log and the multi-game viewer both build on) threads `testMode`
+through to `newGame` exactly as it already threads `variants`, so a saved game's queued/consumed
+overrides reproduce faithfully rather than replaying every `test*` action as `blocked` (SC-Test-1).
 
 ---
 

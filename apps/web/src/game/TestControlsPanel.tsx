@@ -1,6 +1,7 @@
 import { useState } from "react";
 import {
   ALL_CREATURES, ALL_TREASURES, ALL_HAZARD_NAMES,
+  CREATURES, TREASURES, HAZARD_NAMES,
   SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_TOMB, SPECIAL_GREAT_HALL,
   SPECIAL_CHASM, SPECIAL_BELL_ROPE, SPECIAL_LAIR, SPECIAL_WHIRLPOOL, SPECIAL_GALLERY, SPECIAL_WELL,
   DIR_N, DIR_E, DIR_S, DIR_W,
@@ -57,11 +58,21 @@ function EntityPicker({
  *  next area/chamber/reaction override; the tester then plays it out with the ordinary game UI. */
 export function TestControlsPanel({ state, dispatch }: { state: GameState; dispatch: (a: GameAction) => void }) {
   const [dir, setDir] = useState(DIR_N);
-  const [special, setSpecial] = useState(SPECIAL_WHIRLPOOL);
+  // Kit gating (SC-Test-6): default to a base special when the kit is off, so the initial
+  // selection is never one the engine (and the filtered options below) would reject.
+  const [special, setSpecial] = useState(state.variants?.extensionKit ? SPECIAL_WHIRLPOOL : SPECIAL_DEEP_POOL);
   const [strangers, setStrangers] = useState<number[]>([]);
   const [treasures, setTreasures] = useState<number[]>([]);
   const [hazards, setHazards] = useState<number[]>([]);
   if (!state.testMode) return null;
+
+  // Kit gating (SC-Test-6): a kit-off game rejects kit-only content, so don't even offer it —
+  // ids/specials beyond the base tables' own lengths are kit-only.
+  const kitOn = !!state.variants?.extensionKit;
+  const specialOptions = kitOn ? SPECIAL_OPTIONS : SPECIAL_OPTIONS.filter((o) => o.id <= SPECIAL_GREAT_HALL);
+  const creatureOptions = kitOn ? ALL_CREATURES : ALL_CREATURES.filter((c) => c.id < CREATURES.length);
+  const treasureOptions = kitOn ? ALL_TREASURES : ALL_TREASURES.filter((t) => t.id < TREASURES.length);
+  const hazardOptions = kitOn ? ALL_HAZARD_NAMES : ALL_HAZARD_NAMES.slice(0, HAZARD_NAMES.length);
 
   return (
     <div className="scv-tc" data-testid="test-controls">
@@ -78,7 +89,7 @@ export function TestControlsPanel({ state, dispatch }: { state: GameState; dispa
           <label>
             Next area — special
             <select aria-label="Next area — special" value={special} onChange={(e) => setSpecial(Number(e.target.value))}>
-              {SPECIAL_OPTIONS.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+              {specialOptions.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
             </select>
           </label>
           <button type="button" onClick={() => dispatch({ type: "testPlaceArea", dir, special })}>Queue next area</button>
@@ -93,17 +104,17 @@ export function TestControlsPanel({ state, dispatch }: { state: GameState; dispa
       <div className="scv-tc-section">
         <EntityPicker
           label="Strangers" addLabel="Add a creature"
-          options={ALL_CREATURES.map((c) => ({ id: c.id, name: c.name }))}
+          options={creatureOptions.map((c) => ({ id: c.id, name: c.name }))}
           ids={strangers} onChange={setStrangers}
         />
         <EntityPicker
           label="Treasures" addLabel="Add a treasure"
-          options={ALL_TREASURES.map((t) => ({ id: t.id, name: t.name }))}
+          options={treasureOptions.map((t) => ({ id: t.id, name: t.name }))}
           ids={treasures} onChange={setTreasures}
         />
         <EntityPicker
           label="Hazards" addLabel="Add a hazard"
-          options={ALL_HAZARD_NAMES.map((name, id) => ({ id, name }))}
+          options={hazardOptions.map((name, id) => ({ id, name }))}
           ids={hazards} onChange={setHazards}
         />
         <button type="button" onClick={() => dispatch({ type: "testSetChamber", strangers, treasures, hazards })}>

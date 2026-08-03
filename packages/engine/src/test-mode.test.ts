@@ -51,7 +51,9 @@ describe("test-* action gating (SC-Test-1)", () => {
   });
 
   it("testPlaceArea arms testNextArea and announces testAreaQueued on a test game", () => {
-    const s = newGame(1, [0], undefined, true);
+    // Kit-on (SC-Test-6): SPECIAL_WHIRLPOOL is a kit-only special — a kit-off game rejects it (see
+    // the dedicated SC-Test-6 tests below), so this general arm/consume test needs the kit on.
+    const s = newGame(1, [0], { extensionKit: true }, true);
     const { state, events } = reduce(s, { type: "testPlaceArea", dir: 1, special: SPECIAL_WHIRLPOOL });
     expect(state.testNextArea).toEqual({ dir: 1, special: SPECIAL_WHIRLPOOL });
     expect(events).toEqual([{ type: "testAreaQueued", dir: 1, special: SPECIAL_WHIRLPOOL }]);
@@ -78,7 +80,9 @@ describe("test-* action gating (SC-Test-1)", () => {
   });
 
   it("testClearOverrides drops all three armed overrides at once", () => {
-    let s = newGame(1, [0], undefined, true);
+    // Kit-on (SC-Test-6): SPECIAL_WHIRLPOOL is kit-only — needs the kit on so testPlaceArea
+    // actually arms (rather than blocks) testNextArea, which this test's assertions depend on.
+    let s = newGame(1, [0], { extensionKit: true }, true);
     s = reduce(s, { type: "testPlaceArea", dir: 1, special: SPECIAL_WHIRLPOOL }).state;
     s = reduce(s, { type: "testSetChamber", strangers: [10], treasures: [], hazards: [] }).state;
     s = reduce(s, { type: "testForceReaction", outcome: "hostile" }).state;
@@ -90,10 +94,50 @@ describe("test-* action gating (SC-Test-1)", () => {
   });
 
   it("queuing a second testPlaceArea replaces the first (single slot, not a queue)", () => {
-    let s = newGame(1, [0], undefined, true);
+    // Kit-on (SC-Test-6): both SPECIAL_WHIRLPOOL and SPECIAL_CHASM are kit-only.
+    let s = newGame(1, [0], { extensionKit: true }, true);
     s = reduce(s, { type: "testPlaceArea", dir: 1, special: SPECIAL_WHIRLPOOL }).state;
     const { state } = reduce(s, { type: "testPlaceArea", dir: 2, special: SPECIAL_CHASM });
     expect(state.testNextArea).toEqual({ dir: 2, special: SPECIAL_CHASM });
+  });
+});
+
+describe("testPlaceArea/testSetChamber reject kit-only content on a kit-off game (SC-Test-6)", () => {
+  it("testPlaceArea rejects a kit-only special (Chasm) on a kit-off game", () => {
+    const s = newGame(1, [0], undefined, true); // kit-off
+    const { state, events } = reduce(s, { type: "testPlaceArea", dir: 1, special: SPECIAL_CHASM });
+    expect(events).toEqual([{ type: "blocked" }]);
+    expect(state.testNextArea).toBeUndefined();
+  });
+
+  it("testPlaceArea accepts the SAME kit-only special (Chasm) on a kit-on game", () => {
+    const s = newGame(1, [0], { extensionKit: true }, true); // kit-on
+    const { state, events } = reduce(s, { type: "testPlaceArea", dir: 1, special: SPECIAL_CHASM });
+    expect(events).toEqual([{ type: "testAreaQueued", dir: 1, special: SPECIAL_CHASM }]);
+    expect(state.testNextArea).toEqual({ dir: 1, special: SPECIAL_CHASM });
+  });
+
+  it("testPlaceArea still accepts a BASE special (Deep Pool) on a kit-off game", () => {
+    const s = newGame(1, [0], undefined, true); // kit-off
+    const { state, events } = reduce(s, { type: "testPlaceArea", dir: 1, special: SPECIAL_DEEP_POOL });
+    expect(events).toEqual([{ type: "testAreaQueued", dir: 1, special: SPECIAL_DEEP_POOL }]);
+    expect(state.testNextArea).toEqual({ dir: 1, special: SPECIAL_DEEP_POOL });
+  });
+
+  it("testSetChamber rejects kit-only content (a kit-only hazard id, with strangers/treasures left base-only) on a kit-off game", () => {
+    const s = newGame(1, [0], undefined, true); // kit-off
+    // strangers/treasures are base-only (Dragon 10, Magic Sword 3); only hazards carries a kit-only
+    // id (5 = Desertion) — proves each of the three fields is checked independently.
+    const { state, events } = reduce(s, { type: "testSetChamber", strangers: [10], treasures: [3], hazards: [5] });
+    expect(events).toEqual([{ type: "blocked" }]);
+    expect(state.testNextChamber).toBeUndefined();
+  });
+
+  it("testSetChamber accepts the SAME kit-only chamber content on a kit-on game", () => {
+    const s = newGame(1, [0], { extensionKit: true }, true); // kit-on
+    const { state, events } = reduce(s, { type: "testSetChamber", strangers: [10], treasures: [3], hazards: [5] });
+    expect(events).toEqual([{ type: "testChamberQueued", strangers: [10], treasures: [3], hazards: [5] }]);
+    expect(state.testNextChamber).toEqual({ strangers: [10], treasures: [3], hazards: [5] });
   });
 });
 
@@ -101,8 +145,11 @@ import { tryMove } from "./index";
 import { DIR_N, DIR_E } from "./index";
 
 describe("testNextArea consumed by tryMove (SC-Test-2)", () => {
+  // Kit-on (SC-Test-6): SPECIAL_WHIRLPOOL is kit-only — a kit-off game's testPlaceArea would
+  // reject it outright (see the dedicated SC-Test-6 tests below), so these general arm/consume
+  // tests need the kit on to actually arm testNextArea in the first place.
   it("places the canonical special card, connects regardless of orientation, and clears the override", () => {
-    let s = newGame(1, [0], undefined, true); // Gateway has all 4 exits — every direction is open
+    let s = newGame(1, [0], { extensionKit: true }, true); // Gateway has all 4 exits — every direction is open
     s = reduce(s, { type: "testPlaceArea", dir: DIR_N, special: SPECIAL_WHIRLPOOL }).state;
     const r = tryMove(s, DIR_N);
     expect(r.moved).toBe(true);
@@ -114,7 +161,7 @@ describe("testNextArea consumed by tryMove (SC-Test-2)", () => {
   });
 
   it("leaves the override armed when the party moves a DIFFERENT direction first", () => {
-    let s = newGame(1, [0], undefined, true);
+    let s = newGame(1, [0], { extensionKit: true }, true);
     s = reduce(s, { type: "testPlaceArea", dir: DIR_N, special: SPECIAL_WHIRLPOOL }).state;
     const r = tryMove(s, DIR_E); // an ordinary draw — override is for North, not East
     expect(r.state.testNextArea).toEqual({ dir: DIR_N, special: SPECIAL_WHIRLPOOL });
@@ -122,7 +169,7 @@ describe("testNextArea consumed by tryMove (SC-Test-2)", () => {
   });
 
   it("does not consume the large pack (largeIdx unchanged) when placing from the override", () => {
-    let s = newGame(1, [0], undefined, true);
+    let s = newGame(1, [0], { extensionKit: true }, true);
     s = reduce(s, { type: "testPlaceArea", dir: DIR_N, special: SPECIAL_WHIRLPOOL }).state;
     const before = s.largeIdx;
     const r = tryMove(s, DIR_N);

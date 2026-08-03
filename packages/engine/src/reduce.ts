@@ -1,11 +1,11 @@
 import { GS_PLAYING, GS_QUIT, GS_ESCAPED, GS_DEAD, AF_DESTROYED, AF_BELL_SPENT, AF_UNRESOLVED, type GameState, type PartyMember, type PlacedArea } from "./state";
 import { tryMove } from "./map";
 import { decodeArea } from "./decode";
-import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WHIRLPOOL, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
+import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WHIRLPOOL, SPECIAL_WELL, SPECIAL_BELL_ROPE, SPECIAL_GREAT_HALL } from "./data/areaCards";
 import { viperCrossing, deepPoolCrossing, whirlpoolCrossing } from "./special";
 import { enterChamber, drawSmallCards } from "./chamber";
 import { applyHazards, hasStaffWizard } from "./hazards";
-import { HAZARD_MEDUSA } from "./data/hazards";
+import { HAZARD_MEDUSA, HAZARD_NAMES } from "./data/hazards";
 import { takeTreasure, canCarry } from "./pickup";
 import { unpackCoord, packCoord, targetCoord, DIR_UP, DIR_DOWN } from "./coords";
 import type { GameAction, GameEvent } from "./actions";
@@ -25,7 +25,8 @@ import {
 // Extension kit (SC-EXT-17): aliases `ALL_CREATURES` — `strongestStranger`'s fight-focus pick and
 // the Lost-Ruby wrestler's combat-roll name both index by an actual creatureId that may already be
 // a kit id (14-20); byte-identical for ids 0-13.
-import { ALL_CREATURES as CREATURES } from "./data/creatures";
+import { ALL_CREATURES as CREATURES, CREATURES as BASE_CREATURES } from "./data/creatures";
+import { TREASURES as BASE_TREASURES } from "./data/treasures";
 
 const T_EYE_OF_GOD = 13; // treasure id — must stay with its bearer or the party is cursed (§Eye of God)
 const C_GIANT = 12; // only a Giant can recover treasure cast into a Deep Pool (§Deep Pool)
@@ -1484,6 +1485,10 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
     case "testPlaceArea": {
       if (!state.testMode) return { state, events: [{ type: "blocked" }] };
       if (action.special < SPECIAL_DEEP_POOL || action.special > SPECIAL_WELL) return { state, events: [{ type: "blocked" }] };
+      // Variant gating (SC-Test-6): a kit-only special (6-11) is invalid content for a kit-off
+      // game, same as `legalActions` already rejects anything else invalid for the active variant
+      // set (design plan §8).
+      if (action.special > SPECIAL_GREAT_HALL && !state.variants?.extensionKit) return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
       next.testNextArea = { dir: action.dir, special: action.special };
       return { state: next, events: [{ type: "testAreaQueued", dir: action.dir, special: action.special }] };
@@ -1491,6 +1496,16 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
 
     case "testSetChamber": {
       if (!state.testMode) return { state, events: [{ type: "blocked" }] };
+      // Variant gating (SC-Test-6): a kit-only creature/treasure/hazard id is invalid content for
+      // a kit-off game — an id is kit-only iff it falls beyond the base table's own length, which
+      // stays correct even if a future kit expansion changes the counts.
+      if (!state.variants?.extensionKit) {
+        const kitOnly =
+          action.strangers.some((id) => id >= BASE_CREATURES.length) ||
+          action.treasures.some((id) => id >= BASE_TREASURES.length) ||
+          action.hazards.some((id) => id >= HAZARD_NAMES.length);
+        if (kitOnly) return { state, events: [{ type: "blocked" }] };
+      }
       const next = structuredClone(state);
       next.testNextChamber = { strangers: [...action.strangers], treasures: [...action.treasures], hazards: [...action.hazards] };
       return { state: next, events: [{ type: "testChamberQueued", strangers: [...action.strangers], treasures: [...action.treasures], hazards: [...action.hazards] }] };
