@@ -171,28 +171,38 @@ export function enterChamber(state: GameState): GameEvent[] {
   for (const code of area.contents) reload(state, code);
   if (!area.visited) {
     area.visited = true;
-    // Test Mode (§Test Mode): an armed testNextChamber replaces the normal small-pack draw outright
-    // — smallIdx is untouched, so the shuffled deck stays intact for every other, non-overridden
-    // chamber. Routed through the SAME classify() as a real draw, so Gallery petrification, the
-    // Demon's relocate-to-`prev`, and the Crypt's park-on-draw all still apply to scripted content.
-    // Checks `testMode` explicitly rather than trusting testNextChamber's mere presence — defense
-    // in depth against a hand-crafted state (same reasoning as map.ts's testNextArea check).
-    if (state.testMode && state.testNextChamber) {
-      const { strangers, treasures, hazards } = state.testNextChamber;
-      delete state.testNextChamber;
-      const codes = [
-        ...strangers.map((id) => 100 + id),
-        ...treasures.map((id) => 200 + id),
-        ...hazards.map((id) => 300 + id),
-      ];
-      for (const code of codes) classify(state, code, events);
-    } else {
-      let draw = Math.min(state.level, 4);
-      if (dec.special === SPECIAL_TOMB) draw += 1;
-      if (dec.special === SPECIAL_GREAT_HALL) draw += 2;
-      draw = Math.min(draw, 8);
-      for (let i = 0; i < draw && state.smallIdx < state.smallPack.length; i++) {
-        classify(state, state.smallPack[state.smallIdx++]!, events);
+    // The Chasm (bug fix 2026-08-02): unlike the Whirlpool, a fresh Chasm arrival draws NOTHING —
+    // its only mechanic is the one-way descend action (`descendChasm`, reduce.ts, SC-EXT-5). The
+    // sunk-treasure fold-in above still applies (Chasm has no creature-gate on it, same as
+    // Whirlpool); only the small-pack draw below is skipped. `area.visited` is still set so a later
+    // re-entry isn't treated as fresh again, and `smallIdx` stays untouched, matching Deep Pool/
+    // Viper Pit's own "never draws a chamber" carve-out (those two skip `enterChamber` entirely
+    // instead, in reduce.ts's `resolveAreaLoop` — they have no Chasm-style sunk-treasure fold-in to
+    // preserve, so bypassing this whole function is simpler for them than it would be here).
+    if (dec.special !== SPECIAL_CHASM) {
+      // Test Mode (§Test Mode): an armed testNextChamber replaces the normal small-pack draw outright
+      // — smallIdx is untouched, so the shuffled deck stays intact for every other, non-overridden
+      // chamber. Routed through the SAME classify() as a real draw, so Gallery petrification, the
+      // Demon's relocate-to-`prev`, and the Crypt's park-on-draw all still apply to scripted content.
+      // Checks `testMode` explicitly rather than trusting testNextChamber's mere presence — defense
+      // in depth against a hand-crafted state (same reasoning as map.ts's testNextArea check).
+      if (state.testMode && state.testNextChamber) {
+        const { strangers, treasures, hazards } = state.testNextChamber;
+        delete state.testNextChamber;
+        const codes = [
+          ...strangers.map((id) => 100 + id),
+          ...treasures.map((id) => 200 + id),
+          ...hazards.map((id) => 300 + id),
+        ];
+        for (const code of codes) classify(state, code, events);
+      } else {
+        let draw = Math.min(state.level, 4);
+        if (dec.special === SPECIAL_TOMB) draw += 1;
+        if (dec.special === SPECIAL_GREAT_HALL) draw += 2;
+        draw = Math.min(draw, 8);
+        for (let i = 0; i < draw && state.smallIdx < state.smallPack.length; i++) {
+          classify(state, state.smallPack[state.smallIdx++]!, events);
+        }
       }
     }
   }

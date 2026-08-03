@@ -156,6 +156,11 @@ function encodeAction(a: GameAction): string {
     // none of the policies below choose it deliberately, but it appears in `legalActions` for any
     // run that lands a doorway on one of those two tiles, so it must stay exhaustive here.
     case "jumpToIsland": return "JUMPISLAND";
+    // Precise Locations (§10.5, bug fix 2026-08-02): a stationary Deep-Pool/Viper-Pit reclaim —
+    // none of the policies below choose it deliberately, and no committed vector's playthrough
+    // happens to reach a state where it's offered (confirmed: adding it to legalActions changed no
+    // existing fixture), but it must stay exhaustive here regardless.
+    case "reclaimTreasure": return "RECLAIMTREASURE";
     // Test Mode (§Test Mode): QA-only actions, never offered via `legalActions` and so never chosen
     // by any policy below (base/slayer/artifacts/kit) — kept here purely so this switch stays
     // exhaustive over the full GameAction union; no committed vector file will ever contain them.
@@ -311,15 +316,17 @@ const RUNS: Run[] = [
   { seed: 330, picks: [1, 7], policy: "artifacts", maxSteps: 300, tag: "medusaavert" }, // Staff-Wizard averts Medusa
   { seed: 24, picks: [5, 6, 7], policy: "artifacts", maxSteps: 300, tag: "petrified" }, // whole party turned to stone (petrifiedOut)
   // Extension kit (Task 17): the one kit-on vector, `variants.extensionKit: true` — same seed/party as
-  // kit-golden.test.ts's own pinned playthrough (chosen by the same scratchpad seed sweep), replayed
-  // here with the "kit" policy for a self-contained, port-consumable fixture. Exercises: Chasm/
-  // Whirlpool/Well specials (SC-EXT-5/6/7) and a parked Crypt (SC-EXT-13); all four kit hazards —
-  // Quarrel fizzles (SC-EXT-16), Spell remaps a tunnel (SC-EXT-28), Desertion (SC-EXT-14), Harpies
-  // actually strikes (SC-EXT-15); two kit artifacts — Holy Water destroys a stranger and the Scroll is
-  // read (SC-EXT-24/25); reactions to kit-creature strangers (a Witch, a Giant+Lion pair, and a final
-  // mixed group including the Apprentice and the Thief); and a Demon materializing (SC-EXT-21). Ends
-  // GS_DEAD (a full party wipe) — a natural end, not a step-cap truncation.
-  { seed: 397, picks: [18, 20], policy: "kit", maxSteps: 300, tag: "kit", variants: { extensionKit: true } },
+  // kit-golden.test.ts's own pinned playthrough (re-swept to seed 165018 as of the bug fix 2026-08-02
+  // that stopped the Chasm drawing a small-pack card on arrival — see that file's header comment for
+  // why the original seed 397 had to move), replayed here with the "kit" policy for a self-contained,
+  // port-consumable fixture. Exercises: ALL FOUR kit special areas — Chasm/Whirlpool/Well (SC-EXT-5/6/7)
+  // and a parked Crypt (SC-EXT-13); ALL FOUR kit hazards — Quarrel (SC-EXT-16), Spell remaps a tunnel
+  // (SC-EXT-28), Desertion (SC-EXT-14), Harpies actually strikes (SC-EXT-15); one kit artifact — the
+  // Scroll is read (SC-EXT-25; Holy Water's own destroy-a-stranger band is exhaustively pinned
+  // separately in kit-holywater-scroll.test.ts); reactions to kit-creature strangers; and a Demon
+  // materializing (SC-EXT-21). Ends GS_DEAD (a full party wipe) — a natural end, not a step-cap
+  // truncation.
+  { seed: 165018, picks: [18, 20], policy: "kit", maxSteps: 300, tag: "kit", variants: { extensionKit: true } },
 ];
 
 describe("conformance vectors — committed port fixtures match the engine", () => {

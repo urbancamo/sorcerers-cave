@@ -128,6 +128,33 @@ describe("The Chasm — one-way descent (US-02, SC-EXT-5)", () => {
     expect(state.areas[0]!.contents).toContain(100 + MAN); // parked on the chasm tile, not lost
     expect(state.level).toBe(2); // still fell through, undeterred by the abandoned encounter
   });
+
+  it("a FRESH arrival draws nothing — unlike Whirlpool, the Chasm never draws a chamber (bug fix 2026-08-02)", () => {
+    const s = makeState({
+      gs: GS_PLAYING,
+      phase: "explore",
+      areas: [
+        { card: PLAIN_CHAMBER, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+      ],
+      partyArea: 0,
+      prev: 0,
+      party: [member(HERO)],
+      largePack: [CHASM_CARD],
+      largeIdx: 0,
+      smallPack: [100 + MAN], // present so a bugged draw would be visible
+      smallIdx: 0,
+    });
+    const { state } = reduce(s, { type: "move", dir: DIR_E });
+
+    const landed = state.areas[state.partyArea]!;
+    expect(decodeArea(landed.card).special).toBe(SPECIAL_CHASM);
+    expect(landed.visited).toBe(true); // still marked visited, so a later re-entry isn't "fresh" again
+    expect(state.strangers).toEqual([]);
+    expect(state.treasures).toEqual([]);
+    expect(state.hazards).toEqual([]);
+    expect(state.smallIdx).toBe(0); // the small pack is never touched by a Chasm entry
+    expect(state.phase).toBe("explore"); // no encounter/pickup triggered by an (absent) draw
+  });
 });
 
 // ---------------------------------------------------------------------------------------------
