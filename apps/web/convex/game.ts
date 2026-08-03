@@ -199,6 +199,10 @@ export const log = query({
         status: game.status,
         createdAt: game.createdAt,
         variants: game.variants ?? undefined, // extensionKit (SC-EXT-29) — undefined ⇒ kit-off
+        // Test Mode (SC-Test-1): read from the persisted state (server-authoritative, same pattern
+        // highScores.ts's `save` uses for its own testMode check), NOT a top-level row column like
+        // `variants` — so replay() can thread it through exactly as variants already is.
+        testMode: (game.state as GameState).testMode ?? undefined,
       },
       moves: rows.map((r) => ({ seq: r.seq, action: r.action, events: r.events })),
     };
@@ -234,6 +238,10 @@ export const replayByCode = query({
         status: game.status,
         createdAt: game.createdAt,
         variants: game.variants ?? undefined, // extensionKit (SC-EXT-29) — undefined ⇒ kit-off
+        // Test Mode (SC-Test-1): read from the persisted state (server-authoritative, same pattern
+        // highScores.ts's `save` uses for its own testMode check), NOT a top-level row column like
+        // `variants` — so replay() can thread it through exactly as variants already is.
+        testMode: (game.state as GameState).testMode ?? undefined,
       },
       moves: rows.map((r) => ({ seq: r.seq, action: r.action, events: r.events })),
     };

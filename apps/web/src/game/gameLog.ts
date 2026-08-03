@@ -22,6 +22,9 @@ export interface GameLog {
     // Extension kit (SC-EXT-29, design US-01): absent/undefined ⇒ kit-off, same as an old,
     // pre-kit game (backward compat — a code without the flag always decodes kit-off).
     variants?: { extensionKit?: boolean };
+    // Test Mode (SC-Test-1): mirrors `variants`'s own threading — absent/undefined ⇒ an ordinary
+    // (non-test) game, so `replay()` reconstructs it exactly as before this field existed.
+    testMode?: boolean;
   };
   moves: { seq: number; action: GameAction; events: GameEvent[] }[];
 }
@@ -323,7 +326,7 @@ export function formatLog(log: GameLog): string {
   // Reconstruct the state BEFORE each move (frame i = state after i actions = before action i) so an
   // action's treasure/member indices resolve to their type names. Only possible for replayable games.
   const frames = game.seed != null && game.picks != null
-    ? replay(game.seed, game.picks, moves.map((m) => m.action), game.variants)
+    ? replay(game.seed, game.picks, moves.map((m) => m.action), game.variants, game.testMode)
     : null;
   for (let i = 0; i < moves.length; i++) {
     const m = moves[i]!;
@@ -592,7 +595,7 @@ export function logReport(log: GameLog, printed = ""): string {
   const head = [padR("SEQ", W.seq), padR("TRN", W.trn), padR("LVL", W.lvl), padR("ARA", W.ara), padL("ACT", W.act), padL("ARG", W.arg), padL("TYP", W.typ), padL("EXT", W.ext), padL("STR", W.str), "EVENTS"].join(" ");
   const out = [RULE, centre("S O R C E R E R ' S   C A V E").replace(/\s+$/, ""), centre("A D V E N T U R E   L O G").replace(/\s+$/, ""), RULE, padL(meta, 132).replace(/\s+$/, ""), THIN, head, THIN];
 
-  const frames = game.seed != null && game.picks != null ? replay(game.seed, game.picks, moves.map((m) => m.action), game.variants) : null;
+  const frames = game.seed != null && game.picks != null ? replay(game.seed, game.picks, moves.map((m) => m.action), game.variants, game.testMode) : null;
   for (let i = 0; i < moves.length; i++) {
     const m = moves[i]!;
     const post = frames?.[i + 1]?.state ?? null;

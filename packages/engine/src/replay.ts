@@ -27,14 +27,20 @@ export interface ReplayFrame {
  * `variants` (SC-EXT-29, design US-01): threaded straight into `newGame` so a kit-on game's saved
  * initial conditions reproduce the exact 101/90-card decks it was actually dealt from. Absent
  * ⇒ identical to calling `replay(seed, picks, actions)` with no fourth argument at all (SC-EXT-1).
+ *
+ * `testMode` (SC-Test-1) mirrors the exact same pattern: threaded straight into `newGame` so a
+ * test-mode game's queued/consumed `test*` overrides replay as their real effect instead of being
+ * rejected with `blocked`. Absent ⇒ identical to calling `replay(seed, picks, actions, variants)`
+ * with no fifth argument at all.
  */
 export function replay(
   seed: number,
   picks: readonly number[],
   actions: readonly GameAction[],
   variants?: { extensionKit?: boolean },
+  testMode?: boolean,
 ): ReplayFrame[] {
-  let state = newGame(seed, picks, variants);
+  let state = newGame(seed, picks, variants, testMode);
   const frames: ReplayFrame[] = [{ seq: 0, action: null, state, events: [] }];
   for (let i = 0; i < actions.length; i++) {
     const { state: next, events } = reduce(state, actions[i]!);

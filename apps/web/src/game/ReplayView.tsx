@@ -26,7 +26,9 @@ export function ReplayView({ bundle, onExit }: { bundle: ReplayBundle; onExit: (
   const frames = useMemo(
     // `bundle.game.variants` (SC-EXT-29): a kit-on game's decks only reconstruct exactly when the
     // flag rides along with seed/picks — absent (old/kit-off codes) behaves exactly as before.
-    () => replay(bundle.game.seed!, bundle.game.picks!, bundle.moves.map((m) => m.action), bundle.game.variants),
+    // `bundle.game.testMode` (SC-Test-1) mirrors the same threading, so a test-mode game's queued
+    // overrides replay as their real effect instead of being spuriously rejected.
+    () => replay(bundle.game.seed!, bundle.game.picks!, bundle.moves.map((m) => m.action), bundle.game.variants, bundle.game.testMode),
     [bundle],
   );
   const last = frames.length - 1;

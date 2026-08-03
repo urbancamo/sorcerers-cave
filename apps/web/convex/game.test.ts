@@ -469,3 +469,51 @@ describe("startTestGame", () => {
     await expect(t.mutation(api.game.startTestGame, { secret: "correct-uuid", seed: 1, picks: [0] })).rejects.toThrow();
   });
 });
+
+// ---------------------------------------------------------------------------
+// Test Mode: replay() threads testMode through (SC-Test-1) — mirrors the variants-threading
+// tests above (log and replayByCode return variants...), since testMode needs the exact same
+// treatment: surfaced on the log/replayByCode bundles and passed as replay()'s 5th argument.
+// ---------------------------------------------------------------------------
+describe("log/replayByCode surface testMode, and replay() reproduces a test-mode game's overrides", () => {
+  const ORIGINAL_SECRET = process.env.TEST_MODE_SECRET;
+  beforeEach(() => { process.env.TEST_MODE_SECRET = "correct-uuid"; });
+  afterEach(() => {
+    if (ORIGINAL_SECRET === undefined) delete process.env.TEST_MODE_SECRET;
+    else process.env.TEST_MODE_SECRET = ORIGINAL_SECRET;
+  });
+
+  test("bundle.game.testMode is true for a test-mode game, and replay() reproduces the queued override", async () => {
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const id = await as.mutation(api.game.startTestGame, { secret: "correct-uuid", seed: 1, picks: [0] });
+    // testForceReaction needs no particular phase (only the testMode gate) — arming testNextReaction
+    // is exactly the divergence a testMode-blind replay would silently drop (it would come back
+    // `blocked`, leaving testNextReaction unset, instead of arming it).
+    await as.mutation(api.game.applyAction, { id, action: { type: "testForceReaction", outcome: "friendly" } });
+    const code = await as.mutation(api.game.save, { id });
+
+    const log = await as.query(api.game.log, { id });
+    expect(log?.game.testMode).toBe(true);
+    const bundle = await as.query(api.game.replayByCode, { code });
+    expect(bundle?.game.testMode).toBe(true);
+
+    const frames = replay(log!.game.seed!, log!.game.picks!, log!.moves.map((m) => m.action), log!.game.variants, log!.game.testMode);
+    const game = await as.query(api.game.get, { id });
+    // The real regression: without threading testMode into newGame, the replayed testForceReaction
+    // comes back `blocked` and testNextReaction never arms, diverging from the persisted state.
+    expect(frames[frames.length - 1]!.state).toEqual(game?.state);
+    expect((game?.state as { testNextReaction?: string }).testNextReaction).toBe("friendly");
+  });
+
+  test("bundle.game.testMode is undefined for an ordinary (non-test) game", async () => {
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+    const code = await as.mutation(api.game.save, { id });
+    const log = await as.query(api.game.log, { id });
+    expect(log?.game.testMode).toBeUndefined();
+    const bundle = await as.query(api.game.replayByCode, { code });
+    expect(bundle?.game.testMode).toBeUndefined();
+  });
+});
