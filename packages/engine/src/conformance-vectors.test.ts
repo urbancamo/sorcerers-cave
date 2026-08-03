@@ -318,13 +318,17 @@ const RUNS: Run[] = [
   // Extension kit (Task 17): the one kit-on vector, `variants.extensionKit: true` — same seed/party as
   // kit-golden.test.ts's own pinned playthrough (re-swept to seed 165018 as of the bug fix 2026-08-02
   // that stopped the Chasm drawing a small-pack card on arrival — see that file's header comment for
-  // why the original seed 397 had to move), replayed here with the "kit" policy for a self-contained,
-  // port-consumable fixture. Exercises: ALL FOUR kit special areas — Chasm/Whirlpool/Well (SC-EXT-5/6/7)
-  // and a parked Crypt (SC-EXT-13); ALL FOUR kit hazards — Quarrel (SC-EXT-16), Spell remaps a tunnel
-  // (SC-EXT-28), Desertion (SC-EXT-14), Harpies actually strikes (SC-EXT-15); one kit artifact — the
-  // Scroll is read (SC-EXT-25; Holy Water's own destroy-a-stranger band is exhaustively pinned
-  // separately in kit-holywater-scroll.test.ts); reactions to kit-creature strangers; and a Demon
-  // materializing (SC-EXT-21). Ends GS_DEAD (a full party wipe) — a natural end, not a step-cap
+  // why the original seed 397 had to move; a second bug fix 2026-08-03, the Whirlpool/Well/Bell Rope
+  // also no longer drawing on arrival, shifted this SAME seed's narrative again from its first fresh
+  // Whirlpool/Well entry onward, but 165018 still clears the coverage bar with no reseed needed),
+  // replayed here with the "kit" policy for a self-contained, port-consumable fixture. Exercises: ALL
+  // FOUR kit special areas — Chasm/Whirlpool/Well (SC-EXT-5/6/7) and a parked Crypt (SC-EXT-13); ALL
+  // FOUR kit hazards — Quarrel (SC-EXT-16), Spell remaps a tunnel (SC-EXT-28), Desertion (SC-EXT-14),
+  // Harpies LURKS (SC-EXT-15 — the strike/lurk split is exhaustively covered by its own dedicated test
+  // in kit-harpies-quarrel-spell.test.ts, so this integration fixture needs only either outcome); one
+  // kit artifact — the Scroll is read (SC-EXT-25; Holy Water's own destroy-a-stranger band is
+  // exhaustively pinned separately in kit-holywater-scroll.test.ts); reactions to kit-creature
+  // strangers; and a Demon materializing (SC-EXT-21). Ends GS_DEAD (a full party wipe) — a natural end, not a step-cap
   // truncation.
   { seed: 165018, picks: [18, 20], policy: "kit", maxSteps: 300, tag: "kit", variants: { extensionKit: true } },
 ];

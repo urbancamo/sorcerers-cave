@@ -3,7 +3,7 @@ import { reduce } from "./reduce";
 import { legalActions } from "./selectors";
 import { makeState } from "./testkit";
 import { rollDie } from "./rng";
-import { packCoord } from "./coords";
+import { packCoord, DIR_E } from "./coords";
 import { SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
 import { HAZARD_TRAP, HAZARD_MEDUSA } from "./data/hazards";
 import { GS_PLAYING, GS_DEAD, AF_BELL_SPENT, type GameState, type PartyMember } from "./state";
@@ -114,6 +114,31 @@ describe("The Well — repeatable draw, no-withdraw turn (US-07, SC-EXT-7, SC-EX
     expect(second.events).toContainEqual({ type: "wellDraw" });
     expect(second.state.strangers).toEqual([MAN, MAN]);
     expect(second.state.smallIdx).toBe(2);
+  });
+
+  it("a FRESH arrival draws nothing — drawing is conditional on the player choosing drawFromWell (bug fix 2026-08-03)", () => {
+    const s = makeState({
+      gs: GS_PLAYING,
+      phase: "explore",
+      areas: [
+        { card: 31 /* plain NESW chamber */, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+      ],
+      partyArea: 0,
+      prev: 0,
+      party: [member(HERO)],
+      largePack: [WELL_CARD],
+      largeIdx: 0,
+      smallPack: [100 + MAN], // present so a bugged draw would be visible
+      smallIdx: 0,
+    });
+    const { state } = reduce(s, { type: "move", dir: DIR_E });
+
+    expect(state.strangers).toEqual([]);
+    expect(state.treasures).toEqual([]);
+    expect(state.hazards).toEqual([]);
+    expect(state.smallIdx).toBe(0); // the small pack is never touched by mere arrival
+    expect(state.phase).toBe("explore"); // no encounter triggered by an (absent) arrival draw
+    expect(legalActions(state)).toContainEqual({ type: "drawFromWell" }); // still available, on demand
   });
 });
 
@@ -252,6 +277,32 @@ describe("The Bell Rope — a visible d6 in three bands (US-03, SC-EXT-8)", () =
 
     expect(legalActions(state)).not.toContainEqual({ type: "pullBellRope", mi: 0 });
     expect(reduce(state, { type: "pullBellRope", mi: 0 }).events).toEqual([{ type: "blocked" }]);
+  });
+
+  it("a FRESH arrival draws nothing — drawing is conditional on the player choosing pullBellRope (bug fix 2026-08-03)", () => {
+    const s = makeState({
+      gs: GS_PLAYING,
+      phase: "explore",
+      areas: [
+        { card: 31 /* plain NESW chamber */, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+      ],
+      partyArea: 0,
+      prev: 0,
+      party: [member(HERO)],
+      largePack: [BELL_CARD],
+      largeIdx: 0,
+      smallPack: [100 + MAN], // present so a bugged draw would be visible
+      smallIdx: 0,
+    });
+    const { state } = reduce(s, { type: "move", dir: DIR_E });
+
+    expect(state.strangers).toEqual([]);
+    expect(state.treasures).toEqual([]);
+    expect(state.hazards).toEqual([]);
+    expect(state.smallIdx).toBe(0); // the small pack is never touched by mere arrival
+    expect(state.phase).toBe("explore"); // no encounter triggered by an (absent) arrival draw
+    expect((state.areas[0]!.flags & AF_BELL_SPENT) === 0).toBe(true); // arrival never spends the rope
+    expect(legalActions(state)).toContainEqual({ type: "pullBellRope", mi: 0 }); // still available, on demand
   });
 });
 
