@@ -76,7 +76,12 @@ export function createCaveAdapter(initial: GameState, art: ArtTables, opts: Adap
       };
     },
     openMoves(): Move[] {
-      if (state.phase !== "explore" || !acting()) return []; // not your turn → no doorways offered
+      if (!acting()) return []; // not your turn → no doorways offered
+      // Mirrors selectors.ts's own gate (SC-4-18a): once ≥1 indifferent test has landed, the party
+      // may also leave an encounter by any doorway, so exit chevrons must appear there too, not
+      // only at rest in explore.
+      const leavingIndifferentEncounter = state.phase === "encounter" && (state.indiffStreak ?? 0) >= 1;
+      if (state.phase !== "explore" && !leavingIndifferentEncounter) return [];
       const { level, x, y } = unpackCoord(state.areas[state.partyArea]!.coord);
       const moves: Move[] = [];
       for (const a of legalActions(state)) {

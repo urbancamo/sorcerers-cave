@@ -241,6 +241,74 @@ describe("reduce — stranger encounters (C-2 §8)", () => {
     expect(reduce(s, { type: "test" }).events).toContainEqual({ type: "blocked" });
   });
 
+  it("after ONE indifferent result the party may already move on by any doorway, leaving the treasure", () => {
+    // Rules check (docs/specs/sorcerers-cave-rules.md, §Encountering Strangers): "If the strangers
+    // are indifferent, in its next turn the party may test them again, or attack them, or leave the
+    // chamber by any doorway without picking up any treasure found there." That's ONE indifferent
+    // result, not three — the "three rolls" rule (§Solitaire Play) only governs whether a LATER
+    // re-entry needs re-testing, not whether the party may leave at all. Same seed/party/stranger as
+    // the "three indifferent" test above (a single indifferent roll here, not looped to pacify).
+    const s = makeState({
+      phase: "encounter", strangers: [6], treasures: [1], seed: 9,
+      party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [] }],
+      areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+      largePack: [39], largeIdx: 0, // card 39 has a south door, to connect back from a move North off card 31
+    });
+    const t = reduce(s, { type: "test" });
+    expect(t.events).toContainEqual(expect.objectContaining({ type: "reaction", outcome: "indifferent" }));
+    expect(t.state.indiffStreak).toBe(1);
+    expect(t.state.phase).toBe("encounter"); // not pacified yet — just one test in
+    const acts = legalActions(t.state);
+    expect(acts.some((a) => a.type === "move" && a.dir === DIR_N)).toBe(true); // already free to leave
+    expect(acts.some((a) => a.type === "test")).toBe(true);  // may still test again instead
+    expect(acts.some((a) => a.type === "attack")).toBe(true); // or attack instead
+
+    const m = reduce(t.state, { type: "move", dir: DIR_N });
+    expect(m.events).not.toContainEqual({ type: "blocked" });
+    expect(m.state.partyArea).not.toBe(t.state.partyArea); // actually relocated
+    expect(m.state.phase).not.toBe("encounter"); // no longer stuck with these strangers
+    // the indifferent stranger AND its treasure stay behind, guarded, exactly as a withdraw would leave them
+    expect(m.state.areas[0]!.contents).toEqual(expect.arrayContaining([200 + 1, 100 + 6]));
+    expect(m.state.party[0]!.treasure).toEqual([]); // nothing looted
+  });
+
+  it("a dead end while trying to leave an indifferent encounter re-opens the SAME encounter, not explore", () => {
+    // Rules check (§Encountering Strangers): "if it finds itself delayed by a dead end… it must in
+    // the same turn either test the strangers again or attack them." Card 1 has only a North exit
+    // (no south-facing door back), so drawing it off a move North is guaranteed to dead-end.
+    const s = makeState({
+      phase: "encounter", strangers: [6], treasures: [1], seed: 9,
+      party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [] }],
+      areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+      largePack: [1], largeIdx: 0, // card 1: North exit only — no door back South — a guaranteed dead end
+    });
+    const t = reduce(s, { type: "test" });
+    expect(t.state.indiffStreak).toBe(1);
+
+    const m = reduce(t.state, { type: "move", dir: DIR_N });
+    expect(m.events).toContainEqual({ type: "deadEnd", dir: DIR_N });
+    expect(m.state.partyArea).toBe(t.state.partyArea); // never actually left
+    expect(m.state.phase).toBe("encounter");           // pulled straight back into the SAME encounter
+    expect(m.state.strangers).toEqual([6]);             // still live, not parked away
+    expect(m.state.treasures).toEqual([1]);
+    expect(m.state.areas[t.state.partyArea]!.contents).toEqual([]); // nothing was parked here after all
+    expect(m.state.areas.length).toBe(t.state.areas.length + 1);   // the face-down frontier tile still placed…
+    expect(m.state.areas[m.state.areas.length - 1]!.faceUp).toBe(false); // …and stays face-down (§Exploring the Cave)
+    expect(legalActions(m.state).some((a) => a.type === "test")).toBe(true); // free to test/attack again
+  });
+
+  it("before any test, the party may NOT move on — must withdraw, attack, or test first", () => {
+    const s = makeState({
+      phase: "encounter", strangers: [6], treasures: [1],
+      party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [] }],
+      areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+      largePack: [39], largeIdx: 0,
+    });
+    expect(s.indiffStreak ?? 0).toBe(0);
+    expect(legalActions(s).some((a) => a.type === "move")).toBe(false);
+    expect(reduce(s, { type: "move", dir: DIR_N }).events).toContainEqual({ type: "blocked" });
+  });
+
   it("a pacified chamber re-entry lets you traverse (explore) AND offers Attack; treasure stays guarded", () => {
     // Tunnel A (exit E) → chamber B (card 31), already pacified for this party with a guarded stranger+treasure.
     const A = { card: 2, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };

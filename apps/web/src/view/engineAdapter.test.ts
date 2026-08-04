@@ -46,6 +46,38 @@ describe("createCaveAdapter — read surface", () => {
   });
 });
 
+// Mirrors selectors.ts's own SC-4-18a gate: once the party has tested an encounter's strangers to
+// at least one indifferent result, the 3D view's exit chevrons must appear so the "leave by any
+// doorway" option is actually clickable, not just legal in the engine.
+describe("openMoves — SC-4-18a (leaving an indifferent encounter)", () => {
+  const area = mkArea(31, 1, 50, 50); // N+E+S+W+chamber
+
+  it("offers the chamber's doorways once indiffStreak >= 1, even mid-encounter", () => {
+    const state: GameState = {
+      gs: 0, phase: "encounter", turn: 1, score: 0, curses: 0, bonusScore: 0, sorcererKilled: false,
+      areas: [area], partyArea: 0, level: 1, prev: 0, prev2: 0,
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }],
+      largePack: [], largeIdx: 0, smallPack: [], smallIdx: 0,
+      strangers: [6], treasures: [], hazards: [], seed: 1, fight: null, indiffStreak: 1,
+    };
+    const eng = createCaveAdapter(state, art);
+    const moves = eng.openMoves();
+    expect(moves.map((m) => m.dir).sort()).toEqual(["E", "N", "S", "W"]);
+  });
+
+  it("offers nothing before any test (indiffStreak 0/undefined)", () => {
+    const state: GameState = {
+      gs: 0, phase: "encounter", turn: 1, score: 0, curses: 0, bonusScore: 0, sorcererKilled: false,
+      areas: [area], partyArea: 0, level: 1, prev: 0, prev2: 0,
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }],
+      largePack: [], largeIdx: 0, smallPack: [], smallIdx: 0,
+      strangers: [6], treasures: [], hazards: [], seed: 1, fight: null,
+    };
+    const eng = createCaveAdapter(state, art);
+    expect(eng.openMoves()).toEqual([]);
+  });
+});
+
 // Minimal explore-phase GameState for deterministic move tests.
 function mkState(areas: PlacedArea[], partyArea: number, over: Partial<GameState> = {}): GameState {
   return {

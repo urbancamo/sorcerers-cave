@@ -1,14 +1,39 @@
-import { decodeArea } from "./decode";
+import { decodeArea, type DecodedArea } from "./decode";
 import { DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, unpackCoord, packCoord } from "./coords";
 import { GS_PLAYING, AF_DESTROYED, AF_BELL_SPENT, type GameState } from "./state";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
 import type { GameAction } from "./actions";
 import { canCarry } from "./pickup";
 import { usesArtifactsAs, holyWaterTargets, hasLivingHuman, fluteLulls } from "./effects";
-import { getSubLocation, oppositeDir, RING_ADJACENCY_SPECIALS, ISLAND_JUMP_SPECIALS } from "./subLocation";
+import { getSubLocation, oppositeDir, RING_ADJACENCY_SPECIALS, ISLAND_JUMP_SPECIALS, type SubLocation } from "./subLocation";
 import { giantCanRecover, sunkKey } from "./special";
 
 const C_GIANT = 12; // only a Giant may lift treasure out of a Deep Pool (§Deep Pool)
+
+/**
+ * Ordinary lateral/stair `move` actions open from the given (decoded) tile — shared by the
+ * explore phase's own list and an indifferent-tested encounter's "leave by any doorway" option
+ * (rules §Encountering Strangers: "in its next turn the party may test them again, or attack
+ * them, or leave the chamber by any doorway without picking up any treasure found there" — ONE
+ * indifferent result is enough, not the three the old code required; see the encounter branch
+ * below, SC-4-18a). Excludes the level-1 stair-up cave exit deliberately: leaving the Cave is a
+ * much larger, separately-confirmed action than "move to the next tile," and the rules text was
+ * written with ordinary dungeon movement in mind, not the game-ending case.
+ */
+function lateralMoves(state: GameState, dec: DecodedArea, sub: SubLocation): GameAction[] {
+  const actions: GameAction[] = [];
+  const blockedDir = RING_ADJACENCY_SPECIALS.has(dec.special) && sub.at === "doorway" && sub.dir !== undefined
+    ? oppositeDir(sub.dir) : undefined;
+  if (dec.n && blockedDir !== DIR_N) actions.push({ type: "move", dir: DIR_N });
+  if (dec.e && blockedDir !== DIR_E) actions.push({ type: "move", dir: DIR_E });
+  if (dec.s && blockedDir !== DIR_S) actions.push({ type: "move", dir: DIR_S });
+  if (dec.w && blockedDir !== DIR_W) actions.push({ type: "move", dir: DIR_W });
+  if (dec.stairDown) actions.push({ type: "move", dir: DIR_DOWN });
+  // An ordinary climb is an "any doorway" leave like any other; the level-1 stair-up cave exit is
+  // deliberately excluded (see doc comment above) — that one stays explore-only.
+  if (dec.stairUp && state.level > 1) actions.push({ type: "move", dir: DIR_UP });
+  return actions;
+}
 
 function living(state: GameState) {
   return state.party.map((m, idx) => ({ m, idx })).filter(({ m }) => m.status === 0 || m.status === 1);
@@ -128,7 +153,13 @@ export function legalActions(state: GameState): GameAction[] {
     const canWithdraw = !state.fellThroughTrap && !prevGone && !noWithdrawTurn;
     const actions: GameAction[] = canWithdraw ? [{ type: "withdraw" }, { type: "attack" }] : [{ type: "attack" }];
     if ((state.indiffStreak ?? 0) < 3) actions.push({ type: "test" });
-    const special = decodeArea(state.areas[state.partyArea]!.card).special;
+    const dec = decodeArea(state.areas[state.partyArea]!.card);
+    // Rules §Encountering Strangers: after just ONE indifferent result (not the three the old code
+    // required — see lateralMoves' own doc comment), the party may also simply leave by any
+    // doorway, forfeiting the treasure. A streak of 0 (hostile-only or fresh, untested strangers)
+    // still forces withdraw/attack/test — no walking past strangers you haven't even approached.
+    if ((state.indiffStreak ?? 0) >= 1) actions.push(...lateralMoves(state, dec, getSubLocation(state)));
+    const special = dec.special;
     // The Chasm offers an escape hatch even mid-encounter — descending abandons the strangers here,
     // no test/fight required (design US-02).
     if (special === SPECIAL_CHASM) actions.push({ type: "descendChasm" });
@@ -195,17 +226,10 @@ export function legalActions(state: GameState): GameAction[] {
   // jumping to the island (Viper Pit only — Whirlpool has none). Retracing the entry doorway is
   // unaffected (it's never the opposite of itself); an island-sourced crossing is unrestricted.
   const sub = getSubLocation(state);
-  const blockedDir = RING_ADJACENCY_SPECIALS.has(dec.special) && sub.at === "doorway" && sub.dir !== undefined
-    ? oppositeDir(sub.dir) : undefined;
-  if (dec.n && blockedDir !== DIR_N) actions.push({ type: "move", dir: DIR_N });
-  if (dec.e && blockedDir !== DIR_E) actions.push({ type: "move", dir: DIR_E });
-  if (dec.s && blockedDir !== DIR_S) actions.push({ type: "move", dir: DIR_S });
-  if (dec.w && blockedDir !== DIR_W) actions.push({ type: "move", dir: DIR_W });
-  if (dec.stairDown) actions.push({ type: "move", dir: DIR_DOWN });
-  if (dec.stairUp) {
-    if (state.level === 1) actions.push({ type: "exitCave" });
-    else actions.push({ type: "move", dir: DIR_UP });
-  }
+  actions.push(...lateralMoves(state, dec, sub));
+  // The level-1 stair-up cave exit is the one lateralMoves deliberately excludes (see its doc
+  // comment) — explore phase is the only place it's ever legal.
+  if (dec.stairUp && state.level === 1) actions.push({ type: "exitCave" });
   // Precise Locations (§10.5, §8.2): jump from a doorway onto the island — Viper Pit/Deep Pool only
   // (Peter's house rule), never from the island itself (an ordinary `move` already crosses out
   // unrestricted from there) and never once already jumped this visit.

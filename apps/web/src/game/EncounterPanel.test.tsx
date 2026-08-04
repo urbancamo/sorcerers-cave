@@ -59,6 +59,15 @@ describe("EncounterPanel", () => {
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "useArtifact", artifact: 5 }));
   });
 
+  it("SC-4-18a: never renders a 'move' button — leaving an indifferent encounter is driven by the 3D exit markers, not this panel", () => {
+    const s: GameState = { ...newGame(1, [5, 6]), phase: "encounter", strangers: [6], indiffStreak: 1 };
+    s.areas[s.partyArea] = { ...s.areas[s.partyArea]!, card: 31 }; // N+E+S+W+chamber — legalActions now offers 4 moves
+    render(<EncounterPanel state={s} dispatch={() => {}} />);
+    const labels = screen.getAllByRole("button").map((b) => b.textContent);
+    expect(labels).not.toContain("move");
+    expect(labels).toEqual(expect.arrayContaining(["Withdraw", "Attack", "Test reaction"]));
+  });
+
   it("puts 'Retake dropped treasure' first, ahead of the per-item dropdowns", () => {
     const base = newGame(1, [0]); // Hero
     const pickup: GameState = { ...base, phase: "pickup", treasures: [1], fightDrops: [{ mi: 0, tid: 1 }] }; // Hero dropped Gold to fight

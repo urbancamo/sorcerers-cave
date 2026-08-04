@@ -581,7 +581,12 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
     }
 
     case "move": {
-      if (state.phase !== "explore") return { state, events: [{ type: "blocked" }] };
+      // Rules §Encountering Strangers (SC-4-18a): after AT LEAST ONE indifferent result — not the
+      // three the area's own permanent pacification needs — the party may leave the chamber by
+      // any doorway, forfeiting the treasure. Mirrors selectors.ts's own `lateralMoves` gate;
+      // checked again here in defense in depth (the reducer must not trust the client).
+      const leavingIndifferentEncounter = state.phase === "encounter" && (state.indiffStreak ?? 0) >= 1;
+      if (state.phase !== "explore" && !leavingIndifferentEncounter) return { state, events: [{ type: "blocked" }] };
       const fromSpecial = decodeArea(state.areas[state.partyArea]!.card).special;
       // Precise Locations (§10.5, §8.1): a Viper-Pit/Whirlpool ledge only reaches its two ADJACENT
       // doorways — block the one directly opposite the party's current doorway (retrace and an
@@ -596,10 +601,31 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       }
       const fromIdx = state.partyArea;
       const oldPrev = state.prev;
-      const areasBefore = state.areas.length; // snapshot: did tryMove place a brand-new target tile?
-      const largeIdxBefore = state.largeIdx; // snapshot: did tryMove burn a large-pack card for it?
-      const res = tryMove(state, action.dir);
+      // Leaving an indifferent (not yet pacified) encounter parks its strangers/treasure onto the
+      // CURRENT tile and switches to explore BEFORE trying the move — `resolveArea` on whatever's
+      // drawn next must start from an empty working set, same as any ordinary explore-phase move
+      // already assumes (a tunnel destination never runs `enterChamber`'s own reset). A dead end
+      // (moved:false, deadEnd:true — a face-down frontier tile IS placed even so, §Exploring the
+      // Cave) leaves `partyArea` unchanged, so the park is undone below and the party is pulled
+      // straight back into the SAME live encounter — "delayed by a dead end… must in the same turn
+      // either test the strangers again or attack them" (§Encountering Strangers).
+      const base = leavingIndifferentEncounter ? structuredClone(state) : state;
+      const savedContents = leavingIndifferentEncounter ? state.areas[fromIdx]!.contents : undefined;
+      if (leavingIndifferentEncounter) persistAndExplore(base);
+      const areasBefore = base.areas.length; // snapshot: did tryMove place a brand-new target tile?
+      const largeIdxBefore = base.largeIdx; // snapshot: did tryMove burn a large-pack card for it?
+      const res = tryMove(base, action.dir);
       if (!res.moved) {
+        if (leavingIndifferentEncounter) {
+          res.state.phase = "encounter";
+          res.state.strangers = state.strangers;
+          res.state.treasures = state.treasures;
+          res.state.hazards = state.hazards;
+          res.state.sleeping = state.sleeping;
+          if (state.statues) res.state.statues = state.statues;
+          res.state.lulled = state.lulled;
+          res.state.areas[fromIdx]!.contents = savedContents!;
+        }
         return { state: res.state, events: [res.deadEnd ? { type: "deadEnd", dir: action.dir } : { type: "blocked" }] };
       }
       const next = { ...res.state, turn: res.state.turn + 1 };

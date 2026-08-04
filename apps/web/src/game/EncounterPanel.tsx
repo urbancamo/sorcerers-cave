@@ -136,6 +136,9 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
     else if (a.type === "useArtifact" && a.artifact === 19 && !medusaPause) readScroll = a;
     else if (a.type === "useArtifact" && !medusaPause) (artByArtifact.get(a.artifact) ?? artByArtifact.set(a.artifact, []).get(a.artifact)!).push(a);
     else if (a.type === "retakeDropped") retake = a;
+    // Leaving an indifferent encounter by any doorway (SC-4-18a) is movement, same as explore's own
+    // moves — driven by the 3D exit markers/keys (engineAdapter.ts's openMoves), never a panel button.
+    else if (a.type === "move") continue;
     else simple.push(a);
   }
 
