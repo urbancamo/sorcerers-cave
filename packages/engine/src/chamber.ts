@@ -125,7 +125,17 @@ export function enterChamber(state: GameState): GameEvent[] {
   // always-present `statues: []` key changes every state's hash even when the value is empty).
   if (dec.special === SPECIAL_GALLERY) state.statues = [];
   state.lulled = []; // recomputed from flute presence each entry (see resolveArea)
-  state.indiffStreak = 0; // a fresh visit re-tests from scratch (only permanent indifference persists)
+  // Bug fix 2026-08-04 (Gap D, SC-4-18a): restore the DURABLE, cross-visit count for this specific
+  // area — Peter's rule is explicit that strangers "remember forever how many times your party has
+  // approached them ... even if you went away in between," so a revisit resumes counting rather
+  // than starting over at 0 (previously this line unconditionally reset to 0 on every entry).
+  state.indiffStreak = state.indiffCounts?.[state.partyArea] ?? 0;
+  // Re-entering ALWAYS requires a fresh test/attack before the party may leave freely again, however
+  // high the durable count already is — "if at any time it re-enters the chamber, it must in the
+  // same turn either test the strangers again or attack them" (Gap A/C). `delete`, not `= false` —
+  // an always-present key would change every chamber-entering state's hash even when closed
+  // (SC-EXT-1 byte-identity; same guard as `statues` above).
+  delete state.indiffLeaveOpen;
 
   const events: GameEvent[] = [];
 

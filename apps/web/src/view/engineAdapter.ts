@@ -77,10 +77,11 @@ export function createCaveAdapter(initial: GameState, art: ArtTables, opts: Adap
     },
     openMoves(): Move[] {
       if (!acting()) return []; // not your turn → no doorways offered
-      // Mirrors selectors.ts's own gate (SC-4-18a): once ≥1 indifferent test has landed, the party
-      // may also leave an encounter by any doorway, so exit chevrons must appear there too, not
-      // only at rest in explore.
-      const leavingIndifferentEncounter = state.phase === "encounter" && (state.indiffStreak ?? 0) >= 1;
+      // Mirrors selectors.ts's own gate (SC-4-18a, Gap C bug fix 2026-08-04): during the one-shot
+      // `indiffLeaveOpen` window opened by a qualifying indifferent test, the party may also leave
+      // an encounter by any doorway, so exit chevrons must appear there too — but only for that one
+      // turn, not for as long as `indiffStreak >= 1` (a dead-end attempt or testing again closes it).
+      const leavingIndifferentEncounter = state.phase === "encounter" && state.indiffLeaveOpen === true;
       if (state.phase !== "explore" && !leavingIndifferentEncounter) return [];
       const { level, x, y } = unpackCoord(state.areas[state.partyArea]!.coord);
       const moves: Move[] = [];

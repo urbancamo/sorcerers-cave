@@ -19,6 +19,12 @@ const C_GIANT = 12; // only a Giant may lift treasure out of a Deep Pool (§Deep
  * below, SC-4-18a). Excludes the level-1 stair-up cave exit deliberately: leaving the Cave is a
  * much larger, separately-confirmed action than "move to the next tile," and the rules text was
  * written with ordinary dungeon movement in mind, not the game-ending case.
+ *
+ * Bug fix 2026-08-04 (Gap C): the encounter branch gates this on the one-shot `indiffLeaveOpen`
+ * window, NOT `indiffStreak >= 1` — the leave option is only offered for the single turn right
+ * after a qualifying test, and is forfeited by a dead-end leave attempt or by testing again
+ * ("finds itself delayed by a dead end ... must in the same turn either test the strangers again
+ * or attack them"). It is not a standing condition of the streak.
  */
 function lateralMoves(state: GameState, dec: DecodedArea, sub: SubLocation): GameAction[] {
   const actions: GameAction[] = [];
@@ -154,11 +160,13 @@ export function legalActions(state: GameState): GameAction[] {
     const actions: GameAction[] = canWithdraw ? [{ type: "withdraw" }, { type: "attack" }] : [{ type: "attack" }];
     if ((state.indiffStreak ?? 0) < 3) actions.push({ type: "test" });
     const dec = decodeArea(state.areas[state.partyArea]!.card);
-    // Rules §Encountering Strangers: after just ONE indifferent result (not the three the old code
-    // required — see lateralMoves' own doc comment), the party may also simply leave by any
-    // doorway, forfeiting the treasure. A streak of 0 (hostile-only or fresh, untested strangers)
-    // still forces withdraw/attack/test — no walking past strangers you haven't even approached.
-    if ((state.indiffStreak ?? 0) >= 1) actions.push(...lateralMoves(state, dec, getSubLocation(state)));
+    // Rules §Encountering Strangers: the party may also simply leave by any doorway, forfeiting the
+    // treasure — but only during the one-shot window a qualifying indifferent test just opened
+    // (Gap C, bug fix 2026-08-04; see lateralMoves' own doc comment). NOT a standing condition of
+    // `indiffStreak >= 1`: a dead-end leave attempt or testing again closes it, and a streak of 0
+    // (hostile-only or fresh, untested strangers) never opens it — no walking past strangers you
+    // haven't even approached.
+    if (state.indiffLeaveOpen === true) actions.push(...lateralMoves(state, dec, getSubLocation(state)));
     const special = dec.special;
     // The Chasm offers an escape hatch even mid-encounter — descending abandons the strangers here,
     // no test/fight required (design US-02).

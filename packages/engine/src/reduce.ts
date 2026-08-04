@@ -581,11 +581,13 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
     }
 
     case "move": {
-      // Rules §Encountering Strangers (SC-4-18a): after AT LEAST ONE indifferent result — not the
-      // three the area's own permanent pacification needs — the party may leave the chamber by
-      // any doorway, forfeiting the treasure. Mirrors selectors.ts's own `lateralMoves` gate;
-      // checked again here in defense in depth (the reducer must not trust the client).
-      const leavingIndifferentEncounter = state.phase === "encounter" && (state.indiffStreak ?? 0) >= 1;
+      // Rules §Encountering Strangers (SC-4-18a): the party may leave the chamber by any doorway,
+      // forfeiting the treasure, but only during the one-shot `indiffLeaveOpen` window opened by an
+      // indifferent test (bug fix 2026-08-04, Gap C) — NOT for as long as `indiffStreak >= 1`, which
+      // would wrongly let the party keep trying doorways after a dead end without re-testing.
+      // Mirrors selectors.ts's own `lateralMoves` gate; checked again here in defense in depth (the
+      // reducer must not trust the client).
+      const leavingIndifferentEncounter = state.phase === "encounter" && state.indiffLeaveOpen === true;
       if (state.phase !== "explore" && !leavingIndifferentEncounter) return { state, events: [{ type: "blocked" }] };
       const fromSpecial = decodeArea(state.areas[state.partyArea]!.card).special;
       // Precise Locations (§10.5, §8.1): a Viper-Pit/Whirlpool ledge only reaches its two ADJACENT
@@ -625,6 +627,12 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           if (state.statues) res.state.statues = state.statues;
           res.state.lulled = state.lulled;
           res.state.areas[fromIdx]!.contents = savedContents!;
+          // Bug fix 2026-08-04 (Gap C, SC-4-18a): a dead-end leave attempt forfeits the window —
+          // "finds itself delayed by a dead end ... must in the same turn either test the strangers
+          // again or attack them." The party is back in the SAME live encounter with no free move.
+          // `delete`, not `= false` — keeps every "closed" state hashing identically regardless of
+          // which path closed it (SC-EXT-1 byte-identity).
+          delete res.state.indiffLeaveOpen;
         }
         return { state: res.state, events: [res.deadEnd ? { type: "deadEnd", dir: action.dir } : { type: "blocked" }] };
       }
@@ -737,12 +745,17 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       next.lulled = [];
       next.partyArea = next.prev;
       next.level = unpackCoord(next.areas[next.partyArea]!.coord).level;
-      const events: GameEvent[] = [{ type: "moved", area: next.partyArea, level: next.level }];
-      // Extension kit (SC-EXT-21): a Demon may be lurking in the area withdrawn INTO — parked by a
-      // draw made elsewhere while the party was away (design US-13's "or withdrawing into") — pull
-      // it in and force the ambush instead of a quiet return to `explore`.
-      pullParkedDemon(next, next.areas[next.partyArea]!);
-      if (!ambushIfDemon(next, events)) next.phase = "explore";
+      // Bug fix 2026-08-04 (Gap A, SC-4-18a): route the destination through the SAME shared landing
+      // resolution every other arrival uses (`resolveArea` → `resolveAreaLoop`/`finishChamber`),
+      // instead of a hand-rolled Demon-only check + hardcoded `explore`. `withdraw` used to be the
+      // one landing path that skipped this (`resolveArea`'s own comment already flagged the general
+      // gap) — closing it here also reopens a genuine, not-yet-permanent encounter left behind by
+      // Gap C's leave window (re-entering "must in the same turn either test the strangers again or
+      // attack them"), triggers an on-sight fight for a `hostileAreas` tile, reveals a Spell-remapped
+      // tile, and frees stoned members via a Wizard+Staff — all for free, since every tile type is
+      // now handled uniformly (the Demon pull-in/ambush included — `resolveAreaLoop`'s own branches
+      // already cover it identically for a tunnel/chamber/Deep-Pool/Viper-Pit destination).
+      const events = resolveArea(next);
       return { state: next, events };
     }
 
@@ -939,6 +952,11 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       if ((state.indiffStreak ?? 0) >= 3) return { state, events: [{ type: "blocked" }] }; // permanently indifferent
       const next = structuredClone(state);
       next.surpriseReady = false; // approaching to test forfeits the chance of a surprise attack (§Surprise)
+      // Bug fix 2026-08-04 (Gap C, SC-4-18a): testing again always forfeits any leave window opened
+      // by a PRIOR test this visit — the branch below re-opens it fresh only if THIS test's own
+      // outcome qualifies (indifferent, count still <3). `delete`, not `= false` — an always-present
+      // key would change every tested state's hash even when closed (SC-EXT-1 byte-identity).
+      delete next.indiffLeaveOpen;
       // Test Mode (§Test Mode): an armed testNextReaction replaces the die roll outright — the RNG
       // (state.seed) is never touched, so this doesn't perturb any later, non-overridden roll.
       // Checks `testMode` explicitly rather than trusting testNextReaction's mere presence —
@@ -994,6 +1012,11 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         }
       } else if (outcome === "indifferent") {
         next.indiffStreak = (next.indiffStreak ?? 0) + 1;
+        // Bug fix 2026-08-04 (Gap D, SC-4-18a): write the fresh count through to the DURABLE,
+        // per-area store so a later re-entry (chamber.ts's enterChamber) resumes from here instead
+        // of restarting at 0 — "they remember forever how many times your party has approached
+        // them ... even if you went away in between."
+        next.indiffCounts = { ...(next.indiffCounts ?? {}), [next.partyArea]: next.indiffStreak };
         if (next.indiffStreak >= 3) {
           // Permanently indifferent to this party: treasure stays guarded (no pickup) UNLESS a
           // living Thief ally is present (design US-17, SC-EXT-19) — but the party may now leave by
@@ -1003,8 +1026,11 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           }
           events.push({ type: "pacified" }); // tell the player they may now move on
           settlePacifiedArea(next); // Thief present + treasure here -> live pickup; else the ordinary re-park
+        } else {
+          // Bug fix 2026-08-04 (Gap C, SC-4-18a): open the one-shot leave window — the party's VERY
+          // NEXT action may freely leave by any doorway, forfeiting the treasure.
+          next.indiffLeaveOpen = true;
         }
-        // else stays in the encounter phase
       } else {
         events.push(...startFight(next, -1)); // strangers gain surprise
       }

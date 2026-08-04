@@ -46,13 +46,28 @@ describe("createCaveAdapter — read surface", () => {
   });
 });
 
-// Mirrors selectors.ts's own SC-4-18a gate: once the party has tested an encounter's strangers to
-// at least one indifferent result, the 3D view's exit chevrons must appear so the "leave by any
-// doorway" option is actually clickable, not just legal in the engine.
+// Mirrors selectors.ts's own SC-4-18a gate: while the one-shot `indiffLeaveOpen` window is open
+// (a qualifying indifferent test just landed), the 3D view's exit chevrons must appear so the
+// "leave by any doorway" option is actually clickable, not just legal in the engine. Gap C bug fix
+// 2026-08-04: this is the window, NOT a standing `indiffStreak >= 1` condition.
 describe("openMoves — SC-4-18a (leaving an indifferent encounter)", () => {
   const area = mkArea(31, 1, 50, 50); // N+E+S+W+chamber
 
-  it("offers the chamber's doorways once indiffStreak >= 1, even mid-encounter", () => {
+  it("offers the chamber's doorways while the leave window is open, even mid-encounter", () => {
+    const state: GameState = {
+      gs: 0, phase: "encounter", turn: 1, score: 0, curses: 0, bonusScore: 0, sorcererKilled: false,
+      areas: [area], partyArea: 0, level: 1, prev: 0, prev2: 0,
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }],
+      largePack: [], largeIdx: 0, smallPack: [], smallIdx: 0,
+      strangers: [6], treasures: [], hazards: [], seed: 1, fight: null,
+      indiffStreak: 1, indiffLeaveOpen: true,
+    };
+    const eng = createCaveAdapter(state, art);
+    const moves = eng.openMoves();
+    expect(moves.map((m) => m.dir).sort()).toEqual(["E", "N", "S", "W"]);
+  });
+
+  it("offers nothing once the leave window has closed, even with indiffStreak >= 1 (e.g. after a dead end)", () => {
     const state: GameState = {
       gs: 0, phase: "encounter", turn: 1, score: 0, curses: 0, bonusScore: 0, sorcererKilled: false,
       areas: [area], partyArea: 0, level: 1, prev: 0, prev2: 0,
@@ -61,8 +76,7 @@ describe("openMoves — SC-4-18a (leaving an indifferent encounter)", () => {
       strangers: [6], treasures: [], hazards: [], seed: 1, fight: null, indiffStreak: 1,
     };
     const eng = createCaveAdapter(state, art);
-    const moves = eng.openMoves();
-    expect(moves.map((m) => m.dir).sort()).toEqual(["E", "N", "S", "W"]);
+    expect(eng.openMoves()).toEqual([]);
   });
 
   it("offers nothing before any test (indiffStreak 0/undefined)", () => {

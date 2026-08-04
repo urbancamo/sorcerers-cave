@@ -52,32 +52,47 @@ function moveIntoChamber(over: Parameters<typeof makeState>[0] = {}) {
     level: 2, // draw min(level,4)=2 small cards on first visit
     smallPack: [110, 201], // a Dragon (110) + Gold (201) to draw on first visit
     smallIdx: 0,
-    indiffStreak: 2, // pre-set streak that must be cleared on chamber (re)entry
+    indiffStreak: 2, // a stale value left over from some OTHER area — must not leak into this one
     ...over,
   });
 }
 
-describe("chamber (re)entry resets working sets & indiffStreak (§SC-7.1-7)", () => {
-  it("SC-7.1-7: a reduce move into a chamber clears indiffStreak and draws a fresh working set", () => {
+describe("chamber (re)entry restores indiffStreak per-area & resets working sets (§SC-7.1-7)", () => {
+  it("SC-7.1-7: a reduce move into a NEW chamber restores indiffStreak for THIS area (0, none recorded) and draws a fresh working set", () => {
     const { state } = reduce(moveIntoChamber(), { type: "move", dir: 2 }); // East into the chamber
-    expect(state.indiffStreak).toBe(0);        // the pre-set streak was reset on entry
+    expect(state.indiffStreak).toBe(0);        // no durable count recorded for this (brand new) area
     expect(state.strangers).toEqual([10]);     // the freshly drawn Dragon (110 − 100)
     expect(state.treasures).toEqual([1]);      // the freshly drawn Gold (201 − 200)
     expect(state.smallIdx).toBe(2);            // both small-pack cards consumed by the draw
   });
 });
 
-describe("indiffStreak clears on chamber entry (§SC-8.4-5)", () => {
-  it("SC-8.4-5: enterChamber resets a pre-set indiffStreak to 0", () => {
+describe("indiffStreak restored per-area on chamber entry (§SC-8.4-5, bug fix 2026-08-04 Gap D)", () => {
+  it("SC-8.4-5: enterChamber restores a pre-set indiffStreak to 0 when no durable count is recorded for this area", () => {
     const s = makeState({
       level: 1,
       areas: [{ card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 }],
-      indiffStreak: 2,
+      indiffStreak: 2, // stale value from some other area
       smallPack: [110],
       smallIdx: 0,
     });
     enterChamber(s);
     expect(s.indiffStreak).toBe(0);
+  });
+
+  it("SC-8.4-5: enterChamber RESTORES the durable count when this area has one — 'they remember forever', not reset to 0", () => {
+    const s = makeState({
+      level: 1,
+      areas: [{ card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+      partyArea: 0,
+      indiffStreak: 0,
+      indiffCounts: { 0: 2 }, // this party approached this area twice before, indifferent both times
+      smallPack: [],
+      smallIdx: 0,
+    });
+    enterChamber(s);
+    expect(s.indiffStreak).toBe(2); // resumed, not restarted
+    expect(s.indiffLeaveOpen).not.toBe(true); // but still must retest before any free leave
   });
 });
 

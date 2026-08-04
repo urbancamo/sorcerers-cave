@@ -176,12 +176,30 @@ export interface GameState {
   // `finishChamber`'s default recompute clobber it, and forces the Dragon-lull notice on regardless
   // of chamber freshness (a drawn Dragon is new information either way).
   medusaPause?: { freshEntry: boolean; extraDraw?: { hadSurprise?: boolean } };
-  // Indifference (per party — NOT on the shared area, so it never affects other parties):
-  // `indiffStreak` counts consecutive indifferent reaction tests in the CURRENT chamber visit
-  // (reset on each chamber entry). When it reaches 3 the strangers are permanently indifferent to
-  // this party: `pacifiedAreas` records that area's index so re-entry skips the encounter. A pacified
-  // party may leave by any exit but still cannot loot the (guarded) treasure.
+  // Indifference (per party — NOT on the shared area, so it never affects other parties; §Encountering
+  // Strangers, SC-4-18a, bug fix 2026-08-04). `indiffCounts` is the DURABLE count of indifferent
+  // results this party has gotten from this area's strangers, keyed by area index — it persists
+  // across visits ("they remember forever how many times your party has approached them ... even if
+  // you went away in between," Peter's clarification) up to the permanent-indifference cap of 3.
+  // `indiffStreak` is the LIVE working copy for the CURRENT chamber visit, restored from
+  // `indiffCounts` on every entry (chamber.ts's `enterChamber`) the same way `strangers`/`treasures`
+  // are restored from `area.contents` — so a party that tests indifferent once, leaves, and comes
+  // back later resumes counting from where it left off, rather than starting over at 0. When the
+  // count reaches 3 the strangers become permanently indifferent to this party: `pacifiedAreas`
+  // records that area's index so re-entry skips the encounter entirely. A pacified party may leave by
+  // any exit but still cannot loot the (guarded) treasure without attacking.
   indiffStreak?: number;
+  indiffCounts?: Record<number, number>;
+  // The one-shot "may leave by any doorway, forfeiting treasure" privilege (§Encountering Strangers,
+  // SC-4-18a): set true only by a `test` that resolves indifferent with the count still under 3, and
+  // consumed/forfeited by the next thing that happens — a successful leave (moot, the party has left),
+  // a dead-end leave attempt (explicitly cleared — "finds itself delayed by a dead end ... must in the
+  // same turn either test the strangers again or attack them"), or a fresh `test`/re-entry (which
+  // recomputes it from scratch). NOT a standing condition of `indiffStreak >= 1` — mirrors
+  // `surpriseReady`'s existing one-shot-flag precedent (SC-4-16). Reset false on every chamber entry,
+  // fresh or reload alike — re-entering an area always requires a fresh test/attack first, however
+  // high its durable count already is.
+  indiffLeaveOpen?: boolean;
   pacifiedAreas?: number[];
   // Extension kit (SC-EXT-19, review fix): the SUBSET of `pacifiedAreas` pacified by the
   // womanless-Unicorn-guard case (§Unicorn) rather than by indifference. Design US-17 is explicit —

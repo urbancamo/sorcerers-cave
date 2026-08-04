@@ -299,14 +299,18 @@ const RUNS: Run[] = [
   { seed: 42, picks: [3], policy: "base", maxSteps: 150 },
   { seed: 101, picks: [1, 7], policy: "base", maxSteps: 150 },
   { seed: 777, picks: [5, 6], policy: "base", maxSteps: 150 },
-  // Escape with a laden party: gameOver(ESCAPED), 8 carried treasures, valid score 125. Re-swept
-  // to seed 1013 (bug fix 2026-08-04, ~60,000-seed sweep) after the party's move-after-indifferent
-  // fix (SC-4-18a: leave a chamber by any doorway once ≥1 indifferent test has landed, not
-  // requiring the 3rd/pacifying one) widened the "base" policy's legal-action pool at any
-  // indifferent-streak-1-or-2 encounter this seed's playthrough happened to pass through — the
-  // original seed 225 no longer reaches an escape at all under the fixed rule (it now dies to a
-  // Spectre partway through instead), so this is a genuine reseed, not a narrative reshuffle.
-  { seed: 1013, picks: [0], policy: "base", maxSteps: 150, tag: "escape" },
+  // Escape with a laden party: gameOver(ESCAPED), 8 carried treasures. Re-swept twice: to seed 1013
+  // (bug fix 2026-08-04, ~60,000-seed sweep) after the initial move-after-indifferent fix (SC-4-18a:
+  // leave a chamber by any doorway once ≥1 indifferent test has landed, not requiring the 3rd/
+  // pacifying one) widened the "base" policy's legal-action pool at any indifferent-streak-1-or-2
+  // encounter — the original seed 225 no longer reached an escape at all (died to a Spectre
+  // instead). Re-swept AGAIN to seed 11590 (bug fix 2026-08-04, same-day follow-up, ~60,000-seed
+  // sweep) once `withdraw` was fixed to route its destination through the same shared landing
+  // resolution every other arrival uses (Gap A: an abandoned, not-yet-permanent encounter, or a
+  // `hostileAreas`/Spell-remapped tile, now correctly re-resolves instead of silently returning
+  // `explore`) — seed 1013's own playthrough withdrew into exactly such an abandoned encounter at
+  // step 12, cascading into a full reshuffle that ended in GS_DEAD instead of an escape.
+  { seed: 11590, picks: [0], policy: "base", maxSteps: 150, tag: "escape" },
   // The Sorcerer is slain (sorcererSlain, curse lift §12) before the party is wiped.
   { seed: 174, picks: [1, 7], policy: "slayer", maxSteps: 300, tag: "sorcerer" },
   // Artifact coverage — together the four artifact runs use Carpet 4, Lotus 5, Balm 6, Potion 8,

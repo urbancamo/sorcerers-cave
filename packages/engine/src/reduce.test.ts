@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
-import { GS_QUIT, GS_ESCAPED, GS_DEAD, AF_DESTROYED } from "./state";
-import { DIR_S, DIR_E, DIR_N, packCoord } from "./coords";
+import { GS_QUIT, GS_ESCAPED, GS_DEAD, AF_DESTROYED, AF_UNRESOLVED, type GameState } from "./state";
+import { DIR_S, DIR_E, DIR_N, DIR_W, packCoord } from "./coords";
 import { makeState } from "./testkit";
 import { legalActions } from "./selectors";
 import type { GameEvent, GameAction } from "./actions";
@@ -132,6 +132,142 @@ describe("reduce — chamber resolution (C-1)", () => {
     expect(state.phase).toBe("explore");
     expect(state.partyArea).toBe(0);
     expect(state.areas[1]!.contents).toContain(110);
+  });
+
+  // Gap A (bug fix 2026-08-04, SC-4-18a): `withdraw` used to be the one landing path that skipped
+  // the shared arrival resolution every other move uses — silently setting phase="explore" no
+  // matter what was sitting at the destination. It now routes through `resolveArea`, so all three
+  // of the following re-open correctly, in one change.
+  it("Gap A: withdrawing into an abandoned, not-yet-permanent encounter re-opens it, not explore", () => {
+    const s = makeState({
+      phase: "encounter",
+      strangers: [3], // a fresh Troll at the CURRENT area — will be parked here on withdraw
+      treasures: [],
+      areas: [
+        // area 0 = `prev`: previously tested once indifferent (Woman id 6) and abandoned mid-encounter
+        // via the leave window, without ever reaching permanent pacification.
+        { card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [100 + 6], flags: 0, indiffCount: 0 },
+        { card: 31, coord: packCoord(1, 50, 49), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+      ],
+      partyArea: 1,
+      prev: 0,
+    });
+    const { state, events } = reduce(s, { type: "withdraw" });
+    expect(state.partyArea).toBe(0);
+    expect(state.phase).toBe("encounter"); // re-opened — NOT a silent explore
+    expect(state.strangers).toEqual([6]); // the abandoned Woman reloaded into the live working set
+    expect(events).toContainEqual({ type: "moved", area: 0, level: 1 });
+    // Fresh re-entry: must test/attack (or withdraw again) before any free leave — no residual window.
+    expect(state.indiffLeaveOpen).not.toBe(true);
+    const acts = legalActions(state);
+    expect(acts.some((a) => a.type === "test")).toBe(true);
+    expect(acts.some((a) => a.type === "attack")).toBe(true);
+    expect(acts.some((a) => a.type === "move")).toBe(false);
+    // The Troll left behind at the departed area parks exactly as an ordinary withdraw would leave it.
+    expect(state.areas[1]!.contents).toContain(100 + 3);
+  });
+
+  it("Gap A: withdrawing into a hostileAreas tile (retreated from before) triggers an on-sight fight", () => {
+    const s = makeState({
+      phase: "encounter",
+      strangers: [3],
+      treasures: [],
+      areas: [
+        { card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [100 + 6], flags: 0, indiffCount: 0 },
+        { card: 31, coord: packCoord(1, 50, 49), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+      ],
+      partyArea: 1,
+      prev: 0,
+      hostileAreas: [0], // this party retreated from area 0's strangers before
+    });
+    const { state, events } = reduce(s, { type: "withdraw" });
+    expect(state.partyArea).toBe(0);
+    expect(state.phase).toBe("fight"); // attacks on sight — no encounter menu offered
+    expect(state.fight?.surprise).toBe(-1);
+    expect(events).toContainEqual({ type: "fightStarted", surprise: -1 });
+  });
+
+  it("Gap A: withdrawing into a Spell-remapped tile reveals it (clears AF_UNRESOLVED)", () => {
+    const s = makeState({
+      phase: "encounter",
+      strangers: [3],
+      treasures: [],
+      areas: [
+        { card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: AF_UNRESOLVED, indiffCount: 0 },
+        { card: 31, coord: packCoord(1, 50, 49), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+      ],
+      partyArea: 1,
+      prev: 0,
+    });
+    const { state } = reduce(s, { type: "withdraw" });
+    expect(state.partyArea).toBe(0);
+    expect((state.areas[0]!.flags & AF_UNRESOLVED) === 0).toBe(true); // revealed on arrival
+  });
+});
+
+// Gap D (bug fix 2026-08-04, SC-4-18a): "they remember forever how many times your party has
+// approached them ... even if you went away in between" — the indifference count is DURABLE per
+// area, restored on re-entry rather than reset to 0. Uses Test Mode's testNextReaction to force
+// each test's outcome deterministically, and two pre-placed, already-connected areas (home <-> the
+// stranger's chamber) so the party can walk back and forth without drawing any new tile.
+describe("reduce — Gap D: durable, cross-visit indifference count", () => {
+  function twoAreaState(): GameState {
+    return makeState({
+      areas: [
+        { card: 2, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }, // home: E door only
+        { card: 24, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents: [100 + 6], flags: 0, indiffCount: 0 }, // chamber: W door, a parked Woman (id 6)
+      ],
+      partyArea: 0,
+      prev: 0,
+      party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [] }], // Man — no charisma bonus
+    });
+  }
+  function forceIndifferentTest(s: GameState) {
+    return reduce({ ...s, testMode: true, testNextReaction: "indifferent" }, { type: "test" }).state;
+  }
+
+  it("a second, separate approach resumes the count instead of restarting at 0", () => {
+    let s = reduce(twoAreaState(), { type: "move", dir: DIR_E }).state; // first approach
+    expect(s.phase).toBe("encounter");
+    expect(s.strangers).toEqual([6]);
+    expect(s.indiffStreak ?? 0).toBe(0); // never approached before
+
+    s = forceIndifferentTest(s);
+    expect(s.indiffStreak).toBe(1);
+    expect(s.indiffCounts).toEqual({ 1: 1 });
+    expect(s.indiffLeaveOpen).toBe(true);
+
+    s = reduce(s, { type: "move", dir: DIR_W }).state; // leave via the window — successful, not a dead end
+    expect(s.phase).toBe("explore");
+    expect(s.partyArea).toBe(0);
+
+    s = reduce(s, { type: "move", dir: DIR_E }).state; // a SEPARATE later approach
+    expect(s.phase).toBe("encounter");
+    expect(s.strangers).toEqual([6]); // the same stranger, remembered
+    expect(s.indiffStreak).toBe(1); // RESUMED at 1, not reset to 0
+    expect(s.indiffLeaveOpen).not.toBe(true); // must retest before any free leave, regardless
+    const acts = legalActions(s);
+    expect(acts.some((a) => a.type === "test")).toBe(true);
+    expect(acts.some((a) => a.type === "move")).toBe(false);
+  });
+
+  it("three SEPARATE indifferent approaches (leaving and returning each time) reach permanent pacification", () => {
+    let s = reduce(twoAreaState(), { type: "move", dir: DIR_E }).state;
+    for (let visit = 1; visit <= 3; visit++) {
+      s = forceIndifferentTest(s);
+      if (visit < 3) {
+        expect(s.indiffStreak).toBe(visit);
+        expect(s.phase).toBe("encounter"); // not yet permanent — still in the same encounter
+        s = reduce(s, { type: "move", dir: DIR_W }).state; // leave via the window
+        expect(s.phase).toBe("explore");
+        s = reduce(s, { type: "move", dir: DIR_E }).state; // approach again, separately
+        expect(s.indiffStreak).toBe(visit); // resumed count from the prior separate approach
+      }
+    }
+    expect(s.indiffStreak).toBe(3);
+    expect(s.pacifiedAreas).toContain(1);
+    expect(s.phase).toBe("explore"); // permanently settled — free to pass, guards parked
+    expect(legalActions(s).some((a) => a.type === "test")).toBe(false);
   });
 });
 
@@ -294,7 +430,36 @@ describe("reduce — stranger encounters (C-2 §8)", () => {
     expect(m.state.areas[t.state.partyArea]!.contents).toEqual([]); // nothing was parked here after all
     expect(m.state.areas.length).toBe(t.state.areas.length + 1);   // the face-down frontier tile still placed…
     expect(m.state.areas[m.state.areas.length - 1]!.faceUp).toBe(false); // …and stays face-down (§Exploring the Cave)
-    expect(legalActions(m.state).some((a) => a.type === "test")).toBe(true); // free to test/attack again
+    // Gap C (bug fix 2026-08-04): the dead end forfeits the leave window — the party must retest
+    // (or attack, or withdraw) rather than simply trying another doorway blind.
+    expect(m.state.indiffLeaveOpen).not.toBe(true);
+    const acts = legalActions(m.state);
+    expect(acts.some((a) => a.type === "test")).toBe(true);    // free to test again
+    expect(acts.some((a) => a.type === "attack")).toBe(true);  // or attack
+    expect(acts.some((a) => a.type === "withdraw")).toBe(true); // withdraw stays available too
+    expect(acts.some((a) => a.type === "move")).toBe(false);   // but NOT another free leave attempt
+  });
+
+  it("Gap C: choosing to test again after an indifferent result also forfeits the leave window", () => {
+    // "If the party chooses to remain in the chamber ... it must in the same turn either test the
+    // strangers again or attack them" — testing again is exactly "remaining," and the window from
+    // the FIRST test doesn't linger once a second decision has been made.
+    const s = makeState({
+      phase: "encounter", strangers: [6], treasures: [1], seed: 9,
+      party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [] }],
+      areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+    });
+    const t = reduce(s, { type: "test" });
+    expect(t.state.indiffStreak).toBe(1);
+    expect(t.state.indiffLeaveOpen).toBe(true);
+    expect(legalActions(t.state).some((a) => a.type === "move")).toBe(true);
+    // Choosing to test again (rather than moving) — this seed/party/stranger reliably lands
+    // indifferent again (proven by the "three indifferent results" test above using the identical
+    // fixture), so the window recomputes fresh from THIS test's own outcome: streak 2, reopened.
+    const t2 = reduce(t.state, { type: "test" });
+    expect(t2.state.indiffStreak).toBe(2);
+    expect(t2.state.indiffLeaveOpen).toBe(true);
+    expect(legalActions(t2.state).some((a) => a.type === "move")).toBe(true);
   });
 
   it("before any test, the party may NOT move on — must withdraw, attack, or test first", () => {

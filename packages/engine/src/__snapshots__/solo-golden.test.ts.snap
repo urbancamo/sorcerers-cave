@@ -212,7 +212,7 @@ exports[`solo golden firewall — engine behaviour is frozen > seed 42 party [3]
     "partyAlive": 0,
     "phase": "gameOver",
     "score": 0,
-    "stateHash": "c4397985",
+    "stateHash": "57b71ba6",
     "turn": 24,
   },
   "narrative": [
