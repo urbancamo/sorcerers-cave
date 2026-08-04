@@ -72,10 +72,20 @@ export function useCaveGame(
   // child effects (e.g. CaveCanvas's refresh) run before this hook's effects would, so a
   // render-phase sync guarantees consumers that read engine.current see the presented state
   // (otherwise a withdraw/retreat leaves the view on the old tile). Idempotent per state.
-  const present = (s: GameState) => {
-    if (adapterRef.current && syncedRef.current !== s) {
-      adapterRef.current.sync(s);
+  //
+  // `canAct`, when the caller has one (GameScreen's `!presentingRef.current`-equivalent), is
+  // forwarded EVERY call, unconditionally — never gated behind the `syncedRef` check below. That
+  // check exists purely to skip redundant `state = next` assignments; `canAct` can flip (a notice
+  // appearing/clearing) on a render whose `displayState` reference is unchanged, and skipping it
+  // there would leave the adapter's `acting()` reading a stale value picked up by whichever
+  // earlier render's deferred effect gets to it last (the exact race this override closes).
+  const present = (s: GameState, canAct?: boolean) => {
+    if (!adapterRef.current) return;
+    if (syncedRef.current !== s) {
+      adapterRef.current.sync(s, canAct);
       syncedRef.current = s;
+    } else if (canAct !== undefined) {
+      adapterRef.current.sync(s, canAct);
     }
   };
 

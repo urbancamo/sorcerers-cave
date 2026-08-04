@@ -178,7 +178,12 @@ export default function GameScreen() {
   // the live authoritative state otherwise. The 3D scene mirrors it too (render-phase sync,
   // before CaveCanvas's effects run — same guarantee useCaveGame's old inline sync gave).
   const displayState = holding && heldState ? heldState : state;
-  present(displayState);
+  // Pass the SAME "presenting" value `presentingRef` was just set to (line above) as an explicit,
+  // render-synchronous override — closes the race where a later render's body flips
+  // `presentingRef.current` before an earlier render's deferred CaveCanvas effect reads it via
+  // `engine.openMoves()`'s `acting()` check (bug: exit markers stuck empty after a Deep Pool
+  // crossing notice, even though the move itself had already resolved).
+  present(displayState, !presentingRef.current);
 
   // Fight-surface gate (see fightGate.ts): defer the INITIAL mount while a roll is in flight
   // or showing; once shown, mid-fight dispatches must not unmount it. Ref bookkeeping happens
@@ -210,7 +215,7 @@ export default function GameScreen() {
 
   return (
     <div className="relative h-screen w-screen">
-      <CaveCanvas key={gameId} engine={engine} state={displayState} color={color} code={code ?? undefined} onPartyClick={() => setShowParty(true)} onSave={handleSave} onLog={() => setShowLog(true)} />
+      <CaveCanvas key={gameId} engine={engine} state={displayState} canAct={!presentingRef.current} color={color} code={code ?? undefined} onPartyClick={() => setShowParty(true)} onSave={handleSave} onLog={() => setShowLog(true)} />
       <EncounterPanel state={displayState} dispatch={dispatchWithRolls} />
       {fightVisible && cards && <FightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
       <ExplorePanel state={displayState} dispatch={dispatchWithRolls} />

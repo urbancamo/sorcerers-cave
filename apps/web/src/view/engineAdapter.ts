@@ -17,13 +17,27 @@ export interface AdapterOptions {
 }
 
 export interface CaveAdapter extends CaveEngine {
-  /** Replace the local mirror (D-3 reconcile from the authoritative snapshot). */
-  sync(next: GameState): void;
+  /**
+   * Replace the local mirror (D-3 reconcile from the authoritative snapshot). `canAct`, when
+   * given, overrides `opts.canAct` for every later `acting()` check (openMoves/tryMove) until
+   * the next `sync` call — set synchronously, during render, alongside the state it corresponds
+   * to (see `useCaveGame.ts`'s `present`). This exists because `opts.canAct` (multiplayer's own
+   * turn-gate, and solo's `GameScreen.tsx` `presentingRef`) is a live-read ref: a *later* render's
+   * body can flip it before an *earlier* render's deferred `CaveCanvas` effect calls
+   * `openMoves()`, so the exit-marker refresh can see a "can't act" snapshot that doesn't match
+   * the state it just rendered (bug: Deep Pool crossing notices left exit markers stuck at zero
+   * even though the move had already resolved and `tryMove` itself worked fine). Passing `canAct`
+   * here freezes the value to the SAME render pass that produced `next`, closing that window.
+   */
+  sync(next: GameState, canAct?: boolean): void;
 }
 
 export function createCaveAdapter(initial: GameState, art: ArtTables, opts: AdapterOptions = {}): CaveAdapter {
   let state = initial;
-  const acting = () => !opts.canAct || opts.canAct(); // true unless a turn-gate says otherwise
+  let canActOverride: boolean | null = null;
+  // true unless a turn-gate says otherwise; an explicit `sync(_, canAct)` override (set
+  // render-synchronously) always wins over the live `opts.canAct` read once one has been given.
+  const acting = () => canActOverride ?? (!opts.canAct || opts.canAct());
 
   // Live floor codes for the party's current area = the active working set PLUS anything parked on
   // that tile's `contents`. enterChamber clears `contents` on entry, so for the current tile it only
@@ -148,7 +162,10 @@ export function createCaveAdapter(initial: GameState, art: ArtTables, opts: Adap
       if (notices.length) ev.notices = notices;
       return ev;
     },
-    sync(next: GameState) { state = next; },
+    sync(next: GameState, canAct?: boolean) {
+      state = next;
+      if (canAct !== undefined) canActOverride = canAct;
+    },
   };
   return adapter;
 }

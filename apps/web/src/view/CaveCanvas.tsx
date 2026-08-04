@@ -20,7 +20,7 @@ export interface OtherPartyToken {
   subLocation?: { at: 'doorway' | 'centre' | 'island'; dir?: 'N' | 'E' | 'S' | 'W' };
 }
 
-export function CaveCanvas({ engine, state, color, onPartyClick, onSave, onLog, onQuit, code, otherParties, onReady, multiplayer, turnLabel, turnColor }: { engine: CaveEngine; state: GameState; color: PartyColor; onPartyClick?: () => void; onSave?: () => void; onLog?: () => void; onQuit?: () => void; code?: string; otherParties?: OtherPartyToken[]; onReady?: (api: { focusArea: (a: { col: number; row: number; level: number }) => void }) => void; multiplayer?: boolean; turnLabel?: string; turnColor?: string }) {
+export function CaveCanvas({ engine, state, canAct, color, onPartyClick, onSave, onLog, onQuit, code, otherParties, onReady, multiplayer, turnLabel, turnColor }: { engine: CaveEngine; state: GameState; canAct?: boolean; color: PartyColor; onPartyClick?: () => void; onSave?: () => void; onLog?: () => void; onQuit?: () => void; code?: string; otherParties?: OtherPartyToken[]; onReady?: (api: { focusArea: (a: { col: number; row: number; level: number }) => void }) => void; multiplayer?: boolean; turnLabel?: string; turnColor?: string }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const ctrl = useRef<{ dispose(): void; refresh(): void; setParty(p: ReturnType<typeof viewParty>): void; setOtherParties?: (list: OtherPartyToken[]) => void; focusArea?: (a: { col: number; row: number; level: number }) => void } | null>(null);
   const cardsRef = useRef<CardArt[]>([]); // small-card art for resolving carried items in the roster
@@ -62,11 +62,16 @@ export function CaveCanvas({ engine, state, color, onPartyClick, onSave, onLog, 
   }, [engine]);
 
   // Panel-driven resolution mutates engine state outside the renderer's own doMove,
-  // so re-sync the scene (roster after a join/death, exit markers, HUD, floor cards) on state change.
+  // so re-sync the scene (roster after a join/death, exit markers, HUD, floor cards) on state
+  // change. Also re-sync on `canAct` alone: an "Aftermath" notice with no relocation (e.g. a
+  // plain Deep Pool crossing) holds the presentation via `notices` only, never `heldState` — so
+  // `state` (GameScreen's `displayState`) never changes reference across the notice's whole
+  // show/dismiss cycle, and this effect would otherwise never re-fire to refresh the exit
+  // markers once the notice clears and `engine.openMoves()` is legal again.
   useEffect(() => {
     ctrl.current?.setParty(viewParty(state, cardsRef.current));
     ctrl.current?.refresh();
-  }, [state]);
+  }, [state, canAct]);
 
   // Multiplayer: place the other parties' pins (reactively as they move).
   useEffect(() => {
