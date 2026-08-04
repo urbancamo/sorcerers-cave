@@ -22,7 +22,7 @@ export interface OtherPartyToken {
 
 export function CaveCanvas({ engine, state, canAct, color, onPartyClick, onSave, onLog, onQuit, code, otherParties, onReady, multiplayer, turnLabel, turnColor }: { engine: CaveEngine; state: GameState; canAct?: boolean; color: PartyColor; onPartyClick?: () => void; onSave?: () => void; onLog?: () => void; onQuit?: () => void; code?: string; otherParties?: OtherPartyToken[]; onReady?: (api: { focusArea: (a: { col: number; row: number; level: number }) => void }) => void; multiplayer?: boolean; turnLabel?: string; turnColor?: string }) {
   const mountRef = useRef<HTMLDivElement>(null);
-  const ctrl = useRef<{ dispose(): void; refresh(): void; setParty(p: ReturnType<typeof viewParty>): void; setOtherParties?: (list: OtherPartyToken[]) => void; focusArea?: (a: { col: number; row: number; level: number }) => void } | null>(null);
+  const ctrl = useRef<{ dispose(): void; refresh(canAct?: boolean): void; setParty(p: ReturnType<typeof viewParty>): void; setOtherParties?: (list: OtherPartyToken[]) => void; focusArea?: (a: { col: number; row: number; level: number }) => void } | null>(null);
   const cardsRef = useRef<CardArt[]>([]); // small-card art for resolving carried items in the roster
   const colorRef = useRef(color);
   colorRef.current = color;
@@ -70,7 +70,7 @@ export function CaveCanvas({ engine, state, canAct, color, onPartyClick, onSave,
   // markers once the notice clears and `engine.openMoves()` is legal again.
   useEffect(() => {
     ctrl.current?.setParty(viewParty(state, cardsRef.current));
-    ctrl.current?.refresh();
+    ctrl.current?.refresh(canAct);
   }, [state, canAct]);
 
   // Multiplayer: place the other parties' pins (reactively as they move).

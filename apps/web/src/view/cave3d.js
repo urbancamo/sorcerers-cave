@@ -101,9 +101,15 @@ const platformGroup=new THREE.Group(),tileGroup=new THREE.Group(),stairGroup=new
       fxGroup=new THREE.Group(),exitGroup=new THREE.Group(),contentGroup=new THREE.Group(),
       secretGroup=new THREE.Group(),otherGroup=new THREE.Group(), // otherGroup: other parties' tokens (multiplayer)
       petrifiedGroup=new THREE.Group(); // members turned to stone, laid greyed-out on the party's tile
-const tileMeshes=[]; const exitMarkers=[]; const spawnAnims=[]; const stairDashes=[];
+const tileMeshes=[]; const exitMarkers=[]; const spawnAnims=[]; const despawnAnims=[]; const stairDashes=[];
 const pendingTiles=new Set(); // coords whose mesh is mid-build (guards against duplicate laying)
 let lastStairSig=''; // last-rendered stair/secret-door topology (see reconcileTiles) — '' forces a rebuild
+// A tile whose IDENTITY changed in place at an already-meshed coord (the Spell hazard remaps the
+// tunnel the party just left, SC-EXT-28 — same coord, different card) — akey() alone can't see
+// this, since add/remove diffing only tracks coords. Queued rather than swapped on sight: the
+// swap animation (see reconcileTiles/animate) plays once the "Aftermath" notice explaining it is
+// dismissed (canAct back true), so the player reads why before watching the tunnel change.
+const pendingRemaps=new Map(); // akey -> replacement Area
 const contentMeshes=[]; const cardAnims=[];
 let partyToken=null, selectRing=null, tokenMove=null;
 
@@ -331,16 +337,43 @@ function disposeTileMesh(mesh){
   let i=tileMeshes.indexOf(mesh); if(i>=0) tileMeshes.splice(i,1);
   i=spawnAnims.findIndex(s=>s.mesh===mesh); if(i>=0) spawnAnims.splice(i,1);
 }
+// Like disposeTileMesh, but the mesh fades/sinks out over time (animate()'s despawnAnims tick)
+// instead of vanishing on the spot — the visible half of a remap swap. Freed from `tileMeshes`
+// immediately so buildAreaMesh can lay the replacement at the same coord without waiting.
+function despawnTileMesh(mesh){
+  let i=tileMeshes.indexOf(mesh); if(i>=0) tileMeshes.splice(i,1);
+  i=spawnAnims.findIndex(s=>s.mesh===mesh); if(i>=0) spawnAnims.splice(i,1);
+  despawnAnims.push({mesh,p:mesh.position.clone(),t0:clock.elapsedTime});
+}
 /* Reconcile tile meshes to the authoritative area set. Optimistic doMove laying can drift
    from the synced state: a racing move may leave an area with no mesh, or strand a mesh at a
    phantom coord (e.g. one computed while the party was briefly on another level — the
-   "tile on the level below, offset" bug). Drop unbacked meshes; lay any area that lacks one. */
-function reconcileTiles(){
+   "tile on the level below, offset" bug). Drop unbacked meshes; lay any area that lacks one.
+   `canAct` (from CaveCanvas's own prop, undefined when the caller — replay/spectate/multiplayer
+   — doesn't gate on it) mirrors refreshExitMarkers' own gate: an in-place tile swap only reveals
+   once true, i.e. once any "Aftermath" notice explaining it has been dismissed. */
+function reconcileTiles(canAct){
   const want=new Map(); engine.areas.forEach(a=>want.set(akey(a),a));
   let changed=false;
   for(const m of [...tileMeshes]){ const ua=m.userData.area; if(!ua||!want.has(akey(ua))){ disposeTileMesh(m); changed=true; } }
   const have=new Set(tileMeshes.map(m=>m.userData.area?akey(m.userData.area):''));
   for(const [k,a] of want){ if(!have.has(k)){ buildAreaMesh(a,true); changed=true; } }
+  // Detect an already-meshed coord whose tile IDENTITY changed (Spell's tunnel remap) — queue it;
+  // the add/remove diffing above never sees this since the coord itself didn't change.
+  for(const m of tileMeshes){
+    const ua=m.userData.area; if(!ua) continue;
+    const a=want.get(akey(ua)); if(!a) continue;
+    if((a.tileId!==ua.tileId||a.rot!==ua.rot) && !pendingRemaps.has(akey(a))) pendingRemaps.set(akey(a),a);
+  }
+  if(pendingRemaps.size && canAct!==false){
+    for(const [k,a] of [...pendingRemaps]){
+      const old=tileMeshes.find(m=>m.userData.area&&akey(m.userData.area)===k);
+      if(old) despawnTileMesh(old);
+      buildAreaMesh(a,true);
+      pendingRemaps.delete(k);
+    }
+    changed=true;
+  }
   // Re-tint tiles whose destroyed state flipped (an earthquake collapses an already-placed area).
   for(const m of tileMeshes){ const a=m.userData.area&&want.get(akey(m.userData.area)); if(a&&m.material&&m.material.color) m.material.color.setHex(a.destroyed?DESTROYED_TINT:0xffffff); }
   // A vertical move into an ALREADY-PLACED area can add a mirrored return-stair + secret-door marker
@@ -350,8 +383,8 @@ function reconcileTiles(){
   if(stairSig!==lastStairSig){ lastStairSig=stairSig; changed=true; }
   if(changed){ rebuildPlatforms(); rebuildStairs(); rebuildSecretDoors(); rebuildLevelButtons(); }
 }
-function refresh(){
-  updateHUD(); selectCurrent(); refreshExitMarkers(); reconcileTiles(); layPetrified();
+function refresh(canAct){
+  updateHUD(); selectCurrent(); refreshExitMarkers(); reconcileTiles(canAct); layPetrified();
   // Re-lay every chamber whose on-floor cards changed (e.g. a treasure was picked up);
   // layContents is a no-op when an area's contents are unchanged.
   engine.areas.forEach(a=>{ layContents(a,false); laySunkTreasure(a); });
@@ -849,6 +882,11 @@ function animate(){
   // spawn anims
   for(let i=spawnAnims.length-1;i>=0;i--){const s=spawnAnims[i],k=Math.min(1,(tt-s.t0)/0.5);
     s.mesh.material.opacity=k;s.mesh.position.y=s.p.y+(1-k)*1.4;if(k>=1)spawnAnims.splice(i,1);}
+  // despawn anims — the outgoing half of a tile swap (e.g. Spell's tunnel remap): mirrors spawn's
+  // fade-in-and-drop with a fade-out-and-sink, then frees the mesh for good.
+  for(let i=despawnAnims.length-1;i>=0;i--){const s=despawnAnims[i],k=Math.min(1,(tt-s.t0)/0.5);
+    s.mesh.material.opacity=1-k;s.mesh.position.y=s.p.y-k*1.4;
+    if(k>=1){tileGroup.remove(s.mesh);s.mesh.geometry?.dispose?.();if(s.mesh.material){s.mesh.material.map?.dispose?.();s.mesh.material.dispose();}despawnAnims.splice(i,1);}}
   // card deal anims
   for(let i=cardAnims.length-1;i>=0;i--){const a=cardAnims[i];const k=Math.min(1,Math.max(0,(tt-a.t0-a.delay)/0.45));
     if(k<=0)continue; const e=1-Math.pow(1-k,3);
@@ -936,7 +974,7 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
   [platformGroup,tileGroup,stairGroup,fxGroup,exitGroup,contentGroup,secretGroup,otherGroup,petrifiedGroup].forEach(g=>{
     for(let i=g.children.length-1;i>=0;i--){const o=g.children[i];o.traverse?.(x=>{x.geometry?.dispose?.();x.material?.dispose?.();});g.remove(o);}
   });
-  tileMeshes.length=0;exitMarkers.length=0;spawnAnims.length=0;stairDashes.length=0;contentMeshes.length=0;cardAnims.length=0;pendingTiles.clear();lastStairSig='';
+  tileMeshes.length=0;exitMarkers.length=0;spawnAnims.length=0;despawnAnims.length=0;stairDashes.length=0;contentMeshes.length=0;cardAnims.length=0;pendingTiles.clear();pendingRemaps.clear();lastStairSig='';
   contentGroups.clear();
   for(const k of Object.keys(levelBounds)) delete levelBounds[k];
   for(const k of Object.keys(isoAlpha)) delete isoAlpha[k];
