@@ -359,11 +359,16 @@ function reconcileTiles(canAct){
   const have=new Set(tileMeshes.map(m=>m.userData.area?akey(m.userData.area):''));
   for(const [k,a] of want){ if(!have.has(k)){ buildAreaMesh(a,true); changed=true; } }
   // Detect an already-meshed coord whose tile IDENTITY changed (Spell's tunnel remap) — queue it;
-  // the add/remove diffing above never sees this since the coord itself didn't change.
+  // the add/remove diffing above never sees this since the coord itself didn't change. Gated on
+  // `a.faceDown` (AF_UNRESOLVED, the Spell replacement's own signature — a wholesale new
+  // PlacedArea) so a dead-end's exit-prune is never mistaken for one: pruneExit (map.ts) mutates
+  // the CURRENT tile's card IN PLACE to close off that direction, which can shift its derived
+  // tileId/rot too, but leaves the party's already-visited tile exactly as un-face-down as it was
+  // — swapping its mesh there redrew the tile the party is standing on, not the remapped one.
   for(const m of tileMeshes){
     const ua=m.userData.area; if(!ua) continue;
     const a=want.get(akey(ua)); if(!a) continue;
-    if((a.tileId!==ua.tileId||a.rot!==ua.rot) && !pendingRemaps.has(akey(a))) pendingRemaps.set(akey(a),a);
+    if(a.faceDown && (a.tileId!==ua.tileId||a.rot!==ua.rot) && !pendingRemaps.has(akey(a))) pendingRemaps.set(akey(a),a);
   }
   if(pendingRemaps.size && canAct!==false){
     for(const [k,a] of [...pendingRemaps]){
