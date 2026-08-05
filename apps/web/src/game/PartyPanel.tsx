@@ -93,7 +93,11 @@ export function PartyPanel({
                 ? <button className="scv-pp-act" onClick={() => { dispatch({ type: "setBorne", mi: sel.mi, idx: sel.idx, borne: false }); setSel(null); }}>Stow (carry)</button>
                 : <button className="scv-pp-act" onClick={() => { dispatch({ type: "setBorne", mi: sel.mi, idx: sel.idx, borne: true }); setSel(null); }}>Bear (wield)</button>
             )}
-            <button className="scv-pp-act" onClick={drop}>Drop into chamber</button>
+            {/* Bug fix 2026-08-05: "Drop into chamber" was wrong whenever the party stood
+                anywhere else — a tunnel, the Gateway, or one of the four Precise-Locations
+                specials (where a drop actually sinks into a sub-location, not a chamber floor
+                at all). "Drop here" is correct regardless of tile type. */}
+            <button className="scv-pp-act" onClick={drop}>Drop here</button>
             <button className="scv-pp-act ghost" onClick={() => setSel(null)}>Cancel</button>
           </div>
         )}

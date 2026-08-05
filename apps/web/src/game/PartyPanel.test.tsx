@@ -76,7 +76,7 @@ describe("PartyPanel", () => {
     const dispatch = vi.fn();
     render(<PartyPanel state={partyState()} dispatch={dispatch} onClose={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: /^gold$/i }));
-    fireEvent.click(screen.getByRole("button", { name: /drop into chamber/i }));
+    fireEvent.click(screen.getByRole("button", { name: /drop here/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "dropTreasure", mi: 0, idx: 0 });
   });
 
@@ -103,7 +103,7 @@ describe("PartyPanel", () => {
     expect(names[0]).toMatch(/woman/i);
     // Dropping Woman's Gold still dispatches with her ORIGINAL party index (1), not display position.
     fireEvent.click(screen.getByRole("button", { name: /^gold$/i }));
-    fireEvent.click(screen.getByRole("button", { name: /drop into chamber/i }));
+    fireEvent.click(screen.getByRole("button", { name: /drop here/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "dropTreasure", mi: 1, idx: 0 });
   });
 
