@@ -913,11 +913,20 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         const area = next.areas[next.partyArea]!;
         const special = decodeArea(area.card).special;
         const key = SUB_LOCATION_SPECIALS.has(special) ? sunkKey(getSubLocation(next)) : undefined;
+        // Bug fix 2026-08-05: dropping while genuinely at rest (explore, no active/guarded stranger
+        // markers on THIS tile) never actually leaves the room, so offer it straight back — phase
+        // "pickup", same as a fresh entry — instead of parking it and forcing a leave-and-return
+        // round trip through resolveArea just to notice it again (SC-7.3-5/6 previously required
+        // this; a pacified area's guards, or an active encounter, still park it untouchable).
+        const restingUnguarded = next.phase === "explore" && !area.contents.some((c) => c >= 100 && c < 200);
         if (key !== undefined) {
           area.sunkTreasure = area.sunkTreasure ?? [];
           let bucket = area.sunkTreasure.find((b) => b.at === key);
           if (!bucket) { bucket = { at: key, items: [] }; area.sunkTreasure.push(bucket); }
           bucket.items.push(tid);
+        } else if (restingUnguarded) {
+          next.treasures.push(tid);
+          next.phase = "pickup";
         } else {
           area.contents.push(200 + tid); // left on the chamber floor
         }

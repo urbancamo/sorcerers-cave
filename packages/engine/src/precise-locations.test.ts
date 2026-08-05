@@ -234,10 +234,12 @@ describe("jumpToIsland (§10.5, §8.2)", () => {
 });
 
 describe("precise dropped treasure — sinking a deliberate drop (§10.5, §8.3)", () => {
-  it("an ordinary (non-special) chamber is unaffected — a drop still lands as ordinary contents", () => {
+  it("an ordinary (non-special) chamber is unaffected — a drop never sinks, and opens pickup at rest (bug fix 2026-08-05)", () => {
     const s = makeState({ party: [member(5, [1])] }); // the Gateway — no special
     const { state } = reduce(s, { type: "dropTreasure", mi: 0, idx: 0 });
-    expect(state.areas[0]!.contents).toContain(200 + 1);
+    expect(state.phase).toBe("pickup"); // at rest, no guards — offered straight back, not parked
+    expect(state.treasures).toContain(1);
+    expect(state.areas[0]!.contents).not.toContain(200 + 1);
     expect(state.areas[0]!.sunkTreasure ?? []).toEqual([]);
   });
 

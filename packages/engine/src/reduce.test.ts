@@ -850,30 +850,67 @@ describe("reduce — treasure redistribution (party panel)", () => {
     expect(state.party[0]!.treasure).toEqual([1]); // unchanged
   });
 
-  it("drops a treasure onto the current chamber floor", () => {
+  it("bug fix 2026-08-05: dropping while at rest offers it straight back — no leave-and-return needed", () => {
+    // The party never actually left the room, so the drop opens pickup immediately (same as a
+    // fresh entry finding treasure) instead of parking it out of reach until a later re-entry.
     const s = makeState({
       phase: "explore",
       party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [1] }],
     });
     const { state } = reduce(s, { type: "dropTreasure", mi: 0, idx: 0 });
     expect(state.party[0]!.treasure).toEqual([]);
-    expect(state.areas[state.partyArea]!.contents).toContain(200 + 1); // Gold left on the floor
+    expect(state.phase).toBe("pickup");
+    expect(state.treasures).toContain(1); // Gold — live in the working set, not parked
+    expect(state.areas[state.partyArea]!.contents).not.toContain(200 + 1);
+    expect(legalActions(state)).toContainEqual({ type: "takeTreasure", ti: state.treasures.indexOf(1), mi: 0 });
   });
 
-  it("re-offers treasure dropped in a tunnel when the party returns (not stranded)", () => {
+  it("bug fix 2026-08-05: the same fix applies to a genuine CHAMBER (not just a tunnel/Gateway)", () => {
+    const s = makeState({
+      phase: "explore",
+      party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [1] }],
+      areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }], // N+E+S+W+chamber, cleared
+    });
+    const { state } = reduce(s, { type: "dropTreasure", mi: 0, idx: 0 });
+    expect(state.phase).toBe("pickup");
+    expect(state.treasures).toContain(1);
+    expect(state.areas[0]!.contents).not.toContain(200 + 1);
+  });
+
+  it("a drop onto a pacified area's still-guarded tile stays parked, untouchable (no free bypass)", () => {
+    // The chamber's guards are parked (100-199 markers) but not live in state.strangers — phase is
+    // still "explore" (SC-8.5-7), so the naive rest-check alone can't tell this apart from a
+    // genuinely empty tile. A fresh drop here must NOT open a free pickup around the guards.
+    const s = makeState({
+      phase: "explore",
+      pacifiedAreas: [0],
+      party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [1] }],
+      areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [100 + 6], flags: 0, indiffCount: 0 }],
+    });
+    const { state } = reduce(s, { type: "dropTreasure", mi: 0, idx: 0 });
+    expect(state.phase).toBe("explore"); // unchanged — no free pickup
+    expect(state.areas[state.partyArea]!.contents).toContain(200 + 1); // parked, same as before the fix
+  });
+
+  it("re-offers treasure LEFT in a tunnel when the party returns (not stranded)", () => {
     // Card 5 = NS tunnel (north+south doors, no chamber bit). Man carrying Gold.
     const s = makeState({
       largePack: [5], largeIdx: 0, turn: 1,
       party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [1] }],
     });
-    // Enter the tunnel (explore — no encounter/pickup) and drop the Gold on its floor.
+    // Enter the tunnel (explore — no encounter/pickup) and drop the Gold on its floor. The drop
+    // opens pickup immediately (bug fix 2026-08-05) — the party declines it via leaveTreasure,
+    // parking it back onto the floor, same as always deciding not to take something offered.
     const inTunnel = reduce(s, { type: "move", dir: DIR_S }).state;
     expect(inTunnel.phase).toBe("explore");
     const dropped = reduce(inTunnel, { type: "dropTreasure", mi: 0, idx: 0 }).state;
-    expect(dropped.areas[dropped.partyArea]!.contents).toContain(201); // 200 + Gold(1)
+    expect(dropped.phase).toBe("pickup");
+    const left = reduce(dropped, { type: "leaveTreasure" }).state;
+    expect(left.phase).toBe("explore");
+    expect(left.areas[left.partyArea]!.contents).toContain(201); // 200 + Gold(1)
 
     // Leave north to the Gateway, then return south to the same tunnel.
-    const back = reduce(dropped, { type: "move", dir: DIR_N }).state;
+    const back = reduce(left, { type: "move", dir: DIR_N }).state;
     const { state: reentered } = reduce(back, { type: "move", dir: DIR_S });
 
     // The Gold must be reclaimable again — a pickup is offered, not left stranded on the floor.
