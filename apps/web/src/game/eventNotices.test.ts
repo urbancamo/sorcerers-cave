@@ -399,6 +399,16 @@ describe("eventNotices", () => {
     expect(weakened.tone).toBe("good");
   });
 
+  // Bug fix 2026-08-09 (SC-EXT-40): the Shield's own forced-standoff clause vs a Spectre/Demon.
+  it("reports the Magic Shield's forced standoff, naming every foe it held off", () => {
+    const one = eventNotices([{ type: "shieldStalemate", creatureIds: [9] }])[0]!; // Spectre
+    expect(one.text).toBe("The Magic Shield holds Spectre at bay — neither side can land a blow this round.");
+    expect(one.tone).toBe("neutral");
+
+    const both = eventNotices([{ type: "shieldStalemate", creatureIds: [9, 15] }])[0]!; // Spectre + Demon
+    expect(both.text).toBe("The Magic Shield holds Spectre, Demon at bay — neither side can land a blow this round.");
+  });
+
   it("reports the Demon's own kill line verbatim, but stays silent for an ordinary stranger (fix round, US-13)", () => {
     const demonKilled = eventNotices([{ type: "strangerKilled", creatureId: 15 }]);
     expect(demonKilled).toHaveLength(1);

@@ -390,6 +390,12 @@ export function eventNotices(events: GameEvent[]): Notice[] {
             : { text: `The Magic Shield turns the ${allName(e.creatureId)}'s power aside.`, tone: "good" },
         );
         break;
+      // Bug fix 2026-08-09 (SC-EXT-40, card text): "the shield-bearer may match himself against a
+      // spectre or demon, and the spectre or demon is simply ignored for that round" — fires INSTEAD
+      // of a combatRoll for that match; no dice were rolled and neither side was harmed.
+      case "shieldStalemate":
+        out.push({ text: `The Magic Shield holds ${e.creatureIds.map(allName).join(", ")} at bay — neither side can land a blow this round.`, tone: "neutral" });
+        break;
       case "scrollRead": {
         // Design US-21 Feedback, verbatim — handling the empty-destroyed (an all-magical group) and
         // empty-survivors (nothing left standing) edge cases sensibly rather than rendering a blank

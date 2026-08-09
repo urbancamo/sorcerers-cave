@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { frontStrength } from "./combat";
-import { previewPlan, resolvePlannedRound } from "./combatPlan";
+import { previewPlan, resolvePlannedRound, validatePlan } from "./combatPlan";
 import { reduce } from "./reduce";
 import { applyHazards } from "./hazards";
 import { HAZARD_MEDUSA } from "./data/hazards";
@@ -29,9 +29,12 @@ const MAN = 5;
 const WOMAN = 6;
 const DWARF = 7;
 const WIZARD = 8;
+const SPECTRE = 9;
 const SORCERER = 11;
+const DEMON = 15;
 const T_GOLD = 1;
 const T_EYE = 13;
+const T_SWORD = 3;
 const T_AXE = 17;
 const T_SHIELD = 20;
 
@@ -170,5 +173,72 @@ describe("Magic Shield (US-23, SC-EXT-27)", () => {
     expect(pv.matches[0]!.enemyStr).toBe(11); // FS 4 + MP (9 − 2 eye only)
     // The same Eye nullifies the Axe's fs bonus on the very same member.
     expect(pv.matches[0]!.partyStr).toBe(2); // Woman FS 2 only — no Axe +1
+  });
+
+  // Bug fix 2026-08-09 (SC-EXT-40, docs/requirements/bug-fixes/2026-08-09-magic-shield.md): the
+  // printed card is explicit — "the shield-bearer may match himself against a spectre or demon,
+  // and the spectre or demon is simply ignored for that round; neither it nor the shield bearer
+  // will be killed." Previously a Shield-bearer with no magic/Sword/Axe was still rejected by the
+  // "Spectre/Demon needs magic" gate, even though the Shield had already nullified its power to 0.
+  describe("Magic Shield vs Spectre/Demon: a forced stalemate (bug fix 2026-08-09, SC-EXT-40)", () => {
+    it("validatePlan now accepts a Shield-bearer (no magic, no Sword) facing a Spectre", () => {
+      const s = fightS({ party: [member(WOMAN, [T_SHIELD])], strangers: [SPECTRE] });
+      const plan = { matches: [{ front: [0], backers: [], strangers: [0] }] };
+      expect(validatePlan(s, plan)).toEqual({ ok: true });
+    });
+
+    it("...and a Demon, via the same clause (not Sword-specific)", () => {
+      const s = fightS({ party: [member(HERO, [T_SHIELD])], strangers: [DEMON] });
+      const plan = { matches: [{ front: [0], backers: [], strangers: [0] }] };
+      expect(validatePlan(s, plan)).toEqual({ ok: true });
+    });
+
+    it("previewPlan flags the match as a stalemate, with a dedicated modifier chip", () => {
+      const s = fightS({ party: [member(WOMAN, [T_SHIELD])], strangers: [SPECTRE] });
+      const pv = previewPlan(s, { matches: [{ front: [0], backers: [], strangers: [0] }] });
+      expect(pv.matches[0]!.stalemate).toBe(true);
+      expect(pv.matches[0]!.modifiers).toContainEqual({ label: "Magic Shield — a standoff, neither side can be harmed", value: 0, side: "party", roll: false });
+      // The ordinary shieldWarded ward-notice data is suppressed for a stalemate — redundant.
+      expect(pv.matches[0]!.shieldWard).toEqual([]);
+    });
+
+    it("resolvePlannedRound rolls no dice, harms nobody, and the Spectre remains for a later round", () => {
+      const s = clone(fightS({ party: [member(WOMAN, [T_SHIELD])], strangers: [SPECTRE], seed: 7 }));
+      const before = s.fight!.round;
+      const events = resolvePlannedRound(s, { matches: [{ front: [0], backers: [], strangers: [0] }] });
+
+      expect(events).toEqual([{ type: "shieldStalemate", creatureIds: [SPECTRE] }]);
+      expect(events.some((e) => e.type === "combatRoll")).toBe(false);
+      expect(s.party[0]!.status).toBe(0); // the shield-bearer survives
+      expect(s.strangers).toEqual([SPECTRE]); // the Spectre is neither slain nor removed
+      expect(s.fight!.round).toBe(before + 1); // the round still advances normally
+    });
+
+    it("does NOT trigger when the front also has a genuine caster/Sword/Axe bearer — that match still fights for real", () => {
+      const s = clone(fightS({ party: [member(WOMAN, [T_SHIELD]), member(WIZARD)], strangers: [SPECTRE], seed: 7 }));
+      const plan = { matches: [{ front: [0, 1], backers: [], strangers: [0] }] };
+      const pv = previewPlan(s, plan);
+      expect(pv.matches[0]!.stalemate).toBe(false);
+      const events = resolvePlannedRound(s, plan);
+      expect(events.some((e) => e.type === "combatRoll")).toBe(true);
+      expect(events.some((e) => e.type === "shieldStalemate")).toBe(false);
+    });
+
+    it("a Sword-bearer alone still fights for real (unaffected) — the stalemate is Shield-specific", () => {
+      const s = fightS({ party: [member(MAN, [T_SWORD])], strangers: [SPECTRE] });
+      const pv = previewPlan(s, { matches: [{ front: [0], backers: [], strangers: [0] }] });
+      expect(pv.matches[0]!.stalemate).toBe(false);
+    });
+
+    it("an active Eye of God nullifies the stalemate clause too, same as the ordinary ward — rejected again", () => {
+      const s = fightS({ party: [member(WOMAN, [T_SHIELD, T_EYE])], strangers: [SPECTRE] });
+      const plan = { matches: [{ front: [0], backers: [], strangers: [0] }] };
+      expect(validatePlan(s, plan)).toEqual({ ok: false, reason: "spectreNeedsMagic" });
+    });
+
+    it("a free Shield-bearer makes the foe engageable — the empty-plan doom escape hatch is no longer offered", () => {
+      const s = fightS({ party: [member(WOMAN, [T_SHIELD])], strangers: [SPECTRE] });
+      expect(validatePlan(s, { matches: [] })).toEqual({ ok: false, reason: "emptyPlan" });
+    });
   });
 });

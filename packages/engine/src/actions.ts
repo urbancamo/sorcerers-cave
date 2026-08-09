@@ -290,6 +290,12 @@ export type GameEvent =
   // actually reduced (base mp>0) in `resolvePlannedRound` — never for a stranger with mp===0
   // already (nothing to turn aside) and never merely because the Shield is in play.
   | { type: "shieldWarded"; creatureId: number; mode: "nullify" | "weaken" }
+  // Bug fix 2026-08-09 (SC-EXT-40, card text: "the shield-bearer may match himself against a
+  // spectre or demon, and the spectre or demon is simply ignored for that round; neither it nor
+  // the shield bearer will be killed"): fires INSTEAD of `combatRoll` for a match whose front
+  // qualifies to face its magic-only foe(s) SOLELY via the Magic Shield (no real magic, no
+  // Sword/Axe) — no dice, no casualty either side. `creatureIds` names the foe(s) held at bay.
+  | { type: "shieldStalemate"; creatureIds: number[] }
   // Precise Locations (§10.5, §8.2): narrates a jumpToIsland — the mechanical roll/drop is reported
   // by the SAME `viperPit`/`treasureDropped` events an ordinary crossing already emits (special.ts
   // is reused verbatim for the risk); this event exists only so the presentation layer can tell

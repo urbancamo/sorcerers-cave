@@ -57,10 +57,37 @@ const matchShielded = (state: GameState, front: readonly number[]): boolean =>
 export const shieldedMP = (sid: number, base: number): number =>
   sid === C_SORCERER || sid === C_APPRENTICE ? Math.max(0, base - 2) : 0;
 
+/** Bug fix 2026-08-09 (SC-EXT-40, card text): "the shield-bearer may match himself against a
+ *  spectre or demon" — a live, eligible Magic Shield bearer may face EITHER magic-only foe, unlike
+ *  the Sword (Spectre-only) or Axe (Demon-only) bypasses. Reuses `shieldWardActive`'s own gate
+ *  (eligible class, living, no active Eye) — the Eye nullifying this too is consistent with it
+ *  already nullifying the Shield's ordinary MP-ward (SC-EXT-27). */
+const canShieldStalemate = (state: GameState, m: PartyMember): boolean => shieldWardActive(state, m);
+
 /** Does `m` have the enabling artifact for the specific magic-only foe `sid` (Sword for a
- *  Spectre, Axe for a Demon)? Only meaningful when `sid` is one of `MAGIC_ONLY_IDS`. */
+ *  Spectre, Axe for a Demon, or the Shield's stalemate clause for either)? Only meaningful when
+ *  `sid` is one of `MAGIC_ONLY_IDS`. */
 const magicOnlyBypass = (state: GameState, m: PartyMember, sid: number): boolean =>
-  sid === C_SPECTRE ? canSwordSpectre(state, m) : sid === C_DEMON ? canAxeDemon(state, m) : false;
+  (sid === C_SPECTRE && canSwordSpectre(state, m)) || (sid === C_DEMON && canAxeDemon(state, m)) || canShieldStalemate(state, m);
+
+/** Unlike the Sword/Axe (which let their bearer fight a magic-only foe normally, win or lose), the
+ *  Shield's own clause is a forced STALEMATE — "the spectre or demon is simply ignored for that
+ *  round; neither it nor the shield bearer will be killed" (bug fix 2026-08-09, SC-EXT-40). True
+ *  only when `m` has NO other way to touch `sid` — real magic, or the matching Sword/Axe — so
+ *  pairing a Shield-bearer ALONGSIDE an actual caster/Sword/Axe-bearer in the same match still
+ *  fights for real (the Shield never downgrades an otherwise-winnable fight). */
+const shieldOnlyQualifies = (state: GameState, m: PartyMember, sid: number): boolean =>
+  casterMP(m, state) <= 0 &&
+  !(sid === C_SPECTRE && canSwordSpectre(state, m)) &&
+  !(sid === C_DEMON && canAxeDemon(state, m)) &&
+  canShieldStalemate(state, m);
+
+/** Is this whole match a Magic Shield stalemate — every stranger a magic-only foe (Spectre/Demon),
+ *  and EVERY front member's ability to face ALL of them coming solely from the Shield? (SC-EXT-40) */
+const isShieldStalemate = (state: GameState, mt: { front: readonly number[]; strangers: readonly number[] }): boolean =>
+  mt.strangers.length > 0 &&
+  mt.strangers.every((si) => MAGIC_ONLY_IDS.includes(state.strangers[si]!)) &&
+  mt.front.every((i) => mt.strangers.every((si) => shieldOnlyQualifies(state, state.party[i]!, state.strangers[si]!)));
 
 /** Can the party engage this stranger at all this round? (Always, unless it is an un-fightable
  *  magic-only foe — a Spectre or a Demon, SC-EXT-21.) */
@@ -179,6 +206,11 @@ export interface PreviewMatch {
   // reduced (base mp>0) — already folded into `enemyStr`/`modifiers` above; also consumed by
   // `resolvePlannedRound` to fire one `shieldWarded` notice per entry.
   shieldWard: { creatureId: number; mode: "nullify" | "weaken" }[];
+  // Bug fix 2026-08-09 (SC-EXT-40): true when this match's front qualifies to face its magic-only
+  // foe(s) SOLELY via the Magic Shield — `resolvePlannedRound` fires `shieldStalemate` instead of
+  // rolling; `partyStr`/`enemyStr` above are still computed (informational — "what it would be"),
+  // but never actually contested.
+  stalemate: boolean;
 }
 export interface PlanPreview {
   matches: PreviewMatch[];
@@ -237,6 +269,10 @@ export function previewPlan(state: GameState, plan: BattlePlan): PlanPreview {
 
   const matches: PreviewMatch[] = base.map((mt) => {
     const magicOnly = magicOnlyMatch(mt.strangers);
+    // Bug fix 2026-08-09 (SC-EXT-40): computed BEFORE shieldWard below — a stalemate match suppresses
+    // the ordinary shieldWarded notice (redundant: the round never happens at all for this match, so
+    // "turns the creature's power aside" would be misleading alongside "ignored for the round").
+    const stalemate = isShieldStalemate(state, mt);
     const memberStr = (i: number) => (magicOnly && casterMP(state.party[i]!, state) > 0 ? casterMP(state.party[i]!, state) : frontStrength(state.party[i]!, state));
     const partyStr = mt.front.reduce((s, i) => s + memberStr(i), 0) + mt.backers.reduce((s, i) => s + casterMP(state.party[i]!, state), 0);
 
@@ -249,7 +285,7 @@ export function previewPlan(state: GameState, plan: BattlePlan): PlanPreview {
       const sid = state.strangers[si]!;
       const base = enemyMP(state, sid);
       if (!shielded || base === 0) return base; // 0 already — nothing for the ward to turn aside
-      shieldWard.push({ creatureId: sid, mode: sid === C_SORCERER || sid === C_APPRENTICE ? "weaken" : "nullify" });
+      if (!stalemate) shieldWard.push({ creatureId: sid, mode: sid === C_SORCERER || sid === C_APPRENTICE ? "weaken" : "nullify" });
       return shieldedMP(sid, base);
     };
     const enemyStr = mt.strangers.reduce((s, si) => s + CREATURES[state.strangers[si]!]!.fs + strangerMP(si), 0)
@@ -306,8 +342,11 @@ export function previewPlan(state: GameState, plan: BattlePlan): PlanPreview {
       const before = enemyMP(state, w.creatureId);
       modifiers.push({ label: `Magic Shield · ${CREATURES[w.creatureId]!.name}`, value: shieldedMP(w.creatureId, before) - before, side: "enemy", roll: false });
     }
+    // Bug fix 2026-08-09 (SC-EXT-40): flag the standoff directly in the modifier list the fight UI
+    // already renders per matchup — no FightSurface changes needed to surface it before rolling.
+    if (stalemate) modifiers.push({ label: "Magic Shield — a standoff, neither side can be harmed", value: 0, side: "party", roll: false });
 
-    return { front: mt.front, backers: mt.backers, strangers: mt.strangers, attached: mt.attached, enemyBackers: mt.enemyBackers, partyStr, enemyStr, modifiers, shieldWard };
+    return { front: mt.front, backers: mt.backers, strangers: mt.strangers, attached: mt.attached, enemyBackers: mt.enemyBackers, partyStr, enemyStr, modifiers, shieldWard, stalemate };
   });
 
   const inMatch = new Set<number>(matches.flatMap((m) => [...m.strangers, ...m.enemyBackers]));
@@ -378,6 +417,13 @@ export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEve
 
   // Resolve each match (one die per side).
   for (const mt of matches) {
+    // Bug fix 2026-08-09 (SC-EXT-40): a Magic Shield stalemate never rolls — "the spectre or demon
+    // is simply ignored for that round; neither it nor the shield bearer will be killed." No dice,
+    // no casualty either side; the foe(s) stay exactly where they were, ready to fight another round.
+    if (mt.stalemate) {
+      events.push({ type: "shieldStalemate", creatureIds: mt.strangers.map((si) => state.strangers[si]!) });
+      continue;
+    }
     const front = mt.front.map((i) => state.party[i]!);
     const pr = rollDie(state.seed); state.seed = pr.seed;
     const er = rollDie(state.seed); state.seed = er.seed;

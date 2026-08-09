@@ -23,10 +23,13 @@ const REASON: Record<string, string> = {
   twoVsTwo: "Two against two isn't allowed — send two against one, or one against two.",
   backerNotCaster: "Only a Priest or Wizard may fight from the background.",
   backerNoFront: "Put a fighter in front for your caster to support.",
-  spectreNeedsMagic: "A Spectre can only be fought with magic or the Magic Sword.",
+  // Bug fix 2026-08-09 (SC-EXT-40): the Magic Shield's own bearer may ALSO stand against either —
+  // not to fight it, but to hold it off in a standoff (card text: "the spectre or demon is simply
+  // ignored for that round").
+  spectreNeedsMagic: "A Spectre can only be fought with magic or the Magic Sword — or held off with the Magic Shield.",
   // Extension kit (SC-EXT-21, design US-13): mirrors spectreNeedsMagic's wording for the Demon's own
   // magic-only gate (a caster, or a Magic Axe bearer — canAxeDemon, combatPlan.ts).
-  demonNeedsMagic: "A Demon can only be fought with magic or the Magic Axe.",
+  demonNeedsMagic: "A Demon can only be fought with magic or the Magic Axe — or held off with the Magic Shield.",
   mustEngageAll: "Engage every stranger you can before rolling.",
   emptyPlan: "Set at least one fighter against a foe.",
 };
