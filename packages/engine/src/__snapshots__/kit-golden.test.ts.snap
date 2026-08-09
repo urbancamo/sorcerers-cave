@@ -17,7 +17,7 @@ exports[`kit golden firewall — kit-on engine behaviour is frozen > seed 165018
     "#1 leaveTreasure => -",
     "#2 move:4 => moved",
     "#3 move:3 => deadEnd",
-    "#4 move:4 => moved,drewChamber",
+    "#4 move:4 => moved,enteredSpecial,drewChamber",
     "#5 descendChasm => chasmDescend,moved",
     "#6 move:6 => moved",
     "#7 move:4 => deadEnd",

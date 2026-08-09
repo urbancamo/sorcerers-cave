@@ -4,7 +4,7 @@ import {
   targetCoord, unpackCoord,
 } from "./coords";
 import { AF_DESTROYED, type GameState, type PlacedArea } from "./state";
-import { SPECIAL_CANONICAL_CARD } from "./data/areaCards";
+import { SPECIAL_CANONICAL_CARD, SPECIAL_WHIRLPOOL } from "./data/areaCards";
 
 export interface MoveResult {
   state: GameState;
@@ -44,6 +44,13 @@ function pruneExit(card: number, dir: number): number {
     case DIR_E: return card & ~2;
     case DIR_S: return card & ~4;
     case DIR_W: return card & ~8;
+    // Bug fix 2026-08-08: verticals were never actually pruned (fell through to the default,
+    // untouched) — a discovered dead end via a stair kept re-offering itself forever, unlike a
+    // lateral one. Only reachable in practice via an AF_DESTROYED collapse (§Earthquake) or the
+    // Whirlpool's new "no stairway may lead here" block (§Whirlpool revision); both already call
+    // this expecting it to work like the lateral case.
+    case DIR_UP: return card & ~STAIR_UP_BIT;
+    case DIR_DOWN: return card & ~STAIR_DOWN_BIT;
     default: return card;
   }
 }
@@ -90,6 +97,13 @@ export function tryMove(state: GameState, dir: number): MoveResult {
       current.card = pruneExit(current.card, dir);
       return { state: next, moved: false, deadEnd: true };
     }
+    // Whirlpool revision (2026-08-08): "any stairway leading to this area is considered blocked" —
+    // no vertical connection may ever land on a Whirlpool, from either direction, whether the tile
+    // was already placed (here) or is freshly drawn (below).
+    if ((dir === DIR_UP || dir === DIR_DOWN) && decodeArea(dest.card).special === SPECIAL_WHIRLPOOL) {
+      current.card = pruneExit(current.card, dir);
+      return { state: next, moved: false, deadEnd: true };
+    }
     const connects = dir === DIR_UP || dir === DIR_DOWN || hasReverseDoor(decodeArea(dest.card), dir);
     if (connects) {
       // A vertical move into an already-placed area still needs the matching stair at the far end so
@@ -133,7 +147,12 @@ export function tryMove(state: GameState, dir: number): MoveResult {
   // printed orientation — the whole point is guaranteeing the tester reaches the scenario asked
   // for. (In practice every SPECIAL_CANONICAL_CARD entry has all four exits anyway — see Task 1's
   // own test — so this only matters if that ever changes.)
-  const connects = !!override || dir === DIR_UP || dir === DIR_DOWN || hasReverseDoor(decodeArea(drawn), dir);
+  const rawConnects = !!override || dir === DIR_UP || dir === DIR_DOWN || hasReverseDoor(decodeArea(drawn), dir);
+  // Whirlpool revision (2026-08-08): a vertical draw that turns up the Whirlpool never connects
+  // either — "any stairway leading to this area is considered blocked." Test Mode's own explicit
+  // override is exempt: it exists precisely to force a scenario like this one for testing.
+  const connects = rawConnects &&
+    !(!override && (dir === DIR_UP || dir === DIR_DOWN) && decodeArea(drawn).special === SPECIAL_WHIRLPOOL);
 
   if (connects) {
     // A stairway leading to an area with no matching stair pictured has a secret door at that end

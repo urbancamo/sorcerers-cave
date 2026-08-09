@@ -166,6 +166,11 @@ export type GameEvent =
   // Extension kit (SC-EXT-12): Harpies-stolen treasure landed on the Lair's floor — either spilled
   // on the Lair's own placement/entry, or delivered straight there by a later theft (design US-04).
   | { type: "lairStash"; treasureIds: number[] }
+  // Special-areas revision (2026-08-08, SC-10.5-16): treasure dropped into a Chasm/Whirlpool above
+  // has landed here, the moment this specific area is genuinely entered — mirrors `lairStash` but
+  // keyed by coordinate (`state.pendingDrops`) rather than a single well-known destination, since
+  // any number of distinct Chasm/Whirlpool tiles can each have their own pending target below.
+  | { type: "pendingDropDelivered"; treasureIds: number[] }
   // Extension kit (SC-EXT-13): a Crypt/Gems card was freshly drawn and parked in this area (design
   // US-08 on-screen text: "A sealed crypt squats in the corner of this chamber."). Fired once, the
   // moment `classify` sets `cryptCoord` for a genuinely new draw — never on a reload/revisit.

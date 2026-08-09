@@ -132,7 +132,7 @@ exports[`MP-kit golden firewall — kit-on multiplayer behaviour is frozen > see
     "#95 s0 leaveTreasure => -",
     "#96 s1 move:1 => moved",
     "#97 s0 move:4 => moved",
-    "#98 s1 move:1 => moved,drewChamber,hazardFired,trapSprung,moved,drewChamber",
+    "#98 s1 move:1 => moved,drewChamber,hazardFired,trapSprung,moved,enteredSpecial,drewChamber",
     "#99 s0 move:2 => moved,drewChamber",
     "#100 s0 leaveTreasure => -",
     "#101 s1 descendChasm => chasmDescend,moved,drewChamber,hazardFired,harpiesSteal",

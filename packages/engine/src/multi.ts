@@ -7,7 +7,7 @@ import { reduce } from "./reduce";
 import { validatePicks } from "./setup";
 import { buildLargePack, buildSmallPack } from "./decks";
 import { shuffle, nextSeed } from "./rng";
-import { AREA_CARDS, GATEWAY_INDEX, SPECIAL_VIPER_PIT, SPECIAL_DEEP_POOL } from "./data/areaCards";
+import { AREA_CARDS, GATEWAY_INDEX, SPECIAL_VIPER_PIT, SPECIAL_DEEP_POOL, SPECIAL_WHIRLPOOL, SPECIAL_CHASM } from "./data/areaCards";
 import { decodeArea } from "./decode";
 import { unpackCoord, packCoord, targetCoord, DIR_UP } from "./coords";
 import type { Session, Union, Detachment } from "./multi-session";
@@ -71,6 +71,17 @@ export interface CaveState {
   // (chamber.ts/reduce.ts) is untouched: this is pure MULTI-layer composition, so solo/kit-golden
   // stay byte-identical (INV-2).
   cryptCoord?: number;
+  // Special-areas revision (2026-08-08, SC-10.5-16): like `cryptCoord`, `pendingDrops` (state.ts) is
+  // a per-GameState scalar with no content-code presence at all — invisible to any seat but the one
+  // whose `dropTreasure` queued it, unless threaded through here. Unlike the Crypt (a single unique
+  // card), any number of distinct Chasm/Whirlpool tiles can each have their own pending target, so
+  // this is a map, not a scalar — but the wiring is identical: `compose` always seeds a party's
+  // composed `pendingDrops` from HERE, and every action resyncs it afterward (`mpReduceInner`), so
+  // a drop made by one seat is visible to WHICHEVER seat's own exploration reaches that physical
+  // coordinate first — matching `sunkTreasure`'s own cave-shared precedent for Deep Pool/Viper Pit
+  // (SC-10.5-12), since treasure that has fallen through to a specific map location is a fact about
+  // the shared cave, not a private ledger like the Lair/Harpies stash (SC-EXT-12) genuinely is.
+  pendingDrops?: Record<number, number[]>;
 }
 
 /** Everything in a GameState that belongs to ONE party (i.e. a GameState minus the shared cave). */
@@ -196,6 +207,8 @@ function compose(mp: MpGameState, party: PartyState): GameState {
     // SC-EXT-32: the Crypt is cave-shared, not per-seat — always compose from the cave's own
     // knowledge (never the party's own possibly-stale copy; see CaveState.cryptCoord's doc).
     cryptCoord: mp.cave.cryptCoord,
+    // SC-10.5-16: pending Chasm/Whirlpool drops are likewise cave-shared — see CaveState.pendingDrops's doc.
+    pendingDrops: mp.cave.pendingDrops,
     ...(mp.variants?.extensionKit ? { variants: { extensionKit: true } } : {}),
   } as unknown as GameState;
 }
@@ -512,6 +525,8 @@ function mpReduceInner(mp: MpGameState, seat: number, action: MpAction, now = 0,
   // value here is the complete, cave-wide truth post-action (unchanged, freshly parked, or spent
   // by `enterCrypt`), not merely this seat's own. See CaveState.cryptCoord's doc comment.
   cave.cryptCoord = rest.cryptCoord;
+  // SC-10.5-16: same resync for pending Chasm/Whirlpool drops — see CaveState.pendingDrops's doc.
+  cave.pendingDrops = rest.pendingDrops;
   const slain = events.filter((e) => e.type === "strangerKilled" || e.type === "annihilated").length;
   const updated: PartyState = {
     ...rest, seat: party.seat, color: party.color, name: party.name,
@@ -705,8 +720,12 @@ export function areaInteractionMask(mp: MpGameState, areaIdx: number): AreaInter
   if (fighter) return { pvpLegal: false, reason: "a fight with strangers is under way", fightInProgress: fighter.seat };
 
   const dec = decodeArea(area.card);
-  if (dec.special === SPECIAL_VIPER_PIT || dec.special === SPECIAL_DEEP_POOL) {
-    return { pvpLegal: false, reason: "no fighting across the pit or pool", fightInProgress: null };
+  // Special-areas revision (2026-08-08): extended from Viper Pit/Deep Pool to all four —
+  // Whirlpool and Chasm are equally precarious footing, and the designer confirmed the original
+  // pair was just an inconsistency, not a deliberate narrower scope.
+  if (dec.special === SPECIAL_VIPER_PIT || dec.special === SPECIAL_DEEP_POOL ||
+      dec.special === SPECIAL_WHIRLPOOL || dec.special === SPECIAL_CHASM) {
+    return { pvpLegal: false, reason: "no fighting across the pit, pool, whirlpool, or chasm", fightInProgress: null };
   }
   // Strangers "in the chamber": parked on the tile (100+cid) or live in a co-located working set.
   const parkedStrangers = area.contents.some((c) => c >= 100 && c < 200);

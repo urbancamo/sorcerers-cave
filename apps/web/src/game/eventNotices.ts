@@ -2,7 +2,7 @@ import {
   ALL_CREATURES, ALL_TREASURES,
   HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_MUTINY, HAZARD_TRAP, HAZARD_DESERTION,
   HAZARD_HARPIES, HAZARD_QUARREL, HAZARD_SPELL,
-  SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_WHIRLPOOL,
+  SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_WHIRLPOOL, SPECIAL_CHASM,
   DIR_DOWN,
   type GameEvent,
 } from "@sorcerers-cave/engine";
@@ -73,6 +73,8 @@ export function eventNotices(events: GameEvent[]): Notice[] {
         out.push({ text: `The battle plan is rejected: ${e.reason}`, tone: "bad" });
         break;
       case "enteredSpecial":
+        // Special-areas revision (2026-08-08): the Chasm now gets its own telegraph too, matching
+        // its three siblings — it previously fell through to the generic fallback text below.
         out.push({
           text: e.special === SPECIAL_VIPER_PIT
             ? "The party reaches the edge of the Viper Pit."
@@ -80,7 +82,9 @@ export function eventNotices(events: GameEvent[]): Notice[] {
               ? "The party reaches the edge of the Deep Pool."
               : e.special === SPECIAL_WHIRLPOOL
                 ? "Dark water churns here — crossing the shallows risks the pull of the whirlpool."
-                : "The party reaches a special area.",
+                : e.special === SPECIAL_CHASM
+                  ? "The floor drops away into a yawning chasm here."
+                  : "The party reaches a special area.",
           tone: "neutral",
         });
         break;
@@ -282,6 +286,11 @@ export function eventNotices(events: GameEvent[]): Notice[] {
         if (!events.some((ev) => ev.type === "harpiesSteal")) {
           out.push(LAIR_STASH_TEXT);
         }
+        break;
+      case "pendingDropDelivered":
+        // Special-areas revision (2026-08-08, SC-10.5-16): treasure dropped into a Chasm/Whirlpool
+        // above has fallen through to land here — mirrors the Lair's own delivery notice above.
+        out.push({ text: `Something has fallen through from above — ${itemList(e.treasureIds)} lie here.`, tone: "neutral" });
         break;
       case "cryptParked":
         out.push({ text: "A sealed crypt squats in the corner of this chamber.", tone: "neutral" });

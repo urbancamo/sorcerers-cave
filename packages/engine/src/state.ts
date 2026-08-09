@@ -239,6 +239,20 @@ export interface GameState {
   // moment it is placed and entered, or delivered straight there via `stashOrDeliver` if the Lair
   // already exists (`chamber.ts`). Empty/absent ⇒ no pending stash.
   harpyStash?: number[];
+  // Special-areas revision (2026-08-08, SC-10.5-16): treasure dropped into a Chasm or Whirlpool
+  // falls through to the level below rather than sinking in place — keyed by the TARGET area's
+  // packed coordinate (unlike `harpyStash`'s single well-known Lair destination, any number of
+  // distinct Chasm/Whirlpool tiles can each have their own pending target). Delivered onto that
+  // area's `contents` (as ordinary 200+tid codes) the moment it is genuinely entered — placed
+  // doesn't count on its own, matching `lairCoord`'s own "placed AND entered" bar — whether that
+  // happens via the party's own exploration or because the drop is delivered immediately (the
+  // target was already visited at drop time). Absent/`{}` ⇒ nothing pending. In this solo-shaped
+  // type it's per-GameState like every other field here — but MULTIPLAYER threads it as a
+  // CAVE-SHARED field (multi.ts's `CaveState.pendingDrops`), matching `sunkTreasure`'s own
+  // cave-shared precedent for Deep Pool/Viper Pit (SC-10.5-12): a drop is a fact about a specific
+  // physical map coordinate, so whichever seat reaches it first should find it, unlike the
+  // genuinely per-seat Lair/Harpies bookkeeping `harpyStash` represents.
+  pendingDrops?: Record<number, number[]>;
   // Extension kit (SC-EXT-13): the packed coord of the area holding an unresolved, parked Crypt
   // (design US-08) — set once, the moment the Crypt/Gems treasure card (id 21) is freshly drawn
   // from the small pack (`chamber.ts`'s `classify`), and cleared the instant `enterCrypt` resolves

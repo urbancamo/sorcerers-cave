@@ -2,7 +2,6 @@ import { decodeArea } from "./decode";
 import { SPECIAL_TOMB, SPECIAL_GREAT_HALL, SPECIAL_LAIR, SPECIAL_GALLERY, SPECIAL_WHIRLPOOL, SPECIAL_CHASM, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
 import { AF_DESTROYED, type GameState } from "./state";
 import type { GameEvent } from "./actions";
-import { getSubLocation } from "./subLocation";
 
 const MAX_STRANGERS = 8;
 const MAX_TREASURE = 8;
@@ -162,22 +161,12 @@ export function enterChamber(state: GameState): GameEvent[] {
   // — `classify` sets `cryptCoord` silently; this snapshot is what turns it into the design's
   // on-screen notice ("A sealed crypt squats in the corner of this chamber.") below.
   const hadCrypt = state.cryptCoord !== undefined;
-  // Precise Locations (§10.5): Whirlpool/Chasm have no creature-gate on sunk treasure (unlike Deep
-  // Pool/Viper Pit's Giant/Flute-gated reclaim in reduce.ts's resolveAreaLoop, which never reaches
-  // here — those two return before enterChamber runs at all) — fold whatever is sunk at THIS
-  // sub-location straight into the ordinary reload pass below, precisely positioned but otherwise
-  // just like any other parked floor treasure.
-  if (dec.special === SPECIAL_WHIRLPOOL || dec.special === SPECIAL_CHASM) {
-    const sub = getSubLocation(state);
-    const key = sub.at === "island" ? "island" : sub.dir;
-    if (key !== undefined && area.sunkTreasure?.length) {
-      const bucket = area.sunkTreasure.find((b) => b.at === key);
-      if (bucket && bucket.items.length) {
-        area.contents = [...area.contents, ...bucket.items.map((tid) => 200 + tid)];
-        area.sunkTreasure = area.sunkTreasure.filter((b) => b !== bucket);
-      }
-    }
-  }
+  // Special-areas revision (2026-08-08): a Chasm/Whirlpool drop no longer sinks into THIS tile's
+  // own `sunkTreasure` at all — it falls through to the level below instead (`state.pendingDrops`,
+  // delivered by `resolveAreaLoop`'s own hook before this function even runs). The sub-location
+  // fold-in that used to live here for these two specials is gone; Deep Pool/Viper Pit's OWN
+  // Giant/Flute-gated `sunkTreasure` reclaim is unaffected (handled in reduce.ts's
+  // `resolveAreaLoop`, which returns before `enterChamber` runs at all for those two).
   for (const code of area.contents) reload(state, code);
   if (!area.visited) {
     area.visited = true;
@@ -186,13 +175,11 @@ export function enterChamber(state: GameState): GameEvent[] {
     // only mechanic is the one-way descend action (`descendChasm`, SC-EXT-5); the Whirlpool's is the
     // crossing roll (`whirlpoolCrossing`, SC-EXT-6); the Well's and Bell Rope's are their own
     // explicit, player-chosen interact actions (`drawFromWell`/`pullBellRope`, SC-EXT-7/8) — drawing
-    // there is conditional on the player choosing to interact, not automatic on arrival. The
-    // sunk-treasure fold-in above still applies to Whirlpool/Chasm (no creature-gate on either);
-    // only the small-pack draw below is skipped. `area.visited` is still set so a later re-entry
-    // isn't treated as fresh again, and `smallIdx` stays untouched, matching Deep Pool/Viper Pit's
-    // own "never draws a chamber" carve-out (those two skip `enterChamber` entirely instead, in
-    // reduce.ts's `resolveAreaLoop` — they have no Chasm/Whirlpool-style sunk-treasure fold-in to
-    // preserve, so bypassing this whole function is simpler for them than it would be here).
+    // there is conditional on the player choosing to interact, not automatic on arrival. Only the
+    // small-pack draw below is skipped. `area.visited` is still set so a later re-entry isn't
+    // treated as fresh again, and `smallIdx` stays untouched, matching Deep Pool/Viper Pit's own
+    // "never draws a chamber" carve-out (those two skip `enterChamber` entirely instead, in
+    // reduce.ts's `resolveAreaLoop`).
     if (dec.special !== SPECIAL_CHASM && dec.special !== SPECIAL_WHIRLPOOL
       && dec.special !== SPECIAL_WELL && dec.special !== SPECIAL_BELL_ROPE) {
       // Test Mode (§Test Mode): an armed testNextChamber replaces the normal small-pack draw outright

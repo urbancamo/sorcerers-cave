@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  SPECIAL_VIPER_PIT, SPECIAL_DEEP_POOL, SPECIAL_WHIRLPOOL,
+  SPECIAL_VIPER_PIT, SPECIAL_DEEP_POOL, SPECIAL_WHIRLPOOL, SPECIAL_CHASM,
   HAZARD_MEDUSA, HAZARD_MUTINY, HAZARD_TRAP, HAZARD_EARTHQUAKE, HAZARD_DESERTION,
   DIR_DOWN, DIR_UP,
   type GameEvent,
@@ -158,6 +158,10 @@ describe("eventNotices", () => {
     expect(eventNotices([{ type: "enteredSpecial", special: SPECIAL_WHIRLPOOL }])[0]!.text).toMatch(/whirlpool/i);
   });
 
+  it("bug fix 2026-08-08: the Chasm gets its own entry telegraph too, not the generic fallback", () => {
+    expect(eventNotices([{ type: "enteredSpecial", special: SPECIAL_CHASM }])[0]!.text).toMatch(/chasm/i);
+  });
+
   it("reports the Chasm descent (US-02); the Whirlpool crossing roll has its own dice overlay (US-05)", () => {
     expect(eventNotices([{ type: "chasmDescend" }])[0]!.text).toMatch(/climbs down into the chasm/i);
     // whirlpoolRoll moved to rollView's single-die overlay (Task 16) — no text notice here.
@@ -193,6 +197,12 @@ describe("eventNotices", () => {
     const stash = eventNotices([{ type: "lairStash", treasureIds: [1] }])[0]!;
     expect(stash.text).toMatch(/harpies' hoard glitters/i);
     expect(stash.tone).toBe("good");
+  });
+
+  it("special-areas revision 2026-08-08: reports treasure fallen through from a Chasm/Whirlpool above", () => {
+    const delivered = eventNotices([{ type: "pendingDropDelivered", treasureIds: [1] }])[0]!;
+    expect(delivered.text).toMatch(/fallen through from above/i);
+    expect(delivered.text).toMatch(/gold/i);
   });
 
   it("reports the Crypt's park notice verbatim; its two roll outcomes have their own dice overlay (US-08)", () => {

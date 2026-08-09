@@ -9,7 +9,7 @@ BEGIN MOVES
    2 LEAVE                    -> TRN 2 LVL 1 ARA 1 PH EXP GS 0 SEED 1216390383 EV -
    3 MOVE 4                   -> TRN 3 LVL 1 ARA 0 PH EXP GS 0 SEED 1216390383 EV moved
    4 MOVE 3                   -> TRN 3 LVL 1 ARA 0 PH EXP GS 0 SEED 1216390383 EV deadEnd
-   5 MOVE 4                   -> TRN 4 LVL 1 ARA 3 PH EXP GS 0 SEED 1216390383 EV moved,drewChamber
+   5 MOVE 4                   -> TRN 4 LVL 1 ARA 3 PH EXP GS 0 SEED 1216390383 EV moved,enteredSpecial,drewChamber
    6 DESCENDCHASM             -> TRN 4 LVL 2 ARA 4 PH EXP GS 0 SEED 1216390383 EV chasmDescend,moved
    7 MOVE 6                   -> TRN 5 LVL 3 ARA 5 PH EXP GS 0 SEED 1216390383 EV moved
    8 MOVE 4                   -> TRN 5 LVL 3 ARA 5 PH EXP GS 0 SEED 1216390383 EV deadEnd

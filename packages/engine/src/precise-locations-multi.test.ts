@@ -3,7 +3,7 @@ import { mpReduce, partyView, type CaveState, type PartyState, type MpGameState 
 import { getSubLocation } from "./subLocation";
 import { packCoord, DIR_N, DIR_W } from "./coords";
 import type { PartyMember, PlacedArea } from "./state";
-import { SPECIAL_DEEP_POOL } from "./data/areaCards";
+import { SPECIAL_DEEP_POOL, SPECIAL_CHASM } from "./data/areaCards";
 
 /**
  * Precise Locations (§10.5, §9): confirms the sub-location model and precise dropped treasure
@@ -14,6 +14,7 @@ import { SPECIAL_DEEP_POOL } from "./data/areaCards";
  */
 
 const DEEP_POOL_CARD = (SPECIAL_DEEP_POOL << 7) | 31; // NESW + chamber
+const CHASM_CARD = (SPECIAL_CHASM << 7) | 31;
 
 const member = (creatureId: number, treasure: number[] = []): PartyMember =>
   ({ creatureId, status: 0, dragonKills: 0, treasure });
@@ -82,5 +83,38 @@ describe("multiplayer inherits sub-locations for free (§10.5, §9)", () => {
     const reentered = mpReduce(withGiant, 1, { type: "move", dir: 2 /* DIR_E, from the west tile back into the pool */ });
     expect(reentered.state.parties[1]!.phase).toBe("pickup");
     expect(reentered.state.parties[1]!.treasures).toEqual([1]);
+  });
+});
+
+describe("special-areas revision (2026-08-08): pending Chasm/Whirlpool drops are cave-shared", () => {
+  it("a drop by seat 0 is delivered to WHICHEVER seat's own exploration reaches the level below first", () => {
+    const mp = playing(
+      {
+        areas: [
+          area(CHASM_CARD, packCoord(1, 50, 50)), // seat 0 stands here
+          area(2 /* E-only */, packCoord(2, 49, 50)), // seat 1's own tile — west neighbour of the target
+          area(31, packCoord(2, 50, 50), { visited: false }), // the target: placed, not yet entered by ANYONE
+        ],
+      },
+      [
+        partyAt(0, { partyArea: 0, prev: 0, level: 1, party: [member(5, [1])] }),
+        partyAt(1, { partyArea: 1, prev: 1, level: 2, party: [member(6)] }),
+      ],
+    );
+    const dropped = mpReduce(mp, 0, { type: "dropTreasure", mi: 0, idx: 0 });
+    // Queued on the SHARED cave, keyed by the target coordinate — mirrors cryptCoord's own pattern:
+    // `rest.pendingDrops` also lands redundantly on seat 0's OWN PartyState (PartyCore doesn't
+    // exclude it), but that stale copy is never consulted — `compose` always re-seeds it fresh from
+    // `mp.cave.pendingDrops` on every later read, which is what actually matters and what the rest
+    // of this test proves.
+    expect(dropped.state.cave.pendingDrops).toEqual({ [packCoord(2, 50, 50)]: [1] });
+
+    // Seat 1, exploring entirely independently on level 2, walks east onto that exact coordinate —
+    // proving the pending drop is visible to it, not locked to the seat that dropped it (unlike the
+    // genuinely per-seat Lair/Harpies stash).
+    const arrived = mpReduce(dropped.state, 1, { type: "move", dir: 2 /* DIR_E */ });
+    expect(arrived.state.parties[1]!.phase).toBe("pickup");
+    expect(arrived.state.parties[1]!.treasures).toEqual([1]);
+    expect(arrived.state.cave.pendingDrops ?? {}).toEqual({});
   });
 });

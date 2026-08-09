@@ -217,6 +217,13 @@ describe("awareness & interaction masks (spec I-1/I-9/I-13, plan WS-1)", () => {
     expect(areaInteractionMask(pit, 0).pvpLegal).toBe(false);
   });
 
+  it("PvP is ALSO barred in the Whirlpool and the Chasm (special-areas revision 2026-08-08)", () => {
+    const whirlpool = playing({ areas: [{ card: 15 | (9 << 7), coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }] }, [partyAt(0), partyAt(1)]);
+    expect(areaInteractionMask(whirlpool, 0).pvpLegal).toBe(false);
+    const chasm = playing({ areas: [{ card: 15 | (6 << 7), coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }] }, [partyAt(0), partyAt(1)]);
+    expect(areaInteractionMask(chasm, 0).pvpLegal).toBe(false);
+  });
+
   it("PvP is barred while strangers remain — parked on the tile or live in a working set", () => {
     const parked = playing({ areas: [{ card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [110], flags: 0, indiffCount: 0 }] }, [partyAt(0), partyAt(1)]);
     expect(areaInteractionMask(parked, 0).reason).toMatch(/strangers/);

@@ -366,6 +366,17 @@ function resolveArea(state: GameState): GameEvent[] {
 function resolveAreaLoop(state: GameState): GameEvent[] {
   const events: GameEvent[] = [];
   for (;;) {
+    // Special-areas revision (2026-08-08, SC-10.5-16): deliver any treasure dropped into a
+    // Chasm/Whirlpool above, the moment THIS specific area is genuinely entered — runs before any
+    // other resolution, on every landing (chamber, tunnel, or another special), mirroring the
+    // Harpies/Lair holding pen but keyed by coordinate rather than a single well-known destination.
+    const here = state.areas[state.partyArea]!;
+    const pending = state.pendingDrops?.[here.coord];
+    if (pending?.length) {
+      here.contents.push(...pending.map((tid) => 200 + tid));
+      events.push({ type: "pendingDropDelivered", treasureIds: pending });
+      delete state.pendingDrops![here.coord];
+    }
     const dec = decodeArea(state.areas[state.partyArea]!.card);
     if (dec.special === SPECIAL_DEEP_POOL) {
       const area = state.areas[state.partyArea]!;
@@ -397,10 +408,12 @@ function resolveAreaLoop(state: GameState): GameEvent[] {
       state.phase = "explore";
       return events;
     }
-    if (dec.special === SPECIAL_WHIRLPOOL) {
-      // Unlike Deep Pool / Viper Pit, the Whirlpool IS a chamber (design US-05): it draws on entry
-      // like any other, so this only adds the entry telegraph and falls through to the chamber path
-      // below rather than returning early.
+    if (dec.special === SPECIAL_WHIRLPOOL || dec.special === SPECIAL_CHASM) {
+      // Unlike Deep Pool / Viper Pit, the Whirlpool and the Chasm ARE chambers (design US-05, §10.5):
+      // they draw on entry like any other, so this only adds the entry telegraph and falls through
+      // to the chamber path below rather than returning early. Special-areas revision (2026-08-08):
+      // the Chasm previously never got this telegraph at all — an oversight relative to its three
+      // siblings, now fixed for consistency ("you move your token onto it, but not across").
       events.push({ type: "enteredSpecial", special: dec.special });
     }
     if (!dec.chamber) {
@@ -492,20 +505,29 @@ let pendingMidState: GameState | null = null;
 
 function relocateDown(state: GameState): void {
   pendingMidState = structuredClone(state);
-  const { x, y, level } = unpackCoord(state.areas[state.partyArea]!.coord);
-  const target = packCoord(level + 1, x, y);
-  let idx = state.areas.findIndex((a) => a.coord === target);
-  if (idx < 0) {
-    // A trap is a one-way drop — no stair-up is added (the party cannot climb back). The card is
-    // drawn in its printed form, so it renders in its native orientation like any other tile.
-    const card = state.largeIdx < state.largePack.length ? state.largePack[state.largeIdx++]! : 31;
-    state.areas.push({ card, coord: target, faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 });
-    idx = state.areas.length - 1;
+  let { x, y, level } = unpackCoord(state.areas[state.partyArea]!.coord);
+  let idx: number;
+  for (;;) {
+    const target = packCoord(level + 1, x, y);
+    idx = state.areas.findIndex((a) => a.coord === target);
+    if (idx < 0) {
+      // A trap is a one-way drop — no stair-up is added (the party cannot climb back). The card is
+      // drawn in its printed form, so it renders in its native orientation like any other tile.
+      const card = state.largeIdx < state.largePack.length ? state.largePack[state.largeIdx++]! : 31;
+      state.areas.push({ card, coord: target, faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 });
+      idx = state.areas.length - 1;
+    }
+    level += 1;
+    // Whirlpool revision (2026-08-08): "a trap to this area sends you down another level" —
+    // generalized to every relocateDown caller (trap fall, descendChasm, the Whirlpool's own drag),
+    // since they all share the same underlying invariant as the stairway block in map.ts: no
+    // vertical arrival may ever land on a Whirlpool. Keep falling until it doesn't.
+    if (decodeArea(state.areas[idx]!.card).special !== SPECIAL_WHIRLPOOL) break;
   }
   state.prev2 = state.prev;
   state.prev = state.partyArea;
   state.partyArea = idx;
-  state.level = level + 1;
+  state.level = level;
   state.fellThroughTrap = true; // one-way: prev is the (unreachable) level above — no withdraw/retreat
   delete state.subLocation; // Precise Locations (§10.5): a real position change invalidates any jump override
 }
@@ -694,6 +716,10 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       if (getSubLocation(state).at !== "doorway") return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
       next.subLocation = { area: next.partyArea, at: "island" };
+      // Bug fix 2026-08-08: consume a turn, matching "at exactly the ordinary crossing's own risk"
+      // (SC-10.5-6) — an ordinary lateral crossing always costs one via the `move` case; jumping
+      // was the one exception, free to attempt over and over within the same turn.
+      next.turn += 1;
       const events: GameEvent[] = [{ type: "islandJump", special: dec.special }];
       if (dec.special === SPECIAL_VIPER_PIT) {
         events.push(...viperCrossing(next));
@@ -912,14 +938,31 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       } else {
         const area = next.areas[next.partyArea]!;
         const special = decodeArea(area.card).special;
-        const key = SUB_LOCATION_SPECIALS.has(special) ? sunkKey(getSubLocation(next)) : undefined;
+        // Special-areas revision (2026-08-08, SC-10.5-16): a Chasm/Whirlpool drop falls through the
+        // floor to the level below, rather than sinking into THIS tile's own sub-location bucket —
+        // delivered immediately if that area has already been entered, else queued in
+        // `state.pendingDrops` until it genuinely is (mirrors the Lair/Harpies holding pen,
+        // SC-EXT-12, keyed by coordinate since any number of distinct targets can be pending).
+        const fallsThrough = special === SPECIAL_CHASM || special === SPECIAL_WHIRLPOOL;
+        const key = !fallsThrough && SUB_LOCATION_SPECIALS.has(special) ? sunkKey(getSubLocation(next)) : undefined;
         // Bug fix 2026-08-05: dropping while genuinely at rest (explore, no active/guarded stranger
         // markers on THIS tile) never actually leaves the room, so offer it straight back — phase
         // "pickup", same as a fresh entry — instead of parking it and forcing a leave-and-return
         // round trip through resolveArea just to notice it again (SC-7.3-5/6 previously required
         // this; a pacified area's guards, or an active encounter, still park it untouchable).
         const restingUnguarded = next.phase === "explore" && !area.contents.some((c) => c >= 100 && c < 200);
-        if (key !== undefined) {
+        if (fallsThrough) {
+          const { level, x, y } = unpackCoord(area.coord);
+          const targetCoordVal = packCoord(level + 1, x, y);
+          const targetIdx = next.areas.findIndex((a) => a.coord === targetCoordVal);
+          const target = targetIdx >= 0 ? next.areas[targetIdx] : undefined;
+          if (target?.visited) {
+            target.contents.push(200 + tid);
+          } else {
+            next.pendingDrops = next.pendingDrops ?? {};
+            next.pendingDrops[targetCoordVal] = [...(next.pendingDrops[targetCoordVal] ?? []), tid];
+          }
+        } else if (key !== undefined) {
           area.sunkTreasure = area.sunkTreasure ?? [];
           let bucket = area.sunkTreasure.find((b) => b.at === key);
           if (!bucket) { bucket = { at: key, items: [] }; area.sunkTreasure.push(bucket); }

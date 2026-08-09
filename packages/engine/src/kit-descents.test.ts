@@ -20,6 +20,9 @@ const DIR_N = 1;
 const DIR_E = 2;
 const DIR_S = 3;
 const DIR_W = 4;
+const DIR_UP = 5;
+const DIR_DOWN = 6;
+const STAIR_DOWN_ONLY = 64; // bit6: a stair down, no lateral doors
 
 const member = (creatureId: number, treasure: number[] = []): PartyMember => ({
   creatureId,
@@ -154,6 +157,17 @@ describe("The Chasm — one-way descent (US-02, SC-EXT-5)", () => {
     expect(state.hazards).toEqual([]);
     expect(state.smallIdx).toBe(0); // the small pack is never touched by a Chasm entry
     expect(state.phase).toBe("explore"); // no encounter/pickup triggered by an (absent) draw
+  });
+
+  it("bug fix 2026-08-08: entry emits enteredSpecial, matching Deep Pool/Viper Pit/Whirlpool", () => {
+    const s = makeState({
+      gs: GS_PLAYING, phase: "explore",
+      areas: [{ card: PLAIN_CHAMBER, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+      partyArea: 0, prev: 0, party: [member(HERO)],
+      largePack: [CHASM_CARD], largeIdx: 0,
+    });
+    const { events } = reduce(s, { type: "move", dir: DIR_E });
+    expect(events).toContainEqual({ type: "enteredSpecial", special: SPECIAL_CHASM });
   });
 });
 
@@ -325,5 +339,65 @@ describe("The Whirlpool — crossing roll (US-05, SC-EXT-6)", () => {
     expect(state.smallIdx).toBe(0); // the small pack is never touched by a Whirlpool entry
     expect(state.phase).toBe("explore"); // no encounter/pickup triggered by an (absent) draw
     expect(events.some((e) => e.type === "whirlpoolRoll")).toBe(false); // arriving is not crossing
+  });
+});
+
+describe("Whirlpool revision (2026-08-08): no stairway may lead here", () => {
+  it("a vertical move into an ALREADY-PLACED Whirlpool tile is blocked, treated as a dead end", () => {
+    const s = makeState({
+      gs: GS_PLAYING, phase: "explore",
+      areas: [
+        { card: STAIR_DOWN_ONLY, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+        { card: WHIRLPOOL_CARD, coord: packCoord(2, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+      ],
+      partyArea: 0, prev: 0, party: [member(HERO)],
+    });
+    const { state, events } = reduce(s, { type: "move", dir: DIR_DOWN });
+    expect(events).toContainEqual({ type: "deadEnd", dir: DIR_DOWN });
+    expect(state.partyArea).toBe(0); // never moved
+    expect(decodeArea(state.areas[0]!.card).stairDown).toBe(false); // pruned — no longer offered
+  });
+
+  it("a vertical move that would draw the Whirlpool card never connects either — placed face-down", () => {
+    const s = makeState({
+      gs: GS_PLAYING, phase: "explore",
+      areas: [{ card: STAIR_DOWN_ONLY, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+      partyArea: 0, prev: 0, party: [member(HERO)],
+      largePack: [WHIRLPOOL_CARD], largeIdx: 0,
+    });
+    const { state, events } = reduce(s, { type: "move", dir: DIR_DOWN });
+    expect(events).toContainEqual({ type: "deadEnd", dir: DIR_DOWN });
+    expect(state.partyArea).toBe(0);
+    expect(decodeArea(state.areas[0]!.card).stairDown).toBe(false); // pruned
+    expect(state.areas).toHaveLength(2); // the Whirlpool card WAS drawn and placed — just face-down
+    const placed = state.areas[1]!;
+    expect(placed.faceUp).toBe(false);
+    expect(decodeArea(placed.card).special).toBe(SPECIAL_WHIRLPOOL);
+  });
+
+  it("Test Mode's explicit override is exempt — it exists to force scenarios like this one", () => {
+    const s = makeState({
+      gs: GS_PLAYING, phase: "explore", testMode: true,
+      testNextArea: { dir: DIR_DOWN, special: SPECIAL_WHIRLPOOL },
+      areas: [{ card: STAIR_DOWN_ONLY, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+      partyArea: 0, prev: 0, party: [member(HERO)],
+    });
+    const { state, events } = reduce(s, { type: "move", dir: DIR_DOWN });
+    expect(events).not.toContainEqual({ type: "deadEnd", dir: DIR_DOWN });
+    expect(decodeArea(state.areas[state.partyArea]!.card).special).toBe(SPECIAL_WHIRLPOOL);
+  });
+
+  it("relocateDown (descendChasm) skips past a Whirlpool landing to the next level down", () => {
+    const s = chasmState({ party: [member(HERO)], smallPack: [], largePack: [WHIRLPOOL_CARD, PLAIN_CHAMBER] });
+    const { state } = reduce(s, { type: "descendChasm" });
+
+    expect(state.level).toBe(3); // skipped level 2 (the Whirlpool) straight through to level 3
+    const landing = state.areas[state.partyArea]!;
+    expect(landing.card).toBe(PLAIN_CHAMBER);
+    expect(decodeArea(landing.card).special).not.toBe(SPECIAL_WHIRLPOOL);
+    // The skipped-past Whirlpool is still placed on the map at level 2 — just never landed on.
+    const skipped = state.areas.find((a) => unpackCoord(a.coord).level === 2);
+    expect(skipped).toBeDefined();
+    expect(decodeArea(skipped!.card).special).toBe(SPECIAL_WHIRLPOOL);
   });
 });

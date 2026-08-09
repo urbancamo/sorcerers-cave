@@ -197,6 +197,13 @@ describe("jumpToIsland (§10.5, §8.2)", () => {
     expect(getSubLocation(state)).toEqual({ at: "island" });
   });
 
+  it("bug fix 2026-08-08: jumpToIsland consumes a turn, matching an ordinary crossing", () => {
+    const seed = seedForRoll((v) => v >= 3);
+    const s = westEntryState(VIPER_PIT_CARD, { party: [member(5)], seed, turn: 4 });
+    const { state } = reduce(s, { type: "jumpToIsland" });
+    expect(state.turn).toBe(5);
+  });
+
   it("Viper Pit: a fatal roll can wipe the party on the jump itself, exactly like an ordinary crossing", () => {
     const seed = seedForRoll((v) => v <= 2);
     const s = westEntryState(VIPER_PIT_CARD, { party: [member(5)], seed });
@@ -246,8 +253,6 @@ describe("precise dropped treasure — sinking a deliberate drop (§10.5, §8.3)
   it.each([
     ["Deep Pool", DEEP_POOL_CARD],
     ["Viper Pit", VIPER_PIT_CARD],
-    ["Whirlpool", WHIRLPOOL_CARD],
-    ["Chasm", CHASM_CARD],
   ])("%s: a deliberate drop from a doorway sinks into that doorway's bucket, not ordinary contents", (_name, card) => {
     const s = westEntryState(card, { party: [member(5, [1])] });
     const { state } = reduce(s, { type: "dropTreasure", mi: 0, idx: 0 });
@@ -266,6 +271,43 @@ describe("precise dropped treasure — sinking a deliberate drop (§10.5, §8.3)
     const { state } = reduce(s, { type: "dropTreasure", mi: 0, idx: 0 });
     expect(state.treasures).toEqual([1]);
     expect(state.areas[0]!.sunkTreasure ?? []).toEqual([]);
+  });
+
+  // Special-areas revision (2026-08-08, SC-10.5-16): Whirlpool/Chasm no longer sink into their OWN
+  // sunkTreasure at all — a drop falls through the floor to the level below instead.
+  it.each([
+    ["Whirlpool", WHIRLPOOL_CARD],
+    ["Chasm", CHASM_CARD],
+  ])("%s: a deliberate drop never sinks here — it queues for the level below (not yet explored)", (_name, card) => {
+    const s = westEntryState(card, { party: [member(5, [1])] });
+    const { state } = reduce(s, { type: "dropTreasure", mi: 0, idx: 0 });
+    expect(state.areas[0]!.contents).toEqual([]);
+    expect(state.areas[0]!.sunkTreasure ?? []).toEqual([]);
+    expect(state.pendingDrops).toEqual({ [packCoord(2, 50, 50)]: [1] });
+  });
+
+  it.each([
+    ["Whirlpool", WHIRLPOOL_CARD],
+    ["Chasm", CHASM_CARD],
+  ])("%s: a deliberate drop delivers IMMEDIATELY if the level below has already been explored", (_name, card) => {
+    const s = westEntryState(card, {
+      areas: [
+        area(card, packCoord(1, 50, 50)),
+        area(2, packCoord(1, 49, 50)),
+        area(31, packCoord(2, 50, 50)), // already visited (area()'s own default)
+      ],
+      party: [member(5, [1])],
+    });
+    const { state } = reduce(s, { type: "dropTreasure", mi: 0, idx: 0 });
+    expect(state.areas[0]!.contents).toEqual([]);
+    expect(state.pendingDrops ?? {}).toEqual({}); // nothing queued — delivered on the spot
+    expect(state.areas[2]!.contents).toEqual([200 + 1]);
+  });
+
+  it("Chasm: falling through from the island targets the SAME level-below coordinate as a doorway drop", () => {
+    const s = westEntryState(CHASM_CARD, { party: [member(5, [1])], subLocation: { area: 0, at: "island" } });
+    const { state } = reduce(s, { type: "dropTreasure", mi: 0, idx: 0 });
+    expect(state.pendingDrops).toEqual({ [packCoord(2, 50, 50)]: [1] });
   });
 });
 
@@ -311,23 +353,44 @@ describe("precise dropped treasure — reclaim on (re)entry (§10.5, §8.3)", ()
     expect(stillSunk.areas[1]!.sunkTreasure).toEqual([{ at: DIR_N, items: [12] }]);
   });
 
-  it("Whirlpool: sunk treasure has no creature gate — it folds straight into the ordinary chamber draw on re-entry", () => {
-    const s = reenterState(WHIRLPOOL_CARD, [{ at: DIR_N, items: [1] }], [
-      { creatureId: 5, status: 0, dragonKills: 0, treasure: [] },
-    ], { smallPack: [] });
-    const { state, events } = reduce(s, { type: "move", dir: DIR_S });
-    expect(state.treasures).toEqual([1]);
-    expect(state.areas[1]!.sunkTreasure ?? []).toEqual([]);
-    expect(events).toContainEqual({ type: "drewChamber", strangers: [], treasures: [1], hazards: [] });
+  // Special-areas revision (2026-08-08, SC-10.5-16): Whirlpool/Chasm drops no longer wait to be
+  // reclaimed AT THIS tile at all — they fall through to the level below and deliver there, the
+  // moment that specific coordinate is genuinely entered (any path, not only via the special above).
+  it("a pending drop delivers the moment its target coordinate is genuinely entered, via ordinary exploration", () => {
+    // Delivery lands the codes on `area.contents` BEFORE the rest of resolveAreaLoop runs, so a
+    // tunnel's own existing floor-reload immediately sweeps them into a live pickup — exactly like
+    // any other floor treasure. It doesn't linger visibly in `contents`; that's the correct, already-
+    // established behavior (SC-7.3-12), not something this feature needs to duplicate or bypass.
+    const s = makeState({
+      areas: [area(2 /* E-only */, packCoord(1, 50, 50))],
+      partyArea: 0,
+      prev: 0,
+      pendingDrops: { [packCoord(1, 51, 50)]: [1, 2] },
+      largePack: [8], // W-only — connects back on an eastward move
+    });
+    const { state, events } = reduce(s, { type: "move", dir: DIR_E });
+    expect(state.phase).toBe("pickup");
+    expect(state.treasures).toEqual(expect.arrayContaining([1, 2]));
+    expect(state.pendingDrops ?? {}).toEqual({});
+    expect(events).toContainEqual({ type: "pendingDropDelivered", treasureIds: [1, 2] });
   });
 
-  it("Chasm: the same ungated fold-in as Whirlpool", () => {
-    const s = reenterState(CHASM_CARD, [{ at: DIR_N, items: [1] }], [
-      { creatureId: 5, status: 0, dragonKills: 0, treasure: [] },
-    ], { smallPack: [] });
-    const { state } = reduce(s, { type: "move", dir: DIR_S });
+  it("Chasm: descendChasm lands the party right on top of its OWN pending drop, which delivers immediately", () => {
+    const s = makeState({
+      areas: [area(CHASM_CARD, packCoord(1, 50, 50))],
+      partyArea: 0,
+      prev: 0,
+      party: [member(5)],
+      pendingDrops: { [packCoord(2, 50, 50)]: [1] },
+      largePack: [31], // the landing card descendChasm draws
+      smallPack: [],
+    });
+    const { state, events } = reduce(s, { type: "descendChasm" });
+    expect(state.level).toBe(2);
+    expect(state.phase).toBe("pickup"); // enterChamber's own reload sweeps it up immediately, same as above
     expect(state.treasures).toEqual([1]);
-    expect(state.areas[1]!.sunkTreasure ?? []).toEqual([]);
+    expect(state.pendingDrops ?? {}).toEqual({});
+    expect(events).toContainEqual({ type: "pendingDropDelivered", treasureIds: [1] });
   });
 });
 
