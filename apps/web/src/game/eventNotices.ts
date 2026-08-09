@@ -197,7 +197,7 @@ export function eventNotices(events: GameEvent[]): Notice[] {
         else if (e.artifact === 9) out.push({ text: "The Magic Staff frees a companion from stone.", tone: "good" });
         break;
       case "carpetUsed":
-        out.push({ text: "The Magic Carpet whisks the party to a new area.", tone: "neutral" });
+        out.push({ text: "The Magic Carpet whisks the party to a new area, and is left behind.", tone: "neutral" });
         break;
       case "secretDoorRevealed":
         out.push({ text: `A secret stairway is revealed ${e.dir === DIR_DOWN ? "below" : "above"}.`, tone: "good" });

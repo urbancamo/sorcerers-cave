@@ -104,10 +104,14 @@ describe("gap-contract (engine invariants)", () => {
     // The deviation is NOT enforced: withdraw is still on offer...
     expect(legalActions(landed.state)).toContainEqual({ type: "withdraw" });
 
-    // ...and reduce accepts it (steps back, no "blocked").
+    // ...and reduce accepts it (steps back, no "blocked"). It lands in "pickup", not "explore" —
+    // bug fix 2026-08-09 (QOTO-02/03): the carpet is left behind on the tile it was used from, and
+    // withdraw steps right back onto that same tile, reclaiming it exactly like any other floor
+    // treasure (a nice confirmation that "left behind" really means retrievable, not just inert).
     const withdrawn = reduce(landed.state, { type: "withdraw" });
     expect(withdrawn.events).not.toContainEqual({ type: "blocked" });
-    expect(withdrawn.state.phase).toBe("explore");
+    expect(withdrawn.state.phase).toBe("pickup");
+    expect(withdrawn.state.treasures).toEqual([4]);
   });
 
   it("SC-4-41: every GameAction type is handled; an unknown type yields exactly {type:'blocked'}", () => {

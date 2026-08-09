@@ -1278,6 +1278,13 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           const valid = d === 1 || d === 2 || d === 3 || d === 4 || d === DIR_DOWN || (d === DIR_UP && next.level > 1);
           if (!valid) return { state, events: [{ type: "blocked" }] }; // won't take you out of the cave
           consume();
+          // Bug fix 2026-08-09 (QOTO-02/03): the carpet is left behind on the tile it was used from,
+          // not destroyed — "the carpet must be left in the area where it was used, but can be
+          // retrieved and used again" (rulebook §Magic carpet). Parked as an ordinary 200+tid floor
+          // code on the VACATED area (before carpetMove changes partyArea), so it surfaces normally
+          // for pickup on any later (re-)visit — the same mechanism `leaveTreasure`/`dropTreasure`
+          // already use for treasure left on a floor.
+          next.areas[next.partyArea]!.contents.push(204);
           const events: GameEvent[] = [{ type: "artifactUsed", artifact: 4 }, { type: "carpetUsed", dir: d }];
           carpetMove(next, d);
           events.push(...resolveArea(next));
