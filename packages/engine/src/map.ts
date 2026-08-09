@@ -149,10 +149,14 @@ export function tryMove(state: GameState, dir: number): MoveResult {
   // own test — so this only matters if that ever changes.)
   const rawConnects = !!override || dir === DIR_UP || dir === DIR_DOWN || hasReverseDoor(decodeArea(drawn), dir);
   // Whirlpool revision (2026-08-08): a vertical draw that turns up the Whirlpool never connects
-  // either — "any stairway leading to this area is considered blocked." Test Mode's own explicit
-  // override is exempt: it exists precisely to force a scenario like this one for testing.
+  // either — "any stairway leading to this area is considered blocked." Bug fix 2026-08-09
+  // (QOTO-01): a Test Mode override does NOT exempt this one — it's not a printed-orientation
+  // technicality Test Mode exists to bypass, it's a hard rule the real game enforces, and the whole
+  // point of queuing a Whirlpool onto a vertical move in the test rig is to confirm the block still
+  // fires. (An override still bypasses the ordinary reverse-door/orientation check above, and is
+  // still consumed here either way — see the face-down placement this falls through to below.)
   const connects = rawConnects &&
-    !(!override && (dir === DIR_UP || dir === DIR_DOWN) && decodeArea(drawn).special === SPECIAL_WHIRLPOOL);
+    !((dir === DIR_UP || dir === DIR_DOWN) && decodeArea(drawn).special === SPECIAL_WHIRLPOOL);
 
   if (connects) {
     // A stairway leading to an area with no matching stair pictured has a secret door at that end

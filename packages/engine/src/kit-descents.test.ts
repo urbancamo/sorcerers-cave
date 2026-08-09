@@ -375,7 +375,7 @@ describe("Whirlpool revision (2026-08-08): no stairway may lead here", () => {
     expect(decodeArea(placed.card).special).toBe(SPECIAL_WHIRLPOOL);
   });
 
-  it("Test Mode's explicit override is exempt — it exists to force scenarios like this one", () => {
+  it("bug fix 2026-08-09 (QOTO-01): not even a Test Mode override can force this — the block still fires", () => {
     const s = makeState({
       gs: GS_PLAYING, phase: "explore", testMode: true,
       testNextArea: { dir: DIR_DOWN, special: SPECIAL_WHIRLPOOL },
@@ -383,8 +383,13 @@ describe("Whirlpool revision (2026-08-08): no stairway may lead here", () => {
       partyArea: 0, prev: 0, party: [member(HERO)],
     });
     const { state, events } = reduce(s, { type: "move", dir: DIR_DOWN });
-    expect(events).not.toContainEqual({ type: "deadEnd", dir: DIR_DOWN });
-    expect(decodeArea(state.areas[state.partyArea]!.card).special).toBe(SPECIAL_WHIRLPOOL);
+    expect(events).toContainEqual({ type: "deadEnd", dir: DIR_DOWN }); // blocked exactly like the ordinary draw
+    expect(state.partyArea).toBe(0); // never moved
+    expect(decodeArea(state.areas[0]!.card).stairDown).toBe(false); // pruned
+    expect(state.areas).toHaveLength(2); // the Whirlpool WAS placed — just face-down, same as an un-forced draw
+    expect(state.areas[1]!.faceUp).toBe(false);
+    expect(decodeArea(state.areas[1]!.card).special).toBe(SPECIAL_WHIRLPOOL);
+    expect(state.testNextArea).toBeUndefined(); // the override is still consumed, whatever the outcome
   });
 
   it("relocateDown (descendChasm) skips past a Whirlpool landing to the next level down", () => {

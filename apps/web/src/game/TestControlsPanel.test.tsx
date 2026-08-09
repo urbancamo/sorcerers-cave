@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import {
-  newGame, SPECIAL_WHIRLPOOL, SPECIAL_DEEP_POOL, DIR_N,
+  newGame, SPECIAL_WHIRLPOOL, SPECIAL_DEEP_POOL, DIR_N, DIR_UP, DIR_DOWN,
   CREATURES, TREASURES, HAZARD_NAMES, ALL_CREATURES, ALL_TREASURES, ALL_HAZARD_NAMES,
   type GameState,
 } from "@sorcerers-cave/engine";
@@ -25,6 +25,25 @@ describe("TestControlsPanel", () => {
     fireEvent.change(screen.getByLabelText(/next area — special/i), { target: { value: String(SPECIAL_WHIRLPOOL) } });
     fireEvent.click(screen.getByRole("button", { name: /queue next area/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "testPlaceArea", dir: DIR_N, special: SPECIAL_WHIRLPOOL });
+  });
+
+  // Bug fix 2026-08-09 (QOTO-01): Up/Down were missing from the direction picker, so a tester could
+  // never queue a special for a vertical move at all — e.g. to confirm the Whirlpool's own
+  // no-stairway-connects block (SC-EXT-6) fires instead of silently connecting.
+  it("offers Up/Down direction options", () => {
+    render(<TestControlsPanel state={kitOnState()} dispatch={() => {}} />);
+    const dirSelect = screen.getByLabelText(/next area — direction/i);
+    expect(dirSelect.querySelector(`option[value="${DIR_UP}"]`)).not.toBeNull();
+    expect(dirSelect.querySelector(`option[value="${DIR_DOWN}"]`)).not.toBeNull();
+  });
+
+  it("queues testPlaceArea with a vertical direction", () => {
+    const dispatch = vi.fn();
+    render(<TestControlsPanel state={kitOnState()} dispatch={dispatch} />);
+    fireEvent.change(screen.getByLabelText(/next area — direction/i), { target: { value: String(DIR_DOWN) } });
+    fireEvent.change(screen.getByLabelText(/next area — special/i), { target: { value: String(SPECIAL_WHIRLPOOL) } });
+    fireEvent.click(screen.getByRole("button", { name: /queue next area/i }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "testPlaceArea", dir: DIR_DOWN, special: SPECIAL_WHIRLPOOL });
   });
 
   it("queues testPlaceArea with a base special on a kit-off game", () => {

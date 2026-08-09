@@ -4,7 +4,7 @@ import {
   CREATURES, TREASURES, HAZARD_NAMES,
   SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_TOMB, SPECIAL_GREAT_HALL,
   SPECIAL_CHASM, SPECIAL_BELL_ROPE, SPECIAL_LAIR, SPECIAL_WHIRLPOOL, SPECIAL_GALLERY, SPECIAL_WELL,
-  DIR_N, DIR_E, DIR_S, DIR_W,
+  DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN,
   type GameState, type GameAction,
 } from "@sorcerers-cave/engine";
 
@@ -22,11 +22,16 @@ const SPECIAL_OPTIONS = [
 ];
 const SPECIAL_LABEL = new Map(SPECIAL_OPTIONS.map((o) => [o.id, o.label]));
 
+// Bug fix 2026-08-09 (QOTO-01): Up/Down were missing entirely, so a tester could never queue a
+// special for a vertical move — e.g. to confirm the Whirlpool's own "no stairway may lead here"
+// block (SC-EXT-6) actually fires rather than silently connecting.
 const DIR_OPTIONS = [
   { dir: DIR_N, label: "North" },
   { dir: DIR_E, label: "East" },
   { dir: DIR_S, label: "South" },
   { dir: DIR_W, label: "West" },
+  { dir: DIR_UP, label: "Up" },
+  { dir: DIR_DOWN, label: "Down" },
 ];
 const DIR_LABEL = new Map(DIR_OPTIONS.map((o) => [o.dir, o.label]));
 
