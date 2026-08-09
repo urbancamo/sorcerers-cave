@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
 import { makeState } from "./testkit";
-import { packCoord, DIR_E, DIR_UP } from "./coords";
+import { packCoord, DIR_E, DIR_UP, DIR_DOWN } from "./coords";
+import { decodeArea } from "./decode";
 
 const wizardWithCarpet = () => ({ creatureId: 8, status: 0 as const, dragonKills: 0, treasure: [4] });
 
@@ -56,5 +57,26 @@ describe("Magic Carpet (treasure id 4, § Magic Carpet)", () => {
     const s = makeState({ party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [4] }] }); // Hero
     const { events } = reduce(s, { type: "useArtifact", artifact: 4, dir: DIR_E });
     expect(events).toEqual([{ type: "blocked" }]); // no valid bearer
+  });
+
+  it("bug fix 2026-08-09: a vertical teleport onto unexplored space mirrors no return stair", () => {
+    const s = makeState({
+      party: [wizardWithCarpet()],
+      areas: [{ card: CORRIDOR, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+      largePack: [CORRIDOR], // no stairUp/stairDown bits of its own
+      largeIdx: 0,
+      partyArea: 0,
+      level: 1,
+    });
+    const { state } = reduce(s, { type: "useArtifact", artifact: 4, dir: DIR_DOWN });
+    const landed = state.areas[state.partyArea]!;
+    expect(landed.card).toBe(CORRIDOR); // placed exactly as drawn/printed — no OR-ed stair bit
+    expect(landed.mirroredStairs ?? 0).toBe(0); // no invented connectivity link either
+    expect(decodeArea(landed.card).stairUp).toBe(false);
+
+    // The rulebook is explicit: "you may not withdraw, and the carpet remains behind" — proving there
+    // is no secret door back means an ORDINARY move can't retrace the carpet's own path either.
+    const backUp = reduce(state, { type: "move", dir: DIR_UP });
+    expect(backUp.events).toEqual([{ type: "blocked" }]);
   });
 });

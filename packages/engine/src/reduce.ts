@@ -540,12 +540,12 @@ function carpetMove(state: GameState, dir: number): void {
   const targetLevel = unpackCoord(target).level;
   let idx = state.areas.findIndex((a) => a.coord === target);
   if (idx < 0) {
-    let drawn = state.largeIdx < state.largePack.length ? state.largePack[state.largeIdx++]! : 31;
-    const mirroredStairs = (dir === DIR_DOWN ? 32 : 0) | (dir === DIR_UP ? 64 : 0); // climb/descend-back link, not printed art
-    if (dir === DIR_DOWN) drawn |= 32; // mirror a stair-up so the party can climb back
-    if (dir === DIR_UP) drawn |= 64; // mirror a stair-down so the party can descend back
-    // A printed stair-up on a level-1 card is a cave exit and is kept (§ level-1 exits) — see tryMove.
-    state.areas.push({ card: drawn, coord: target, faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0, mirroredStairs });
+    const drawn = state.largeIdx < state.largePack.length ? state.largePack[state.largeIdx++]! : 31;
+    // Bug fix 2026-08-09: the carpet must not invent a return path — "you may not withdraw, and the
+    // carpet remains behind" (rulebook §Magic carpet). This used to OR a phantom stair bit onto the
+    // drawn card so the party could later climb/descend back by ordinary movement — exactly the
+    // secret door the rules never grant. The card is placed exactly as drawn/printed, unmirrored.
+    state.areas.push({ card: drawn, coord: target, faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 });
     idx = state.areas.length - 1;
   } else {
     state.areas[idx]!.faceUp = true;
