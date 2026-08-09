@@ -14,7 +14,7 @@ import { frontStrength } from "./combat";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import {
   wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, ringInvincible, usesArtifactsAs,
-  hasLivingHuman, holyWaterTargets, HW_STATUE_BASE, HW_MEDUSA, HW_STRANGER_BASE,
+  hasLivingHuman, holyWaterTargets, HW_STATUE_BASE, HW_MEDUSA, HW_STRANGER_BASE, HW_PARKED_STATUE_BASE,
 } from "./effects";
 import { BORNEABLE, isBorne, sweepFallen, spillCarried } from "./loot";
 import { rollDie } from "./rng";
@@ -1370,8 +1370,17 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
               return { state: next, events };
             }
             case "wake": { // Gallery statue -> wakes into strangers for an immediate, normal reaction test
-              const idx = found.target - HW_STATUE_BASE;
-              next.statues!.splice(idx, 1);
+              // Bug fix 2026-08-09 (QOTO-04): the statue may be live (mid-resolution, state.statues)
+              // or already PARKED on the tile's own contents as 500+cid (settled to explore with
+              // nothing else pending, holyWaterTargets' own comment explains why) — remove it from
+              // whichever it actually came from.
+              if (found.target >= HW_PARKED_STATUE_BASE) {
+                const ci = found.target - HW_PARKED_STATUE_BASE;
+                next.areas[next.partyArea]!.contents.splice(ci, 1);
+              } else {
+                const idx = found.target - HW_STATUE_BASE;
+                next.statues!.splice(idx, 1);
+              }
               next.strangers.push(found.creatureId!);
               next.phase = "encounter";
               next.surpriseReady = false; // this is well after any fresh entry — never a surprise attack

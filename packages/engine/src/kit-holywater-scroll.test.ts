@@ -2,10 +2,11 @@ import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
 import { legalActions } from "./selectors";
 import { enemyMP } from "./combatPlan";
-import { HW_STATUE_BASE, HW_MEDUSA, HW_STRANGER_BASE } from "./effects";
+import { HW_STATUE_BASE, HW_MEDUSA, HW_STRANGER_BASE, HW_PARKED_STATUE_BASE } from "./effects";
 import { makeState } from "./testkit";
 import { packCoord } from "./coords";
 import { HAZARD_MEDUSA } from "./data/hazards";
+import { SPECIAL_GALLERY } from "./data/areaCards";
 import type { PartyMember } from "./state";
 
 /**
@@ -110,6 +111,79 @@ describe("Holy Water (US-20, SC-EXT-24)", () => {
 
       expect(state.statues).toEqual([MAN]); // OGRE (index 1) woke — MAN stays stone
       expect(state.strangers).toEqual([OGRE]);
+    });
+
+    // Bug fix 2026-08-09 (QOTO-04, docs/requirements/bug-fixes/2026-08-09-holy-water.md): a Gallery
+    // draw with nothing ELSE pending settles straight to explore (persistAndExplore, SC-EXT-10),
+    // which parks the statue onto the tile's own contents as 500+cid and clears the LIVE
+    // state.statues working set — the single most common Gallery shape (a room of statues and
+    // nothing else). Before this fix, Holy Water's wake option was invisible here from the very
+    // first visit, and leaving/re-entering never fixed it (the same settle re-fires identically).
+    describe("bug fix 2026-08-09 (QOTO-04): a statue already PARKED on the tile (nothing else pending)", () => {
+      const galleryArea = { card: (SPECIAL_GALLERY << 7) | 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [500 + MAN], flags: 0, indiffCount: 0 };
+
+      it("is offered by legalActions while simply resting there, live state.statues empty", () => {
+        const s = makeState({
+          phase: "explore",
+          areas: [galleryArea],
+          partyArea: 0,
+          party: [member(HERO, [T_HOLY_WATER])],
+        });
+        expect(s.statues).toBeUndefined(); // genuinely settled — nothing live to read
+        expect(legalActions(s)).toContainEqual({ type: "useArtifact", artifact: T_HOLY_WATER, target: HW_PARKED_STATUE_BASE });
+      });
+
+      it("wakes it into strangers, removes it from contents, and starts the reaction flow", () => {
+        const s = makeState({
+          phase: "explore",
+          areas: [galleryArea],
+          partyArea: 0,
+          party: [member(HERO, [T_HOLY_WATER])],
+        });
+        const { state, events } = reduce(s, { type: "useArtifact", artifact: T_HOLY_WATER, target: HW_PARKED_STATUE_BASE });
+
+        expect(state.areas[0]!.contents).toEqual([]);
+        expect(state.strangers).toEqual([MAN]);
+        expect(state.phase).toBe("encounter");
+        expect(events).toContainEqual({ type: "holyWaterStatueWoke", creatureId: MAN });
+        expect(legalActions(state)).toContainEqual({ type: "test" });
+      });
+
+      it("targets the correct parked statue by content index, leaving unrelated content untouched", () => {
+        const mixedArea = { ...galleryArea, contents: [200 + 3, 500 + MAN, 500 + OGRE] }; // Silver, then two statues
+        const s = makeState({
+          phase: "explore",
+          areas: [mixedArea],
+          partyArea: 0,
+          party: [member(HERO, [T_HOLY_WATER])],
+        });
+        const { state } = reduce(s, { type: "useArtifact", artifact: T_HOLY_WATER, target: HW_PARKED_STATUE_BASE + 2 });
+
+        expect(state.areas[0]!.contents).toEqual([200 + 3, 500 + MAN]); // OGRE (index 2) woke; Silver and MAN's statue untouched
+        expect(state.strangers).toEqual([OGRE]);
+      });
+
+      it("end to end: a fresh Gallery entry with only a Man draws, settles to explore, and Holy Water still wakes it", () => {
+        const s = makeState({
+          phase: "explore",
+          areas: [{ card: 15, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+          partyArea: 0,
+          prev: 0,
+          largePack: [(SPECIAL_GALLERY << 7) | 31],
+          largeIdx: 0,
+          smallPack: [100 + MAN],
+          smallIdx: 0,
+          party: [member(HERO, [T_HOLY_WATER])],
+        });
+        const entered = reduce(s, { type: "move", dir: 2 /* DIR_E */ });
+        expect(entered.state.phase).toBe("explore"); // settled immediately — nothing else was drawn
+        expect(entered.state.statues).toEqual([]); // already parked, not live
+        expect(entered.state.areas[1]!.contents).toEqual([500 + MAN]);
+
+        const woken = reduce(entered.state, { type: "useArtifact", artifact: T_HOLY_WATER, target: HW_PARKED_STATUE_BASE });
+        expect(woken.state.phase).toBe("encounter");
+        expect(woken.state.strangers).toEqual([MAN]);
+      });
     });
   });
 

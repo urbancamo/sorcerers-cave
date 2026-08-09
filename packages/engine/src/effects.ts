@@ -213,9 +213,13 @@ export function hasLivingHuman(state: GameState): boolean {
 // enumerates it to build the picker, and `reduce.ts`'s `useArtifact` case 16 looks up the SAME
 // function's output to validate and interpret whichever `target` the player chose — so the two can
 // never drift apart on what counts as a legal target.
-export const HW_STATUE_BASE = 1000; // + index into state.statues (REANIMATE a Gallery statue)
+export const HW_STATUE_BASE = 1000; // + index into state.statues (REANIMATE a Gallery statue, live working set)
 export const HW_MEDUSA = 2000; // singleton sentinel (DESTROY the area's lurking Medusa marker)
 export const HW_STRANGER_BASE = 3000; // + index into state.strangers (DESTROY Spectre/Demon, or WEAKEN Sorcerer/Apprentice)
+// Bug fix 2026-08-09 (QOTO-04): + index into the CURRENT area's `contents` array, for a Gallery
+// statue already PARKED there as a 500+cid code — see holyWaterTargets' own comment below for why
+// this fourth pool exists distinctly from HW_STATUE_BASE.
+export const HW_PARKED_STATUE_BASE = 4000;
 
 export type HolyWaterMode = "revive" | "wake" | "destroyMedusa" | "destroy" | "weaken";
 
@@ -237,6 +241,24 @@ export function holyWaterTargets(state: GameState): HolyWaterTarget[] {
       if (m.status === 2 && m.stoneArea === state.partyArea) out.push({ target: mi, creatureId: m.creatureId, mode: "revive" });
     });
     (state.statues ?? []).forEach((creatureId, i) => out.push({ target: HW_STATUE_BASE + i, creatureId, mode: "wake" }));
+    // Bug fix 2026-08-09 (QOTO-04): a Gallery draw with nothing else pending (no live strangers or
+    // treasure) settles straight to `explore` (`persistAndExplore`, SC-EXT-10's own "resolves
+    // straight to pickup/explore like no strangers at all") — which PARKS its statues onto the
+    // tile's OWN `contents` as 500+cid and clears the live `state.statues` working set, exactly like
+    // `sleeping`/`lulled`. `state.statues` is therefore ALWAYS empty by the time the party is simply
+    // resting in `explore` here — without this, Holy Water's wake option was invisible for the
+    // single most common Gallery shape (a room of statues and nothing else, or one where the
+    // treasure alongside them has since been collected) from the very first visit onward, and
+    // leaving/re-entering re-triggers the identical settle, never fixing it on its own. Mirrors the
+    // Deep Pool/Viper Pit stationary-reclaim precedent (SC-10.5-13): offer the action while simply
+    // PARKED at the location holding it, not only mid-resolution. A distinct pool from
+    // HW_STATUE_BASE (never both non-empty at once, but kept separate rather than relying on that)
+    // since the target here is a `contents` array index, not a `state.statues` index.
+    if (state.phase === "explore") {
+      state.areas[state.partyArea]?.contents.forEach((code, i) => {
+        if (code >= 500 && code < 600) out.push({ target: HW_PARKED_STATUE_BASE + i, creatureId: code - 500, mode: "wake" });
+      });
+    }
     if (state.areas[state.partyArea]?.contents.includes(300 + HAZARD_MEDUSA)) {
       out.push({ target: HW_MEDUSA, mode: "destroyMedusa" });
     }
