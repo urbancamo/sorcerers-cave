@@ -13,7 +13,7 @@ import { decodeArea } from "./decode";
 import { AF_DESTROYED, AF_UNRESOLVED, type GameState, type PartyMember } from "./state";
 import type { GameEvent } from "./actions";
 import { frontStrength, partyRollBonus } from "./combat";
-import { eyeForsakenByDeath, ringInvincible, usesArtifactsAs } from "./effects";
+import { eyeForsakenByDeath, markDied, ringInvincible, usesArtifactsAs } from "./effects";
 import { spillCarried, sweepFallen } from "./loot";
 import { stashOrDeliver } from "./chamber";
 
@@ -160,7 +160,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
           if (enemyTotal > partyTotal) {
             // The Ring makes its bearer immune to a killing die-roll at level >= 4 (negated by the Eye) — §Ring.
             if (ringInvincible(m, state)) events.push({ type: "deathPrevented", creatureId: m.creatureId });
-            else { m.status = 3; events.push(...eyeForsakenByDeath(state, m)); }
+            else { markDied(state, m); events.push(...eyeForsakenByDeath(state, m)); }
           }
         }
         // The ghoul-slain spill their carried artifacts onto the floor with the dropped heavy treasure
@@ -296,7 +296,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
           if (ringInvincible(loser.m, state)) {
             events.push({ type: "deathPrevented", creatureId: loser.m.creatureId });
           } else {
-            loser.m.status = 3;
+            markDied(state, loser.m);
             // No `memberDied` here — the `quarrel` event above already carries its own dedicated
             // Feedback wording ("[loser] falls to [winner]'s fury."); Ghouls sets the precedent for
             // a hazard-specific death not doubling up on the generic notice. Curse check BEFORE the

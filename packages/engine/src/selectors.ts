@@ -4,7 +4,7 @@ import { GS_PLAYING, AF_DESTROYED, AF_BELL_SPENT, type GameState } from "./state
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
 import type { GameAction } from "./actions";
 import { canCarry } from "./pickup";
-import { usesArtifactsAs, holyWaterTargets, hasLivingHuman, fluteLulls } from "./effects";
+import { usesArtifactsAs, holyWaterTargets, hasLivingHuman, fluteLulls, healingBalmEligible } from "./effects";
 import { getSubLocation, oppositeDir, RING_ADJACENCY_SPECIALS, ISLAND_JUMP_SPECIALS, type SubLocation } from "./subLocation";
 import { giantCanRecover, sunkKey } from "./special";
 
@@ -96,8 +96,10 @@ function artifactActions(state: GameState): GameAction[] {
   // offered the same actions — Apprentice as Wizard(8), Scholar/Witch as Priest(4), Thief as
   // Man(5). Strength Potion's target list above names specific base creatures, not a class of
   // USERS, so it is deliberately excluded from this treatment.
+  // House rule (SC-11-15a): only offered for a member who fell THIS turn, in THIS area — the
+  // same "before the party's next move" window `healingBalmEligible` enforces in the reducer.
   if (atRestOrLooting && has(6, (id) => id === 6 || id === 1 || usesArtifactsAs(id, 4) || usesArtifactsAs(id, 8))) { // Healing Balm -> Woman/W-Hero/Priest/Wizard, per dead member
-    state.party.forEach((m, idx) => { if (m.status === 3) actions.push({ type: "useArtifact", artifact: 6, target: idx }); });
+    state.party.forEach((_, idx) => { if (healingBalmEligible(state, idx)) actions.push({ type: "useArtifact", artifact: 6, target: idx }); });
   }
   if (atRestOrLooting && has(9, (id) => usesArtifactsAs(id, 8))) { // Magic Staff (Wizard) -> each stoned member left in THIS area
     state.party.forEach((m, idx) => { if (m.status === 2 && m.stoneArea === state.partyArea) actions.push({ type: "useArtifact", artifact: 9, target: idx }); });

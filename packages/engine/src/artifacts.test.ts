@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
+import { legalActions } from "./selectors";
 import { frontStrength } from "./combat";
 import { makeState } from "./testkit";
 import { packCoord } from "./coords";
@@ -24,7 +25,8 @@ describe("useArtifact — Strength Potion (§9.3)", () => {
 
 describe("useArtifact — Healing Balm (§16)", () => {
   it("a Woman/Priest/Wizard revives a dead member and consumes the balm", () => {
-    const s = makeState({ phase: "explore", areas: [area], party: [member(4, [6]), member(5, [], 3)] }); // Priest with balm + dead Man
+    // Died this same turn, in this same area (partyArea 0, turn 1 — makeState's defaults) — within the house-rule window.
+    const s = makeState({ phase: "explore", areas: [area], party: [member(4, [6]), { ...member(5, [], 3), diedTurn: 1, diedArea: 0 }] }); // Priest with balm + dead Man
     const { state } = reduce(s, { type: "useArtifact", artifact: 6, target: 1 });
     expect(state.party[1]!.status).toBe(0); // revived
     expect(state.party[0]!.treasure).toEqual([]); // consumed
@@ -32,6 +34,33 @@ describe("useArtifact — Healing Balm (§16)", () => {
   it("is rejected when the bearer is not a Woman/Priest/Wizard", () => {
     const s = makeState({ phase: "explore", areas: [area], party: [member(0, [6]), member(5, [], 3)] }); // Hero holds balm
     expect(reduce(s, { type: "useArtifact", artifact: 6, target: 1 }).events).toContainEqual({ type: "blocked" });
+  });
+
+  // House rule (SC-11-15a, docs/requirements/bug-fixes/2026-08-10-healing-balm.md): usable only "at
+  // the beginning of a turn when any fighting is over, only in the first such turn subsequent to the
+  // death, and only if the party has not moved from the area where the death occurred."
+  describe("house rule — same-turn, same-area window (SC-11-15a)", () => {
+    it("is rejected once the party's turn has moved on from the death", () => {
+      // Died on turn 1; the party is now on turn 2 (a move happened since) — window closed.
+      const s = makeState({ phase: "explore", turn: 2, areas: [area], party: [member(4, [6]), { ...member(5, [], 3), diedTurn: 1, diedArea: 0 }] });
+      expect(reduce(s, { type: "useArtifact", artifact: 6, target: 1 }).events).toContainEqual({ type: "blocked" });
+      expect(legalActions(s)).not.toContainEqual({ type: "useArtifact", artifact: 6, target: 1 });
+    });
+
+    it("is rejected when the fallen member died in a different area than the party is currently in", () => {
+      // Same turn as the death (5), but the party's current area (1) differs from where they fell (0)
+      // — e.g. left behind by a retreat, which moves the party without advancing the turn.
+      const s = makeState({ phase: "explore", turn: 5, partyArea: 1, areas: [area, area], party: [member(4, [6]), { ...member(5, [], 3), diedTurn: 5, diedArea: 0 }] });
+      expect(reduce(s, { type: "useArtifact", artifact: 6, target: 1 }).events).toContainEqual({ type: "blocked" });
+      expect(legalActions(s)).not.toContainEqual({ type: "useArtifact", artifact: 6, target: 1 });
+    });
+
+    it("still covers a member who fell just this turn, in this area, during pickup right after the fight", () => {
+      const s = makeState({ phase: "pickup", turn: 3, partyArea: 2, areas: [area, area, area], party: [member(4, [6]), { ...member(5, [], 3), diedTurn: 3, diedArea: 2 }] });
+      expect(legalActions(s)).toContainEqual({ type: "useArtifact", artifact: 6, target: 1 });
+      const { state } = reduce(s, { type: "useArtifact", artifact: 6, target: 1 });
+      expect(state.party[1]!.status).toBe(0); // revived
+    });
   });
 });
 

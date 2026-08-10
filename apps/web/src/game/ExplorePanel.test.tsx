@@ -137,6 +137,8 @@ describe("ExplorePanel", () => {
     const s = newGame(1, [6, 5]); // Woman + Man
     s.party[0]!.treasure.push(6); // Woman carries Healing Balm
     s.party[1]!.status = 3; // Man has fallen
+    s.party[1]!.diedTurn = s.turn; // this same turn/area — within the Balm's house-rule window (SC-11-15a)
+    s.party[1]!.diedArea = s.partyArea;
     render(<ExplorePanel state={s} dispatch={dispatch} />);
     fireEvent.click(screen.getByRole("button", { name: /healing balm — revive man/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "useArtifact", artifact: 6, target: 1 });

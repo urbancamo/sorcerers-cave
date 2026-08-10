@@ -64,7 +64,7 @@ describe("Class-based artifact eligibility — Apprentice uses artifacts as a Wi
   });
 
   it("uses the Healing Balm (Woman/W-Hero/Priest/Wizard list)", () => {
-    const s = makeState({ phase: "explore", areas: [AREA], party: [member(APPRENTICE, [HEALING_BALM]), member(MAN, [], 3)] });
+    const s = makeState({ phase: "explore", areas: [AREA], party: [member(APPRENTICE, [HEALING_BALM]), { ...member(MAN, [], 3), diedTurn: 1, diedArea: 0 }] });
     const { state } = reduce(s, { type: "useArtifact", artifact: HEALING_BALM, target: 1 });
     expect(state.party[1]!.status).toBe(0); // revived
   });
@@ -175,7 +175,7 @@ describe("Class-based artifact eligibility — Scholar & Witch use artifacts as 
     });
 
     it(`${name} uses the Healing Balm`, () => {
-      const s = makeState({ phase: "explore", areas: [AREA], party: [member(id, [HEALING_BALM]), member(MAN, [], 3)] });
+      const s = makeState({ phase: "explore", areas: [AREA], party: [member(id, [HEALING_BALM]), { ...member(MAN, [], 3), diedTurn: 1, diedArea: 0 }] });
       const { state } = reduce(s, { type: "useArtifact", artifact: HEALING_BALM, target: 1 });
       expect(state.party[1]!.status).toBe(0);
     });

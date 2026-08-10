@@ -51,6 +51,11 @@ export interface PartyMember {
   fsBonus?: number;
   stoneArea?: number; // when petrified (status 2): the area index where Medusa struck — the member is
                       // left there until a Wizard with the Magic Staff returns to free it (§Medusa).
+  // When slain (status 3): the turn and area the death occurred, stamped by `markDied` (effects.ts).
+  // Drives the Healing Balm's house-rule window (SC-11-15a): usable only in this same turn, in this
+  // same area — i.e. before the party's next move. Cleared on revival (irrelevant once living again).
+  diedTurn?: number;
+  diedArea?: number;
   // Multiplayer-only identity tag ("loan:<seat>" | "recruit:<unionId>") — lets the union layer
   // re-derive a loaned/recruited member's position after solo actions that reshape the party array
   // (Mutiny SPLICES deserters out, so stored indices go stale). Solo play never reads or writes it.

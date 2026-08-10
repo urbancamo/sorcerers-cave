@@ -222,6 +222,8 @@ describe("EncounterPanel", () => {
     const pickup: GameState = { ...newGame(1, [5, 6]), phase: "pickup", treasures: [14] };
     pickup.party[1]!.treasure.push(6); // the Woman carries the Healing Balm
     pickup.party[0]!.status = 3;      // the Man has fallen — revivable while looting
+    pickup.party[0]!.diedTurn = pickup.turn; // this same turn/area — within the house-rule window (SC-11-15a)
+    pickup.party[0]!.diedArea = pickup.partyArea;
     render(<EncounterPanel state={pickup} dispatch={dispatch} />);
     expect(screen.getByText("The Treasure Chest is too heavy for anyone to carry.")).toBeInTheDocument();
     expect(dispatch).not.toHaveBeenCalled();

@@ -521,7 +521,7 @@ describe("reduce — stranger encounters (C-2 §8)", () => {
       phase: "pickup", treasures: [1], // treasure on the floor after a fight
       party: [
         { creatureId: 6, status: 0, dragonKills: 0, treasure: [6] }, // Woman holding the Healing Balm
-        { creatureId: 0, status: 3, dragonKills: 0, treasure: [] },  // fallen Hero
+        { creatureId: 0, status: 3, dragonKills: 0, treasure: [], diedTurn: 1, diedArea: 0 }, // fallen Hero, this turn/area
       ],
       areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
     });
@@ -1139,7 +1139,7 @@ describe("reduce — treasure redistribution (party panel)", () => {
       phase: "explore",
       party: [
         { creatureId: 1, status: 0, dragonKills: 0, treasure: [6] }, // Woman-Hero holding the Balm
-        { creatureId: 0, status: 3, dragonKills: 0, treasure: [] },  // fallen Hero
+        { creatureId: 0, status: 3, dragonKills: 0, treasure: [], diedTurn: 1, diedArea: 0 }, // fallen Hero, this turn/area
       ],
       areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
     });

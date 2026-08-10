@@ -95,6 +95,25 @@ export function eyeForsakenByDeath(state: GameState, fallen: PartyMember): GameE
   return [{ type: "eyeForsaken" }];
 }
 
+/** Slay a member and stamp when/where it happened (SC-11-15a) — call at every death site, alongside
+ *  `eyeForsakenByDeath`, instead of setting `status = 3` directly. */
+export function markDied(state: GameState, member: PartyMember): void {
+  member.status = 3;
+  member.diedTurn = state.turn;
+  member.diedArea = state.partyArea;
+}
+
+/**
+ * House rule (SC-11-15a): the Healing Balm may only revive a fallen member in the same turn they
+ * died, in the same area they died in — i.e. before the party's next move. A fight spans a single
+ * turn number (only `move` advances `turn`), so this also covers "not between rounds of fighting"
+ * and excludes anyone left behind by a retreat (retreat changes `partyArea` without advancing `turn`).
+ */
+export function healingBalmEligible(state: GameState, idx: number): boolean {
+  const m = state.party[idx];
+  return !!m && m.status === 3 && m.diedTurn === state.turn && m.diedArea === state.partyArea;
+}
+
 /** The Talisman wards off Spectres on the 4th level or deeper (this edition's deck has no Zombies/Ghouls). */
 export function talismanWardsSpectres(state: GameState): boolean {
   return state.level >= 4 && partyHolds(state, T_TALISMAN);

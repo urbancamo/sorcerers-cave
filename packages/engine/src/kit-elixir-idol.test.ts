@@ -54,7 +54,9 @@ describe("useArtifact — Elixir (US-19, SC-EXT-22)", () => {
       seed,
     });
     const { state, events } = reduce(s, { type: "useArtifact", artifact: T_ELIXIR, target: 0 });
-    expect(state.party[0]!.status).toBe(3); // dead — Balm-revivable like any normal death
+    expect(state.party[0]!.status).toBe(3); // dead — Balm-revivable like any normal death, within the SC-11-15a window
+    expect(state.party[0]!.diedTurn).toBe(state.turn); // stamped for the Healing Balm's turn/area window
+    expect(state.party[0]!.diedArea).toBe(state.partyArea);
     expect(state.party[0]!.treasure).toEqual([]); // Elixir consumed, Eye of God spilled — nothing left
     expect(state.curses).toBe(1); // the Eye check ran while it was still on the corpse, not after the spill
     expect(events).toContainEqual({ type: "artifactUsed", artifact: T_ELIXIR });
@@ -62,6 +64,24 @@ describe("useArtifact — Elixir (US-19, SC-EXT-22)", () => {
     expect(events).toContainEqual({ type: "itemsSpilled", creatureId: HERO, items: [T_EYE_OF_GOD] });
     expect(events).toContainEqual({ type: "elixirDrunk", creatureId: HERO, roll: 1, outcome: "death" });
     expect(state.treasures).toEqual([T_EYE_OF_GOD]); // spilled onto the chamber floor
+  });
+
+  it("1: a poisoned drinker IS Balm-revivable this same turn — the house rule permits it (SC-11-15a)", () => {
+    // The rule doc calls this out explicitly: "It does potentially cover a creature who was poisoned
+    // by Elixir" — the drinking happens outside a fight (explore/pickup), so there's no "fighting is
+    // over" gate to fail; only the same-turn/same-area window applies, same as any other death.
+    const seed = seedForValue(1);
+    const s = makeState({
+      phase: "explore",
+      areas: [area],
+      party: [member(WIZARD, [6]), member(HERO, [T_ELIXIR])], // Wizard bears the Balm too
+      seed,
+    });
+    const drunk = reduce(s, { type: "useArtifact", artifact: T_ELIXIR, target: 1 });
+    expect(drunk.state.party[1]!.status).toBe(3);
+    expect(legalActions(drunk.state)).toContainEqual({ type: "useArtifact", artifact: 6, target: 1 });
+    const revived = reduce(drunk.state, { type: "useArtifact", artifact: 6, target: 1 });
+    expect(revived.state.party[1]!.status).toBe(0); // revived within the window
   });
 
   it("1: the Ring's usual invincibility still applies (a killing die-roll, §Ring) — no death, no spill", () => {

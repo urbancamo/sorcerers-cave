@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { resolvePlannedRound } from "./combatPlan";
 import { reduce } from "./reduce";
 import { frontStrength } from "./combat";
+import { healingBalmEligible } from "./effects";
 import { makeState } from "./testkit";
 import { packCoord } from "./coords";
 import { GS_DEAD } from "./state";
@@ -181,6 +182,21 @@ describe("SC-9.5-6 retreat legality (§Retreat)", () => {
     expect(events).not.toContainEqual(expect.objectContaining({ type: "deadEnd" }));
     expect(state.fight).toBe(null); // the fight ended — the party fled
     expect(state.partyArea).toBe(0); // moved into the north tile
+  });
+
+  it("SC-11-15a: a member fallen in the area the party retreats FROM is left Balm-ineligible (area moves, turn doesn't)", () => {
+    const s = retreatState({
+      turn: 5,
+      fight: { surprise: 0, round: 2, focus: 0 },
+      party: [
+        { creatureId: 6, status: 0, dragonKills: 0, treasure: [6] }, // Woman holding the Balm
+        { creatureId: 0, status: 3, dragonKills: 0, treasure: [], diedTurn: 5, diedArea: 1 }, // Hero fell here THIS turn
+      ],
+    });
+    const { state } = reduce(s, { type: "retreat", dir: DIR_N });
+    expect(state.turn).toBe(5); // retreat does NOT advance the turn (§Retreat — only `move` does)
+    expect(state.partyArea).toBe(0); // fled north, away from area 1 where the death happened
+    expect(healingBalmEligible(state, 1)).toBe(false); // left behind — outside the house-rule window (SC-11-15a)
   });
 });
 

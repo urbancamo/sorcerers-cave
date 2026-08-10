@@ -5,7 +5,7 @@ import { rollDie } from "./rng";
 import { ALL_CREATURES as CREATURES } from "./data/creatures";
 import { ALL_TREASURES } from "./data/treasures";
 import { frontStrength, casterMP, partyRollBonus, isCaster } from "./combat";
-import { eyeActive, ringInvincible, activeCurses, eyeForsakenByDeath, revertApprenticesOnSorcererDeath, shieldWardActive } from "./effects";
+import { eyeActive, ringInvincible, activeCurses, eyeForsakenByDeath, markDied, revertApprenticesOnSorcererDeath, shieldWardActive } from "./effects";
 import type { GameState, PartyMember, BattlePlan } from "./state";
 import type { GameEvent } from "./actions";
 
@@ -405,7 +405,7 @@ export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEve
     if (strongest) {
       if (ringInvincible(strongest, state)) events.push({ type: "deathPrevented", creatureId: strongest.creatureId });
       else {
-        strongest.status = 3;
+        markDied(state, strongest);
         const culpritSid = state.strangers[idleUnfightable[0]!]!;
         events.push(
           { type: culpritSid === C_DEMON ? "demonSlew" : "spectreSlew", creatureId: strongest.creatureId },
@@ -460,7 +460,7 @@ export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEve
     } else if (enemyTotal > partyTotal) {
       const mortal = front.filter((m) => !ringInvincible(m, state));
       if (mortal.length === 0) events.push({ type: "deathPrevented", creatureId: front[0]!.creatureId });
-      else if (mortal.length === 1) { mortal[0]!.status = 3; events.push({ type: "memberDied", creatureId: mortal[0]!.creatureId }, ...eyeForsakenByDeath(state, mortal[0]!)); }
+      else if (mortal.length === 1) { markDied(state, mortal[0]!); events.push({ type: "memberDied", creatureId: mortal[0]!.creatureId }, ...eyeForsakenByDeath(state, mortal[0]!)); }
       else pendingCasualties.push(mortal.map((m) => state.party.indexOf(m)));
     }
     // tie: no death

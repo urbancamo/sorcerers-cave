@@ -13,7 +13,7 @@ import { reactionRoll, forcedReactionRoll, findLeader } from "./reaction";
 import { frontStrength } from "./combat";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import {
-  wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, ringInvincible, usesArtifactsAs,
+  wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, markDied, healingBalmEligible, ringInvincible, usesArtifactsAs,
   hasLivingHuman, holyWaterTargets, HW_STATUE_BASE, HW_MEDUSA, HW_STRANGER_BASE, HW_PARKED_STATUE_BASE,
 } from "./effects";
 import { BORNEABLE, isBorne, sweepFallen, spillCarried } from "./loot";
@@ -833,7 +833,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           // member who explicitly tries to take the Ruby — never the party on a passive re-entry.
           // The Ruby is left in place (not spliced) so it can be attempted again later. statueAroused
           // here just labels this wrestle's dice overlay (§16).
-          fighter.status = 3;
+          markDied(next, fighter);
           events.push({ type: "memberDied", creatureId: fighter.creatureId });
           events.push({ type: "statueAroused" });
           // The slain wrestler's CARRIED items spill onto the floor with the rest of the pickup;
@@ -1131,7 +1131,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       const other = pair.find((i) => i !== preferred)!;
       const r = rollDie(next.seed); next.seed = r.seed;
       const victim = r.value >= 4 ? preferred : other; // 4-6 grants the player's preference (§"A Round of Fighting")
-      next.party[victim]!.status = 3;
+      markDied(next, next.party[victim]!);
       const events: GameEvent[] = [
         { type: "casualtyChosen", creatureId: next.party[victim]!.creatureId, roll: r.value, gotPreference: victim === preferred },
         { type: "memberDied", creatureId: next.party[victim]!.creatureId },
@@ -1223,11 +1223,14 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           consume();
           return ok;
         }
-        case 6: { // Healing Balm — at rest or while looting, target a dead member
+        case 6: { // Healing Balm — at rest or while looting, target a dead member (house rule SC-11-15a:
+          // only the same turn and area the death occurred — see healingBalmEligible)
           if ((next.phase !== "explore" && next.phase !== "pickup") || action.target === undefined) return { state, events: [{ type: "blocked" }] };
-          const dm = next.party[action.target];
-          if (!dm || dm.status !== 3) return { state, events: [{ type: "blocked" }] };
+          if (!healingBalmEligible(next, action.target)) return { state, events: [{ type: "blocked" }] };
+          const dm = next.party[action.target]!;
           dm.status = 0;
+          dm.diedTurn = undefined;
+          dm.diedArea = undefined;
           consume();
           return ok;
         }
@@ -1330,7 +1333,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
             if (ringInvincible(drinker, next)) {
               events.push({ type: "deathPrevented", creatureId: drinker.creatureId });
             } else {
-              drinker.status = 3;
+              markDied(next, drinker);
               events.push(...eyeForsakenByDeath(next, drinker));
               const items = spillCarried(drinker);
               if (items.length) { next.treasures.push(...items); events.push({ type: "itemsSpilled", creatureId: drinker.creatureId, items }); }
