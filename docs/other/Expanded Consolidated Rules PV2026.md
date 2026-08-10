@@ -825,11 +825,11 @@ The following points should be noted :
 </tr>
 <tr><td>Magic Shield</td>
 <td>YES</td>
-<td>YES</td>
 <td></td>
 <td></td>
+<td></td>
 <td>YES</td>
-<td>YES</td>
+<td></td>
 <td></td>
 <td></td>
 </tr>
