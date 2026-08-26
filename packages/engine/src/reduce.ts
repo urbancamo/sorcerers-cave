@@ -14,7 +14,7 @@ import { frontStrength } from "./combat";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import {
   wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, markDied, healingBalmEligible, ringInvincible, usesArtifactsAs,
-  hasLivingHuman, holyWaterTargets, HW_STATUE_BASE, HW_MEDUSA, HW_STRANGER_BASE, HW_PARKED_STATUE_BASE,
+  hasLivingHuman, holyWaterTargets, HW_STATUE_BASE, HW_MEDUSA, HW_STRANGER_BASE, HW_PARKED_STATUE_BASE, isHumanOrPriestClass,
 } from "./effects";
 import { BORNEABLE, isBorne, sweepFallen, spillCarried } from "./loot";
 import { rollDie } from "./rng";
@@ -50,6 +50,11 @@ function findBearer(state: GameState, artifact: number): number {
     if (artifact === 9) return usesArtifactsAs(m.creatureId, 8); // Staff reanimation: Wizard
     if (artifact === 4) return usesArtifactsAs(m.creatureId, 4) || usesArtifactsAs(m.creatureId, 8); // Magic Carpet: Priest/Wizard
     if (artifact === 12) return m.creatureId === 0 || m.creatureId === 1 || usesArtifactsAs(m.creatureId, 4) || usesArtifactsAs(m.creatureId, 5) || m.creatureId === 6 || usesArtifactsAs(m.creatureId, 8); // Charmed Flute: Hero/W-Hero/Priest/Man/Woman/Wizard
+    // Bug fix 2026-08-18 (inhuman-artifacts): Holy Water and Lotus Dust are Human/Priest only —
+    // neither names a bearer in its own card text, but both are blank in the Inhuman/Dwarf Ally
+    // columns of the ARTEFACTS – WHO CAN USE? table, and a Dwarf holder was able to destroy/sleep
+    // Medusa with either in playtesting.
+    if (artifact === 5 || artifact === 16) return isHumanOrPriestClass(m.creatureId);
     return true;
   });
 }
@@ -250,13 +255,14 @@ function wakeGalleryStatues(state: GameState): GameEvent[] {
 }
 
 /** A Medusa is about to gaze, nothing already neutralises her (staff-Wizard, or her Lotus sleep),
- *  and a living member holds Lotus Dust — the throw-or-proceed decision is the player's
- *  (§Lotus Dust "Works on MEDUSA"). */
+ *  and a living, ELIGIBLE (Human/Priest-class, bug fix 2026-08-18) member holds Lotus Dust — the
+ *  throw-or-proceed decision is the player's (§Lotus Dust "Works on MEDUSA"). A Dwarf-only holder
+ *  can't throw it, so the gaze simply proceeds — same as holding no Lotus Dust at all. */
 function medusaLooms(state: GameState): boolean {
   if (!state.hazards.includes(HAZARD_MEDUSA) || hasStaffWizard(state)) return false;
   const until = state.areas[state.partyArea]!.medusaAsleepUntil;
   if (until !== undefined && state.turn <= until) return false; // asleep — nothing to decide
-  return state.party.some((m) => (m.status === 0 || m.status === 1) && m.treasure.includes(5));
+  return state.party.some((m) => (m.status === 0 || m.status === 1) && m.treasure.includes(5) && isHumanOrPriestClass(m.creatureId));
 }
 
 /** Fire the chamber's hazards and settle the entry's outcome (wipe / encounter / pickup / explore).

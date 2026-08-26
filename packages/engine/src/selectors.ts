@@ -4,7 +4,7 @@ import { GS_PLAYING, AF_DESTROYED, AF_BELL_SPENT, type GameState } from "./state
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
 import type { GameAction } from "./actions";
 import { canCarry } from "./pickup";
-import { usesArtifactsAs, holyWaterTargets, hasLivingHuman, fluteLulls, healingBalmEligible } from "./effects";
+import { usesArtifactsAs, holyWaterTargets, hasLivingHuman, fluteLulls, healingBalmEligible, isHumanOrPriestClass } from "./effects";
 import { getSubLocation, oppositeDir, RING_ADJACENCY_SPECIALS, ISLAND_JUMP_SPECIALS, type SubLocation } from "./subLocation";
 import { giantCanRecover, sunkKey } from "./special";
 
@@ -70,7 +70,9 @@ function artifactActions(state: GameState): GameAction[] {
   // the offered list and the accepted list can never drift. It already self-gates by `state.phase`
   // (explore/pickup for revive/wake/destroyMedusa; encounter/fight for destroy/weaken), so no
   // additional phase check is needed here.
-  if (has(16, () => true)) {
+  // Bug fix 2026-08-18 (inhuman-artifacts): Holy Water is Human/Priest only — a Dwarf (or other
+  // inhuman) holder gets no useArtifact actions offered at all, matching findBearer's own gate.
+  if (has(16, isHumanOrPriestClass)) {
     holyWaterTargets(state).forEach((t) => actions.push({ type: "useArtifact", artifact: 16, target: t.target }));
   }
   // Extension kit (SC-EXT-25, design US-21/Resolved-10): the Scroll needs a living human present
@@ -80,7 +82,9 @@ function artifactActions(state: GameState): GameAction[] {
     actions.push({ type: "useArtifact", artifact: 19 });
   }
   if (state.phase === "fight" || state.phase === "encounter") {
-    if (has(5, () => true)) { // Lotus Dust -> each stranger (but not a Spectre — no effect, per card)
+    // Bug fix 2026-08-18 (inhuman-artifacts): Lotus Dust is Human/Priest only (a Dwarf holder was
+    // able to sleep Medusa with it in playtesting).
+    if (has(5, isHumanOrPriestClass)) { // Lotus Dust -> each stranger (but not a Spectre — no effect, per card)
       for (let i = 0; i < state.strangers.length; i++) {
         if (state.strangers[i] !== 9) actions.push({ type: "useArtifact", artifact: 5, target: i });
       }
@@ -144,8 +148,12 @@ export function legalActions(state: GameState): GameAction[] {
     // Medusa looms and the party holds Lotus Dust: throw it at her before her gaze, or proceed.
     // With Holy Water ALSO held, destroy her outright pre-gaze (design answer 2026-07-27,
     // SC-EXT-24) — a third plain-button option, target implicit like the Lotus throw.
+    // Entering this phase already implies an eligible Lotus Dust holder (medusaLooms, reduce.ts) —
+    // but the Holy Water pre-gaze option (bug fix 2026-08-18) needs its OWN eligibility check: the
+    // two artifacts can be held by different members, and a Dwarf holding Holy Water alongside an
+    // eligible Lotus Dust holder must not see the Holy Water button.
     const acts: GameAction[] = [{ type: "useArtifact", artifact: 5 }];
-    if (state.party.some((m) => (m.status === 0 || m.status === 1) && m.treasure.includes(16))) {
+    if (state.party.some((m) => (m.status === 0 || m.status === 1) && m.treasure.includes(16) && isHumanOrPriestClass(m.creatureId))) {
       acts.push({ type: "useArtifact", artifact: 16 });
     }
     acts.push({ type: "proceed" });

@@ -53,6 +53,45 @@ describe("SC-11-11: Lotus Dust has no effect on a Spectre (§16)", () => {
   });
 });
 
+// Bug fix 2026-08-18 (docs/requirements/bug-fixes/2026-08-18-inhuman-artifacts.md): Lotus Dust is
+// Human/Priest only, though its own card text names no bearer — playtesting found a Dwarf able to
+// sleep Medusa with it. A Dwarf may still CARRY it (weightless), just not throw it.
+describe("SC-11-46: Lotus Dust bearer gate — Human/Priest only", () => {
+  it("blocks a Dwarf (id 7) from throwing Lotus Dust at a stranger", () => {
+    const s = makeState({
+      phase: "encounter",
+      areas: [area(31, packCoord(1, 50, 50))],
+      strangers: [3], // Troll
+      party: [member(7, [5])], // Dwarf carries the Lotus Dust
+    });
+    const { state, events } = reduce(s, { type: "useArtifact", artifact: 5, target: 0 });
+    expect(events).toEqual([{ type: "blocked" }]);
+    expect(state.strangers).toEqual([3]);
+    expect(state.party[0]!.treasure).toEqual([5]); // not consumed
+  });
+
+  it("omits useArtifact(5) from legalActions when only a Dwarf holds it", () => {
+    const s = makeState({
+      phase: "encounter",
+      areas: [area(31, packCoord(1, 50, 50))],
+      strangers: [3],
+      party: [member(7, [5])],
+    });
+    expect(legalActions(s).some((a) => a.type === "useArtifact" && a.artifact === 5)).toBe(false);
+  });
+
+  it("an eligible holder (Man, id 5) may still throw it", () => {
+    const s = makeState({
+      phase: "encounter",
+      areas: [area(31, packCoord(1, 50, 50))],
+      strangers: [3],
+      party: [member(5, [5])],
+    });
+    const { events } = reduce(s, { type: "useArtifact", artifact: 5, target: 0 });
+    expect(events).toContainEqual({ type: "artifactUsed", artifact: 5 });
+  });
+});
+
 describe("SC-11-22: Magic Staff passive auto-reanimation (§Medusa)", () => {
   it("frees a stoned member pinned to the area being resolved on entry (reduce.ts:104-118,124)", () => {
     // Two areas: the party stands in area 1, its stoned Hero pinned to area 0 (stoneArea 0). A living

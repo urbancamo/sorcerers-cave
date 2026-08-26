@@ -55,24 +55,22 @@ BEGIN MOVES
   49 MOVE 4                   -> TRN 43 LVL 1 ARA 5 PH EXP GS 0 SEED 839247684 EV moved,drewChamber
   50 MOVE 4                   -> TRN 44 LVL 1 ARA 4 PH EXP GS 0 SEED 839247684 EV moved
   51 MOVE 2                   -> TRN 45 LVL 1 ARA 5 PH EXP GS 0 SEED 839247684 EV moved,drewChamber
-  52 MOVE 1                   -> TRN 46 LVL 1 ARA 6 PH MDS GS 0 SEED 839247684 EV moved,drewChamber,medusaLooms
-  53 USE 5                    -> TRN 46 LVL 1 ARA 6 PH EXP GS 0 SEED 839247684 EV artifactUsed,medusaSlept,medusaAsleep
-  54 MOVE 3                   -> TRN 47 LVL 1 ARA 5 PH EXP GS 0 SEED 839247684 EV moved,drewChamber
-  55 MOVE 1                   -> TRN 48 LVL 1 ARA 6 PH EXP GS 0 SEED 839247684 EV moved,drewChamber,medusaAsleep
-  56 MOVE 3                   -> TRN 49 LVL 1 ARA 5 PH EXP GS 0 SEED 839247684 EV moved,drewChamber
-  57 MOVE 1                   -> TRN 50 LVL 1 ARA 6 PH EXP GS 0 SEED 1195023091 EV moved,drewChamber,hazardFired,medusaGaze
-  58 MOVE 1                   -> TRN 51 LVL 1 ARA 16 PH EXP GS 0 SEED 1195023091 EV moved
-  59 MOVE 2                   -> TRN 51 LVL 1 ARA 16 PH EXP GS 0 SEED 1195023091 EV deadEnd
-  60 MOVE 3                   -> TRN 52 LVL 1 ARA 6 PH EXP GS 0 SEED 904210862 EV moved,drewChamber,hazardFired,medusaGaze
-  61 MOVE 1                   -> TRN 53 LVL 1 ARA 16 PH EXP GS 0 SEED 904210862 EV moved
-  62 MOVE 4                   -> TRN 53 LVL 1 ARA 16 PH EXP GS 0 SEED 904210862 EV deadEnd
-  63 EXITCAVE                 -> TRN 53 LVL 1 ARA 16 PH END GS 1 SEED 904210862 EV gameOver
-END MOVES 63
-FINAL GS 1 PH END TRN 53 LVL 1 AREAS 18 LARGEIDX 17 SMALLIDX 4 SEED 904210862 SCORE 22
+  52 MOVE 1                   -> TRN 46 LVL 1 ARA 6 PH EXP GS 0 SEED 1195023091 EV moved,drewChamber,hazardFired,medusaGaze
+  53 MOVE 1                   -> TRN 47 LVL 1 ARA 16 PH EXP GS 0 SEED 1195023091 EV moved
+  54 MOVE 4                   -> TRN 47 LVL 1 ARA 16 PH EXP GS 0 SEED 1195023091 EV deadEnd
+  55 MOVE 3                   -> TRN 48 LVL 1 ARA 6 PH EXP GS 0 SEED 904210862 EV moved,drewChamber,hazardFired,medusaGaze
+  56 MOVE 3                   -> TRN 49 LVL 1 ARA 5 PH EXP GS 0 SEED 904210862 EV moved,drewChamber
+  57 MOVE 1                   -> TRN 50 LVL 1 ARA 6 PH PKP GS 0 SEED 1721526245 EV moved,drewChamber,hazardFired,itemsSpilled,medusaGaze
+  58 TAKE 0 0                 -> TRN 50 LVL 1 ARA 6 PH EXP GS 0 SEED 1721526245 EV -
+  59 MOVE 1                   -> TRN 51 LVL 1 ARA 16 PH EXP GS 0 SEED 1721526245 EV moved
+  60 MOVE 2                   -> TRN 51 LVL 1 ARA 16 PH EXP GS 0 SEED 1721526245 EV deadEnd
+  61 EXITCAVE                 -> TRN 51 LVL 1 ARA 16 PH END GS 1 SEED 1721526245 EV gameOver
+END MOVES 61
+FINAL GS 1 PH END TRN 51 LVL 1 AREAS 18 LARGEIDX 17 SMALLIDX 4 SEED 1721526245 SCORE 22
 STATE CURSES 0 BONUS 0 SORCKILLED 0 STRANGERS - TREASURES - HAZARDS -
-PARTY 0 CID 5 ST 0 DK 0 CARRY - BORNE -
-PARTY 1 CID 6 ST 0 DK 0 CARRY 1 BORNE -
-PARTY 2 CID 7 ST 0 DK 0 CARRY - BORNE -
+PARTY 0 CID 5 ST 0 DK 0 CARRY 1 BORNE -
+PARTY 1 CID 6 ST 2 DK 0 CARRY - BORNE -
+PARTY 2 CID 7 ST 0 DK 0 CARRY 5 BORNE -
 AREA 0 CARD 175 COORD 15050 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP - SUNK -
 AREA 1 CARD 18 COORD 15049 FU 1 VIS 1 FLG 0 MIR 0 SD - CONT - DROP - SUNK -
 AREA 2 CARD 10 COORD 15149 FU 1 VIS 0 FLG 0 MIR 0 SD - CONT - DROP - SUNK -

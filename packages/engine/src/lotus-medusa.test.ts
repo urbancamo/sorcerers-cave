@@ -71,6 +71,18 @@ describe("Lotus Dust vs Medusa (§Lotus Dust 'Works on MEDUSA')", () => {
     expect(state.phase).not.toBe("medusa");
   });
 
+  // Bug fix 2026-08-18 (docs/requirements/bug-fixes/2026-08-18-inhuman-artifacts.md, SC-11-46): a
+  // Dwarf may still CARRY Lotus Dust (it's weightless), but can't USE it — "Inhumans generally
+  // cannot/will not use artefacts." Playtesting found a Dwarf-only holder was able to throw it at
+  // Medusa.
+  it("no pause when the only Lotus-holder is ineligible (Dwarf) — the gaze fires immediately", () => {
+    const { state, events } = enterLair([member(7, [T_LOTUS])]); // Dwarf — Inhuman, can't use it
+    expect(events.some((e) => e.type === "medusaLooms")).toBe(false);
+    expect(events.some((e) => e.type === "medusaGaze")).toBe(true);
+    expect(state.phase).not.toBe("medusa");
+    expect(state.party[0]!.treasure).toEqual([T_LOTUS]); // untouched — never thrown
+  });
+
   it("no pause when a staff-Wizard already makes her powerless", () => {
     const { state, events } = enterLair([member(8, [9]), member(5, [T_LOTUS])]);
     expect(events.some((e) => e.type === "medusaLooms")).toBe(false);

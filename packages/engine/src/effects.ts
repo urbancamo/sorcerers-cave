@@ -46,6 +46,23 @@ export function usesArtifactsAs(creatureId: number, classId: number): boolean {
   return creatureId === classId || (CLASS_EXTENSIONS[classId]?.includes(creatureId) ?? false);
 }
 
+/**
+ * Bug fix 2026-08-18 (docs/requirements/bug-fixes/2026-08-18-inhuman-artifacts.md): true when
+ * `creatureId` is a Human or Priest-class creature — the combined "Human"+"Priest" Ally columns
+ * of the ARTEFACTS – WHO CAN USE? reference table (docs/other/Expanded Consolidated Rules
+ * PV2026.md § ADDENDUM). Ogre/Troll/Lion/Wolf/Dwarf are excluded ("Inhumans generally cannot/will
+ * not use artefacts") for Holy Water and Lotus Dust specifically — both are silent on bearer in
+ * their own card text, unlike the Sword/Axe/Shield/Ring, whose bonus rosters are already narrower
+ * and separately correct. A Dwarf may still CARRY either (artifacts are weightless — `canCarry`
+ * never blocks it); this gate is only about USING them. `FLAG_HUMAN` already spans exactly this
+ * combined set in `data/creatures.ts` (Hero/W-Hero/Man/Woman/Thief + Priest/Wizard/Witch/Scholar/
+ * Apprentice), the same flag `hasLivingHuman` reads for the Scroll's "any human present" rule —
+ * this is the per-member counterpart of that party-wide check.
+ */
+export function isHumanOrPriestClass(creatureId: number): boolean {
+  return (CREATURES[creatureId]!.flags & FLAG_HUMAN) !== 0;
+}
+
 function living(m: PartyMember): boolean {
   return m.status === 0 || m.status === 1;
 }

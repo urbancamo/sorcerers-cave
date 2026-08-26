@@ -20,6 +20,7 @@ import type { PartyMember } from "./state";
 const HERO = 0;
 const MAN = 5;
 const OGRE = 2;
+const DWARF = 7;
 const SPECTRE = 9;
 const SORCERER = 11;
 const APPRENTICE = 14;
@@ -337,6 +338,36 @@ describe("Holy Water (US-20, SC-EXT-24)", () => {
     expect(acts).toContainEqual({ type: "useArtifact", artifact: T_HOLY_WATER, target: 1 }); // revive the stone Ogre
     expect(acts).toContainEqual({ type: "useArtifact", artifact: T_HOLY_WATER, target: HW_STATUE_BASE }); // wake the statue
     expect(acts).toContainEqual({ type: "useArtifact", artifact: T_HOLY_WATER, target: HW_MEDUSA }); // destroy the Medusa marker
+  });
+});
+
+// Bug fix 2026-08-18 (docs/requirements/bug-fixes/2026-08-18-inhuman-artifacts.md, SC-EXT-41): Holy
+// Water is Human/Priest only, though its own card text names no bearer — playtesting found a Dwarf
+// able to destroy a lurking Medusa marker with it. A Dwarf may still CARRY it (weightless), just
+// not use it — every mode is gated uniformly via `findBearer`, not just destroyMedusa.
+describe("Holy Water bearer gate — Human/Priest only (bug fix 2026-08-18, SC-EXT-41)", () => {
+  it("blocks a Dwarf-only holder from destroying a lurking Medusa marker", () => {
+    const medusaArea = { ...area, contents: [300 + HAZARD_MEDUSA] };
+    const s = makeState({
+      phase: "explore",
+      areas: [medusaArea],
+      partyArea: 0,
+      party: [member(DWARF, [T_HOLY_WATER])],
+    });
+    const { state, events } = reduce(s, { type: "useArtifact", artifact: T_HOLY_WATER, target: HW_MEDUSA });
+    expect(events).toEqual([{ type: "blocked" }]);
+    expect(state.areas[0]!.contents).toContain(300 + HAZARD_MEDUSA);
+    expect(state.party[0]!.treasure).toEqual([T_HOLY_WATER]); // not consumed
+  });
+
+  it("omits every useArtifact(16, ...) action from legalActions when only a Dwarf holds it", () => {
+    const s = makeState({
+      phase: "explore",
+      areas: [area],
+      partyArea: 0,
+      party: [member(DWARF, [T_HOLY_WATER]), member(MAN, [], { status: 2, stoneArea: 0 })], // a stone member to revive
+    });
+    expect(legalActions(s).some((a) => a.type === "useArtifact" && a.artifact === T_HOLY_WATER)).toBe(false);
   });
 });
 
