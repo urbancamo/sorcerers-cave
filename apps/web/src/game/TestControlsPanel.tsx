@@ -82,9 +82,15 @@ function EntityPicker({
   );
 }
 
-/** Test Mode's override controls (§Test Mode) — rendered only for a testMode:true game. Queues the
- *  next area/chamber/reaction override; the tester then plays it out with the ordinary game UI. */
-export function TestControlsPanel({ state, dispatch }: { state: GameState; dispatch: (a: GameAction) => void }) {
+/**
+ * Test Mode's override controls (§Test Mode) — rendered only for a testMode:true game. Queues the
+ * next area/chamber/reaction override; the tester then plays it out with the ordinary game UI.
+ *
+ * `onSave` (2026-09-11, save/restore a test scenario) surfaces the SAME save mutation the HUD's
+ * save icon already uses — reused here purely for discoverability, so a tester mid-scenario
+ * doesn't have to go hunting for the HUD button to get a shareable code for a bug report.
+ */
+export function TestControlsPanel({ state, dispatch, onSave }: { state: GameState; dispatch: (a: GameAction) => void; onSave?: () => void }) {
   const [dir, setDir] = useState(DIR_N);
   // Kit gating (SC-Test-6): default to a base special when the kit is off, so the initial
   // selection is never one the engine (and the filtered options below) would reject.
@@ -107,6 +113,12 @@ export function TestControlsPanel({ state, dispatch }: { state: GameState; dispa
   return (
     <div className="scv-tc" data-testid="test-controls">
       <h3 className="scv-tc-hd">Test Mode</h3>
+
+      {onSave && (
+        <div className="scv-tc-section">
+          <button type="button" onClick={onSave}>Save scenario</button>
+        </div>
+      )}
 
       <div className="scv-tc-section">
         <div className="scv-tc-row">

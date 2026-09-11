@@ -104,6 +104,60 @@ export const startTestGame = mutation({
   },
 });
 
+/**
+ * Fork a Test Mode scenario by its four-letter code into a brand-new, independently-owned game
+ * with its OWN new code (§Test Mode, save/restore) — so a scripted bug-repro scenario can be
+ * replayed and continued multiple times without each attempt mutating the one shared row.
+ *
+ * Deliberately NOT owner-scoped, unlike `resumeByCode`: a scenario is restored precisely so its
+ * code can be handed to someone else in a bug report and forked into THEIR own account, mirroring
+ * `replayByCode`'s existing "shareable by code" precedent for this same class of data. What keeps
+ * this safe despite the small (26^4) code keyspace is the one hard gate below — only a game whose
+ * OWN persisted `state.testMode` is true may ever be forked this way, so a guessed code can only
+ * ever duplicate an ephemeral QA fixture (already excluded from `highScores`), never a real
+ * player's in-progress game. The source row is read entirely server-side (by code, like
+ * `resumeByCode`/`replayByCode`) — the new row's `state` is never taken from a client argument, so
+ * this can't be used to smuggle an arbitrary forged `GameState` into a new owned row.
+ *
+ * The source's full `gameEvents` log is copied alongside `state`, re-seq'd from 0, so the new
+ * code's own `log`/`replayByCode` stays internally consistent (replayable from scratch) and still
+ * carries the player actions that led to whatever is being reported — not just a bare snapshot.
+ */
+export const restoreTestScenario = mutation({
+  args: { code: v.string() },
+  handler: async (ctx, { code }) => {
+    const callerId = await getAuthUserId(ctx);
+    if (!callerId) throw new Error("Unauthenticated");
+    const normalized = code.trim().toUpperCase();
+    const source = await ctx.db.query("games").withIndex("by_code", (q) => q.eq("code", normalized)).first();
+    if (!source) throw new Error("No game with that code");
+    if (source.mode === "multi") throw new Error("Multiplayer games cannot be restored");
+    if (!(source.state as GameState).testMode) throw new Error("Only a Test Mode scenario can be restored");
+
+    const newCode = await uniqueCode(ctx);
+    const now = Date.now();
+    const id = await ctx.db.insert("games", {
+      ownerId: callerId,
+      code: newCode,
+      seed: source.seed,
+      picks: source.picks,
+      variants: source.variants,
+      state: structuredClone(source.state),
+      status: source.status,
+      color: source.color,
+      createdAt: now,
+      updatedAt: now,
+    });
+
+    const rows = await ctx.db.query("gameEvents").withIndex("by_game", (q) => q.eq("gameId", source._id)).collect();
+    for (const r of rows) {
+      await ctx.db.insert("gameEvents", { gameId: id, seq: r.seq, action: r.action, events: r.events });
+    }
+
+    return { id, code: newCode };
+  },
+});
+
 /** Save the current game: persists nothing new (state is already authoritative) but bumps the save
  *  time and returns the four-letter code the player uses to resume it. Owner-scoped (IDOR guard). */
 export const save = mutation({

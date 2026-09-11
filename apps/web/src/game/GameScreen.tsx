@@ -37,13 +37,16 @@ export default function GameScreen() {
   const startTestGame = useMutation(api.game.startTestGame);
   const saveGame = useMutation(api.game.save);
   const resumeByCode = useMutation(api.game.resumeByCode);
+  const restoreTestScenario = useMutation(api.game.restoreTestScenario);
   const saveScore = useMutation(api.highScores.save);
   const [gameId, setGameId] = useState<Id<"games"> | null>(null);
   const [wantTestGame, setWantTestGame] = useState(false); // Test Mode: PartySelect confirms into startTestGame instead
   const testSecret = getTestSecret();
   const [started, setStarted] = useState(false); // dismissed the splash
   const [showParty, setShowParty] = useState(false); // expanded party panel
-  const [savedCode, setSavedCode] = useState<string | null>(null); // shows the save modal when set
+  // Shows the save/restore code modal when set. `restored` distinguishes a plain save (dismiss ⇒
+  // back to menu) from a just-forked Test Mode scenario (dismiss ⇒ keep playing the new game).
+  const [savedCode, setSavedCode] = useState<{ code: string; restored: boolean } | null>(null);
   const [showLog, setShowLog] = useState(false); // shows the game-log download modal when true
   // Multiplayer flow (behind the production-off feature flag): create/join setup → reactive lobby.
   const [mp, setMp] = useState<{ view: "create" | "join" } | { view: "lobby"; code: string } | null>(null);
@@ -93,11 +96,11 @@ export default function GameScreen() {
     clearRoll(); clearNotices(); setSavedCode(null); setShowParty(false); setGameId(null); setStarted(false); setWantTestGame(false);
   }, [clearRoll, clearNotices]);
 
-  // Save from the HUD: the state is already authoritative in Convex, so this just surfaces the
-  // four-letter code (modal) and, on dismiss, returns to the menu.
+  // Save from the HUD (or the Test Mode panel): the state is already authoritative in Convex, so
+  // this just surfaces the four-letter code (modal) and, on dismiss, returns to the menu.
   const handleSave = useCallback(async () => {
     if (!gameId) return;
-    setSavedCode(await saveGame({ id: gameId }));
+    setSavedCode({ code: await saveGame({ id: gameId }), restored: false });
   }, [gameId, saveGame]);
 
   // Resume from the splash by code: look it up, claim it, and drop straight into the loaded game.
@@ -108,6 +111,22 @@ export default function GameScreen() {
     setStarted(true);
     return true;
   }, [resumeByCode]);
+
+  // Restore a Test Mode scenario from the splash by code (save/restore, 2026-09-11): fork it into
+  // a new, independently-owned game, drop into it, and show the NEW code so it can be shared again.
+  // Mirrors handleReplay's string|null convention (multiple distinct failure reasons to surface),
+  // not handleResume's boolean one — restoreTestScenario throws with a specific message on failure.
+  const handleRestoreTestScenario = useCallback(async (code: string): Promise<string | null> => {
+    try {
+      const restored = await restoreTestScenario({ code });
+      setGameId(restored.id);
+      setStarted(true);
+      setSavedCode({ code: restored.code, restored: true });
+      return null;
+    } catch (e) {
+      return e instanceof Error ? e.message : "Could not restore that scenario.";
+    }
+  }, [restoreTestScenario]);
 
   // Replay from the splash by code (§RB-3-3): fetch the shareable bundle once (no subscription —
   // a replay is a fixed record) and open the read-only viewer, or explain why we can't.
@@ -120,6 +139,14 @@ export default function GameScreen() {
     setReplayBundle(bundle);
     return null;
   }, [convex]);
+
+  // Copy the save/restore modal's game as a paste-able { game, moves } JSON bundle (game.log) — a
+  // more directly useful bug-report artifact for an AI reader than the human-oriented replay view.
+  const handleCopyDebugBundle = useCallback(async () => {
+    if (!gameId) return;
+    const log = await convex.query(api.game.log, { id: gameId });
+    await navigator.clipboard?.writeText(JSON.stringify(log));
+  }, [convex, gameId]);
 
   useEffect(() => { if (!isLoading && !isAuthenticated) void signIn("anonymous"); }, [isLoading, isAuthenticated, signIn]);
 
@@ -151,6 +178,7 @@ export default function GameScreen() {
       <SplashScreen
         onStartSolitaire={() => setStarted(true)}
         onStartTestGame={testSecret ? () => { setWantTestGame(true); setStarted(true); } : undefined}
+        onRestoreTestScenario={testSecret ? handleRestoreTestScenario : undefined}
         onResume={handleResume}
         onReplay={handleReplay}
         onStartMultiplayer={MULTIPLAYER_ENABLED ? () => setMp({ view: "create" }) : undefined}
@@ -219,11 +247,21 @@ export default function GameScreen() {
       <EncounterPanel state={displayState} dispatch={dispatchWithRolls} />
       {fightVisible && cards && <FightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
       <ExplorePanel state={displayState} dispatch={dispatchWithRolls} />
-      {displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} />}
+      {displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} onSave={handleSave} />}
       {showParty && <PartyPanel state={displayState} dispatch={dispatch} onClose={() => setShowParty(false)} />}
       {overlay}
       {notices && <NoticeModal notices={notices} onClose={clearNotices} />}
-      {savedCode && <SaveGameModal code={savedCode} onClose={goHome} />}
+      {savedCode && (
+        <SaveGameModal
+          code={savedCode.code}
+          heading={savedCode.restored ? "Scenario restored" : "Game saved"}
+          message={savedCode.restored ? "New code for this forked scenario:" : "Note your game code to resume later:"}
+          closeLabel={savedCode.restored ? "Continue playing" : "Back to menu"}
+          onClose={savedCode.restored ? () => setSavedCode(null) : goHome}
+          onViewReplay={() => { const c = savedCode.code; setSavedCode(null); void handleReplay(c); }}
+          onCopyDebugBundle={handleCopyDebugBundle}
+        />
+      )}
       {showLog && <GameLogModal gameId={gameId} onClose={() => setShowLog(false)} />}
     </div>
   );

@@ -471,6 +471,77 @@ describe("startTestGame", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Test Mode: restoreTestScenario (save/restore a test scenario for bug reports)
+// ---------------------------------------------------------------------------
+describe("restoreTestScenario", () => {
+  const ORIGINAL_SECRET = process.env.TEST_MODE_SECRET;
+  beforeEach(() => { process.env.TEST_MODE_SECRET = "correct-uuid"; });
+  afterEach(() => {
+    if (ORIGINAL_SECRET === undefined) delete process.env.TEST_MODE_SECRET;
+    else process.env.TEST_MODE_SECRET = ORIGINAL_SECRET;
+  });
+
+  test("forks a test-mode game into a new, differently-owned game with a new code", async () => {
+    const t = convexTest(schema, modules);
+    const owner = await asUser(t);
+    const id = await owner.as.mutation(api.game.startTestGame, { secret: "correct-uuid", seed: 1, picks: [0] });
+    await owner.as.mutation(api.game.applyAction, { id, action: { type: "testForceReaction", outcome: "friendly" } });
+    const code = await owner.as.mutation(api.game.save, { id });
+
+    // Deliberately a DIFFERENT user — restoring is open-by-code, not owner-scoped (unlike resumeByCode).
+    const other = await asUser(t);
+    const restored = await other.as.mutation(api.game.restoreTestScenario, { code });
+    expect(restored.code).not.toBe(code);
+
+    const newGameRow = await other.as.query(api.game.get, { id: restored.id });
+    expect(newGameRow?.ownerId).toBe(other.userId);
+    expect(newGameRow?.state.testMode).toBe(true);
+    expect(newGameRow?.state.testNextReaction).toBe("friendly"); // the armed override carries over faithfully
+
+    // The new code's own log is internally consistent (replayable from scratch), carrying the
+    // SAME player action that led to whatever is being reported — not just a bare snapshot.
+    const originalLog = await owner.as.query(api.game.log, { id });
+    const newLog = await other.as.query(api.game.log, { id: restored.id });
+    expect(newLog?.moves).toEqual(originalLog?.moves);
+    expect(newLog?.game.testMode).toBe(true);
+  });
+
+  test("rejects restoring a game that is not in Test Mode", async () => {
+    const t = convexTest(schema, modules);
+    const owner = await asUser(t);
+    const id = await owner.as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+    const code = await owner.as.mutation(api.game.save, { id });
+
+    const other = await asUser(t);
+    await expect(other.as.mutation(api.game.restoreTestScenario, { code })).rejects.toThrow();
+  });
+
+  test("rejects an unknown code", async () => {
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    await expect(as.mutation(api.game.restoreTestScenario, { code: "ZZZZ" })).rejects.toThrow();
+  });
+
+  test("rejects a multiplayer game", async () => {
+    const t = convexTest(schema, modules);
+    const owner = await asUser(t);
+    await t.run((ctx) =>
+      ctx.db.insert("games", {
+        ownerId: owner.userId, code: "MPMP", mode: "multi", state: { testMode: true },
+        status: "active", createdAt: 0, updatedAt: 0,
+      }),
+    );
+    const other = await asUser(t);
+    await expect(other.as.mutation(api.game.restoreTestScenario, { code: "MPMP" })).rejects.toThrow();
+  });
+
+  test("requires authentication", async () => {
+    const t = convexTest(schema, modules);
+    await expect(t.mutation(api.game.restoreTestScenario, { code: "ABCD" })).rejects.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Test Mode: replay() threads testMode through (SC-Test-1) — mirrors the variants-threading
 // tests above (log and replayByCode return variants...), since testMode needs the exact same
 // treatment: surfaced on the log/replayByCode bundles and passed as replay()'s 5th argument.

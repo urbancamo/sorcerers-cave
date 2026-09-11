@@ -92,6 +92,55 @@ describe("SplashScreen", () => {
     expect(await screen.findByText(/predates full logging/i)).toBeInTheDocument();
   });
 
+  // Save/restore a test scenario (2026-09-11): a code-input entry visually parallel to Resume,
+  // but only offered once Test Mode itself is unlocked (onStartTestGame present).
+  it("does not offer to restore a test scenario unless Test Mode is unlocked", () => {
+    render(<SplashScreen onStartSolitaire={() => {}} onRestoreTestScenario={vi.fn()} />);
+    expect(screen.queryByTestId("restore-test-scenario")).toBeNull();
+  });
+
+  it("restores a test scenario by an upper-cased four-letter code", async () => {
+    const onRestoreTestScenario = vi.fn().mockResolvedValue(null); // null = restored and navigated in
+    render(
+      <SplashScreen
+        onStartSolitaire={() => {}}
+        onStartTestGame={() => {}}
+        onRestoreTestScenario={onRestoreTestScenario}
+      />,
+    );
+    const input = screen.getByLabelText(/four-letter test scenario code/i);
+    fireEvent.change(input, { target: { value: "abcd" } });
+    expect((input as HTMLInputElement).value).toBe("ABCD");
+    fireEvent.click(screen.getByRole("button", { name: /^restore$/i }));
+    await waitFor(() => expect(onRestoreTestScenario).toHaveBeenCalledWith("ABCD"));
+  });
+
+  it("shows the explanatory message when a scenario can't be restored", async () => {
+    const onRestoreTestScenario = vi.fn().mockResolvedValue("Only a Test Mode scenario can be restored");
+    render(
+      <SplashScreen
+        onStartSolitaire={() => {}}
+        onStartTestGame={() => {}}
+        onRestoreTestScenario={onRestoreTestScenario}
+      />,
+    );
+    fireEvent.change(screen.getByLabelText(/four-letter test scenario code/i), { target: { value: "REAL" } });
+    fireEvent.click(screen.getByRole("button", { name: /^restore$/i }));
+    expect(await screen.findByText(/only a test mode scenario can be restored/i)).toBeInTheDocument();
+  });
+
+  it("disables Restore until four letters are entered", () => {
+    render(
+      <SplashScreen onStartSolitaire={() => {}} onStartTestGame={() => {}} onRestoreTestScenario={vi.fn()} />,
+    );
+    const btn = screen.getByRole("button", { name: /^restore$/i });
+    expect(btn).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/four-letter test scenario code/i), { target: { value: "AB" } });
+    expect(btn).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/four-letter test scenario code/i), { target: { value: "ABCD" } });
+    expect(btn).toBeEnabled();
+  });
+
   it("credits the authors and links the repository", () => {
     render(<SplashScreen onStartSolitaire={() => {}} />);
     expect(screen.getByText(/written by mark wickens/i)).toBeInTheDocument();

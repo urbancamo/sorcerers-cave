@@ -138,6 +138,20 @@ describe("TestControlsPanel", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "testForceReaction", outcome: "friendly" });
   });
 
+  // Save/restore a test scenario (2026-09-11): the panel's own "Save scenario" button reuses the
+  // caller-supplied onSave handler (the same one wired to the HUD's save icon) — no new mutation.
+  it("does not show a Save scenario button unless onSave is supplied", () => {
+    render(<TestControlsPanel state={testState()} dispatch={() => {}} />);
+    expect(screen.queryByRole("button", { name: /save scenario/i })).toBeNull();
+  });
+
+  it("calls onSave when Save scenario is clicked", () => {
+    const onSave = vi.fn();
+    render(<TestControlsPanel state={testState()} dispatch={() => {}} onSave={onSave} />);
+    fireEvent.click(screen.getByRole("button", { name: /save scenario/i }));
+    expect(onSave).toHaveBeenCalledOnce();
+  });
+
   it("dispatches testClearOverrides from the clear button", () => {
     const dispatch = vi.fn();
     const s = testState({ testNextReaction: "hostile" });
