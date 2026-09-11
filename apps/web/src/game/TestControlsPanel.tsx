@@ -4,11 +4,13 @@ import {
   CREATURES, TREASURES, HAZARD_NAMES,
   SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_TOMB, SPECIAL_GREAT_HALL,
   SPECIAL_CHASM, SPECIAL_BELL_ROPE, SPECIAL_LAIR, SPECIAL_WHIRLPOOL, SPECIAL_GALLERY, SPECIAL_WELL,
+  TILE_CHAMBER, TILE_TUNNEL_NE, TILE_TUNNEL_NS, TILE_TUNNEL_NW, TILE_TUNNEL_EW, TILE_TUNNEL_SW,
+  TILE_TUNNEL_NES, TILE_TUNNEL_NEW, TILE_TUNNEL_NSW, TILE_TUNNEL_ESW, TILE_TUNNEL_NESW, TILE_TUNNEL_ES,
   DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN,
   type GameState, type GameAction,
 } from "@sorcerers-cave/engine";
 
-const SPECIAL_OPTIONS = [
+const SPECIAL_AREA_OPTIONS = [
   { id: SPECIAL_DEEP_POOL, label: "Deep Pool" },
   { id: SPECIAL_VIPER_PIT, label: "Viper Pit" },
   { id: SPECIAL_TOMB, label: "Tomb of Kings" },
@@ -20,7 +22,28 @@ const SPECIAL_OPTIONS = [
   { id: SPECIAL_GALLERY, label: "The Gallery" },
   { id: SPECIAL_WELL, label: "The Well" },
 ];
+// Select any area tile (2026-09-11): one normal chamber, plus one tunnel per exit shape that
+// actually exists in the deck — every 2/3/4-way junction of N/E/S/W (SC-Test-8). TILE_TUNNEL_ES is
+// the sole kit-only shape (it exists only on an extension-kit tile).
+const PLAIN_TILE_OPTIONS = [
+  { id: TILE_CHAMBER, label: "Normal chamber" },
+  { id: TILE_TUNNEL_NE, label: "Tunnel NE" },
+  { id: TILE_TUNNEL_NS, label: "Tunnel NS" },
+  { id: TILE_TUNNEL_NW, label: "Tunnel NW" },
+  { id: TILE_TUNNEL_EW, label: "Tunnel EW" },
+  { id: TILE_TUNNEL_SW, label: "Tunnel SW" },
+  { id: TILE_TUNNEL_NES, label: "Tunnel NES" },
+  { id: TILE_TUNNEL_NEW, label: "Tunnel NEW" },
+  { id: TILE_TUNNEL_NSW, label: "Tunnel NSW" },
+  { id: TILE_TUNNEL_ESW, label: "Tunnel ESW" },
+  { id: TILE_TUNNEL_NESW, label: "Tunnel NESW" },
+  { id: TILE_TUNNEL_ES, label: "Tunnel ES" },
+];
+const SPECIAL_OPTIONS = [...SPECIAL_AREA_OPTIONS, ...PLAIN_TILE_OPTIONS];
 const SPECIAL_LABEL = new Map(SPECIAL_OPTIONS.map((o) => [o.id, o.label]));
+// Kit gating (SC-Test-6/SC-Test-8): every kit-only special (6-11) plus the one kit-only plain-tile
+// shape (TILE_TUNNEL_ES) — everything else is available on a kit-off game.
+const KIT_ONLY_IDS = new Set([SPECIAL_CHASM, SPECIAL_BELL_ROPE, SPECIAL_LAIR, SPECIAL_WHIRLPOOL, SPECIAL_GALLERY, SPECIAL_WELL, TILE_TUNNEL_ES]);
 
 // Bug fix 2026-08-09 (QOTO-01): Up/Down were missing entirely, so a tester could never queue a
 // special for a vertical move — e.g. to confirm the Whirlpool's own "no stairway may lead here"
@@ -71,10 +94,12 @@ export function TestControlsPanel({ state, dispatch }: { state: GameState; dispa
   const [hazards, setHazards] = useState<number[]>([]);
   if (!state.testMode) return null;
 
-  // Kit gating (SC-Test-6): a kit-off game rejects kit-only content, so don't even offer it —
-  // ids/specials beyond the base tables' own lengths are kit-only.
+  // Kit gating (SC-Test-6/SC-Test-8): a kit-off game rejects kit-only content, so don't even
+  // offer it — creature/treasure/hazard ids beyond the base tables' own lengths are kit-only;
+  // specials/tiles are named explicitly in KIT_ONLY_IDS since that set isn't a contiguous range.
   const kitOn = !!state.variants?.extensionKit;
-  const specialOptions = kitOn ? SPECIAL_OPTIONS : SPECIAL_OPTIONS.filter((o) => o.id <= SPECIAL_GREAT_HALL);
+  const specialAreaOptions = kitOn ? SPECIAL_AREA_OPTIONS : SPECIAL_AREA_OPTIONS.filter((o) => !KIT_ONLY_IDS.has(o.id));
+  const plainTileOptions = kitOn ? PLAIN_TILE_OPTIONS : PLAIN_TILE_OPTIONS.filter((o) => !KIT_ONLY_IDS.has(o.id));
   const creatureOptions = kitOn ? ALL_CREATURES : ALL_CREATURES.filter((c) => c.id < CREATURES.length);
   const treasureOptions = kitOn ? ALL_TREASURES : ALL_TREASURES.filter((t) => t.id < TREASURES.length);
   const hazardOptions = kitOn ? ALL_HAZARD_NAMES : ALL_HAZARD_NAMES.slice(0, HAZARD_NAMES.length);
@@ -94,7 +119,12 @@ export function TestControlsPanel({ state, dispatch }: { state: GameState; dispa
           <label>
             Next area — special
             <select aria-label="Next area — special" value={special} onChange={(e) => setSpecial(Number(e.target.value))}>
-              {specialOptions.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+              <optgroup label="Special areas">
+                {specialAreaOptions.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+              </optgroup>
+              <optgroup label="Plain tiles">
+                {plainTileOptions.map((o) => <option key={o.id} value={o.id}>{o.label}</option>)}
+              </optgroup>
             </select>
           </label>
           <button type="button" onClick={() => dispatch({ type: "testPlaceArea", dir, special })}>Queue next area</button>

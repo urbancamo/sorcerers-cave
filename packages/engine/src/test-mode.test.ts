@@ -3,6 +3,9 @@ import {
   decodeArea, newGame,
   SPECIAL_CANONICAL_CARD, SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_TOMB, SPECIAL_GREAT_HALL,
   SPECIAL_CHASM, SPECIAL_BELL_ROPE, SPECIAL_LAIR, SPECIAL_WHIRLPOOL, SPECIAL_GALLERY, SPECIAL_WELL,
+  AREA_TILE_CANONICAL_CARD, TILE_CHAMBER, TILE_TUNNEL_NE, TILE_TUNNEL_NS, TILE_TUNNEL_NW,
+  TILE_TUNNEL_EW, TILE_TUNNEL_SW, TILE_TUNNEL_NES, TILE_TUNNEL_NEW, TILE_TUNNEL_NSW,
+  TILE_TUNNEL_ESW, TILE_TUNNEL_NESW, TILE_TUNNEL_ES, TILE_MAX,
 } from "./index";
 import type { GameState } from "./index";
 
@@ -22,6 +25,42 @@ describe("SPECIAL_CANONICAL_CARD", () => {
     for (const card of Object.values(SPECIAL_CANONICAL_CARD)) {
       const d = decodeArea(card);
       expect(d.n && d.e && d.s && d.w).toBe(true);
+    }
+  });
+});
+
+describe("AREA_TILE_CANONICAL_CARD (SC-Test-8)", () => {
+  const shapes: Record<number, { n: boolean; e: boolean; s: boolean; w: boolean; chamber: boolean }> = {
+    [TILE_CHAMBER]: { n: true, e: true, s: true, w: true, chamber: true },
+    [TILE_TUNNEL_NE]: { n: true, e: true, s: false, w: false, chamber: false },
+    [TILE_TUNNEL_NS]: { n: true, e: false, s: true, w: false, chamber: false },
+    [TILE_TUNNEL_NW]: { n: true, e: false, s: false, w: true, chamber: false },
+    [TILE_TUNNEL_EW]: { n: false, e: true, s: false, w: true, chamber: false },
+    [TILE_TUNNEL_SW]: { n: false, e: false, s: true, w: true, chamber: false },
+    [TILE_TUNNEL_NES]: { n: true, e: true, s: true, w: false, chamber: false },
+    [TILE_TUNNEL_NEW]: { n: true, e: true, s: false, w: true, chamber: false },
+    [TILE_TUNNEL_NSW]: { n: true, e: false, s: true, w: true, chamber: false },
+    [TILE_TUNNEL_ESW]: { n: false, e: true, s: true, w: true, chamber: false },
+    [TILE_TUNNEL_NESW]: { n: true, e: true, s: true, w: true, chamber: false },
+    [TILE_TUNNEL_ES]: { n: false, e: true, s: true, w: false, chamber: false },
+  };
+
+  it("has exactly one entry per plain-tile id (TILE_CHAMBER..TILE_MAX), each decoding to special:0 with the named exit shape", () => {
+    const ids = Object.keys(shapes).map(Number);
+    expect(Object.keys(AREA_TILE_CANONICAL_CARD).map(Number).sort((a, b) => a - b)).toEqual([...ids].sort((a, b) => a - b));
+    expect(Math.max(...ids)).toBe(TILE_MAX);
+    for (const id of ids) {
+      const d = decodeArea(AREA_TILE_CANONICAL_CARD[id]!);
+      expect(d.special).toBe(0);
+      expect({ n: d.n, e: d.e, s: d.s, w: d.w, chamber: d.chamber }).toEqual(shapes[id]);
+    }
+  });
+
+  it("every canonical card is a plain tile with no stairs, so its shape alone determines connection", () => {
+    for (const card of Object.values(AREA_TILE_CANONICAL_CARD)) {
+      const d = decodeArea(card);
+      expect(d.stairUp).toBe(false);
+      expect(d.stairDown).toBe(false);
     }
   });
 });
@@ -63,6 +102,18 @@ describe("test-* action gating (SC-Test-1)", () => {
     const s = newGame(1, [0], undefined, true);
     expect(reduce(s, { type: "testPlaceArea", dir: 1, special: 0 }).events).toEqual([{ type: "blocked" }]);
     expect(reduce(s, { type: "testPlaceArea", dir: 1, special: 1 }).events).toEqual([{ type: "blocked" }]);
+  });
+
+  it("rejects a special beyond TILE_MAX even on a test game (SC-Test-8)", () => {
+    const s = newGame(1, [0], { extensionKit: true }, true);
+    expect(reduce(s, { type: "testPlaceArea", dir: 1, special: TILE_MAX + 1 }).events).toEqual([{ type: "blocked" }]);
+  });
+
+  it("testPlaceArea also arms a plain-tile id (TILE_CHAMBER..TILE_MAX, SC-Test-8) — no kit needed for a base-available shape", () => {
+    const s = newGame(1, [0], undefined, true); // kit-off
+    const { state, events } = reduce(s, { type: "testPlaceArea", dir: 1, special: TILE_CHAMBER });
+    expect(state.testNextArea).toEqual({ dir: 1, special: TILE_CHAMBER });
+    expect(events).toEqual([{ type: "testAreaQueued", dir: 1, special: TILE_CHAMBER }]);
   });
 
   it("testSetChamber arms testNextChamber and announces testChamberQueued", () => {
@@ -124,6 +175,30 @@ describe("testPlaceArea/testSetChamber reject kit-only content on a kit-off game
     expect(state.testNextArea).toEqual({ dir: 1, special: SPECIAL_DEEP_POOL });
   });
 
+  // SC-Test-8: TILE_TUNNEL_ES is the one plain-tile shape that exists only on an extension-kit
+  // tile (x05-3) — every other TILE_* shape has a same-shape base AREA_CARDS entry too, so this is
+  // the sole plain-tile id that needs the same kit gate as a real kit-only special.
+  it("testPlaceArea rejects the kit-only tunnel shape (ES) on a kit-off game", () => {
+    const s = newGame(1, [0], undefined, true); // kit-off
+    const { state, events } = reduce(s, { type: "testPlaceArea", dir: 1, special: TILE_TUNNEL_ES });
+    expect(events).toEqual([{ type: "blocked" }]);
+    expect(state.testNextArea).toBeUndefined();
+  });
+
+  it("testPlaceArea accepts the SAME kit-only tunnel shape (ES) on a kit-on game", () => {
+    const s = newGame(1, [0], { extensionKit: true }, true); // kit-on
+    const { state, events } = reduce(s, { type: "testPlaceArea", dir: 1, special: TILE_TUNNEL_ES });
+    expect(events).toEqual([{ type: "testAreaQueued", dir: 1, special: TILE_TUNNEL_ES }]);
+    expect(state.testNextArea).toEqual({ dir: 1, special: TILE_TUNNEL_ES });
+  });
+
+  it("testPlaceArea still accepts a BASE-available plain tile (a normal chamber) on a kit-off game", () => {
+    const s = newGame(1, [0], undefined, true); // kit-off
+    const { state, events } = reduce(s, { type: "testPlaceArea", dir: 1, special: TILE_CHAMBER });
+    expect(events).toEqual([{ type: "testAreaQueued", dir: 1, special: TILE_CHAMBER }]);
+    expect(state.testNextArea).toEqual({ dir: 1, special: TILE_CHAMBER });
+  });
+
   it("testSetChamber rejects kit-only content (a kit-only hazard id, with strangers/treasures left base-only) on a kit-off game", () => {
     const s = newGame(1, [0], undefined, true); // kit-off
     // strangers/treasures are base-only (Dragon 10, Magic Sword 3); only hazards carries a kit-only
@@ -183,6 +258,41 @@ describe("testNextArea consumed by tryMove (SC-Test-2)", () => {
     expect(r.moved).toBe(true); // an ordinary draw still happens
     expect(decodeArea(r.state.areas[r.state.partyArea]!.card).special).not.toBe(SPECIAL_WHIRLPOOL);
     expect(r.state.testNextArea).toEqual({ dir: DIR_N, special: SPECIAL_WHIRLPOOL }); // left untouched, not silently consumed
+  });
+});
+
+describe("testNextArea consumed by tryMove — plain tiles (SC-Test-8)", () => {
+  it("places the canonical chamber card, connects, and clears the override", () => {
+    let s = newGame(1, [0], undefined, true); // Gateway has all 4 exits — every direction is open
+    s = reduce(s, { type: "testPlaceArea", dir: DIR_N, special: TILE_CHAMBER }).state;
+    const r = tryMove(s, DIR_N);
+    expect(r.moved).toBe(true);
+    expect(r.deadEnd).toBe(false);
+    const placed = r.state.areas[r.state.partyArea]!;
+    expect(placed.card).toBe(AREA_TILE_CANONICAL_CARD[TILE_CHAMBER]);
+    expect(placed.faceUp).toBe(true);
+    expect(r.state.testNextArea).toBeUndefined();
+  });
+
+  it("places a tunnel shape and connects even though its printed orientation would not otherwise face back", () => {
+    // TILE_TUNNEL_EW has no south exit, so an ordinary North draw would never connect on its own —
+    // the override forces it anyway, exactly like a real special (SC-Test-2).
+    let s = newGame(1, [0], undefined, true);
+    s = reduce(s, { type: "testPlaceArea", dir: DIR_N, special: TILE_TUNNEL_EW }).state;
+    const r = tryMove(s, DIR_N);
+    expect(r.moved).toBe(true);
+    expect(r.deadEnd).toBe(false);
+    const placed = r.state.areas[r.state.partyArea]!;
+    expect(placed.card).toBe(AREA_TILE_CANONICAL_CARD[TILE_TUNNEL_EW]);
+    expect(decodeArea(placed.card).s).toBe(false); // proves it connected DESPITE lacking the reverse door
+  });
+
+  it("does not consume the large pack when placing a plain tile from the override", () => {
+    let s = newGame(1, [0], undefined, true);
+    s = reduce(s, { type: "testPlaceArea", dir: DIR_N, special: TILE_TUNNEL_NS }).state;
+    const before = s.largeIdx;
+    const r = tryMove(s, DIR_N);
+    expect(r.state.largeIdx).toBe(before);
   });
 });
 

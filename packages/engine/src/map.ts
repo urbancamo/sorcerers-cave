@@ -4,7 +4,7 @@ import {
   targetCoord, unpackCoord,
 } from "./coords";
 import { AF_DESTROYED, type GameState, type PlacedArea } from "./state";
-import { SPECIAL_CANONICAL_CARD, SPECIAL_WHIRLPOOL } from "./data/areaCards";
+import { SPECIAL_CANONICAL_CARD, AREA_TILE_CANONICAL_CARD, SPECIAL_WHIRLPOOL } from "./data/areaCards";
 
 export interface MoveResult {
   state: GameState;
@@ -132,7 +132,9 @@ export function tryMove(state: GameState, dir: number): MoveResult {
   const override = next.testMode && next.testNextArea?.dir === dir ? next.testNextArea : undefined;
   let drawn: number;
   if (override) {
-    drawn = SPECIAL_CANONICAL_CARD[override.special]!;
+    // SC-Test-8: `override.special` also admits the plain-tile pseudo-ids (TILE_MIN..TILE_MAX),
+    // whose canonical card lives in the sibling AREA_TILE_CANONICAL_CARD table.
+    drawn = SPECIAL_CANONICAL_CARD[override.special] ?? AREA_TILE_CANONICAL_CARD[override.special]!;
     delete next.testNextArea;
   } else {
     if (next.largeIdx >= next.largePack.length) return { state, moved: false, deadEnd: false };

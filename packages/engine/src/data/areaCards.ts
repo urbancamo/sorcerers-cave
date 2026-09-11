@@ -58,3 +58,45 @@ export const SPECIAL_CANONICAL_CARD: Readonly<Record<number, number>> = {
   [SPECIAL_GALLERY]: 1311,
   [SPECIAL_WELL]: 1439,
 };
+
+// Test Mode (§Test Mode, SC-Test-8): pseudo-"special" ids that let `testPlaceArea` place a PLAIN
+// area tile — one ordinary chamber, and one tunnel per distinct exit combination that actually
+// exists in the deck (every 2-, 3- and 4-way junction of N/E/S/W) — rather than only a real
+// rulebook special. Numbered to continue directly after SPECIAL_WELL (11) so `testPlaceArea`'s
+// range check stays a single contiguous interval (TILE_MIN..TILE_MAX); a placed plain tile always
+// decodes `special: 0` (SPECIAL_NONE) — these ids exist only as this action's own tile selector,
+// never as a real `DecodedArea.special` value. TILE_TUNNEL_ES is kept LAST: it is the one shape
+// that exists ONLY on an extension-kit tile (x05-3, value 6) — every other shape below has a
+// same-shape base `AREA_CARDS` entry too — so it alone needs the kit-only gate in reduce.ts.
+export const TILE_CHAMBER = 12;
+export const TILE_TUNNEL_NE = 13;
+export const TILE_TUNNEL_NS = 14;
+export const TILE_TUNNEL_NW = 15;
+export const TILE_TUNNEL_EW = 16;
+export const TILE_TUNNEL_SW = 17;
+export const TILE_TUNNEL_NES = 18;
+export const TILE_TUNNEL_NEW = 19;
+export const TILE_TUNNEL_NSW = 20;
+export const TILE_TUNNEL_ESW = 21;
+export const TILE_TUNNEL_NESW = 22;
+export const TILE_TUNNEL_ES = 23; // extension-kit only (tile x05-3)
+
+export const TILE_MIN = TILE_CHAMBER;
+export const TILE_MAX = TILE_TUNNEL_ES;
+
+// The one plain (no stairs, no special) deck card value for each pseudo-id above — verified
+// against AREA_CARDS/EXT_AREA_CARDS by test-mode.test.ts, same pattern as SPECIAL_CANONICAL_CARD.
+export const AREA_TILE_CANONICAL_CARD: Readonly<Record<number, number>> = {
+  [TILE_CHAMBER]: 31, // NESW chamber — all four exits, so it connects on its own merits like a special
+  [TILE_TUNNEL_NE]: 3,
+  [TILE_TUNNEL_NS]: 5,
+  [TILE_TUNNEL_NW]: 9,
+  [TILE_TUNNEL_EW]: 10,
+  [TILE_TUNNEL_SW]: 12,
+  [TILE_TUNNEL_NES]: 7,
+  [TILE_TUNNEL_NEW]: 11,
+  [TILE_TUNNEL_NSW]: 13,
+  [TILE_TUNNEL_ESW]: 14,
+  [TILE_TUNNEL_NESW]: 15,
+  [TILE_TUNNEL_ES]: 6,
+};

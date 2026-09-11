@@ -1,7 +1,7 @@
 import { GS_PLAYING, GS_QUIT, GS_ESCAPED, GS_DEAD, AF_DESTROYED, AF_BELL_SPENT, AF_UNRESOLVED, type GameState, type PartyMember, type PlacedArea } from "./state";
 import { tryMove } from "./map";
 import { decodeArea } from "./decode";
-import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WHIRLPOOL, SPECIAL_WELL, SPECIAL_BELL_ROPE, SPECIAL_GREAT_HALL } from "./data/areaCards";
+import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WHIRLPOOL, SPECIAL_WELL, SPECIAL_BELL_ROPE, SPECIAL_GREAT_HALL, TILE_MIN, TILE_MAX, TILE_TUNNEL_ES } from "./data/areaCards";
 import { viperCrossing, deepPoolCrossing, whirlpoolCrossing, giantCanRecover, sunkKey, tryReclaimSunk } from "./special";
 import { enterChamber, drawSmallCards } from "./chamber";
 import { applyHazards, hasStaffWizard } from "./hazards";
@@ -1583,11 +1583,18 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
 
     case "testPlaceArea": {
       if (!state.testMode) return { state, events: [{ type: "blocked" }] };
-      if (action.special < SPECIAL_DEEP_POOL || action.special > SPECIAL_WELL) return { state, events: [{ type: "blocked" }] };
+      // SC-Test-8: `special` also accepts TILE_MIN..TILE_MAX, the pseudo-ids for a plain chamber
+      // or a tunnel of a given exit shape — a second, contiguous range appended right after the
+      // real specials (SPECIAL_DEEP_POOL..SPECIAL_WELL).
+      const isSpecial = action.special >= SPECIAL_DEEP_POOL && action.special <= SPECIAL_WELL;
+      const isTile = action.special >= TILE_MIN && action.special <= TILE_MAX;
+      if (!isSpecial && !isTile) return { state, events: [{ type: "blocked" }] };
       // Variant gating (SC-Test-6): a kit-only special (6-11) is invalid content for a kit-off
       // game, same as `legalActions` already rejects anything else invalid for the active variant
-      // set (design plan §8).
-      if (action.special > SPECIAL_GREAT_HALL && !state.variants?.extensionKit) return { state, events: [{ type: "blocked" }] };
+      // set (design plan §8). SC-Test-8 adds one more kit-only case: TILE_TUNNEL_ES is the only
+      // plain-tile shape that exists solely on an extension-kit tile (x05-3).
+      const kitOnly = (isSpecial && action.special > SPECIAL_GREAT_HALL) || action.special === TILE_TUNNEL_ES;
+      if (kitOnly && !state.variants?.extensionKit) return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
       next.testNextArea = { dir: action.dir, special: action.special };
       return { state: next, events: [{ type: "testAreaQueued", dir: action.dir, special: action.special }] };

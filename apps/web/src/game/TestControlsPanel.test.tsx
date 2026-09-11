@@ -3,6 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import {
   newGame, SPECIAL_WHIRLPOOL, SPECIAL_DEEP_POOL, DIR_N, DIR_UP, DIR_DOWN,
   CREATURES, TREASURES, HAZARD_NAMES, ALL_CREATURES, ALL_TREASURES, ALL_HAZARD_NAMES,
+  TILE_CHAMBER, TILE_TUNNEL_NS, TILE_TUNNEL_ES,
   type GameState,
 } from "@sorcerers-cave/engine";
 import { TestControlsPanel } from "./TestControlsPanel";
@@ -79,6 +80,39 @@ describe("TestControlsPanel", () => {
     expect(treasureSelect.querySelectorAll("option")).toHaveLength(ALL_TREASURES.length + 1);
     const hazardSelect = screen.getByLabelText(/add a hazard/i);
     expect(hazardSelect.querySelectorAll("option")).toHaveLength(ALL_HAZARD_NAMES.length + 1);
+  });
+
+  // Select any area tile (2026-09-11, SC-Test-8): the special picker also offers a normal chamber
+  // and one tunnel per exit shape, not just the rulebook specials.
+  it("queues testPlaceArea with a plain chamber tile", () => {
+    const dispatch = vi.fn();
+    render(<TestControlsPanel state={testState()} dispatch={dispatch} />);
+    fireEvent.change(screen.getByLabelText(/next area — direction/i), { target: { value: String(DIR_N) } });
+    fireEvent.change(screen.getByLabelText(/next area — special/i), { target: { value: String(TILE_CHAMBER) } });
+    fireEvent.click(screen.getByRole("button", { name: /queue next area/i }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "testPlaceArea", dir: DIR_N, special: TILE_CHAMBER });
+  });
+
+  it("queues testPlaceArea with a tunnel exit shape", () => {
+    const dispatch = vi.fn();
+    render(<TestControlsPanel state={testState()} dispatch={dispatch} />);
+    fireEvent.change(screen.getByLabelText(/next area — special/i), { target: { value: String(TILE_TUNNEL_NS) } });
+    fireEvent.click(screen.getByRole("button", { name: /queue next area/i }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "testPlaceArea", dir: DIR_N, special: TILE_TUNNEL_NS });
+  });
+
+  it("omits the kit-only ES tunnel shape on a kit-off game, but offers it on a kit-on game", () => {
+    const { unmount } = render(<TestControlsPanel state={testState()} dispatch={() => {}} />);
+    expect(screen.getByLabelText(/next area — special/i).querySelector(`option[value="${TILE_TUNNEL_ES}"]`)).toBeNull();
+    unmount();
+    render(<TestControlsPanel state={kitOnState()} dispatch={() => {}} />);
+    expect(screen.getByLabelText(/next area — special/i).querySelector(`option[value="${TILE_TUNNEL_ES}"]`)).not.toBeNull();
+  });
+
+  it("shows the currently armed plain-tile override", () => {
+    const s = testState({ testNextArea: { dir: DIR_N, special: TILE_TUNNEL_NS } });
+    render(<TestControlsPanel state={s} dispatch={() => {}} />);
+    expect(screen.getByTestId("test-controls")).toHaveTextContent(/tunnel ns/i);
   });
 
   it("shows the currently armed area override", () => {
