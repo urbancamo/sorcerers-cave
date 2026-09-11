@@ -61,6 +61,11 @@ export type GameAction =
   | { type: "testPlaceArea"; dir: number; special: number }
   | { type: "testSetChamber"; strangers: number[]; treasures: number[]; hazards: number[] }
   | { type: "testForceReaction"; outcome: "friendly" | "indifferent" | "hostile" }
+  // Next Roll Selector (2026-09-11, SC-Test-10): force the next raw d6 (`testForceDie`, one-shot)
+  // or every raw d6 for the rest of the turn (`testForceAllDice`) — a lower-level alternative to
+  // `testForceReaction` for rolls that aren't a reaction at all (combat, hazards, special areas).
+  | { type: "testForceDie"; value: number }
+  | { type: "testForceAllDice"; value: number }
   | { type: "testClearOverrides" };
 
 // What happened — the reducer is the only producer; the UI never infers game facts.
@@ -306,4 +311,6 @@ export type GameEvent =
   | { type: "testAreaQueued"; dir: number; special: number }
   | { type: "testChamberQueued"; strangers: number[]; treasures: number[]; hazards: number[] }
   | { type: "testReactionQueued"; outcome: "friendly" | "indifferent" | "hostile" }
+  | { type: "testDieQueued"; value: number }
+  | { type: "testAllDiceQueued"; value: number }
   | { type: "testOverridesCleared" };

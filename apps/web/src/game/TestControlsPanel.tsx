@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   ALL_CREATURES, ALL_TREASURES, ALL_HAZARD_NAMES,
   CREATURES, TREASURES, HAZARD_NAMES,
@@ -6,6 +6,10 @@ import {
   SPECIAL_CHASM, SPECIAL_BELL_ROPE, SPECIAL_LAIR, SPECIAL_WHIRLPOOL, SPECIAL_GALLERY, SPECIAL_WELL,
   TILE_CHAMBER, TILE_TUNNEL_NE, TILE_TUNNEL_NS, TILE_TUNNEL_NW, TILE_TUNNEL_EW, TILE_TUNNEL_SW,
   TILE_TUNNEL_NES, TILE_TUNNEL_NEW, TILE_TUNNEL_NSW, TILE_TUNNEL_ESW, TILE_TUNNEL_NESW, TILE_TUNNEL_ES,
+  TILE_TUNNEL_NE_D, TILE_TUNNEL_NS_D, TILE_TUNNEL_EW_U, TILE_TUNNEL_SW_D,
+  TILE_TUNNEL_NES_U, TILE_TUNNEL_NES_D, TILE_TUNNEL_NEW_U, TILE_TUNNEL_NEW_D,
+  TILE_TUNNEL_NSW_U, TILE_TUNNEL_NSW_D, TILE_TUNNEL_ESW_U, TILE_TUNNEL_ESW_D,
+  TILE_TUNNEL_NESW_U, TILE_TUNNEL_NESW_D, TILE_TUNNEL_NESW_UD,
   DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN,
   type GameState, type GameAction,
 } from "@sorcerers-cave/engine";
@@ -23,20 +27,37 @@ const SPECIAL_AREA_OPTIONS = [
   { id: SPECIAL_WELL, label: "The Well" },
 ];
 // Select any area tile (2026-09-11): one normal chamber, plus one tunnel per exit shape that
-// actually exists in the deck — every 2/3/4-way junction of N/E/S/W (SC-Test-8). TILE_TUNNEL_ES is
-// the sole kit-only shape (it exists only on an extension-kit tile).
+// actually exists in the deck — every 2/3/4-way junction of N/E/S/W (SC-Test-8), including any
+// printed stairUp/stairDown variant of that shape (SC-Test-9). TILE_TUNNEL_ES is the sole kit-only
+// option (it exists only on an extension-kit tile); NW and ES have no stair variants — every NW/ES
+// tile in the deck is plain.
 const PLAIN_TILE_OPTIONS = [
   { id: TILE_CHAMBER, label: "Normal chamber" },
   { id: TILE_TUNNEL_NE, label: "Tunnel NE" },
+  { id: TILE_TUNNEL_NE_D, label: "Tunnel NE (stair down)" },
   { id: TILE_TUNNEL_NS, label: "Tunnel NS" },
+  { id: TILE_TUNNEL_NS_D, label: "Tunnel NS (stair down)" },
   { id: TILE_TUNNEL_NW, label: "Tunnel NW" },
   { id: TILE_TUNNEL_EW, label: "Tunnel EW" },
+  { id: TILE_TUNNEL_EW_U, label: "Tunnel EW (stair up)" },
   { id: TILE_TUNNEL_SW, label: "Tunnel SW" },
+  { id: TILE_TUNNEL_SW_D, label: "Tunnel SW (stair down)" },
   { id: TILE_TUNNEL_NES, label: "Tunnel NES" },
+  { id: TILE_TUNNEL_NES_U, label: "Tunnel NES (stair up)" },
+  { id: TILE_TUNNEL_NES_D, label: "Tunnel NES (stair down)" },
   { id: TILE_TUNNEL_NEW, label: "Tunnel NEW" },
+  { id: TILE_TUNNEL_NEW_U, label: "Tunnel NEW (stair up)" },
+  { id: TILE_TUNNEL_NEW_D, label: "Tunnel NEW (stair down)" },
   { id: TILE_TUNNEL_NSW, label: "Tunnel NSW" },
+  { id: TILE_TUNNEL_NSW_U, label: "Tunnel NSW (stair up)" },
+  { id: TILE_TUNNEL_NSW_D, label: "Tunnel NSW (stair down)" },
   { id: TILE_TUNNEL_ESW, label: "Tunnel ESW" },
+  { id: TILE_TUNNEL_ESW_U, label: "Tunnel ESW (stair up)" },
+  { id: TILE_TUNNEL_ESW_D, label: "Tunnel ESW (stair down)" },
   { id: TILE_TUNNEL_NESW, label: "Tunnel NESW" },
+  { id: TILE_TUNNEL_NESW_U, label: "Tunnel NESW (stair up)" },
+  { id: TILE_TUNNEL_NESW_D, label: "Tunnel NESW (stair down)" },
+  { id: TILE_TUNNEL_NESW_UD, label: "Tunnel NESW (stairs up & down)" },
   { id: TILE_TUNNEL_ES, label: "Tunnel ES" },
 ];
 const SPECIAL_OPTIONS = [...SPECIAL_AREA_OPTIONS, ...PLAIN_TILE_OPTIONS];
@@ -57,6 +78,11 @@ const DIR_OPTIONS = [
   { dir: DIR_DOWN, label: "Down" },
 ];
 const DIR_LABEL = new Map(DIR_OPTIONS.map((o) => [o.dir, o.label]));
+
+// Next Roll Selector (2026-09-11, SC-Test-10): which test-* roll action the panel's dice section
+// currently queues — "reaction" dispatches testForceReaction (unchanged); "die"/"allDice" dispatch
+// testForceDie/testForceAllDice, a lower-level override for a roll that isn't a reaction at all.
+type RollMode = "reaction" | "die" | "allDice";
 
 /** One removable-chip list (strangers, treasures, or hazards) backed by local component state. */
 function EntityPicker({
@@ -98,7 +124,31 @@ export function TestControlsPanel({ state, dispatch, onSave }: { state: GameStat
   const [strangers, setStrangers] = useState<number[]>([]);
   const [treasures, setTreasures] = useState<number[]>([]);
   const [hazards, setHazards] = useState<number[]>([]);
+  // Next Roll Selector (2026-09-11, SC-Test-10): which of the three test-* roll actions the
+  // section below queues — purely local UI state, not itself an armed override.
+  const [rollMode, setRollMode] = useState<RollMode>("reaction");
+  const [dieValue, setDieValue] = useState(1);
+  // Repositionable/minimizable panel (2026-09-11): `pos` overrides the default CSS top/right anchor
+  // once the tester drags the header; null keeps the original fixed position. `dragRef` (a ref, not
+  // state) holds the in-progress drag's starting point so pointermove handlers stay cheap — it never
+  // needs to trigger a re-render itself, only the `setPos` calls it makes do.
+  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const [minimized, setMinimized] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
   if (!state.testMode) return null;
+
+  const startDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    const rect = panelRef.current!.getBoundingClientRect();
+    dragRef.current = { startX: e.clientX, startY: e.clientY, origX: pos?.x ?? rect.left, origY: pos?.y ?? rect.top };
+    e.currentTarget.setPointerCapture?.(e.pointerId);
+  };
+  const onDrag = (e: React.PointerEvent<HTMLDivElement>) => {
+    const d = dragRef.current;
+    if (!d) return;
+    setPos({ x: d.origX + (e.clientX - d.startX), y: d.origY + (e.clientY - d.startY) });
+  };
+  const endDrag = () => { dragRef.current = null; };
 
   // Kit gating (SC-Test-6/SC-Test-8): a kit-off game rejects kit-only content, so don't even
   // offer it — creature/treasure/hazard ids beyond the base tables' own lengths are kit-only;
@@ -111,9 +161,39 @@ export function TestControlsPanel({ state, dispatch, onSave }: { state: GameStat
   const hazardOptions = kitOn ? ALL_HAZARD_NAMES : ALL_HAZARD_NAMES.slice(0, HAZARD_NAMES.length);
 
   return (
-    <div className="scv-tc" data-testid="test-controls">
-      <h3 className="scv-tc-hd">Test Mode</h3>
+    <div
+      ref={panelRef}
+      className="scv-tc"
+      data-testid="test-controls"
+      style={pos ? { left: pos.x, top: pos.y, right: "auto" } : undefined}
+    >
+      <div
+        className="scv-tc-drag"
+        data-testid="test-controls-drag"
+        onPointerDown={startDrag}
+        onPointerMove={onDrag}
+        onPointerUp={endDrag}
+        onPointerCancel={endDrag}
+      >
+        <h3 className="scv-tc-hd">Test Mode</h3>
+        <button
+          type="button"
+          className="scv-tc-min"
+          aria-label={minimized ? "Expand Test Mode panel" : "Minimize Test Mode panel"}
+          // Bug fix (minimize button unresponsive in real browsers, not caught by jsdom tests): a
+          // pointerdown here bubbles to the drag handle's own onPointerDown, which calls
+          // setPointerCapture on the PARENT — that retargets the pointer's subsequent events away
+          // from this button and can suppress the click a real browser would otherwise synthesize.
+          // Stopping propagation here keeps this button's clicks independent of the drag handle.
+          onPointerDown={(e) => e.stopPropagation()}
+          onClick={() => setMinimized((m) => !m)}
+        >
+          {minimized ? "▢" : "–"}
+        </button>
+      </div>
 
+      {minimized ? null : (
+      <>
       {onSave && (
         <div className="scv-tc-section">
           <button type="button" onClick={onSave}>Save scenario</button>
@@ -175,18 +255,49 @@ export function TestControlsPanel({ state, dispatch, onSave }: { state: GameStat
       </div>
 
       <div className="scv-tc-section">
-        <span className="scv-tc-row-nm">Next reaction</span>
-        {(["friendly", "indifferent", "hostile"] as const).map((outcome) => (
-          <button key={outcome} type="button" onClick={() => dispatch({ type: "testForceReaction", outcome })}>
-            {outcome}
-          </button>
-        ))}
-        {state.testNextReaction && <p className="scv-tc-armed">Armed: {state.testNextReaction}</p>}
+        <label>
+          Next Roll Selector
+          <select aria-label="Next Roll Selector" value={rollMode} onChange={(e) => setRollMode(e.target.value as RollMode)}>
+            <option value="reaction">Next Reaction Roll</option>
+            <option value="die">Next Single Die Roll</option>
+            <option value="allDice">All Die Rolls Until End Of Turn</option>
+          </select>
+        </label>
+        {rollMode === "reaction" ? (
+          <div className="scv-tc-row">
+            {(["friendly", "indifferent", "hostile"] as const).map((outcome) => (
+              <button key={outcome} type="button" onClick={() => dispatch({ type: "testForceReaction", outcome })}>
+                {outcome}
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div className="scv-tc-row">
+            <select aria-label="Die value" value={dieValue} onChange={(e) => setDieValue(Number(e.target.value))}>
+              {[1, 2, 3, 4, 5, 6].map((v) => <option key={v} value={v}>{v}</option>)}
+            </select>
+            <button
+              type="button"
+              onClick={() => dispatch(
+                rollMode === "die" ? { type: "testForceDie", value: dieValue } : { type: "testForceAllDice", value: dieValue },
+              )}
+            >
+              {rollMode === "die" ? "Queue next die" : "Queue for rest of turn"}
+            </button>
+          </div>
+        )}
+        {state.testNextReaction && <p className="scv-tc-armed">Armed: next reaction {state.testNextReaction}</p>}
+        {state.testNextDie !== undefined && <p className="scv-tc-armed">Armed: next die = {state.testNextDie}</p>}
+        {state.testAllDiceRoll !== undefined && (
+          <p className="scv-tc-armed">Armed: all dice = {state.testAllDiceRoll} until end of turn</p>
+        )}
       </div>
 
       <button type="button" className="scv-tc-clear" onClick={() => dispatch({ type: "testClearOverrides" })}>
         Clear all overrides
       </button>
+      </>
+      )}
     </div>
   );
 }

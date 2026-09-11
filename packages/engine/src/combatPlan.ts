@@ -1,4 +1,4 @@
-import { rollDie } from "./rng";
+import { rollDieForState } from "./rng";
 // Extension kit (SC-EXT-17): aliases `ALL_CREATURES` — every dynamic lookup below indexes by an
 // actual party member's or stranger's `creatureId` (never enumerates the array), so a kit ally or
 // kit stranger (id 14-20) fighting no longer crashes; byte-identical for ids 0-13.
@@ -425,15 +425,15 @@ export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEve
       continue;
     }
     const front = mt.front.map((i) => state.party[i]!);
-    const pr = rollDie(state.seed); state.seed = pr.seed;
-    const er = rollDie(state.seed); state.seed = er.seed;
-    const partyTotal = mt.partyStr + pr.value + rollBonus + surpriseParty;
-    const enemyTotal = mt.enemyStr + er.value + surpriseEnemy;
+    const partyRoll = rollDieForState(state);
+    const enemyRoll = rollDieForState(state);
+    const partyTotal = mt.partyStr + partyRoll + rollBonus + surpriseParty;
+    const enemyTotal = mt.enemyStr + enemyRoll + surpriseEnemy;
     events.push({
       type: "combatRoll",
       party: mt.front.concat(mt.backers).map((i) => CREATURES[state.party[i]!.creatureId]!.name).join(" + "),
       enemy: mt.strangers.map((si) => CREATURES[state.strangers[si]!]!.name).join(" + "),
-      partyRoll: pr.value, enemyRoll: er.value, partyTotal, enemyTotal,
+      partyRoll, enemyRoll, partyTotal, enemyTotal,
       result: partyTotal > enemyTotal ? "partyWon" : enemyTotal > partyTotal ? "enemyWon" : "tie",
     });
 

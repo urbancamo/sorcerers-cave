@@ -287,4 +287,16 @@ export interface GameState {
   // Armed by `testForceReaction`; consumed by the next `test` (reaction) action in place of
   // reactionRoll's die.
   testNextReaction?: "friendly" | "indifferent" | "hostile";
+  // Next Roll Selector (2026-09-11, SC-Test-10): armed by `testForceDie`; consumed by the very next
+  // `rollDieForState` call anywhere in the engine (combat, hazards, special areas, reactions, …) —
+  // a ONE-SHOT override, deleted the moment it's used. Distinct from `testNextReaction`: this forces
+  // the raw die VALUE, not a guaranteed OUTCOME — a reaction consuming it still bands the value
+  // through the leader's normal thresholds, so it may not land on the outcome a tester expects for
+  // every creature (testNextReaction remains the tool for a GUARANTEED outcome).
+  testNextDie?: number;
+  // Armed by `testForceAllDice`; like `testNextDie` but NOT deleted on use — every roll for the rest
+  // of the turn returns this value, until `state.turn` advances (reduce.ts auto-clears it at both
+  // turn-increment sites) or `testClearOverrides` clears it explicitly. `testNextDie` takes priority
+  // over this when both happen to be armed (rollDieForState checks it first).
+  testAllDiceRoll?: number;
 }

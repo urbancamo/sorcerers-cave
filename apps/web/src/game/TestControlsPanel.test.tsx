@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import {
   newGame, SPECIAL_WHIRLPOOL, SPECIAL_DEEP_POOL, DIR_N, DIR_UP, DIR_DOWN,
   CREATURES, TREASURES, HAZARD_NAMES, ALL_CREATURES, ALL_TREASURES, ALL_HAZARD_NAMES,
-  TILE_CHAMBER, TILE_TUNNEL_NS, TILE_TUNNEL_ES,
+  TILE_CHAMBER, TILE_TUNNEL_NS, TILE_TUNNEL_ES, TILE_TUNNEL_NESW_UD,
   type GameState,
 } from "@sorcerers-cave/engine";
 import { TestControlsPanel } from "./TestControlsPanel";
@@ -101,6 +101,21 @@ describe("TestControlsPanel", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "testPlaceArea", dir: DIR_N, special: TILE_TUNNEL_NS });
   });
 
+  // Select any area tile — up/down variants (2026-09-11, SC-Test-9): a stair-variant option is
+  // available (and not kit-gated) on a kit-off game, just like the plain shapes.
+  it("queues testPlaceArea with an up/down variant of a tunnel shape", () => {
+    const dispatch = vi.fn();
+    render(<TestControlsPanel state={testState()} dispatch={dispatch} />);
+    fireEvent.change(screen.getByLabelText(/next area — special/i), { target: { value: String(TILE_TUNNEL_NESW_UD) } });
+    fireEvent.click(screen.getByRole("button", { name: /queue next area/i }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "testPlaceArea", dir: DIR_N, special: TILE_TUNNEL_NESW_UD });
+  });
+
+  it("offers up/down tunnel variants on a kit-off game (none of them are kit-only)", () => {
+    render(<TestControlsPanel state={testState()} dispatch={() => {}} />);
+    expect(screen.getByLabelText(/next area — special/i).querySelector(`option[value="${TILE_TUNNEL_NESW_UD}"]`)).not.toBeNull();
+  });
+
   it("omits the kit-only ES tunnel shape on a kit-off game, but offers it on a kit-on game", () => {
     const { unmount } = render(<TestControlsPanel state={testState()} dispatch={() => {}} />);
     expect(screen.getByLabelText(/next area — special/i).querySelector(`option[value="${TILE_TUNNEL_ES}"]`)).toBeNull();
@@ -138,6 +153,43 @@ describe("TestControlsPanel", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "testForceReaction", outcome: "friendly" });
   });
 
+  // Next Roll Selector (2026-09-11, SC-Test-10): a toggle between reaction/die/allDice — only the
+  // reaction buttons show by default; switching modes swaps in a die-value picker instead.
+  it("defaults to the reaction mode's friendly/indifferent/hostile buttons", () => {
+    render(<TestControlsPanel state={testState()} dispatch={() => {}} />);
+    expect(screen.getByRole("button", { name: /^hostile$/i })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /queue next die/i })).toBeNull();
+  });
+
+  it("switches to a die-value picker and queues testForceDie", () => {
+    const dispatch = vi.fn();
+    render(<TestControlsPanel state={testState()} dispatch={dispatch} />);
+    fireEvent.change(screen.getByLabelText(/next roll selector/i), { target: { value: "die" } });
+    expect(screen.queryByRole("button", { name: /^hostile$/i })).toBeNull();
+    fireEvent.change(screen.getByLabelText(/die value/i), { target: { value: "5" } });
+    fireEvent.click(screen.getByRole("button", { name: /queue next die/i }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "testForceDie", value: 5 });
+  });
+
+  it("switches to the all-dice mode and queues testForceAllDice", () => {
+    const dispatch = vi.fn();
+    render(<TestControlsPanel state={testState()} dispatch={dispatch} />);
+    fireEvent.change(screen.getByLabelText(/next roll selector/i), { target: { value: "allDice" } });
+    fireEvent.change(screen.getByLabelText(/die value/i), { target: { value: "2" } });
+    fireEvent.click(screen.getByRole("button", { name: /queue for rest of turn/i }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "testForceAllDice", value: 2 });
+  });
+
+  it("shows the currently armed die/all-dice override", () => {
+    render(<TestControlsPanel state={testState({ testNextDie: 4 })} dispatch={() => {}} />);
+    expect(screen.getByTestId("test-controls")).toHaveTextContent(/next die = 4/i);
+  });
+
+  it("shows the currently armed all-dice override", () => {
+    render(<TestControlsPanel state={testState({ testAllDiceRoll: 6 })} dispatch={() => {}} />);
+    expect(screen.getByTestId("test-controls")).toHaveTextContent(/all dice = 6 until end of turn/i);
+  });
+
   // Save/restore a test scenario (2026-09-11): the panel's own "Save scenario" button reuses the
   // caller-supplied onSave handler (the same one wired to the HUD's save icon) — no new mutation.
   it("does not show a Save scenario button unless onSave is supplied", () => {
@@ -158,5 +210,54 @@ describe("TestControlsPanel", () => {
     render(<TestControlsPanel state={s} dispatch={dispatch} />);
     fireEvent.click(screen.getByRole("button", { name: /clear/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "testClearOverrides" });
+  });
+
+  // Repositionable/minimizable panel (2026-09-11): dragging the header updates the panel's inline
+  // position; minimizing hides the body while leaving the header (and its own toggle) visible.
+  it("drags the panel via the header, offsetting its position by the pointer delta", () => {
+    render(<TestControlsPanel state={testState()} dispatch={() => {}} />);
+    const handle = screen.getByTestId("test-controls-drag");
+    const panel = screen.getByTestId("test-controls");
+    fireEvent.pointerDown(handle, { clientX: 100, clientY: 100, pointerId: 1 });
+    fireEvent.pointerMove(handle, { clientX: 150, clientY: 130, pointerId: 1 });
+    expect(panel.style.left).toBe("50px");
+    expect(panel.style.top).toBe("30px");
+    expect(panel.style.right).toBe("auto");
+    fireEvent.pointerUp(handle, { pointerId: 1 });
+  });
+
+  it("does not move before a pointerdown starts the drag", () => {
+    render(<TestControlsPanel state={testState()} dispatch={() => {}} />);
+    const handle = screen.getByTestId("test-controls-drag");
+    const panel = screen.getByTestId("test-controls");
+    fireEvent.pointerMove(handle, { clientX: 150, clientY: 130, pointerId: 1 });
+    expect(panel.style.left).toBe("");
+  });
+
+  it("minimizes and expands the panel, hiding the body's controls while minimized", () => {
+    render(<TestControlsPanel state={testState()} dispatch={() => {}} />);
+    expect(screen.getByRole("button", { name: /queue next area/i })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /minimize test mode panel/i }));
+    expect(screen.queryByRole("button", { name: /queue next area/i })).toBeNull();
+    expect(screen.getByText("Test Mode")).toBeTruthy(); // header stays visible while minimized
+    fireEvent.click(screen.getByRole("button", { name: /expand test mode panel/i }));
+    expect(screen.getByRole("button", { name: /queue next area/i })).toBeTruthy();
+  });
+
+  // Bug fix (2026-09-11): a pointerdown on the minimize button bubbles to the drag handle's own
+  // onPointerDown (startDrag), which calls setPointerCapture on the PARENT — in a real browser this
+  // retargets the pointer's subsequent events and can suppress the click the button would otherwise
+  // receive (jsdom's simpler event model doesn't reproduce that suppression, which is why the plain
+  // fireEvent.click test above kept passing even with the bug present). What jsdom CAN verify is the
+  // actual fix: the button stops the pointerdown from propagating, so it never reaches startDrag in
+  // the first place — pinned here by confirming a drag never arms from a button-originated pointerdown.
+  it("does not arm a drag when the pointerdown originates on the minimize button", () => {
+    render(<TestControlsPanel state={testState()} dispatch={() => {}} />);
+    const minBtn = screen.getByRole("button", { name: /minimize test mode panel/i });
+    const handle = screen.getByTestId("test-controls-drag");
+    const panel = screen.getByTestId("test-controls");
+    fireEvent.pointerDown(minBtn, { clientX: 100, clientY: 100, pointerId: 1 });
+    fireEvent.pointerMove(handle, { clientX: 150, clientY: 130, pointerId: 1 });
+    expect(panel.style.left).toBe(""); // never armed — the button's pointerdown never reached startDrag
   });
 });

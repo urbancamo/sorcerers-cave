@@ -17,7 +17,7 @@ import {
   hasLivingHuman, holyWaterTargets, HW_STATUE_BASE, HW_MEDUSA, HW_STRANGER_BASE, HW_PARKED_STATUE_BASE, isHumanOrPriestClass,
 } from "./effects";
 import { BORNEABLE, isBorne, sweepFallen, spillCarried } from "./loot";
-import { rollDie } from "./rng";
+import { rollDieForState } from "./rng";
 import {
   getSubLocation, oppositeDir, RING_ADJACENCY_SPECIALS, ISLAND_JUMP_SPECIALS, SUB_LOCATION_SPECIALS,
   type SubAt,
@@ -667,6 +667,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       const next = { ...res.state, turn: res.state.turn + 1 };
       next.fellThroughTrap = false; // a normal move reaches a reachable area (resolveArea re-sets it if a trap fires)
       delete next.subLocation; // Precise Locations (§10.5): a real move invalidates any jump override
+      delete next.testAllDiceRoll; // Next Roll Selector (SC-Test-10): "until end of turn" ends here
       const events: GameEvent[] = [];
       const crossing = next.partyArea !== oldPrev; // not simply going back the way we came
 
@@ -726,6 +727,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // (SC-10.5-6) — an ordinary lateral crossing always costs one via the `move` case; jumping
       // was the one exception, free to attempt over and over within the same turn.
       next.turn += 1;
+      delete next.testAllDiceRoll; // Next Roll Selector (SC-Test-10): "until end of turn" ends here
       const events: GameEvent[] = [{ type: "islandJump", special: dec.special }];
       if (dec.special === SPECIAL_VIPER_PIT) {
         events.push(...viperCrossing(next));
@@ -810,19 +812,19 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           if (next.treasures.length === 0) persistAndExplore(next);
           return { state: next, events };
         }
-        const pr = rollDie(next.seed); next.seed = pr.seed;
-        const sr = rollDie(next.seed); next.seed = sr.seed;
-        const fighterTotal = frontStrength(fighter) + pr.value;
-        const won = fighterTotal >= 8 + sr.value; // the statue guards with strength 8 (§16)
+        const partyRoll = rollDieForState(next);
+        const enemyRoll = rollDieForState(next);
+        const fighterTotal = frontStrength(fighter) + partyRoll;
+        const won = fighterTotal >= 8 + enemyRoll; // the statue guards with strength 8 (§16)
         // Surface the roll so the UI can show the fight (the statue is a foe you must beat).
         events.push({
           type: "combatRoll",
           party: CREATURES[fighter.creatureId]!.name,
           enemy: "Statue",
-          partyRoll: pr.value,
-          enemyRoll: sr.value,
+          partyRoll,
+          enemyRoll,
           partyTotal: fighterTotal,
-          enemyTotal: 8 + sr.value,
+          enemyTotal: 8 + enemyRoll,
           result: won ? "partyWon" : "enemyWon",
         });
         if (won) {
@@ -1020,12 +1022,23 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // Checks `testMode` explicitly rather than trusting testNextReaction's mere presence —
       // defense in depth against a hand-crafted state (same reasoning as map.ts's testNextArea
       // check and chamber.ts's testNextChamber check).
+      // Next Roll Selector (2026-09-11, SC-Test-10): `testNextDie`/`testAllDiceRoll` take over
+      // NEXT, ahead of a genuine roll, when no `testNextReaction` is armed — the forced raw value
+      // still bands through `reactionRoll`'s normal leader-threshold logic (charisma/curse/
+      // natural-1 included), so it may not land on a specific outcome for every leader; a tester
+      // wanting a GUARANTEED outcome regardless of leader still wants `testNextReaction` instead.
       let outcome: ReturnType<typeof reactionRoll>["outcome"];
       let rollValue: number;
       if (next.testMode && next.testNextReaction) {
         outcome = next.testNextReaction;
         rollValue = forcedReactionRoll(next, outcome);
         delete next.testNextReaction;
+      } else if (next.testMode && (next.testNextDie !== undefined || next.testAllDiceRoll !== undefined)) {
+        const forced = next.testNextDie ?? next.testAllDiceRoll!;
+        delete next.testNextDie; // one-shot; testAllDiceRoll stays armed for the rest of the turn
+        const roll = reactionRoll(next, forced);
+        outcome = roll.outcome;
+        rollValue = roll.roll;
       } else {
         const roll = reactionRoll(next);
         next.seed = roll.seed;
@@ -1135,11 +1148,11 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       const queue = next.fight!.casualtyQueue!;
       const preferred = action.idx;
       const other = pair.find((i) => i !== preferred)!;
-      const r = rollDie(next.seed); next.seed = r.seed;
-      const victim = r.value >= 4 ? preferred : other; // 4-6 grants the player's preference (§"A Round of Fighting")
+      const roll = rollDieForState(next);
+      const victim = roll >= 4 ? preferred : other; // 4-6 grants the player's preference (§"A Round of Fighting")
       markDied(next, next.party[victim]!);
       const events: GameEvent[] = [
-        { type: "casualtyChosen", creatureId: next.party[victim]!.creatureId, roll: r.value, gotPreference: victim === preferred },
+        { type: "casualtyChosen", creatureId: next.party[victim]!.creatureId, roll, gotPreference: victim === preferred },
         { type: "memberDied", creatureId: next.party[victim]!.creatureId },
         ...eyeForsakenByDeath(next, next.party[victim]!),
       ];
@@ -1328,10 +1341,9 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           const drinker = next.party[action.target];
           if (!drinker || (drinker.status !== 0 && drinker.status !== 1)) return { state, events: [{ type: "blocked" }] };
           consume(); // consumed on use, whatever the outcome
-          const r = rollDie(next.seed);
-          next.seed = r.seed;
+          const roll = rollDieForState(next);
           const events: GameEvent[] = [{ type: "artifactUsed", artifact: 15 }];
-          if (r.value === 1) {
+          if (roll === 1) {
             // Poison — a normal "killing die-roll" death: the Ring's usual invincibility still
             // applies (§Ring), and when it doesn't, the curse check runs BEFORE the spill (Task 9
             // lesson — spillCarried would otherwise strip the Eye of God out of `treasure` first
@@ -1344,12 +1356,12 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
               const items = spillCarried(drinker);
               if (items.length) { next.treasures.push(...items); events.push({ type: "itemsSpilled", creatureId: drinker.creatureId, items }); }
             }
-          } else if (r.value >= 4) {
+          } else if (roll >= 4) {
             drinker.fsBonus = (drinker.fsBonus ?? 0) + 2; // permanent, stacks if drunk again
           }
           events.push({
-            type: "elixirDrunk", creatureId: drinker.creatureId, roll: r.value,
-            outcome: r.value === 1 ? "death" : r.value <= 3 ? "nothing" : "strength",
+            type: "elixirDrunk", creatureId: drinker.creatureId, roll,
+            outcome: roll === 1 ? "death" : roll <= 3 ? "nothing" : "strength",
           });
           return { state: next, events };
         }
@@ -1458,10 +1470,9 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       const next = structuredClone(state);
       const bearer = next.party[bearerIdx]!;
       bearer.treasure.splice(bearer.treasure.indexOf(14), 1); // the chest is opened (consumed)
-      const r = rollDie(next.seed);
-      next.seed = r.seed;
-      const events: GameEvent[] = [{ type: "chestOpened", result: r.value }];
-      switch (r.value) {
+      const roll = rollDieForState(next);
+      const events: GameEvent[] = [{ type: "chestOpened", result: roll }];
+      switch (roll) {
         case 1: next.curses += 1; break; // a Curse
         case 2: // a Spectre appears and attacks (one round)
           next.strangers.push(9);
@@ -1520,14 +1531,13 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       const next = structuredClone(state);
       next.areas[next.partyArea]!.flags |= AF_BELL_SPENT; // spent forever, whatever the roll (design US-03)
       const creatureId = next.party[action.mi]!.creatureId;
-      const r = rollDie(next.seed);
-      next.seed = r.seed;
+      const roll = rollDieForState(next);
       const events: GameEvent[] = [];
-      if (r.value === 1) {
+      if (roll === 1) {
         // Desertion semantics (design Resolved-3): removed from the game with everything carried —
         // not dead (no memberDied), not revivable. Splice out entirely, like Mutiny's deserters.
         next.party.splice(action.mi, 1);
-        events.push({ type: "bellRoll", roll: r.value, outcome: "vanish", creatureId });
+        events.push({ type: "bellRoll", roll, outcome: "vanish", creatureId });
         if (!next.party.some((m) => m.status === 0 || m.status === 1)) {
           next.gs = GS_DEAD;
           next.phase = "gameOver";
@@ -1535,12 +1545,12 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         }
         return { state: next, events };
       }
-      if (r.value <= 3) {
+      if (roll <= 3) {
         // Foreboding narration only — no mechanical effect (design US-03, Resolved-2).
-        events.push({ type: "bellRoll", roll: r.value, outcome: "toll", creatureId });
+        events.push({ type: "bellRoll", roll, outcome: "toll", creatureId });
         return { state: next, events };
       }
-      events.push({ type: "bellRoll", roll: r.value, outcome: "stir", creatureId });
+      events.push({ type: "bellRoll", roll, outcome: "stir", creatureId });
       const hadCrypt = next.cryptCoord !== undefined; // SC-EXT-13: tell a freshly-parked Crypt apart
       drawSmallCards(next, 2, events); // two codes, appended onto whatever's already in the working set
       if (!hadCrypt && next.cryptCoord === next.areas[next.partyArea]!.coord) events.push({ type: "cryptParked" });
@@ -1560,22 +1570,21 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       }
       const next = structuredClone(state);
       next.cryptCoord = undefined; // spent either way — no second entry (design US-08)
-      const r = rollDie(next.seed);
-      next.seed = r.seed;
+      const roll = rollDieForState(next);
       const events: GameEvent[] = [];
-      if (r.value <= 2) {
+      if (roll <= 2) {
         // Unavoidable trap: the WHOLE party falls, whatever a Dwarf's GUIDES_PAST_TRAP would normally
         // do (this bypasses `applyHazards`' HAZARD_TRAP case entirely — there is no Dwarf check here
         // to bypass, by construction). `relocateDown` sets `fellThroughTrap`, blocking withdraw at the
         // landing exactly like any other trap fall.
-        events.push({ type: "cryptRoll", roll: r.value, outcome: "trap" });
+        events.push({ type: "cryptRoll", roll, outcome: "trap" });
         relocateDown(next);
         events.push(...resolveArea(next));
         return { state: next, events };
       }
       // A find: the crypt card itself becomes the gems — ordinary treasure 21 (25 kg), dropped for a
       // normal, carry-capacity-gated pickup (design Resolved-13).
-      events.push({ type: "cryptRoll", roll: r.value, outcome: "find" });
+      events.push({ type: "cryptRoll", roll, outcome: "find" });
       next.treasures.push(T_CRYPT);
       next.phase = "pickup";
       return { state: next, events };
@@ -1624,12 +1633,30 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       return { state: next, events: [{ type: "testReactionQueued", outcome: action.outcome }] };
     }
 
+    case "testForceDie": {
+      if (!state.testMode) return { state, events: [{ type: "blocked" }] };
+      if (action.value < 1 || action.value > 6) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      next.testNextDie = action.value;
+      return { state: next, events: [{ type: "testDieQueued", value: action.value }] };
+    }
+
+    case "testForceAllDice": {
+      if (!state.testMode) return { state, events: [{ type: "blocked" }] };
+      if (action.value < 1 || action.value > 6) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      next.testAllDiceRoll = action.value;
+      return { state: next, events: [{ type: "testAllDiceQueued", value: action.value }] };
+    }
+
     case "testClearOverrides": {
       if (!state.testMode) return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
       delete next.testNextArea;
       delete next.testNextChamber;
       delete next.testNextReaction;
+      delete next.testNextDie;
+      delete next.testAllDiceRoll;
       return { state: next, events: [{ type: "testOverridesCleared" }] };
     }
   }

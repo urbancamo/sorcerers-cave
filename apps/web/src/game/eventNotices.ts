@@ -133,6 +133,8 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "testAreaQueued":
       case "testChamberQueued":
       case "testReactionQueued":
+      case "testDieQueued":
+      case "testAllDiceQueued":
       case "testOverridesCleared":
         break;
       case "strangerKilled":

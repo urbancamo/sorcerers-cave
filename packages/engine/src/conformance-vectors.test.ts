@@ -118,7 +118,7 @@ const list = (xs: readonly number[] | undefined): string => (xs && xs.length ? x
 const sunkStr = (buckets: { at: "island" | 1 | 2 | 3 | 4; items: number[] }[] | undefined): string =>
   buckets && buckets.length ? buckets.map((b) => `${b.at}:${b.items.join(",")}`).join(";") : "-";
 
-/** One action in the vector grammar — covers the full 21-action catalog (SC-4-41). */
+/** One action in the vector grammar — covers the full 30-action catalog (SC-4-41). */
 function encodeAction(a: GameAction): string {
   switch (a.type) {
     case "move": return `MOVE ${a.dir}`;
@@ -167,6 +167,8 @@ function encodeAction(a: GameAction): string {
     case "testPlaceArea": return `TESTPLACEAREA ${a.dir} ${a.special}`;
     case "testSetChamber": return `TESTSETCHAMBER ${list(a.strangers)}/${list(a.treasures)}/${list(a.hazards)}`;
     case "testForceReaction": return `TESTFORCEREACTION ${a.outcome.toUpperCase()}`;
+    case "testForceDie": return `TESTFORCEDIE ${a.value}`;
+    case "testForceAllDice": return `TESTFORCEALLDICE ${a.value}`;
     case "testClearOverrides": return "TESTCLEAROVERRIDES";
   }
 }

@@ -430,7 +430,39 @@
   font-family: var(--ui);
   font-size: 12.5px;
 }
+/* Repositionable/minimizable panel (2026-09-11): the header IS the drag handle — grabbing anywhere
+   on it (title or empty space, not the minimize button itself) and moving the pointer repositions
+   the whole panel via its inline left/top (JS switches the panel off its default top/right anchor
+   the first time a drag happens). `touch-action: none` stops the browser's own scroll/zoom gestures
+   from fighting pointermove while dragging on a touchscreen. */
+.scv-tc-drag {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+}
+.scv-tc-drag:active { cursor: grabbing; }
+/* Scoped under .scv-tc (rather than bare .scv-tc-min) so this rule's specificity (0,2,0) beats
+   .scv-tc button's (0,1,1) below — otherwise the generic button rule's padding/border/background
+   would override this one's compact sizing, same issue .scv-tc-clear already works around. */
+.scv-tc .scv-tc-min {
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  line-height: 1;
+  padding: 0;
+  border-radius: 6px;
+  border: 1px solid var(--line-strong);
+  background: rgba(201, 161, 78, 0.06);
+  color: var(--parchment);
+  cursor: pointer;
+}
+.scv-tc .scv-tc-min:hover { border-color: var(--brass); color: var(--cream); background: rgba(201, 161, 78, 0.14); }
 .scv-tc-hd {
+  margin: 0;
   font-family: var(--display);
   font-size: 13px;
   font-weight: 700;
@@ -469,6 +501,18 @@
   border: 1px solid var(--line-strong);
   border-radius: 7px;
   padding: 5px 8px;
+}
+/* Bug fix (2026-09-11): the SELECT's own alpha-blended background above only reads correctly
+   because .scv-tc's own dark backdrop sits behind it — but a native <option> POPUP is rendered by
+   the OS, not this page, and several browsers (Windows Chrome/Edge in particular) force that popup
+   onto a plain opaque white regardless of the select's background, while still applying the
+   inherited `color` (--cream, a pale near-white) to the option text — pale-yellow-on-white,
+   illegible. Setting an explicit, OPAQUE background directly on each <option>/<optgroup> (rather
+   than relying on inherited alpha blending) is honored even in that popup, on every platform. */
+.scv-tc-row select option,
+.scv-tc-row select optgroup {
+  background-color: var(--panel);
+  color: var(--cream);
 }
 .scv-tc-row-nm { flex: 1 1 auto; color: var(--cream); font-weight: 600; }
 .scv-tc-chips { display: flex; flex-wrap: wrap; gap: 4px; }

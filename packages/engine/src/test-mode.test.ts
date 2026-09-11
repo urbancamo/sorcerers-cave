@@ -6,6 +6,10 @@ import {
   AREA_TILE_CANONICAL_CARD, TILE_CHAMBER, TILE_TUNNEL_NE, TILE_TUNNEL_NS, TILE_TUNNEL_NW,
   TILE_TUNNEL_EW, TILE_TUNNEL_SW, TILE_TUNNEL_NES, TILE_TUNNEL_NEW, TILE_TUNNEL_NSW,
   TILE_TUNNEL_ESW, TILE_TUNNEL_NESW, TILE_TUNNEL_ES, TILE_MAX,
+  TILE_TUNNEL_NE_D, TILE_TUNNEL_NS_D, TILE_TUNNEL_EW_U, TILE_TUNNEL_SW_D,
+  TILE_TUNNEL_NES_U, TILE_TUNNEL_NES_D, TILE_TUNNEL_NEW_U, TILE_TUNNEL_NEW_D,
+  TILE_TUNNEL_NSW_U, TILE_TUNNEL_NSW_D, TILE_TUNNEL_ESW_U, TILE_TUNNEL_ESW_D,
+  TILE_TUNNEL_NESW_U, TILE_TUNNEL_NESW_D, TILE_TUNNEL_NESW_UD,
 } from "./index";
 import type { GameState } from "./index";
 
@@ -29,39 +33,58 @@ describe("SPECIAL_CANONICAL_CARD", () => {
   });
 });
 
-describe("AREA_TILE_CANONICAL_CARD (SC-Test-8)", () => {
-  const shapes: Record<number, { n: boolean; e: boolean; s: boolean; w: boolean; chamber: boolean }> = {
-    [TILE_CHAMBER]: { n: true, e: true, s: true, w: true, chamber: true },
-    [TILE_TUNNEL_NE]: { n: true, e: true, s: false, w: false, chamber: false },
-    [TILE_TUNNEL_NS]: { n: true, e: false, s: true, w: false, chamber: false },
-    [TILE_TUNNEL_NW]: { n: true, e: false, s: false, w: true, chamber: false },
-    [TILE_TUNNEL_EW]: { n: false, e: true, s: false, w: true, chamber: false },
-    [TILE_TUNNEL_SW]: { n: false, e: false, s: true, w: true, chamber: false },
-    [TILE_TUNNEL_NES]: { n: true, e: true, s: true, w: false, chamber: false },
-    [TILE_TUNNEL_NEW]: { n: true, e: true, s: false, w: true, chamber: false },
-    [TILE_TUNNEL_NSW]: { n: true, e: false, s: true, w: true, chamber: false },
-    [TILE_TUNNEL_ESW]: { n: false, e: true, s: true, w: true, chamber: false },
-    [TILE_TUNNEL_NESW]: { n: true, e: true, s: true, w: true, chamber: false },
-    [TILE_TUNNEL_ES]: { n: false, e: true, s: true, w: false, chamber: false },
+describe("AREA_TILE_CANONICAL_CARD (SC-Test-8, up/down variants SC-Test-9)", () => {
+  type Shape = { n: boolean; e: boolean; s: boolean; w: boolean; chamber: boolean; stairUp: boolean; stairDown: boolean };
+  const noStairs = { stairUp: false, stairDown: false };
+  const shapes: Record<number, Shape> = {
+    [TILE_CHAMBER]: { n: true, e: true, s: true, w: true, chamber: true, ...noStairs },
+    [TILE_TUNNEL_NE]: { n: true, e: true, s: false, w: false, chamber: false, ...noStairs },
+    [TILE_TUNNEL_NS]: { n: true, e: false, s: true, w: false, chamber: false, ...noStairs },
+    [TILE_TUNNEL_NW]: { n: true, e: false, s: false, w: true, chamber: false, ...noStairs },
+    [TILE_TUNNEL_EW]: { n: false, e: true, s: false, w: true, chamber: false, ...noStairs },
+    [TILE_TUNNEL_SW]: { n: false, e: false, s: true, w: true, chamber: false, ...noStairs },
+    [TILE_TUNNEL_NES]: { n: true, e: true, s: true, w: false, chamber: false, ...noStairs },
+    [TILE_TUNNEL_NEW]: { n: true, e: true, s: false, w: true, chamber: false, ...noStairs },
+    [TILE_TUNNEL_NSW]: { n: true, e: false, s: true, w: true, chamber: false, ...noStairs },
+    [TILE_TUNNEL_ESW]: { n: false, e: true, s: true, w: true, chamber: false, ...noStairs },
+    [TILE_TUNNEL_NESW]: { n: true, e: true, s: true, w: true, chamber: false, ...noStairs },
+    [TILE_TUNNEL_ES]: { n: false, e: true, s: true, w: false, chamber: false, ...noStairs },
+    // Up/down variants (SC-Test-9) — same shapes as above, with a printed stairUp and/or stairDown.
+    [TILE_TUNNEL_NE_D]: { n: true, e: true, s: false, w: false, chamber: false, stairUp: false, stairDown: true },
+    [TILE_TUNNEL_NS_D]: { n: true, e: false, s: true, w: false, chamber: false, stairUp: false, stairDown: true },
+    [TILE_TUNNEL_EW_U]: { n: false, e: true, s: false, w: true, chamber: false, stairUp: true, stairDown: false },
+    [TILE_TUNNEL_SW_D]: { n: false, e: false, s: true, w: true, chamber: false, stairUp: false, stairDown: true },
+    [TILE_TUNNEL_NES_U]: { n: true, e: true, s: true, w: false, chamber: false, stairUp: true, stairDown: false },
+    [TILE_TUNNEL_NES_D]: { n: true, e: true, s: true, w: false, chamber: false, stairUp: false, stairDown: true },
+    [TILE_TUNNEL_NEW_U]: { n: true, e: true, s: false, w: true, chamber: false, stairUp: true, stairDown: false },
+    [TILE_TUNNEL_NEW_D]: { n: true, e: true, s: false, w: true, chamber: false, stairUp: false, stairDown: true },
+    [TILE_TUNNEL_NSW_U]: { n: true, e: false, s: true, w: true, chamber: false, stairUp: true, stairDown: false },
+    [TILE_TUNNEL_NSW_D]: { n: true, e: false, s: true, w: true, chamber: false, stairUp: false, stairDown: true },
+    [TILE_TUNNEL_ESW_U]: { n: false, e: true, s: true, w: true, chamber: false, stairUp: true, stairDown: false },
+    [TILE_TUNNEL_ESW_D]: { n: false, e: true, s: true, w: true, chamber: false, stairUp: false, stairDown: true },
+    [TILE_TUNNEL_NESW_U]: { n: true, e: true, s: true, w: true, chamber: false, stairUp: true, stairDown: false },
+    [TILE_TUNNEL_NESW_D]: { n: true, e: true, s: true, w: true, chamber: false, stairUp: false, stairDown: true },
+    [TILE_TUNNEL_NESW_UD]: { n: true, e: true, s: true, w: true, chamber: false, stairUp: true, stairDown: true },
   };
 
-  it("has exactly one entry per plain-tile id (TILE_CHAMBER..TILE_MAX), each decoding to special:0 with the named exit shape", () => {
+  it("has exactly one entry per plain-tile id (TILE_CHAMBER..TILE_MAX), each decoding to special:0 with the named exit shape and stairs", () => {
     const ids = Object.keys(shapes).map(Number);
     expect(Object.keys(AREA_TILE_CANONICAL_CARD).map(Number).sort((a, b) => a - b)).toEqual([...ids].sort((a, b) => a - b));
     expect(Math.max(...ids)).toBe(TILE_MAX);
     for (const id of ids) {
       const d = decodeArea(AREA_TILE_CANONICAL_CARD[id]!);
       expect(d.special).toBe(0);
-      expect({ n: d.n, e: d.e, s: d.s, w: d.w, chamber: d.chamber }).toEqual(shapes[id]);
+      expect({ n: d.n, e: d.e, s: d.s, w: d.w, chamber: d.chamber, stairUp: d.stairUp, stairDown: d.stairDown }).toEqual(shapes[id]);
     }
   });
 
-  it("every canonical card is a plain tile with no stairs, so its shape alone determines connection", () => {
-    for (const card of Object.values(AREA_TILE_CANONICAL_CARD)) {
-      const d = decodeArea(card);
-      expect(d.stairUp).toBe(false);
-      expect(d.stairDown).toBe(false);
-    }
+  it("TILE_TUNNEL_NW and the kit-only TILE_TUNNEL_ES have no up/down siblings — every NW/ES tile in the deck is plain", () => {
+    const ids = Object.keys(shapes).map(Number);
+    // No id whose base (plain-shape) counterpart is NW or ES ever appears among the stair variants —
+    // proven by there being no _U/_D/_UD sibling for either in the fixed set above; this test pins
+    // that omission is intentional (matches the deck), not an accidental gap.
+    expect(ids.filter((id) => shapes[id]!.n && !shapes[id]!.e && !shapes[id]!.s && shapes[id]!.w)).toEqual([TILE_TUNNEL_NW]);
+    expect(ids.filter((id) => !shapes[id]!.n && shapes[id]!.e && shapes[id]!.s && !shapes[id]!.w)).toEqual([TILE_TUNNEL_ES]);
   });
 });
 
@@ -294,6 +317,18 @@ describe("testNextArea consumed by tryMove — plain tiles (SC-Test-8)", () => {
     const r = tryMove(s, DIR_N);
     expect(r.state.largeIdx).toBe(before);
   });
+
+  it("places an up/down variant of a tunnel shape, carrying the stairs onto the placed card (SC-Test-9)", () => {
+    let s = newGame(1, [0], undefined, true);
+    s = reduce(s, { type: "testPlaceArea", dir: DIR_N, special: TILE_TUNNEL_NESW_UD }).state;
+    const r = tryMove(s, DIR_N);
+    expect(r.moved).toBe(true);
+    const placed = r.state.areas[r.state.partyArea]!;
+    expect(placed.card).toBe(AREA_TILE_CANONICAL_CARD[TILE_TUNNEL_NESW_UD]);
+    const d = decodeArea(placed.card);
+    expect(d.stairUp).toBe(true);
+    expect(d.stairDown).toBe(true);
+  });
 });
 
 import { enterChamber } from "./index";
@@ -402,5 +437,201 @@ describe("testNextReaction consumed by the test action (SC-Test-4)", () => {
     const { state, events } = reduce(s, { type: "test" });
     expect(events[0]).not.toMatchObject({ outcome: "friendly" }); // the die was genuinely rolled instead
     expect(state.seed).not.toBe(before);
+  });
+});
+
+import { rollDieForState, reactionRoll } from "./index";
+
+describe("Next Roll Selector — testForceDie/testForceAllDice action gating (SC-Test-10)", () => {
+  it("rejects both actions with `blocked` on a non-test game", () => {
+    const s = newGame(1, [0]);
+    expect(reduce(s, { type: "testForceDie", value: 3 }).events).toEqual([{ type: "blocked" }]);
+    expect(reduce(s, { type: "testForceAllDice", value: 3 }).events).toEqual([{ type: "blocked" }]);
+  });
+
+  it("testForceDie arms testNextDie and announces testDieQueued", () => {
+    const s = newGame(1, [0], undefined, true);
+    const { state, events } = reduce(s, { type: "testForceDie", value: 4 });
+    expect(state.testNextDie).toBe(4);
+    expect(events).toEqual([{ type: "testDieQueued", value: 4 }]);
+  });
+
+  it("testForceAllDice arms testAllDiceRoll and announces testAllDiceQueued", () => {
+    const s = newGame(1, [0], undefined, true);
+    const { state, events } = reduce(s, { type: "testForceAllDice", value: 6 });
+    expect(state.testAllDiceRoll).toBe(6);
+    expect(events).toEqual([{ type: "testAllDiceQueued", value: 6 }]);
+  });
+
+  it("rejects an out-of-range value (0 or 7) for either action even on a test game", () => {
+    const s = newGame(1, [0], undefined, true);
+    expect(reduce(s, { type: "testForceDie", value: 0 }).events).toEqual([{ type: "blocked" }]);
+    expect(reduce(s, { type: "testForceDie", value: 7 }).events).toEqual([{ type: "blocked" }]);
+    expect(reduce(s, { type: "testForceAllDice", value: 0 }).events).toEqual([{ type: "blocked" }]);
+    expect(reduce(s, { type: "testForceAllDice", value: 7 }).events).toEqual([{ type: "blocked" }]);
+  });
+
+  it("testClearOverrides also drops testNextDie and testAllDiceRoll", () => {
+    let s = newGame(1, [0], undefined, true);
+    s = reduce(s, { type: "testForceDie", value: 4 }).state;
+    s = reduce(s, { type: "testForceAllDice", value: 6 }).state;
+    const { state } = reduce(s, { type: "testClearOverrides" });
+    expect(state.testNextDie).toBeUndefined();
+    expect(state.testAllDiceRoll).toBeUndefined();
+  });
+});
+
+describe("rollDieForState (SC-Test-10)", () => {
+  const testState = (): GameState => newGame(1, [0], undefined, true);
+
+  it("consumes testNextDie once (one-shot) and does not touch state.seed", () => {
+    const s = testState();
+    s.testNextDie = 5;
+    const before = s.seed;
+    expect(rollDieForState(s)).toBe(5);
+    expect(s.testNextDie).toBeUndefined();
+    expect(s.seed).toBe(before);
+    // Second call: no longer armed — rolls for real (seed now advances).
+    const beforeSecond = s.seed;
+    rollDieForState(s);
+    expect(s.seed).not.toBe(beforeSecond);
+  });
+
+  it("returns testAllDiceRoll on every call without consuming it, and without touching state.seed", () => {
+    const s = testState();
+    s.testAllDiceRoll = 2;
+    const before = s.seed;
+    expect(rollDieForState(s)).toBe(2);
+    expect(rollDieForState(s)).toBe(2);
+    expect(rollDieForState(s)).toBe(2);
+    expect(s.testAllDiceRoll).toBe(2); // still armed
+    expect(s.seed).toBe(before);
+  });
+
+  it("testNextDie takes priority over testAllDiceRoll when both are armed", () => {
+    const s = testState();
+    s.testNextDie = 3;
+    s.testAllDiceRoll = 6;
+    expect(rollDieForState(s)).toBe(3); // the one-shot override wins
+    expect(s.testNextDie).toBeUndefined();
+    expect(rollDieForState(s)).toBe(6); // falls through to the all-dice override next
+  });
+
+  it("rolls for real (advancing the seed) when neither override is armed", () => {
+    const s = testState();
+    const before = s.seed;
+    const value = rollDieForState(s);
+    expect(value).toBeGreaterThanOrEqual(1);
+    expect(value).toBeLessThanOrEqual(6);
+    expect(s.seed).not.toBe(before);
+  });
+
+  it("ignores armed overrides on a non-test game (defense in depth against a hand-crafted state)", () => {
+    const s = newGame(1, [0]); // testMode absent
+    s.testNextDie = 5;
+    s.testAllDiceRoll = 2;
+    const before = s.seed;
+    const value = rollDieForState(s);
+    expect(value).not.toBe(5); // essentially certain — real d6, not the armed override
+    expect(s.seed).not.toBe(before); // the die was genuinely rolled
+    expect(s.testNextDie).toBe(5); // left untouched, not silently consumed
+  });
+});
+
+describe("Next Roll Selector consumed by reactions — reactionRoll(state, forcedValue) (SC-Test-10)", () => {
+  const withEncounter = (): GameState => {
+    const s = newGame(1, [0], undefined, true);
+    s.phase = "encounter";
+    s.strangers = [12]; // Giant: hostileMax 3 / indiffMax 5 — all three bands genuinely reachable
+    return s;
+  };
+
+  it("reactionRoll bands a forcedValue exactly like a genuine roll, leaving seed untouched", () => {
+    const s = withEncounter();
+    const before = s.seed;
+    const forced = reactionRoll(s, 6); // Giant: 6 -> friendly
+    expect(forced.outcome).toBe("friendly");
+    expect(forced.roll).toBe(6);
+    expect(forced.seed).toBe(before);
+  });
+
+  it("case \"test\" prefers testNextReaction over testNextDie/testAllDiceRoll when both are armed", () => {
+    const s = withEncounter();
+    s.testNextReaction = "hostile";
+    s.testNextDie = 6; // would band to "friendly" if it were consulted instead
+    const { state, events } = reduce(s, { type: "test" });
+    expect(events[0]).toMatchObject({ type: "reaction", outcome: "hostile" });
+    expect(state.testNextDie).toBe(6); // untouched — testNextReaction alone was consumed
+    expect(state.testNextReaction).toBeUndefined();
+  });
+
+  it("case \"test\" consumes testNextDie (one-shot), banding it through the leader's own thresholds", () => {
+    const s = withEncounter();
+    // Hero (party[0]) has FLAG_CHARISMA (+1), so a raw 2 bands as an effective 3 -> hostile
+    // (Giant hostileMax 3) — proves the forced value goes through the SAME adjustment a genuine
+    // roll would, not banded as a raw, unadjusted 2.
+    s.testNextDie = 2;
+    const before = s.seed;
+    const { state, events } = reduce(s, { type: "test" });
+    expect(events[0]).toMatchObject({ type: "reaction", outcome: "hostile", roll: 2 });
+    expect(state.testNextDie).toBeUndefined();
+    expect(state.seed).toBe(before);
+  });
+
+  it("case \"test\" consumes testAllDiceRoll WITHOUT clearing it — armed for the next roll too", () => {
+    const s = withEncounter();
+    s.testAllDiceRoll = 4; // Giant: 4 -> indifferent (hostileMax 3, indiffMax 5)
+    const { state, events } = reduce(s, { type: "test" });
+    expect(events[0]).toMatchObject({ type: "reaction", outcome: "indifferent", roll: 4 });
+    expect(state.testAllDiceRoll).toBe(4); // still armed
+  });
+});
+
+describe("Next Roll Selector — \"until end of turn\" auto-clears on turn advance (SC-Test-10)", () => {
+  it("clears testAllDiceRoll on an ordinary move that advances the turn", () => {
+    // Dispatched via reduce()'s "move" case (not the lower-level tryMove helper directly) — turn
+    // advance and the auto-clear both live in that case, not in tryMove itself.
+    const s = newGame(1, [0], undefined, true); // Gateway has all 4 exits — every direction is open
+    s.testAllDiceRoll = 5;
+    const before = s.turn;
+    const { state, events } = reduce(s, { type: "move", dir: DIR_N });
+    expect(events[0]).toMatchObject({ type: "moved" });
+    expect(state.turn).toBe(before + 1);
+    expect(state.testAllDiceRoll).toBeUndefined();
+  });
+
+  it("does not clear testNextDie on turn advance (a one-shot override outlives the turn until consumed)", () => {
+    const s = newGame(1, [0], undefined, true);
+    s.testNextDie = 4;
+    const { state, events } = reduce(s, { type: "move", dir: DIR_N });
+    expect(events[0]).toMatchObject({ type: "moved" });
+    expect(state.testNextDie).toBe(4);
+  });
+
+  it("testClearOverrides still works mid-turn, before any turn advance", () => {
+    let s = newGame(1, [0], undefined, true);
+    s = reduce(s, { type: "testForceAllDice", value: 5 }).state;
+    const { state } = reduce(s, { type: "testClearOverrides" });
+    expect(state.testAllDiceRoll).toBeUndefined();
+  });
+});
+
+describe("Next Roll Selector — end-to-end through a non-reaction roll site (SC-Test-10)", () => {
+  // openChest (reduce.ts) is representative of the ~15 other rollDieForState call sites (combat,
+  // hazards, special areas) — proves the override actually reaches a real gameplay roll, not just
+  // the rollDieForState unit itself.
+  const withChest = (): GameState => {
+    const s = newGame(1, [0], undefined, true);
+    s.party[0]!.treasure = [14]; // the Chest (treasure 14)
+    return s;
+  };
+
+  it("forces the chest's outcome via testNextDie", () => {
+    const s = withChest();
+    s.testNextDie = 6; // -> Gems, +80 bonusScore
+    const { state, events } = reduce(s, { type: "openChest" });
+    expect(events[0]).toEqual({ type: "chestOpened", result: 6 });
+    expect(state.bonusScore).toBe(80);
+    expect(state.testNextDie).toBeUndefined();
   });
 });

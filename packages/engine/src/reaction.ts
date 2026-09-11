@@ -24,13 +24,31 @@ export function findLeader(strangers: readonly number[]): number {
   return best;
 }
 
-/** Roll the leader's reaction (spec §8.3). Threads the seed. `roll` is the raw d6 (for display). */
-export function reactionRoll(state: GameState): { seed: number; outcome: Reaction; roll: number } {
+/**
+ * Roll the leader's reaction (spec §8.3). Threads the seed. `roll` is the raw d6 (for display).
+ *
+ * `forcedValue` (2026-09-11, Next Roll Selector, SC-Test-10): an optional pre-determined raw die
+ * value, used by `reduce.ts`'s `case "test"` when a `testNextDie`/`testAllDiceRoll` override is
+ * armed instead of a `testNextReaction` outcome — skips the real roll (returned `seed` equals
+ * `state.seed`, untouched) but still runs the value through the SAME charisma/curse/natural-1
+ * adjustment and leader-threshold banding a genuine roll would, so a forced raw die still produces
+ * a mechanically honest outcome for THIS leader rather than duplicating this banding logic
+ * elsewhere.
+ */
+export function reactionRoll(state: GameState, forcedValue?: number): { seed: number; outcome: Reaction; roll: number } {
   const leaderId = state.strangers[findLeader(state.strangers)]!;
   const leader = CREATURES[leaderId]!;
-  const r = rollDie(state.seed);
-  const natural1 = r.value === 1;
-  let roll = r.value;
+  let seed = state.seed;
+  let value: number;
+  if (forcedValue !== undefined) {
+    value = forcedValue;
+  } else {
+    const r = rollDie(state.seed);
+    seed = r.seed;
+    value = r.value;
+  }
+  const natural1 = value === 1;
+  let roll = value;
   const hasCharisma = state.party.some(
     (m) => (m.status === 0 || m.status === 1) && (CREATURES[m.creatureId]!.flags & FLAG_CHARISMA) !== 0,
   );
@@ -48,7 +66,7 @@ export function reactionRoll(state: GameState): { seed: number; outcome: Reactio
   // read hostile instead of friendly (never indifferent either way) — the one context-dependent
   // band this reducer carries.
   if (leaderId === C_APPRENTICE && outcome === "friendly" && state.sorcererKilled) outcome = "hostile";
-  return { seed: r.seed, outcome, roll: r.value };
+  return { seed, outcome, roll: value };
 }
 
 /**

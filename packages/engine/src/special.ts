@@ -1,4 +1,4 @@
-import { rollDie } from "./rng";
+import { rollDieForState } from "./rng";
 import { fluteLulls, eyeForsakenByDeath, markDied } from "./effects";
 import { canCarry } from "./pickup";
 import { getSubLocation } from "./subLocation";
@@ -85,10 +85,9 @@ export function viperCrossing(state: GameState): GameEvent[] {
   // Roll a d6 per member so the UI can show the crossing (a 1 or 2 is a fatal fall into the pit).
   const rolls: { creatureId: number; roll: number; died: boolean }[] = [];
   for (const m of members) {
-    const r = rollDie(state.seed);
-    state.seed = r.seed;
-    const died = r.value <= 2;
-    rolls.push({ creatureId: m.creatureId, roll: r.value, died });
+    const roll = rollDieForState(state);
+    const died = roll <= 2;
+    rolls.push({ creatureId: m.creatureId, roll, died });
     if (died) {
       markDied(state, m);
       // The Eye sinks into the pit with its bearer — the party is cursed for losing it (§Eye of God).
@@ -126,8 +125,7 @@ export function deepPoolCrossing(state: GameState, poolIdx: number): GameEvent[]
  *  helper; 3-6 means the crossing is safe and the already-completed lateral move stands. Threads
  *  the seed. Unlike the Viper Pit / Deep Pool, no per-member effect — the whole party shares one roll. */
 export function whirlpoolCrossing(state: GameState): { events: GameEvent[]; dragged: boolean } {
-  const r = rollDie(state.seed);
-  state.seed = r.seed;
-  const dragged = r.value <= 2;
-  return { events: [{ type: "whirlpoolRoll", roll: r.value, dragged }], dragged };
+  const roll = rollDieForState(state);
+  const dragged = roll <= 2;
+  return { events: [{ type: "whirlpoolRoll", roll, dragged }], dragged };
 }

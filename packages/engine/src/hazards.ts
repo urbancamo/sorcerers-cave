@@ -1,4 +1,4 @@
-import { rollDie } from "./rng";
+import { rollDieForState } from "./rng";
 // Extension kit (SC-EXT-17): aliases `ALL_CREATURES` — the Ghouls combat-roll name and the Trap
 // Dwarf-flag check both index by a living party member's `creatureId`, so a kit ally (id 14-20)
 // no longer crashes them; byte-identical for ids 0-13.
@@ -112,9 +112,8 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
           // `hazard: HAZARD_MEDUSA` (review fix) keeps this skip out of the presentation layer's
           // Desertion-only "party holds together" derivation (SC-EXT-14).
           if (m.creatureId === C_WOLF) { events.push({ type: "wolfUnmoved", hazard: HAZARD_MEDUSA }); continue; }
-          const r = rollDie(state.seed);
-          state.seed = r.seed;
-          const petrified = r.value <= 2; // a 1 or 2 turns that creature to stone (§Medusa)
+          const roll = rollDieForState(state);
+          const petrified = roll <= 2; // a 1 or 2 turns that creature to stone (§Medusa)
           if (petrified) {
             m.status = 2; m.stoneArea = state.partyArea; // left as stone in this chamber
             // Turn-to-stone affects only the living flesh (plan ④a): the member's CARRIED items drop
@@ -127,7 +126,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
               events.push({ type: "itemsSpilled", creatureId: m.creatureId, items });
             }
           }
-          rolls.push({ creatureId: m.creatureId, roll: r.value, petrified });
+          rolls.push({ creatureId: m.creatureId, roll, petrified });
         }
         if (rolls.length) events.push({ type: "medusaGaze", rolls });
         break;
@@ -149,12 +148,12 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         // (Magic Sword / Strength Potion count), no surprise. A lost match removes that member.
         for (const m of state.party) {
           if (m.status !== 0 && m.status !== 1) continue;
-          const ours = rollDie(state.seed); state.seed = ours.seed;
-          const theirs = rollDie(state.seed); state.seed = theirs.seed;
-          const partyTotal = frontStrength(m, state) + ours.value, enemyTotal = 2 + theirs.value;
+          const ours = rollDieForState(state);
+          const theirs = rollDieForState(state);
+          const partyTotal = frontStrength(m, state) + ours, enemyTotal = 2 + theirs;
           events.push({
             type: "combatRoll", party: CREATURES[m.creatureId]!.name, enemy: "Ghouls",
-            partyRoll: ours.value, enemyRoll: theirs.value, partyTotal, enemyTotal,
+            partyRoll: ours, enemyRoll: theirs, partyTotal, enemyTotal,
             result: partyTotal > enemyTotal ? "partyWon" : enemyTotal > partyTotal ? "enemyWon" : "tie",
           });
           if (enemyTotal > partyTotal) {
@@ -215,12 +214,12 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
           // `hazard: HAZARD_DESERTION` (review fix, Task 10) — this is the ONE `wolfUnmoved` source
           // the presentation layer's "party holds together" summary must count (SC-EXT-14).
           if (a.creatureId === C_WOLF) { events.push({ type: "wolfUnmoved", hazard: HAZARD_DESERTION }); continue; }
-          const r = rollDie(state.seed); state.seed = r.seed;
-          const leaves = r.value <= 2;
+          const roll = rollDieForState(state);
+          const leaves = roll <= 2;
           // `[...a.treasure]` snapshots what the ally is carrying at roll time (design US-09
           // Feedback: "taking [treasure list]") — taken BEFORE any removal, so it reflects exactly
           // what leaves with them; harmless to compute even when they stay (`deserted: false`).
-          events.push({ type: "desertionRoll", creatureId: a.creatureId, roll: r.value, deserted: leaves, items: [...a.treasure] });
+          events.push({ type: "desertionRoll", creatureId: a.creatureId, roll, deserted: leaves, items: [...a.treasure] });
           if (leaves) deserted.push(a);
         }
         if (deserted.length > 0) state.party = state.party.filter((m) => !deserted.includes(m));
@@ -281,14 +280,14 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
           .sort((x, y) => y.fs - x.fs);
         const a = ranked[0]!, b = ranked[1]!; // >= 2 guaranteed by the fizzle check above
         const rollBonus = partyRollBonus(state); // Ring +1 / curse −1 — "the party's dice" (design build note)
-        const ra = rollDie(state.seed); state.seed = ra.seed;
-        const rb = rollDie(state.seed); state.seed = rb.seed;
-        const aTotal = a.fs + ra.value + rollBonus;
-        const bTotal = b.fs + rb.value + rollBonus;
+        const aRoll = rollDieForState(state);
+        const bRoll = rollDieForState(state);
+        const aTotal = a.fs + aRoll + rollBonus;
+        const bTotal = b.fs + bRoll + rollBonus;
         const loser = aTotal < bTotal ? a : bTotal < aTotal ? b : null;
         events.push({
           type: "quarrel", aId: a.m.creatureId, bId: b.m.creatureId,
-          aRoll: ra.value, bRoll: rb.value, loserId: loser ? loser.m.creatureId : null,
+          aRoll, bRoll, loserId: loser ? loser.m.creatureId : null,
         });
         if (loser) {
           // Normal death (design "lower total dies"): CARRIED items spill to the floor, Balm-

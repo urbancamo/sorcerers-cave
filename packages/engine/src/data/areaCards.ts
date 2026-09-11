@@ -65,9 +65,9 @@ export const SPECIAL_CANONICAL_CARD: Readonly<Record<number, number>> = {
 // rulebook special. Numbered to continue directly after SPECIAL_WELL (11) so `testPlaceArea`'s
 // range check stays a single contiguous interval (TILE_MIN..TILE_MAX); a placed plain tile always
 // decodes `special: 0` (SPECIAL_NONE) — these ids exist only as this action's own tile selector,
-// never as a real `DecodedArea.special` value. TILE_TUNNEL_ES is kept LAST: it is the one shape
-// that exists ONLY on an extension-kit tile (x05-3, value 6) — every other shape below has a
-// same-shape base `AREA_CARDS` entry too — so it alone needs the kit-only gate in reduce.ts.
+// never as a real `DecodedArea.special` value. TILE_TUNNEL_ES is the one shape that exists ONLY on
+// an extension-kit tile (x05-3, value 6) — every other id below has a same-shape base `AREA_CARDS`
+// entry too — so it alone needs the kit-only gate in reduce.ts, regardless of its numeric position.
 export const TILE_CHAMBER = 12;
 export const TILE_TUNNEL_NE = 13;
 export const TILE_TUNNEL_NS = 14;
@@ -81,8 +81,33 @@ export const TILE_TUNNEL_ESW = 21;
 export const TILE_TUNNEL_NESW = 22;
 export const TILE_TUNNEL_ES = 23; // extension-kit only (tile x05-3)
 
+// Select any area tile — up/down variants (2026-09-11, SC-Test-9): a tunnel junction can be printed
+// with a stairUp and/or stairDown in ADDITION to its lateral exits — e.g. the ESW tunnel exists as a
+// plain card (14), one with a stair up (46), and one with a stair down (78). These ids name every
+// such (shape, stairs) combination that actually exists in the deck, appended after the plain-shape
+// ids above rather than interleaved, so those existing ids never renumber. Only tunnels with at
+// least one printed stair variant get one; TILE_TUNNEL_NW and the kit-only TILE_TUNNEL_ES have none
+// (every NW/ES tile in the deck is plain), so they gain no `_U`/`_D`/`_UD` siblings. Every value
+// below comes from a BASE `AREA_CARDS` entry (verified by test-mode.test.ts), so none of these are
+// kit-only, unlike TILE_TUNNEL_ES.
+export const TILE_TUNNEL_NE_D = 24;
+export const TILE_TUNNEL_NS_D = 25;
+export const TILE_TUNNEL_EW_U = 26;
+export const TILE_TUNNEL_SW_D = 27;
+export const TILE_TUNNEL_NES_U = 28;
+export const TILE_TUNNEL_NES_D = 29;
+export const TILE_TUNNEL_NEW_U = 30;
+export const TILE_TUNNEL_NEW_D = 31;
+export const TILE_TUNNEL_NSW_U = 32;
+export const TILE_TUNNEL_NSW_D = 33;
+export const TILE_TUNNEL_ESW_U = 34;
+export const TILE_TUNNEL_ESW_D = 35;
+export const TILE_TUNNEL_NESW_U = 36;
+export const TILE_TUNNEL_NESW_D = 37;
+export const TILE_TUNNEL_NESW_UD = 38;
+
 export const TILE_MIN = TILE_CHAMBER;
-export const TILE_MAX = TILE_TUNNEL_ES;
+export const TILE_MAX = TILE_TUNNEL_NESW_UD;
 
 // The one plain (no stairs, no special) deck card value for each pseudo-id above — verified
 // against AREA_CARDS/EXT_AREA_CARDS by test-mode.test.ts, same pattern as SPECIAL_CANONICAL_CARD.
@@ -99,4 +124,20 @@ export const AREA_TILE_CANONICAL_CARD: Readonly<Record<number, number>> = {
   [TILE_TUNNEL_ESW]: 14,
   [TILE_TUNNEL_NESW]: 15,
   [TILE_TUNNEL_ES]: 6,
+  // Up/down variants (SC-Test-9) — same shapes as above, with a printed stairUp and/or stairDown.
+  [TILE_TUNNEL_NE_D]: 67,
+  [TILE_TUNNEL_NS_D]: 69,
+  [TILE_TUNNEL_EW_U]: 42,
+  [TILE_TUNNEL_SW_D]: 76,
+  [TILE_TUNNEL_NES_U]: 39,
+  [TILE_TUNNEL_NES_D]: 71,
+  [TILE_TUNNEL_NEW_U]: 43,
+  [TILE_TUNNEL_NEW_D]: 75,
+  [TILE_TUNNEL_NSW_U]: 45,
+  [TILE_TUNNEL_NSW_D]: 77,
+  [TILE_TUNNEL_ESW_U]: 46,
+  [TILE_TUNNEL_ESW_D]: 78,
+  [TILE_TUNNEL_NESW_U]: 47,
+  [TILE_TUNNEL_NESW_D]: 79,
+  [TILE_TUNNEL_NESW_UD]: 111,
 };
