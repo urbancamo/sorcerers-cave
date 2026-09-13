@@ -390,7 +390,13 @@ It will transport the party to any area in play, including one that has been lef
 
 *“Artefact. When borne by a MAN, WOMAN, or HERO, nullifies the opponent's magical power. Reduces the power of Sorcerer or APPRENTICE by 2.”*
 
-It affects any creature with magical power who is matched against the bearer in a fight, whether in the background or fighting hand-to-hand. For example, a troll and a man with the shield are fighting wizard; the wizard fights with only his strength of 2. Again, a hero with the shield meets two women and a priest; the priest cannot use his power from the background to support the two women. Except for magic staff, artefacts held by the opponents are not affected. Magicians not matched against the shield-bearer may still use their magical power against others. In any round of a fight the shield-bearer may match himself against a spectre or demon, and the spectre or demon is simply ignored for that round; neither it nor the shield bearer will be killed.
+It affects any creature with magical power who is matched against the bearer in a fight, whether in the background or
+fighting hand-to-hand. For example, a troll and a man with the shield are fighting wizard; the wizard fights with only
+his strength of 2. Again, a hero with the shield meets two women and a priest; the priest cannot use his power from the
+background to support the two women. Except for magic staff, artefacts held by the opponents are not affected. Magicians
+not matched against the shield-bearer may still use their magical power against others. In any round of a fight the
+shield-bearer may match himself against a spectre or demon, and the spectre or demon is simply ignored for that round;
+neither it nor the shield bearer will be killed.
 
 ### Magic staff. 15 vp. 
 
