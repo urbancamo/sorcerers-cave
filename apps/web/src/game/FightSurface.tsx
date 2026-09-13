@@ -160,17 +160,26 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
     return (
       <div key={key} className="scv-match">
         <div className="scv-match-foes">
-          {pm.strangers.map((si) => (
-            <FightCard key={si} creatureId={state.strangers[si]!} kind="foe" strength={enemyStrOf(si)}
-                       caption={state.strangers[si] === C_SPECTRE ? "magic only" : pm.attached.includes(si) ? "gangs up" : undefined}
-                       dim={pm.attached.includes(si)} cards={cards} state={state} variantIdx={strangerCopyIdx.get(si)} />
-          ))}
-          {/* Leftover enemy casters lending magical power from the background (§395) — shown so the
-              enemy total reflects who is actually in the fight, not a mystery number. */}
-          {pm.enemyBackers.map((si) => (
-            <FightCard key={`b${si}`} creatureId={state.strangers[si]!} kind="foe" strength={enemyMpOf(si)}
-                       caption="lends magic" dim cards={cards} state={state} variantIdx={strangerCopyIdx.get(si)} />
-          ))}
+          {/* Mirrors the party row on the other side of the "vs": a behind slot for whichever foe is
+              lending magic from the background (§395), then the front line — secondary (any foe the
+              engine ganged on) before primary — so the whole match reads magic-user, secondary,
+              primary here and primary, secondary, magic-user on the party's side. */}
+          <div className="scv-match-line">
+            <div className="scv-match-bg">
+              <span className="scv-match-slotlbl">✦ behind</span>
+              {pm.enemyBackers.length ? pm.enemyBackers.map((si) => (
+                <FightCard key={`b${si}`} creatureId={state.strangers[si]!} kind="foe" strength={enemyMpOf(si)}
+                           cards={cards} state={state} variantIdx={strangerCopyIdx.get(si)} />
+              )) : <span className="scv-match-hint">magic user</span>}
+            </div>
+            <div className="scv-match-front">
+              {[...pm.strangers].reverse().map((si) => (
+                <FightCard key={si} creatureId={state.strangers[si]!} kind="foe" strength={enemyStrOf(si)}
+                           caption={state.strangers[si] === C_SPECTRE ? "magic only" : undefined}
+                           cards={cards} state={state} variantIdx={strangerCopyIdx.get(si)} />
+              ))}
+            </div>
+          </div>
         </div>
         <div className="scv-match-vs"><span className="them">{pm.enemyStr}</span><span className="x">vs</span><span className="me">{pm.partyStr}</span></div>
         <div className="scv-match-party">

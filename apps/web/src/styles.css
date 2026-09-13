@@ -1641,21 +1641,30 @@
 /* Battles are laid out horizontally and stacked: foes face the front line, with a magic slot behind it. */
 .scv-fight-strangers { display: flex; flex-direction: column; gap: 14px; }
 .scv-match { position: relative; display: flex; flex-direction: row; align-items: center; gap: 16px; flex-wrap: wrap; padding: 10px 14px; border: 1px dashed var(--line-strong); border-radius: 12px; background: rgba(201,161,78,.04); }
-/* Foes wrap two-across so a third card (a ganged foe or a background caster) stacks within the foes
-   cell rather than widening the match and pushing the party line onto a new row (keeps each match a row). */
-.scv-match-foes { display: flex; gap: 8px; align-items: flex-start; flex-wrap: wrap; max-width: 240px; }
+/* The foes side mirrors the party side (.scv-match-party below): a behind slot for whichever foe is
+   lending magic, then the front line — reusing the same .scv-match-line/-front/-bg boxes so both
+   sides of a pairing read identically, just in reverse order. align-self pins both columns to the
+   row's top regardless of which is taller (the party column grows when a modifier chip sits beneath
+   it) — the "vs" tally is the only thing that should stay vertically centered, via the row's default
+   align-items: center. */
+.scv-match-foes { display: flex; align-items: flex-start; align-self: flex-start; }
 .scv-match-idle { opacity: .82; border-style: solid; }
 .scv-match-vs { display: flex; flex-direction: column; align-items: center; min-width: 44px; font-family: var(--display); font-weight: 700; font-size: 16px; line-height: 1.1; }
 .scv-match-vs .them { color: #e7a59c; } .scv-match-vs .me { color: #7fae6f; }
 .scv-match-vs .x { font-family: var(--ui); font-weight: 400; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--stone-dim); margin: 1px 0; }
 /* the party side: the front line + behind slot on one row, with the modifier chips beneath them */
-.scv-match-party { display: flex; flex-direction: column; gap: 8px; }
-.scv-match-line { display: flex; flex-direction: row; gap: 14px; align-items: center; flex-wrap: wrap; }
-.scv-match-front { min-height: 178px; min-width: 254px; display: flex; gap: 10px; align-items: center; justify-content: center; padding: 6px; border: 1px dashed var(--line); border-radius: 9px; }
-.scv-match-bg { min-height: 178px; min-width: 104px; display: flex; flex-direction: column; gap: 6px; align-items: center; justify-content: center; padding: 8px; border: 1px dashed var(--arcane); border-radius: 9px; background: rgba(95,143,138,.06); }
+.scv-match-party { display: flex; flex-direction: column; gap: 8px; align-self: flex-start; }
+/* flex-start (not center): when a bg slot grows taller than its front (two backers stacked), the
+   boxes must still start at the same top — never re-center around the taller one. */
+.scv-match-line { display: flex; flex-direction: row; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+/* Both boxes reserve the same 22px at the top for the bg slot's "✦ behind" label (absolutely
+   positioned there, out of flow) — front has no label but keeps the same reserved space, so a card
+   in either box starts at the identical Y, whether it's the primary/secondary line or the magic user. */
+.scv-match-front { min-height: 178px; min-width: 254px; display: flex; gap: 10px; align-items: flex-start; justify-content: center; padding: 22px 6px 6px; border: 1px dashed var(--line); border-radius: 9px; }
+.scv-match-bg { min-height: 178px; min-width: 104px; position: relative; display: flex; flex-direction: column; gap: 6px; align-items: center; justify-content: flex-start; padding: 22px 8px 8px; border: 1px dashed var(--arcane); border-radius: 9px; background: rgba(95,143,138,.06); }
 .scv-match-front:focus-visible, .scv-match-bg:focus-visible { outline: 2px solid var(--brass-bright); }
 .scv-match-hint { font-family: var(--body); font-style: italic; font-size: 12px; color: var(--stone-dim); }
-.scv-match-slotlbl { font-family: var(--ui); font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--arcane); }
+.scv-match-slotlbl { position: absolute; top: 7px; left: 8px; right: 8px; text-align: center; font-family: var(--ui); font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--arcane); }
 /* an empty front slot — a card-sized "drop a fighter" placeholder (always two, so a 2nd is invitingly open) */
 .scv-slot-empty { width: 116px; aspect-ratio: 63 / 88; display: flex; align-items: center; justify-content: center; padding: 6px; border: 1px dashed var(--line); border-radius: 8px; font-family: var(--body); font-style: italic; font-size: 12px; color: var(--stone-dim); text-align: center; }
 /* per-matchup modifier chips (artefact bonuses, curse, surprise) — sit under the party members */

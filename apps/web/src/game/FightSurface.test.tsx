@@ -94,13 +94,16 @@ describe("FightSurface", () => {
     expect(screen.getByTestId("front-0").textContent ?? "").not.toContain("Woman"); // pairing reset — she's gone
   });
 
-  it("shows a second stranger ganging up on a lone fighter when out-numbered", () => {
+  it("shows a second stranger ganging up on a lone fighter, mirrored ahead of the primary foe (no 'gangs up' label)", () => {
     // One Man vs a Troll + a Man-stranger: engaging the Troll leaves the other to gang up (§395).
     const s: GameState = { ...newGame(1, [5]), phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, strangers: [3, 5] };
-    render(<FightSurface state={s} dispatch={() => {}} cards={cards} />);
+    const { container } = render(<FightSurface state={s} dispatch={() => {}} cards={cards} />);
     fireEvent.click(screen.getByTestId("tray-0"));  // pick the Man
     fireEvent.click(screen.getByTestId("front-0")); // engage the Troll (stranger 0)
-    expect(screen.getByText(/gangs up/i)).toBeInTheDocument(); // the leftover Man-stranger joins the match
+    expect(screen.queryByText(/gangs up/i)).not.toBeInTheDocument(); // the old per-card label is gone
+    // The leftover Man-stranger still joins the match — mirrored layout reads secondary before primary.
+    const foesText = container.querySelector(".scv-match-foes")!.textContent ?? "";
+    expect(foesText.indexOf("Man")).toBeLessThan(foesText.indexOf("Troll"));
   });
 
   it("keeps strangers in their original order when a fighter is assigned to a lower one", () => {
@@ -113,16 +116,29 @@ describe("FightSurface", () => {
     expect(order).toEqual(["front-0", "front-1"]); // foe 0 still listed above foe 1
   });
 
-  it("shows a leftover enemy caster lending magic from the background, not a mystery total", () => {
+  it("shows a leftover enemy caster in the mirrored magic-user slot, not a mystery total (no 'lends magic' label)", () => {
     // A lone Man vs a Troll + an enemy Priest: the Priest can't be engaged hand-to-hand, so it lends
     // its magical power from the background (§395). It must be shown — not silently folded into the total.
     const s: GameState = { ...newGame(1, [5]), phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, strangers: [3, 4] };
-    render(<FightSurface state={s} dispatch={() => {}} cards={cards} />);
+    const { container } = render(<FightSurface state={s} dispatch={() => {}} cards={cards} />);
     fireEvent.click(screen.getByTestId("tray-0"));  // pick the Man
     fireEvent.click(screen.getByTestId("front-0")); // engage the Troll (stranger 0)
-    expect(screen.getByText(/lends magic/i)).toBeInTheDocument(); // the Priest is shown as a background combatant
+    expect(screen.queryByText(/lends magic/i)).not.toBeInTheDocument(); // the old per-card label is gone
+    // The Priest sits in the magic-user slot — mirrored layout reads it ahead of the front line.
+    const foesText = container.querySelector(".scv-match-foes")!.textContent ?? "";
+    expect(foesText.indexOf("Priest")).toBeLessThan(foesText.indexOf("Troll"));
     // Enemy total reflects the combatants actually in play: Troll 4 + Priest magic 2 = 6.
     expect(screen.getByText("6")).toBeInTheDocument();
+  });
+
+  it("gives the magic-user slot the same 'behind' label on both sides of the match", () => {
+    // A single foe (no idle row) isolates the match to exactly one party bg slot and one mirrored
+    // enemy bg slot — a second stranger would add its own idle-row party bg and inflate the count.
+    const s: GameState = { ...newGame(1, [0]), phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, strangers: [3] };
+    render(<FightSurface state={s} dispatch={() => {}} cards={cards} />);
+    fireEvent.click(screen.getByTestId("tray-0"));  // pick the Hero
+    fireEvent.click(screen.getByTestId("front-0")); // engage the Troll
+    expect(screen.getAllByText("✦ behind")).toHaveLength(2); // one for the party's row, mirrored for the strangers' row
   });
 
   it("keeps the fighters in place after a drawn round (no one slain)", () => {
