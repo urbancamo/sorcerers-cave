@@ -30,6 +30,7 @@ export function PartySelect({
   confirmLabel = () => "Enter the cave", // no pick count (MSW, 2026-07-28)
   kitToggle = false,
   variants: fixedVariants,
+  testMode = false,
 }: {
   onConfirm: (picks: number[], color: PartyColor, variants?: { extensionKit: boolean }) => void;
   /** Solo only: return to the title screen without starting. The MP draft passes no handler —
@@ -43,6 +44,9 @@ export function PartySelect({
   /** MP draft only (never combined with `kitToggle`): the game's kit flag is already fixed by the
    *  lobby, so render the kit-on/off roster directly — no interactive switch. */
   variants?: { extensionKit: boolean };
+  /** Test Mode only (docs/requirements/test-mode/2026-09-13-test-mode-party-selection.md): lifts
+   *  the budget and per-creature stock ceilings so a scripted scenario can seat any party. */
+  testMode?: boolean;
 }) {
   const [counts, setCounts] = useState<Record<number, number>>({});
   const [kit, setKit] = useState(false);
@@ -88,20 +92,25 @@ export function PartySelect({
   // starting the count fresh avoids surprising the player with a budget that silently changed meaning.
   const toggleKit = () => { setKit((k) => !k); setCounts({}); };
 
+  // Test Mode has no stock ceiling — every creature is available in unlimited supply.
+  const cap = (id: number) => (testMode ? Infinity : (effectiveStock[id] ?? 0));
+
   const picks = Object.entries(counts).flatMap(([id, n]) => Array(n).fill(Number(id)) as number[]);
   const total = picks.reduce((s, id) => s + (selectionCost(id, variants) ?? 0), 0);
-  const valid = validatePicks(picks, variants) && picks.every((id) => (counts[id] ?? 0) <= (effectiveStock[id] ?? 0));
+  const valid = validatePicks(picks, variants, testMode);
 
   const set = (id: number, delta: number) =>
-    setCounts((c) => ({ ...c, [id]: Math.max(0, Math.min(effectiveStock[id] ?? 0, (c[id] ?? 0) + delta)) }));
+    setCounts((c) => ({ ...c, [id]: Math.max(0, Math.min(cap(id), (c[id] ?? 0) + delta)) }));
 
   return (
     <section className="scv-panel scv-party">
       {onBack && <button className="scv-hs-back" onClick={onBack}>← Back</button>}
       <h2 className="scv-hd">{title}</h2>
-      <p className={"scv-budget" + (total > PARTY_BUDGET ? " over" : "")}>
-        Budget <b>{total}</b> / {PARTY_BUDGET}
-      </p>
+      {!testMode && (
+        <p className={"scv-budget" + (total > PARTY_BUDGET ? " over" : "")}>
+          Budget <b>{total}</b> / {PARTY_BUDGET}
+        </p>
+      )}
       {kitToggle && (
         <label className="scv-kit-toggle">
           <input type="checkbox" checked={kit} onChange={toggleKit} />
@@ -112,7 +121,7 @@ export function PartySelect({
       <div className="scv-cards">
         {SELECTABLE.map((c) => {
           const n = counts[c.id] ?? 0;
-          const avail = effectiveStock[c.id] ?? 0;
+          const avail = cap(c.id);
           const file = cardFile[c.id];
           const cost = selectionCost(c.id, variants);
           return (
@@ -129,7 +138,7 @@ export function PartySelect({
                 {file ? <img src={file} alt={c.name} /> : <span className="ph">{c.name}</span>}
               </div>
               <div className="scv-card-nm">{c.name}</div>
-              <div className="scv-card-cost">cost {cost} · {n}/{avail}</div>
+              <div className="scv-card-cost">cost {cost} · {n}/{Number.isFinite(avail) ? avail : "∞"}</div>
               <div className="scv-card-step">
                 <button className="scv-step" aria-label={`remove ${c.name}`} disabled={n === 0} onClick={() => set(c.id, -1)}>−</button>
                 <span className="scv-qty">{n}</span>

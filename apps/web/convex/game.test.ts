@@ -468,6 +468,17 @@ describe("startTestGame", () => {
     const t = convexTest(schema, modules);
     await expect(t.mutation(api.game.startTestGame, { secret: "correct-uuid", seed: 1, picks: [0] })).rejects.toThrow();
   });
+
+  // Test Mode party selection (docs/requirements/test-mode/2026-09-13-test-mode-party-selection.md):
+  // no budget or per-creature stock ceiling — a scripted scenario can seat any party.
+  test("allows an over-budget, over-stock party (Test Mode has no party limits)", async () => {
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const picks = [0, 0, 4, 4]; // two Heroes + two Priests: over stock and over the 6-point budget
+    const id = await as.mutation(api.game.startTestGame, { secret: "correct-uuid", seed: 1, picks });
+    const game = await as.query(api.game.get, { id });
+    expect(game?.state.party.map((m: { creatureId: number }) => m.creatureId)).toEqual(picks);
+  });
 });
 
 // ---------------------------------------------------------------------------

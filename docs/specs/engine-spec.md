@@ -121,6 +121,7 @@
 | SC-5-2 | Party selection MUST reject a total cost exceeding PARTY_BUDGET=6. | setup.ts:7,28 | setup.test.ts › rejects two Priests = 8 |
 | SC-5-3 | Party selection MUST reject picking more copies of a creature than STARTING_STOCK (or, kit-on, `startingStock(variants)`, SC-EXT-29) allows. | setup.ts:29-32 | setup.test.ts › rejects two Heroes |
 | SC-5-4 | `newGame` MUST throw on invalid picks before building any decks. | setup.ts:44 | setup.test.ts › throws on invalid picks |
+| SC-5-15 | Test Mode party selection (§Test Mode, docs/requirements/test-mode/2026-09-13-test-mode-party-selection.md): `validatePicks(picks, variants, testMode?)` and `newGame(seed, picks, variants?, testMode?)`, when `testMode` is true, MUST skip the PARTY_BUDGET total-cost check (SC-5-2) and the per-creature stock check (SC-5-3) entirely, so a tester can seat any size party with any number of copies of a creature to script a scenario. The empty-party and selectable-id checks (SC-5-1) still apply unconditionally. Omitted/false `testMode` is byte-identical to before this parameter existed. | setup.ts:18-31,45 | setup.test.ts › accepts exceeding the budget when testMode is true; › accepts exceeding stock when testMode is true; › still rejects a non-selectable creature even when testMode is true; › still rejects an empty party even when testMode is true; › newGame does not throw on an over-budget/over-stock party when testMode is true |
 | SC-5-5 | The party MUST be drawn FROM the shuffled small pack: each chosen creature's card (100+id) MUST be removed once, so a picked card can never appear as a chamber stranger. | setup.ts:52-56 | setup.test.ts › removes the chosen party cards from the small pack |
 | SC-5-6 | The LCG MUST advance as seed ← (seed × 1103515245 + 12345) mod 2^31 (glibc constants), computed in BigInt to avoid 32-bit overflow. | rng.ts:4-11 | rng.test.ts › nextSeed matches the glibc LCG recurrence (nextSeed(1)=1103527590) |
 | SC-5-7 | `rollDie` MUST advance the seed, extract upper bits 15..30 (`floor(s/32768) % 65536`), and return `min(5, floor(bits/10923)) + 1`, uniform on 1..6. | rng.ts:14-19 | rng.test.ts › rollDie deterministic; covers full 1..6 range |
@@ -532,7 +533,7 @@ Sorcerer's Cave is built on two fixed card decks and one seeded random number ge
 
 The cast is 14 creature types with fixed statistics — fighting strength, magical power, carry capacity, point value, behaviour flags, and reaction thresholds (SC-3-5, SC-3-6). Only the first eight (ids 0–7) can be chosen for the starting party; the rest, from Wizard through Unicorn, appear only inside the cave (SC-3-7). Fifteen treasures (three heavy metals, a heavy chest, eleven weightless artifacts) and five hazards round out the entities (SC-3-10, SC-3-12).
 
-The **small pack** is the deck drawn inside chambers, and it is deliberately a *single finite deck* of 71 cards — 37 creatures, 27 treasures, 7 hazards (SC-3-13 … SC-3-16). Crucially, the same pack supplies both the player's starting party and the strangers met later: when the player builds a party those exact creature cards are removed from the shuffled pack, so a creature taken into the party can never also turn up as a cave stranger (SC-5-5). Party selection is validated against a 6-point budget and per-creature stock limits (SC-5-1, SC-5-2, SC-5-3) — resolved through `selectionCost`/`startingStock` (§EXT) so a kit-on game's five extra starters, revised Ogre/Troll costs, and raised Woman/Dwarf stock apply automatically, while a kit-off game validates exactly as it always has (SC-EXT-29).
+The **small pack** is the deck drawn inside chambers, and it is deliberately a *single finite deck* of 71 cards — 37 creatures, 27 treasures, 7 hazards (SC-3-13 … SC-3-16). Crucially, the same pack supplies both the player's starting party and the strangers met later: when the player builds a party those exact creature cards are removed from the shuffled pack, so a creature taken into the party can never also turn up as a cave stranger (SC-5-5). Party selection is validated against a 6-point budget and per-creature stock limits (SC-5-1, SC-5-2, SC-5-3) — resolved through `selectionCost`/`startingStock` (§EXT) so a kit-on game's five extra starters, revised Ogre/Troll costs, and raised Woman/Dwarf stock apply automatically, while a kit-off game validates exactly as it always has (SC-EXT-29). A Test Mode game lifts the budget and stock checks entirely — any size party, any number of copies of a creature — so a tester can seat exactly the party a scripted scenario needs (SC-5-15).
 
 Randomness comes from one linear-congruential generator using the classic glibc constants: the seed advances as `seed × 1103515245 + 12345 mod 2^31`, computed with big integers so nothing overflows (SC-5-6). Every random result reads the *upper* bits (15..30) of the new seed rather than the low bits; a d6 divides that 16-bit value into six equal buckets, and `randBelow(n)` takes it modulo n (SC-5-7, SC-5-8). Shuffling is Fisher–Yates walking from the last index down to the second, and it is pure (SC-5-9). Because the whole engine threads its RNG state through the single `seed` field and never calls the clock or `Math.random`, any game is perfectly reproducible (SC-5-13). Setup pins the consumption order: shuffle the large pack from the given seed, shuffle the small pack from the resulting seed, then store that final seed as the game's live RNG state (SC-5-12).
 
@@ -732,6 +733,17 @@ through the SAME leader-threshold formula a genuine roll would, via `reactionRol
 `forcedValue` parameter — no banding logic duplicated between the two override paths. The web
 `TestControlsPanel`'s "Next reaction" section became a "Next Roll Selector" toggle across all three
 modes (SC-Test-10).
+Party selection without limits (2026-09-13): the party-builder screen normally caps a party at a
+6-point budget and rejects more copies of a creature than the small pack physically holds (SC-5-2,
+SC-5-3) — a real constraint for solitaire play, but an obstacle for a tester who needs, say, four
+Trolls in the party to script a fight. `validatePicks`/`newGame` now take a `testMode` flag that skips
+both checks entirely (ids must still be selectable starters, and the party still can't be empty,
+SC-5-1); `startTestGame` (the only mutation that can set `state.testMode`) passes it, while the
+ordinary `newGame` mutation does not, so a real game is validated exactly as before. The web
+`PartySelect` component mirrors this: given its own `testMode` prop (set only on the Test Mode party
+screen, per `wantTestGame`/`testSecret` in `GameScreen.tsx`), it hides the budget line, shows a
+creature's stock as unbounded (`n/∞`), and never disables "+" or Confirm on budget/stock grounds —
+Confirm still requires at least one pick (SC-5-15).
 
 ---
 

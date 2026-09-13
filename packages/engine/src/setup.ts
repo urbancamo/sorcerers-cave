@@ -14,8 +14,11 @@ import {
  *  Routed through the variant-aware `selectionCost`/`startingStock` (SC-EXT-29, design US-01/§1.3):
  *  absent/false `variants` resolves the exact same costs and stock as before this param existed
  *  (base ids 0-7 only, Ogre 5 / Troll 4) — byte-identical (SC-EXT-1). Kit-on additionally admits
- *  Witch/Scholar/Thief/Lion/Wolf at their official costs and the Ogre 5→4 / Troll 4→3 revision. */
-export function validatePicks(picks: readonly number[], variants?: { extensionKit?: boolean }): boolean {
+ *  Witch/Scholar/Thief/Lion/Wolf at their official costs and the Ogre 5→4 / Troll 4→3 revision.
+ *  `testMode` (§Test Mode, docs/requirements/test-mode/2026-09-13-test-mode-party-selection.md)
+ *  lifts the budget and per-creature stock ceilings so a scripted scenario can seat any party — ids
+ *  must still be selectable starters, and the party must still be non-empty. */
+export function validatePicks(picks: readonly number[], variants?: { extensionKit?: boolean }, testMode?: boolean): boolean {
   if (picks.length === 0) return false;
   let total = 0;
   const counts = new Map<number, number>();
@@ -25,6 +28,7 @@ export function validatePicks(picks: readonly number[], variants?: { extensionKi
     total += cost;
     counts.set(id, (counts.get(id) ?? 0) + 1);
   }
+  if (testMode) return true;
   if (total > PARTY_BUDGET) return false;
   const stock = startingStock(variants);
   for (const [id, n] of counts) {
@@ -42,7 +46,7 @@ export function newGame(
   variants?: { extensionKit?: boolean },
   testMode?: boolean,
 ): GameState {
-  if (!validatePicks(picks, variants)) throw new Error("Invalid party selection");
+  if (!validatePicks(picks, variants, testMode)) throw new Error("Invalid party selection");
 
   const large = buildLargePack(seed, variants);
   const small = buildSmallPack(large.seed, variants);

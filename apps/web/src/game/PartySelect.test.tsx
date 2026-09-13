@@ -134,3 +134,37 @@ describe("PartySelect — extension kit toggle (SC-EXT-29, design US-01/§1.3)",
     expect(screen.queryByRole("button", { name: /back/i })).toBeNull();
   });
 });
+
+describe("PartySelect — testMode lifts party limits (docs/requirements/test-mode/2026-09-13-test-mode-party-selection.md)", () => {
+  it("never disables 'add', even past a creature's normal stock", () => {
+    render(<PartySelect onConfirm={() => {}} testMode />);
+    const add = screen.getByRole("button", { name: /add Hero/i }); // Hero: only 1 in stock normally
+    fireEvent.click(add);
+    expect(add).not.toBeDisabled();
+    fireEvent.click(add);
+    expect(costOf(/^Hero$/).getByText(/cost 6 · 2\/∞/)).toBeInTheDocument();
+  });
+
+  it("hides the budget line and never disables Confirm for an over-budget party", () => {
+    render(<PartySelect onConfirm={() => {}} testMode />);
+    expect(screen.queryByText(/budget/i)).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /add Hero/i })); // cost 6
+    fireEvent.click(screen.getByRole("button", { name: /add Woman/i })); // 6+2 = 8 > 6 — fine in test mode
+    expect(screen.getByRole("button", { name: /^Enter the cave/i })).not.toBeDisabled();
+  });
+
+  it("still disables Confirm when nothing is picked", () => {
+    render(<PartySelect onConfirm={() => {}} testMode />);
+    expect(screen.getByRole("button", { name: /^Enter the cave/i })).toBeDisabled();
+  });
+
+  it("reports every pick on confirm, unconstrained by the normal budget/stock", () => {
+    const onConfirm = vi.fn();
+    render(<PartySelect onConfirm={onConfirm} testMode />);
+    fireEvent.click(screen.getByRole("button", { name: /add Hero/i }));
+    fireEvent.click(screen.getByRole("button", { name: /add Hero/i })); // 2nd Hero — over stock
+    fireEvent.click(screen.getByRole("button", { name: /add Woman/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Enter the cave/i }));
+    expect(onConfirm).toHaveBeenCalledWith([0, 0, 6], "yellow");
+  });
+});

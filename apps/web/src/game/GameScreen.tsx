@@ -190,6 +190,7 @@ export default function GameScreen() {
     return (
       <PartySelect
         kitToggle
+        testMode={wantTestGame && !!testSecret}
         onBack={() => { setStarted(false); setWantTestGame(false); }}
         onConfirm={async (picks, color, variants) => {
           const id = wantTestGame && testSecret

@@ -96,7 +96,8 @@ export const startTestGame = mutation({
     if (!ownerId) throw new Error("Unauthenticated");
     const expected = process.env.TEST_MODE_SECRET;
     if (!expected || secret !== expected) throw new Error("Invalid test mode secret");
-    if (!validatePicks(picks, variants)) throw new Error("Invalid party selection");
+    // Test Mode party selection: no budget/stock ceiling — a scripted scenario can seat any party.
+    if (!validatePicks(picks, variants, true)) throw new Error("Invalid party selection");
     const state = createGameState(seed, picks, variants, true);
     const now = Date.now();
     const code = await uniqueCode(ctx);

@@ -23,6 +23,21 @@ describe("validatePicks (spec §3.2 — 6-point budget, stock limits)", () => {
   });
 });
 
+describe("validatePicks — testMode lifts the budget/stock limits (docs/requirements/test-mode/2026-09-13-test-mode-party-selection.md)", () => {
+  it("accepts exceeding the budget when testMode is true (two Priests = 8)", () => {
+    expect(validatePicks([4, 4], undefined, true)).toBe(true);
+  });
+  it("accepts exceeding stock when testMode is true (two Heroes; only 1 in stock)", () => {
+    expect(validatePicks([0, 0], undefined, true)).toBe(true);
+  });
+  it("still rejects a non-selectable creature (Wizard id 8) even when testMode is true", () => {
+    expect(validatePicks([8], undefined, true)).toBe(false);
+  });
+  it("still rejects an empty party even when testMode is true", () => {
+    expect(validatePicks([], undefined, true)).toBe(false);
+  });
+});
+
 describe("newGame (spec §3 setup)", () => {
   it("places the Gateway and seats the chosen party", () => {
     const g = newGame(1, [4, 6]); // Priest + Woman
@@ -53,5 +68,10 @@ describe("newGame (spec §3 setup)", () => {
   });
   it("throws on invalid picks", () => {
     expect(() => newGame(1, [0, 0])).toThrow();
+  });
+  it("does not throw on an over-budget/over-stock party when testMode is true (Test Mode party selection)", () => {
+    const g = newGame(1, [0, 0, 4, 4], undefined, true); // two Heroes + two Priests: over stock and over budget
+    expect(g.party.map((m) => m.creatureId)).toEqual([0, 0, 4, 4]);
+    expect(g.testMode).toBe(true);
   });
 });
