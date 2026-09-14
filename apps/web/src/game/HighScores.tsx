@@ -8,6 +8,7 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { ALL_CREATURES, ALL_TREASURES, GS_ESCAPED, GS_DEAD, GS_QUIT, type PartyMember } from "@sorcerers-cave/engine";
 import { loadManifest, resolveCard, resolveCardVariant, type CardArt } from "../data/manifest";
 import { downloadLog, type GameLog } from "./gameLog";
+import { FORCED_REDRAW_ENABLED } from "./featureFlags";
 
 export interface LeaderboardRow {
   _id: string;
@@ -19,6 +20,9 @@ export interface LeaderboardRow {
   // Extension kit (SC-EXT-29, design US-01): labels this score as a kit game. Absent/false on
   // every score recorded before the kit existed.
   extensionKit?: boolean;
+  // Dead End rule (§6.3.2, "forced redraw"): labels this score as recorded while the rescue variant
+  // was active. Absent/false on every score recorded before/without it.
+  forcedRedraw?: boolean;
   // Multiplayer only: seats that shared the cave (treasure is split, so the count is the score's
   // context). Absent on rows recorded before 2026-07-28 — rendered as "—".
   seatCount?: number;
@@ -242,7 +246,10 @@ export function LeaderboardPanel({ defaultKit = false, defaultMode = "solo", hig
 }) {
   const [kit, setKit] = useState(defaultKit);
   const [mode, setMode] = useState<"solo" | "multi">(defaultMode);
-  const rows = useQuery(api.highScores.list, { mode, extensionKit: kit }) as LeaderboardRow[] | undefined;
+  // Dead End rule (§6.3.2): no player-facing tab (never a per-game player choice) — just defaults to
+  // whichever table matches this deployment's own current setting. Purely which table opens; what
+  // actually gets recorded is locked down server-side (see featureFlags.ts).
+  const rows = useQuery(api.highScores.list, { mode, extensionKit: kit, forcedRedraw: FORCED_REDRAW_ENABLED }) as LeaderboardRow[] | undefined;
   const multi = mode === "multi";
   return (
     <div>

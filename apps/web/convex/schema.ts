@@ -35,7 +35,10 @@ export default defineSchema({
     // via a lobby, and threaded into `replay()` by `game.log`/`replayByCode`/`highScores.log` so a
     // kit-on game's saved code reconstructs the exact 101/90-card decks it was dealt from. Absent
     // ⇒ kit-off (old codes/saves decode unchanged — SC-EXT-1 byte-identity).
-    variants: v.optional(v.object({ zombies: v.optional(v.boolean()), fogLite: v.optional(v.boolean()), concurrent: v.optional(v.boolean()), extensionKit: v.optional(v.boolean()) })),
+    // `forcedRedraw` (§6.3.2, Dead End rule): solo-only, stamped server-side by `game.ts`'s
+    // `withForcedRedraw` from a Convex-only env var — never accepted from a client argument, since
+    // it affects scoring difficulty and must stay out of the leaderboard's normal comparison.
+    variants: v.optional(v.object({ zombies: v.optional(v.boolean()), fogLite: v.optional(v.boolean()), concurrent: v.optional(v.boolean()), extensionKit: v.optional(v.boolean()), forcedRedraw: v.optional(v.boolean()) })),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -90,6 +93,11 @@ export default defineSchema({
     // the final state's `variants.extensionKit` at `highScores.save` (solo) and `recordTerminals`
     // (multi); absent on every pre-kit row (reads as kit-off, same as everywhere else).
     extensionKit: v.optional(v.boolean()),
+    // Dead End rule (§6.3.2, "forced redraw"): labels a game recorded while the rescue variant was
+    // active — set from `state.variants.forcedRedraw` at `highScores.save` (solo-only; the flag
+    // never reaches multiplayer). Segments the leaderboard exactly like `extensionKit` does, since a
+    // rescued run isn't comparable to one that could still soft-lock.
+    forcedRedraw: v.optional(v.boolean()),
     // Multiplayer only: how many seats shared the cave — treasure is split, so the count is the
     // context a reader needs to judge the score. Absent on rows recorded before 2026-07-28.
     seatCount: v.optional(v.number()),

@@ -644,7 +644,10 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       if (leavingIndifferentEncounter) persistAndExplore(base);
       const areasBefore = base.areas.length; // snapshot: did tryMove place a brand-new target tile?
       const largeIdxBefore = base.largeIdx; // snapshot: did tryMove burn a large-pack card for it?
-      const res = tryMove(base, action.dir);
+      // Dead End rule (§6.3.2, "forced redraw"): only `move` ever offers the rescue — `retreat`
+      // (its own call site below) has its own deliberately harsher dead-end rule and never passes it.
+      const res = tryMove(base, action.dir, base.variants?.forcedRedraw === true);
+      const swapEvents: GameEvent[] = res.swaps.map((s) => ({ type: "deadEndCardSwapped", removed: s.removed, drawn: s.drawn }));
       if (!res.moved) {
         if (leavingIndifferentEncounter) {
           res.state.phase = "encounter";
@@ -662,13 +665,13 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           // which path closed it (SC-EXT-1 byte-identity).
           delete res.state.indiffLeaveOpen;
         }
-        return { state: res.state, events: [res.deadEnd ? { type: "deadEnd", dir: action.dir } : { type: "blocked" }] };
+        return { state: res.state, events: [...swapEvents, res.deadEnd ? { type: "deadEnd", dir: action.dir } : { type: "blocked" }] };
       }
       const next = { ...res.state, turn: res.state.turn + 1 };
       next.fellThroughTrap = false; // a normal move reaches a reachable area (resolveArea re-sets it if a trap fires)
       delete next.subLocation; // Precise Locations (§10.5): a real move invalidates any jump override
       delete next.testAllDiceRoll; // Next Roll Selector (SC-Test-10): "until end of turn" ends here
-      const events: GameEvent[] = [];
+      const events: GameEvent[] = [...swapEvents];
       const crossing = next.partyArea !== oldPrev; // not simply going back the way we came
 
       if (crossing && fromSpecial === SPECIAL_VIPER_PIT) {

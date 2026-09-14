@@ -51,6 +51,9 @@ export const save = mutation({
       // Extension kit (SC-EXT-29): keys this entry into the kit-mode leaderboard (base and kit
       // keep entirely separate tables — scores aren't comparable across deck compositions).
       extensionKit: state.variants?.extensionKit ?? undefined,
+      // Dead End rule (§6.3.2, "forced redraw"): keys this entry into its own leaderboard table too
+      // — a run that could be rescued from a soft-lock isn't comparable to one that couldn't be.
+      forcedRedraw: state.variants?.forcedRedraw ?? undefined,
     });
   },
 });
@@ -66,14 +69,20 @@ export const list = query({
   args: {
     mode: v.optional(v.union(v.literal("solo"), v.literal("multi"))),
     extensionKit: v.optional(v.boolean()),
+    forcedRedraw: v.optional(v.boolean()),
   },
-  handler: async (ctx, { mode, extensionKit }) => {
+  handler: async (ctx, { mode, extensionKit, forcedRedraw }) => {
     const wantMode = mode ?? "solo";
     const wantKit = extensionKit === true;
+    const wantRedraw = forcedRedraw === true;
     // A multi row's kit flag falls back to its stored final state: rows recorded between the
     // MP-kit deploy and the `recordTerminals` stamping fix carry the variant only in `state`.
     const kitOf = (r: { extensionKit?: boolean; state: unknown }) =>
       r.extensionKit ?? (r.state as GameState).variants?.extensionKit ?? false;
+    // Dead End rule (§6.3.2): solo-only by construction (SC-6.3-2 note), but read with the same
+    // stored-field-then-state fallback as `kitOf` for consistency.
+    const redrawOf = (r: { forcedRedraw?: boolean; state: unknown }) =>
+      r.forcedRedraw ?? (r.state as GameState).variants?.forcedRedraw ?? false;
     const rows = await ctx.db
       .query("highScores")
       .withIndex("by_score")
@@ -83,6 +92,7 @@ export const list = query({
       .filter((r) =>
         (r.mode ?? "solo") === wantMode &&
         kitOf(r) === wantKit &&
+        redrawOf(r) === wantRedraw &&
         (wantMode === "solo" || r.outcome === GS_ESCAPED))
       .slice(0, LEADERBOARD_LIMIT)
       .map((r) => ({
@@ -93,6 +103,7 @@ export const list = query({
       party: r.party,
       createdAt: r.createdAt,
       extensionKit: r.extensionKit ?? undefined,
+      forcedRedraw: r.forcedRedraw ?? undefined,
       seatCount: r.seatCount ?? undefined,
     }));
   },
