@@ -71,6 +71,14 @@ describe("describeEvent", () => {
     expect(describeEvent({ type: "somethingNew" } as unknown as GameEvent)).toBe("somethingNew");
   });
 
+  // Dead End rule (§6.3.2, "forced redraw"): the game log must name both the rejected and the
+  // replacement card so a bug report shows exactly what was reshuffled, not just a raw event type.
+  it("describes a deadEndCardSwapped event by both card values' tile layout", () => {
+    expect(describeEvent({ type: "deadEndCardSwapped", removed: 31, drawn: 175 })).toBe(
+      "dead end rescued — reshuffled chamber · exits N E S W back into the pack, drew the Gateway · exits N E S W · stair up",
+    );
+  });
+
   it("appends the tile type + layout (exits, stairs, special) to a moved event when the state is given", () => {
     // 31 = NSEW chamber (all four exits, no stairs, not special).
     const chamber = { areas: [{ card: 31 }] } as unknown as GameState;

@@ -131,6 +131,74 @@ test("list splits the tables: kit scores only under extensionKit true, base only
   expect(kitRows.find((r) => r.name === "Plain")).toBeUndefined();
 });
 
+// ---------------------------------------------------------------------------
+// Dead End rule (§6.3.2, "forced redraw"): mirrors the extensionKit segmentation above exactly —
+// a rescued run isn't comparable to one that couldn't be, so it gets its own leaderboard table.
+// ---------------------------------------------------------------------------
+
+test("save records forcedRedraw from the finished game's state.variants", async () => {
+  const ORIGINAL = process.env.FORCED_REDRAW_ENABLED;
+  process.env.FORCED_REDRAW_ENABLED = "1";
+  try {
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+    await as.mutation(api.game.applyAction, { id, action: { type: "exitCave" } });
+    const scoreId = await as.mutation(api.highScores.save, { gameId: id, name: "Rescued" });
+    const row = await t.run((ctx) => ctx.db.get(scoreId));
+    expect(row?.forcedRedraw).toBe(true);
+  } finally {
+    if (ORIGINAL === undefined) delete process.env.FORCED_REDRAW_ENABLED;
+    else process.env.FORCED_REDRAW_ENABLED = ORIGINAL;
+  }
+});
+
+test("a game without the env var has no forcedRedraw flag", async () => {
+  const ORIGINAL = process.env.FORCED_REDRAW_ENABLED;
+  delete process.env.FORCED_REDRAW_ENABLED;
+  try {
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+    await as.mutation(api.game.applyAction, { id, action: { type: "exitCave" } });
+    const scoreId = await as.mutation(api.highScores.save, { gameId: id, name: "Plain" });
+    const row = await t.run((ctx) => ctx.db.get(scoreId));
+    expect(row?.forcedRedraw).toBeFalsy();
+  } finally {
+    if (ORIGINAL === undefined) delete process.env.FORCED_REDRAW_ENABLED;
+    else process.env.FORCED_REDRAW_ENABLED = ORIGINAL;
+  }
+});
+
+test("list splits the tables: forcedRedraw scores only under forcedRedraw true, plain only under default", async () => {
+  const ORIGINAL = process.env.FORCED_REDRAW_ENABLED;
+  try {
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+
+    process.env.FORCED_REDRAW_ENABLED = "1";
+    const redrawId = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+    await as.mutation(api.game.applyAction, { id: redrawId, action: { type: "exitCave" } });
+    await as.mutation(api.highScores.save, { gameId: redrawId, name: "Rescued" });
+
+    delete process.env.FORCED_REDRAW_ENABLED;
+    const baseId = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+    await as.mutation(api.game.applyAction, { id: baseId, action: { type: "exitCave" } });
+    await as.mutation(api.highScores.save, { gameId: baseId, name: "Plain" });
+
+    const baseRows = await t.query(api.highScores.list, {});
+    expect(baseRows.find((r) => r.name === "Plain")).toBeDefined();
+    expect(baseRows.find((r) => r.name === "Rescued")).toBeUndefined();
+
+    const redrawRows = await t.query(api.highScores.list, { forcedRedraw: true });
+    expect(redrawRows.find((r) => r.name === "Rescued")?.forcedRedraw).toBe(true);
+    expect(redrawRows.find((r) => r.name === "Plain")).toBeUndefined();
+  } finally {
+    if (ORIGINAL === undefined) delete process.env.FORCED_REDRAW_ENABLED;
+    else process.env.FORCED_REDRAW_ENABLED = ORIGINAL;
+  }
+});
+
 // --- Four leaderboards: mode (solo/multi) × extensionKit (design 2026-07-28) ---------------------
 
 /** Seed one solo row and four multiplayer rows spanning kit stamping, the state-derived kit

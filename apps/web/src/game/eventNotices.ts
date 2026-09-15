@@ -159,6 +159,13 @@ export function eventNotices(events: GameEvent[]): Notice[] {
           out.push({ text: `The way ${DIR_WORD[e.dir] ?? "out"} is a dead end — the party can't escape and must fight another round.`, tone: "bad" });
         }
         break;
+      // Dead End rule (§6.3.2, "forced redraw", `variants.forcedRedraw`): unlike a plain dead end,
+      // this is worth a notice — the party was fully boxed in and the passage reshapes itself so the
+      // exploration can continue. One per completed reject-and-redraw cycle, so a stubborn chain of
+      // rejections narrates as a short run of lines rather than one silent jump.
+      case "deadEndCardSwapped":
+        out.push({ text: "That passage was a true dead end — the party backtracks, and the way ahead redraws itself.", tone: "neutral" });
+        break;
       case "spectreSlew":
         out.push({ text: `A Spectre's touch slays ${name(e.creatureId)}!`, tone: "bad" });
         break;

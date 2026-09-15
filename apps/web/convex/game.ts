@@ -65,6 +65,16 @@ export async function uniqueCode(ctx: MutationCtx): Promise<string> {
 // solo `newGame` call never sets zombies/fogLite/concurrent.
 const variantsValidator = v.object({ extensionKit: v.optional(v.boolean()) });
 
+// Dead End rule (§6.3.2, "forced redraw"): unlike `extensionKit`, this flag is never player-chosen
+// and changes scoring difficulty, so it must NOT be client-settable — `variantsValidator` above
+// deliberately has no key for it, so a client literally cannot send one. Instead it's folded in
+// server-side from a Convex-only env var (never `VITE_`-prefixed, so never bundled into the client),
+// mirroring `TEST_MODE_SECRET`'s own established reasoning below. Absent env var ⇒ byte-identical
+// to before this existed.
+function withForcedRedraw(variants: { extensionKit?: boolean } | undefined): { extensionKit?: boolean; forcedRedraw?: boolean } | undefined {
+  return process.env.FORCED_REDRAW_ENABLED === "1" ? { ...variants, forcedRedraw: true } : variants;
+}
+
 export const newGame = mutation({
   args: { seed: v.number(), picks: v.array(v.number()), color: v.optional(colorValidator), variants: v.optional(variantsValidator) },
   handler: async (ctx, { seed, picks, color, variants }) => {
@@ -74,12 +84,13 @@ export const newGame = mutation({
     // pick (e.g. the Witch) is only legal when `variants.extensionKit` is actually set, closing off
     // a client that omits the flag to sneak a kit creature into a kit-off game.
     if (!validatePicks(picks, variants)) throw new Error("Invalid party selection");
-    const state = createGameState(seed, picks, variants);
+    const effectiveVariants = withForcedRedraw(variants);
+    const state = createGameState(seed, picks, effectiveVariants);
     const now = Date.now();
     const code = await uniqueCode(ctx);
     // Persist the initial conditions (seed + picks + variants) alongside the state so the full game
     // is replayable from scratch via the engine's replay() over the gameEvents action log.
-    return await ctx.db.insert("games", { ownerId, code, seed, picks, variants, state, status: "active", color, createdAt: now, updatedAt: now });
+    return await ctx.db.insert("games", { ownerId, code, seed, picks, variants: effectiveVariants, state, status: "active", color, createdAt: now, updatedAt: now });
   },
 });
 
@@ -98,10 +109,11 @@ export const startTestGame = mutation({
     if (!expected || secret !== expected) throw new Error("Invalid test mode secret");
     // Test Mode party selection: no budget/stock ceiling — a scripted scenario can seat any party.
     if (!validatePicks(picks, variants, true)) throw new Error("Invalid party selection");
-    const state = createGameState(seed, picks, variants, true);
+    const effectiveVariants = withForcedRedraw(variants);
+    const state = createGameState(seed, picks, effectiveVariants, true);
     const now = Date.now();
     const code = await uniqueCode(ctx);
-    return await ctx.db.insert("games", { ownerId, code, seed, picks, variants, state, status: "active", color, createdAt: now, updatedAt: now });
+    return await ctx.db.insert("games", { ownerId, code, seed, picks, variants: effectiveVariants, state, status: "active", color, createdAt: now, updatedAt: now });
   },
 });
 
