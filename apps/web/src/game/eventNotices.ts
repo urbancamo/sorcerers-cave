@@ -159,6 +159,17 @@ export function eventNotices(events: GameEvent[]): Notice[] {
           out.push({ text: `The way ${DIR_WORD[e.dir] ?? "out"} is a dead end — the party can't escape and must fight another round.`, tone: "bad" });
         }
         break;
+      // Dead End rule (§6.3.2, "forced redraw", `variants.forcedRedraw`): SILENT, like a plain
+      // deadEnd (handled-silence above) — the canvas already shows the party's real landing tile.
+      // A notice here was tried and reverted: forcing a React state update (setNotices) the instant
+      // the mutation promise resolves, ahead of the separate Convex subscription push, races the
+      // client's own optimistic move animation and visibly bounces the party out of the tile it
+      // already (correctly) landed on and back in again (engineAdapter.ts's `present`/`sync`
+      // staleness — a pre-existing reconciliation gap this event was just the first to reliably
+      // trigger). The mechanical detail is fully captured in the debug/game logs (gameLog.ts) for
+      // anyone who needs it, with no risk to live presentation.
+      case "deadEndCardSwapped":
+        break;
       case "spectreSlew":
         out.push({ text: `A Spectre's touch slays ${name(e.creatureId)}!`, tone: "bad" });
         break;

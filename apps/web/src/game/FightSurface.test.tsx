@@ -141,6 +141,16 @@ describe("FightSurface", () => {
     expect(screen.getAllByText("✦ behind")).toHaveLength(2); // one for the party's row, mirrored for the strangers' row
   });
 
+  it("shows the mirrored 'behind' slot on an UNENGAGED foe too, so assigning the first fighter doesn't reshape the row", () => {
+    // Before this fix, an idle row's foes side was a bare card with no front/behind structure at
+    // all — engaging it for the first time swapped in the full mirrored layout, visibly resizing
+    // the row. Both sides' layouts must already match before any assignment.
+    const s: GameState = { ...newGame(1, [0]), phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, strangers: [3] };
+    render(<FightSurface state={s} dispatch={() => {}} cards={cards} />);
+    expect(screen.getAllByText("✦ behind")).toHaveLength(2); // already both sides, before any fighter is assigned
+    expect(screen.getAllByText("magic user")).toHaveLength(2); // both slots read as empty placeholders
+  });
+
   it("keeps the fighters in place after a drawn round (no one slain)", () => {
     const { rerender } = render(<FightSurface state={fightState()} dispatch={() => {}} cards={cards} />);
     fireEvent.click(screen.getByTestId("tray-0"));  // pick the Woman

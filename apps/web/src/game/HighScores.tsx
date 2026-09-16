@@ -19,6 +19,9 @@ export interface LeaderboardRow {
   // Extension kit (SC-EXT-29, design US-01): labels this score as a kit game. Absent/false on
   // every score recorded before the kit existed.
   extensionKit?: boolean;
+  // Dead End rule (§6.3.2, "forced redraw"): labels this score as recorded while the rescue variant
+  // was active. Absent/false on every score recorded before/without it.
+  forcedRedraw?: boolean;
   // Multiplayer only: seats that shared the cave (treasure is split, so the count is the score's
   // context). Absent on rows recorded before 2026-07-28 — rendered as "—".
   seatCount?: number;
@@ -60,6 +63,12 @@ function ScoreDetail({ row, rank, onBack, onReplay, multiplayer }: {
   // game's event rows). `undefined` while loading, `null` if the game/log is gone.
   const log = useQuery(api.highScores.log, { id: row._id as Id<"highScores"> }) as GameLog | null | undefined;
 
+  // Deployment-level rule variants active for this run (§6.3.2 Dead End rule, SC-EXT-29 kit) — shown
+  // as lozenges at the foot of the detail view, since neither is visible from the row list itself.
+  const flags: string[] = [];
+  if (row.extensionKit) flags.push("Extension Kit");
+  if (row.forcedRedraw) flags.push("Forced Redraw");
+
   const left = row.party.filter(survived);
   const artifacts = left.flatMap((m) => m.treasure).filter((t) => ALL_TREASURES[t]?.kind === "artifact").length;
   // Each member's copy-index among same-creature members → its own card illustration (so two Men
@@ -73,7 +82,7 @@ function ScoreDetail({ row, rank, onBack, onReplay, multiplayer }: {
       <div className="scv-hs-detail-hd">
         <span className="scv-hs-detail-name">{rank ? `#${rank} ` : ""}{row.name}</span>
         <span className="scv-hs-detail-meta">
-          {OUTCOME_LABEL[row.outcome] ?? "—"} · {row.score} pts{row.extensionKit ? " · Extension kit" : ""}
+          {OUTCOME_LABEL[row.outcome] ?? "—"} · {row.score} pts
           {multiplayer ? ` · Multiplayer${row.seatCount ? ` of ${row.seatCount}` : ""}` : ""}
         </span>
       </div>
@@ -165,6 +174,11 @@ function ScoreDetail({ row, rank, onBack, onReplay, multiplayer }: {
         </div>
       )}
       {replayErr && <p className="scv-resume-err" role="alert">{replayErr}</p>}
+      {flags.length > 0 && (
+        <div className="scv-hsd-flags" data-testid="hsd-flags">
+          {flags.map((f) => <span key={f} className="scv-hsd-flag">{f}</span>)}
+        </div>
+      )}
     </div>
   );
 }

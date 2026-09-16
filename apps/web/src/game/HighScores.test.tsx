@@ -171,6 +171,33 @@ describe("HighScores", () => {
     expect(within(screen.getByTestId("download-log")).queryByRole("button", { name: /replay/i })).toBeNull();
   });
 
+  it("lists the rule variants that were in force as lozenges below the action buttons", () => {
+    const rows = [
+      row({
+        _id: "a", name: "Alice", extensionKit: true, forcedRedraw: true,
+        party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }],
+      }),
+    ];
+    render(<HighScores rows={rows} />);
+    fireEvent.click(screen.getByText("Alice"));
+    const detail = screen.getByTestId("hs-detail");
+    const flags = within(detail).getByTestId("hsd-flags");
+    expect(within(flags).getByText("Extension Kit")).toBeInTheDocument();
+    expect(within(flags).getByText("Forced Redraw")).toBeInTheDocument();
+    // "Below the action buttons": the flags node comes after the downloads cluster in DOM order.
+    const downloads = within(detail).queryByTestId("download-log");
+    if (downloads) {
+      expect(downloads.compareDocumentPosition(flags) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+  });
+
+  it("shows no flags lozenges for a plain base-game run", () => {
+    const rows = [row({ _id: "a", name: "Alice", party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }] })];
+    render(<HighScores rows={rows} />);
+    fireEvent.click(screen.getByText("Alice"));
+    expect(within(screen.getByTestId("hs-detail")).queryByTestId("hsd-flags")).toBeNull();
+  });
+
   // SC-EXT-29 (revised): base and kit games keep entirely SEPARATE tables behind a segmented
   // toggle — scores aren't comparable across deck compositions. The per-row EXT badge is gone;
   // the selected tab supplies the context.

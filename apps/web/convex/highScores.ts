@@ -51,6 +51,9 @@ export const save = mutation({
       // Extension kit (SC-EXT-29): keys this entry into the kit-mode leaderboard (base and kit
       // keep entirely separate tables — scores aren't comparable across deck compositions).
       extensionKit: state.variants?.extensionKit ?? undefined,
+      // Dead End rule (§6.3.2, "forced redraw"): keys this entry into its own leaderboard table too
+      // — a run that could be rescued from a soft-lock isn't comparable to one that couldn't be.
+      forcedRedraw: state.variants?.forcedRedraw ?? undefined,
     });
   },
 });
@@ -61,7 +64,13 @@ export const save = mutation({
  *  (SC-EXT-29). Omitted args = the solitaire base table; absent flags on legacy rows read as
  *  solo/base by construction. Multiplayer lists only ESCAPED seats — wipes and abandons stay
  *  recorded in the archive (`recordTerminals` writes every terminal) but a 0-score wipe is not
- *  leaderboard material, matching the solo save rule. */
+ *  leaderboard material, matching the solo save rule.
+ *
+ *  `forcedRedraw` (§6.3.2, Dead End rule) is NOT a segmentation axis here, unlike extensionKit:
+ *  it's a deployment-level flag, not a per-game player choice, and production is expected to set
+ *  it once and never flip it back — a permanent table split on a value that never varies again
+ *  would just be a standing table nobody could reach. Rows still carry `forcedRedraw` (below) for
+ *  informational display; they just aren't filtered by it. */
 export const list = query({
   args: {
     mode: v.optional(v.union(v.literal("solo"), v.literal("multi"))),
@@ -93,6 +102,7 @@ export const list = query({
       party: r.party,
       createdAt: r.createdAt,
       extensionKit: r.extensionKit ?? undefined,
+      forcedRedraw: r.forcedRedraw ?? undefined,
       seatCount: r.seatCount ?? undefined,
     }));
   },

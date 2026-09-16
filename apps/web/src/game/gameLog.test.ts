@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from "vitest";
-import { newGame, reduce, replay, HAZARD_DESERTION, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
+import { newGame, reduce, replay, HAZARD_DESERTION, HAZARD_GHOULS, HAZARD_TRAP, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
 import { actionLabel, describeEvent, eventCode, formatLog, machineLog, downloadLog, logReport, type GameLog } from "./gameLog";
 
 const SEED = 7;
@@ -69,6 +69,22 @@ describe("describeEvent", () => {
     expect(describeEvent({ type: "reaction", outcome: "hostile", roll: 3 })).toMatch(/hostile.*3/);
     // Unknown event type → raw fallback (nothing is silently dropped).
     expect(describeEvent({ type: "somethingNew" } as unknown as GameEvent)).toBe("somethingNew");
+  });
+
+  it("names the hazard, not its bare id, for every event carrying one", () => {
+    expect(describeEvent({ type: "hazardFired", hazard: HAZARD_GHOULS })).toMatch(/ghouls/i);
+    expect(describeEvent({ type: "hazardFired", hazard: HAZARD_GHOULS })).not.toMatch(/\(4\)/);
+    expect(describeEvent({ type: "wolfUnmoved", hazard: HAZARD_DESERTION })).toMatch(/desertion/i);
+    expect(describeEvent({ type: "drewChamber", strangers: [], treasures: [], hazards: [HAZARD_TRAP, HAZARD_GHOULS] }))
+      .toMatch(/hazards trap, ghouls/i);
+  });
+
+  // Dead End rule (§6.3.2, "forced redraw"): the game log must name both the rejected and the
+  // replacement card so a bug report shows exactly what was reshuffled, not just a raw event type.
+  it("describes a deadEndCardSwapped event by both card values' tile layout", () => {
+    expect(describeEvent({ type: "deadEndCardSwapped", removed: 31, drawn: 175 })).toBe(
+      "dead end rescued — reshuffled chamber · exits N E S W back into the pack, drew the Gateway · exits N E S W · stair up",
+    );
   });
 
   it("appends the tile type + layout (exits, stairs, special) to a moved event when the state is given", () => {
@@ -340,6 +356,23 @@ describe("extension kit event coverage (review fix, Task 16) — gameLog", () =>
     const kitOn = logReport(sampleLog({ variants: { extensionKit: true } }));
     expect(kitOn).toMatch(/APR=APPRENTICE/);
     expect(kitOn).toMatch(/HLY=HOLY WATER/);
+  });
+
+  // The hazard codes used throughout the report (HZ3, e.g. "GHL") were never decoded anywhere in
+  // the KEY, unlike every creature/treasure code — a reader had to already know "GHL" meant Ghouls.
+  it("decodes every hazard code in its own KEY block, gated on kit status like creatures/treasures", () => {
+    const kitOff = logReport(sampleLog());
+    // Numeric-keyed object enumeration is ascending by id (0..4), same as CREATURE/TREASURE's own
+    // rows: MUT(0) TRP(1) ERQ(2) MDA(3) GHL(4). "HAZARD" (6 chars) pads to the same 9-col field.
+    expect(kitOff).toMatch(/KEY {2}HAZARD {4}MUT=MUTINY {2}TRP=TRAP {2}ERQ=EARTHQUAKE {2}MDA=MEDUSA {2}GHL=GHOULS/);
+    // A kit-off deck can never draw a kit hazard — listing it would be unreachable content.
+    expect(kitOff).not.toMatch(/DES=DESERTION/);
+
+    const kitOn = logReport(sampleLog({ variants: { extensionKit: true } }));
+    expect(kitOn).toMatch(/DES=DESERTION/);
+    expect(kitOn).toMatch(/HRP=HARPIES/);
+    expect(kitOn).toMatch(/QRL=QUARREL/);
+    expect(kitOn).toMatch(/RMP=SPELL/);
   });
 });
 

@@ -221,8 +221,11 @@ export interface GameState {
   fightDrops?: { mi: number; tid: number }[];
   // Solo game variants (§EXT), fixed at `newGame` for the whole game — mirrors `MpGameState.variants`
   // (multi.ts:133). Absent/false ⇒ today's behaviour, byte-identical (SC-EXT-1). Immutable thereafter;
-  // no reducer path ever writes it.
-  variants?: { extensionKit?: boolean };
+  // no reducer path ever writes it. `forcedRedraw` (§6.3.2, Dead End rule) is solo-only by
+  // construction — deliberately NOT mirrored onto `MpGameState.variants` (multi.ts) or its own
+  // separate Convex validator (apps/web/convex/multiplayer.ts), so a multiplayer-composed state can
+  // never carry it.
+  variants?: { extensionKit?: boolean; forcedRedraw?: boolean };
   // Extension kit (SC-EXT-9): the turn number `withdraw` is blocked for — set by a Well draw or a
   // Bell Rope 4-6 roll (design US-03/US-07), alongside `fellThroughTrap` on the same legality check.
   // `turn` only advances on `move`, so this self-invalidates once the party moves on — no explicit

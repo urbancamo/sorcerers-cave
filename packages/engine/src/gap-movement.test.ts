@@ -106,6 +106,12 @@ describe("map/reduce gap behaviour (spec §6)", () => {
       // Party stays put on the sealed tile — no new area was appended.
       expect(r.state.partyArea).toBe(0);
       expect(r.state.areas).toHaveLength(1);
+
+      // SC-6.3-2 (§Dead End, "forced redraw"): even with the rescue variant ON, a card with zero
+      // printed exits refuses every direction identically — there is nothing to draw or swap when
+      // `hasExit` fails before the loop is ever reached.
+      const rescue = tryMove(s, dir, true);
+      expect(rescue).toEqual({ ...r, swaps: [] });
     }
   });
 });

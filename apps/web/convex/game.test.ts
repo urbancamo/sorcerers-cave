@@ -41,6 +41,50 @@ test("newGame rejects an illegal party selection", async () => {
 });
 
 // ---------------------------------------------------------------------------
+// Dead End rule (§6.3.2, "forced redraw"): server-stamped from a Convex-only env var, never
+// accepted from the client — mirrors the TEST_MODE_SECRET pattern (never a VITE_-prefixed name).
+// ---------------------------------------------------------------------------
+describe("forcedRedraw (leaderboard-affecting, so never client-settable)", () => {
+  const ORIGINAL = process.env.FORCED_REDRAW_ENABLED;
+  afterEach(() => {
+    if (ORIGINAL === undefined) delete process.env.FORCED_REDRAW_ENABLED;
+    else process.env.FORCED_REDRAW_ENABLED = ORIGINAL;
+  });
+
+  test("newGame: unset env var ⇒ no forcedRedraw key on the stored game, regardless of client input", async () => {
+    delete process.env.FORCED_REDRAW_ENABLED;
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+    const game = await as.query(api.game.get, { id });
+    expect(game?.state.variants?.forcedRedraw).toBeUndefined();
+  });
+
+  test("newGame: FORCED_REDRAW_ENABLED=1 ⇒ every new game gets forcedRedraw:true, with zero client involvement", async () => {
+    process.env.FORCED_REDRAW_ENABLED = "1";
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+    const game = await as.query(api.game.get, { id });
+    expect(game?.state.variants?.forcedRedraw).toBe(true);
+    // Persisted alongside the game so replay()/the game log reconstruct with the flag included.
+    expect(game?.variants?.forcedRedraw).toBe(true);
+  });
+
+  test("startTestGame: FORCED_REDRAW_ENABLED=1 also stamps a test-mode game", async () => {
+    process.env.FORCED_REDRAW_ENABLED = "1";
+    process.env.TEST_MODE_SECRET = "correct-uuid";
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const id = await as.mutation(api.game.startTestGame, { secret: "correct-uuid", seed: 1, picks: [0] });
+    const game = await as.query(api.game.get, { id });
+    expect(game?.state.variants?.forcedRedraw).toBe(true);
+    expect(game?.state.testMode).toBe(true); // unaffected — the two flags are independent
+    delete process.env.TEST_MODE_SECRET;
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Task 2: applyAction round-trip + query authority
 // ---------------------------------------------------------------------------
 import { reduce, replay } from "@sorcerers-cave/engine";
