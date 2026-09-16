@@ -1292,3 +1292,4 @@ of B2, at a secret door.
 | 2           | Tunnel    | SW            | 2           | 1          | 3            |
 | 2           | Tunnel    | WE            | 2           | 2          | 4            |
 |             |           |               | **Base** 60 | **Ext** 30 | **Total** 90 |
+
