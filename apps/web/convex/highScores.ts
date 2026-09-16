@@ -64,25 +64,25 @@ export const save = mutation({
  *  (SC-EXT-29). Omitted args = the solitaire base table; absent flags on legacy rows read as
  *  solo/base by construction. Multiplayer lists only ESCAPED seats — wipes and abandons stay
  *  recorded in the archive (`recordTerminals` writes every terminal) but a 0-score wipe is not
- *  leaderboard material, matching the solo save rule. */
+ *  leaderboard material, matching the solo save rule.
+ *
+ *  `forcedRedraw` (§6.3.2, Dead End rule) is NOT a segmentation axis here, unlike extensionKit:
+ *  it's a deployment-level flag, not a per-game player choice, and production is expected to set
+ *  it once and never flip it back — a permanent table split on a value that never varies again
+ *  would just be a standing table nobody could reach. Rows still carry `forcedRedraw` (below) for
+ *  informational display; they just aren't filtered by it. */
 export const list = query({
   args: {
     mode: v.optional(v.union(v.literal("solo"), v.literal("multi"))),
     extensionKit: v.optional(v.boolean()),
-    forcedRedraw: v.optional(v.boolean()),
   },
-  handler: async (ctx, { mode, extensionKit, forcedRedraw }) => {
+  handler: async (ctx, { mode, extensionKit }) => {
     const wantMode = mode ?? "solo";
     const wantKit = extensionKit === true;
-    const wantRedraw = forcedRedraw === true;
     // A multi row's kit flag falls back to its stored final state: rows recorded between the
     // MP-kit deploy and the `recordTerminals` stamping fix carry the variant only in `state`.
     const kitOf = (r: { extensionKit?: boolean; state: unknown }) =>
       r.extensionKit ?? (r.state as GameState).variants?.extensionKit ?? false;
-    // Dead End rule (§6.3.2): solo-only by construction (SC-6.3-2 note), but read with the same
-    // stored-field-then-state fallback as `kitOf` for consistency.
-    const redrawOf = (r: { forcedRedraw?: boolean; state: unknown }) =>
-      r.forcedRedraw ?? (r.state as GameState).variants?.forcedRedraw ?? false;
     const rows = await ctx.db
       .query("highScores")
       .withIndex("by_score")
@@ -92,7 +92,6 @@ export const list = query({
       .filter((r) =>
         (r.mode ?? "solo") === wantMode &&
         kitOf(r) === wantKit &&
-        redrawOf(r) === wantRedraw &&
         (wantMode === "solo" || r.outcome === GS_ESCAPED))
       .slice(0, LEADERBOARD_LIMIT)
       .map((r) => ({

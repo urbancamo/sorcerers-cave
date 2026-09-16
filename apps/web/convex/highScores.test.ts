@@ -170,7 +170,10 @@ test("a game without the env var has no forcedRedraw flag", async () => {
   }
 });
 
-test("list splits the tables: forcedRedraw scores only under forcedRedraw true, plain only under default", async () => {
+test("list does NOT split the table by forcedRedraw: rescued and plain runs sit in the same list", async () => {
+  // Unlike extensionKit (a player choice that changes deck composition), forcedRedraw is a
+  // deployment-level flag that will be permanently on in production — segmenting the leaderboard
+  // by it would just be a standing table nobody could ever see once the flag stops changing.
   const ORIGINAL = process.env.FORCED_REDRAW_ENABLED;
   try {
     const t = convexTest(schema, modules);
@@ -186,13 +189,9 @@ test("list splits the tables: forcedRedraw scores only under forcedRedraw true, 
     await as.mutation(api.game.applyAction, { id: baseId, action: { type: "exitCave" } });
     await as.mutation(api.highScores.save, { gameId: baseId, name: "Plain" });
 
-    const baseRows = await t.query(api.highScores.list, {});
-    expect(baseRows.find((r) => r.name === "Plain")).toBeDefined();
-    expect(baseRows.find((r) => r.name === "Rescued")).toBeUndefined();
-
-    const redrawRows = await t.query(api.highScores.list, { forcedRedraw: true });
-    expect(redrawRows.find((r) => r.name === "Rescued")?.forcedRedraw).toBe(true);
-    expect(redrawRows.find((r) => r.name === "Plain")).toBeUndefined();
+    const rows = await t.query(api.highScores.list, {});
+    expect(rows.find((r) => r.name === "Plain")).toBeDefined();
+    expect(rows.find((r) => r.name === "Rescued")).toBeDefined();
   } finally {
     if (ORIGINAL === undefined) delete process.env.FORCED_REDRAW_ENABLED;
     else process.env.FORCED_REDRAW_ENABLED = ORIGINAL;

@@ -171,6 +171,33 @@ describe("HighScores", () => {
     expect(within(screen.getByTestId("download-log")).queryByRole("button", { name: /replay/i })).toBeNull();
   });
 
+  it("lists the rule variants that were in force as lozenges below the action buttons", () => {
+    const rows = [
+      row({
+        _id: "a", name: "Alice", extensionKit: true, forcedRedraw: true,
+        party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }],
+      }),
+    ];
+    render(<HighScores rows={rows} />);
+    fireEvent.click(screen.getByText("Alice"));
+    const detail = screen.getByTestId("hs-detail");
+    const flags = within(detail).getByTestId("hsd-flags");
+    expect(within(flags).getByText("Extension Kit")).toBeInTheDocument();
+    expect(within(flags).getByText("Forced Redraw")).toBeInTheDocument();
+    // "Below the action buttons": the flags node comes after the downloads cluster in DOM order.
+    const downloads = within(detail).queryByTestId("download-log");
+    if (downloads) {
+      expect(downloads.compareDocumentPosition(flags) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    }
+  });
+
+  it("shows no flags lozenges for a plain base-game run", () => {
+    const rows = [row({ _id: "a", name: "Alice", party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }] })];
+    render(<HighScores rows={rows} />);
+    fireEvent.click(screen.getByText("Alice"));
+    expect(within(screen.getByTestId("hs-detail")).queryByTestId("hsd-flags")).toBeNull();
+  });
+
   // SC-EXT-29 (revised): base and kit games keep entirely SEPARATE tables behind a segmented
   // toggle — scores aren't comparable across deck compositions. The per-row EXT badge is gone;
   // the selected tab supplies the context.
@@ -178,23 +205,23 @@ describe("HighScores", () => {
     useQueryMock.mockReturnValue([]);
     render(<LeaderboardPanel />);
     expect(screen.getByRole("tab", { name: "Base Game" })).toHaveAttribute("aria-selected", "true");
-    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "solo", extensionKit: false, forcedRedraw: false });
+    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "solo", extensionKit: false });
   });
 
   it("LeaderboardPanel opens on the Extension Kit tab when defaultKit is set (post-kit-game)", () => {
     useQueryMock.mockReturnValue([]);
     render(<LeaderboardPanel defaultKit />);
     expect(screen.getByRole("tab", { name: "Extension Kit" })).toHaveAttribute("aria-selected", "true");
-    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "solo", extensionKit: true, forcedRedraw: false });
+    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "solo", extensionKit: true });
   });
 
   it("switching tabs re-queries the other table", () => {
     useQueryMock.mockReturnValue([]);
     render(<LeaderboardPanel />);
     fireEvent.click(screen.getByRole("tab", { name: "Extension Kit" }));
-    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "solo", extensionKit: true, forcedRedraw: false });
+    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "solo", extensionKit: true });
     fireEvent.click(screen.getByRole("tab", { name: "Base Game" }));
-    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "solo", extensionKit: false, forcedRedraw: false });
+    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "solo", extensionKit: false });
   });
 
   // Four leaderboards (design 2026-07-28): a second segmented toggle splits solitaire from
@@ -205,14 +232,14 @@ describe("HighScores", () => {
     expect(screen.getByRole("tab", { name: "Solitaire" })).toHaveAttribute("aria-selected", "true");
     fireEvent.click(screen.getByRole("tab", { name: "Multiplayer" }));
     expect(screen.getByRole("tab", { name: "Multiplayer" })).toHaveAttribute("aria-selected", "true");
-    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "multi", extensionKit: false, forcedRedraw: false });
+    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "multi", extensionKit: false });
   });
 
   it("LeaderboardPanel opens on Multiplayer when defaultMode says so", () => {
     useQueryMock.mockReturnValue([]);
     render(<LeaderboardPanel defaultMode="multi" />);
     expect(screen.getByRole("tab", { name: "Multiplayer" })).toHaveAttribute("aria-selected", "true");
-    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "multi", extensionKit: false, forcedRedraw: false });
+    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "multi", extensionKit: false });
   });
 
   it("the multiplayer table adds a Players column, dashed for legacy rows", () => {

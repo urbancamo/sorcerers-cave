@@ -1317,18 +1317,6 @@
   text-transform: uppercase;
   color: var(--stone-dim);
 }
-/* Extension kit label on a leaderboard row (SC-EXT-29, design US-01). */
-.scv-ext-badge {
-  margin-left: 6px;
-  font-family: var(--ui);
-  font-weight: 600;
-  font-size: 10px;
-  letter-spacing: 0.08em;
-  color: var(--brass-bright);
-  border: 1px solid var(--line-strong);
-  border-radius: 4px;
-  padding: 1px 5px;
-}
 .scv-rc-pts {
   font-variant-numeric: tabular-nums;
   color: var(--brass-bright);
@@ -1583,6 +1571,21 @@
   border-color: var(--brass);
   background: rgba(201, 161, 78, 0.08);
   color: var(--cream);
+}
+
+/* Deployment-level rule variants in force for this run (§6.3.2 Dead End rule, SC-EXT-29 kit),
+   shown as lozenges at the foot of the detail view — the row list itself carries no such badge. */
+.scv-hsd-flags { display: flex; flex-wrap: wrap; gap: 6px; }
+.scv-hsd-flag {
+  font-family: var(--ui);
+  font-weight: 600;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brass-bright);
+  border: 1px solid var(--line-strong);
+  border-radius: 999px;
+  padding: 2px 9px;
 }
 
 /* ---- high-score modal (from splash) ---- */
