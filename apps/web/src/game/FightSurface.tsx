@@ -228,13 +228,23 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
     );
   };
 
-  // One row per still-unengaged foe — drop a fighter on it to take it on.
+  // One row per still-unengaged foe — drop a fighter on it to take it on. Mirrors renderMatch's own
+  // foes-side structure (behind slot + front line) so assigning the first fighter never reshapes the
+  // row — an idle foe just starts with both slots empty/placeholder instead of filled.
   const renderIdle = (si: number) => (
     <div key={`i${si}`} className="scv-match scv-match-idle">
       <div className="scv-match-foes">
-        <FightCard creatureId={state.strangers[si]!} kind="foe" strength={enemyStrOf(si)}
-                   caption={state.strangers[si] === C_SPECTRE ? "magic only" : "unengaged"} dim cards={cards} state={state}
-                   variantIdx={strangerCopyIdx.get(si)} />
+        <div className="scv-match-line">
+          <div className="scv-match-bg">
+            <span className="scv-match-slotlbl">✦ behind</span>
+            <span className="scv-match-hint">magic user</span>
+          </div>
+          <div className="scv-match-front">
+            <FightCard creatureId={state.strangers[si]!} kind="foe" strength={enemyStrOf(si)}
+                       caption={state.strangers[si] === C_SPECTRE ? "magic only" : "unengaged"} dim cards={cards} state={state}
+                       variantIdx={strangerCopyIdx.get(si)} />
+          </div>
+        </div>
       </div>
       <div className="scv-match-vs"><span className="them">{enemyStrOf(si)}</span><span className="x">vs</span><span className="me">0</span></div>
       <div className="scv-match-party">
