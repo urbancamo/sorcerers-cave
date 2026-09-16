@@ -1,5 +1,5 @@
 import {
-  ALL_CREATURES, ALL_TREASURES, replay, decodeArea, scoreBreakdown,
+  ALL_CREATURES, ALL_TREASURES, ALL_HAZARD_NAMES, replay, decodeArea, scoreBreakdown,
   SPECIAL_GATEWAY, SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_TOMB, SPECIAL_GREAT_HALL,
   SPECIAL_CHASM, SPECIAL_BELL_ROPE, SPECIAL_LAIR, SPECIAL_WHIRLPOOL, SPECIAL_GALLERY, SPECIAL_WELL,
   HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_MUTINY, HAZARD_TRAP,
@@ -39,6 +39,7 @@ const dir = (d: number) => DIR_WORD[d] ?? `dir ${d}`;
 // ids (0-13/0-14), which both tables share verbatim.
 const creature = (id: number) => ALL_CREATURES[id]?.name ?? `creature ${id}`;
 const treasure = (id: number) => ALL_TREASURES[id]?.name ?? `treasure ${id}`;
+const hazard = (id: number) => ALL_HAZARD_NAMES[id] ?? `hazard ${id}`;
 
 /** Name the strangers vs fighters in a fight round, using the state the round was fought from. */
 function matchups(matches: readonly { front: number[]; backers: number[]; strangers: number[] }[], state: GameState | null): string {
@@ -140,12 +141,12 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
       const parts: string[] = [];
       if (e.strangers.length) parts.push(`strangers ${e.strangers.map(creature).join(", ")}`);
       if (e.treasures.length) parts.push(`treasure ${e.treasures.map(treasure).join(", ")}`);
-      if (e.hazards.length) parts.push(`hazards ${e.hazards.length}`);
+      if (e.hazards.length) parts.push(`hazards ${e.hazards.map(hazard).join(", ")}`);
       return `drew a chamber` + (parts.length ? `: ${parts.join("; ")}` : " (empty)");
     }
     case "enteredSpecial": return `entered a special area (type ${e.special})`;
     case "gameOver": return `game over (outcome ${e.gs})`;
-    case "hazardFired": return `hazard fired (${e.hazard})`;
+    case "hazardFired": return `hazard fired (${hazard(e.hazard)})`;
     case "mutinied": return `mutiny — ${e.deserters.length} deserted, ${e.treasures.length} item(s) dropped`;
     case "medusaGaze": return `Medusa's gaze — ${e.rolls.filter((r) => r.petrified).length} petrified`;
     case "viperPit": return `viper pit crossing — ${e.rolls.filter((r) => r.died).length} fell`;
@@ -205,7 +206,7 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "cryptRoll": return `crypt roll (rolled ${e.roll}) — ${e.outcome === "trap" ? "a trap sprang" : "gems found"}`;
     case "desertionRoll": return `desertion roll (rolled ${e.roll}) — ${creature(e.creatureId)} ` +
       (e.deserted ? `vanished${e.items.length ? `, taking ${e.items.map(treasure).join(", ")}` : ""}` : "held firm");
-    case "wolfUnmoved": return `the Wolf is unmoved (hazard ${e.hazard})`;
+    case "wolfUnmoved": return `the Wolf is unmoved (${hazard(e.hazard)})`;
     case "harpiesSteal": return `Harpies stole ${e.treasureIds.length} item(s): ${e.treasureIds.map(treasure).join(", ")}` + (e.cursed ? " — the party is cursed" : "");
     case "harpiesLurk": return "Harpies lurk, empty-handed";
     case "quarrel": return `quarrel: ${creature(e.aId)} (${e.aRoll}) vs ${creature(e.bId)} (${e.bRoll}) — ` +
@@ -382,13 +383,17 @@ const TYPE3: Record<number, string> = {
 const REACT3: Record<string, string> = { hostile: "HOS", indifferent: "IND", friendly: "FRD" };
 const RESULT3: Record<string, string> = { partyWon: "WON", enemyWon: "LOS", tie: "TIE" };
 const GS3: Record<number, string> = { 0: "PLY", 1: "ESC", 2: "DED", 3: "QIT" };
-const HZ3: Record<number, string> = {
+const HZ3_BASE: Record<number, string> = {
   [HAZARD_EARTHQUAKE]: "ERQ", [HAZARD_MEDUSA]: "MDA", [HAZARD_GHOULS]: "GHL", [HAZARD_MUTINY]: "MUT", [HAZARD_TRAP]: "TRP",
-  // Extension kit hazard ids 5-8 (review fix, Task 16) — the generic `hazardFired` event (and the
-  // new `wolfUnmoved` case below, whose one non-base source is Desertion) both index this map; a
-  // kit-on game could already reach `hazardFired{hazard: 5..8}` and silently print "HAZ ???".
-  [HAZARD_DESERTION]: "DES", [HAZARD_HARPIES]: "HRP", [HAZARD_QUARREL]: "QRL", [HAZARD_SPELL]: "RMP",
 };
+// Extension kit hazard ids 5-8 (review fix, Task 16) — kept separate, mirroring CR3_KIT/TR3_KIT
+// above, so `legend()` can list ONLY the base 5 for a kit-off game's KEY block (that deck can never
+// draw ids 5-8 — same kit-off byte-identity rule).
+const HZ3_KIT: Record<number, string> = { [HAZARD_DESERTION]: "DES", [HAZARD_HARPIES]: "HRP", [HAZARD_QUARREL]: "QRL", [HAZARD_SPELL]: "RMP" };
+// The generic `hazardFired` event (and `wolfUnmoved`, whose one non-base source is Desertion) both
+// index this COMBINED map regardless of kit status; a kit-on game could already reach
+// `hazardFired{hazard: 5..8}` and silently print "HAZ ???" otherwise.
+const HZ3: Record<number, string> = { ...HZ3_BASE, ...HZ3_KIT };
 
 function tileCells(card: number): { typ: string; ext: string; str: string } {
   const d = decodeArea(card);
@@ -574,16 +579,19 @@ function legend(kitOn: boolean): string[] {
   // table regardless — the base-only tables would decode a kit row's name back to "?".
   const cr3Rows = kitOn ? CR3 : CR3_BASE;
   const tr3Rows = kitOn ? TR3 : TR3_BASE;
+  const hz3Rows = kitOn ? HZ3 : HZ3_BASE;
   const creatures = Object.entries(cr3Rows).map(([id, c]) => `${c}=${(ALL_CREATURES[Number(id)]?.name ?? "?").toUpperCase()}`);
   const treasures = Object.entries(tr3Rows).map(([id, c]) => `${c}=${(ALL_TREASURES[Number(id)]?.name ?? "?").toUpperCase()}`);
+  const hazards = Object.entries(hz3Rows).map(([id, c]) => `${c}=${(ALL_HAZARD_NAMES[Number(id)] ?? "?").toUpperCase()}`);
   return [
     ...rows("CREATURE", creatures),
     ...rows("TREASURE", treasures),
+    ...rows("HAZARD", hazards),
     ...rows("TILE", ["CHM=CHAMBER", "TUN=TUNNEL", "GTW=GATEWAY", "POL=DEEP POOL", "VPT=VIPER PIT", "TMB=TOMB", "HAL=GREAT HALL"]),
     ...rows("TILE COLS", ["EXT: N/E/S/W OPEN, - WALL", "STR: U UP, D DOWN"]),
     ...rows("ACTION", ["MOV=MOVE", "RET=RETREAT", "OUT=EXIT CAVE", "WDR=WITHDRAW", "TST=TEST", "ATK=ATTACK", "FGT=FIGHT ROUND", "TAK=TAKE", "GIV=GIVE", "DRP=DROP", "BER=BEAR", "STW=STOW", "LVE=LEAVE", "RTK=RETAKE", "USE=USE ARTEFACT", "OPN=OPEN CHEST", "CAS=CASUALTY", "PRO=PROCEED (MEDUSA)", "QIT=QUIT"]),
     ...rows("EVENT", ["DRW=DREW (S:STRANGERS T:TREASURE H:HAZARDS)", "RCT=REACTION (HOS/IND/FRD)", "JOI=JOINED", "PAC=PACIFIED", "FGT SUP=FIGHT ON", "CBT=COMBAT (SIDE # V FOE # WON/LOS/TIE)", "WON=PARTY WON", "DIE=MEMBER DIED", "KIL=STRANGER SLAIN", "SLW=SPECTRE SLEW", "CAS=CASUALTY (R# DIE)"]),
-    ...rows("EVENT", ["HAZ=HAZARD (GHL/MDA/ERQ/MUT/TRP)", "TRP=TRAP", "ESP/XSP=ENTER/CROSS SPECIAL", "TDR/TRC=POOL DROP/RECOVER", "FDR=FIGHT DROP", "RCL=RECLAIM", "END=GAME OVER (ESC/DED/QIT)", "DED=DEAD END", "SEC=SECRET DOOR", "SPL=ITEMS SPILLED", "ANH=ANNIHILATE", "WRD=WARD OFF", "RVV=REVIVE", "SAV=RING SAVE"]),
+    ...rows("EVENT", ["HAZ=HAZARD (SEE KEY HAZARD)", "TRP=TRAP", "ESP/XSP=ENTER/CROSS SPECIAL", "TDR/TRC=POOL DROP/RECOVER", "FDR=FIGHT DROP", "RCL=RECLAIM", "END=GAME OVER (ESC/DED/QIT)", "DED=DEAD END", "SEC=SECRET DOOR", "SPL=ITEMS SPILLED", "ANH=ANNIHILATE", "WRD=WARD OFF", "RVV=REVIVE", "SAV=RING SAVE"]),
   ];
 }
 
