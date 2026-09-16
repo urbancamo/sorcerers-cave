@@ -443,5 +443,15 @@ describe("deadEnd flavors (retreat vs plain move)", () => {
     const out = eventNotices([{ type: "deadEnd", dir: 3 } as GameEvent]);
     expect(out).toHaveLength(0);
   });
+  // Dead End rule (§6.3.2, "forced redraw"): a notice here forces a React state update the instant
+  // the mutation promise resolves, ahead of the separate Convex subscription push — racing the
+  // client's own optimistic move animation and visibly bouncing the party out of the tile it already
+  // (correctly) landed on and back in again (apps/view/engineAdapter.ts's `present`/`sync` staleness).
+  // Silent, like a plain deadEnd: the canvas already shows the party's real landing tile, and the
+  // mechanical detail is fully captured in the debug/game logs (gameLog.ts) for anyone who needs it.
+  it("a dead-end card swap is silent — the canvas already shows the real landing tile", () => {
+    const out = eventNotices([{ type: "deadEndCardSwapped", removed: 31, drawn: 175 } as GameEvent]);
+    expect(out).toHaveLength(0);
+  });
 });
 
