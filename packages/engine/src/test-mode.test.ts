@@ -6,6 +6,7 @@ import {
   AREA_TILE_CANONICAL_CARD, TILE_CHAMBER, TILE_TUNNEL_NE, TILE_TUNNEL_NS, TILE_TUNNEL_NW,
   TILE_TUNNEL_EW, TILE_TUNNEL_SW, TILE_TUNNEL_NES, TILE_TUNNEL_NEW, TILE_TUNNEL_NSW,
   TILE_TUNNEL_ESW, TILE_TUNNEL_NESW, TILE_TUNNEL_ES, TILE_MAX,
+  TILE_CHAMBER_NES, TILE_CHAMBER_NEW, TILE_CHAMBER_NSW, TILE_CHAMBER_ESW,
   TILE_TUNNEL_NE_D, TILE_TUNNEL_NS_D, TILE_TUNNEL_EW_U, TILE_TUNNEL_SW_D,
   TILE_TUNNEL_NES_U, TILE_TUNNEL_NES_D, TILE_TUNNEL_NEW_U, TILE_TUNNEL_NEW_D,
   TILE_TUNNEL_NSW_U, TILE_TUNNEL_NSW_D, TILE_TUNNEL_ESW_U, TILE_TUNNEL_ESW_D,
@@ -65,6 +66,11 @@ describe("AREA_TILE_CANONICAL_CARD (SC-Test-8, up/down variants SC-Test-9)", () 
     [TILE_TUNNEL_NESW_U]: { n: true, e: true, s: true, w: true, chamber: false, stairUp: true, stairDown: false },
     [TILE_TUNNEL_NESW_D]: { n: true, e: true, s: true, w: true, chamber: false, stairUp: false, stairDown: true },
     [TILE_TUNNEL_NESW_UD]: { n: true, e: true, s: true, w: true, chamber: false, stairUp: true, stairDown: true },
+    // Blocked-exit chambers (SC-Test-11) — same shapes as TILE_TUNNEL_NES/NEW/NSW/ESW, but chamber:true.
+    [TILE_CHAMBER_NES]: { n: true, e: true, s: true, w: false, chamber: true, ...noStairs },
+    [TILE_CHAMBER_NEW]: { n: true, e: true, s: false, w: true, chamber: true, ...noStairs },
+    [TILE_CHAMBER_NSW]: { n: true, e: false, s: true, w: true, chamber: true, ...noStairs },
+    [TILE_CHAMBER_ESW]: { n: false, e: true, s: true, w: true, chamber: true, ...noStairs },
   };
 
   it("has exactly one entry per plain-tile id (TILE_CHAMBER..TILE_MAX), each decoding to special:0 with the named exit shape and stairs", () => {
@@ -328,6 +334,56 @@ describe("testNextArea consumed by tryMove — plain tiles (SC-Test-8)", () => {
     const d = decodeArea(placed.card);
     expect(d.stairUp).toBe(true);
     expect(d.stairDown).toBe(true);
+  });
+});
+
+describe("Blocked-exit chambers (SC-Test-11)", () => {
+  it("testPlaceArea arms a blocked-exit chamber id with no kit needed (a base-available shape)", () => {
+    const s = newGame(1, [0], undefined, true); // kit-off
+    const { state, events } = reduce(s, { type: "testPlaceArea", dir: DIR_N, special: TILE_CHAMBER_NES });
+    expect(events).toEqual([{ type: "testAreaQueued", dir: DIR_N, special: TILE_CHAMBER_NES }]);
+    expect(state.testNextArea).toEqual({ dir: DIR_N, special: TILE_CHAMBER_NES });
+  });
+
+  it("places a genuine chamber (chamber bit set, unlike a same-shape tunnel) missing exactly the named exit", () => {
+    let s = newGame(1, [0], undefined, true); // Gateway has all 4 exits — every direction is open
+    s = reduce(s, { type: "testPlaceArea", dir: DIR_N, special: TILE_CHAMBER_NES }).state;
+    const r = tryMove(s, DIR_N);
+    expect(r.moved).toBe(true);
+    const placed = r.state.areas[r.state.partyArea]!;
+    expect(placed.card).toBe(AREA_TILE_CANONICAL_CARD[TILE_CHAMBER_NES]);
+    const d = decodeArea(placed.card);
+    expect(d.chamber).toBe(true);
+    expect({ n: d.n, e: d.e, s: d.s, w: d.w }).toEqual({ n: true, e: true, s: true, w: false }); // no west exit
+  });
+
+  it("bug fix (the gap this closes): a scripted encounter can be dropped into a chamber missing an exit, end to end via a real move", () => {
+    let s = newGame(1, [0], undefined, true);
+    s = reduce(s, { type: "testPlaceArea", dir: DIR_N, special: TILE_CHAMBER_ESW }).state; // no north exit
+    // Armed BEFORE entry — enterChamber consumes testNextChamber on this same first visit.
+    s = reduce(s, { type: "testSetChamber", strangers: [10], treasures: [], hazards: [] }).state;
+    const { state, events } = reduce(s, { type: "move", dir: DIR_N });
+    expect(events.some((e) => e.type === "moved")).toBe(true);
+    expect(state.strangers).toEqual([10]); // the scripted content actually drew, proving this is a real chamber
+    const d = decodeArea(state.areas[state.partyArea]!.card);
+    expect(d.chamber).toBe(true);
+    expect(d.n).toBe(false); // matches TILE_CHAMBER_ESW's missing north exit
+  });
+
+  it("every missing-direction id is a 3-exit chamber blocked in exactly that one direction", () => {
+    const cases: [number, "n" | "e" | "s" | "w"][] = [
+      [TILE_CHAMBER_NES, "w"],
+      [TILE_CHAMBER_NEW, "s"],
+      [TILE_CHAMBER_NSW, "e"],
+      [TILE_CHAMBER_ESW, "n"],
+    ];
+    for (const [id, blocked] of cases) {
+      const d = decodeArea(AREA_TILE_CANONICAL_CARD[id]!);
+      expect(d.chamber).toBe(true);
+      expect(d.special).toBe(0);
+      expect(d[blocked]).toBe(false);
+      expect([d.n, d.e, d.s, d.w].filter(Boolean).length).toBe(3);
+    }
   });
 });
 

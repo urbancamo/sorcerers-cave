@@ -106,8 +106,20 @@ export const TILE_TUNNEL_NESW_U = 36;
 export const TILE_TUNNEL_NESW_D = 37;
 export const TILE_TUNNEL_NESW_UD = 38;
 
+// Blocked-exit chambers (2026-09-20, SC-Test-11): every id above names either the full NESW chamber
+// (TILE_CHAMBER) or a TUNNEL (chamber bit clear) — there was no way to script a chamber that hosts
+// an encounter/pickup (`enterChamber` runs, `testSetChamber` can populate it) AND is missing one
+// exit, even though such chambers are ordinary printed cards — the base deck alone has 14 of them
+// (values 23/27/29/30, one per missing direction). The deck never omits more than one door from a
+// chamber, so exactly four ids cover every such card. Appended after TILE_TUNNEL_NESW_UD so none of
+// the existing ids renumber; `TILE_MAX` moves from TILE_TUNNEL_NESW_UD (38) to TILE_CHAMBER_ESW (42).
+export const TILE_CHAMBER_NES = 39; // N+E+S present, no West exit
+export const TILE_CHAMBER_NEW = 40; // N+E+W present, no South exit
+export const TILE_CHAMBER_NSW = 41; // N+S+W present, no East exit
+export const TILE_CHAMBER_ESW = 42; // E+S+W present, no North exit
+
 export const TILE_MIN = TILE_CHAMBER;
-export const TILE_MAX = TILE_TUNNEL_NESW_UD;
+export const TILE_MAX = TILE_CHAMBER_ESW;
 
 // The one plain (no stairs, no special) deck card value for each pseudo-id above — verified
 // against AREA_CARDS/EXT_AREA_CARDS by test-mode.test.ts, same pattern as SPECIAL_CANONICAL_CARD.
@@ -140,4 +152,10 @@ export const AREA_TILE_CANONICAL_CARD: Readonly<Record<number, number>> = {
   [TILE_TUNNEL_NESW_U]: 47,
   [TILE_TUNNEL_NESW_D]: 79,
   [TILE_TUNNEL_NESW_UD]: 111,
+  // Blocked-exit chambers (SC-Test-11) — same shape naming as the tunnels above, but the chamber
+  // bit IS set: `enterChamber` draws contents normally, so `testSetChamber` can populate them.
+  [TILE_CHAMBER_NES]: 23,
+  [TILE_CHAMBER_NEW]: 27,
+  [TILE_CHAMBER_NSW]: 29,
+  [TILE_CHAMBER_ESW]: 30,
 };

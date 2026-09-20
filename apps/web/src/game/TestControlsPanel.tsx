@@ -4,7 +4,8 @@ import {
   CREATURES, TREASURES, HAZARD_NAMES,
   SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_TOMB, SPECIAL_GREAT_HALL,
   SPECIAL_CHASM, SPECIAL_BELL_ROPE, SPECIAL_LAIR, SPECIAL_WHIRLPOOL, SPECIAL_GALLERY, SPECIAL_WELL,
-  TILE_CHAMBER, TILE_TUNNEL_NE, TILE_TUNNEL_NS, TILE_TUNNEL_NW, TILE_TUNNEL_EW, TILE_TUNNEL_SW,
+  TILE_CHAMBER, TILE_CHAMBER_NES, TILE_CHAMBER_NEW, TILE_CHAMBER_NSW, TILE_CHAMBER_ESW,
+  TILE_TUNNEL_NE, TILE_TUNNEL_NS, TILE_TUNNEL_NW, TILE_TUNNEL_EW, TILE_TUNNEL_SW,
   TILE_TUNNEL_NES, TILE_TUNNEL_NEW, TILE_TUNNEL_NSW, TILE_TUNNEL_ESW, TILE_TUNNEL_NESW, TILE_TUNNEL_ES,
   TILE_TUNNEL_NE_D, TILE_TUNNEL_NS_D, TILE_TUNNEL_EW_U, TILE_TUNNEL_SW_D,
   TILE_TUNNEL_NES_U, TILE_TUNNEL_NES_D, TILE_TUNNEL_NEW_U, TILE_TUNNEL_NEW_D,
@@ -30,9 +31,16 @@ const SPECIAL_AREA_OPTIONS = [
 // actually exists in the deck — every 2/3/4-way junction of N/E/S/W (SC-Test-8), including any
 // printed stairUp/stairDown variant of that shape (SC-Test-9). TILE_TUNNEL_ES is the sole kit-only
 // option (it exists only on an extension-kit tile); NW and ES have no stair variants — every NW/ES
-// tile in the deck is plain.
+// tile in the deck is plain. Blocked-exit chambers (2026-09-20, SC-Test-11): four more options place
+// a genuine chamber (contents can still be scripted via "Queue next chamber" below) missing exactly
+// one exit — the deck never omits more than one door from a chamber, so one id per missing direction
+// covers every such card; none are kit-only.
 const PLAIN_TILE_OPTIONS = [
   { id: TILE_CHAMBER, label: "Normal chamber" },
+  { id: TILE_CHAMBER_NES, label: "Chamber (no west exit)" },
+  { id: TILE_CHAMBER_NEW, label: "Chamber (no south exit)" },
+  { id: TILE_CHAMBER_NSW, label: "Chamber (no east exit)" },
+  { id: TILE_CHAMBER_ESW, label: "Chamber (no north exit)" },
   { id: TILE_TUNNEL_NE, label: "Tunnel NE" },
   { id: TILE_TUNNEL_NE_D, label: "Tunnel NE (stair down)" },
   { id: TILE_TUNNEL_NS, label: "Tunnel NS" },

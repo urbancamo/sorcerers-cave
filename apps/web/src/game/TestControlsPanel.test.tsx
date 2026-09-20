@@ -3,7 +3,7 @@ import { describe, it, expect, vi } from "vitest";
 import {
   newGame, SPECIAL_WHIRLPOOL, SPECIAL_DEEP_POOL, DIR_N, DIR_UP, DIR_DOWN,
   CREATURES, TREASURES, HAZARD_NAMES, ALL_CREATURES, ALL_TREASURES, ALL_HAZARD_NAMES,
-  TILE_CHAMBER, TILE_TUNNEL_NS, TILE_TUNNEL_ES, TILE_TUNNEL_NESW_UD,
+  TILE_CHAMBER, TILE_CHAMBER_NES, TILE_TUNNEL_NS, TILE_TUNNEL_ES, TILE_TUNNEL_NESW_UD,
   type GameState,
 } from "@sorcerers-cave/engine";
 import { TestControlsPanel } from "./TestControlsPanel";
@@ -91,6 +91,21 @@ describe("TestControlsPanel", () => {
     fireEvent.change(screen.getByLabelText(/next area — special/i), { target: { value: String(TILE_CHAMBER) } });
     fireEvent.click(screen.getByRole("button", { name: /queue next area/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "testPlaceArea", dir: DIR_N, special: TILE_CHAMBER });
+  });
+
+  // Blocked-exit chambers (2026-09-20, SC-Test-11): the picker also offers a genuine chamber
+  // missing one exit, distinct from a same-shape tunnel (which can never host scripted content).
+  it("queues testPlaceArea with a blocked-exit chamber", () => {
+    const dispatch = vi.fn();
+    render(<TestControlsPanel state={testState()} dispatch={dispatch} />);
+    fireEvent.change(screen.getByLabelText(/next area — special/i), { target: { value: String(TILE_CHAMBER_NES) } });
+    fireEvent.click(screen.getByRole("button", { name: /queue next area/i }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "testPlaceArea", dir: DIR_N, special: TILE_CHAMBER_NES });
+  });
+
+  it("offers blocked-exit chambers on a kit-off game (none of them are kit-only)", () => {
+    render(<TestControlsPanel state={testState()} dispatch={() => {}} />);
+    expect(screen.getByLabelText(/next area — special/i).querySelector(`option[value="${TILE_CHAMBER_NES}"]`)).not.toBeNull();
   });
 
   it("queues testPlaceArea with a tunnel exit shape", () => {
