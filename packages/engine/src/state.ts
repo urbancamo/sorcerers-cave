@@ -219,6 +219,13 @@ export interface GameState {
   // Heavy treasure dropped to the floor by front-line fighters this fight (§387), with the member that
   // dropped each — lets the won-fight pickup offer "retake as distributed before" in one step.
   fightDrops?: { mi: number; tid: number }[];
+  // Bug fix 2026-09-18 (SC-11-26/27/28): true once the Lost Ruby (treasure id 11) has been freed
+  // from its strength-8 statue guard — a won wrestle or an Eye-stilled take. From that point on the
+  // Ruby is ordinary treasure: `takeTreasure` reads this flag (alongside the treasure id) so
+  // dropping and re-taking it — even far from the guarded chamber, or after it spills off a fallen
+  // bearer — never re-triggers the statue fight. There is exactly one Lost Ruby card in the deck
+  // (data/smallPack.ts), so a single game-wide flag is sufficient.
+  rubyFreed?: boolean;
   // Solo game variants (§EXT), fixed at `newGame` for the whole game — mirrors `MpGameState.variants`
   // (multi.ts:133). Absent/false ⇒ today's behaviour, byte-identical (SC-EXT-1). Immutable thereafter;
   // no reducer path ever writes it. `forcedRedraw` (§6.3.2, Dead End rule) is solo-only by

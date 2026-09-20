@@ -35,6 +35,28 @@ describe("Lost Ruby statue (spec §16)", () => {
     expect(events).toContainEqual(expect.objectContaining({ type: "combatRoll", enemy: "Statue", result: "partyWon" }));
   });
 
+  it("bug fix: dropping and re-taking a freed Ruby does not re-trigger the statue (SC-11-26)", () => {
+    // Giant (FS 7) + 6 dragonKills is dice-proof (see "an overwhelming fighter always wins" above),
+    // so any fight the Ruby retriggers here would be caught deterministically.
+    const fighter = { creatureId: 12, status: 0 as const, dragonKills: 6, treasure: [] };
+    const s = makeState({ phase: "pickup", areas: [area()], treasures: [11], party: [fighter], seed: 5 });
+    const won = reduce(s, { type: "takeTreasure", ti: 0, mi: 0 });
+    expect(won.state.rubyFreed).toBe(true);
+    expect(won.state.party[0]!.treasure).toEqual([11]);
+
+    // Drop it back onto the (still-open) pickup floor — same chamber, same visit.
+    const dropped = reduce(won.state, { type: "dropTreasure", mi: 0, idx: 0 });
+    expect(dropped.state.treasures).toEqual([11]);
+    expect(dropped.state.rubyFreed).toBe(true);
+
+    // Taking it again must be a plain pickup: no statue fight, no combatRoll/statueAroused events.
+    const retaken = reduce(dropped.state, { type: "takeTreasure", ti: 0, mi: 0 });
+    expect(retaken.state.party[0]!.treasure).toEqual([11]);
+    expect(retaken.state.treasures).toEqual([]);
+    expect(retaken.events).not.toContainEqual(expect.objectContaining({ type: "combatRoll" }));
+    expect(retaken.events.some((e) => e.type === "statueAroused")).toBe(false);
+  });
+
   it("re-entering the ruby chamber does NOT attack the party — the statue only strikes an explicit wrestler", () => {
     // seed=3 is the seed that used to kill a lone Hero on entry; with the on-entry attack removed it must not.
     const s = makeState({

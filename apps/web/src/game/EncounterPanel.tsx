@@ -55,8 +55,10 @@ function label(a: GameAction, state: GameState): string {
       const tid = state.treasures[a.ti]!;
       const tname = ALL_TREASURES[tid]?.name ?? "treasure";
       const member = memberLabel(state.party, a.mi);
-      // The Lost Ruby (id 11) is guarded by a strength-8 statue that must be beaten to claim it (§16).
-      return tid === 11
+      // The Lost Ruby (id 11) is guarded by a strength-8 statue that must be beaten to claim it (§16)
+      // — but only until it's freed once (SC-11-47): after that it's ordinary treasure, even if
+      // dropped and re-taken, so the label must stop warning of a fight that will never happen.
+      return tid === 11 && !state.rubyFreed
         ? `Seize the ${tname} — ${member} must defeat the guardian statue`
         : `Take ${tname} → ${member}`;
     }
@@ -199,8 +201,9 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
             const labels = dedupeLabels(mis.map(memberName));
             const tname = ALL_TREASURES[state.treasures[ti]!]!.name;
             // The Lost Ruby (id 11) is set in a strength-8 statue that must be beaten — taking it is a
-            // fight, not a free pickup, so word the options as wresting it from the guardian (§16).
-            const guarded = state.treasures[ti] === 11;
+            // fight, not a free pickup, so word the options as wresting it from the guardian (§16) —
+            // unless it's already been freed once (SC-11-47), after which it's ordinary treasure.
+            const guarded = state.treasures[ti] === 11 && !state.rubyFreed;
             const optText = (lbl: string) => (guarded ? `${lbl} wrests it from the statue` : `Give to ${lbl}`);
             return (
               <label key={`t${ti}`} className="scv-enc-row">

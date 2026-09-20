@@ -49,6 +49,15 @@ describe("EncounterPanel", () => {
     expect(opts.some((t) => /^give to/i.test(t))).toBe(false); // never the plain "Give to" wording
   });
 
+  it("bug fix (SC-11-47): a freed Lost Ruby is worded as an ordinary pickup, not a statue wrestle", () => {
+    const pickup: GameState = { ...newGame(1, [0]), phase: "pickup", treasures: [11], rubyFreed: true };
+    render(<EncounterPanel state={pickup} dispatch={() => {}} />);
+    const select = screen.getByLabelText(/assign lost ruby/i) as HTMLSelectElement;
+    const opts = [...select.options].map((o) => o.textContent ?? "");
+    expect(opts.some((t) => /wrests it from the statue/i.test(t))).toBe(false);
+    expect(opts.some((t) => /^give to/i.test(t))).toBe(true);
+  });
+
   it("lists an artefact once with a target dropdown", () => {
     const dispatch = vi.fn();
     const s: GameState = { ...newGame(1, [5, 6]), phase: "encounter", strangers: [3] }; // vs a Troll

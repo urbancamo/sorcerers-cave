@@ -804,13 +804,16 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         if (!taker || taker.creatureId !== C_GIANT) return { state, events: [{ type: "blocked" }] };
       }
       const next = structuredClone(state);
-      if (next.treasures[action.ti] === 11) { // Lost Ruby — guarded by a strength-8 statue (§16)
+      // Lost Ruby — guarded by a strength-8 statue (§16), but only until freed once (`rubyFreed`,
+      // SC-11-26/27/28): after that it's ordinary treasure, even if dropped and re-taken elsewhere.
+      if (next.treasures[action.ti] === 11 && !next.rubyFreed) {
         const fighter = next.party[action.mi];
         if (!fighter || !(fighter.status === 0 || fighter.status === 1)) return { state, events: [{ type: "blocked" }] };
         const events: GameEvent[] = [];
         if (eyeActive(next)) { // the Eye stills the statue: take the Ruby with no fight
           fighter.treasure.push(11);
           next.treasures.splice(action.ti, 1);
+          next.rubyFreed = true;
           events.push({ type: "rubyTaken" }, { type: "statuePowerless" });
           if (next.treasures.length === 0) persistAndExplore(next);
           return { state: next, events };
@@ -833,6 +836,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         if (won) {
           fighter.treasure.push(11);
           next.treasures.splice(action.ti, 1);
+          next.rubyFreed = true;
           events.push({ type: "rubyTaken" });
         } else if (ringInvincible(fighter, next)) {
           // The Ring shrugs off the statue's killing blow at level >= 4 (§Ring). The wrestle was still
