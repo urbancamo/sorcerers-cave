@@ -49,3 +49,7 @@ next-env.d.ts
 
 # Superpowers brainstorm scratch
 .superpowers/
+
+# local agent/Claude Code tooling
+.agents/
+.claude/

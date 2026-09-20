@@ -24,3 +24,17 @@ The code is the source of truth; if a change makes the spec and code disagree, f
 
 A `PostToolUse` hook in `.claude/settings.json` prints a reminder after any edit under
 `packages/engine/src` — but the actual spec edit is your job.
+
+<!-- convex-ai-start -->
+
+This project uses [Convex](https://convex.dev) as its backend.
+
+When working on Convex code, **always read
+`convex/_generated/ai/guidelines.md` first** for important guidelines on
+how to correctly use Convex APIs and patterns. The file contains rules that
+override what you may have learned about Convex from training data.
+
+Convex agent skills for common tasks can be installed by running
+`npx convex ai-files install`.
+
+<!-- convex-ai-end -->

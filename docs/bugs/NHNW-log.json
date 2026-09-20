@@ -1,0 +1,5220 @@
+{
+  "version": 1,
+  "game": {
+    "code": "NHNW",
+    "color": "blue",
+    "createdAt": 1789673565738,
+    "picks": [
+      1,
+      7
+    ],
+    "seed": 1789673565669,
+    "status": "active",
+    "variants": {
+      "extensionKit": true,
+      "forcedRedraw": true
+    }
+  },
+  "moves": [
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 1,
+          "level": 1,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            5
+          ],
+          "treasures": [
+            18
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 0
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "friendly",
+          "roll": 5,
+          "type": "reaction"
+        },
+        {
+          "count": 1,
+          "type": "strangersJoined"
+        }
+      ],
+      "seq": 1
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 2
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 1,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 3
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 3,
+          "level": 1,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [
+            1
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 4
+    },
+    {
+      "action": {
+        "mi": 1,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 5
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 4,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 6
+    },
+    {
+      "action": {
+        "dir": 6,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 5,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 7
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 6,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 8
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 2,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 9
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 8,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [
+            5
+          ],
+          "strangers": [
+            6
+          ],
+          "treasures": [],
+          "type": "drewChamber"
+        },
+        {
+          "hazard": 5,
+          "type": "hazardFired"
+        },
+        {
+          "creatureId": 5,
+          "deserted": false,
+          "items": [],
+          "roll": 3,
+          "type": "desertionRoll"
+        }
+      ],
+      "seq": 10
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "friendly",
+          "roll": 6,
+          "type": "reaction"
+        },
+        {
+          "count": 1,
+          "type": "strangersJoined"
+        }
+      ],
+      "seq": 11
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 2,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 12
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 10,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 13
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 11,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 14
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 12,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            4
+          ],
+          "treasures": [
+            11,
+            0,
+            5
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 15
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "indifferent",
+          "roll": 2,
+          "type": "reaction"
+        }
+      ],
+      "seq": 16
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "friendly",
+          "roll": 5,
+          "type": "reaction"
+        },
+        {
+          "count": 1,
+          "type": "strangersJoined"
+        }
+      ],
+      "seq": 17
+    },
+    {
+      "action": {
+        "mi": 2,
+        "ti": 1,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 18
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 1,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 19
+    },
+    {
+      "action": {
+        "type": "leaveTreasure"
+      },
+      "events": [],
+      "seq": 20
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 3,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 21
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 14,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 22
+    },
+    {
+      "action": {
+        "type": "drawFromWell"
+      },
+      "events": [
+        {
+          "type": "wellDraw"
+        }
+      ],
+      "seq": 23
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 24
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 15,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            6,
+            3
+          ],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 25
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "friendly",
+          "roll": 6,
+          "type": "reaction"
+        },
+        {
+          "count": 2,
+          "type": "strangersJoined"
+        }
+      ],
+      "seq": 26
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 16,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [
+            19,
+            0
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 27
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 28
+    },
+    {
+      "action": {
+        "mi": 6,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 29
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 2,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 30
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 18,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            12
+          ],
+          "treasures": [
+            12
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 31
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "indifferent",
+          "roll": 4,
+          "type": "reaction"
+        }
+      ],
+      "seq": 32
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "indifferent",
+          "roll": 4,
+          "type": "reaction"
+        }
+      ],
+      "seq": 33
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "hostile",
+          "roll": 1,
+          "type": "reaction"
+        },
+        {
+          "surprise": -1,
+          "type": "fightStarted"
+        }
+      ],
+      "seq": 34
+    },
+    {
+      "action": {
+        "artifact": 8,
+        "target": 0,
+        "type": "useArtifact"
+      },
+      "events": [
+        {
+          "artifact": 8,
+          "type": "artifactUsed"
+        }
+      ],
+      "seq": 35
+    },
+    {
+      "action": {
+        "matches": [
+          {
+            "backers": [
+              4
+            ],
+            "front": [
+              0,
+              6
+            ],
+            "strangers": [
+              0
+            ]
+          }
+        ],
+        "type": "resolveRound"
+      },
+      "events": [
+        {
+          "enemy": "Giant",
+          "enemyRoll": 6,
+          "enemyTotal": 14,
+          "party": "W-Hero + Troll + Priest",
+          "partyRoll": 3,
+          "partyTotal": 15,
+          "result": "partyWon",
+          "type": "combatRoll"
+        },
+        {
+          "creatureId": 12,
+          "type": "strangerKilled"
+        },
+        {
+          "type": "fightWon"
+        }
+      ],
+      "seq": 36
+    },
+    {
+      "action": {
+        "type": "retakeDropped"
+      },
+      "events": [
+        {
+          "count": 2,
+          "type": "droppedRetaken"
+        }
+      ],
+      "seq": 37
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 38
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 19,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 39
+    },
+    {
+      "action": {
+        "dir": 6,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 20,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 40
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 2,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 41
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 22,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            9
+          ],
+          "treasures": [
+            2,
+            5
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 42
+    },
+    {
+      "action": {
+        "type": "withdraw"
+      },
+      "events": [
+        {
+          "area": 20,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 43
+    },
+    {
+      "action": {
+        "dir": 5,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 19,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 44
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 18,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 45
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 23,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "special": 2,
+          "type": "enteredSpecial"
+        }
+      ],
+      "seq": 46
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 18,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 47
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 24,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 48
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 4,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 49
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 26,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 50
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 2,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 51
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 24,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 52
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 18,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 53
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 16,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 54
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 15,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 55
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 14,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 56
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 2,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 57
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 17,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            12
+          ],
+          "treasures": [
+            2
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 58
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "hostile",
+          "roll": 1,
+          "type": "reaction"
+        },
+        {
+          "surprise": -1,
+          "type": "fightStarted"
+        }
+      ],
+      "seq": 59
+    },
+    {
+      "action": {
+        "matches": [
+          {
+            "backers": [
+              4
+            ],
+            "front": [
+              0,
+              6
+            ],
+            "strangers": [
+              0
+            ]
+          }
+        ],
+        "type": "resolveRound"
+      },
+      "events": [
+        {
+          "enemy": "Giant",
+          "enemyRoll": 1,
+          "enemyTotal": 9,
+          "party": "W-Hero + Troll + Priest",
+          "partyRoll": 5,
+          "partyTotal": 15,
+          "result": "partyWon",
+          "type": "combatRoll"
+        },
+        {
+          "creatureId": 12,
+          "type": "strangerKilled"
+        },
+        {
+          "type": "fightWon"
+        }
+      ],
+      "seq": 60
+    },
+    {
+      "action": {
+        "type": "retakeDropped"
+      },
+      "events": [
+        {
+          "count": 2,
+          "type": "droppedRetaken"
+        }
+      ],
+      "seq": 61
+    },
+    {
+      "action": {
+        "mi": 2,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 62
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 29,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 63
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 4,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 64
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 17,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 65
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 31,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 66
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 32,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            7,
+            6
+          ],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 67
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "friendly",
+          "roll": 6,
+          "type": "reaction"
+        },
+        {
+          "count": 2,
+          "type": "strangersJoined"
+        }
+      ],
+      "seq": 68
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 1,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 69
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 31,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 70
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 28,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 71
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 34,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            5,
+            7
+          ],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 72
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "friendly",
+          "roll": 6,
+          "type": "reaction"
+        },
+        {
+          "count": 2,
+          "type": "strangersJoined"
+        }
+      ],
+      "seq": 73
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 35,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 74
+    },
+    {
+      "action": {
+        "dir": 6,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 36,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            9,
+            2
+          ],
+          "treasures": [
+            10
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 75
+    },
+    {
+      "action": {
+        "type": "attack"
+      },
+      "events": [
+        {
+          "surprise": 1,
+          "type": "fightStarted"
+        }
+      ],
+      "seq": 76
+    },
+    {
+      "action": {
+        "matches": [
+          {
+            "backers": [],
+            "front": [
+              4
+            ],
+            "strangers": [
+              0
+            ]
+          },
+          {
+            "backers": [],
+            "front": [
+              0,
+              6
+            ],
+            "strangers": [
+              1
+            ]
+          }
+        ],
+        "type": "resolveRound"
+      },
+      "events": [
+        {
+          "enemy": "Spectre",
+          "enemyRoll": 4,
+          "enemyTotal": 9,
+          "party": "Priest",
+          "partyRoll": 6,
+          "partyTotal": 9,
+          "result": "tie",
+          "type": "combatRoll"
+        },
+        {
+          "enemy": "Ogre",
+          "enemyRoll": 5,
+          "enemyTotal": 10,
+          "party": "W-Hero + Troll",
+          "partyRoll": 4,
+          "partyTotal": 13,
+          "result": "partyWon",
+          "type": "combatRoll"
+        },
+        {
+          "creatureId": 2,
+          "type": "strangerKilled"
+        }
+      ],
+      "seq": 77
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "retreat"
+      },
+      "events": [
+        {
+          "area": 37,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 78
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 38,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 79
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 39,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 80
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 38,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 81
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 40,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 82
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 3,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 83
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 21,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 84
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 42,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 85
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 43,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            5
+          ],
+          "treasures": [
+            0,
+            17
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 86
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "friendly",
+          "roll": 4,
+          "type": "reaction"
+        },
+        {
+          "count": 1,
+          "type": "strangersJoined"
+        }
+      ],
+      "seq": 87
+    },
+    {
+      "action": {
+        "mi": 1,
+        "ti": 1,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 88
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 89
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 44,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 90
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 45,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 91
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 46,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 92
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 4,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 93
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 48,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            4,
+            10
+          ],
+          "treasures": [
+            13
+          ],
+          "type": "drewChamber"
+        },
+        {
+          "count": 1,
+          "type": "dragonsLulled"
+        }
+      ],
+      "seq": 94
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "friendly",
+          "roll": 5,
+          "type": "reaction"
+        },
+        {
+          "count": 1,
+          "type": "strangersJoined"
+        }
+      ],
+      "seq": 95
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 96
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 46,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 97
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 45,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 98
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 44,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 99
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 43,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 100
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 42,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 101
+    },
+    {
+      "action": {
+        "dir": 6,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 49,
+          "level": 4,
+          "type": "moved"
+        }
+      ],
+      "seq": 102
+    },
+    {
+      "action": {
+        "dir": 5,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 42,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 103
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 3,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 104
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 43,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 105
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 44,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 106
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 45,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 107
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 44,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 108
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 43,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 109
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 42,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 110
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 21,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 111
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 40,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 112
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 38,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 113
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 39,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 114
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 36,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            9
+          ],
+          "treasures": [
+            18,
+            0,
+            10
+          ],
+          "type": "drewChamber"
+        },
+        {
+          "creatureId": 9,
+          "type": "annihilated"
+        }
+      ],
+      "seq": 115
+    },
+    {
+      "action": {
+        "mi": 6,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 116
+    },
+    {
+      "action": {
+        "mi": 6,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 117
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 118
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 3,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 119
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 51,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [
+            1,
+            1,
+            16
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 120
+    },
+    {
+      "action": {
+        "mi": 3,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 121
+    },
+    {
+      "action": {
+        "mi": 4,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 122
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 123
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 52,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 124
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 51,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 125
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 53,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 126
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 51,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 127
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 36,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 128
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 39,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 129
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 38,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 130
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 37,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 131
+    },
+    {
+      "action": {
+        "dir": 6,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 54,
+          "level": 4,
+          "type": "moved"
+        }
+      ],
+      "seq": 132
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 55,
+          "level": 4,
+          "type": "moved"
+        }
+      ],
+      "seq": 133
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 54,
+          "level": 4,
+          "type": "moved"
+        }
+      ],
+      "seq": 134
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 56,
+          "level": 4,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 135
+    },
+    {
+      "action": {
+        "mi": 8,
+        "type": "pullBellRope"
+      },
+      "events": [
+        {
+          "creatureId": 6,
+          "outcome": "stir",
+          "roll": 6,
+          "type": "bellRoll"
+        }
+      ],
+      "seq": 136
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "indifferent",
+          "roll": 2,
+          "type": "reaction"
+        }
+      ],
+      "seq": 137
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "friendly",
+          "roll": 5,
+          "type": "reaction"
+        },
+        {
+          "count": 2,
+          "type": "strangersJoined"
+        }
+      ],
+      "seq": 138
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 57,
+          "level": 4,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            18,
+            13,
+            17
+          ],
+          "treasures": [
+            6
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 139
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "indifferent",
+          "roll": 3,
+          "type": "reaction"
+        }
+      ],
+      "seq": 140
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "friendly",
+          "roll": 6,
+          "type": "reaction"
+        },
+        {
+          "count": 3,
+          "type": "strangersJoined"
+        }
+      ],
+      "seq": 141
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 142
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 58,
+          "level": 4,
+          "type": "moved"
+        },
+        {
+          "hazards": [
+            6
+          ],
+          "strangers": [
+            7
+          ],
+          "treasures": [
+            0,
+            0
+          ],
+          "type": "drewChamber"
+        },
+        {
+          "hazard": 6,
+          "type": "hazardFired"
+        },
+        {
+          "cursed": true,
+          "treasureIds": [
+            5,
+            19,
+            12,
+            13,
+            10,
+            16,
+            6,
+            17
+          ],
+          "type": "harpiesSteal"
+        }
+      ],
+      "seq": 143
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "indifferent",
+          "roll": 3,
+          "type": "reaction"
+        }
+      ],
+      "seq": 144
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "indifferent",
+          "roll": 2,
+          "type": "reaction"
+        }
+      ],
+      "seq": 145
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "indifferent",
+          "roll": 2,
+          "type": "reaction"
+        },
+        {
+          "type": "pacified"
+        }
+      ],
+      "seq": 146
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [
+        {
+          "tid": 0,
+          "type": "thiefPalmed"
+        }
+      ],
+      "seq": 147
+    },
+    {
+      "action": {
+        "mi": 5,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [
+        {
+          "tid": 0,
+          "type": "thiefPalmed"
+        }
+      ],
+      "seq": 148
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 59,
+          "level": 4,
+          "type": "moved"
+        },
+        {
+          "hazards": [
+            2
+          ],
+          "strangers": [
+            8,
+            18
+          ],
+          "treasures": [
+            14
+          ],
+          "type": "drewChamber"
+        },
+        {
+          "hazard": 2,
+          "type": "hazardFired"
+        }
+      ],
+      "seq": 149
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "indifferent",
+          "roll": 3,
+          "type": "reaction"
+        }
+      ],
+      "seq": 150
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "indifferent",
+          "roll": 3,
+          "type": "reaction"
+        }
+      ],
+      "seq": 151
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "indifferent",
+          "roll": 3,
+          "type": "reaction"
+        },
+        {
+          "type": "pacified"
+        }
+      ],
+      "seq": 152
+    },
+    {
+      "action": {
+        "type": "leaveTreasure"
+      },
+      "events": [],
+      "seq": 153
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 60,
+          "level": 4,
+          "type": "moved"
+        },
+        {
+          "special": 9,
+          "type": "enteredSpecial"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 154
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dragged": false,
+          "roll": 5,
+          "type": "whirlpoolRoll"
+        },
+        {
+          "area": 61,
+          "level": 4,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            5,
+            0
+          ],
+          "treasures": [
+            0,
+            1
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 155
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "hostile",
+          "roll": 3,
+          "type": "reaction"
+        },
+        {
+          "surprise": -1,
+          "type": "fightStarted"
+        }
+      ],
+      "seq": 156
+    },
+    {
+      "action": {
+        "matches": [
+          {
+            "backers": [
+              14
+            ],
+            "front": [
+              2,
+              11
+            ],
+            "strangers": [
+              0
+            ]
+          },
+          {
+            "backers": [
+              15
+            ],
+            "front": [
+              0,
+              6
+            ],
+            "strangers": [
+              1
+            ]
+          }
+        ],
+        "type": "resolveRound"
+      },
+      "events": [
+        {
+          "enemy": "Man",
+          "enemyRoll": 2,
+          "enemyTotal": 6,
+          "party": "Man + Man + Priest",
+          "partyRoll": 6,
+          "partyTotal": 13,
+          "result": "partyWon",
+          "type": "combatRoll"
+        },
+        {
+          "creatureId": 5,
+          "type": "strangerKilled"
+        },
+        {
+          "enemy": "Hero",
+          "enemyRoll": 4,
+          "enemyTotal": 10,
+          "party": "W-Hero + Troll + Witch",
+          "partyRoll": 6,
+          "partyTotal": 17,
+          "result": "partyWon",
+          "type": "combatRoll"
+        },
+        {
+          "creatureId": 0,
+          "type": "strangerKilled"
+        },
+        {
+          "type": "fightWon"
+        }
+      ],
+      "seq": 157
+    },
+    {
+      "action": {
+        "type": "retakeDropped"
+      },
+      "events": [
+        {
+          "count": 6,
+          "type": "droppedRetaken"
+        }
+      ],
+      "seq": 158
+    },
+    {
+      "action": {
+        "mi": 7,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 159
+    },
+    {
+      "action": {
+        "mi": 8,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 160
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 62,
+          "level": 4,
+          "type": "moved"
+        }
+      ],
+      "seq": 161
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 57,
+          "level": 4,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 162
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 56,
+          "level": 4,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 163
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 54,
+          "level": 4,
+          "type": "moved"
+        }
+      ],
+      "seq": 164
+    },
+    {
+      "action": {
+        "dir": 5,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 37,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 165
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 38,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 166
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 39,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 167
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 36,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 168
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 51,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 169
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 53,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 170
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 51,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 171
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 36,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 172
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 39,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 173
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 38,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 174
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 37,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 175
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 38,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 176
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 40,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 177
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 21,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 178
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 42,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 179
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 43,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 180
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 44,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 181
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 45,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 182
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 46,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 183
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 48,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            10
+          ],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 184
+    },
+    {
+      "action": {
+        "type": "attack"
+      },
+      "events": [
+        {
+          "surprise": 0,
+          "type": "fightStarted"
+        }
+      ],
+      "seq": 185
+    },
+    {
+      "action": {
+        "matches": [
+          {
+            "backers": [
+              4
+            ],
+            "front": [
+              15,
+              14
+            ],
+            "strangers": [
+              0
+            ]
+          }
+        ],
+        "type": "resolveRound"
+      },
+      "events": [
+        {
+          "enemy": "Dragon",
+          "enemyRoll": 6,
+          "enemyTotal": 12,
+          "party": "Witch + Priest + Priest",
+          "partyRoll": 6,
+          "partyTotal": 16,
+          "result": "partyWon",
+          "type": "combatRoll"
+        },
+        {
+          "creatureId": 10,
+          "type": "strangerKilled"
+        },
+        {
+          "type": "fightWon"
+        }
+      ],
+      "seq": 186
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 46,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 187
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 45,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 188
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 44,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 189
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 43,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 190
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 42,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 191
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 21,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 192
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 40,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 193
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 38,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 194
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 39,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 195
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 36,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 196
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 51,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 197
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 53,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 198
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 51,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 199
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 36,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 200
+    },
+    {
+      "action": {
+        "dir": 5,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 35,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 201
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 34,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 202
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 12,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [
+            11
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 203
+    },
+    {
+      "action": {
+        "type": "leaveTreasure"
+      },
+      "events": [],
+      "seq": 204
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 34,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 205
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 12,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [
+            11
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 206
+    },
+    {
+      "action": {
+        "type": "leaveTreasure"
+      },
+      "events": [],
+      "seq": 207
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 11,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 208
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 10,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 209
+    },
+    {
+      "action": {
+        "dir": 5,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 63,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 210
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 64,
+          "level": 1,
+          "type": "moved"
+        },
+        {
+          "special": 3,
+          "type": "enteredSpecial"
+        }
+      ],
+      "seq": 211
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 63,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 212
+    },
+    {
+      "action": {
+        "dir": 6,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 10,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 213
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 11,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 214
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 12,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [
+            11
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 215
+    },
+    {
+      "action": {
+        "type": "leaveTreasure"
+      },
+      "events": [],
+      "seq": 216
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 14,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 217
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 17,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 218
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 31,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 219
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 32,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 220
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 31,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 221
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 28,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 222
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 34,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 223
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 35,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 224
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 13,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 225
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 9,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 226
+    },
+    {
+      "action": {
+        "dir": 5,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 2,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 227
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 65,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 228
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 66,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 229
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 64,
+          "level": 1,
+          "type": "moved"
+        },
+        {
+          "special": 3,
+          "type": "enteredSpecial"
+        }
+      ],
+      "seq": 230
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 66,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 231
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 65,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 232
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 0,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 233
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 1,
+          "level": 1,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 234
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 3,
+          "level": 1,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 235
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 4,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 236
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 67,
+          "level": 1,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [
+            1
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 237
+    },
+    {
+      "action": {
+        "mi": 9,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 238
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 68,
+          "level": 1,
+          "type": "moved"
+        },
+        {
+          "treasureIds": [
+            5,
+            19,
+            12,
+            13,
+            10,
+            16,
+            6,
+            17
+          ],
+          "type": "lairStash"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [
+            5,
+            19,
+            12,
+            13,
+            10,
+            16,
+            6,
+            17
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 239
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 240
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 1,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 241
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 242
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 243
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 244
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 245
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 246
+    },
+    {
+      "action": {
+        "mi": 1,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 247
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 67,
+          "level": 1,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 248
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 4,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 249
+    },
+    {
+      "action": {
+        "dir": 6,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 5,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 250
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 6,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 251
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 8,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 252
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 10,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 253
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 11,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 254
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 12,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [
+            11
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 255
+    },
+    {
+      "action": {
+        "type": "leaveTreasure"
+      },
+      "events": [],
+      "seq": 256
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 34,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 257
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 28,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 258
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 31,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 259
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 17,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 260
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 31,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 261
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 28,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 262
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 34,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 263
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 12,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [
+            11
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 264
+    },
+    {
+      "action": {
+        "type": "leaveTreasure"
+      },
+      "events": [],
+      "seq": 265
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 14,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 266
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 17,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 267
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 31,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 268
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 32,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 269
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 31,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 270
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 28,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 271
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 34,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 272
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 35,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 273
+    },
+    {
+      "action": {
+        "dir": 6,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 36,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 274
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 51,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 275
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 53,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 276
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 51,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 277
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 36,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 278
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 37,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 279
+    },
+    {
+      "action": {
+        "dir": 6,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 54,
+          "level": 4,
+          "type": "moved"
+        }
+      ],
+      "seq": 280
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 55,
+          "level": 4,
+          "type": "moved"
+        }
+      ],
+      "seq": 281
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 54,
+          "level": 4,
+          "type": "moved"
+        }
+      ],
+      "seq": 282
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 56,
+          "level": 4,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 283
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 2,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 284
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 70,
+          "level": 4,
+          "type": "moved"
+        },
+        {
+          "hazards": [
+            1,
+            2
+          ],
+          "strangers": [
+            5
+          ],
+          "treasures": [],
+          "type": "drewChamber"
+        },
+        {
+          "type": "cryptParked"
+        },
+        {
+          "hazard": 2,
+          "type": "hazardFired"
+        },
+        {
+          "hazard": 1,
+          "type": "hazardFired"
+        },
+        {
+          "type": "trapAvoided"
+        }
+      ],
+      "seq": 285
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "indifferent",
+          "roll": 4,
+          "type": "reaction"
+        }
+      ],
+      "seq": 286
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "indifferent",
+          "roll": 3,
+          "type": "reaction"
+        }
+      ],
+      "seq": 287
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "hostile",
+          "roll": 2,
+          "type": "reaction"
+        },
+        {
+          "surprise": -1,
+          "type": "fightStarted"
+        }
+      ],
+      "seq": 288
+    },
+    {
+      "action": {
+        "matches": [
+          {
+            "backers": [
+              15
+            ],
+            "front": [
+              0,
+              6
+            ],
+            "strangers": [
+              0
+            ]
+          }
+        ],
+        "type": "resolveRound"
+      },
+      "events": [
+        {
+          "enemy": "Man",
+          "enemyRoll": 5,
+          "enemyTotal": 9,
+          "party": "W-Hero + Troll + Witch",
+          "partyRoll": 6,
+          "partyTotal": 13,
+          "result": "partyWon",
+          "type": "combatRoll"
+        },
+        {
+          "creatureId": 5,
+          "type": "strangerKilled"
+        },
+        {
+          "type": "fightWon"
+        }
+      ],
+      "seq": 289
+    },
+    {
+      "action": {
+        "type": "retakeDropped"
+      },
+      "events": [
+        {
+          "count": 4,
+          "type": "droppedRetaken"
+        }
+      ],
+      "seq": 290
+    },
+    {
+      "action": {
+        "type": "enterCrypt"
+      },
+      "events": [
+        {
+          "outcome": "trap",
+          "roll": 1,
+          "type": "cryptRoll"
+        },
+        {
+          "area": 71,
+          "level": 5,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            14,
+            20,
+            8
+          ],
+          "treasures": [
+            1
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 291
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "hostile",
+          "roll": 1,
+          "type": "reaction"
+        },
+        {
+          "surprise": -1,
+          "type": "fightStarted"
+        }
+      ],
+      "seq": 292
+    },
+    {
+      "action": {
+        "matches": [
+          {
+            "backers": [],
+            "front": [
+              6,
+              3
+            ],
+            "strangers": [
+              0
+            ]
+          },
+          {
+            "backers": [],
+            "front": [
+              11,
+              9
+            ],
+            "strangers": [
+              1
+            ]
+          },
+          {
+            "backers": [],
+            "front": [
+              0,
+              2
+            ],
+            "strangers": [
+              2
+            ]
+          }
+        ],
+        "type": "resolveRound"
+      },
+      "events": [
+        {
+          "enemy": "Apprentice",
+          "enemyRoll": 1,
+          "enemyTotal": 4,
+          "party": "Troll + Woman",
+          "partyRoll": 1,
+          "partyTotal": 6,
+          "result": "partyWon",
+          "type": "combatRoll"
+        },
+        {
+          "creatureId": 14,
+          "type": "strangerKilled"
+        },
+        {
+          "enemy": "Wolf",
+          "enemyRoll": 3,
+          "enemyTotal": 6,
+          "party": "Man + Man",
+          "partyRoll": 6,
+          "partyTotal": 11,
+          "result": "partyWon",
+          "type": "combatRoll"
+        },
+        {
+          "creatureId": 20,
+          "type": "strangerKilled"
+        },
+        {
+          "enemy": "Wizard",
+          "enemyRoll": 1,
+          "enemyTotal": 4,
+          "party": "W-Hero + Man",
+          "partyRoll": 2,
+          "partyTotal": 8,
+          "result": "partyWon",
+          "type": "combatRoll"
+        },
+        {
+          "creatureId": 8,
+          "type": "strangerKilled"
+        },
+        {
+          "type": "fightWon"
+        }
+      ],
+      "seq": 293
+    },
+    {
+      "action": {
+        "type": "retakeDropped"
+      },
+      "events": [
+        {
+          "count": 8,
+          "type": "droppedRetaken"
+        }
+      ],
+      "seq": 294
+    },
+    {
+      "action": {
+        "mi": 9,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 295
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 72,
+          "level": 5,
+          "type": "moved"
+        }
+      ],
+      "seq": 296
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 73,
+          "level": 5,
+          "type": "moved"
+        }
+      ],
+      "seq": 297
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 74,
+          "level": 5,
+          "type": "moved"
+        }
+      ],
+      "seq": 298
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 71,
+          "level": 5,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 299
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 72,
+          "level": 5,
+          "type": "moved"
+        }
+      ],
+      "seq": 300
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 73,
+          "level": 5,
+          "type": "moved"
+        }
+      ],
+      "seq": 301
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 75,
+          "level": 5,
+          "type": "moved"
+        }
+      ],
+      "seq": 302
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 76,
+          "level": 5,
+          "type": "moved"
+        }
+      ],
+      "seq": 303
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 77,
+          "level": 5,
+          "type": "moved"
+        },
+        {
+          "special": 6,
+          "type": "enteredSpecial"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 304
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 78,
+          "level": 5,
+          "type": "moved"
+        }
+      ],
+      "seq": 305
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 79,
+          "level": 5,
+          "type": "moved"
+        },
+        {
+          "hazards": [
+            7,
+            3,
+            8
+          ],
+          "strangers": [],
+          "treasures": [
+            2
+          ],
+          "type": "drewChamber"
+        },
+        {
+          "type": "medusaLooms"
+        }
+      ],
+      "seq": 306
+    },
+    {
+      "action": {
+        "artifact": 16,
+        "type": "useArtifact"
+      },
+      "events": [
+        {
+          "artifact": 16,
+          "type": "artifactUsed"
+        },
+        {
+          "type": "holyWaterMedusaDestroyed"
+        },
+        {
+          "hazard": 7,
+          "type": "hazardFired"
+        },
+        {
+          "aId": 1,
+          "aRoll": 4,
+          "bId": 3,
+          "bRoll": 1,
+          "loserId": 3,
+          "type": "quarrel"
+        },
+        {
+          "creatureId": 3,
+          "items": [
+            18,
+            0
+          ],
+          "type": "itemsSpilled"
+        },
+        {
+          "hazard": 8,
+          "type": "hazardFired"
+        },
+        {
+          "fizzled": false,
+          "type": "spellRemap"
+        }
+      ],
+      "seq": 307
+    },
+    {
+      "action": {
+        "mi": 10,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 308
+    },
+    {
+      "action": {
+        "mi": 11,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 309
+    },
+    {
+      "action": {
+        "mi": 12,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 310
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 2,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 311
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 4,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 312
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 1,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 313
+    }
+  ]
+}
