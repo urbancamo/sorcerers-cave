@@ -508,6 +508,28 @@ describe("startTestGame", () => {
     await expect(as.mutation(api.game.startTestGame, { secret: "anything", seed: 1, picks: [0] })).rejects.toThrow();
   });
 
+  test("applyAction accepts testForceDie/testForceAllDice's value field (arg validator, SC-Test-10)", async () => {
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const id = await as.mutation(api.game.startTestGame, { secret: "correct-uuid", seed: 7, picks: [0] });
+    // Regression: the hand-maintained actionValidator was never updated for the Next Roll Selector
+    // (SC-Test-10) — every real testForceDie/testForceAllDice dispatch was silently rejected
+    // server-side with an ArgumentValidationError on the extra `value` field, even though the engine
+    // and the TestControlsPanel UI both fully supported it (neither other test suite calls through
+    // this mutation, so the gap was invisible until exercised end to end).
+    await expect(as.mutation(api.game.applyAction, {
+      id, action: { type: "testForceDie", value: 6 },
+    })).resolves.toBeDefined();
+    const game = await as.query(api.game.get, { id });
+    expect(game?.state.testNextDie).toBe(6);
+
+    await expect(as.mutation(api.game.applyAction, {
+      id, action: { type: "testForceAllDice", value: 3 },
+    })).resolves.toBeDefined();
+    const game2 = await as.query(api.game.get, { id });
+    expect(game2?.state.testAllDiceRoll).toBe(3);
+  });
+
   test("requires authentication", async () => {
     const t = convexTest(schema, modules);
     await expect(t.mutation(api.game.startTestGame, { secret: "correct-uuid", seed: 1, picks: [0] })).rejects.toThrow();

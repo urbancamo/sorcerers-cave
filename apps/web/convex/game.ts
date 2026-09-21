@@ -30,14 +30,16 @@ const actionValidator = v.object({
     strangers: v.array(v.number()),
   }))),
 
-  // Test Mode (§Test Mode): testPlaceArea's special id, testSetChamber's three id lists, and
-  // testForceReaction's outcome. reduce() enforces semantics (including the testMode gate) — this
-  // validator only needs to admit the shape.
+  // Test Mode (§Test Mode): testPlaceArea's special id, testSetChamber's three id lists,
+  // testForceReaction's outcome, and testForceDie/testForceAllDice's raw die value (SC-Test-10).
+  // reduce() enforces semantics (including the testMode gate) — this validator only needs to
+  // admit the shape.
   special: v.optional(v.number()),
   strangers: v.optional(v.array(v.number())),
   treasures: v.optional(v.array(v.number())),
   hazards: v.optional(v.array(v.number())),
   outcome: v.optional(v.union(v.literal("friendly"), v.literal("indifferent"), v.literal("hostile"))),
+  value: v.optional(v.number()),
 });
 
 /** Start a new authoritative game: validate the party, build the engine state, persist it (owned by the caller). */
