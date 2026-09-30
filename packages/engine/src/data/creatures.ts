@@ -57,6 +57,17 @@ export const KIT_CREATURES: readonly Creature[] = [
   { id: 20, name: "Wolf", fs: 2, mp: 0, carry: 0, cost: 1, points: 2, flags: FLAG_INHUMAN, hostileMax: 4, indiffMax: 5, leaderPri: 2 },
 ];
 
+/**
+ * The Unicorn (id 13) never takes part in a fight, on either side. Rules, Unicorn card: "Friendly to
+ * WOMEN, otherwise indifferent"; it "may not be approached till other strangers in the chamber have
+ * been befriended, found indifferent, or slain", and it is not in the leader list of a group of
+ * strangers. So it is never fought, never a front-line fighter or a background caster, and never a
+ * casualty (2026-10-01, docs/requirements/2026-09-30b-stranger-fight-combinations-note.md).
+ */
+export function isNonCombatant(creatureId: number): boolean {
+  return creatureId === 13;
+}
+
 /** Combined creature lookup, indexed by absolute id 0-20 (base ids at their own index, kit ids
  *  continuing directly after). Base game code paths keep indexing `CREATURES` directly; this
  *  exists for the variant-aware helpers below and for later kit tasks (SC-EXT-2). */

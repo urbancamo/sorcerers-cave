@@ -16,6 +16,20 @@ const fightState = (over: Partial<GameState> = {}): GameState =>
   ({ ...newGame(1, [6, 4]), phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, strangers: [3, 9], ...over });
 
 describe("FightSurface", () => {
+  it("never offers an allied Unicorn as a fighter or a caster (it never takes part in a fight)", () => {
+    // Woman (idx 0) + an allied Unicorn (idx 1) vs a Troll: only the Woman can be placed.
+    const s: GameState = {
+      ...newGame(1, [6]), phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, strangers: [3],
+      party: [
+        { creatureId: 6, status: 0, dragonKills: 0, treasure: [] },
+        { creatureId: 13, status: 1, dragonKills: 0, treasure: [] },
+      ],
+    };
+    render(<FightSurface state={s} dispatch={vi.fn()} cards={cards} />);
+    expect(screen.getByTestId("tray-0")).toBeInTheDocument();
+    expect(screen.queryByTestId("tray-1")).toBeNull();
+  });
+
   it("Roll is disabled until the plan is legal, then dispatches resolveRound", () => {
     const dispatch = vi.fn();
     render(<FightSurface state={fightState()} dispatch={dispatch} cards={cards} />); // Woman, Priest vs Troll, Spectre

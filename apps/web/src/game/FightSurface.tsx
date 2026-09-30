@@ -3,7 +3,7 @@ import { type DragEvent, useEffect, useRef, useState } from "react";
 // can hold kit ids (14-21) the moment any fight begins — the base tables would crash before the
 // surface renders anything.
 import {
-  ALL_CREATURES, ALL_TREASURES, legalActions, validatePlan, previewPlan, frontStrength, casterMP, enemyMP,
+  ALL_CREATURES, ALL_TREASURES, legalActions, validatePlan, previewPlan, frontStrength, casterMP, enemyMP, isNonCombatant,
   type GameState, type GameAction,
 } from "@sorcerers-cave/engine";
 import type { CardArt } from "../data/manifest";
@@ -36,7 +36,8 @@ const REASON: Record<string, string> = {
 
 const C_SPECTRE = 9;
 const C_DEMON = 15; // extension kit (SC-EXT-21) — the Demon follows the Spectre's own magic-only/doom rules
-const living = (s: GameState) => s.party.map((_, i) => i).filter((i) => { const m = s.party[i]!; return m.status === 0 || m.status === 1; });
+// Fighters only: living, and never an allied Unicorn (it never takes part in a fight, `isNonCombatant`).
+const living = (s: GameState) => s.party.map((_, i) => i).filter((i) => { const m = s.party[i]!; return (m.status === 0 || m.status === 1) && !isNonCombatant(m.creatureId); });
 // A Priest/Wizard is a caster by creature type — even when an active Eye of God has zeroed its power.
 const isCaster = (s: GameState, i: number) => ALL_CREATURES[s.party[i]!.creatureId]!.mp > 0;
 const kindOf = (s: GameState, i: number): CardKind => (isCaster(s, i) ? "caster" : "ally");

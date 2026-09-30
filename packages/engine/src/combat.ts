@@ -2,7 +2,7 @@
 // (creature id 14-20) in the front line or backing a fight doesn't crash this lookup — every
 // call here indexes by an actual party member's `creatureId`, never enumerates the array, so
 // this is byte-identical for ids 0-13 (the only ids a kit-off game can ever hold).
-import { ALL_CREATURES as CREATURES } from "./data/creatures";
+import { ALL_CREATURES as CREATURES, isNonCombatant } from "./data/creatures";
 import type { GameState, PartyMember } from "./state";
 import { eyeActive, activeCurses } from "./effects";
 
@@ -12,7 +12,7 @@ const T_THE_RING = 10;
 const T_MAGIC_AXE = 17; // extension-kit artifact (SC-EXT-26, design US-24) — Sword's bonus-table shape, different roster
 
 export function isCaster(member: PartyMember): boolean {
-  return CREATURES[member.creatureId]!.mp > 0;
+  return CREATURES[member.creatureId]!.mp > 0 && !isNonCombatant(member.creatureId); // the Unicorn never fights
 }
 
 function holds(member: PartyMember, treasureId: number): boolean {

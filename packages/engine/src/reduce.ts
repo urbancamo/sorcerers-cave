@@ -25,7 +25,7 @@ import {
 // Extension kit (SC-EXT-17): aliases `ALL_CREATURES` — `strongestStranger`'s fight-focus pick and
 // the Lost-Ruby wrestler's combat-roll name both index by an actual creatureId that may already be
 // a kit id (14-20); byte-identical for ids 0-13.
-import { ALL_CREATURES as CREATURES, CREATURES as BASE_CREATURES } from "./data/creatures";
+import { ALL_CREATURES as CREATURES, CREATURES as BASE_CREATURES, isNonCombatant } from "./data/creatures";
 import { TREASURES as BASE_TREASURES } from "./data/treasures";
 
 const T_EYE_OF_GOD = 13; // treasure id — must stay with its bearer or the party is cursed (§Eye of God)
@@ -143,8 +143,23 @@ function strongestStranger(state: GameState): number {
   return best;
 }
 
+/** The Unicorn never fights (§Unicorn): set any in the working set aside, parked on the tile as a stranger,
+ *  so it stays in the chamber through the fight (and through a retreat or withdrawal, which park the
+ *  working set alongside it) and is approached afterwards (`finalizeRound`). */
+function parkNonCombatants(state: GameState): void {
+  const idle = state.strangers.filter(isNonCombatant);
+  if (idle.length === 0) return;
+  state.strangers = state.strangers.filter((id) => !isNonCombatant(id));
+  const area = state.areas[state.partyArea]!;
+  area.contents = [...area.contents, ...idle.map((id) => 100 + id)];
+}
+
+/** Is there anyone among these strangers who can actually be fought? (Not just a Unicorn.) */
+const hasCombatants = (strangers: readonly number[]): boolean => strangers.some((id) => !isNonCombatant(id));
+
 /** Begin a fight with the given surprise (+1 party, -1 strangers). */
 function startFight(state: GameState, surprise: number): GameEvent[] {
+  parkNonCombatants(state);
   state.fight = { surprise, round: 1, focus: strongestStranger(state) };
   state.phase = "fight";
   state.surpriseReady = false; // the surprise (if any) is now baked into the fight
@@ -211,7 +226,16 @@ function finalizeRound(state: GameState): GameEvent[] {
     state.fight = null;
     state.party.forEach((m) => { m.potionActive = false; });
     events.push({ type: "fightWon" });
-    if (state.treasures.length > 0) state.phase = "pickup";
+    // A Unicorn set aside for the fight is still in the chamber: with the others slain it may now be
+    // approached ("till other strangers … have been … slain", §Unicorn) — back as the stranger, in an
+    // encounter — before any treasure it guards can be taken.
+    const idle = area.contents.filter((c) => c >= 100 && c < 200 && isNonCombatant(c - 100));
+    if (idle.length > 0) {
+      area.contents = area.contents.filter((c) => !idle.includes(c));
+      state.strangers = idle.map((c) => c - 100);
+      state.phase = "encounter";
+      state.surpriseReady = false;
+    } else if (state.treasures.length > 0) state.phase = "pickup";
     else persistAndExplore(state);
   }
   // else: still fighting; resolveRound already advanced the round
@@ -321,7 +345,7 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
     return false;
   }
   if (state.strangers.length > 0) {
-    if (state.hostileAreas?.includes(state.partyArea)) {
+    if (state.hostileAreas?.includes(state.partyArea) && hasCombatants(state.strangers)) {
       // The party retreated from these strangers before — they attack on sight (with surprise). §Retreat
       events.push(...startFight(state, -1));
     } else {
@@ -1126,9 +1150,11 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         next.strangers = area.contents.filter((c) => c >= 100 && c < 200).map((c) => c - 100);
         next.treasures = area.contents.filter((c) => c >= 200 && c < 300).map((c) => c - 200);
         area.contents = area.contents.filter((c) => c < 100 || c >= 300); // keep display markers / sleeping
+        if (!hasCombatants(next.strangers)) return { state, events: [{ type: "blocked" }] }; // only a Unicorn guards here
         return { state: next, events: startFight(next, 0) };
       }
       if (state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
+      if (!hasCombatants(state.strangers)) return { state, events: [{ type: "blocked" }] }; // a Unicorn is never attacked
       const next = structuredClone(state);
       // Surprise only on an immediate attack from a fresh, non-trap entry (§Surprise).
       return { state: next, events: startFight(next, next.surpriseReady ? 1 : 0) };
