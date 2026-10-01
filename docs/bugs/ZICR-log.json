@@ -1,0 +1,122 @@
+{
+  "version": 1,
+  "game": {
+    "code": "ZICR",
+    "color": "red",
+    "createdAt": 1790679624981,
+    "picks": [
+      1,
+      7
+    ],
+    "seed": 1790679624909,
+    "status": "active",
+    "testMode": true,
+    "variants": {
+      "forcedRedraw": true
+    }
+  },
+  "moves": [
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 1,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 0
+    },
+    {
+      "action": {
+        "hazards": [
+          2
+        ],
+        "strangers": [],
+        "treasures": [],
+        "type": "testSetChamber"
+      },
+      "events": [
+        {
+          "hazards": [
+            2
+          ],
+          "strangers": [],
+          "treasures": [],
+          "type": "testChamberQueued"
+        }
+      ],
+      "seq": 1
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 2,
+          "level": 1,
+          "type": "moved"
+        },
+        {
+          "hazards": [
+            2
+          ],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        },
+        {
+          "hazard": 2,
+          "type": "hazardFired"
+        }
+      ],
+      "seq": 2
+    },
+    {
+      "action": {
+        "dir": 1,
+        "special": 16,
+        "type": "testPlaceArea"
+      },
+      "events": [
+        {
+          "dir": 1,
+          "special": 16,
+          "type": "testAreaQueued"
+        }
+      ],
+      "seq": 3
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 1,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 4
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 4,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 5
+    }
+  ]
+}

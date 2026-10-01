@@ -2,6 +2,11 @@
 
 > Requirement: `docs/requirements/2026-09-13-swap-dead-end-area-card.md`
 
+> **Revision 2026-09-29:** `isPartyStuck` no longer backtracks. It examines ONLY the tile the party
+> occupies (no BFS), and a permanently blocked neighbour (earthquake-destroyed tile, or a stairway
+> onto the Whirlpool) never counts as an untried option — see `docs/bugs/ZICR-log.json`. Task 1's
+> BFS description below is the original design and is superseded by SC-6.3-2 in the engine spec.
+
 **Goal:** Implement the rulebook's dead-end rescue rule — when a party has genuinely run out of
 every doorway/stairway it could try anywhere in its explored map (including backtracking), the area
 card that just made the *last* dead end is reshuffled into the pack and a new one drawn, repeating
