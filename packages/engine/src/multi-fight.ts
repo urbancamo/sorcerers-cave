@@ -6,7 +6,7 @@ import { eyeForsakenByDeath, ringInvincible, shieldWardActive } from "./effects"
 import { sweepFallen } from "./loot";
 import { rollDie } from "./rng";
 import { decodeArea } from "./decode";
-import { ALL_CREATURES, isNonCombatant } from "./data/creatures";
+import { ALL_CREATURES } from "./data/creatures";
 import { ALL_TREASURES } from "./data/treasures";
 import { canCarry } from "./pickup";
 import { DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, targetCoord, unpackCoord } from "./coords";
@@ -76,7 +76,7 @@ function livingIds(mp: MpGameState, seats: number[]): string[] {
   for (const seat of seats) {
     const p = mp.parties[seat];
     if (!p) continue;
-    p.party.forEach((m, idx) => { if (alive(m) && !isNonCombatant(m.creatureId)) ids.push(mkId(seat, idx)); }); // an allied Unicorn never fights
+    p.party.forEach((m, idx) => { if (alive(m)) ids.push(mkId(seat, idx)); });
   }
   return ids;
 }

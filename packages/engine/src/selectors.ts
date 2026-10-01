@@ -1,5 +1,4 @@
 import { decodeArea, type DecodedArea } from "./decode";
-import { isNonCombatant } from "./data/creatures";
 import { DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, unpackCoord, packCoord } from "./coords";
 import { GS_PLAYING, AF_DESTROYED, AF_BELL_SPENT, type GameState } from "./state";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
@@ -168,10 +167,7 @@ export function legalActions(state: GameState): GameAction[] {
     // fall (SC-EXT-9, design US-03/US-07).
     const noWithdrawTurn = state.noWithdrawTurn === state.turn;
     const canWithdraw = !state.fellThroughTrap && !prevGone && !noWithdrawTurn;
-    // A Unicorn is never attacked (§Unicorn): with only Unicorns here there is nothing to fight.
-    const fightable = state.strangers.some((id) => !isNonCombatant(id));
-    const actions: GameAction[] = canWithdraw ? [{ type: "withdraw" }] : [];
-    if (fightable) actions.push({ type: "attack" });
+    const actions: GameAction[] = canWithdraw ? [{ type: "withdraw" }, { type: "attack" }] : [{ type: "attack" }];
     if ((state.indiffStreak ?? 0) < 3) actions.push({ type: "test" });
     const dec = decodeArea(state.areas[state.partyArea]!.card);
     // Rules §Encountering Strangers: the party may also simply leave by any doorway, forfeiting the
@@ -273,7 +269,7 @@ export function legalActions(state: GameState): GameAction[] {
   // A permanently-indifferent chamber is traversed in the explore phase, but the party may still choose
   // to attack its guards (to win the treasure they guard) — offer it while they're parked on the tile.
   if (state.pacifiedAreas?.includes(state.partyArea) &&
-      state.areas[state.partyArea]!.contents.some((c) => c >= 100 && c < 200 && !isNonCombatant(c - 100))) {
+      state.areas[state.partyArea]!.contents.some((c) => c >= 100 && c < 200)) {
     actions.push({ type: "attack" });
   }
   // Deep Pool/Viper Pit stationary reclaim (bug fix 2026-08-02): offer a live pickup for treasure

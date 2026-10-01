@@ -33,7 +33,7 @@ export const CREATURES: readonly Creature[] = [
   { id: 10, name: "Dragon", fs: 6, mp: 0, carry: 0, cost: null, points: 0, flags: FLAG_INHUMAN, hostileMax: 4, indiffMax: 6, leaderPri: 9 }, // 1-4 hostile, 5-6 indifferent, never friendly
   { id: 11, name: "Sorcerer", fs: 4, mp: 9, carry: 0, cost: null, points: 0, flags: 0, hostileMax: 6, indiffMax: 6, leaderPri: 11 },
   { id: 12, name: "Giant", fs: 7, mp: 0, carry: 150, cost: null, points: 7, flags: FLAG_INHUMAN, hostileMax: 3, indiffMax: 5, leaderPri: 4 },
-  { id: 13, name: "Unicorn", fs: 0, mp: 4, carry: 0, cost: null, points: 4, flags: FLAG_BEFRIENDS_UNICORN, hostileMax: 0, indiffMax: 0, leaderPri: 0 },
+  { id: 13, name: "Unicorn", fs: 4, mp: 0, carry: 0, cost: null, points: 4, flags: FLAG_BEFRIENDS_UNICORN, hostileMax: 0, indiffMax: 0, leaderPri: 0 },
 ];
 
 // Selectable starters (ids 0-7) and their stock counts (spec §3.2).
@@ -56,17 +56,6 @@ export const KIT_CREATURES: readonly Creature[] = [
   { id: 19, name: "Thief", fs: 2, mp: 0, carry: 25, cost: 3, points: 5, flags: FLAG_HUMAN, hostileMax: 2, indiffMax: 4, leaderPri: 5 },
   { id: 20, name: "Wolf", fs: 2, mp: 0, carry: 0, cost: 1, points: 2, flags: FLAG_INHUMAN, hostileMax: 4, indiffMax: 5, leaderPri: 2 },
 ];
-
-/**
- * The Unicorn (id 13) never takes part in a fight, on either side. Rules, Unicorn card: "Friendly to
- * WOMEN, otherwise indifferent"; it "may not be approached till other strangers in the chamber have
- * been befriended, found indifferent, or slain", and it is not in the leader list of a group of
- * strangers. So it is never fought, never a front-line fighter or a background caster, and never a
- * casualty (2026-10-01, docs/requirements/2026-09-30b-stranger-fight-combinations-note.md).
- */
-export function isNonCombatant(creatureId: number): boolean {
-  return creatureId === 13;
-}
 
 /** Combined creature lookup, indexed by absolute id 0-20 (base ids at their own index, kit ids
  *  continuing directly after). Base game code paths keep indexing `CREATURES` directly; this

@@ -2,7 +2,7 @@ import { rollDieForState } from "./rng";
 // Extension kit (SC-EXT-17): aliases `ALL_CREATURES` — every dynamic lookup below indexes by an
 // actual party member's or stranger's `creatureId` (never enumerates the array), so a kit ally or
 // kit stranger (id 14-20) fighting no longer crashes; byte-identical for ids 0-13.
-import { ALL_CREATURES as CREATURES, isNonCombatant } from "./data/creatures";
+import { ALL_CREATURES as CREATURES } from "./data/creatures";
 import { ALL_TREASURES } from "./data/treasures";
 import { frontStrength, casterMP, partyRollBonus, isCaster } from "./combat";
 import { eyeActive, ringInvincible, activeCurses, eyeForsakenByDeath, markDied, revertApprenticesOnSorcererDeath, shieldWardActive } from "./effects";
@@ -24,16 +24,12 @@ const T_MAGIC_AXE = 17; // extension-kit treasure (SC-EXT-26) — mere possessio
 export type PlanError =
   | "notFighting" | "emptyPlan" | "badIndex" | "deadMember" | "memberReused"
   | "strangerReused" | "groupTooBig" | "twoVsTwo" | "backerNotCaster"
-  | "backerNoFront" | "spectreNeedsMagic" | "demonNeedsMagic" | "mustEngageAll" | "nonCombatant";
+  | "backerNoFront" | "spectreNeedsMagic" | "demonNeedsMagic" | "mustEngageAll";
 
 const living = (state: GameState, i: number): boolean => {
   const m = state.party[i];
   return !!m && (m.status === 0 || m.status === 1);
 };
-
-/** A living member who can actually fight — an allied Unicorn never does (`isNonCombatant`). */
-const fighter = (state: GameState, i: number): boolean =>
-  living(state, i) && !isNonCombatant(state.party[i]!.creatureId);
 
 /** A Man/Woman/Hero/W-Hero bearing the Magic Sword may fight a Spectre hand-to-hand (§Spectre). */
 const canSwordSpectre = (state: GameState, m: PartyMember): boolean =>
@@ -98,7 +94,7 @@ const isShieldStalemate = (state: GameState, mt: { front: readonly number[]; str
 const engageable = (state: GameState, sIdx: number): boolean => {
   const sid = state.strangers[sIdx]!;
   if (!MAGIC_ONLY_IDS.includes(sid)) return true;
-  return state.party.some((m, i) => fighter(state, i) && (casterMP(m, state) > 0 || magicOnlyBypass(state, m, sid)));
+  return state.party.some((m, i) => living(state, i) && (casterMP(m, state) > 0 || magicOnlyBypass(state, m, sid)));
 };
 
 /** Validate a player's battle plan against the §FIGHTS pairing rules. */
@@ -129,7 +125,6 @@ export function validatePlan(state: GameState, plan: BattlePlan): { ok: true } |
     for (const i of [...front, ...backers]) {
       if (!Number.isInteger(i) || i < 0 || i >= state.party.length) return { ok: false, reason: "badIndex" };
       if (!living(state, i)) return { ok: false, reason: "deadMember" };
-      if (isNonCombatant(state.party[i]!.creatureId)) return { ok: false, reason: "nonCombatant" };
       if (usedParty.has(i)) return { ok: false, reason: "memberReused" };
       usedParty.add(i);
     }
@@ -161,7 +156,7 @@ export function validatePlan(state: GameState, plan: BattlePlan): { ok: true } |
   // retreat is blocked in round 1 (§Spectre, §FIGHTS).
   const canFightWithFree = (s: number) => {
     const sid = state.strangers[s]!;
-    return state.party.some((m, i) => fighter(state, i) && !usedParty.has(i) &&
+    return state.party.some((m, i) => living(state, i) && !usedParty.has(i) &&
       (!MAGIC_ONLY_IDS.includes(sid) || casterMP(m, state) > 0 || magicOnlyBypass(state, m, sid)));
   };
   const unengagedFightable = state.strangers.some((_, s) => !usedStranger.has(s) && canFightWithFree(s));
@@ -244,7 +239,7 @@ export function previewPlan(state: GameState, plan: BattlePlan): PlanPreview {
   // all the strangers"). While a living member is still free, leftover foes stay separate so the player
   // can pair one fighter to each (e.g. 2-v-2 = two 1-v-1 matches, not one fighter facing both).
   const usedParty = new Set<number>(base.flatMap((mt) => [...mt.front, ...mt.backers]));
-  const hasFreeFighter = state.party.some((m, i) => fighter(state, i) && !usedParty.has(i));
+  const hasFreeFighter = state.party.some((m, i) => (m.status === 0 || m.status === 1) && !usedParty.has(i));
 
   let leftoverCasterIdx: number[] = [];
   if (!hasFreeFighter) {
@@ -398,7 +393,7 @@ export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEve
   // follows the SAME rule, Resolved-6/SC-EXT-21). Only one slaying per round, matching the
   // original Spectre-only behaviour, even in the (untested, vanishingly rare) case where both an
   // idle Spectre AND an idle Demon are simultaneously unfightable.
-  const livingParty = state.party.filter((m, i) => fighter(state, i));
+  const livingParty = state.party.filter((m) => m.status === 0 || m.status === 1);
   const idleUnfightable = idle.filter((i) => {
     if (!isMagicOnlyIdx(state, i)) return false;
     const sid = state.strangers[i]!;
