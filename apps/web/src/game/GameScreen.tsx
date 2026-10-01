@@ -20,6 +20,7 @@ import { eventNotices, type Notice } from "./eventNotices";
 import { useDispatchWithRolls } from "./useDispatchWithRolls";
 import { showFightSurface } from "./fightGate";
 import { NoticeModal } from "./NoticeModal";
+import { DeadEndSwapBadge, announceDeadEndSwaps } from "./DeadEndSwapBadge";
 import { SaveGameModal } from "./SaveGameModal";
 import { GameLogModal } from "./GameLogModal";
 import type { GameLog } from "./gameLog";
@@ -62,6 +63,7 @@ export default function GameScreen() {
   const onHoldMoveRef = useRef<(mid: GameState | null, view: RollView | null, ns: Notice[]) => void>(() => {});
   const fightShownRef = useRef(false); // FightSurface already on screen (see gate below)
   const onMoveResolved = useCallback((events: GameEvent[], midState?: GameState) => {
+    announceDeadEndSwaps(events); // Test Mode badge; its own state, so no GameScreen re-render
     const view = rollFromEvents(events);
     const ns = eventNotices(events);
     if (view || ns.length) onHoldMoveRef.current(midState ?? null, view, ns);
@@ -249,6 +251,7 @@ export default function GameScreen() {
       {fightVisible && cards && <FightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
       <ExplorePanel state={displayState} dispatch={dispatchWithRolls} />
       {displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} onSave={handleSave} />}
+      {displayState.testMode && <DeadEndSwapBadge />}
       {showParty && <PartyPanel state={displayState} dispatch={dispatch} onClose={() => setShowParty(false)} />}
       {overlay}
       {notices && <NoticeModal notices={notices} onClose={clearNotices} />}

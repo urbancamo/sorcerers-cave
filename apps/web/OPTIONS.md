@@ -14,9 +14,9 @@ for how the two deployments relate.
 
 ## `FORCED_REDRAW_ENABLED`
 
-Turns on the **Dead End rule** ("forced redraw", `docs/specs/engine-spec.md` §6.3.2): when a party
-has genuinely run out of every doorway or stairway it could try anywhere in its explored map
-(including backtracking), the area card that just made the last dead end is reshuffled into the
+Turns on the **Dead End rule** ("forced redraw", `docs/specs/engine-spec.md` §6.3.2): when the tile
+a party is standing on has no doorway or stairway left that it could still try (no backtracking —
+only that tile counts), the area card that just made the last dead end is reshuffled into the
 pack and a new one drawn, until a way opens. Off by default — today's behaviour (a fully boxed-in
 tunnel can soft-lock, SC-6.3-1) is unchanged unless this is set.
 

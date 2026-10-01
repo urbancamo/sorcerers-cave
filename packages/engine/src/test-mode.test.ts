@@ -303,17 +303,29 @@ describe("testNextArea consumed by tryMove — plain tiles (SC-Test-8)", () => {
     expect(r.state.testNextArea).toBeUndefined();
   });
 
-  it("places a tunnel shape and connects even though its printed orientation would not otherwise face back", () => {
-    // TILE_TUNNEL_EW has no south exit, so an ordinary North draw would never connect on its own —
-    // the override forces it anyway, exactly like a real special (SC-Test-2).
+  it("a tunnel whose doors do not face back at the party is a dead end, not a move (obeys the reverse-door check)", () => {
+    // TILE_TUNNEL_EW has no south exit, so cued NORTH it cannot be entered — same as a real draw.
     let s = newGame(1, [0], undefined, true);
     s = reduce(s, { type: "testPlaceArea", dir: DIR_N, special: TILE_TUNNEL_EW }).state;
     const r = tryMove(s, DIR_N);
+    expect(r.moved).toBe(false);
+    expect(r.deadEnd).toBe(true);
+    expect(r.state.partyArea).toBe(s.partyArea);
+    const placed = r.state.areas[r.state.areas.length - 1]!;
+    expect(placed.faceUp).toBe(false);
+    expect(placed.card).toBe(AREA_TILE_CANONICAL_CARD[TILE_TUNNEL_EW]);
+  });
+
+  it("places a tunnel shape and connects when its doors do face back at the party", () => {
+    // Cued EAST, TILE_TUNNEL_EW has the west door the party needs to come back through.
+    let s = newGame(1, [0], undefined, true);
+    s = reduce(s, { type: "testPlaceArea", dir: DIR_E, special: TILE_TUNNEL_EW }).state;
+    const r = tryMove(s, DIR_E);
     expect(r.moved).toBe(true);
     expect(r.deadEnd).toBe(false);
     const placed = r.state.areas[r.state.partyArea]!;
     expect(placed.card).toBe(AREA_TILE_CANONICAL_CARD[TILE_TUNNEL_EW]);
-    expect(decodeArea(placed.card).s).toBe(false); // proves it connected DESPITE lacking the reverse door
+    expect(decodeArea(placed.card).w).toBe(true);
   });
 
   it("does not consume the large pack when placing a plain tile from the override", () => {
@@ -368,6 +380,19 @@ describe("Blocked-exit chambers (SC-Test-11)", () => {
     const d = decodeArea(state.areas[state.partyArea]!.card);
     expect(d.chamber).toBe(true);
     expect(d.n).toBe(false); // matches TILE_CHAMBER_ESW's missing north exit
+  });
+
+  it("bug fix: a blocked-exit chamber cued so its missing exit faces back at the party is a dead end, not a move", () => {
+    let s = newGame(1, [0], undefined, true);
+    s = reduce(s, { type: "testPlaceArea", dir: DIR_N, special: TILE_CHAMBER_NEW }).state; // no SOUTH exit, placed north
+    const { state, events } = reduce(s, { type: "move", dir: DIR_N });
+    expect(events.some((e) => e.type === "moved")).toBe(false);
+    expect(events.some((e) => e.type === "deadEnd")).toBe(true);
+    expect(state.partyArea).toBe(s.partyArea); // no progress
+    expect(state.testNextArea).toBeUndefined(); // the scripted card is still consumed
+    const placed = state.areas[state.areas.length - 1]!;
+    expect(placed.faceUp).toBe(false); // laid face-down, like any incompatible draw
+    expect(placed.card).toBe(AREA_TILE_CANONICAL_CARD[TILE_CHAMBER_NEW]);
   });
 
   it("every missing-direction id is a 3-exit chamber blocked in exactly that one direction", () => {

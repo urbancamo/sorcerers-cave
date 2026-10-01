@@ -4,7 +4,7 @@ import {
   targetCoord, unpackCoord,
 } from "./coords";
 import { AF_DESTROYED, type GameState, type PlacedArea } from "./state";
-import { SPECIAL_CANONICAL_CARD, AREA_TILE_CANONICAL_CARD, SPECIAL_WHIRLPOOL } from "./data/areaCards";
+import { SPECIAL_CANONICAL_CARD, AREA_TILE_CANONICAL_CARD, SPECIAL_WHIRLPOOL, TILE_MIN, TILE_MAX } from "./data/areaCards";
 import { randBelow } from "./rng";
 
 export interface MoveResult {
@@ -48,9 +48,15 @@ function hasReverseDoor(d: DecodedArea, dir: number): boolean {
  *  connects only if the destination shows the matching reverse doorway. Shared by `tryMove`'s
  *  existing-area branch and `isPartyStuck` (§6.3.2, Dead End rule) so the two can never drift. */
 export function existingAreaConnects(dest: PlacedArea, dir: number): boolean {
-  if ((dest.flags & AF_DESTROYED) !== 0) return false;
-  if ((dir === DIR_UP || dir === DIR_DOWN) && decodeArea(dest.card).special === SPECIAL_WHIRLPOOL) return false;
+  if (isPermanentlyBlocked(dest, dir)) return false;
   return dir === DIR_UP || dir === DIR_DOWN || hasReverseDoor(decodeArea(dest.card), dir);
+}
+
+/** A doorway onto `dest` that can NEVER open, whatever the party does: an earthquake-collapsed tile,
+ *  or a stairway onto the Whirlpool. (A missing reverse door is a different, plain geometry mismatch.) */
+function isPermanentlyBlocked(dest: PlacedArea, dir: number): boolean {
+  if ((dest.flags & AF_DESTROYED) !== 0) return true;
+  return (dir === DIR_UP || dir === DIR_DOWN) && decodeArea(dest.card).special === SPECIAL_WHIRLPOOL;
 }
 
 function pruneExit(card: number, dir: number): number {
@@ -85,21 +91,19 @@ function restoreExit(card: number, dir: number): number {
 }
 
 /**
- * True iff the party has no actionable doorway or stairway left anywhere it can currently reach by
- * backtracking (§6.3.2, Dead End rule — "all available doorways and stairways have been tried,
- * including those which may be reached by backtracking"). BFS from `partyArea` over already-placed
- * areas, expanding only through CONFIRMED connections (`existingAreaConnects` — the exact geometry
- * `tryMove`'s existing-area branch uses), so an area merely sitting at an adjacent coordinate with no
- * open door to it is never considered reachable.
+ * True iff the tile the party occupies has no actionable doorway or stairway left (§6.3.2, Dead End
+ * rule). Only `partyArea` itself is examined — there is deliberately NO backtracking through
+ * neighbouring tiles: a party sitting in a room whose every untried door has failed is stuck even if
+ * a tile it came through still has unexplored exits elsewhere on the map.
  *
- * An unpruned bit on a reachable area counts as "actionable" only when trying it could still change
- * anything:
+ * An unpruned bit counts as "actionable" only when trying it could still change anything:
  *  - Toward an already-placed area that does NOT currently connect: yes — trying it costs no turn
  *    (SC-4-9) and hasn't been attempted from here yet, even though we can already tell it will fail.
- *  - Toward an already-placed area that DOES connect: no. A successful connection's bit is never
- *    pruned (pruning only ever fires on failure), so counting it would count it forever — its only
- *    value (reaching that neighbor) is already captured by that neighbor's own presence in the
- *    reachable set, whatever lies beyond it is checked independently there.
+ *    EXCEPT a permanently blocked one (collapsed tile, stairway onto the Whirlpool): nothing to try,
+ *    so it never counts (docs/bugs/ZICR-log.json — a room sealed off by an earthquake).
+ *  - Toward an already-placed area that DOES currently connect: no. A successful connection's bit is
+ *    never pruned (pruning only ever fires on failure), so counting it would count it forever; it is
+ *    a way back out, not a way forward.
  *  - Toward unexplored space: yes, but only while a card remains to draw for it
  *    (`largeIdx < largePack.length`) — once the pack is exhausted, `tryMove` treats that direction as
  *    a permanent no-op (SC-6.1-6) that never prunes the bit, so an unconditional read would see a
@@ -107,28 +111,17 @@ function restoreExit(card: number, dir: number): number {
  */
 export function isPartyStuck(state: GameState, partyArea: number): boolean {
   const packHasCards = state.largeIdx < state.largePack.length;
-  const visited = new Set<number>();
-  const queue = [partyArea];
-  while (queue.length > 0) {
-    const idx = queue.shift()!;
-    if (visited.has(idx)) continue;
-    visited.add(idx);
-    const area = state.areas[idx]!;
-    const dec = decodeArea(area.card);
-    const { level, x, y } = unpackCoord(area.coord);
-    for (const dir of [DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN]) {
-      if (!hasExit(dec, dir)) continue;
-      const target = targetCoord(dir, level, x, y);
-      const destIdx = state.areas.findIndex((a) => a.coord === target);
-      if (destIdx < 0) {
-        if (packHasCards) return false;
-        continue;
-      }
-      if (existingAreaConnects(state.areas[destIdx]!, dir)) {
-        if (!visited.has(destIdx)) queue.push(destIdx);
-      } else {
-        return false;
-      }
+  const area = state.areas[partyArea]!;
+  const dec = decodeArea(area.card);
+  const { level, x, y } = unpackCoord(area.coord);
+  for (const dir of [DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN]) {
+    if (!hasExit(dec, dir)) continue;
+    const target = targetCoord(dir, level, x, y);
+    const dest = state.areas.find((a) => a.coord === target);
+    if (!dest) {
+      if (packHasCards) return false;
+    } else if (!isPermanentlyBlocked(dest, dir) && !existingAreaConnects(dest, dir)) {
+      return false;
     }
   }
   return true;
@@ -234,7 +227,12 @@ export function tryMove(state: GameState, dir: number, allowDeadEndSwap = false)
     // regardless of the special's printed orientation — the whole point is guaranteeing the tester
     // reaches the scenario asked for. (In practice every SPECIAL_CANONICAL_CARD entry has all four
     // exits anyway — see Task 1's own test — so this only matters if that ever changes.)
-    const rawConnects = !!override || dir === DIR_UP || dir === DIR_DOWN || hasReverseDoor(decodeArea(drawn), dir);
+    // Exception (SC-Test-8/SC-Test-11): a scripted plain tile (chamber or tunnel, TILE_MIN..TILE_MAX)
+    // has a real, possibly partial, door layout, so it obeys the reverse-door check like a real draw —
+    // otherwise cueing one whose doors don't face back at the party would let it walk through a wall.
+    // Specials always connect: every SPECIAL_CANONICAL_CARD has all four exits.
+    const honoursDoors = !!override && override.special >= TILE_MIN && override.special <= TILE_MAX;
+    const rawConnects = (!!override && !honoursDoors) || dir === DIR_UP || dir === DIR_DOWN || hasReverseDoor(decodeArea(drawn), dir);
     // Whirlpool revision (2026-08-08): a vertical draw that turns up the Whirlpool never connects
     // either — "any stairway leading to this area is considered blocked." Bug fix 2026-08-09
     // (QOTO-01): a Test Mode override does NOT exempt this one — it's not a printed-orientation
