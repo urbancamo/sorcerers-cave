@@ -53,3 +53,4 @@ next-env.d.ts
 # local agent/Claude Code tooling
 .agents/
 .claude/
+/docs/requirements/mermaid-filter.err
