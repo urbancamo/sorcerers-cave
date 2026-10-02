@@ -31,6 +31,53 @@ describe("TestControlsPanel", () => {
     }
   });
 
+  // A queued chamber is consumed by the move into the next area, so the creature list that fed it is
+  // stale once the party enters a different area: it clears, ready for the next chamber.
+  describe("clears the chamber creature list when the party enters a new area", () => {
+    const addCreature = (id: number) =>
+      fireEvent.change(screen.getByLabelText("Add a creature"), { target: { value: String(id) } });
+    const chip = (name: string) => screen.queryByRole("button", { name: `${name} ×` });
+
+    it("empties the list after a move into a different area", () => {
+      const s = testState();
+      const { rerender } = render(<TestControlsPanel state={s} dispatch={() => {}} />);
+      addCreature(3); addCreature(7); // Troll, Dwarf
+      expect(chip("Troll")).not.toBeNull();
+      expect(chip("Dwarf")).not.toBeNull();
+      rerender(<TestControlsPanel state={{ ...s, partyArea: s.partyArea + 1 }} dispatch={() => {}} />);
+      expect(chip("Troll")).toBeNull();
+      expect(chip("Dwarf")).toBeNull();
+    });
+
+    it("keeps the list while the party stays in the same area", () => {
+      const s = testState();
+      const { rerender } = render(<TestControlsPanel state={s} dispatch={() => {}} />);
+      addCreature(3);
+      rerender(<TestControlsPanel state={{ ...s, turn: s.turn + 1 }} dispatch={() => {}} />); // other state moves on
+      expect(chip("Troll")).not.toBeNull();
+    });
+
+    it("lets the next chamber be built afresh after the clear", () => {
+      const dispatch = vi.fn();
+      const s = testState();
+      const { rerender } = render(<TestControlsPanel state={s} dispatch={dispatch} />);
+      addCreature(3);
+      rerender(<TestControlsPanel state={{ ...s, partyArea: s.partyArea + 1 }} dispatch={dispatch} />);
+      addCreature(5); // Man
+      fireEvent.click(screen.getByRole("button", { name: /queue next chamber/i }));
+      expect(dispatch).toHaveBeenCalledWith({ type: "testSetChamber", strangers: [5], treasures: [], hazards: [] });
+    });
+
+    it("leaves the treasure and hazard selections alone", () => {
+      const s = testState();
+      const { rerender } = render(<TestControlsPanel state={s} dispatch={() => {}} />);
+      fireEvent.change(screen.getByLabelText("Add a treasure"), { target: { value: "1" } });
+      fireEvent.change(screen.getByLabelText("Add a hazard"), { target: { value: "0" } });
+      rerender(<TestControlsPanel state={{ ...s, partyArea: s.partyArea + 1 }} dispatch={() => {}} />);
+      expect(screen.getAllByRole("button", { name: /×$/ })).toHaveLength(2); // the treasure and the hazard chips remain
+    });
+  });
+
   it("queues a Normal chamber when the picker is left alone", () => {
     const dispatch = vi.fn();
     render(<TestControlsPanel state={testState()} dispatch={dispatch} />);

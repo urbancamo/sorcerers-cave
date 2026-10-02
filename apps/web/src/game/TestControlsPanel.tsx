@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   ALL_CREATURES, ALL_TREASURES, ALL_HAZARD_NAMES,
   CREATURES, TREASURES, HAZARD_NAMES,
@@ -144,6 +144,15 @@ export function TestControlsPanel({ state, dispatch, onSave }: { state: GameStat
   const [minimized, setMinimized] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
   const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
+  // A queued chamber is consumed by the move into the next area, so the creature list that fed it is
+  // stale once the party enters a different area: clear it, ready for the next chamber. (Treasures and
+  // hazards are left as the tester set them.) Before the early return below — hooks can't follow it.
+  const lastArea = useRef(state.partyArea);
+  useEffect(() => {
+    if (state.partyArea === lastArea.current) return;
+    lastArea.current = state.partyArea;
+    setStrangers([]);
+  }, [state.partyArea]);
   if (!state.testMode) return null;
 
   const startDrag = (e: React.PointerEvent<HTMLDivElement>) => {
