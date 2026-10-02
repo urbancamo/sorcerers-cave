@@ -19,7 +19,7 @@
     "convex": "^1.41.0",
     "react": "^19.2.7",
     "react-dom": "^19.2.7",
-    "react-router": "^7.17.0",
+    "react-router": "8.3.0",
     "three": "0.160.0",
     "zustand": "^5.0.14"
   },
@@ -38,6 +38,6 @@
     "tailwindcss": "^4.3.0",
     "typescript": "^6.0.3",
     "vite": "^8.0.16",
-    "vitest": "^4.1.8"
+    "vitest": "5.0.0-rc.2"
   }
 }
