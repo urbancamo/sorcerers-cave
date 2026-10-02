@@ -3,6 +3,8 @@ import { isPartyStuck, tryMove } from "./map";
 import { reduce } from "./reduce";
 import { makeState } from "./testkit";
 import { packCoord, DIR_N, DIR_E, DIR_S, DIR_W } from "./coords";
+import { AF_DESTROYED } from "./state";
+import { SPECIAL_CANONICAL_CARD, SPECIAL_WHIRLPOOL } from "./data/areaCards";
 
 // Card-value bitfield (spec §3.1): N=1 E=2 S=4 W=8 chamber=16 stairUp=32 stairDown=64.
 
@@ -25,11 +27,10 @@ describe("isPartyStuck (§6.3.2 Dead End rule — 'forced redraw')", () => {
     expect(isPartyStuck(s, 0)).toBe(false);
   });
 
-  // The bug this design review caught: a SUCCESSFUL connection's exit bit is never pruned (pruning
-  // only ever fires on failure), so it must NOT be counted as "still available" — its only value
-  // (reaching that neighbor) is already captured by including the neighbor in the reachable set.
-  // A naive "any unpruned bit toward an existing area counts" rule would report `false` here forever.
-  it("two areas that successfully connect to each other, with nothing else live anywhere, ARE stuck", () => {
+  // A SUCCESSFUL connection's exit bit is never pruned (pruning only ever fires on failure), so a
+  // door back to a neighbour the party can already walk into must NOT count as "still available" —
+  // it is a way out, not a way forward. A naive "any unpruned bit counts" rule would say `false` here.
+  it("a tile whose only remaining door leads to a connected neighbour IS stuck", () => {
     const s = makeState({
       areas: [
         { card: 2 /* E only */, coord: packCoord(1, 50, 50), faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 },
@@ -41,26 +42,42 @@ describe("isPartyStuck (§6.3.2 Dead End rule — 'forced redraw')", () => {
     expect(isPartyStuck(s, 0)).toBe(true);
   });
 
-  it("BFS expansion: only the far, connected area has a live bit toward unexplored space — NOT stuck", () => {
+  // Regression (docs/bugs/ZICR-log.json): the party sits in a room whose every other door has been
+  // tried; the one door left leads back to a neighbour that STILL has untried exits. Only the tile the
+  // party occupies counts — the rule does not backtrack — so this is stuck.
+  it("does NOT backtrack: a connected neighbour's live bits toward unexplored space are ignored", () => {
     const s = makeState({
       areas: [
-        { card: 2 /* E only */, coord: packCoord(1, 50, 50), faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 },
-        { card: 8 | 1 /* W (connects back) + N (unexplored) */, coord: packCoord(1, 51, 50), faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 },
+        { card: 2 /* E only — the way back */, coord: packCoord(1, 50, 50), faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 },
+        { card: 8 | 1 | 4 /* W (connects back) + N + S (both unexplored, live) */, coord: packCoord(1, 51, 50), faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 },
       ],
       largePack: [999],
       largeIdx: 0,
     });
-    expect(isPartyStuck(s, 0)).toBe(false);
+    expect(isPartyStuck(s, 0)).toBe(true);
+    expect(isPartyStuck(s, 1)).toBe(false); // standing on the tile that has them, they DO count
   });
 
-  it("BFS gating: an area that merely EXISTS at an adjacent coordinate, with no door open to it, is not reachable", () => {
-    // area0 shows no exit at all (card 0) — not even toward area1's coordinate — so area1's own
-    // live bit must never leak into the stuck-check, proving traversal requires a genuinely open
-    // connection FROM the current side, not just presence anywhere in state.areas.
+  // Regression (docs/bugs/ZICR-log.json): an earthquake collapsed the tile the party came through, so
+  // the room's one remaining door leads only to rubble. That is permanently impassable — nothing to
+  // "try" — so it must not count as an untried option.
+  it("a door toward a DESTROYED neighbour (rubble) does not count — the party is stuck", () => {
     const s = makeState({
       areas: [
-        { card: 0, coord: packCoord(1, 50, 50), faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 },
-        { card: 1 /* N — unexplored, live */, coord: packCoord(1, 51, 50), faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 },
+        { card: 4 /* S only */, coord: packCoord(1, 50, 50), faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 },
+        { card: 1 | 2 /* N (would connect back) + E */, coord: packCoord(1, 50, 51), faceUp: true, visited: false, contents: [], flags: AF_DESTROYED, indiffCount: 0 },
+      ],
+      largePack: [999],
+      largeIdx: 0,
+    });
+    expect(isPartyStuck(s, 0)).toBe(true);
+  });
+
+  it("a stairway toward a Whirlpool (permanently blocked) does not count", () => {
+    const s = makeState({
+      areas: [
+        { card: 32 /* stair up */, coord: packCoord(2, 50, 50), faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 },
+        { card: SPECIAL_CANONICAL_CARD[SPECIAL_WHIRLPOOL]!, coord: packCoord(1, 50, 50), faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 },
       ],
       largePack: [999],
       largeIdx: 0,

@@ -34,7 +34,7 @@ describe("static data (spec §3, Appendix D)", () => {
       [10, "Dragon", 6, 0, 0, null, 0, 16, 4, 6, 9],
       [11, "Sorcerer", 4, 9, 0, null, 0, 0, 6, 6, 11],
       [12, "Giant", 7, 0, 150, null, 7, 16, 3, 5, 4],
-      [13, "Unicorn", 0, 4, 0, null, 4, 4, 0, 0, 0],
+      [13, "Unicorn", 4, 0, 0, null, 4, 4, 0, 0, 0],
     ]);
   });
   it("offers 8 selectable starters with the right stock", () => {

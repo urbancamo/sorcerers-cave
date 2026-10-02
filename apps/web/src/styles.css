@@ -1041,6 +1041,25 @@
 .scv-mp-wrap { display: flex; flex-direction: column; align-items: center; gap: 16px; }
 .scv-mp-loading { display: grid; place-items: center; height: 100vh; color: var(--stone); font-family: var(--ui); }
 
+/* Test Mode only: transient badge when the Dead End rule reshuffles a card and redraws
+   (game/DeadEndSwapBadge.tsx). Red-bordered like the TEST chip; sticky until its × is clicked. */
+.scv-swapbadge {
+  position: fixed; top: 64px; left: 50%; transform: translateX(-50%); z-index: 60;
+  max-width: 94vw; text-align: center;
+  font-family: var(--ui); font-size: 12px; color: var(--parchment);
+  padding: 8px 34px 8px 16px; border-radius: 10px;
+  background: rgba(15, 15, 20, 0.9); border: 1px solid #c0392b; backdrop-filter: blur(8px);
+  animation: scv-swapbadge-in 0.25s ease-out;
+}
+.scv-swapbadge-title { color: #e74c3c; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; font-size: 11px; }
+.scv-swapbadge-close {
+  position: absolute; top: 4px; right: 6px; width: 22px; height: 22px; line-height: 20px; padding: 0;
+  background: none; border: 0; cursor: pointer; font-size: 18px; color: var(--stone);
+}
+.scv-swapbadge-close:hover { color: var(--cream); }
+.scv-swapbadge-row { margin-top: 3px; color: var(--stone); }
+@keyframes scv-swapbadge-in { from { opacity: 0; transform: translate(-50%, -6px); } to { opacity: 1; transform: translate(-50%, 0); } }
+
 /* In-play multiplayer overlays (over the 3D scene). */
 /* Shared-occupancy chip (spec I-1/I-3): rivals on your tile, presence only — interaction is opt-in. */
 .scv-mp-here {
