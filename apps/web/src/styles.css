@@ -1531,6 +1531,7 @@
   color: var(--stone-dim);
 }
 .scv-hs-entryrow { display: flex; gap: 8px; }
+.scv-hs-entryrow.wrap { flex-wrap: wrap; } /* the downloads row: three buttons wrap rather than squeeze on a phone */
 .scv-hs-input {
   flex: 1;
   padding: 10px 12px;

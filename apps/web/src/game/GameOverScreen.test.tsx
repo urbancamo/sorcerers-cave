@@ -39,6 +39,25 @@ describe("GameOverScreen", () => {
     expect(downloadLogMock).toHaveBeenCalledWith(log, "printer");
   });
 
+  // The debug log (.json) is the machine-readable, replayable record a bug report needs — most wanted
+  // exactly when a game is abandoned mid-cave because something looked wrong.
+  it("offers the debug log (.json) download on the abandoned screen", () => {
+    const abandoned: GameState = { ...newGame(1, [0]), gs: GS_QUIT };
+    const log = { game: { code: "WAMV", seed: 1, picks: [0], color: null, status: "finished", createdAt: 0 }, moves: [] } as GameLog;
+    downloadLogMock.mockClear();
+    render(<GameOverScreen state={abandoned} onNewGame={() => {}} log={log} />);
+    expect(screen.getByText(/abandoned the expedition/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /debug log \(\.json\)/i }));
+    expect(downloadLogMock).toHaveBeenCalledOnce();
+    expect(downloadLogMock).toHaveBeenCalledWith(log, "machine");
+  });
+
+  it("offers the debug log only when a log is supplied", () => {
+    const abandoned: GameState = { ...newGame(1, [0]), gs: GS_QUIT };
+    render(<GameOverScreen state={abandoned} onNewGame={() => {}} />);
+    expect(screen.queryByRole("button", { name: /debug log/i })).toBeNull();
+  });
+
   it("shows perished + score 0 for a dead party and fires onNewGame", () => {
     const base = newGame(1, [0]);
     const dead: GameState = { ...base, gs: GS_DEAD };

@@ -168,13 +168,15 @@ export function GameOverScreen({
           </div>
         )}
 
-        {/* Keep a copy of the game — a readable narrative (.txt) or a wide-carriage printer report (.log). */}
+        {/* Keep a copy of the game — a readable narrative (.txt), a wide-carriage printer report (.log), or the
+            machine-readable debug log (.json: replayable, and what a bug report needs). */}
         {log && (
           <div className="scv-hs-entry" data-testid="download-log">
             <span className="scv-hs-label">Download this game&rsquo;s log</span>
-            <div className="scv-hs-entryrow">
+            <div className="scv-hs-entryrow wrap">
               <button type="button" className="scv-primary" onClick={() => downloadLog(log, "human")}>Readable log (.txt)</button>
               <button type="button" className="scv-primary" onClick={() => downloadLog(log, "printer")}>Printer log (.log)</button>
+              <button type="button" className="scv-primary" onClick={() => downloadLog(log, "machine")}>Debug log (.json)</button>
             </div>
           </div>
         )}
