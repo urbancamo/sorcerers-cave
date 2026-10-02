@@ -707,7 +707,7 @@
 .scv-feat-card { position: relative; width: 116px; }
 .scv-feat-flip { animation: scv-feat-flip 1.7s cubic-bezier(0.45, 0.05, 0.2, 1) 0.35s both; }
 .scv-feat-rise { animation: scv-feat-rise 1.5s cubic-bezier(0.2, 0.8, 0.25, 1) 0.35s both; }
-.scv-feat-tally {
+.scv-feat-badge {
   position: absolute;
   top: 8px;
   right: 24px;
@@ -756,10 +756,80 @@
   70%  { transform: translateY(3px) scale(1.04); }
   100% { transform: translateY(0) scale(1); opacity: 1; }
 }
+/* The grand finale (the Sorcerer's fall): the cave dims; the card shudders, drains to ash and crashes
+   inverted in a flash; a sunburst turns behind it; the title lights letter by letter; a canvas of sparks
+   (FeatParticles) plays behind the panel. Wording is held back until the card has landed. */
+.scv-feat-overlay-grand { animation: scv-feat-dim 1.4s ease-out both; }
+@keyframes scv-feat-dim { from { background: rgba(7, 7, 9, 0.55); } to { background: rgba(7, 7, 9, 0.84); } }
+.scv-feat-particles { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.scv-feat-grand {
+  position: relative;
+  box-shadow: 0 0 0 1px rgba(230, 197, 120, 0.35), 0 0 90px -8px rgba(160, 90, 220, 0.45), 0 0 70px -10px rgba(230, 197, 120, 0.55), 0 24px 60px -20px rgba(0, 0, 0, 0.85);
+}
+.scv-feat-grand .scv-feat-title { animation: none; font-size: clamp(16px, 4.2vw, 26px); letter-spacing: 0.1em; } /* the letters carry the animation; sized to fit the longest title in the panel */
+.scv-feat-letter {
+  display: inline-block;
+  animation: scv-feat-letter 0.55s cubic-bezier(0.2, 0.9, 0.3, 1.3) calc(var(--i, 0) * 55ms + 0.2s) both;
+}
+@keyframes scv-feat-letter {
+  from { opacity: 0; transform: translateY(-14px) scale(1.7); filter: blur(4px); text-shadow: 0 0 34px #fff; }
+  to   { opacity: 1; transform: none; filter: none; }
+}
+.scv-feat-rays {
+  position: absolute;
+  inset: -22px -60px;
+  border-radius: 50%;
+  pointer-events: none;
+  background: repeating-conic-gradient(rgba(230, 197, 120, 0.2) 0 5deg, transparent 5deg 15deg);
+  -webkit-mask-image: radial-gradient(closest-side, #000 25%, transparent 78%);
+  mask-image: radial-gradient(closest-side, #000 25%, transparent 78%);
+  animation: scv-feat-spin 26s linear infinite, scv-feat-appear 1.2s ease-out 2.2s both;
+}
+@keyframes scv-feat-spin { to { transform: rotate(360deg); } }
+@keyframes scv-feat-appear { from { opacity: 0; } to { opacity: 1; } }
+.scv-feat-flash {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 38%, rgba(255, 250, 225, 0.9), rgba(230, 197, 120, 0.35) 40%, transparent 70%);
+  opacity: 0;
+  animation: scv-feat-flash 0.9s ease-out 1.5s both;
+}
+@keyframes scv-feat-flash { 0% { opacity: 0; } 20% { opacity: 0.9; } 100% { opacity: 0; } }
+.scv-feat-fall { animation: scv-feat-fall 3s cubic-bezier(0.4, 0, 0.2, 1) 0.35s both; }
+@keyframes scv-feat-fall {
+  0%   { transform: rotate(0deg) scale(0.7); opacity: 0; filter: none; }
+  12%  { transform: rotate(0deg) scale(1); opacity: 1; filter: drop-shadow(0 0 6px rgba(180, 100, 255, 0.6)); }
+  18%  { transform: translateX(-5px) rotate(-1.5deg); filter: grayscale(0.15) drop-shadow(0 0 10px rgba(180, 100, 255, 0.9)); }
+  22%  { transform: translateX(5px) rotate(1.5deg); }
+  26%  { transform: translateX(-6px) rotate(-2deg); filter: grayscale(0.35) drop-shadow(0 0 14px rgba(180, 100, 255, 0.95)); }
+  30%  { transform: translateX(6px) rotate(2deg); }
+  34%  { transform: translateX(-7px) rotate(-2.4deg); filter: grayscale(0.6) drop-shadow(0 0 18px rgba(180, 100, 255, 1)); }
+  38%  { transform: translateX(7px) rotate(2.4deg); }
+  45%  { transform: translateX(0) rotate(0deg) scale(1.16); filter: grayscale(0.9) brightness(1.6); }
+  100% { transform: rotate(180deg) scale(1); opacity: 1; filter: grayscale(0.85) brightness(0.85); }
+}
+.scv-feat-grand .scv-feat-badge { animation-delay: 3.1s; }
+.scv-feat-grand .scv-feat-headline { animation-delay: 2.9s; }
+.scv-feat-grand .scv-feat-detail { animation-delay: 3.3s; }
+.scv-feat-aside {
+  margin: 0;
+  font-family: var(--body);
+  font-style: italic;
+  font-size: 15px;
+  text-align: center;
+  color: var(--brass-bright);
+  text-shadow: 0 0 14px rgba(230, 197, 120, 0.4);
+  animation: scv-feat-fade 0.6s ease-out 3.8s both;
+}
 @media (prefers-reduced-motion: reduce) {
-  .scv-feat-panel, .scv-feat-title, .scv-feat-glow, .scv-feat-tally, .scv-feat-headline, .scv-feat-detail { animation: none; }
+  .scv-feat-panel, .scv-feat-title, .scv-feat-glow, .scv-feat-badge, .scv-feat-headline, .scv-feat-detail { animation: none; }
   .scv-feat-rise { animation: none; }
   .scv-feat-flip { animation: none; transform: rotate(180deg); }
+  .scv-feat-overlay-grand, .scv-feat-letter, .scv-feat-rays, .scv-feat-aside { animation: none; }
+  .scv-feat-flash { display: none; }
+  .scv-feat-fall { animation: none; transform: rotate(180deg); filter: grayscale(0.85) brightness(0.85); }
 }
 
 /* ---- splash / title screen ------------------------------------------------- */

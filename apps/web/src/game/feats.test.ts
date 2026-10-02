@@ -16,22 +16,24 @@ describe("featsFromEvents", () => {
       expect(f).toMatchObject({ id: "dragon-slain", title: "Dragon-slayer!", motion: "flip", card: { category: "creature", entityId: 10, name: "Dragon" } });
       expect(f!.headline).toBe("Your Giant has felled a dragon single-handed!");
       expect(f!.detail).toMatch(/\+1 fighting strength/);
-      expect(f!.tally).toBeUndefined();
+      expect(f!.badge).toBeUndefined();
     });
     it("celebrates a repeat kill with the running tally", () => {
       const [f] = featsFromEvents([ev({ type: "dragonSlain", creatureId: 0, kills: 3 })]);
       expect(f!.headline).toBe("Your Hero fells yet another dragon!");
       expect(f!.detail).toMatch(/Dragon-slayer ×3/);
       expect(f!.detail).toMatch(/\+3 fighting strength/);
-      expect(f!.tally).toBe(3);
+      expect(f!.badge).toBe("×3");
     });
   });
 
-  it("celebrates the Sorcerer's fall: his card flips, with the +30", () => {
+  it("celebrates the Sorcerer's fall as the grand finale: his card falls, with the +30 and the curse line", () => {
     const [f] = featsFromEvents([ev({ type: "sorcererSlain" })]);
-    expect(f).toMatchObject({ id: "sorcerer-slain", title: "The Sorcerer falls!", motion: "flip", card: { category: "creature", entityId: 11 } });
+    expect(f).toMatchObject({ id: "sorcerer-slain", title: "The Sorcerer falls!", motion: "fall", badge: "+30", card: { category: "creature", entityId: 11 } });
     expect(f!.headline).toMatch(/vanquished the master of the cave/);
     expect(f!.detail).toMatch(/\+30/);
+    // True to the rules: slaying him lifts every curse at once (effects.ts activeCurses is 0 from then on).
+    expect(f!.aside).toBe("The Sorcerer's curses die with him — every curse upon your party is lifted.");
   });
 
   describe("Lost Ruby", () => {

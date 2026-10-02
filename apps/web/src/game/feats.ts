@@ -1,8 +1,9 @@
 import { ALL_CREATURES, ALL_TREASURES, type GameEvent } from "@sorcerers-cave/engine";
 
 /** `flip` swings the card through 180° to lie inverted (a felled foe, kept as a trophy — the rulebook's
- *  upside-down dragon card); `rise` lifts it with a glow (a prize won or a gift received). */
-export type FeatMotion = "flip" | "rise";
+ *  upside-down dragon card); `rise` lifts it with a glow (a prize won or a gift received); `fall` is the
+ *  grand finale — the card shudders, drains to ash and crashes inverted amid sparks (the Sorcerer). */
+export type FeatMotion = "flip" | "rise" | "fall";
 export type FeatId = "dragon-slain" | "sorcerer-slain" | "ruby-wrested" | "elixir-strength";
 
 export interface FeatView {
@@ -13,8 +14,10 @@ export interface FeatView {
   /** The card shown: looked up in the manifest by category + engine entity id; `name` is its alt text. */
   card: { category: "creature" | "treasure"; entityId: number; name: string };
   motion: FeatMotion;
-  /** Running tally shown as a ×N chip (repeat dragon-slayer kills). */
-  tally?: number;
+  /** A short chip on the card: a running tally ("×3", repeat dragon kills) or the points won ("+30"). */
+  badge?: string;
+  /** A closing line after the detail (the Sorcerer's curses). */
+  aside?: string;
 }
 
 const DRAGON = 10, SORCERER = 11, LOST_RUBY = 11, ELIXIR = 15;
@@ -38,7 +41,7 @@ export function featsFromEvents(events: GameEvent[]): FeatView[] {
               detail: "The dragon's card is turned and kept with its slayer — +1 fighting strength, for ever after.",
             }
           : {
-              id: "dragon-slain", title: "Dragon-slayer!", motion: "flip", card, tally: e.kills,
+              id: "dragon-slain", title: "Dragon-slayer!", motion: "flip", card, badge: `×${e.kills}`,
               headline: `${who} fells yet another dragon!`,
               detail: `Dragon-slayer ×${e.kills} — +${e.kills} fighting strength in all.`,
             });
@@ -46,10 +49,11 @@ export function featsFromEvents(events: GameEvent[]): FeatView[] {
       }
       case "sorcererSlain":
         feats.push({
-          id: "sorcerer-slain", title: "The Sorcerer falls!", motion: "flip",
+          id: "sorcerer-slain", title: "The Sorcerer falls!", motion: "fall", badge: `+${SORCERER_BONUS}`,
           card: { category: "creature", entityId: SORCERER, name: "The Sorcerer" },
           headline: "You have vanquished the master of the cave!",
           detail: `A feat few adventurers ever achieve — congratulations, hero! (+${SORCERER_BONUS} to your final score)`,
+          aside: "The Sorcerer's curses die with him — every curse upon your party is lifted.",
         });
         break;
       case "rubyTaken":

@@ -197,7 +197,7 @@ describe("useDispatchWithRolls — feat celebrations", () => {
     await act(async () => { await result.current.dispatchWithRolls({ type: "resolveRound" } as GameAction); });
     expect(result.current.celebration?.headline).toBe("Your Giant has felled a dragon single-handed!");
     act(() => result.current.clearCelebration());
-    expect(result.current.celebration?.tally).toBe(2);
+    expect(result.current.celebration?.badge).toBe("×2");
     act(() => result.current.clearCelebration());
     expect(result.current.celebration).toBeNull();
   });
