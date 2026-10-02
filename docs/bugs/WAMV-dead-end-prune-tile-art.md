@@ -49,6 +49,31 @@ only uses `faceDown` for Spell remaps (≈ line 363). There is no card-back / hi
 dead-end chamber is rendered with its full art. By the rules (§Exploring the Cave) a dead-end card
 stays face-down until a party enters it from another direction. Not yet confirmed in a browser.
 
+## Replay evidence (2nd screenshot)
+
+Screenshot: [Screenshot 2026-10-02 at 08.49.09.png](Screenshot%202026-10-02%20at%2008.49.09.png) —
+the same area viewed in Replay mode, showing the tile as the correct **NW tunnel** (curve from North
+to West). This does not contradict the resumed-game screenshot; they are different moments.
+
+Projecting every replay frame through the app's own `projectArea`:
+
+| frame | party | area 59 art |
+|---|---|---|
+| 118 | on area 59 (just entered) | `s08-3` — NW tunnel (matches the replay screenshot) |
+| 119 | on area 59 (West move just failed) | `s01-1` — NE fallback |
+| 120–220 | elsewhere | `s01-1` |
+| 221 (final / live resume) | on area 59 | `s01-1` — NE fallback (matches the resumed-game screenshot) |
+
+The party token is on the tile in the replay screenshot, and the party is on area 59 only at frames
+118, 119 and 221; 119 and 221 draw `s01-1`, so the screenshot is frame 118.
+
+**Easiest repro:** open the replay for `WAMV`, go to move 118, then step forward one move. The tile
+changes from the NW curve to the straight NE corridor at move 119 — the moment the West door is
+pruned — and stays that way for the rest of the game, including after a resume.
+
+The bug is therefore in how pruned tiles are drawn, not in resume/persistence: live play, resume and
+replay all use the same engine state and projection and agree frame-for-frame.
+
 ## Things that are NOT the cause
 
 - **Resuming the game.** The saved Convex state matches an engine replay of the log exactly
