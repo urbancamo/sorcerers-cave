@@ -1671,7 +1671,10 @@
 /* an empty front slot — a card-sized "drop a fighter" placeholder (always two, so a 2nd is invitingly open) */
 .scv-slot-empty { width: 116px; aspect-ratio: 63 / 88; display: flex; align-items: center; justify-content: center; padding: 6px; border: 1px dashed var(--line); border-radius: 8px; font-family: var(--body); font-style: italic; font-size: 12px; color: var(--stone-dim); text-align: center; }
 /* per-matchup modifier chips (artefact bonuses, curse, surprise) — sit under the party members */
-.scv-match-mods { display: flex; gap: 7px; flex-wrap: wrap; }
+/* width:0 + min-width:100% — the chips wrap within the party line's width instead of contributing their
+   unwrapped width to .scv-match-party, which would widen the column and bump the whole matchup onto a
+   second row (a fighter carrying several artefacts produces many chips). */
+.scv-match-mods { display: flex; gap: 7px; flex-wrap: wrap; width: 0; min-width: 100%; }
 .scv-mod { font-family: var(--ui); font-size: 11px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--parchment); background: rgba(201,161,78,.07); }
 .scv-mod-party { border-color: rgba(201,161,78,.4); color: var(--brass-bright); }
 .scv-mod-enemy { border-color: rgba(168,68,58,.5); color: #e7a59c; background: rgba(46,18,16,.4); }
