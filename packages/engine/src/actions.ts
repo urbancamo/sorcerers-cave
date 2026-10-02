@@ -92,6 +92,10 @@ export type GameEvent =
   | { type: "trapAvoided" } // a dwarf guided the party safely past a trap
   | { type: "memberDied"; creatureId: number }
   | { type: "strangerKilled"; creatureId: number }
+  // A creature felled a Dragon single-handed (one front fighter, no caster backer): `creatureId` is the
+  // slayer's creature, `kills` its running tally (also its +1-per-kill fighting bonus). Emitted right
+  // after the generic `strangerKilled` so the UI can celebrate it (rulebook §Dragon).
+  | { type: "dragonSlain"; creatureId: number; kills: number }
   | { type: "sorcererSlain" } // the Sorcerer himself has been defeated — the cave's master is no more
   | { type: "spectreSlew"; creatureId: number }
   | { type: "memberRevived"; creatureId: number } // a stoned member freed by a returning Wizard's Magic Staff

@@ -125,6 +125,28 @@ describe("resolvePlannedRound (§A Round of Fighting)", () => {
     expect(s.strangers).toEqual([]);
     expect(s.party[0]!.dragonKills).toBe(0);
   });
+  // The UI celebrates a single-handed dragon kill (an animated card flip), so the engine announces it
+  // with a dedicated event carrying the slayer and the running tally — not just the generic kill.
+  it("announces a single-handed dragon kill with the slayer and a first-kill tally", () => {
+    const s = clone(fightS({ fight: { surprise: 1, round: 1, focus: 0 }, party: [member(12)], strangers: [10], seed: 5 }));
+    const ev = resolvePlannedRound(s, { matches: [{ front: [0], backers: [], strangers: [0] }] });
+    expect(ev).toContainEqual({ type: "dragonSlain", creatureId: 12, kills: 1 });
+  });
+  it("the dragonSlain tally counts every dragon that slayer has felled", () => {
+    const s = clone(fightS({
+      fight: { surprise: 1, round: 1, focus: 0 }, party: [{ ...member(12), dragonKills: 2 }], strangers: [10], seed: 5,
+    }));
+    const ev = resolvePlannedRound(s, { matches: [{ front: [0], backers: [], strangers: [0] }] });
+    expect(ev).toContainEqual({ type: "dragonSlain", creatureId: 12, kills: 3 });
+  });
+  it("announces no dragonSlain when a caster backed the kill, or the foe is not a dragon", () => {
+    const backed = clone(fightS({ fight: { surprise: 1, round: 1, focus: 0 }, party: [member(12), member(8)], strangers: [10], seed: 5 }));
+    const backedEv = resolvePlannedRound(backed, { matches: [{ front: [0], backers: [1], strangers: [0] }] });
+    expect(backedEv.some((e) => e.type === "dragonSlain")).toBe(false);
+    const dwarf = clone(fightS({ party: [member(12)], strangers: [7], seed: 5 })); // Giant vs Dwarf
+    const dwarfEv = resolvePlannedRound(dwarf, { matches: [{ front: [0], backers: [], strangers: [0] }] });
+    expect(dwarfEv.some((e) => e.type === "dragonSlain")).toBe(false);
+  });
   it("slaying the Sorcerer records the kill and announces the feat", () => {
     // Giant+Magic Sword front, Wizard+Magic Staff backer, surprise & Lotus weakening the Sorcerer.
     const s = clone(fightS({

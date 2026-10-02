@@ -671,6 +671,89 @@
 .scv-dice-msg.bad { color: var(--crimson); }
 .scv-dice-msg.neutral { color: var(--stone); }
 
+/* ---- dragon-slayer celebration (DragonSlayer.tsx) ----
+   The felled dragon's card swings through 180° to lie inverted (the rulebook: "the dragon card is
+   inverted and put with its slayer"), under a gold headline. Staged: card pops in upright, lifts for a
+   beat, then turns; the wording fades up behind it. Everything is skipped under reduced motion, which
+   shows the finished state (card already inverted). */
+.scv-slayer-card {
+  gap: 14px;
+  padding: 30px 44px 28px;
+  max-width: min(92vw, 460px);
+  border-color: var(--brass);
+  box-shadow: 0 0 0 1px rgba(230, 197, 120, 0.25), 0 0 60px -10px rgba(230, 197, 120, 0.45), 0 24px 60px -20px rgba(0, 0, 0, 0.85);
+  animation: scv-slayer-rise 0.5s ease-out both;
+}
+.scv-slayer-title {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(20px, 4.6vw, 30px);
+  letter-spacing: 0.14em;
+  white-space: nowrap; /* one line: "Dragon-slayer!" must not break at its hyphen */
+  text-transform: uppercase;
+  text-align: center;
+  color: var(--brass-bright);
+  text-shadow: 0 0 22px rgba(230, 197, 120, 0.55);
+  animation: scv-slayer-fade 0.7s ease-out 0.15s both;
+}
+.scv-slayer-stage { position: relative; width: 190px; padding: 22px 0; display: grid; place-items: center; }
+.scv-slayer-glow {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(closest-side, rgba(230, 197, 120, 0.4), transparent);
+  animation: scv-slayer-glow 2.4s ease-in-out infinite;
+}
+.scv-slayer-dragon { position: relative; width: 116px; }
+.scv-slayer-flip { animation: scv-slayer-flip 1.7s cubic-bezier(0.45, 0.05, 0.2, 1) 0.35s both; }
+.scv-slayer-tally {
+  position: absolute;
+  top: 8px;
+  right: 24px;
+  min-width: 34px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  text-align: center;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--brass-bright);
+  background: #2b2310;
+  border: 1px solid var(--brass);
+  animation: scv-slayer-fade 0.5s ease-out 1.9s both;
+}
+.scv-slayer-headline {
+  margin: 0;
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(16px, 3.6vw, 20px);
+  text-align: center;
+  color: var(--parchment);
+  animation: scv-slayer-fade 0.6s ease-out 1.5s both;
+}
+.scv-slayer-detail {
+  margin: 0;
+  font-family: var(--body);
+  font-style: italic;
+  font-size: 16px;
+  text-align: center;
+  color: var(--stone);
+  animation: scv-slayer-fade 0.6s ease-out 1.9s both;
+}
+@keyframes scv-slayer-rise { from { opacity: 0; transform: translateY(14px) scale(0.96); } to { opacity: 1; transform: none; } }
+@keyframes scv-slayer-fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes scv-slayer-glow { 0%, 100% { opacity: 0.55; transform: scale(0.92); } 50% { opacity: 1; transform: scale(1.06); } }
+@keyframes scv-slayer-flip {
+  0%   { transform: rotate(0deg) scale(0.7); opacity: 0; }
+  20%  { transform: rotate(0deg) scale(1); opacity: 1; }
+  38%  { transform: rotate(0deg) scale(1.12); }
+  100% { transform: rotate(180deg) scale(1); opacity: 1; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scv-slayer-card, .scv-slayer-title, .scv-slayer-glow, .scv-slayer-tally, .scv-slayer-headline, .scv-slayer-detail { animation: none; }
+  .scv-slayer-flip { animation: none; transform: rotate(180deg); }
+}
+
 /* ---- splash / title screen ------------------------------------------------- */
 .scv-splash {
   position: fixed;

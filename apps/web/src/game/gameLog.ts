@@ -156,6 +156,7 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "trapAvoided": return "a dwarf guided the party past a trap";
     case "memberDied": return `${creature(e.creatureId)} was slain`;
     case "strangerKilled": return `${creature(e.creatureId)} (stranger) was slain`;
+    case "dragonSlain": return `${creature(e.creatureId)} slew a dragon single-handed — Dragon-slayer ×${e.kills} (+${e.kills} fighting strength)`;
     case "sorcererSlain": return "the Sorcerer was slain (+30)";
     case "spectreSlew": return `a Spectre slew ${creature(e.creatureId)}`;
     case "memberRevived": return `${creature(e.creatureId)} was freed from stone`;
@@ -461,6 +462,7 @@ export function eventCode(e: GameEvent): string | null {
     case "strangerKilled": return `KIL ${cr3(e.creatureId)}`;
     case "spectreSlew": return `SLW ${cr3(e.creatureId)}`;
     case "memberRevived": return `RVV ${cr3(e.creatureId)}`;
+    case "dragonSlain": return `DRG SLN ${cr3(e.creatureId)}`;
     case "sorcererSlain": return "SOR SLN";
     case "treasureDropped": return `TDR ${e.count}`;
     case "heavyDownForFight": return `FDR ${e.count}`;

@@ -143,6 +143,8 @@ export function eventNotices(events: GameEvent[]): Notice[] {
         // "The Demon collapses into ash.") the generic dice overlay doesn't carry.
         if (e.creatureId === 15) out.push({ text: "The Demon collapses into ash.", tone: "good" });
         break;
+      case "dragonSlain":
+        break; // celebrated by the dedicated DragonSlayer overlay (useDispatchWithRolls), not a text notice
       case "crossedSpecial":
         // The Viper Pit crossing is shown by its dice overlay; only the Deep Pool needs a notice.
         if (e.special === SPECIAL_DEEP_POOL) out.push({ text: "The party wades through the Deep Pool…", tone: "neutral" });

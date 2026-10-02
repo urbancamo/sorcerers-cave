@@ -20,6 +20,7 @@ import { PartyPanel } from "./PartyPanel";
 import { DiceRoll } from "./DiceRoll";
 import { rollFromEvents, type RollView } from "./rollView";
 import { NoticeModal } from "./NoticeModal";
+import { DragonSlayer } from "./DragonSlayer";
 import { eventNotices, type Notice } from "./eventNotices";
 import { ChatPanel } from "./ChatPanel";
 import { GameOverScreen } from "./GameOverScreen";
@@ -200,7 +201,7 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
     (action: GameAction) => actMut({ gameId, action }) as unknown as Promise<{ events?: GameEvent[] } | null>,
     [actMut, gameId],
   );
-  const { roll: fightRoll, notices: fightNotices, pending: fightPending, dispatchWithRolls, clearRoll: clearFightRoll, clearNotices: clearFightNotices } = useDispatchWithRolls(fightDispatch);
+  const { roll: fightRoll, notices: fightNotices, celebration: fightCelebration, clearCelebration: clearFightCelebration, pending: fightPending, dispatchWithRolls, clearRoll: clearFightRoll, clearNotices: clearFightNotices } = useDispatchWithRolls(fightDispatch);
   const fightShownRef = useRef(false); // FightSurface already on screen (see fightGate.ts)
 
   if (view === undefined || view === null || !art || !state || !adapterRef.current) {
@@ -235,7 +236,7 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   const turnColor = currentParty ? PARTY_COLOR_HEX[currentParty.color as PartyColor] : undefined;
   // Don't pop the scoreboard over the final combat roll / death notice from your last action —
   // wait until that outcome dialog is dismissed (otherwise a wipe hides how it happened).
-  const outcomeDialogOpen = roll !== null || notices !== null || fightRoll !== null || fightNotices !== null;
+  const outcomeDialogOpen = roll !== null || notices !== null || fightRoll !== null || fightNotices !== null || fightCelebration !== null;
   const showScoreboard = ((terminal || gameOver) || peeking) && !outcomeDialogOpen;
 
   // Other active parties' pins on the shared map (positions read from the shared areas).
@@ -370,6 +371,7 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
       {notices && <NoticeModal notices={notices} onClose={() => setNotices(null)} />}
       {!roll && fightRoll && <DiceRoll title={fightRoll.title} lanes={fightRoll.lanes} message={fightRoll.message} tone={fightRoll.tone} onContinue={clearFightRoll} />}
       {!notices && fightNotices && <NoticeModal notices={fightNotices} onClose={clearFightNotices} />}
+      {fightCelebration && <DragonSlayer view={fightCelebration} cards={cards ?? []} onContinue={clearFightCelebration} />}
       <div className={"scv-mp-chatdock" + (showChat ? " open" : "")}>
         <button className={"scv-mp-chattoggle" + (unreadChat ? " unread" : "")} onClick={() => setShowChat((s) => !s)}>
           {showChat ? "Hide chat ▾" : "Chat ▸"}

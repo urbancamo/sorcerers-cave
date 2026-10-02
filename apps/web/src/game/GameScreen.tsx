@@ -20,6 +20,7 @@ import { eventNotices, type Notice } from "./eventNotices";
 import { useDispatchWithRolls } from "./useDispatchWithRolls";
 import { showFightSurface } from "./fightGate";
 import { NoticeModal } from "./NoticeModal";
+import { DragonSlayer } from "./DragonSlayer";
 import { SaveGameModal } from "./SaveGameModal";
 import { GameLogModal } from "./GameLogModal";
 import type { GameLog } from "./gameLog";
@@ -83,7 +84,7 @@ export default function GameScreen() {
   const stateRef = useRef<GameState | null>(state);
   stateRef.current = state;
   const getSnapshot = useCallback(() => stateRef.current, []);
-  const { roll, notices, holding, heldState, dispatchWithRolls, holdMove, clearRoll, clearNotices } = useDispatchWithRolls(dispatch, getSnapshot);
+  const { roll, notices, celebration, clearCelebration, holding, heldState, dispatchWithRolls, holdMove, clearRoll, clearNotices } = useDispatchWithRolls(dispatch, getSnapshot);
   onHoldMoveRef.current = holdMove;
   presentingRef.current = holding || !!roll || !!notices;
   const cards = useManifestCards();
@@ -221,8 +222,12 @@ export default function GameScreen() {
   fightShownRef.current = fightVisible;
 
   // Rendered on top of whatever screen is showing, so it survives a game-over transition.
+  // A single-handed dragon kill gets its own celebration AFTER the fight result (the hook only offers it
+  // once the roll and notices are dismissed).
   const overlay = roll ? (
     <DiceRoll title={roll.title} lanes={roll.lanes} message={roll.message} tone={roll.tone} onContinue={clearRoll} />
+  ) : celebration ? (
+    <DragonSlayer view={celebration} cards={cards ?? []} onContinue={clearCelebration} />
   ) : null;
 
   if (displayState.gs !== GS_PLAYING) {

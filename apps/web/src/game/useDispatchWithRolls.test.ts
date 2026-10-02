@@ -167,3 +167,53 @@ describe("useDispatchWithRolls", () => {
     expect(result.current.roll).toBeNull();
   });
 });
+
+// A single-handed dragon kill is celebrated in its own overlay, AFTER the fight result has been
+// dismissed (never on top of it, never instead of it).
+describe("useDispatchWithRolls — dragon-slayer celebration", () => {
+  const combat = (): GameEvent[] => [
+    { type: "combatRoll", party: "Giant", enemy: "Dragon", partyRoll: 4, enemyRoll: 2, partyTotal: 11, enemyTotal: 8, result: "partyWon" } as GameEvent,
+    { type: "strangerKilled", creatureId: 10 } as GameEvent,
+    { type: "dragonSlain", creatureId: 12, kills: 1 } as GameEvent,
+  ];
+
+  it("waits behind the fight result and appears once it is dismissed", async () => {
+    const { result } = renderHook(() => useDispatchWithRolls(async () => ({ state: {}, events: combat() })));
+    await act(async () => { await result.current.dispatchWithRolls({ type: "resolveRound" } as GameAction); });
+    expect(result.current.roll).not.toBeNull();
+    expect(result.current.celebration).toBeNull(); // the result comes first
+    act(() => result.current.clearRoll());
+    expect(result.current.celebration?.headline).toBe("Your Giant has felled a dragon single-handed!");
+    act(() => result.current.clearCelebration());
+    expect(result.current.celebration).toBeNull();
+  });
+
+  it("shows several slayers one after another", async () => {
+    const events: GameEvent[] = [
+      { type: "dragonSlain", creatureId: 12, kills: 1 } as GameEvent,
+      { type: "dragonSlain", creatureId: 0, kills: 2 } as GameEvent,
+    ];
+    const { result } = renderHook(() => useDispatchWithRolls(async () => ({ state: {}, events })));
+    await act(async () => { await result.current.dispatchWithRolls({ type: "resolveRound" } as GameAction); });
+    expect(result.current.celebration?.kills).toBe(1);
+    act(() => result.current.clearCelebration());
+    expect(result.current.celebration?.kills).toBe(2);
+    act(() => result.current.clearCelebration());
+    expect(result.current.celebration).toBeNull();
+  });
+
+  it("is absent when no dragon was slain, and a later dispatch replaces an unread queue", async () => {
+    let events: GameEvent[] = reactionEvents;
+    const { result } = renderHook(() => useDispatchWithRolls(async () => ({ state: {}, events })));
+    await act(async () => { await result.current.dispatchWithRolls({ type: "test" } as GameAction); });
+    act(() => result.current.clearRoll());
+    expect(result.current.celebration).toBeNull();
+    events = [{ type: "dragonSlain", creatureId: 12, kills: 1 } as GameEvent];
+    await act(async () => { await result.current.dispatchWithRolls({ type: "resolveRound" } as GameAction); });
+    expect(result.current.celebration).not.toBeNull();
+    events = reactionEvents;
+    await act(async () => { await result.current.dispatchWithRolls({ type: "test" } as GameAction); });
+    act(() => result.current.clearRoll());
+    expect(result.current.celebration).toBeNull(); // stale queue dropped, not shown on the next action
+  });
+});
