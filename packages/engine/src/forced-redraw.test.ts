@@ -119,6 +119,30 @@ describe("tryMove(..., allowDeadEndSwap) — the swap-and-redraw loop", () => {
     expect(placed.card).toBe(8);
   });
 
+  it("a rescued dead end leaves the tile exactly as printed — card restored, no printedCard", () => {
+    const s = boxedIn();
+    s.largePack = [1, 8, 8];
+    s.seed = 1;
+
+    const r = tryMove(s, DIR_E, true);
+
+    expect(r.moved).toBe(true);
+    expect(r.state.areas[0]!.card).toBe(2); // the pruned East bit was restored
+    expect("printedCard" in r.state.areas[0]!).toBe(false); // …so nothing to remember
+  });
+
+  it("the final kept dead end (budget exhausted) does keep the printed card", () => {
+    const s = boxedIn();
+    s.largePack = [1, 1, 1];
+    s.seed = 42;
+
+    const r = tryMove(s, DIR_E, true);
+
+    expect(r.deadEnd).toBe(true);
+    expect(r.state.areas[0]!.card).toBe(0); // East pruned
+    expect(r.state.areas[0]!.printedCard).toBe(2); // the tile as dealt
+  });
+
   it("exhausts the attempt budget when every remaining card fails, falling back to an ordinary dead end", () => {
     const s = boxedIn();
     s.largePack = [1, 1, 1]; // North only — none of these ever connect East

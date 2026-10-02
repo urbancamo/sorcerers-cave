@@ -70,6 +70,13 @@ function pruneExit(card: number, dir: number): number {
   }
 }
 
+/** Close a doorway on a placed area, first saving the card as dealt (once) so the renderer can keep
+ *  drawing the tile as printed — see `PlacedArea.printedCard`. */
+function pruneArea(area: PlacedArea, dir: number): void {
+  area.printedCard ??= area.card;
+  area.card = pruneExit(area.card, dir);
+}
+
 /** `pruneExit`'s inverse — restores a bit `pruneExit` cleared. Only ever used to roll back a
  *  face-down placement that turned out to be rescuable (§6.3.2, Dead End rule). */
 function restoreExit(card: number, dir: number): number {
@@ -82,6 +89,13 @@ function restoreExit(card: number, dir: number): number {
     case DIR_DOWN: return card | STAIR_DOWN_BIT;
     default: return card;
   }
+}
+
+/** `pruneArea`'s inverse for the forced-redraw rescue: reopen the doorway, and forget the printed card
+ *  if that leaves the tile exactly as dealt (a rescued dead end must leave no trace). */
+function restoreArea(area: PlacedArea, dir: number): void {
+  area.card = restoreExit(area.card, dir);
+  if (area.card === area.printedCard) delete area.printedCard;
 }
 
 /**
@@ -188,7 +202,7 @@ export function tryMove(state: GameState, dir: number, allowDeadEndSwap = false)
       next.level = targetLevel;
       return { state: next, moved: true, deadEnd: false, swaps: [] };
     }
-    current.card = pruneExit(current.card, dir);
+    pruneArea(current, dir);
     return { state: next, moved: false, deadEnd: true, swaps: [] };
   }
 
@@ -274,7 +288,7 @@ export function tryMove(state: GameState, dir: number, allowDeadEndSwap = false)
 
     const placed: PlacedArea = { card: drawn, coord: target, faceUp: false, visited: false, contents: [], flags: 0, indiffCount: 0 };
     next.areas.push(placed);
-    current.card = pruneExit(current.card, dir);
+    pruneArea(current, dir);
 
     // Placed and pruned FIRST, then checked: the rejected card's OTHER doors could open unrelated
     // connections elsewhere, so "is the party stuck" must be evaluated against the state as it would
@@ -287,7 +301,7 @@ export function tryMove(state: GameState, dir: number, allowDeadEndSwap = false)
     // back into the pack at a uniformly random position among the still-undrawn cards (not a fixed
     // "middle" index — see the spec for why), and retry the same direction.
     next.areas.pop();
-    current.card = restoreExit(current.card, dir);
+    restoreArea(current, dir);
     const remaining = next.largePack.length - next.largeIdx; // undrawn AFTER this draw
     const r = randBelow(next.seed, remaining + 1);
     next.seed = r.seed;

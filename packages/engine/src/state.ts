@@ -86,6 +86,11 @@ export interface PlacedArea {
   // the card. They keep `card` traversable both ways but are excluded from rendering, so the tile
   // is always drawn in its printed orientation (the original game links levels with markers).
   mirroredStairs?: number;
+  // The card as dealt, saved the first time a dead end prunes a doorway off `card` (map.ts). `card`
+  // keeps tracking which doorways are still usable, but a pruned shape often has no tile art (e.g. a
+  // North-only tunnel), so the renderer draws from this instead. Absent until a prune happens (and
+  // cleared again if the forced-redraw rescue undoes it) — an untouched tile never carries it.
+  printedCard?: number;
   // Set when the party descended onto this area and it shows no printed stair up: its end of the
   // stairway is a secret door (§"Secret Doors"). The 0-based value is its discovery order (→ A, B, C…).
   secretDoor?: number;

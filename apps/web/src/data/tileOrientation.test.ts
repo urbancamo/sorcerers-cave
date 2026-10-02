@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import type { AssetManifest } from "@sorcerers-cave/assets";
-import { AREA_CARDS, EXT_AREA_CARDS, decodeArea, newGame, reduce, legalActions, packCoord, type GameState, type GameAction } from "@sorcerers-cave/engine";
+import { AREA_CARDS, EXT_AREA_CARDS, decodeArea, newGame, reduce, legalActions, packCoord, tryMove, type GameState, type GameAction } from "@sorcerers-cave/engine";
 import { parseManifest, resolveTile, normExits, type Topology } from "./manifest";
 import { projectArea } from "../view/projection";
 
@@ -123,6 +123,30 @@ describe("tile orientation (every area card renders un-rotated)", () => {
       checkAll(state);
     }
     expect([...bad]).toEqual([]);
+  });
+
+  // Bug WAMV: a dead end prunes the live card (N|W -> N), and the pruned shape has no art — a fresh
+  // build (e.g. after a resume) then fell back to an arbitrary NE tile, drawing a door the card never
+  // had. The tile must keep being drawn as it was dealt, while exits stay the live (usable) ones.
+  it("draws a dead-end-pruned tile from its printed card, not the pruned one", () => {
+    const art = parseManifest(manifest);
+    const N_W = 1 | 8; // a corner: North + West (card 9)
+    const s = newGame(7, [0]);
+    s.level = 2;
+    s.areas = [{ card: N_W, coord: packCoord(2, 50, 50), faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 }];
+    s.partyArea = 0;
+    s.largePack = [5]; // N|S — no East door, so the West attempt is a dead end
+    s.largeIdx = 0;
+
+    const r = tryMove(s, 4 /* DIR_W */);
+    expect(r.deadEnd).toBe(true);
+    expect(r.state.areas[0]!.card).toBe(1); // pruned to North-only: no such tile exists in the art set
+
+    const area = projectArea(r.state.areas[0]!, 0, r.state, art);
+    expect(area.rot).toBe(0);
+    expect(area.exits).toBe("N");                          // exit markers still reflect what is usable
+    const tile = art.tiles.find((t) => t.tileId === area.tileId)!;
+    expect(tile.exits).toBe("NW");                         // the art is the printed corner, not a NE fallback
   });
 
   it("renders a descended corridor in its printed orientation (mirrored stair-up excluded)", () => {

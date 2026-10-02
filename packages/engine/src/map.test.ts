@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { tryMove } from "./map";
 import { decodeArea } from "./decode";
-import { DIR_N, DIR_S, DIR_UP, DIR_DOWN, packCoord } from "./coords";
+import { DIR_N, DIR_E, DIR_S, DIR_UP, DIR_DOWN, packCoord } from "./coords";
 import { AF_DESTROYED } from "./state";
 import { makeState } from "./testkit";
 
@@ -39,6 +39,27 @@ describe("tryMove (spec §6)", () => {
     // The Gateway's South exit bit (4) is now pruned.
     expect(decodeArea(r.state.areas[0]!.card).s).toBe(false);
     expect(r.state.partyArea).toBe(0); // party did not move
+  });
+
+  // The live card is pruned on a dead end, but the tile keeps its printed card so the renderer can
+  // still draw the tile as it was dealt (a pruned shape often has no art — e.g. N-only).
+  it("records the printed card on the first prune and keeps it across later prunes", () => {
+    // Draw 12 = S|W has no North door → dead end moving South; draw 3 = N|E has no West door → dead end moving East.
+    const s = makeState({ largePack: [12, 3], largeIdx: 0 });
+    const first = tryMove(s, DIR_S);
+    expect(first.state.areas[0]!.printedCard).toBe(175); // the Gateway as printed
+    expect(decodeArea(first.state.areas[0]!.card).s).toBe(false); // live card still pruned
+    const second = tryMove(first.state, DIR_E);
+    expect(decodeArea(second.state.areas[0]!.card).e).toBe(false);
+    expect(second.state.areas[0]!.printedCard).toBe(175); // first prune's card, not the half-pruned one
+  });
+
+  it("never gives an unpruned tile a printedCard", () => {
+    const s = makeState({ largePack: [5], largeIdx: 0 }); // 5 = N|S: has the South door a North move needs
+    const r = tryMove(s, DIR_N);
+    expect(r.moved).toBe(true);
+    expect("printedCard" in r.state.areas[0]!).toBe(false);
+    expect("printedCard" in r.state.areas[r.state.partyArea]!).toBe(false);
   });
 
   it("moves into an already-placed adjacent area without drawing", () => {

@@ -109,12 +109,15 @@ export function projectArea(
   pa: PlacedArea, idx: number, state: GameState, art: ArtTables, liveContents?: readonly number[],
 ): Area {
   const { level, x, y } = unpackCoord(pa.coord);
-  const { d, exits, special } = decodeTopology(pa.card);
+  const { d, exits, special } = decodeTopology(pa.card); // the doorways still usable
   // The tile is drawn in its PRINTED orientation: stairs added only for level connectivity
-  // (descent/carpet) are excluded from tile selection so the art is never rotated to fit.
+  // (descent/carpet) are excluded from tile selection so the art is never rotated to fit. A dead end
+  // prunes doorways off `card`, and a pruned shape often has no art (a North-only tunnel), so a tile
+  // that has been pruned is drawn from `printedCard` — keeping any stair revealed since.
   const mirrored = pa.mirroredStairs ?? 0;
+  const shown = decodeTopology(pa.printedCard === undefined ? pa.card : pa.printedCard | (pa.card & 96));
   const resolved = resolveTile(
-    { exits, stairUp: d.stairUp && (mirrored & 32) === 0, stairDown: d.stairDown && (mirrored & 64) === 0, special, isChamber: d.chamber },
+    { exits: shown.exits, stairUp: shown.d.stairUp && (mirrored & 32) === 0, stairDown: shown.d.stairDown && (mirrored & 64) === 0, special: shown.special, isChamber: shown.d.chamber },
     art.tiles,
   );
   // Dragons in the party's CURRENT area sleep while it holds the Charmed Flute (§ Charmed Flute);
