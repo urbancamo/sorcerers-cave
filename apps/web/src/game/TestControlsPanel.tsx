@@ -126,9 +126,9 @@ function EntityPicker({
  */
 export function TestControlsPanel({ state, dispatch, onSave }: { state: GameState; dispatch: (a: GameAction) => void; onSave?: () => void }) {
   const [dir, setDir] = useState(DIR_N);
-  // Kit gating (SC-Test-6): default to a base special when the kit is off, so the initial
-  // selection is never one the engine (and the filtered options below) would reject.
-  const [special, setSpecial] = useState(state.variants?.extensionKit ? SPECIAL_WHIRLPOOL : SPECIAL_DEEP_POOL);
+  // Default to the ordinary chamber — the usual thing to script. It is a plain tile, never kit-only, so
+  // the initial selection is one the engine (and the kit-filtered options below, SC-Test-6) always accepts.
+  const [special, setSpecial] = useState(TILE_CHAMBER);
   const [strangers, setStrangers] = useState<number[]>([]);
   const [treasures, setTreasures] = useState<number[]>([]);
   const [hazards, setHazards] = useState<number[]>([]);

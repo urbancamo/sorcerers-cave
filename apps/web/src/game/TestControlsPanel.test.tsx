@@ -19,6 +19,25 @@ describe("TestControlsPanel", () => {
     expect(screen.queryByTestId("test-controls")).toBeNull();
   });
 
+  // The common case is scripting an ordinary chamber, so the picker opens on it (whether or not the
+  // kit is on — it is a plain tile, never kit-only) rather than on a special area.
+  it("opens the area picker on Normal chamber, kit on or off", () => {
+    for (const state of [testState(), kitOnState()]) {
+      const { unmount } = render(<TestControlsPanel state={state} dispatch={() => {}} />);
+      const picker = screen.getByLabelText(/next area — special/i) as HTMLSelectElement;
+      expect(picker.value).toBe(String(TILE_CHAMBER));
+      expect(picker.selectedOptions[0]!.textContent).toBe("Normal chamber");
+      unmount();
+    }
+  });
+
+  it("queues a Normal chamber when the picker is left alone", () => {
+    const dispatch = vi.fn();
+    render(<TestControlsPanel state={testState()} dispatch={dispatch} />);
+    fireEvent.click(screen.getByRole("button", { name: /queue next area/i }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "testPlaceArea", dir: DIR_N, special: TILE_CHAMBER });
+  });
+
   it("queues testPlaceArea with the chosen direction and special (kit-on game)", () => {
     const dispatch = vi.fn();
     render(<TestControlsPanel state={kitOnState()} dispatch={dispatch} />);
