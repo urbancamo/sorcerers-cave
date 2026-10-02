@@ -20,7 +20,7 @@ import { PartyPanel } from "./PartyPanel";
 import { DiceRoll } from "./DiceRoll";
 import { rollFromEvents, type RollView } from "./rollView";
 import { NoticeModal } from "./NoticeModal";
-import { DragonSlayer } from "./DragonSlayer";
+import { FeatCelebration } from "./FeatCelebration";
 import { eventNotices, type Notice } from "./eventNotices";
 import { ChatPanel } from "./ChatPanel";
 import { GameOverScreen } from "./GameOverScreen";
@@ -371,7 +371,7 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
       {notices && <NoticeModal notices={notices} onClose={() => setNotices(null)} />}
       {!roll && fightRoll && <DiceRoll title={fightRoll.title} lanes={fightRoll.lanes} message={fightRoll.message} tone={fightRoll.tone} onContinue={clearFightRoll} />}
       {!notices && fightNotices && <NoticeModal notices={fightNotices} onClose={clearFightNotices} />}
-      {fightCelebration && <DragonSlayer view={fightCelebration} cards={cards ?? []} onContinue={clearFightCelebration} />}
+      {fightCelebration && <FeatCelebration view={fightCelebration} cards={cards ?? []} onContinue={clearFightCelebration} />}
       <div className={"scv-mp-chatdock" + (showChat ? " open" : "")}>
         <button className={"scv-mp-chattoggle" + (unreadChat ? " unread" : "")} onClick={() => setShowChat((s) => !s)}>
           {showChat ? "Hide chat ▾" : "Chat ▸"}

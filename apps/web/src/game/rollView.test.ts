@@ -91,8 +91,10 @@ describe("rollFromEvents", () => {
     const w = rollFromEvents(win)!;
     expect(w.title).toBe("The guardian statue");
     expect(w.lanes[0]!.enemy.name).toBe("Statue");
-    expect(w.message).toMatch(/wrest the lost ruby/i);
-    expect(w.message).toMatch(/\+20 points/i); // the Ruby's worth is shown on the win
+    // The overlay carries only the outcome; the prize wording ("You wrest the Lost Ruby… +20 points") is
+    // the celebration's job (feats.ts), so it is not repeated here.
+    expect(w.message).toBe("The guardian statue is overcome!");
+    expect(w.message).not.toMatch(/ruby|points/i);
     expect(w.tone).toBe("good");
 
     const loss: GameEvent[] = [
@@ -207,7 +209,8 @@ describe("rollFromEvents", () => {
     expect(nothing.message).toBe("It tastes of pond water. Nothing happens.");
     expect(nothing.tone).toBe("neutral");
     const strength = rollFromEvents([{ type: "elixirDrunk", creatureId: 0, roll: 6, outcome: "strength" }])!;
-    expect(strength.message).toBe("Hero feels power settle into their bones. (+2 fs)");
+    // Outcome only — "Hero feels power settle into their bones" and the +2 are the celebration's wording.
+    expect(strength.message).toBe("The draught takes hold.");
     expect(strength.tone).toBe("good");
   });
 

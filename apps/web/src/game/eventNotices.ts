@@ -144,7 +144,7 @@ export function eventNotices(events: GameEvent[]): Notice[] {
         if (e.creatureId === 15) out.push({ text: "The Demon collapses into ash.", tone: "good" });
         break;
       case "dragonSlain":
-        break; // celebrated by the dedicated DragonSlayer overlay (useDispatchWithRolls), not a text notice
+        break; // celebrated by the FeatCelebration overlay (feats.ts via useDispatchWithRolls), not a text notice
       case "crossedSpecial":
         // The Viper Pit crossing is shown by its dice overlay; only the Deep Pool needs a notice.
         if (e.special === SPECIAL_DEEP_POOL) out.push({ text: "The party wades through the Deep Pool…", tone: "neutral" });
@@ -244,11 +244,7 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "droppedRetaken":
         out.push({ text: `Your fighters reclaim ${plural(e.count, "treasure")} they set down for the fight.`, tone: "good" });
         break;
-      case "sorcererSlain":
-        out.push({
-          text: "🏆 The Sorcerer falls! You have vanquished the master of the cave — a feat few adventurers ever achieve. Congratulations, hero! (+30 to your final score)",
-          tone: "good",
-        });
+      case "sorcererSlain": // celebrated by the FeatCelebration overlay (feats.ts), not a text notice
         break;
       case "annihilated":
         out.push({ text: `The Eye of God annihilates ${name(e.creatureId)}!`, tone: "good" });

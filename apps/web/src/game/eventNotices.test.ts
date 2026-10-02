@@ -146,12 +146,10 @@ describe("eventNotices", () => {
     expect(eventNotices(handled)).toHaveLength(0);
   });
 
-  it("gives a celebratory congratulations when the Sorcerer is slain", () => {
-    const out = eventNotices([{ type: "sorcererSlain" }]);
-    expect(out).toHaveLength(1);
-    expect(out[0]!.tone).toBe("good");
-    expect(out[0]!.text).toContain("Sorcerer");
-    expect(out[0]!.text).toContain("Congratulations");
+  it("leaves the Sorcerer's fall (and the other celebrated feats) to the celebration overlay, not a text notice", () => {
+    // feats.ts words these; a notice as well would say everything twice.
+    expect(eventNotices([{ type: "sorcererSlain" }])).toEqual([]);
+    expect(eventNotices([{ type: "dragonSlain", creatureId: 12, kills: 1 }])).toEqual([]);
   });
 
   it("announces the Whirlpool's entry telegraph distinctly from Deep Pool / Viper Pit", () => {

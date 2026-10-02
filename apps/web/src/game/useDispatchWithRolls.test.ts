@@ -168,9 +168,9 @@ describe("useDispatchWithRolls", () => {
   });
 });
 
-// A single-handed dragon kill is celebrated in its own overlay, AFTER the fight result has been
-// dismissed (never on top of it, never instead of it).
-describe("useDispatchWithRolls — dragon-slayer celebration", () => {
+// A notable feat (dragon kill, the Sorcerer, the Ruby, the Elixir) is celebrated in its own overlay,
+// AFTER the fight result has been dismissed (never on top of it, never instead of it).
+describe("useDispatchWithRolls — feat celebrations", () => {
   const combat = (): GameEvent[] => [
     { type: "combatRoll", party: "Giant", enemy: "Dragon", partyRoll: 4, enemyRoll: 2, partyTotal: 11, enemyTotal: 8, result: "partyWon" } as GameEvent,
     { type: "strangerKilled", creatureId: 10 } as GameEvent,
@@ -195,14 +195,14 @@ describe("useDispatchWithRolls — dragon-slayer celebration", () => {
     ];
     const { result } = renderHook(() => useDispatchWithRolls(async () => ({ state: {}, events })));
     await act(async () => { await result.current.dispatchWithRolls({ type: "resolveRound" } as GameAction); });
-    expect(result.current.celebration?.kills).toBe(1);
+    expect(result.current.celebration?.headline).toBe("Your Giant has felled a dragon single-handed!");
     act(() => result.current.clearCelebration());
-    expect(result.current.celebration?.kills).toBe(2);
+    expect(result.current.celebration?.tally).toBe(2);
     act(() => result.current.clearCelebration());
     expect(result.current.celebration).toBeNull();
   });
 
-  it("is absent when no dragon was slain, and a later dispatch replaces an unread queue", async () => {
+  it("is absent when nothing was achieved, and a later dispatch replaces an unread queue", async () => {
     let events: GameEvent[] = reactionEvents;
     const { result } = renderHook(() => useDispatchWithRolls(async () => ({ state: {}, events })));
     await act(async () => { await result.current.dispatchWithRolls({ type: "test" } as GameAction); });
@@ -215,5 +215,19 @@ describe("useDispatchWithRolls — dragon-slayer celebration", () => {
     await act(async () => { await result.current.dispatchWithRolls({ type: "test" } as GameAction); });
     act(() => result.current.clearRoll());
     expect(result.current.celebration).toBeNull(); // stale queue dropped, not shown on the next action
+  });
+  it("celebrates the other feats too, in event order, behind the statue's dice overlay", async () => {
+    const events: GameEvent[] = [
+      { type: "combatRoll", party: "Hero", enemy: "Statue", partyRoll: 5, enemyRoll: 1, partyTotal: 10, enemyTotal: 9, result: "partyWon" } as GameEvent,
+      { type: "rubyTaken" } as GameEvent,
+      { type: "sorcererSlain" } as GameEvent,
+    ];
+    const { result } = renderHook(() => useDispatchWithRolls(async () => ({ state: {}, events })));
+    await act(async () => { await result.current.dispatchWithRolls({ type: "takeTreasure" } as GameAction); });
+    expect(result.current.celebration).toBeNull(); // the roll comes first
+    act(() => result.current.clearRoll());
+    expect(result.current.celebration?.id).toBe("ruby-wrested");
+    act(() => result.current.clearCelebration());
+    expect(result.current.celebration?.id).toBe("sorcerer-slain");
   });
 });

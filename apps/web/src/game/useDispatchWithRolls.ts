@@ -12,7 +12,7 @@ import { useCallback, useState } from "react";
 import type { GameAction, GameEvent } from "@sorcerers-cave/engine";
 import { rollFromEvents, type RollView } from "./rollView";
 import { eventNotices, type Notice } from "./eventNotices";
-import { dragonSlayersFromEvents, type DragonSlayerView } from "./dragonSlayerView";
+import { featsFromEvents, type FeatView } from "./feats";
 
 type DispatchResult = { state?: unknown; events?: GameEvent[]; midState?: unknown } | null;
 
@@ -22,9 +22,9 @@ export function useDispatchWithRolls<S = unknown>(
 ) {
   const [roll, setRoll] = useState<RollView | null>(null);
   const [notices, setNotices] = useState<Notice[] | null>(null);
-  // Dragon-slayer celebrations queued by the last dispatch; shown one at a time once nothing else
-  // (the fight result, notices) is on screen — see `celebration` below.
-  const [slayers, setSlayers] = useState<DragonSlayerView[]>([]);
+  // Feat celebrations (dragon-slayer, the Sorcerer, the Ruby, the Elixir) queued by the last dispatch;
+  // shown one at a time once nothing else (the fight result, notices) is on screen — see `celebration`.
+  const [feats, setFeats] = useState<FeatView[]>([]);
   const [pending, setPending] = useState(false);
   const [heldState, setHeldState] = useState<S | null>(null);
 
@@ -41,7 +41,7 @@ export function useDispatchWithRolls<S = unknown>(
         if (res?.midState != null) setHeldState(res.midState as S);
         const view = rollFromEvents(events);
         const ns = eventNotices(events);
-        setSlayers(dragonSlayersFromEvents(events)); // replaces any unread queue from an earlier action
+        setFeats(featsFromEvents(events)); // replaces any unread queue from an earlier action
         // A dice view (reaction / chest / combat) already summarises the outcome; otherwise
         // surface any silent-event notices (artifact effects, lulled dragons, …). The hold
         // persists while either is up; with neither there is nothing to wait for — release.
@@ -85,7 +85,7 @@ export function useDispatchWithRolls<S = unknown>(
   // outcome (roll/notices) is still presenting.
   const holding = pending || heldState !== null;
   // The celebration comes AFTER the fight result it follows: hidden while a roll or notices are up.
-  const celebration = !roll && !notices ? slayers[0] ?? null : null;
-  const clearCelebration = useCallback(() => setSlayers((q) => q.slice(1)), []);
+  const celebration = !roll && !notices ? feats[0] ?? null : null;
+  const clearCelebration = useCallback(() => setFeats((q) => q.slice(1)), []);
   return { roll, setRoll, notices, pending, holding, heldState, celebration, clearCelebration, dispatchWithRolls, holdMove, clearRoll, clearNotices };
 }

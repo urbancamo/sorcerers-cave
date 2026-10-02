@@ -20,7 +20,7 @@ import { eventNotices, type Notice } from "./eventNotices";
 import { useDispatchWithRolls } from "./useDispatchWithRolls";
 import { showFightSurface } from "./fightGate";
 import { NoticeModal } from "./NoticeModal";
-import { DragonSlayer } from "./DragonSlayer";
+import { FeatCelebration } from "./FeatCelebration";
 import { SaveGameModal } from "./SaveGameModal";
 import { GameLogModal } from "./GameLogModal";
 import type { GameLog } from "./gameLog";
@@ -222,12 +222,12 @@ export default function GameScreen() {
   fightShownRef.current = fightVisible;
 
   // Rendered on top of whatever screen is showing, so it survives a game-over transition.
-  // A single-handed dragon kill gets its own celebration AFTER the fight result (the hook only offers it
-  // once the roll and notices are dismissed).
+  // A notable feat (dragon kill, the Sorcerer, the Ruby, the Elixir) gets its own celebration AFTER the
+  // result it follows (the hook only offers it once the roll and notices are dismissed).
   const overlay = roll ? (
     <DiceRoll title={roll.title} lanes={roll.lanes} message={roll.message} tone={roll.tone} onContinue={clearRoll} />
   ) : celebration ? (
-    <DragonSlayer view={celebration} cards={cards ?? []} onContinue={clearCelebration} />
+    <FeatCelebration view={celebration} cards={cards ?? []} onContinue={clearCelebration} />
   ) : null;
 
   if (displayState.gs !== GS_PLAYING) {

@@ -1,7 +1,7 @@
 // ALL_CREATURES/ALL_TREASURES (not the base-only tables): the kit's dice-overlay events can name a
 // kit ally/stranger (14-21) — a Bell Rope puller, a Quarrel combatant, a Desertion roll, an Elixir
 // drinker. Byte-identical for ids 0-13.
-import { TREASURES, ALL_CREATURES, ALL_TREASURES, type GameEvent } from "@sorcerers-cave/engine";
+import { ALL_CREATURES, ALL_TREASURES, type GameEvent } from "@sorcerers-cave/engine";
 import type { Lane } from "./DiceRoll";
 
 export type Tone = "good" | "bad" | "neutral";
@@ -55,8 +55,9 @@ function combatView(events: GameEvent[]): RollView | null {
 
   // The Lost Ruby is guarded by a strength-8 statue (§16) — give that fight its own copy.
   if (rubyTaken || statue) {
+    // The win is just the outcome: the prize wording (the Ruby, its points) is the celebration's (feats.ts).
     const message = rubyTaken
-      ? `You wrest the Lost Ruby from the statue! (+${TREASURES[11]!.points} points)`
+      ? "The guardian statue is overcome!"
       : over
         ? "The statue strikes — the party is slain…"
         : "The statue strikes your champion down!";
@@ -212,7 +213,7 @@ function elixirView(events: GameEvent[]): RollView | null {
   const message =
     d.outcome === "death" ? `${drinker} convulses — poison!`
       : d.outcome === "nothing" ? "It tastes of pond water. Nothing happens."
-        : `${drinker} feels power settle into their bones. (+2 fs)`;
+        : "The draught takes hold."; // the prize wording ("…power settle into their bones", +2) is the celebration's (feats.ts)
   const tone: Tone = d.outcome === "death" ? "bad" : d.outcome === "nothing" ? "neutral" : "good";
   return { title: "The Elixir", lanes: [{ enemy: { value: d.roll } }], message, tone };
 }
