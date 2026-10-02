@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, act } from "@testing-library/react";
+import { render, screen, fireEvent, act, cleanup } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { replay, type GameState } from "@sorcerers-cave/engine";
 import { ReplayView, type ReplayBundle } from "./ReplayView";
@@ -88,6 +88,49 @@ describe("ReplayView — transport over ReplayFrames (§RB-4)", () => {
     expect(screen.queryByRole("button", { name: /attack|test|withdraw|save|quit the game/i })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /exit replay/i }));
     expect(onExit).toHaveBeenCalledOnce();
+  });
+});
+
+describe("ReplayView — keyboard arrows", () => {
+  it("ArrowRight steps to the next move and ArrowLeft to the previous", async () => {
+    await renderView();
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    expect(screen.getByText(/move 1 \/ 2/i)).toBeInTheDocument();
+    expect(canvas().dataset.turn).toBe(String(frames[1]!.state.turn));
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    expect(screen.getByText(/move 2 \/ 2/i)).toBeInTheDocument();
+    fireEvent.keyDown(window, { key: "ArrowLeft" });
+    expect(screen.getByText(/move 1 \/ 2/i)).toBeInTheDocument();
+  });
+
+  it("clamps at both ends, like the disabled buttons", async () => {
+    await renderView();
+    fireEvent.keyDown(window, { key: "ArrowLeft" });
+    expect(screen.getByText(/move 0 \/ 2/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /last/i }));
+    fireEvent.keyDown(window, { key: "ArrowRight" });
+    expect(screen.getByText(/move 2 \/ 2/i)).toBeInTheDocument();
+  });
+
+  it("leaves the arrows to the slider when it has focus (no double step)", async () => {
+    await renderView();
+    fireEvent.keyDown(screen.getByRole("slider", { name: /replay position/i }), { key: "ArrowRight" });
+    expect(screen.getByText(/move 0 \/ 2/i)).toBeInTheDocument(); // the browser steps the slider itself
+  });
+
+  it("ignores arrows combined with a modifier key (browser/OS shortcuts)", async () => {
+    await renderView();
+    fireEvent.keyDown(window, { key: "ArrowRight", altKey: true });
+    fireEvent.keyDown(window, { key: "ArrowRight", metaKey: true });
+    fireEvent.keyDown(window, { key: "ArrowRight", ctrlKey: true });
+    expect(screen.getByText(/move 0 \/ 2/i)).toBeInTheDocument();
+  });
+
+  it("stops listening once the replay is closed", async () => {
+    await renderView();
+    cleanup();
+    expect(() => fireEvent.keyDown(window, { key: "ArrowRight" })).not.toThrow();
+    expect(syncMock).not.toHaveBeenCalledWith(frames[1]!.state);
   });
 });
 

@@ -46,6 +46,20 @@ export function ReplayView({ bundle, onExit }: { bundle: ReplayBundle; onExit: (
     return () => clearTimeout(t);
   }, [playing, i, last]);
 
+  // Left/Right arrows mirror Previous/Next. Form controls are skipped so the position slider keeps
+  // its own native arrow handling (otherwise it would step twice), and modified arrows are left
+  // to the browser/OS (e.g. Alt+Left is "back").
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+      if (e.altKey || e.ctrlKey || e.metaKey || e.shiftKey) return;
+      if ((e.target as HTMLElement | null)?.closest?.("input, textarea, select, [contenteditable='true']")) return;
+      setI((n) => Math.max(0, Math.min(last, n + (e.key === "ArrowRight" ? 1 : -1))));
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [last]);
+
   const [art, setArt] = useState<ArtTables | null>(null);
   useEffect(() => { void loadManifest().then(setArt); }, []);
 
