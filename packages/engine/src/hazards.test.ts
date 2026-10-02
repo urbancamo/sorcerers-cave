@@ -107,6 +107,42 @@ describe("applyHazards (spec §7.2)", () => {
     expect(s.treasures).toEqual([2]);  // dropping their loot
   });
 
+  // The drawn Mutiny card stays on the tile it was drawn in (a display-only marker, like the Earthquake
+  // scar) — otherwise it vanishes with the live working set on the next interaction, which reads as
+  // nothing having happened when no ally deserts.
+  it("Mutiny lays its card on the tile it was drawn in, even when nobody deserts", () => {
+    const s = makeState({
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }], // originals only: no effect
+      hazards: [HAZARD_MUTINY],
+    });
+    const { events } = applyHazards(s);
+    expect(events).toContainEqual({ type: "hazardFired", hazard: HAZARD_MUTINY });
+    expect(events.some((e) => e.type === "mutinied")).toBe(false);
+    expect(s.areas[s.partyArea]!.markers).toEqual([300 + HAZARD_MUTINY]);
+  });
+
+  it("Mutiny lays its card when allies desert too, and the marker never re-fires", () => {
+    const s = makeState({
+      party: [
+        { creatureId: 0, status: 0, dragonKills: 0, treasure: [] },
+        { creatureId: 10, status: 1, dragonKills: 0, treasure: [] },
+      ],
+      hazards: [HAZARD_MUTINY],
+    });
+    applyHazards(s);
+    expect(s.areas[s.partyArea]!.markers).toEqual([300 + HAZARD_MUTINY]);
+    expect(s.areas[s.partyArea]!.contents).not.toContain(300 + HAZARD_MUTINY); // display-only, never parked
+  });
+
+  it("a hazard other than Mutiny leaves no marker on the current tile", () => {
+    const s = makeState({
+      party: [{ creatureId: 7, status: 0, dragonKills: 0, treasure: [] }],
+      hazards: [HAZARD_TRAP],
+    });
+    applyHazards(s);
+    expect(s.areas[s.partyArea]!.markers ?? []).toEqual([]);
+  });
+
   it("Trap drops the whole party one level (fell), negated by a Dwarf", () => {
     const withDwarf = makeState({
       party: [{ creatureId: 7, status: 0, dragonKills: 0, treasure: [] }],

@@ -32,6 +32,28 @@ describe("projectArea", () => {
     expect(a.hazards.some((c) => c.category === "hazard")).toBe(true);
   });
 
+  // Mutiny fires on the tile the party is standing on, so for that moment the live hazard card and its
+  // persisted marker are both on the floor — it must still render as one card, and keep rendering once
+  // the live working set is gone (the party has moved on).
+  it("shows a Mutiny marker once while its live card is also on screen, and after it is gone", () => {
+    const state = newGame(1, [0]);
+    const MUTINY = 300 + 0; // Mutiny (hazard id 0)
+    const pa = area({ markers: [MUTINY] });
+    const live = projectArea(pa, 0, state, art, [MUTINY]);
+    expect(live.hazards).toHaveLength(1);
+    const later = projectArea(pa, 0, state, art, []);
+    expect(later.hazards).toHaveLength(1);
+    const away = projectArea(pa, 0, state, art);
+    expect(away.hazards).toHaveLength(1);
+  });
+
+  it("still shows every marker when the live set holds a different card", () => {
+    const state = newGame(1, [0]);
+    const pa = area({ markers: [300 + 0, 300 + 2] }); // Mutiny + Earthquake scars
+    const a = projectArea(pa, 0, state, art, [300 + 4]); // a different live hazard
+    expect(a.hazards).toHaveLength(3);
+  });
+
   it("projects the gateway with resolved art and view coords", () => {
     const state = newGame(1, [0]);
     const a = projectArea(state.areas[0]!, 0, state, art);

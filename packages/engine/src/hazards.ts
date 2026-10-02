@@ -168,6 +168,11 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         break;
       }
       case HAZARD_MUTINY: {
+        // Leave the card on the tile it was drawn in (display-only, like the Earthquake scar) so it
+        // doesn't vanish with the live working set on the next interaction — whether or not anyone
+        // deserts (a party of originals only is untouched, which otherwise looks like nothing happened).
+        const here = state.areas[state.partyArea];
+        if (here) here.markers = [...(here.markers ?? []), 300 + HAZARD_MUTINY];
         const allies = state.party.filter((m) => m.status === 1);
         const originals = state.party.filter((m) => m.status === 0);
         // Extension kit (SC-EXT-18, design US-18): a Wolf ally is immune to Mutiny — excluded from

@@ -132,10 +132,20 @@ export function projectArea(
   // card)". Reuses the SAME code (200+21, Crypt/Gems) a "find" resolves onto the floor, so the visual
   // provenance is identical whether the crypt is still sealed or has already been opened.
   const cryptLurk = state.cryptCoord !== undefined && pa.coord === state.cryptCoord ? [200 + 21] : [];
+  const live = liveContents ?? pa.contents;
+  // A marker laid on the party's own tile (Mutiny) is also in the live working set until the party
+  // moves on — draw each such card once, not twice.
+  const unmatched = [...live];
+  const markers = (pa.markers ?? []).filter((m) => {
+    const i = unmatched.indexOf(m);
+    if (i < 0) return true;
+    unmatched.splice(i, 1);
+    return false;
+  });
   const floor = [
-    ...(liveContents ?? pa.contents),
+    ...live,
     ...(pa.dropped ?? []).map((t) => 200 + t),
-    ...(pa.markers ?? []),
+    ...markers,
     ...cryptLurk,
   ];
   const lanes = laneCards(floor, art.cards, dragonsAsleep);
