@@ -35,6 +35,8 @@ export function viewParty(state: GameState, cards: CardArt[] = []): ViewPartyMem
       lead: i === 0,
       card: resolveCard("creature", m.creatureId, cards)?.file ?? null,
       items,
+      dragonKills: m.dragonKills,  // each is shown as an inverted Dragon card in the roster (rosterCarry.ts)
+      dragonCard: resolveCard("creature", 10, cards)?.file ?? null, // the Dragon creature's small card
       carry: c.carry,
       load,
       fs: c.fs,

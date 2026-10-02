@@ -3,6 +3,7 @@ import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { Reveal } from './reveal.js';
 import { spriteRotationForScreenVector } from './billboard.js';
 import { fitDistance } from './camera-fit.js';
+import { carryRowHtml, escAttr } from './rosterCarry';
 
 /* ============================================================
    Sorcerer's Cave — 3D viewer + interactive navigation
@@ -790,7 +791,6 @@ function updateHUD(){
   tilesEl.classList.toggle('danger',low);
   if(low){ if(!deckWarned){ showToast('Only <b>'+s.deckLeft+'</b> tile cards left!'); deckWarned=true; } }
   else deckWarned=false;}
-function escAttr(s){return String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
 function renderRoster(){const b=document.getElementById('rosterBody');b.innerHTML='';
   PARTY.forEach(m=>{const row=document.createElement('div');row.className='mbr'+(m.lead?' lead':'')+(m.petrified?' petrified':'');
     const carry=m.carry||0, load=m.load||0, free=Math.max(0,carry-load);
@@ -798,15 +798,7 @@ function renderRoster(){const b=document.getElementById('rosterBody');b.innerHTM
     const cap=carry>0
       ? '<div class="cap"><div class="cap-bar"><i style="width:'+pct+'%"></i></div><span class="cap-tx">'+load+'/'+carry+' kg · '+free+' free</span></div>'
       : '<div class="cap"><span class="cap-tx none">no carry capacity</span></div>';
-    const items=Array.isArray(m.items)?m.items:[];
-    const carryRow=items.length
-      ? '<div class="carry">'+items.map(it=>{
-          const t=escAttr(it.name+(it.artifact?' · artifact':' · '+it.weight+'kg'));
-          return it.file
-            ? '<img class="tre'+(it.artifact?' art':'')+'" src="'+escAttr(it.file)+'" alt="'+escAttr(it.name)+'" title="'+t+'">'
-            : '<span class="tre ph'+(it.artifact?' art':'')+'" title="'+t+'">'+escAttr((it.name[0]||'?'))+'</span>';
-        }).join('')+'</div>'
-      : '<div class="carry"><span class="empty">empty-handed</span></div>';
+    const carryRow=carryRowHtml({items:Array.isArray(m.items)?m.items:[],dragonKills:m.dragonKills||0,dragonCard:m.dragonCard||null});
     const badge=m.petrified?'<span class="badge stone" title="Turned to stone — cure with a Magic Staff">stone</span>'
       :m.ally?'<span class="badge ally" title="Befriended ally">ally</span>':'';
     row.innerHTML='<div class="sig">'+escAttr(m.sig)+'</div><div class="who"><div class="nm-line"><span class="nm">'+escAttr(m.label||m.name)+'</span>'+badge+'</div>'+cap+carryRow+'</div>';

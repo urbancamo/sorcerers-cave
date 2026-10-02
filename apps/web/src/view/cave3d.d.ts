@@ -12,6 +12,8 @@ export interface ViewPartyMember {
   sig: string; name: string; label: string; lead?: boolean;
   card: string | null; // the member's creature small-card art (used to lay petrified members in the chamber)
   items: ViewItem[];
+  dragonKills: number;        // dragons felled single-handed (+1 fighting strength each)
+  dragonCard: string | null;  // the Dragon creature's small-card art, drawn inverted once per kill
   carry: number;  // capacity (kg)
   load: number;   // carried heavy weight (kg)
   fs: number; mp: number; charisma: boolean;

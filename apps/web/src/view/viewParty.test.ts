@@ -90,3 +90,18 @@ describe("viewParty", () => {
     expect(q.find((m) => m.name === "Man")).toMatchObject({ petrified: true, ally: false });
   });
 });
+
+describe("viewParty — dragon-slayer", () => {
+  it("carries each member's dragonKills and the Dragon card art for the compressed roster", () => {
+    const state = newGame(1, [5, 6]);
+    state.party[0]!.dragonKills = 2;
+    const cards = [{ cardId: "d", file: "/assets/cards/dragon.png", name: "Dragon", category: "creature" as const, entityId: 10 }];
+    const [slayer, other] = viewParty(state, cards);
+    expect(slayer).toMatchObject({ dragonKills: 2, dragonCard: "/assets/cards/dragon.png" });
+    expect(other).toMatchObject({ dragonKills: 0 });
+  });
+
+  it("has no dragon card art when the manifest has none", () => {
+    expect(viewParty(newGame(1, [5, 6]))[0]!.dragonCard).toBeNull();
+  });
+});
