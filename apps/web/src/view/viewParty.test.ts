@@ -92,16 +92,24 @@ describe("viewParty", () => {
 });
 
 describe("viewParty — dragon-slayer", () => {
-  it("carries each member's dragonKills and the Dragon card art for the compressed roster", () => {
+  it("carries each member's awards and the Dragon card art for the compressed roster", () => {
     const state = newGame(1, [5, 6]);
     state.party[0]!.dragonKills = 2;
     const cards = [{ cardId: "d", file: "/assets/cards/dragon.png", name: "Dragon", category: "creature" as const, entityId: 10 }];
     const [slayer, other] = viewParty(state, cards);
-    expect(slayer).toMatchObject({ dragonKills: 2, dragonCard: "/assets/cards/dragon.png" });
-    expect(other).toMatchObject({ dragonKills: 0 });
+    expect(slayer).toMatchObject({ awards: [{ kind: "dragon-slayer", count: 2 }], dragonCard: "/assets/cards/dragon.png" });
+    expect(other!.awards).toEqual([]);
   });
 
   it("has no dragon card art when the manifest has none", () => {
     expect(viewParty(newGame(1, [5, 6]))[0]!.dragonCard).toBeNull();
+  });
+});
+
+describe("viewParty — elixir", () => {
+  it("carries the Elixir's permanent bonus as an award", () => {
+    const state = newGame(1, [5, 6]);
+    state.party[0]!.fsBonus = 2;
+    expect(viewParty(state)[0]!.awards).toEqual([{ kind: "elixir", bonus: 2, title: "Elixir — +2 fighting strength, for ever" }]);
   });
 });

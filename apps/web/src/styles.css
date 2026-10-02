@@ -1320,6 +1320,8 @@
 .scv-pp-item.dragon-slain { border-color: var(--crimson); cursor: help; }
 .scv-pp-item.dragon-slain img { transform: rotate(180deg); }
 .scv-pp-item.dragon-slain .ph { transform: rotate(180deg); }
+/* An earned +N chip (the Elixir's permanent strength), the size of an item thumbnail, non-interactive. */
+.scv-pp-item.award-fs { display: grid; place-items: center; border-color: var(--brass); background: #2b2310; color: var(--brass-bright); font-family: var(--display); font-weight: 700; font-size: 13px; cursor: help; }
 .scv-pp-item.sel { outline: 2px solid var(--brass-bright); outline-offset: 2px; box-shadow: 0 0 14px -2px var(--brass-bright); z-index: 4; }
 /* Extension kit (SC-EXT-23/29, design US-25): the Idol's mystery-value glyph — a static "10×?"
    label, never a resolved number, until the game-over reveal rolls it. */

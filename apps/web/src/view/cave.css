@@ -137,6 +137,7 @@ canvas{display:block;touch-action:none;}
   border:1px solid var(--line-strong);background:#0d0d11;box-shadow:0 2px 5px -2px rgba(0,0,0,.7);}
 .mbr .who .carry .tre.art{border-color:var(--brass);box-shadow:0 0 7px -1px rgba(201,161,78,.55);}
 .mbr .who .carry .tre.dragon-slain{transform:rotate(180deg);border-color:var(--crimson);box-shadow:0 0 7px -1px rgba(168,68,58,.6);} /* the felled dragon's card, upside-down */
+.mbr .who .carry .tre.award{display:grid;place-items:center;font-family:var(--display);font-weight:700;font-size:11px;color:var(--brass-bright);background:#2b2310;border-color:var(--brass);cursor:help;} /* an earned +N, e.g. the Elixir's permanent strength */
 .mbr .who .carry .tre.ph{display:grid;place-items:center;font-size:11px;color:var(--parchment);font-family:var(--display);}
 .mbr .who .carry .empty{font-size:10px;color:var(--stone-dim);font-style:italic;}
 

@@ -125,6 +125,23 @@ describe("PartyPanel", () => {
     expect(trophies[0]!.getAttribute("title")).toMatch(/dragon-slayer/i);
   });
 
+  it("shows the Elixir's permanent bonus on the member, and no 'empty-handed' beside it", () => {
+    const s = newGame(1, [0]); // a lone Hero, empty-handed
+    s.party[0]!.fsBonus = 2;
+    render(<PartyPanel state={s} dispatch={() => {}} onClose={() => {}} />);
+    const chip = document.querySelector(".scv-pp-item.award-fs");
+    expect(chip).not.toBeNull();
+    expect(chip!.textContent).toBe("+2");
+    expect(chip!.getAttribute("title")).toMatch(/elixir.*\+2 fighting strength/i);
+    expect(screen.queryByText("empty-handed")).toBeNull();
+  });
+
+  it("still says empty-handed when a member has neither items nor awards", () => {
+    render(<PartyPanel state={newGame(1, [0])} dispatch={() => {}} onClose={() => {}} />);
+    expect(screen.getByText("empty-handed")).toBeInTheDocument();
+    expect(document.querySelector(".scv-pp-item.award-fs")).toBeNull();
+  });
+
   it("is view-only during a fight", () => {
     const s = partyState();
     s.phase = "fight";

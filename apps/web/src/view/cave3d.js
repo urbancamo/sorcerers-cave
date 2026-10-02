@@ -798,7 +798,7 @@ function renderRoster(){const b=document.getElementById('rosterBody');b.innerHTM
     const cap=carry>0
       ? '<div class="cap"><div class="cap-bar"><i style="width:'+pct+'%"></i></div><span class="cap-tx">'+load+'/'+carry+' kg · '+free+' free</span></div>'
       : '<div class="cap"><span class="cap-tx none">no carry capacity</span></div>';
-    const carryRow=carryRowHtml({items:Array.isArray(m.items)?m.items:[],dragonKills:m.dragonKills||0,dragonCard:m.dragonCard||null});
+    const carryRow=carryRowHtml({items:Array.isArray(m.items)?m.items:[],awards:Array.isArray(m.awards)?m.awards:[],dragonCard:m.dragonCard||null});
     const badge=m.petrified?'<span class="badge stone" title="Turned to stone — cure with a Magic Staff">stone</span>'
       :m.ally?'<span class="badge ally" title="Befriended ally">ally</span>':'';
     row.innerHTML='<div class="sig">'+escAttr(m.sig)+'</div><div class="who"><div class="nm-line"><span class="nm">'+escAttr(m.label||m.name)+'</span>'+badge+'</div>'+cap+carryRow+'</div>';

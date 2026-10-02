@@ -1,6 +1,7 @@
 import { ALL_CREATURES, ALL_TREASURES, FLAG_CHARISMA, type GameState } from "@sorcerers-cave/engine";
 import { resolveCard, type CardArt } from "../data/manifest";
 import { memberLabels } from "../game/memberLabels";
+import { awardsOf } from "../game/awards";
 import type { ViewPartyMember } from "./cave3d";
 
 const isAlive = (status: number) => status === 0 || status === 1; // original or ally (not stone/dead)
@@ -35,7 +36,7 @@ export function viewParty(state: GameState, cards: CardArt[] = []): ViewPartyMem
       lead: i === 0,
       card: resolveCard("creature", m.creatureId, cards)?.file ?? null,
       items,
-      dragonKills: m.dragonKills,  // each is shown as an inverted Dragon card in the roster (rosterCarry.ts)
+      awards: awardsOf(m),         // permanent marks, drawn after the items in the roster (rosterCarry.ts)
       dragonCard: resolveCard("creature", 10, cards)?.file ?? null, // the Dragon creature's small card
       carry: c.carry,
       load,

@@ -1,5 +1,6 @@
 import type { CaveEngine } from "./ports";
 import type { TileArt } from "../data/manifest";
+import type { Award } from "../game/awards";
 
 /** A treasure or artifact a member is carrying, with its small-card art (if resolved). */
 export interface ViewItem {
@@ -12,7 +13,7 @@ export interface ViewPartyMember {
   sig: string; name: string; label: string; lead?: boolean;
   card: string | null; // the member's creature small-card art (used to lay petrified members in the chamber)
   items: ViewItem[];
-  dragonKills: number;        // dragons felled single-handed (+1 fighting strength each)
+  awards: Award[];            // permanent earned marks (dragon-slayer, Elixir bonus) — see game/awards.ts
   dragonCard: string | null;  // the Dragon creature's small-card art, drawn inverted once per kill
   carry: number;  // capacity (kg)
   load: number;   // carried heavy weight (kg)

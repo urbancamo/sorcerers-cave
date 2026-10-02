@@ -5,6 +5,7 @@ import {
 } from "@sorcerers-cave/engine";
 import { memberLabels } from "./memberLabels";
 import { loadManifest, resolveCard, resolveCardVariant, type CardArt } from "../data/manifest";
+import { awardsOf } from "./awards";
 
 // Status badges mirror the in-cave roster (see view/cave3d.js renderRoster): a befriended member
 // shows the same green "ally" pill, a petrified one the grey "stone" pill, so the detailed party
@@ -110,6 +111,7 @@ export function PartyPanel({
             const living = m.status === 0 || m.status === 1;
             const isTarget = !!sel && canManage && sel.mi !== mi && living && selTid !== undefined && canCarry(m, selTid);
             const cimg = creatureImgOf(m.creatureId, mi);
+            const awards = awardsOf(m);
             return (
               <div key={mi} className={"scv-pp-member" + (m.status === 3 ? " fallen" : "") + (isTarget ? " target" : "")}>
                 <div className="scv-pp-card">
@@ -126,7 +128,7 @@ export function PartyPanel({
                   <span className="scv-pp-cap-tx">{cap > 0 ? `${load} / ${cap} kg` : "no capacity"}</span>
                 </div>
                 <div className="scv-pp-items">
-                  {m.treasure.length === 0 && m.dragonKills === 0 && <span className="scv-pp-empty">empty-handed</span>}
+                  {m.treasure.length === 0 && awards.length === 0 && <span className="scv-pp-empty">empty-handed</span>}
                   {m.treasure.map((tid, idx) => {
                     const t = ALL_TREASURES[tid]!;
                     const timg = imgOf("treasure", tid);
@@ -156,21 +158,25 @@ export function PartyPanel({
                       </button>
                     );
                   })}
-                  {/* Dragon-slayer: one inverted Dragon card per dragon felled single-handed, shown
-                      alongside the loot (mirrors the boxed game's upside-down dragon card). +1 FS each. */}
-                  {Array.from({ length: m.dragonKills }).map((_, k) => {
+                  {/* Earned awards (awards.ts — the compressed roster draws the same list): one inverted Dragon
+                      card per dragon felled single-handed (the boxed game's upside-down dragon card), and a
+                      "+N" chip for the Elixir's permanent strength. */}
+                  {awards.map((a) => {
+                    if (a.kind === "elixir") {
+                      return <span key="elixir" className="scv-pp-item award-fs" title={a.title}>+{a.bonus}</span>;
+                    }
                     const dimg = imgOf("creature", 10); // the Dragon card
-                    return (
+                    return Array.from({ length: a.count }).map((_, k) => (
                       <span
                         key={`dragon-${k}`}
                         className="scv-pp-item dragon-slain"
-                        title="Dragon-slayer — +1 fighting strength"
+                        title={a.title}
                         onMouseEnter={() => setPreview(dimg)}
                         onMouseLeave={() => setPreview((p) => (p === dimg ? null : p))}
                       >
                         {dimg ? <img src={dimg} alt="Dragon slain" /> : <span className="ph">🐉</span>}
                       </span>
-                    );
+                    ));
                   })}
                 </div>
                 {isTarget && <button className="scv-pp-give" onClick={() => move(mi)}>Move here</button>}
