@@ -7,8 +7,11 @@
 
 ## Symptom
 
-The party stands on a tunnel tile. The map shows a corridor running East into a chamber, but a
-move East is refused (`blocked`). The tiles look connected; the engine says they are not.
+After **resuming** the game, the party stands on a tunnel tile and the map shows a corridor running
+East into a chamber, but a move East is refused (`blocked`). The tiles look connected; the engine
+says they are not. The same game viewed in **Replay** (and in the live session before the resume)
+draws the tile correctly as an N+W tunnel, and the allowed movements match that correct tile — only
+the artwork of the resumed game is wrong.
 
 ## What actually happened (replayed from the log)
 
@@ -49,35 +52,44 @@ only uses `faceDown` for Spell remaps (≈ line 363). There is no card-back / hi
 dead-end chamber is rendered with its full art. By the rules (§Exploring the Cave) a dead-end card
 stays face-down until a party enters it from another direction. Not yet confirmed in a browser.
 
-## Replay evidence (2nd screenshot)
+## Replay vs resume (2nd screenshot) — why only a resumed game looks wrong
 
 Screenshot: [Screenshot 2026-10-02 at 08.49.09.png](Screenshot%202026-10-02%20at%2008.49.09.png) —
 the same area viewed in Replay mode, showing the tile as the correct **NW tunnel** (curve from North
-to West). This does not contradict the resumed-game screenshot; they are different moments.
+to West), while the resumed game (first screenshot) shows the NE fallback tile.
 
-Projecting every replay frame through the app's own `projectArea`:
+Both use the same engine state and the same `projectArea`. Projecting every replay frame:
 
-| frame | party | area 59 art |
+| frame | party | `projectArea` art for area 59 |
 |---|---|---|
-| 118 | on area 59 (just entered) | `s08-3` — NW tunnel (matches the replay screenshot) |
-| 119 | on area 59 (West move just failed) | `s01-1` — NE fallback |
-| 120–220 | elsewhere | `s01-1` |
-| 221 (final / live resume) | on area 59 | `s01-1` — NE fallback (matches the resumed-game screenshot) |
+| 118 | on area 59 (just entered) | `s08-3` — NW tunnel |
+| 119 onward (incl. 221, the final/resumed state) | 119 and 221 on area 59 | `s01-1` — NE fallback |
 
-The party token is on the tile in the replay screenshot, and the party is on area 59 only at frames
-118, 119 and 221; 119 and 221 draw `s01-1`, so the screenshot is frame 118.
+So the *data* says NE from frame 119 on, yet the replay looks right. The difference is in the 3D view:
+`reconcileTiles` (`view/cave3d.js:362-370`) **deliberately does not redraw an existing tile whose art
+changes because of a prune** — an earlier fix, because swapping the mesh "redrew the tile the party
+is standing on". A tile mesh is therefore built once, from the card as it was when the tile was
+placed, and later prunes are ignored.
 
-**Easiest repro:** open the replay for `WAMV`, go to move 118, then step forward one move. The tile
-changes from the NW curve to the straight NE corridor at move 119 — the moment the West door is
-pruned — and stays that way for the rest of the game, including after a resume.
+- **Live play and replay stepping:** area 59's mesh was built at frame 118 from the N+W card (NW art)
+  and is never rebuilt, so the tile keeps looking correct.
+- **Resume (and any fresh load / a replay jump past frame 119 without stepping through 118):** every
+  mesh is built from the *saved* state, where the card has already been pruned to N-only. No art
+  matches, `projection.ts:153` falls back to `art.tiles[0]` (`s01-1`, NE), and the tile is drawn
+  wrong.
 
-The bug is therefore in how pruned tiles are drawn, not in resume/persistence: live play, resume and
-replay all use the same engine state and projection and agree frame-for-frame.
+So the engine's movement is correct throughout and matches the correct (replay) rendering — only the
+artwork for a tile built from a pruned card is wrong. **Resuming is what exposes the bug.**
+
+**Repro:** (a) resume `WAMV` — the party's tile is the NE corridor; or (b) in the replay, drag the
+slider straight from the start to ~move 150 without stepping through move 118 — area 59 is first
+built from a pruned state and appears as NE.
 
 ## Things that are NOT the cause
 
-- **Resuming the game.** The saved Convex state matches an engine replay of the log exactly
-  (area 57 `faceUp:false`, area 59 `card:1`).
+- **Corrupt saved data.** The saved Convex state matches an engine replay of the log exactly
+  (area 57 `faceUp:false`, area 59 `card:1`). The data is right; resuming merely rebuilds every tile
+  mesh from it, which is what exposes the art bug (see above).
 - **`forcedRedraw`.** Convex `FORCED_REDRAW_ENABLED` is `0` and WAMV's variants are
   `{extensionKit:true}`. Pruning is the *default* dead-end behaviour (spec SC-6.1-9 / SC-6.1-10);
   `forcedRedraw` only adds an optional rescue when the party is completely stuck (SC-6.3-2). The
@@ -98,22 +110,30 @@ replay all use the same engine state and projection and agree frame-for-frame.
 
 ## Suggested fix direction
 
-- **Preferred (part of the dead-end rewrite):** stop mutating `card`. Derive "can I go this way?"
-  from the neighbouring tile each time (none → draw; matching reverse door → open; otherwise
-  blocked; `AF_DESTROYED` → blocked). Nothing then needs to be stored on the card. About 15
-  call sites read exits from `card` (`map.ts`, `selectors.ts`, `reduce.ts`, `multi*.ts`).
-- **Stopgap (not recommended while the rewrite is pending):** save the printed card on first prune
-  (optional `printedCard`, absent when never pruned) and render from it; existing saves keep the
-  old fallback.
-- Replace the silent `art.tiles[0]` fallback with a visible error/log so an unmatched shape is
-  never drawn as a plausible wrong tile.
-- Any engine change must update `docs/specs/engine-spec.md` (SC-6.1-4, 6.1-9, 6.1-10, 6.3-1).
+Movement is correct; only the art for a pruned tile is wrong, so the fix can be small and does not
+need the dead-end rewrite:
+
+1. **Engine:** on the first prune of a tile, record its original card in a new optional
+   `PlacedArea.printedCard` (cleared again if the forced-redraw rescue undoes the prune; absent for
+   tiles that never lose a door). Precedent: `PlacedArea.mirroredStairs` ("always drawn in its
+   printed orientation"). Edits at `map.ts:191`, `:277` (prune) and `:290` (restore).
+2. **Renderer:** `projectArea` uses `printedCard ?? card` for tile selection, so a fresh build gets the
+   real NW art. Keep the `reconcileTiles` no-swap behaviour.
+3. **Existing saves (WAMV):** no `printedCard`, so infer the printed shape from the live exits plus
+   the directions whose neighbour exists and does not connect back; use it only when exactly one
+   catalogue tile fits, otherwise keep today's fallback. For area 59 the only fit is NW (W blocked by
+   the card with no East door; E not blocked, since area 57 has a matching West door; no S neighbour).
+4. Replace the silent `art.tiles[0]` fallback with a visible error/log.
+5. Update `docs/specs/engine-spec.md` (SC-6.1-9, SC-6.1-10, state table) and add tests.
+
+The broader dead-end rewrite (stop mutating `card`; derive blocked doorways from the neighbouring
+tile) remains a separate, optional follow-up.
 
 ## Regression test
 
-Replay `WAMV-log.json` through `seq 119`. Assert area 59 still has doorways N+W, projects to a
-NW tile (not `s01-1`), a West move is `blocked`/dead-end without altering area 59's card, and no
-East exit is drawn. Full replay: a move East from the final state returns `blocked`.
+Replay `WAMV-log.json` to the final state. Assert `projectArea` for area 59 returns the NW tile
+(`s08-3`, not `s01-1`) even though its live card is N-only, and that a move East from the final
+state is still `blocked`. Also assert a never-pruned tile is unaffected (`printedCard` absent).
 
 ## Repro
 
