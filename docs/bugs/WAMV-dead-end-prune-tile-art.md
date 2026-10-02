@@ -3,7 +3,7 @@
 > Reported: 2026-10-02
 > Game: `WAMV` (solo, extension kit on, `forcedRedraw` off) — log: [WAMV-log.json](WAMV-log.json)
 > Screenshot: [Screenshot 2026-10-02 at 08.19.32.png](Screenshot%202026-10-02%20at%2008.19.32.png)
-> Status: open — dead-end logic is due a rewrite; no code changed
+> Status: fixed for new tiles via `PlacedArea.printedCard` (SC-6.1-19); games saved before the fix are not repaired. The broader dead-end rewrite is still pending.
 
 ## Symptom
 
@@ -81,7 +81,7 @@ placed, and later prunes are ignored.
 So the engine's movement is correct throughout and matches the correct (replay) rendering — only the
 artwork for a tile built from a pruned card is wrong. **Resuming is what exposes the bug.**
 
-**Repro:** (a) resume `WAMV` — the party's tile is the NE corridor; or (b) in the replay, drag the
+**Repro (before the fix):** (a) resume `WAMV` — the party's tile is the NE corridor; or (b) in the replay, drag the
 slider straight from the start to ~move 150 without stepping through move 118 — area 59 is first
 built from a pruned state and appears as NE.
 
@@ -117,14 +117,11 @@ need the dead-end rewrite:
    `PlacedArea.printedCard` (cleared again if the forced-redraw rescue undoes the prune; absent for
    tiles that never lose a door). Precedent: `PlacedArea.mirroredStairs` ("always drawn in its
    printed orientation"). Edits at `map.ts:191`, `:277` (prune) and `:290` (restore).
-2. **Renderer:** `projectArea` uses `printedCard ?? card` for tile selection, so a fresh build gets the
+2. **Renderer:** `projectArea` selects tile art from `printedCard` (plus any stair revealed since; `card` when never pruned), so a fresh build gets the
    real NW art. Keep the `reconcileTiles` no-swap behaviour.
-3. **Existing saves (WAMV):** no `printedCard`, so infer the printed shape from the live exits plus
-   the directions whose neighbour exists and does not connect back; use it only when exactly one
-   catalogue tile fits, otherwise keep today's fallback. For area 59 the only fit is NW (W blocked by
-   the card with no East door; E not blocked, since area 57 has a matching West door; no S neighbour).
-4. Replace the silent `art.tiles[0]` fallback with a visible error/log.
-5. Update `docs/specs/engine-spec.md` (SC-6.1-9, SC-6.1-10, state table) and add tests.
+3. **Existing saves (WAMV):** not repaired, by decision — a game saved with a pruned card keeps the
+   fallback art on resume (the tile has no `printedCard`).
+4. Update `docs/specs/engine-spec.md` (SC-6.1-9, SC-6.1-10, state table) and add tests.
 
 The broader dead-end rewrite (stop mutating `card`; derive blocked doorways from the neighbouring
 tile) remains a separate, optional follow-up.
