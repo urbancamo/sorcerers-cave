@@ -217,6 +217,10 @@ between rounds, and the stranger side is never an attacker. Implementing the rev
 All of it ships behind a per-game rules flag (`variants.combatRevision`) so in-flight games, saved codes,
 replays and golden snapshots keep their current behaviour.
 
+Two engine corrections from Peter's response are also needed, and are part of M0 (§4.4.2, §4.4.3): a **capability table**
+so "uses artefacts as" is honoured (a Thief, Witch, Scholar or Apprentice currently gets no bonus from artefacts a Man,
+Priest or Wizard would), and an **area-wide Eye of God** (today only an Eye held by the party counts).
+
 The engine phases follow the **Combat Round Overview** in the high-level spec one-to-one (§4.2.0). Two of its
 steps — *Triggering a Fight* and *Ending a Fight* — are not defined by any rules document yet (Q-R1, Q-R14).
 
@@ -230,7 +234,7 @@ The questions that block the start of M1 are marked **★** in the register abov
 
 | Aspect | Today | Where |
 |---|---|---|
-| Strangers | `state.strangers: number[]` — creature ids only. No equipment, no per-stranger state. Chamber draw is capped at `MAX_STRANGERS = 8`. | `state.ts`, `chamber.ts:6` |
+| Strangers | `state.strangers: number[]` — creature ids only. No equipment, no per-stranger state. Chamber draw is capped at `MAX_STRANGERS = 8`, but a **Mutiny** adds every ally as a stranger with **no cap** (WAMV reached 14; theoretical ceilings 37 standard / 48 extended, [neural-net feasibility study](2026-10-03b-neural-net-stranger-pairing-feasibility.md) §2.6). | `state.ts`, `chamber.ts:6` |
 | Who pairs | The **player** sends `resolveRound { matches: PlanMatch[] }` every round: per match `front[1–2]`, `backers[]`, `strangers[1–2]`. | `actions.ts:20`, `combatPlan.ts` |
 | Stranger "strategy" | None. When the party runs out of free fighters the engine auto-attaches the strongest leftover strangers onto lone fighters ("strongest combination", §395) and folds leftover enemy casters' MP into the first non-Spectre match. | `previewPlan`, SC-9.1-10/11 |
 | Roles | No attacker/defender concept. Round 1's `surprise` (+1 party, −1 strangers) is the only trace of who initiated. | `FightState` |
@@ -701,6 +705,11 @@ evaluate.formation(formation, valueOf): { expectedDiff: number; breakdown: PerMa
 > **Objective (one round):** maximise `E[party value lost] − E[stranger value lost]`, ties broken by total
 > effective strength, subject to the legality layer.
 
+**The dice roll is per match, not per party.** Peter's rule is that a strength gap above 5 in a match decides it in
+advance. So the evaluator clamps each match's margin to ±5 (or uses its win probability), and a round in which every
+achievable pairing is already decided skips the search and goes to the `standard` heuristic. Reasoning and its
+effect on the learned strategy: [neural-net feasibility study](2026-10-03b-neural-net-stranger-pairing-feasibility.md) §2.6 and §4.3a.
+
 | Level | Behaviour | Intent |
 |---|---|---|
 | `novice` | Legal but deliberately naive: runs only part of the default loadout (e.g. skips the Shield and Ring), pairs by simple strength ranking, never uses the Shield against casters | Easier game for new players |
@@ -744,9 +753,27 @@ generate it), and whether the model may see anything beyond the human-visible vi
 | Action validators | Add the new actions to **both** `game.ts` and `multiplayer.ts` validators. **Improvement I9:** define the action schema once (in the engine) and derive both validators so they cannot drift. |
 | Stranger actions | Registered only for internal functions; rejected by the public `applyAction`. |
 | Driver | `applyAction` / multiplayer equivalent call the built-in driver loop after reducing; external levels use the action path in §5.6. |
-| Log | `gameEvents` already stores `action: v.any()`; stranger decisions fit without a schema change. Add `strategyId`/`strategyVersion` fields inside the action payload. Old logs remain valid. |
+| Log | `gameEvents` already stores `action: v.any()`; stranger decisions fit without a schema change. Add `strategyId`/`strategyVersion` fields inside the action payload. Old logs remain valid for flag-off games, which keep the old engine. **Not enough for training data or for replaying across engine versions:** see §6.1. |
 | Saved games | A `combatRevision: false` game keeps `strangers: number[]` and the old engine. Enabling the flag on an existing game is **not** supported (a fight cannot change rules mid-game); only new games opt in. |
 | Document size | Stranger instances and persisted matches add a few hundred bytes to `state`; far below the 1 MB document limit. |
+
+### 6.1 Log content: what a recorded game must carry
+
+A review of the current log (`seed + picks + variants + testMode`, then `{action, events}` per move) found it
+replays a game exactly but cannot yet serve as training data, nor survive the rules change:
+
+- **Engine/rules version.** The log has only a format `version: 1`. Replaying an old log through the revised engine
+  diverges (the dice are consumed differently), so each log records the engine/rules version and the `combatRevision`
+  flag, and old logs are replayed only by a pinned engine.
+- **Structured combat record.** `combatRoll` holds display strings ("W-Hero + Man") and totals. Add a
+  `fightRoundResolved` event per match with creature ids and borne artefacts for both sides, each side's effective
+  strength with its breakdown, the formation chosen, who attacked, and which strategy decided. Training rows are then
+  self-contained and need no replay.
+- **Stranger decisions.** Loadout and pairing are already logged as tagged actions (§5.2); they are the only labels
+  a learned strategy can be compared with, because today only the *player's* pairing is recorded.
+- **Multiplayer.** Only the solo path appears to write `gameEvents` (multiplayer logs narration messages), so
+  multiplayer fights have no per-seat action log. To be confirmed, then fixed with a seat on every recorded action.
+- **Test-mode games** carry `testMode` and must be excluded from training data.
 
 ---
 
@@ -802,8 +829,10 @@ now visible on the fight surface. `PvpFightSurface` follows in M7.
 
 - **Scenario space.** A scenario is `(party multiset + artefacts, stranger multiset + artefacts, level, surprise,
   who attacks)`. Enumerate by **canonical multisets** (creatures of the same type are interchangeable up to
-  artefact placement), which cuts the space by orders of magnitude. Sizes are bounded by `MAX_STRANGERS = 8` and
-  a configurable party cap; the exhaustive sweep targets small fights (≤ 4 per side) and *samples* above that.
+  artefact placement), which cuts the space by orders of magnitude. A chamber draw is bounded by `MAX_STRANGERS = 8` (at most 6 cards in practice), but a **Mutiny** can make the
+  stranger side far larger (ceilings 37 / 48, feasibility study §2.6), so Mutiny-sized fights are a separate
+  stratum: the bench samples them and the `standard` heuristic decides them. The exhaustive sweep targets small fights
+  (≤ 4 per side) and *samples* above that.
   (Estimated counts must be measured — they are not asserted here.)
 - **Exact round evaluation.** Because a match is two d6, the bench scores a strategy's formation with
   `evaluate.formation` (no dice, no variance) — so strategies can be ranked on millions of scenarios cheaply.
