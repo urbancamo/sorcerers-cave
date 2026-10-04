@@ -267,6 +267,18 @@ describe("extension kit (SC-EXT-29, design US-01) — game log", () => {
   });
 });
 
+describe("stranger loadout events — gameLog", () => {
+  it("describes a stranger taking up, or vanishing with, a fight artefact", () => {
+    expect(describeEvent({ type: "strangerEquipped", creatureId: 0, artifact: 3 })).toBe("Hero (stranger) took up the Magic Sword");
+    expect(describeEvent({ type: "strangerVanished", creatureId: 5, artifact: 10 })).toBe("Man (stranger) vanished with The Ring");
+  });
+
+  it("gives both events a compact code", () => {
+    expect(eventCode({ type: "strangerEquipped", creatureId: 0, artifact: 3 })).toMatch(/^EQP /);
+    expect(eventCode({ type: "strangerVanished", creatureId: 5, artifact: 10 })).toMatch(/^VAN /);
+  });
+});
+
 describe("extension kit event coverage (review fix, Task 16) — gameLog", () => {
   it("names a kit creature/treasure by their real name, not 'creature N'/'treasure N' (SC-EXT-29)", () => {
     // creature()/treasure() (gameLog.ts) previously resolved via the base-only CREATURES/TREASURES

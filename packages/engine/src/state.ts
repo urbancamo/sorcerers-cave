@@ -111,6 +111,11 @@ export interface FightState {
   // A retreat this round hit a dead end (§Retreat): no further retreat may be tried — the party must
   // fight another round. Cleared when a round is actually fought.
   retreatBlocked?: boolean;
+  // Stranger loadout (Peter's default loadout, docs/rules/strangers-default-loadout-v2-20261003.md):
+  // the fight artefacts each stranger bears, indexed exactly like `state.strangers` (see strangerGear.ts,
+  // which keeps the two aligned). Absent unless some stranger bears something, so a fight in which
+  // nobody is equipped leaves the state byte-identical to before the loadout existed.
+  gear?: number[][];
 }
 
 /** One pairing in a battle plan: party fighters (front), supporting casters (backers), and the

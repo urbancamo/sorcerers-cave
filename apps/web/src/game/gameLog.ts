@@ -156,6 +156,8 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "trapAvoided": return "a dwarf guided the party past a trap";
     case "memberDied": return `${creature(e.creatureId)} was slain`;
     case "strangerKilled": return `${creature(e.creatureId)} (stranger) was slain`;
+    case "strangerEquipped": return `${creature(e.creatureId)} (stranger) took up the ${treasure(e.artifact)}`;
+    case "strangerVanished": return `${creature(e.creatureId)} (stranger) vanished with ${treasure(e.artifact)}`;
     case "dragonSlain": return `${creature(e.creatureId)} slew a dragon single-handed — Dragon-slayer ×${e.kills} (+${e.kills} fighting strength)`;
     case "sorcererSlain": return "the Sorcerer was slain (+30)";
     case "spectreSlew": return `a Spectre slew ${creature(e.creatureId)}`;
@@ -460,6 +462,8 @@ export function eventCode(e: GameEvent): string | null {
     case "casualtyChosen": return `CAS ${cr3(e.creatureId)} R${e.roll}`;
     case "memberDied": return `DIE ${cr3(e.creatureId)}`;
     case "strangerKilled": return `KIL ${cr3(e.creatureId)}`;
+    case "strangerEquipped": return `EQP ${cr3(e.creatureId)} ${tr3(e.artifact)}`;
+    case "strangerVanished": return `VAN ${cr3(e.creatureId)} ${tr3(e.artifact)}`;
     case "spectreSlew": return `SLW ${cr3(e.creatureId)}`;
     case "memberRevived": return `RVV ${cr3(e.creatureId)}`;
     case "dragonSlain": return `DRG SLN ${cr3(e.creatureId)}`;
@@ -592,7 +596,7 @@ function legend(kitOn: boolean): string[] {
     ...rows("TILE", ["CHM=CHAMBER", "TUN=TUNNEL", "GTW=GATEWAY", "POL=DEEP POOL", "VPT=VIPER PIT", "TMB=TOMB", "HAL=GREAT HALL"]),
     ...rows("TILE COLS", ["EXT: N/E/S/W OPEN, - WALL", "STR: U UP, D DOWN"]),
     ...rows("ACTION", ["MOV=MOVE", "RET=RETREAT", "OUT=EXIT CAVE", "WDR=WITHDRAW", "TST=TEST", "ATK=ATTACK", "FGT=FIGHT ROUND", "TAK=TAKE", "GIV=GIVE", "DRP=DROP", "BER=BEAR", "STW=STOW", "LVE=LEAVE", "RTK=RETAKE", "USE=USE ARTEFACT", "OPN=OPEN CHEST", "CAS=CASUALTY", "PRO=PROCEED (MEDUSA)", "QIT=QUIT"]),
-    ...rows("EVENT", ["DRW=DREW (S:STRANGERS T:TREASURE H:HAZARDS)", "RCT=REACTION (HOS/IND/FRD)", "JOI=JOINED", "PAC=PACIFIED", "FGT SUP=FIGHT ON", "CBT=COMBAT (SIDE # V FOE # WON/LOS/TIE)", "WON=PARTY WON", "DIE=MEMBER DIED", "KIL=STRANGER SLAIN", "SLW=SPECTRE SLEW", "CAS=CASUALTY (R# DIE)"]),
+    ...rows("EVENT", ["DRW=DREW (S:STRANGERS T:TREASURE H:HAZARDS)", "RCT=REACTION (HOS/IND/FRD)", "JOI=JOINED", "PAC=PACIFIED", "FGT SUP=FIGHT ON", "CBT=COMBAT (SIDE # V FOE # WON/LOS/TIE)", "WON=PARTY WON", "DIE=MEMBER DIED", "KIL=STRANGER SLAIN", "EQP=STRANGER TOOK UP ARTEFACT", "VAN=STRANGER VANISHED WITH RING", "SLW=SPECTRE SLEW", "CAS=CASUALTY (R# DIE)"]),
     ...rows("EVENT", ["HAZ=HAZARD (SEE KEY HAZARD)", "TRP=TRAP", "ESP/XSP=ENTER/CROSS SPECIAL", "TDR/TRC=POOL DROP/RECOVER", "FDR=FIGHT DROP", "RCL=RECLAIM", "END=GAME OVER (ESC/DED/QIT)", "DED=DEAD END", "SEC=SECRET DOOR", "SPL=ITEMS SPILLED", "ANH=ANNIHILATE", "WRD=WARD OFF", "RVV=REVIVE", "SAV=RING SAVE"]),
   ];
 }

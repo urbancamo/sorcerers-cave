@@ -5,7 +5,10 @@ import { rollDieForState } from "./rng";
 import { ALL_CREATURES as CREATURES } from "./data/creatures";
 import { ALL_TREASURES } from "./data/treasures";
 import { frontStrength, casterMP, partyRollBonus, isCaster } from "./combat";
-import { eyeActive, ringInvincible, activeCurses, eyeForsakenByDeath, markDied, revertApprenticesOnSorcererDeath, shieldWardActive } from "./effects";
+import { eyePresent, ringInvincible, activeCurses, eyeForsakenByDeath, markDied, revertApprenticesOnSorcererDeath, shieldWardActive } from "./effects";
+import { equipStrangers } from "./strangerEquip";
+import { removeStranger, gearOf } from "./strangerGear";
+import { swordBonus, axeBonus, staffBonus, swordFightsSpectre, shieldEligible } from "./capabilities";
 import type { GameState, PartyMember, BattlePlan } from "./state";
 import type { GameEvent } from "./actions";
 
@@ -19,6 +22,7 @@ const C_DEMON = 15;
 const T_MAGIC_SWORD = 3;
 const T_MAGIC_STAFF = 9;
 const T_THE_RING = 10;
+const T_MAGIC_SHIELD = 20;
 const T_MAGIC_AXE = 17; // extension-kit treasure (SC-EXT-26) — mere possession is enough for the Demon predicate below; the fs bonus itself lives in combat.ts's frontStrength, mirrored here only for this file's own modifier-chip display
 
 export type PlanError =
@@ -33,12 +37,12 @@ const living = (state: GameState, i: number): boolean => {
 
 /** A Man/Woman/Hero/W-Hero bearing the Magic Sword may fight a Spectre hand-to-hand (§Spectre). */
 const canSwordSpectre = (state: GameState, m: PartyMember): boolean =>
-  !eyeActive(state) && m.treasure.includes(T_MAGIC_SWORD) && [0, 1, 5, 6].includes(m.creatureId);
+  !eyePresent(state) && m.treasure.includes(T_MAGIC_SWORD) && swordFightsSpectre(m.creatureId);
 
 /** Any bearer of the Magic Axe may fight a Demon hand-to-hand, even with mp 0 — no species
  *  restriction, unlike the Sword's Spectre precedent (design US-13/US-24, SC-EXT-21). */
 const canAxeDemon = (state: GameState, m: PartyMember): boolean =>
-  !eyeActive(state) && m.treasure.includes(T_MAGIC_AXE);
+  !eyePresent(state) && m.treasure.includes(T_MAGIC_AXE);
 
 const MAGIC_ONLY_IDS = [C_SPECTRE, C_DEMON];
 
@@ -170,7 +174,7 @@ export function validatePlan(state: GameState, plan: BattlePlan): { ok: true } |
 export function enemyMP(state: GameState, sid: number): number {
   if (sid === C_SORCERER) {
     let mp = CREATURES[C_SORCERER]!.mp;
-    if (eyeActive(state)) mp -= 2;
+    if (eyePresent(state)) mp -= 2;
     if (state.lotusOnSorcerer) mp -= 2;
     // Extension kit (SC-EXT-24): Holy Water's WEAKEN mode stacks with Lotus Dust/Eye exactly like
     // they already stack with each other — a separate flag, its own separate -2, summed here.
@@ -181,11 +185,47 @@ export function enemyMP(state: GameState, sid: number): number {
   // magic entirely, same as any non-Sorcerer foe (she has no Sorcerer-style partial resistance) —
   // Holy Water's -2 only matters when the Eye is inactive, floored at 0 same as the Sorcerer's own.
   if (sid === C_APPRENTICE) {
-    if (eyeActive(state)) return 0;
+    if (eyePresent(state)) return 0;
     return Math.max(0, CREATURES[C_APPRENTICE]!.mp - (state.holyWaterOnApprentice ? 2 : 0));
   }
-  return eyeActive(state) ? 0 : CREATURES[sid]!.mp;
+  return eyePresent(state) ? 0 : CREATURES[sid]!.mp;
 }
+
+const bears = (state: GameState, si: number, treasure: number): boolean => gearOf(state, si).includes(treasure);
+
+/** Fighting strength of stranger `si`: its card strength plus the bonus of any Sword or Axe it bears (nullified
+ *  by the Eye). Strangers' gear is what the default loadout handed them (strangerEquip.ts). */
+export function strangerFS(state: GameState, si: number): number {
+  const sid = state.strangers[si]!;
+  let fs = CREATURES[sid]!.fs;
+  if (!eyePresent(state)) {
+    if (bears(state, si, T_MAGIC_SWORD)) fs += swordBonus(sid);
+    if (bears(state, si, T_MAGIC_AXE)) fs += axeBonus(sid);
+  }
+  return fs;
+}
+
+/** Magical power of stranger `si`: `enemyMP` plus the bonus of a Magic Staff it bears (nullified by the Eye). */
+export function strangerMP(state: GameState, si: number): number {
+  const sid = state.strangers[si]!;
+  const base = enemyMP(state, sid);
+  return !eyePresent(state) && bears(state, si, T_MAGIC_STAFF) ? base + staffBonus(sid) : base;
+}
+
+/** Is stranger `si` bearing a live Magic Shield? (Only a Hero/Man/Woman class bearer has its ward live.) */
+const strangerShielded = (state: GameState, si: number): boolean =>
+  !eyePresent(state) && bears(state, si, T_MAGIC_SHIELD) && shieldEligible(state.strangers[si]!);
+
+/** Bonus the Ring gives the stranger side's die rolls: +1 when any stranger wears one (the bearer must be
+ *  a creature that can wear it, which the loadout guarantees); nullified by the Eye. */
+export function enemyRollBonus(state: GameState): number {
+  return !eyePresent(state) && state.strangers.some((_, si) => bears(state, si, T_THE_RING)) ? 1 : 0;
+}
+
+/** Is stranger `si` an invulnerable Ring bearer — level 4 or deeper, Ring worn, no Eye? ("On being defeated an
+ *  invulnerable stranger will disappear with the ring, leaving other treasure behind.") */
+const strangerInvincible = (state: GameState, si: number): boolean =>
+  state.level >= 4 && !eyePresent(state) && bears(state, si, T_THE_RING);
 
 /** A match as it will actually be fought: the player's front + backers, the foe(s) it faces (the
  *  player's target plus any auto-attached strongest-combination foes), and the resolved strengths. */
@@ -245,11 +285,11 @@ export function previewPlan(state: GameState, plan: BattlePlan): PlanPreview {
   if (!hasFreeFighter) {
     const engaged = new Set<number>(base.flatMap((mt) => mt.strangers));
     const leftover = state.strangers.map((_, i) => i).filter((i) => !engaged.has(i) && !isMagicOnlyIdx(state, i));
-    const extraHand = leftover.filter((i) => enemyMP(state, state.strangers[i]!) === 0)
-      .sort((a, b) => CREATURES[state.strangers[b]!]!.fs - CREATURES[state.strangers[a]!]!.fs);
+    const extraHand = leftover.filter((i) => strangerMP(state, i) === 0)
+      .sort((a, b) => strangerFS(state, b) - strangerFS(state, a));
     // Leftover enemy casters lend their magical power from the background, strongest first (§395).
-    leftoverCasterIdx = leftover.filter((i) => enemyMP(state, state.strangers[i]!) > 0)
-      .sort((a, b) => enemyMP(state, state.strangers[b]!) - enemyMP(state, state.strangers[a]!));
+    leftoverCasterIdx = leftover.filter((i) => strangerMP(state, i) > 0)
+      .sort((a, b) => strangerMP(state, b) - strangerMP(state, a));
     let ei = 0;
     for (const mt of base) {
       if (magicOnlyMatch(mt.strangers)) continue;
@@ -263,7 +303,7 @@ export function previewPlan(state: GameState, plan: BattlePlan): PlanPreview {
   const focus = base.find((mt) => !magicOnlyMatch(mt.strangers));
   if (focus) focus.enemyBackers = leftoverCasterIdx; // the folded magic shows on the focus match
 
-  const eye = eyeActive(state);
+  const eye = eyePresent(state);
   const round1 = state.fight?.round === 1;
   const named = (i: number) => CREATURES[state.party[i]!.creatureId]!.name;
 
@@ -273,23 +313,29 @@ export function previewPlan(state: GameState, plan: BattlePlan): PlanPreview {
     // the ordinary shieldWarded notice (redundant: the round never happens at all for this match, so
     // "turns the creature's power aside" would be misleading alongside "ignored for the round").
     const stalemate = isShieldStalemate(state, mt);
-    const memberStr = (i: number) => (magicOnly && casterMP(state.party[i]!, state) > 0 ? casterMP(state.party[i]!, state) : frontStrength(state.party[i]!, state));
-    const partyStr = mt.front.reduce((s, i) => s + memberStr(i), 0) + mt.backers.reduce((s, i) => s + casterMP(state.party[i]!, state), 0);
+    // A Magic Shield on a stranger in this match nullifies the magic of the party members matched against it
+    // (front and background alike); not applied to a magic-only (Spectre/Demon) match, where magic is the only way to fight.
+    const partyShieldedBy = magicOnly ? [] : mt.strangers.filter((si) => strangerShielded(state, si));
+    const partyMagicOff = partyShieldedBy.length > 0;
+    const memberStr = (i: number) => (magicOnly && casterMP(state.party[i]!, state) > 0 ? casterMP(state.party[i]!, state)
+      : partyMagicOff ? frontStrength(state.party[i]!, state) - casterMP(state.party[i]!, state)
+      : frontStrength(state.party[i]!, state));
+    const partyStr = mt.front.reduce((s, i) => s + memberStr(i), 0) + (partyMagicOff ? 0 : mt.backers.reduce((s, i) => s + casterMP(state.party[i]!, state), 0));
 
     // Extension kit (SC-EXT-27): the Magic Shield's ward, pairing-scoped to THIS match's own front
     // line — never `mt.enemyBackers` (leftover enemy casters lent from the background, §395, aren't
     // literally "paired" against anyone).
     const shielded = matchShielded(state, mt.front);
     const shieldWard: { creatureId: number; mode: "nullify" | "weaken" }[] = [];
-    const strangerMP = (si: number) => {
+    const wardedMP = (si: number) => {
       const sid = state.strangers[si]!;
-      const base = enemyMP(state, sid);
+      const base = strangerMP(state, si);
       if (!shielded || base === 0) return base; // 0 already — nothing for the ward to turn aside
       if (!stalemate) shieldWard.push({ creatureId: sid, mode: sid === C_SORCERER || sid === C_APPRENTICE ? "weaken" : "nullify" });
       return shieldedMP(sid, base);
     };
-    const enemyStr = mt.strangers.reduce((s, si) => s + CREATURES[state.strangers[si]!]!.fs + strangerMP(si), 0)
-      + mt.enemyBackers.reduce((s, si) => s + enemyMP(state, state.strangers[si]!), 0);
+    const enemyStr = mt.strangers.reduce((s, si) => s + strangerFS(state, si) + wardedMP(si), 0)
+      + mt.enemyBackers.reduce((s, si) => s + strangerMP(state, si), 0);
 
     // Modifiers in play for this matchup — artefact strength bonuses (already in the totals) plus the
     // roll-time adjustments (Ring / curse / surprise) that get added to the die.
@@ -297,12 +343,12 @@ export function previewPlan(state: GameState, plan: BattlePlan): PlanPreview {
     for (const i of mt.front) {
       const m = state.party[i]!, c = m.creatureId;
       if (!eye && m.treasure.includes(T_MAGIC_SWORD)) {
-        const v = c === 0 || c === 1 ? 2 : c === 5 || c === 6 ? 1 : 0; // Hero/W-Hero +2, Man/Woman +1
+        const v = swordBonus(c); // Hero class +2, Man/Woman class +1
         if (v) modifiers.push({ label: `Magic Sword · ${named(i)}`, value: v, side: "party", roll: false });
       }
       // Extension kit (SC-EXT-26): the Magic Axe's own bonus-table chip, mirroring the Sword's.
       if (!eye && m.treasure.includes(T_MAGIC_AXE)) {
-        const v = c === 7 ? 3 : [0, 1, 5, 6].includes(c) ? 1 : 0; // Dwarf +3, Hero/W-Hero/Man/Woman +1
+        const v = axeBonus(c); // Dwarf +3, Hero/Man/Woman class +1
         if (v) modifiers.push({ label: `Magic Axe · ${named(i)}`, value: v, side: "party", roll: false });
       }
       if (m.potionActive) modifiers.push({ label: `Strength Potion · ${named(i)}`, value: 2, side: "party", roll: false });
@@ -321,12 +367,26 @@ export function previewPlan(state: GameState, plan: BattlePlan): PlanPreview {
     for (const i of mt.backers) {
       const m = state.party[i]!, c = m.creatureId;
       if (!eye && m.treasure.includes(T_MAGIC_STAFF)) {
-        const v = c === 4 ? 1 : c === 8 ? 2 : 0; // Priest +1, Wizard +2
+        const v = staffBonus(c); // Priest class +1, Wizard class +2
         if (v) modifiers.push({ label: `Magic Staff · ${named(i)}`, value: v, side: "party", roll: false });
       }
     }
     if (!eye && state.party.some((m) => (m.status === 0 || m.status === 1) && m.treasure.includes(T_THE_RING))) {
       modifiers.push({ label: "The Ring", value: 1, side: "party", roll: true });
+    }
+    // What the strangers bear: the same chips as the party's, on the enemy side.
+    for (const si of mt.strangers) {
+      const sid = state.strangers[si]!, nm = CREATURES[sid]!.name;
+      if (!eye && bears(state, si, T_MAGIC_SWORD) && swordBonus(sid)) modifiers.push({ label: `Magic Sword · ${nm}`, value: swordBonus(sid), side: "enemy", roll: false });
+      if (!eye && bears(state, si, T_MAGIC_AXE) && axeBonus(sid)) modifiers.push({ label: `Magic Axe · ${nm}`, value: axeBonus(sid), side: "enemy", roll: false });
+      if (!eye && bears(state, si, T_MAGIC_STAFF) && staffBonus(sid)) modifiers.push({ label: `Magic Staff · ${nm}`, value: staffBonus(sid), side: "enemy", roll: false });
+    }
+    for (const si of state.strangers.keys()) {
+      if (!eye && bears(state, si, T_THE_RING) && mt.strangers.includes(si)) modifiers.push({ label: `The Ring · ${CREATURES[state.strangers[si]!]!.name}`, value: 1, side: "enemy", roll: true });
+    }
+    for (const si of partyShieldedBy) {
+      const lost = mt.front.reduce((a, i) => a + casterMP(state.party[i]!, state), 0) + mt.backers.reduce((a, i) => a + casterMP(state.party[i]!, state), 0);
+      modifiers.push({ label: `Magic Shield · ${CREATURES[state.strangers[si]!]!.name}`, value: -lost, side: "party", roll: false });
     }
     const curses = activeCurses(state); // a curse has no effect once the Sorcerer is dead (§Curse)
     if (curses > 0) modifiers.push({ label: curses > 1 ? `Curse ×${curses}` : "Curse", value: -curses, side: "party", roll: true });
@@ -359,6 +419,7 @@ export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEve
   const fight = state.fight!;
   const events: GameEvent[] = [];
   const rollBonus = partyRollBonus(state);
+  const enemyBonus = enemyRollBonus(state); // a Ring worn by a stranger (counts even if its bearer is slain this round)
   const surpriseParty = fight.round === 1 && fight.surprise === 1 ? 1 : 0;
   const surpriseEnemy = fight.round === 1 && fight.surprise === -1 ? 1 : 0;
   const killedStrangerIdx: number[] = [];
@@ -428,7 +489,7 @@ export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEve
     const partyRoll = rollDieForState(state);
     const enemyRoll = rollDieForState(state);
     const partyTotal = mt.partyStr + partyRoll + rollBonus + surpriseParty;
-    const enemyTotal = mt.enemyStr + enemyRoll + surpriseEnemy;
+    const enemyTotal = mt.enemyStr + enemyRoll + surpriseEnemy + enemyBonus;
     events.push({
       type: "combatRoll",
       party: mt.front.concat(mt.backers).map((i) => CREATURES[state.party[i]!.creatureId]!.name).join(" + "),
@@ -439,10 +500,16 @@ export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEve
 
     if (partyTotal > enemyTotal) {
       // §405: one of the foes is slain — the strongest of the match.
-      const weight = (x: number) => CREATURES[state.strangers[x]!]!.fs + enemyMP(state, state.strangers[x]!);
+      const weight = (x: number) => strangerFS(state, x) + strangerMP(state, x);
       const victim = mt.strangers.reduce((best, si) => (weight(si) > weight(best) ? si : best), mt.strangers[0]!);
       const sid = state.strangers[victim]!;
       killedStrangerIdx.push(victim);
+      // An invulnerable Ring bearer (level 4+) that is defeated disappears WITH the Ring, leaving its other gear behind.
+      if (strangerInvincible(state, victim)) {
+        const g = state.fight!.gear![victim]!;
+        g.splice(g.indexOf(T_THE_RING), 1);
+        events.push({ type: "strangerVanished", creatureId: sid, artifact: T_THE_RING });
+      }
       // Single-handed = one front fighter, the lone Dragon, and NO caster backer lending magic.
       const slayer = sid === C_DRAGON && front.length === 1 && mt.backers.length === 0 && mt.strangers.length === 1 ? front[0]! : undefined;
       if (slayer) slayer.dragonKills += 1;
@@ -468,8 +535,10 @@ export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEve
     // tie: no death
   }
 
-  killedStrangerIdx.sort((a, b) => b - a).forEach((i) => state.strangers.splice(i, 1));
+  killedStrangerIdx.sort((a, b) => b - a).forEach((i) => removeStranger(state, i)); // a dead bearer's gear drops to the floor
   fight.round += 1;
+  // A bearer's death (or a late arrival) can leave artefacts on the floor for a surviving stranger to take up.
+  events.push(...equipStrangers(state));
   if (pendingCasualties.length > 0) fight.casualtyQueue = pendingCasualties;
   return events;
 }

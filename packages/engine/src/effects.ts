@@ -1,5 +1,7 @@
 import { ALL_CREATURES as CREATURES, FLAG_BEFRIENDS_UNICORN, FLAG_HUMAN } from "./data/creatures";
 import { HAZARD_MEDUSA } from "./data/hazards";
+import { shieldEligible } from "./capabilities";
+import { removeStranger, addStranger } from "./strangerGear";
 import type { GameState, PartyMember } from "./state";
 import type { GameEvent } from "./actions";
 
@@ -8,9 +10,8 @@ const T_THE_RING = 10;
 const T_CHARMED_FLUTE = 12;
 const T_EYE_OF_GOD = 13;
 const T_MAGIC_SHIELD = 20; // extension-kit artifact (SC-EXT-27, design US-23)
-// The Magic Shield's ward is active only for these classes — the Sword's own "HERO includes
-// W-Hero" bonus roster (Resolved-9) — even though the Shield may sit in ANY member's `treasure`.
-const SHIELD_WARD_ELIGIBLE = [0, 1, 5, 6]; // Hero, W-Hero, Man, Woman
+// The Magic Shield's ward is active only for the Hero/Man/Woman capability classes (capabilities.ts:
+// W-Hero, and a Thief as a Man) even though the Shield may sit in ANY member's `treasure`.
 const C_SPECTRE = 9;
 const C_SORCERER = 11; // extension-kit Holy Water target — WEAKEN mode (design US-20, SC-EXT-24)
 const C_UNICORN = 13;
@@ -92,6 +93,17 @@ export function eyeActive(state: GameState): boolean {
 }
 
 /**
+ * The Eye of God is "present in the area" (Peter, 03-OCT-2026): it is always on in the area it is in —
+ * held by the party OR lying among the chamber's floor treasure (`state.treasures` is the live working
+ * set of the chamber being resolved). It then switches off every fight artefact and all magic, for BOTH
+ * sides, and the stranger loadout is skipped. Used by the fight code; the Eye's other powers (annihilating
+ * Spectres, the Scroll, Medusa) keep testing `eyeActive` (held) until a later stage widens them.
+ */
+export function eyePresent(state: GameState): boolean {
+  return eyeActive(state) || state.treasures.includes(T_EYE_OF_GOD);
+}
+
+/**
  * Curses currently in force against the party. A curse normally subtracts 1 from every die roll and
  * 30 from the final score, but "a curse has no effect if the Sorcerer is dead" (§Curse) — slaying him
  * lifts every curse at once. So once the Sorcerer is slain this is 0 regardless of how many were taken.
@@ -138,7 +150,7 @@ export function talismanWardsSpectres(state: GameState): boolean {
 
 /** The Ring makes its bearer immune to killing die-rolls on the 4th level or deeper (negated by an active Eye). */
 export function ringInvincible(member: PartyMember, state: GameState): boolean {
-  return state.level >= 4 && member.treasure.includes(T_THE_RING) && !eyeActive(state);
+  return state.level >= 4 && member.treasure.includes(T_THE_RING) && !eyePresent(state);
 }
 
 /**
@@ -152,8 +164,8 @@ export function ringInvincible(member: PartyMember, state: GameState): boolean {
  * PAIRING level by `combatPlan.ts` (once per match's own front line), never globally.
  */
 export function shieldWardActive(state: GameState, member: PartyMember): boolean {
-  return !eyeActive(state) && living(member) &&
-    SHIELD_WARD_ELIGIBLE.includes(member.creatureId) && member.treasure.includes(T_MAGIC_SHIELD);
+  return !eyePresent(state) && living(member) &&
+    shieldEligible(member.creatureId) && member.treasure.includes(T_MAGIC_SHIELD);
 }
 
 /** A living Woman (id 6) or W-Hero (id 1) is in the party — required to win and keep a Unicorn's loyalty. */
@@ -169,7 +181,7 @@ export function wardOffSpectres(state: GameState): GameEvent[] {
   const events: GameEvent[] = [];
   for (let i = state.strangers.length - 1; i >= 0; i--) {
     if (state.strangers[i] === C_SPECTRE) {
-      state.strangers.splice(i, 1);
+      removeStranger(state, i);
       events.push({ type: "wardedOff", creatureId: C_SPECTRE });
     }
   }
@@ -182,7 +194,7 @@ export function annihilateWithEye(state: GameState): GameEvent[] {
   const events: GameEvent[] = [];
   for (let i = state.strangers.length - 1; i >= 0; i--) {
     if (state.strangers[i] === C_SPECTRE) {
-      state.strangers.splice(i, 1);
+      removeStranger(state, i);
       events.push({ type: "annihilated", creatureId: C_SPECTRE });
     }
   }
@@ -205,7 +217,7 @@ export function revertApprenticesOnSorcererDeath(state: GameState): GameEvent[] 
   if (turned.length === 0) return [];
   const dropped: number[] = [];
   for (const a of turned) {
-    state.strangers.push(a.creatureId);
+    addStranger(state, a.creatureId);
     dropped.push(...a.treasure);
   }
   if (dropped.length) state.treasures.push(...dropped);

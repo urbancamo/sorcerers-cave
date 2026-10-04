@@ -3,7 +3,7 @@ import { type DragEvent, useEffect, useRef, useState } from "react";
 // can hold kit ids (14-21) the moment any fight begins — the base tables would crash before the
 // surface renders anything.
 import {
-  ALL_CREATURES, ALL_TREASURES, legalActions, validatePlan, previewPlan, frontStrength, casterMP, enemyMP,
+  ALL_CREATURES, ALL_TREASURES, legalActions, validatePlan, previewPlan, frontStrength, casterMP, strangerFS, strangerMP, gearOf,
   type GameState, type GameAction,
 } from "@sorcerers-cave/engine";
 import type { CardArt } from "../data/manifest";
@@ -104,8 +104,9 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
   const preview = previewPlan(state, { matches });
   // Show the EFFECTIVE foe strength the resolver fights with: an active Eye of God zeroes a stranger's
   // magic (and only reduces the Sorcerer), so a stranger Wizard reads 2, not 7, while the Eye is held.
-  const enemyStrOf = (si: number) => ALL_CREATURES[state.strangers[si]!]!.fs + enemyMP(state, state.strangers[si]!);
-  const enemyMpOf = (si: number) => enemyMP(state, state.strangers[si]!);
+  // Includes whatever the stranger bears (Sword/Axe/Staff), exactly as the resolver counts it.
+  const enemyStrOf = (si: number) => strangerFS(state, si) + strangerMP(state, si);
+  const enemyMpOf = (si: number) => strangerMP(state, si);
   // Forced no-magic-vs-Spectre round (§Spectre): every remaining foe is an un-fightable Spectre and no one
   // wields magic, so the ONLY legal plan is the empty one. This is a property of the STATE, not the current
   // draft — derive it from an empty-plan check so a player who *tries* to place a fighter (and hits
@@ -169,14 +170,14 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
               <span className="scv-match-slotlbl">✦ behind</span>
               {pm.enemyBackers.length ? pm.enemyBackers.map((si) => (
                 <FightCard key={`b${si}`} creatureId={state.strangers[si]!} kind="foe" strength={enemyMpOf(si)}
-                           cards={cards} state={state} variantIdx={strangerCopyIdx.get(si)} />
+                           treasure={[...gearOf(state, si)]} cards={cards} state={state} variantIdx={strangerCopyIdx.get(si)} />
               )) : <span className="scv-match-hint">magic user</span>}
             </div>
             <div className="scv-match-front">
               {[...pm.strangers].reverse().map((si) => (
                 <FightCard key={si} creatureId={state.strangers[si]!} kind="foe" strength={enemyStrOf(si)}
                            caption={state.strangers[si] === C_SPECTRE ? "magic only" : undefined}
-                           cards={cards} state={state} variantIdx={strangerCopyIdx.get(si)} />
+                           treasure={[...gearOf(state, si)]} cards={cards} state={state} variantIdx={strangerCopyIdx.get(si)} />
               ))}
             </div>
           </div>
@@ -241,7 +242,7 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
           </div>
           <div className="scv-match-front">
             <FightCard creatureId={state.strangers[si]!} kind="foe" strength={enemyStrOf(si)}
-                       caption={state.strangers[si] === C_SPECTRE ? "magic only" : "unengaged"} dim cards={cards} state={state}
+                       caption={state.strangers[si] === C_SPECTRE ? "magic only" : "unengaged"} dim treasure={[...gearOf(state, si)]} cards={cards} state={state}
                        variantIdx={strangerCopyIdx.get(si)} />
           </div>
         </div>

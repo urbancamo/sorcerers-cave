@@ -283,6 +283,27 @@ describe("FightSurface", () => {
   });
 });
 
+describe("strangers' gear on the fight surface (Peter's default loadout)", () => {
+  let realCards: CardArt[];
+  beforeAll(() => {
+    const m = JSON.parse(readFileSync(resolve(process.cwd(), "../../docs/assets/manifest.json"), "utf8")) as AssetManifest;
+    realCards = parseManifest(m).cards;
+  });
+
+  it("shows the artefact a stranger bears on its card, and the strength the resolver will use", () => {
+    // A stranger Hero (FS 5) bearing the Magic Sword (+2) reads 7 and wears the Sword; an unarmed Troll (FS 4) reads 4.
+    const s: GameState = { ...newGame(1, [6, 4]), phase: "fight", fight: { surprise: 0, round: 2, focus: 0, gear: [[3], []] }, strangers: [0, 3] };
+    const { container } = render(<FightSurface state={s} dispatch={vi.fn()} cards={realCards} />);
+    const foes = [...container.querySelectorAll(".scv-fc-foe")];
+    const badges = foes.map((f) => f.querySelector(".scv-fc-badge")!.textContent);
+    expect(badges).toEqual(expect.arrayContaining(["7", "4"]));
+    const hero = foes.find((f) => f.querySelector(".scv-fc-art")!.getAttribute("alt") === "Hero")!;
+    expect(within(hero as HTMLElement).getByAltText("Magic Sword")).toBeTruthy();
+    const troll = foes.find((f) => f.querySelector(".scv-fc-art")!.getAttribute("alt") === "Troll")!;
+    expect(within(troll as HTMLElement).queryByAltText("Magic Sword")).toBeNull();
+  });
+});
+
 describe("FightCard art — same picture the chamber floor already showed", () => {
   // Real manifest art (the same fixture projection.test.ts uses): the Dragon has 3 distinct images,
   // so a mismatch between "which copy" the chamber and the fight popup pick is actually visible.

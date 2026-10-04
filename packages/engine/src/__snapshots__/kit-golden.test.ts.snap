@@ -9,7 +9,7 @@ exports[`kit golden firewall — kit-on engine behaviour is frozen > seed 165018
     "partyAlive": 0,
     "phase": "gameOver",
     "score": 0,
-    "stateHash": "c6fba314",
+    "stateHash": "2d9d9349",
     "turn": 33,
   },
   "narrative": [
@@ -152,7 +152,7 @@ exports[`kit golden firewall — kit-on engine behaviour is frozen > seed 165018
     "#136 drawFromWell => wellDraw",
     "#137 drawFromWell => wellDraw",
     "#138 drawFromWell => wellDraw",
-    "#139 attack => fightStarted",
+    "#139 attack => fightStarted,strangerEquipped",
     "#140 fight:3v0 => combatRoll,memberDied,gameOver",
   ],
 }
