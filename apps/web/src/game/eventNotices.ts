@@ -137,6 +137,12 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "testAllDiceQueued":
       case "testOverridesCleared":
         break;
+      case "strangerEquipped":
+        out.push({ text: `The ${name(e.creatureId)} snatches up the ${treasureName(e.artifact)}!`, tone: "bad" });
+        break;
+      case "strangerVanished":
+        out.push({ text: `The ${name(e.creatureId)} vanishes with ${treasureName(e.artifact)}, leaving the rest behind.`, tone: "good" });
+        break;
       case "strangerKilled":
         // Folded into combatView's "N foe(s) down" message for every ordinary foe — EXCEPT the
         // Demon (creature 15), which gets its own design-verbatim kill line (US-13 Feedback:

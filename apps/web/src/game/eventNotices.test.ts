@@ -7,6 +7,15 @@ import {
 } from "@sorcerers-cave/engine";
 import { eventNotices, noticeTone } from "./eventNotices";
 
+describe("stranger loadout notices", () => {
+  it("announces a stranger taking up an artefact, and an invulnerable bearer vanishing with the Ring", () => {
+    const took = eventNotices([{ type: "strangerEquipped", creatureId: 0, artifact: 3 }]);
+    expect(took).toEqual([{ text: "The Hero snatches up the Magic Sword!", tone: "bad" }]);
+    const gone = eventNotices([{ type: "strangerVanished", creatureId: 5, artifact: 10 }]);
+    expect(gone).toEqual([{ text: "The Man vanishes with The Ring, leaving the rest behind.", tone: "good" }]);
+  });
+});
+
 describe("eventNotices exhaustiveness (base hardening)", () => {
   it("surfaces a generic notice for a blocked action (previously silent everywhere)", () => {
     const out = eventNotices([{ type: "blocked" }]);

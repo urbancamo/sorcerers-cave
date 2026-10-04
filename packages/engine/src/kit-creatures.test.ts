@@ -155,14 +155,12 @@ describe("Class-based artifact eligibility — Apprentice uses artifacts as a Wi
     expect(events).toContainEqual({ type: "staffWake", creatureIds: [MAN] });
   });
 
-  it("does NOT gain the Wizard's own Magic-Staff combat mp bonus (a named-creature bonus table, not a class list)", () => {
+  it("DOES gain the Wizard's Magic-Staff combat mp bonus — she uses artefacts as a Wizard (Peter, 03-OCT-2026; supersedes SC-EXT-17's named-creature reading)", () => {
     const wizardWithStaff = member(WIZARD, [MAGIC_STAFF]);
     const apprenticeWithStaff = member(APPRENTICE, [MAGIC_STAFF]);
-    // Wizard: base mp 5 + staff bonus 2 = 7. Apprentice: base mp 7 + NO staff bonus = 7 (coincidentally
-    // equal on the SELECTION TABLE stats — assert the staff literally adds nothing for her).
-    expect(casterMP(wizardWithStaff)).toBe(7);
-    expect(casterMP(apprenticeWithStaff)).toBe(7); // her own base mp, unboosted
-    expect(casterMP({ ...apprenticeWithStaff, treasure: [] })).toBe(7); // same whether she holds it or not
+    expect(casterMP(wizardWithStaff)).toBe(7); // Wizard: base mp 5 + staff bonus 2
+    expect(casterMP(apprenticeWithStaff)).toBe(9); // Apprentice: base mp 7 + the same +2
+    expect(casterMP({ ...apprenticeWithStaff, treasure: [] })).toBe(7); // her own base mp without it
   });
 });
 
@@ -271,11 +269,11 @@ describe("Class-based artifact eligibility — explicit exceptions stay untouche
     expect(legalActions(s).some((a) => a.type === "useArtifact" && a.artifact === STRENGTH_POTION)).toBe(false);
   });
 
-  it("the Magic Sword's named fs bonus (Hero/W-Hero +2, Man/Woman +1) does NOT extend to the Man-class Thief", () => {
+  it("the Magic Sword's bonus DOES extend to the Thief, who uses artefacts as a Man (Peter, 03-OCT-2026; supersedes SC-EXT-17)", () => {
     const thiefWithSword = member(THIEF, [MAGIC_SWORD]);
     const manWithSword = member(MAN, [MAGIC_SWORD]);
-    expect(frontStrength(manWithSword)).toBe(3 + 1); // Man fs 3 + named bonus 1
-    expect(frontStrength(thiefWithSword)).toBe(2); // Thief fs 2, no bonus at all
+    expect(frontStrength(manWithSword)).toBe(3 + 1); // Man fs 3 + 1
+    expect(frontStrength(thiefWithSword)).toBe(2 + 1); // Thief fs 2 + the same 1
   });
 });
 

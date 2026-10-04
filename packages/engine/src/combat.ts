@@ -4,7 +4,8 @@
 // this is byte-identical for ids 0-13 (the only ids a kit-off game can ever hold).
 import { ALL_CREATURES as CREATURES } from "./data/creatures";
 import type { GameState, PartyMember } from "./state";
-import { eyeActive, activeCurses } from "./effects";
+import { eyePresent, activeCurses } from "./effects";
+import { swordBonus, axeBonus, staffBonus } from "./capabilities";
 
 const T_MAGIC_SWORD = 3;
 const T_MAGIC_STAFF = 9;
@@ -29,38 +30,29 @@ export function frontStrength(member: PartyMember, state?: GameState): number {
   // member, like `dragonKills` — always counted, never nullified by the Eye (which zeroes only magic
   // and artefacts, see below).
   let s = c.fs + member.dragonKills + (member.fsBonus ?? 0) + casterMP(member, state);
-  const artefactsPowerless = state ? eyeActive(state) : false;
-  if (!artefactsPowerless && holds(member, T_MAGIC_SWORD)) {
-    if (member.creatureId === 0 || member.creatureId === 1) s += 2; // Hero / W-Hero
-    else if (member.creatureId === 5 || member.creatureId === 6) s += 1; // Man / Woman
-  }
+  const artefactsPowerless = state ? eyePresent(state) : false;
+  if (!artefactsPowerless && holds(member, T_MAGIC_SWORD)) s += swordBonus(member.creatureId); // Hero class +2, Man/Woman class +1
   // Extension kit (SC-EXT-26, design US-24): the Magic Axe — a Sword-shaped bonus table, but a
   // different roster and a flat rate for the four human-ish classes it does favour (no Hero/W-Hero
   // premium the Sword has); the Dwarf's own +3 makes the kit's extra Dwarf card worth fielding. Any
   // OTHER bearer (Ogre, Priest, Wizard, …) still carries the Axe — for `combatPlan.ts`'s
   // possession-only Demon predicate (SC-EXT-21) — but draws no strength from it.
-  if (!artefactsPowerless && holds(member, T_MAGIC_AXE)) {
-    if (member.creatureId === 7) s += 3; // Dwarf
-    else if ([0, 1, 5, 6].includes(member.creatureId)) s += 1; // Hero / W-Hero / Man / Woman
-  }
+  if (!artefactsPowerless && holds(member, T_MAGIC_AXE)) s += axeBonus(member.creatureId); // Dwarf +3, Hero/Man/Woman class +1
   if (member.potionActive) s += 2; // Strength Potion (consumable; not nullified by the Eye)
   return s;
 }
 
 /** Background magical power a caster contributes: MP + Magic Staff bonus (spec §9.3). The Eye zeroes all magic. */
 export function casterMP(member: PartyMember, state?: GameState): number {
-  if (state && eyeActive(state)) return 0; // the Eye renders all magic powerless (§ Eye of God)
+  if (state && eyePresent(state)) return 0; // the Eye renders all magic powerless (§ Eye of God)
   const c = CREATURES[member.creatureId]!;
   let mp = c.mp;
-  if (holds(member, T_MAGIC_STAFF)) {
-    if (member.creatureId === 4) mp += 1; // Priest
-    else if (member.creatureId === 8) mp += 2; // Wizard
-  }
+  if (holds(member, T_MAGIC_STAFF)) mp += staffBonus(member.creatureId); // Priest class +1, Wizard class +2
   return mp;
 }
 
 /** Bonus added to every PARTY die roll this fight: +1 if any living member holds The Ring (Eye negates it), minus curses. */
 export function partyRollBonus(state: GameState): number {
-  const ring = !eyeActive(state) && state.party.some((m) => (m.status === 0 || m.status === 1) && holds(m, T_THE_RING));
+  const ring = !eyePresent(state) && state.party.some((m) => (m.status === 0 || m.status === 1) && holds(m, T_THE_RING));
   return (ring ? 1 : 0) - activeCurses(state);
 }

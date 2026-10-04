@@ -27,6 +27,8 @@ import {
 // a kit id (14-20); byte-identical for ids 0-13.
 import { ALL_CREATURES as CREATURES, CREATURES as BASE_CREATURES } from "./data/creatures";
 import { TREASURES as BASE_TREASURES } from "./data/treasures";
+import { equipStrangers } from "./strangerEquip";
+import { removeStranger, addStranger, dropAllGear } from "./strangerGear";
 
 const T_EYE_OF_GOD = 13; // treasure id — must stay with its bearer or the party is cursed (§Eye of God)
 const C_GIANT = 12; // only a Giant can recover treasure cast into a Deep Pool (§Deep Pool)
@@ -149,7 +151,8 @@ function startFight(state: GameState, surprise: number): GameEvent[] {
   state.phase = "fight";
   state.surpriseReady = false; // the surprise (if any) is now baked into the fight
   state.fightDrops = []; // fresh fight — forget any earlier drop record
-  return [{ type: "fightStarted", surprise }];
+  // Stranger Fight Preparations: the strangers pick up any fight artefacts guarded in the chamber.
+  return [{ type: "fightStarted", surprise }, ...equipStrangers(state)];
 }
 
 /** Extension kit (SC-EXT-21, design US-13): a Demon present in `state.strangers` forces an
@@ -1191,6 +1194,8 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         return { state: next, events: [{ type: "deadEnd", dir: action.dir, retreat: true }] };
       }
       // Retreat succeeds: the strangers and any dropped treasure are LEFT BEHIND in the chamber we fled.
+      // What the strangers bore goes back on the floor with the rest, and is handed out afresh next fight.
+      dropAllGear(res.state);
       const fled = res.state.areas[fromIdx]!;
       fled.contents = [
         ...fled.contents,
@@ -1289,7 +1294,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
             return ok;
           }
           (next.sleeping ??= []).push(sid); // the creature sleeps — inert, but stays in the chamber
-          next.strangers.splice(action.target, 1);
+          removeStranger(next, action.target); // (what it bore drops onto the floor)
           consume();
           if (next.strangers.length === 0) { // no one left awake to face — the party may proceed past the sleepers
             next.fight = null;
@@ -1409,7 +1414,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
                 const idx = found.target - HW_STATUE_BASE;
                 next.statues!.splice(idx, 1);
               }
-              next.strangers.push(found.creatureId!);
+              addStranger(next, found.creatureId!);
               next.phase = "encounter";
               next.surpriseReady = false; // this is well after any fresh entry — never a surprise attack
               next.indiffStreak = 0; // a fresh mini-encounter re-tests from scratch (enterChamber's own rule)
@@ -1424,7 +1429,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
             }
             case "destroy": { // Spectre/Demon stranger or lurker — removed outright, no fight, no score
               const idx = found.target - HW_STRANGER_BASE;
-              next.strangers.splice(idx, 1);
+              removeStranger(next, idx);
               events.push({ type: "holyWaterFoeDestroyed", creatureId: found.creatureId! });
               if (next.strangers.length === 0) { // mirrors Lotus Dust's own empty-strangers cleanup above
                 next.fight = null;
@@ -1451,7 +1456,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           const destroyed: number[] = [];
           const survivors: number[] = [];
           for (const sid of next.strangers) (CREATURES[sid]!.mp === 0 ? destroyed : survivors).push(sid);
-          next.strangers = survivors;
+          for (let i = next.strangers.length - 1; i >= 0; i--) if (CREATURES[next.strangers[i]!]!.mp === 0) removeStranger(next, i); // (their gear drops)
           next.curses += 1; // the standing curse, no different from any other source (§Curse)
           const events: GameEvent[] = [
             { type: "artifactUsed", artifact: 19 },

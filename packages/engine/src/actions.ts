@@ -107,6 +107,10 @@ export type GameEvent =
   | { type: "pacified" } // a 3rd indifferent test — the strangers are now permanently indifferent to this party
   | { type: "strangersJoined"; count: number }
   | { type: "fightStarted"; surprise: number }
+  // Stranger loadout: a stranger picked up a fight artefact lying in the chamber (Peter's default heuristic).
+  | { type: "strangerEquipped"; creatureId: number; artifact: number }
+  // An invulnerable Ring bearer (level 4+) was defeated: it disappears with the Ring, leaving its other gear behind.
+  | { type: "strangerVanished"; creatureId: number; artifact: number }
   // One resolved pairing in a fight round: the party side and the enemy side, each with its
   // raw d6 (`*Roll`) and modified total (`*Total`). The UI shows both rolls side by side.
   | {

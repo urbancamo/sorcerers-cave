@@ -2,6 +2,7 @@
 
 `DATE: 03-OCT-2026`
 `STATUS: DRAFT FOR REVIEW — no code has been changed`
+`STAGE 1 (stranger loadout): IMPLEMENTED 04-OCT-2026 on branch stranger-loadout — Peter's V2 default loadout, the capability table (§4.4.2) and the area-wide Eye (§4.4.3); always on, solo reducer only, NOT behind `combatRevision`. See engine-spec SC-9.6-1 to SC-9.6-8.`
 `REVISED: 04-OCT-2026 — incorporates Peter's response ([response-to-feedback-20261003.md](../../rules/response-to-feedback-20261003.md)) and the revised default loadout (V2)`
 `IMPLEMENTS: [2026-09-03-combat-revision.md](2026-09-03-combat-revision.md)`
 `RULES SOURCES: [fighting-a-match.md](../../rules/fighting-a-match.md), [each-round-is-fought.md](../../rules/each-round-is-fought.md), [strangers-default-loadout-v2-20261003.md](../../rules/strangers-default-loadout-v2-20261003.md) (supersedes `strangers-default-loadout.md`), [response-to-feedback-20261003.md](../../rules/response-to-feedback-20261003.md), [Expanded Consolidated Rules PV2026 V2.md](../../rules/Expanded%20Consolidated%20Rules%20PV2026%20V2.md) (§FIGHTS, §Fights between Exploring Parties, ARTEFACTS – WHO CAN USE?)`
