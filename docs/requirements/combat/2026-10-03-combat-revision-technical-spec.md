@@ -2,14 +2,15 @@
 
 `DATE: 03-OCT-2026`
 `STATUS: DRAFT FOR REVIEW — no code has been changed`
+`REVISED: 04-OCT-2026 — incorporates Peter's response ([response-to-feedback-20261003.md](../../rules/response-to-feedback-20261003.md)) and the revised default loadout (V2)`
 `IMPLEMENTS: [2026-09-03-combat-revision.md](2026-09-03-combat-revision.md)`
-`RULES SOURCES: [fighting-a-match.md](../../rules/fighting-a-match.md), [each-round-is-fought.md](../../rules/each-round-is-fought.md), [strangers-default-loadout.md](../../rules/strangers-default-loadout.md), [Expanded Consolidated Rules PV2026.md](../../rules/Expanded%20Consolidated%20Rules%20PV2026.md) (§FIGHTS, §Fights between Exploring Parties, ARTEFACTS – WHO CAN USE?)`
+`RULES SOURCES: [fighting-a-match.md](../../rules/fighting-a-match.md), [each-round-is-fought.md](../../rules/each-round-is-fought.md), [strangers-default-loadout-v2-20261003.md](../../rules/strangers-default-loadout-v2-20261003.md) (supersedes `strangers-default-loadout.md`), [response-to-feedback-20261003.md](../../rules/response-to-feedback-20261003.md), [Expanded Consolidated Rules PV2026 V2.md](../../rules/Expanded%20Consolidated%20Rules%20PV2026%20V2.md) (§FIGHTS, §Fights between Exploring Parties, ARTEFACTS – WHO CAN USE?)`
 
 ---
 
 ## Open questions — register
 
-**Everything below is open as of 03-OCT-2026.** There are **43** items: 16 rules questions for Peter (Q-R), 6 default-loadout questions and 3 data discrepancies (Q-L, D), 5 technical questions (Q-T), and 13 product/requirement decisions (G). **★ = blocks the start of M1** (§10). Each item is a short summary; the reasoning, evidence and file references are
+**Open as of 04-OCT-2026, except the 8 items marked ✔ ANSWERED.** There are **45** items: 16 rules questions for Peter (Q-R), 8 default-loadout questions and 3 data discrepancies (Q-L, D), 5 technical questions (Q-T), and 13 product/requirement decisions (G) — **37 still open**. Peter's response of 03-OCT-2026 answered Q-L1 to Q-L5, D1 and D2 (§9.1b) and raised two new items; Mark answered one of them (Q-L7) on 04-OCT-2026. **★ = blocks the start of M1** (§10). Each item is a short summary; the reasoning, evidence and file references are
 in the cited section. When an item is answered, record the answer in that section and mark it here.
 
 ### A. Rules — for Peter (detail: §9.1)
@@ -79,43 +80,39 @@ in the cited section. When an item is answered, record the answer in that sectio
   - **Blocks:** M2
 
 
-### B. Default loadout and data — for Peter (detail: §9.1a)
+### B. Default loadout and data — for Peter (detail: §9.1a, answers §9.1b)
 
-- **Q-L1** — The Sword/Axe lists rank the Thief above the Woman, but a Thief gains **nothing** from either; the engine makes a Thief-borne **Shield** inert. Intended?
-  - **Proposed default:** Keep the lists, skip an artefact whose bearer gains nothing
-  - **Blocks:** M0
+- ✔ **Q-L1** — ANSWERED. Thief above the Woman in the Sword/Axe lists, a Thief gaining nothing, and a Thief-borne Shield being inert.
+  - **Answer (Peter):** The Thief *uses artefacts as a Man*, so it gains what a Man gains; Woman is now ranked **above** Thief (the Unicorn rule makes her ability useful to strangers). The engine does not implement "uses artefacts as" (§4.4.2).
 
-- **Q-L2** — The Staff list prefers Sorcerer/Apprentice/Witch, but the engine only boosts Priest (+1) and Wizard (+2). Does the Staff bonus apply to the whole Priest class, and at what values?
-  - **Proposed default:** Confirm with Peter
-  - **Blocks:** M0
+- ✔ **Q-L2** — ANSWERED (values still open: D3). Staff list vs. the engine's Priest/Wizard-only bonus.
+  - **Answer (Peter):** Witch and Scholar use artefacts as a Priest; Apprentice as a Wizard; and, as a **house rule**, the Sorcerer as a Wizard (Q-L7).
 
-- **Q-L3** — Define "weapon" (Axe "with no weapon", Shield "with a weapon", Ring's "weapon artefacts already borne"): Sword only, or Sword and Axe? Is the Staff one?
-  - **Proposed default:** Sword or Axe
-  - **Blocks:** M0
+- ✔ **Q-L3** — ANSWERED. "Weapon" is no longer used: the lists now say "not bearing Magic Sword" (Axe) and "bearing either Magic Sword or Magic Axe" (Shield).
 
-- **Q-L4** — Ring "adjusted strength": fighting strength only, or FS + MAG including the Staff bonus?
-  - **Proposed default:** FS + MAG (Q-R6 decides whether the bearer must fight)
-  - **Blocks:** M0
+- ✔ **Q-L4** — ANSWERED. Ring "adjusted strength" = the creature's strength plus any bonus from bearing the Magic Sword, Magic Axe or Magic Staff.
+  - **Still open:** whether the Ring bearer must actually fight (Q-R6).
 
-- **Q-L5** — "Eye present in the area": the engine only honours an Eye **held by the party**. Should an Eye on the chamber floor also count, for both sides?
-  - **Proposed default:** Yes
-  - **Blocks:** M0
+- ✔ **Q-L5** — ANSWERED. The Eye is **always on** in the area it is in; it need not be borne or held. (Peter: contrast the Talisman, whose card says it has no power until taken up.) The engine's held-by-the-party test is therefore wrong (§4.4.3).
 
 - **Q-L6** — Confirm the loadout trigger (see Q-R7) and the wording "creature in the party" in Step 5 (the *stranger* party?).
   - **Proposed default:** Confirm
   - **Blocks:** M0
 
-- **D1** — Data: rules say **Hero STR 6**; the engine has Hero fs **5**. Which is right?
+- ✔ **Q-L7** — ANSWERED. **Sorcerer uses artefacts as a Wizard** (house rule): Consolidated Rules text, or Addendum?
+  - **Answer (Mark, 04-OCT-2026):** **Addendum**, referenced from the main text where relevant. Recorded as note #4 in `Expanded Consolidated Rules PV2026 V2.md`, marked as not original, with references from the Sorcerer, Magic Staff and The Ring entries and the who-can-use table. The engine and this spec treat it as a rule, flagged as a house rule.
+
+- **Q-L8** — *(New.)* The Woman-Hero's card reads "all the capabilities of a woman and a hero", not "uses artefacts as a Hero". Confirm the union reading: she may bear and gain what either a Woman or a Hero would.
+  - **Proposed default:** Union of Woman and Hero capabilities
+  - **Blocks:** M0
+
+- **D3** — Data: the Staff card says +2 for Priest **or** Wizard; the engine gives the Priest +1. Deliberate house rule? (Not addressed in Peter's response.)
   - **Proposed default:** Peter to decide
   - **Blocks:** M0
 
-- **D2** — Data: rules say **Spectre STR 4 (MAG 4)**; the engine has fs 0, mp **5**. Which is right?
-  - **Proposed default:** Peter to decide
-  - **Blocks:** M0
+- ✔ **D1** — ANSWERED. Hero STR is **5**: Peter's revised Consolidated Rules (`Consolidated-Rules-20260925-2.pdf`) say 5 and the engine already has 5. The old text's 6 was a transcription slip.
 
-- **D3** — Data: the Staff card says +2 for Priest **or** Wizard; the engine gives the Priest +1. Deliberate house rule?
-  - **Proposed default:** Peter to decide
-  - **Blocks:** M0
+- ✔ **D2** — ANSWERED. Spectre is **STR 5 (MAG 5)** in the revised rules; the engine's Spectre magic is already 5 (its fighting strength 0 reflects "cannot be fought hand-to-hand").
 
 
 ### C. Technical — for engineering (detail: §9.2)
@@ -289,7 +286,7 @@ per-side dice substreams. It reuses solo arithmetic (`frontStrength`, `casterMP`
 | Step ii-iv | Stalemate (both zero) / tie / win; tie and stalemate are **unresolved** | `tie` → nothing happens (no persistence) | Persist unresolved matches |
 | Casualty | Stranger casualty choice passes to the **winning player**; d6 4–6 → the **other** creature dies | Strongest foe dies automatically | New stranger-casualty rule (see Q-R5) |
 | Overview: *Triggering a Fight* | A named step; no rules document defines it | Five `startFight` call sites choose only a surprise value (+1 / 0 / −1) | No explicit attacker/defender, no trigger kinds (Q-R1) |
-| Overview: *Stranger Fight Preparations (stranger party only)* | Artefact allocation per `strangers-default-loadout.md`; possibly more | Nothing — strangers carry nothing | New phase before round 1 (§4.2.0, §4.4.1); scope to confirm (Q-R15) |
+| Overview: *Stranger Fight Preparations (stranger party only)* | Artefact allocation per `strangers-default-loadout-v2-20261003.md`; possibly more | Nothing — strangers carry nothing | New phase before round 1 (§4.2.0, §4.4.1); scope to confirm (Q-R15) |
 | Overview: *Ending a Fight* | Referenced by Peter's step (f) ("See: Ending a Fight") but **no document exists** | Rules scattered in SC-9.5 (retreat, loot, wipe-out) and `finalizeRound` | A defined end-of-fight procedure is missing (Q-R14) |
 
 ---
@@ -403,7 +400,7 @@ the code can be read side by side.
 | Overview step | Peter's source | Engine phase | Decided by | Notes |
 |---|---|---|---|---|
 | Triggering a Fight | *none* | `trigger` | engine | Sets `trigger`, the first attacker and the surprise bonus (below) |
-| Stranger Fight Preparations (stranger party only) | `strangers-default-loadout.md` | `prep` | strangers' `assignArtefacts` | Once, before round 1; runs `defaultLoadout` (§4.4.1) |
+| Stranger Fight Preparations (stranger party only) | `strangers-default-loadout-v2-20261003.md` | `prep` | strangers' `assignArtefacts` | Once, before round 1; runs `defaultLoadout` (§4.4.1) |
 | The Scroll Option | Each Round, step a | `round.a` | attacker | |
 | Defender Prepares Their Defense | step b | `round.b` | defender | |
 | Attacker Creates Engagements (Matches) | step c | `round.c` | attacker | |
@@ -520,23 +517,28 @@ the duplicated "modifier chip" arithmetic in `previewPlan`.
 - **Display.** Cards on the fight surface show a stranger's borne artefacts exactly as the party's do
   (`FightCard`'s relic corner already supports it).
 
-#### 4.4.1 Default loadout (`strangers-default-loadout.md`)
+#### 4.4.1 Default loadout (`strangers-default-loadout-v2-20261003.md`)
 
 Run in the **Stranger Fight Preparations** phase (§4.2.0), this is a pure function `defaultLoadout(strangers, present, ctx, rng) → ArtefactAssignment`, implemented as **data plus a
 tiny interpreter** (the preference lists are tables, not code), so Peter can change an order without touching logic.
 
-- **Eye present → skip.** No artefacts are allocated; everything stays on the floor. ("Present" is not what the
-  engine tests today — see Q-L5.)
+- **Eye present → skip.** All other fight artefacts are powerless, so none is allocated and everything stays on the
+  floor. "Present" means **in the area**, held or not (Q-L5, §4.4.3) — the engine does not test that today.
+- **Who may bear what** is decided by capability class, not creature id (§4.4.2): the lists below name creature types,
+  but a Thief counts as a Man, a Witch or Scholar as a Priest, an Apprentice as a Wizard, and the Sorcerer as a
+  Wizard (house rule, Addendum note #4).
 - **Strictly sequential**, each step seeing the earlier steps' results:
 
 | Step | Artefact | Preference order (first eligible wins) |
 |---|---|---|
-| 1 | Magic Sword | Hero, Woman-Hero, Man, Thief, Woman |
-| 2 | Magic Axe | Dwarf; then **with no weapon**: Hero, Woman-Hero, Man, Thief, Woman |
+| 1 | Magic Sword | Hero, Woman-Hero, Man, **Woman, Thief** |
+| 2 | Magic Axe | Dwarf; then, **not bearing the Magic Sword**: Hero, Woman-Hero, Man, Woman, Thief |
 | 3 | Magic Staff | Sorcerer, Apprentice, Wizard, Witch, Priest, Scholar |
-| 4 | Magic Shield | **with a weapon**: Hero, Woman-Hero, Man, Thief, Woman; then without: the same five |
-| 5 | The Ring | Highest *adjusted strength* (strength after the weapon artefacts already borne) among those able to bear it; ties by Sorcerer, Apprentice, Wizard, Hero, Witch, Woman-Hero, Priest, Man, Scholar, Thief, Woman, Dwarf |
+| 4 | Magic Shield | **bearing the Sword or the Axe**: Hero, Woman-Hero, Man, Woman, Thief; then **bearing neither**: the same five |
+| 5 | The Ring | Highest *adjusted strength* (the creature's strength plus any bonus from bearing the Sword, Axe or Staff) among those able to bear it; ties by Sorcerer, Apprentice, Wizard, Hero, Witch, Woman-Hero, Priest, Man, Scholar, **Woman, Thief**, Dwarf |
 
+- *Transcription note.* V2 of the document reads "Man already not bearing…" at Shield item 8; this spec reads it as
+  "Man not bearing…". The word "weapon" no longer appears, so Q-L3 is closed.
 - **Ties.** Equal eligibility → random choice; equal type and equal eligibility → random choice. The randomness comes
   from the decision's `rngSeed` substream (§5.1) — never the game seed — and the chosen assignment is written to
   the log as a `strangersAssignArtefacts` action, so replay reproduces it without re-rolling.
@@ -544,10 +546,53 @@ tiny interpreter** (the preference lists are tables, not code), so Peter can cha
 - **Allocated → carried.** An allocated artefact moves from the floor into that stranger's `carrying`/`borne`.
 - **One creature may bear several artefacts** (e.g. Hero with Sword, Shield and Ring); the Axe/Sword "only one used
   per fight" rule is applied by `strength`, not by the loadout.
-- **Terms needing a definition:** "weapon" (Sword only? Sword and Axe?) and "adjusted strength" (does it include
-  MAG and the Staff bonus?) — Q-L3, Q-L4.
-
 Test vectors for this procedure are in Appendix C.
+
+#### 4.4.2 Capability resolution — "uses artefacts as" and "has all the capabilities of" (Peter's response)
+
+Artefact cards were printed for the base game, before the Thief, Witch, Scholar and Apprentice existed, so *who may
+use an artefact* cannot be read from the artefact card alone: the creature card must be consulted too. Peter's
+rulings, to be implemented as **one table** (`capabilities`) read by the loadout, `strength`, `casterMP`, the Shield
+ward and the Spectre/Demon predicates, instead of hard-coded creature ids:
+
+| Creature | Counts as | Source |
+|---|---|---|
+| Thief | Man ("uses artefacts as a Man") | creature card |
+| Witch, Scholar | Priest ("uses artefacts as a Priest") | creature card |
+| Apprentice | Wizard ("uses artefacts as a Wizard") | creature card |
+| Woman-Hero | Woman **and** Hero ("all the capabilities of a woman and a hero") | booklet text (Q-L8) |
+| Sorcerer | Wizard — **house rule**, absent from the original rules; recorded as Addendum note #4 (Q-L7) | Peter's response; Mark's decision 04-OCT |
+
+**What the engine does today** (checked against `packages/engine/src`):
+
+- **Hard-coded id lists.** The Sword bonus (`combat.ts:33`), the Axe bonus, the Spectre-with-Sword predicate
+  (`combatPlan.ts:36`) and the Shield ward (`SHIELD_WARD_ELIGIBLE`, `effects.ts:13`) all test `creatureId` against
+  `[0, 1, 5, 6]` (Hero, Woman-Hero, Man, Woman). A **Thief gets no Sword/Axe bonus and an inert Shield**.
+- **Staff.** `casterMP` (`combat.ts:55`) adds +1 only for creature 4 (Priest) and +2 only for creature 8 (Wizard), so
+  the Witch, Scholar, Apprentice and Sorcerer gain nothing from a Staff they bear.
+- **`usesArtifactsAs` exists** (`effects.ts`) and is applied for the *non-fight* artefacts (Healing Balm, Flute,
+  Carpet, the Staff's revive and Medusa-ward, `selectors.ts`, `hazards.ts:45`) but **not** in the strength code above.
+
+Peter's suspicion of a systemic bug is confirmed. Consequences for the plan:
+
+1. **Behaviour change under the current rules.** Fixing it alters fight results for Thief, Witch, Scholar and Apprentice
+   parties (and, with the Sorcerer house rule, a Sorcerer). It is therefore **flag-gated with `combatRevision`** (Q-T1) so existing
+   golden snapshots are untouched; a separate decision is needed on whether to also fix the legacy path.
+2. **Mutual dependency.** The loadout and the strength calculation must use the same capability table, or a stranger
+   could be handed an artefact it cannot use (the Thief-with-Shield case).
+3. **M0 work item.** Capability table, the tests that pin it, and the corrected strength/ward/predicate call sites.
+
+#### 4.4.3 The Eye of God is area-wide, not carried
+
+Peter reads the card ("powerless **when this gem is in the same area**") against the Talisman ("no warding-off power
+until actually taken up") and concludes the Eye is **always on in the area it is in**; a party need not pick it up to
+suppress magic and artefacts, and one that has taken it must keep it with the main body or be cursed. Therefore
+`eyePresent(state)` must be true when the Eye is **held by a party member or lying in the current area's floor
+treasure**, and it applies to **both sides** (strangers' loadout skipped; the player's artefacts and magic also
+nullified). Today `eyeActive` (`effects.ts:90`) is true only when a party member holds it, so an Eye left on the floor
+does nothing; this is an M0 engine correction, gated like §4.4.2. An Eye on the floor in an *adjacent* area has no
+effect. (Whether a party that declines the Eye should have the Scroll blocked too is covered by the existing Eye
+check in Step a.)
 
 ### 4.5 Legality layer (R3, R5)
 
@@ -836,28 +881,28 @@ now visible on the fight surface. `PvpFightSurface` follows in M7.
 
 Checked against the consolidated rules and the engine (`combat.ts`, `effects.ts`, `data/creatures.ts`):
 
-- **Q-L1** — **Thief.** The Sword and Axe lists put the Thief above the Woman, but only Man/Woman/Hero (and Dwarf for the Axe) gain a strength bonus — a Thief gains **nothing**. For the **Shield** the engine only lets Man/Woman/Hero/W-Hero use it (`SHIELD_WARD_ELIGIBLE`), so a Thief-borne Shield is **inert**.
+- ✔ **Q-L1** — *ANSWERED, see §9.1b.* **Thief.** The Sword and Axe lists put the Thief above the Woman, but only Man/Woman/Hero (and Dwarf for the Axe) gain a strength bonus — a Thief gains **nothing**. For the **Shield** the engine only lets Man/Woman/Hero/W-Hero use it (`SHIELD_WARD_ELIGIBLE`), so a Thief-borne Shield is **inert**.
   - **Question / proposed default:** Intended (ordering by "able to bear")? Or should lists follow *who gains*, and should the Thief be dropped from the Shield list? Default: keep the lists as written, but skip an artefact for a bearer who gains nothing from it.
 
-- **Q-L2** — **Staff.** The list prefers Sorcerer, Apprentice, Wizard, Witch, Priest, Scholar. The engine only adds the Staff bonus for Priest (+1) and Wizard (+2); the card says "+2 for a Priest or Wizard". So Sorcerer/Apprentice/Witch/Scholar gain nothing today, while the list ranks them above the Wizard. (The Apprentice "uses artefacts as a Wizard", `usesArtifactsAs`, but `casterMP` does not apply it.)
+- ✔ **Q-L2** — *ANSWERED, see §9.1b.* **Staff.** The list prefers Sorcerer, Apprentice, Wizard, Witch, Priest, Scholar. The engine only adds the Staff bonus for Priest (+1) and Wizard (+2); the card says "+2 for a Priest or Wizard". So Sorcerer/Apprentice/Witch/Scholar gain nothing today, while the list ranks them above the Wizard. (The Apprentice "uses artefacts as a Wizard", `usesArtifactsAs`, but `casterMP` does not apply it.)
   - **Question / proposed default:** Does the Staff bonus apply to the whole Priest class? At what values (card +2 vs engine Priest +1)?
 
-- **Q-L3** — **"Weapon".** Used in the Axe ("with no weapon") and Shield ("with a weapon") lists and in Step 5 ("weapon artefacts already borne").
+- ✔ **Q-L3** — *ANSWERED, see §9.1b.* **"Weapon".** Used in the Axe ("with no weapon") and Shield ("with a weapon") lists and in Step 5 ("weapon artefacts already borne").
   - **Question / proposed default:** Sword only, or Sword and Axe (the card says only one may be used per fight)? Is the Staff a weapon for Step 5? Default: weapon = Sword or Axe.
 
-- **Q-L4** — **Ring "adjusted strength".** Step 5 allocates to the highest adjusted strength.
+- ✔ **Q-L4** — *ANSWERED, see §9.1b.* **Ring "adjusted strength".** Step 5 allocates to the highest adjusted strength.
   - **Question / proposed default:** Fighting strength only, or total (FS + MAG), including the Staff bonus? And must the Ring-bearer actually be a fighter (this is Q-R6; if yes, the strategy must guarantee the bearer is engaged).
 
-- **Q-L5** — **"Eye present in the area".** The engine's `eyeActive` is true only when a *living party member holds* the Eye. An Eye lying in the chamber has no effect today. The card says artefacts are powerless "when this gem is in the same area".
+- ✔ **Q-L5** — *ANSWERED, see §9.1b.* **"Eye present in the area".** The engine's `eyeActive` is true only when a *living party member holds* the Eye. An Eye lying in the chamber has no effect today. The card says artefacts are powerless "when this gem is in the same area".
   - **Question / proposed default:** Should `eyePresent` = held by the party **or** on the floor in the area (affecting both sides' artefacts)? Default: yes.
 
 - **Q-L6** — **When it runs.** The document defines the allocation, not the trigger (see Q-R7). It also says "creature in the party" in Step 5 (presumably the *stranger* party).
   - **Question / proposed default:** Confirm the trigger and the wording.
 
-- **D1** — **Data:** the rules list **Hero STR 6**; the engine has Hero fs **5** (cost 6). Hero strength decides the Ring allocation and every worked example.
+- ✔ **D1** — *ANSWERED, see §9.1b.* **Data:** the rules list **Hero STR 6**; the engine has Hero fs **5** (cost 6). Hero strength decides the Ring allocation and every worked example.
   - **Question / proposed default:** Which is correct?
 
-- **D2** — **Data:** the rules list **Spectre STR 4 (MAG 4)**; the engine has fs 0, mp **5**.
+- ✔ **D2** — *ANSWERED, see §9.1b.* **Data:** the rules list **Spectre STR 4 (MAG 4)**; the engine has fs 0, mp **5**.
   - **Question / proposed default:** Which is correct?
 
 - **D3** — **Data:** the Staff card says +2 for Priest **or** Wizard; the engine gives the Priest +1 (`combat.ts`, SC-9.3-4).
@@ -866,6 +911,24 @@ Checked against the consolidated rules and the engine (`combat.ts`, `effects.ts`
 
 All other creature strengths I compared (Apprentice, Demon, Dragon, Dwarf, Giant, Lion, Man, Ogre, Priest, Scholar,
 Sorcerer, Thief, Troll, Unicorn, Witch, Wizard, Wolf, Woman, Woman-Hero) agree between the rules text and the engine.
+
+### 9.1b Peter's response (03-OCT-2026) and what it changes
+
+Source: `docs/rules/response-to-feedback-20261003.md`, with the revised loadout `strangers-default-loadout-v2-20261003.md`
+and the revised `Consolidated-Rules-20260925-2.pdf`.
+
+| Item | Peter's answer | Effect on this specification |
+|---|---|---|
+| Q-L5 Eye | Always on in the area; need not be borne (Talisman wording contrasted) | `eyePresent` = held **or** on the area floor, both sides (§4.4.3); loadout skip rule |
+| Q-L1 Thief | Error in the list, "though not for the reason you gave": a Thief uses artefacts as a Man, so it *can* use Sword/Axe/Shield. Woman outranks Thief because the Unicorn rule makes her ability useful to strangers | Preference lists reordered (Woman before Thief, Sword, Axe, Shield and Ring); capability table (§4.4.2) |
+| Systemic | "Uses artefacts as" and "has all the capabilities of" are not implemented correctly | §4.4.2 audit and M0 work item |
+| Q-L2 / Sorcerer | Witch/Scholar as Priest, Apprentice as Wizard; Sorcerer as Wizard (house rule, argued from the Apprentice and the Sorcerer's power) | Capability table; Q-L7 answered: Addendum note #4 |
+| Q-L3 "weapon" | Term removed; lists reworded | §4.4.1 table; Appendix C vectors re-derived |
+| Q-L4 adjusted strength | Strength + bonus from Sword, Axe or Staff | §4.4.1 step 5 |
+| D1 / D2 | Hero 5, Spectre 5 (5); the old text was wrong | Engine already agrees; nothing to change |
+| Loadout V2 | Axe "not bearing Magic Sword"; Shield "bearing Sword or Axe"; Eye wording | §4.4.1 |
+
+Still open from §9.1a: **Q-L6** (trigger and "creature in the party"), **D3** (Staff +1 vs +2), and the new **Q-L8** (Woman-Hero union reading). **Q-L7** was answered by Mark on 04-OCT-2026 (Addendum).
 
 ### 9.2 Technical questions
 
@@ -925,6 +988,8 @@ Sorcerer, Thief, Troll, Unicorn, Witch, Wizard, Wolf, Woman, Woman-Hero) agree b
 | **I10** | Unify PvP and PvE on the round engine; retire `multi-fight.ts` pairing code. |
 | **I11** | Remove dead state (`FightState.focus`, `strongestStranger`) if confirmed unused after the rewrite. |
 | **I12** | Quick win now: ship the `legalPlacements` UI guard for the **current** `BattlePlan` model (R5) before the engine work. |
+| **I13** | One `capabilities` table ("uses artefacts as" / "capabilities of") used by loadout, strength, Staff, Shield ward and the Spectre/Demon predicates; replaces hard-coded id lists (§4.4.2). |
+| **I14** | `eyePresent(state)` — Eye in the party **or** on the area floor — replacing `eyeActive` for fights (§4.4.3). |
 
 ---
 
@@ -934,7 +999,7 @@ Sorcerer, Thief, Troll, Unicorn, Witch, Wizard, Wolf, Woman, Woman-Hero) agree b
 
 | M | Deliverable | Exit criterion |
 |---|---|---|
-| **M0** | Rules sign-off (Q-R1–R15, Q-L1–L6) including the missing *Triggering* and *Ending a Fight* definitions (G13), reconcile the data discrepancies D1–D3, decisions on G1/G2/Q-T1, fixtures from Peter's worked examples and the loadout vectors (Appendix C) | Written answers; fixtures committed; rules and engine data agree |
+| **M0** | Rules sign-off (Q-R1–R15, Q-L6, Q-L8) including the missing *Triggering* and *Ending a Fight* definitions (G13), resolve the data discrepancy D3 (D1, D2 closed), capability table (I13) and area-wide Eye (I14), decisions on G1/G2/Q-T1, fixtures from Peter's worked examples and the loadout vectors (Appendix C) | Written answers; fixtures committed; rules and engine data agree |
 | **M1** | `model`, `artefacts`, `strength`, `legality` behind `combatRevision` (no flow change); unit + property tests | All existing tests and goldens unchanged; new suites green |
 | **M2** | `round` engine, stranger inventory, persistent matches, new actions, `standard` strategy; driveable from a CLI | A full fight plays to the end headlessly with the flag on; new goldens |
 | **M3** | Server wiring: variants, validators, internal stranger actions, in-line driver, log/replay | Replay of a flag-on game reproduces exactly; public API cannot forge stranger actions |
@@ -949,7 +1014,7 @@ Sorcerer, Thief, Troll, Unicorn, Witch, Wizard, Wolf, Woman, Woman-Hero) agree b
 | Risk | Mitigation |
 |---|---|
 | Rules ambiguity (Q-R, Q-L) produces rework | M0 gate; fixtures encode answers |
-| Rules text and engine data disagree (D1–D3, Eye semantics) so tests and strategies encode the wrong numbers | Reconcile in M0 before any strategy is calibrated |
+| The engine disagrees with the rules on who can use artefacts and on the Eye (§4.4.2, §4.4.3), and on the Staff bonus (D3), so tests and strategies encode the wrong behaviour | Fix both in M0, flag-gated; calibrate strategies only afterwards |
 | `strangers: number[]` → instances touches reactions, hazards, Scroll, Holy Water, statues, rendering | Accessor `strangerIds(state)` first; flag-gated; golden firewalls |
 | Persistent engagements break saved games | Per-game flag; no mid-game switching |
 | `expert` exceeds Convex execution limits | Node/time budget with the `standard` incumbent; measure first (Q-T3) |
@@ -985,7 +1050,7 @@ marked *applies when `combatRevision` is off*.
 | Step e | Fight each match | `round` phase e | goldens |
 | Step f | Wrap up; alternate | `round` phase f; `fight.attacker` flip | alternation invariant |
 | Overview | Triggering a Fight | `FightTrigger`; `trigger` phase | every start path sets attacker and surprise |
-| Overview / `strangers-default-loadout.md` | Stranger Fight Preparations | `prep` phase; `defaultLoadout` | Appendix C vectors V1–V10 |
+| Overview / `strangers-default-loadout-v2-20261003.md` | Stranger Fight Preparations | `prep` phase; `defaultLoadout` | Appendix C vectors V1–V15 |
 | Overview (referenced by step f) | Ending a Fight | `end` phase (provisional = SC-9.5-6…11) | wipe-out, clear-out, retreat, dead-end bounce-back |
 
 ## Appendix B — Worked example (strangers attack, round 2)
@@ -1009,20 +1074,25 @@ tagged with `strategyId`, and replay reproduces the round without running a stra
 ## Appendix C — Test vectors for the default loadout
 
 `defaultLoadout` is deterministic except for the random tie-break; every vector below avoids ties unless stated.
-Strengths in V1/V4 are the engine's (D1/D2 would not change these outcomes).
+Strengths are the engine's, which now agree with the revised rules (D1, D2 closed).
 
 | # | Strangers | Artefacts present | Eye | Expected allocation |
 |---|---|---|---|---|
-| V1 | Hero, Man, Dwarf | Sword, Axe, Shield, Ring | no | Sword → Hero · Axe → Dwarf (first preference) · Shield → Hero (has a weapon) · Ring → Hero (adjusted 5+2 = 7 beats Dwarf 1+3 = 4, Man 3) |
+| V1 | Hero, Man, Dwarf | Sword, Axe, Shield, Ring | no | Sword → Hero · Axe → Dwarf (first preference) · Shield → Hero (bearing the Sword) · Ring → Hero (adjusted 5+2 = 7 beats Dwarf 1+3 = 4, Man 3) |
 | V2 | Hero, Man | Sword, Ring | **yes** | Nothing allocated; both stay on the floor |
-| V3 | Man, Woman, Thief | Sword | no | Sword → Man (3rd) before Thief (4th) and Woman (5th) |
-| V4 | Wizard, Sorcerer, Priest | Staff, Ring | no | Staff → Sorcerer (1st) · Ring → Sorcerer (highest adjusted strength) |
-| V5 | Hero, Man | Sword, Axe | no | Sword → Hero · Axe → Man ("Hero with no weapon" is ineligible: Hero already bears the Sword) |
-| V6 | Man, Woman | Shield | no | No weapon borne, so the "without" half applies: Man (8th) before Woman (10th) → Man |
+| V3 | Man, Woman, Thief | Sword | no | Sword → Man (3rd) before Woman (4th) and Thief (5th) |
+| V4 | Wizard, Sorcerer, Priest | Staff, Ring | no | Staff → Sorcerer (1st) · Ring → Sorcerer (adjusted 13+2 = 15 with the Staff, beats Wizard 7 and Priest 4) |
+| V5 | Hero, Man | Sword, Axe | no | Sword → Hero · Axe → Man ("Hero not bearing Magic Sword" is ineligible: Hero bears it) |
+| V6 | Man, Woman | Shield | no | Neither bears a Sword or Axe, so the "bearing neither" half applies: Man (8th) before Woman (9th) → Man |
 | V7 | Ogre, Troll | Sword, Ring | no | Both are inhuman and cannot bear either; both stay on the floor |
 | V8 | Man, Man | Sword | no | Exactly one Man bears it, chosen by the decision substream; for a fixed seed the result is repeatable, and across seeds both outcomes occur |
-| V9 | Hero | Sword, Axe, Shield, Ring | no | Sword → Hero · Axe: "Hero with no weapon" fails, nobody else → stays on the floor · Shield → Hero · Ring → Hero |
-| V10 | Thief, Woman | Sword | no | Sword → **Thief** (4th) before Woman (5th) — as written. The Thief gains no strength from it while the Woman would gain +1 (Q-L1) |
+| V9 | Hero | Sword, Axe, Shield, Ring | no | Sword → Hero · Axe: "Hero not bearing Magic Sword" fails, nobody else → stays on the floor · Shield → Hero · Ring → Hero |
+| V10 | Thief, Woman | Sword | no | Sword → **Woman** (4th) before Thief (5th) — V2 of the document |
+| V11 | Thief | Sword, Axe, Shield | no | Thief counts as a Man (§4.4.2): Sword → Thief · Axe: "not bearing Magic Sword" fails, stays on the floor · Shield → Thief (bearing the Sword) |
+| V12 | Witch, Scholar | Staff | no | Both count as a Priest; Staff → Witch (4th) before Scholar (6th) |
+| V13 | Apprentice, Priest | Staff, Ring | no | Staff → Apprentice (2nd, counts as a Wizard) · Ring → Apprentice (adjusted 9+2 = 11 beats Priest 4) |
+| V14 | Hero, Man | Sword | **yes, lying on the floor, not held by anyone** | Nothing allocated (Q-L5, §4.4.3) |
+| V15 | Woman-Hero, Man | Sword | no | Sword → Woman-Hero (2nd) before Man (3rd); she gains what a Hero would (+2) |
 
-V5 and V9 depend on the meaning of "weapon" (Q-L3) and V10 on the Thief ordering (Q-L1); all vectors are written to the
-document **as it reads today** and must be revisited with Peter's answers.
+The vectors follow V2 of the loadout document and Peter's capability rulings (§4.4.2). V12 and V13 need the
+capability table; V4's Sorcerer rows depend on the house rule (Addendum note #4). Ties are not asserted in any vector except V8.
