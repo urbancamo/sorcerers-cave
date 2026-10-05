@@ -111,6 +111,7 @@ Targets marked *(proposed)* are to be re-set once Stage 1 has measured `expert`.
 | NN-A6 | Latency of scoring one decision, in the real mutation, at the largest in-scope fight | Within the budget measured in Q-T3 *(measure first)* |
 | NN-A7 | Parity: TypeScript forward pass vs PyTorch on golden vectors | ≤ 1e-5 |
 | NN-A8 | Fallback rate in the bench | Reported; target < 1% *(proposed)* |
+| NN-A9 | **Run records.** Every training or evaluation run writes (a) a JSON file holding each scenario and result in full, which a later iteration can **replay exactly**, and (b) a fixed-width, 3-letter-mnemonic listing with one line per combat and its result, a header and a key, in the style of the game log. The listing's width is as wide as its data needs. | Defined in the [training task spec](2026-10-05-nn-pairing-training-task-spec.md) §9 |
 
 **Go/no-go gates.**
 1. **After the Stage 1 baseline.** If `expert` is optimal and fits the Q-T3 budget on every in-scope fight, `nn-v1` is optional. Decide whether to proceed as a learning exercise.
