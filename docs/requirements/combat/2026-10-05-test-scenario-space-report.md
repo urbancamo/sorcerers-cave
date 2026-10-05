@@ -2,11 +2,11 @@
 
 ## Counting the test scenarios for the stranger-pairing network
 
-`DATE: 05-OCT-2026`
-`FROM: Mark`
-`FOR: Peter`
-`RELATED: [training task specification](2026-10-05-nn-pairing-training-task-spec.md), [neural-net requirements](2026-10-04-nn-stranger-pairing-requirements.md)`
-`SOURCE OF THE NUMBERS: the game's own deck tables (packages/engine/src/data/smallPack.ts and creatures.ts). The counting script is in Appendix A.`
+**Date:** 05-OCT-2026\
+**From:** Mark\
+**For:** Peter\
+**Related:** [training task specification](2026-10-05-nn-pairing-training-task-spec.md) and [neural-net requirements](2026-10-04-nn-stranger-pairing-requirements.md)\
+**Source of the numbers:** the game's own deck tables (`smallPack.ts` and `creatures.ts` in the engine). The counting script is in Appendix A.
 
 ---
 
@@ -20,9 +20,9 @@ To train a program to pair the strangers against the party, we first have to dec
 |---|---|---|
 | Groups of 1–6 strangers | 17,429 | 103,433 |
 | Stranger group × party (the party at least as large as the group) | 2.1 billion | 535 billion |
-| … × where the artefacts are | 2.6 × 10¹² | 7.0 × 10¹⁷ |
-| … × how the party lines up | 1.6 × 10¹⁸ | 7.0 × 10²⁴ |
-| … × the situation (curses, surprise) | **1.3 × 10¹⁹** | **5.6 × 10²⁵** |
+| … × where the artefacts are | $2.6 \times 10^{12}$ | $7.0 \times 10^{17}$ |
+| … × how the party lines up | $1.6 \times 10^{18}$ | $7.0 \times 10^{24}$ |
+| … × the situation (curses, surprise) | **$1.3 \times 10^{19}$** | **$5.6 \times 10^{25}$** |
 
 Each row multiplies the one above by a factor we derive step by step below. The last row is the total number of distinct **fight set-ups** in the full problem. For comparison, the base game's small fights (one or two strangers against a party of up to three) number about 120 million, and with up to three strangers and a party of four, about six billion.
 
@@ -320,12 +320,12 @@ Each exists for the base deck and for the extension kit.
 
 | Space | Stranger groups | Pairs | × layouts | × line-ups | × situation (**scenarios**) |
 |---|---|---|---|---|---|
-| Base, tiny | 100 | 29,138 | 3.1 × 10⁶ | 1.5 × 10⁷ | **1.2 × 10⁸** |
-| Base, small | 503 | 455,244 | 9.0 × 10⁷ | 7.4 × 10⁸ | **5.9 × 10⁹** |
-| Base, full | 17,429 | 2,085,720,242 | 2.6 × 10¹² | 1.6 × 10¹⁸ | **1.3 × 10¹⁹** |
-| Kit, tiny | 200 | 174,099 | 1.1 × 10⁹ | 6.0 × 10⁹ | **4.8 × 10¹⁰** |
-| Kit, small | 1,359 | 4,918,764 | 1.1 × 10¹¹ | 1.0 × 10¹² | **8.2 × 10¹²** |
-| Kit, full | 103,433 | 534,933,433,275 | 7.0 × 10¹⁷ | 7.0 × 10²⁴ | **5.6 × 10²⁵** |
+| Base, tiny | 100 | 29,138 | $3.1 \times 10^{6}$ | $1.5 \times 10^{7}$ | **$1.2 \times 10^{8}$** |
+| Base, small | 503 | 455,244 | $9.0 \times 10^{7}$ | $7.4 \times 10^{8}$ | **$5.9 \times 10^{9}$** |
+| Base, full | 17,429 | 2,085,720,242 | $2.6 \times 10^{12}$ | $1.6 \times 10^{18}$ | **$1.3 \times 10^{19}$** |
+| Kit, tiny | 200 | 174,099 | $1.1 \times 10^{9}$ | $6.0 \times 10^{9}$ | **$4.8 \times 10^{10}$** |
+| Kit, small | 1,359 | 4,918,764 | $1.1 \times 10^{11}$ | $1.0 \times 10^{12}$ | **$8.2 \times 10^{12}$** |
+| Kit, full | 103,433 | 534,933,433,275 | $7.0 \times 10^{17}$ | $7.0 \times 10^{24}$ | **$5.6 \times 10^{25}$** |
 
 The "Pairs" and "Stranger groups" columns are exact. The next three columns are estimates: they depend on averages over the pair space that were computed from a random sample (Section 10). Because the averages are dominated by a few very large parties, treat the big numbers as **orders of magnitude**.
 
@@ -344,12 +344,12 @@ Suppose evaluating one scenario, trying every pairing the strangers could choose
 
 | Space | Scenarios | Time at 1 ms each |
 |---|---|---|
-| Base, tiny | 1.2 × 10⁸ | about 33 hours |
-| Base, small | 5.9 × 10⁹ | about 68 days |
-| Kit, tiny | 4.8 × 10¹⁰ | about 1.5 years |
-| Kit, small | 8.2 × 10¹² | about 260 years |
-| Base, full | 1.3 × 10¹⁹ | about 400 million years |
-| Kit, full | 5.6 × 10²⁵ | about 2 × 10¹⁵ years |
+| Base, tiny | $1.2 \times 10^{8}$ | about 33 hours |
+| Base, small | $5.9 \times 10^{9}$ | about 68 days |
+| Kit, tiny | $4.8 \times 10^{10}$ | about 1.5 years |
+| Kit, small | $8.2 \times 10^{12}$ | about 260 years |
+| Base, full | $1.3 \times 10^{19}$ | about 400 million years |
+| Kit, full | $5.6 \times 10^{25}$ | about $2 \times 10^{15}$ years |
 
 A thousand times faster (a microsecond each) brings the base tiny space to two minutes and the base small space to under two hours. The full spaces stay out of reach at any plausible speed.
 
