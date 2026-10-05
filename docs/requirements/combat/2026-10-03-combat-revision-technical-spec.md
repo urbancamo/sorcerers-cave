@@ -16,8 +16,8 @@ in the cited section. When an item is answered, record the answer in that sectio
 
 ### A. Rules — for Peter (detail: §9.1)
 
-- ★ **Q-R1** — *Triggering a Fight* has no defining document. Who attacks in round 1 for each trigger (hostile reaction, party Attack, pacified-chamber Attack, Demon ambush, retreat bounce-back)? Does the role strictly alternate every round?
-  - **Proposed default:** Strangers attack on hostile/Demon; party on Attack; strict alternation
+- ★ **Q-R1** — *Triggering a Fight* has no defining document. Who attacks in round 1 for each trigger (hostile reaction, party Attack, pacified-chamber Attack, retreat bounce-back)? Does the role strictly alternate every round?
+  - **Proposed default:** Strangers attack on a hostile reaction; party on Attack; strict alternation
   - **Blocks:** M1
 
 - **Q-R2** — Scroll: is "destroy" usable in any round the party attacks, with the two surprise variants only before round 1?
@@ -246,7 +246,7 @@ The questions that block the start of M1 are marked **★** in the register abov
 | Immaterial foes | Spectre/Demon rules are spread through validation, preview and resolution (`MAGIC_ONLY_IDS`, `magicOnlyBypass`, forced-Spectre round). | `combatPlan.ts` |
 | Retreat | Legal only in `fight`, round > 1, not after a trap fall; dead end sets `retreatBlocked`. | SC-9.5-6/7 |
 
-Fight starts: hostile reaction / hostile-on-sight → `startFight(state, -1)`; Demon ambush → `-1`; Attack with a
+Fight starts: hostile reaction / hostile-on-sight → `startFight(state, -1)`; Demon ambush → `-1` (the kit's forced ambush, SC-EXT-21, which departs from the Demon card: a Demon is an ordinary stranger when the party enters the area it was placed in, with the usual withdraw/attack/test choices and a reaction test — Mark, 05-OCT-2026); Attack with a
 fresh entry → `+1`; Attack on a pacified chamber → `0` (`reduce.ts:147-164, 1113, 1129, 1134`).
 
 ### 1.2 Engine — player-versus-player (`multi-fight.ts`, ~750 lines)
@@ -420,14 +420,13 @@ the code can be read side by side.
 The overview lists *Wrap Up the Round* and *Ending a Fight* under "Each Match in the Round is Fought". I have treated
 them as **round-level and fight-level** steps, as in Peter's step (f); please confirm (Q-R14).
 
-**Triggering a Fight.** Today five `startFight` call sites choose only a surprise value (Demon ambush `-1`,
+**Triggering a Fight.** Today five `startFight` call sites choose only a surprise value (the kit's forced Demon ambush `-1`, which the rules do not support and which goes away,
 strangers' surprise `-1` ×2, party Attack `+1`/`0`). The revision makes the trigger explicit:
 
 ```ts
 export type FightTrigger =
   | { kind: "partyAttack";        attacker: "party";     surprise: 0 | 1 | 2 }   // fresh doorway/carpet entry → 1; pacified chamber → 0
   | { kind: "strangersAttack";    attacker: "strangers"; surprise: 1 }           // hostile reaction / hostile-on-sight
-  | { kind: "demonAmbush";        attacker: "strangers"; surprise: 1 }           // kit
   | { kind: "retreatBounceBack";  attacker: "strangers"; surprise: 0 };          // dead-end retreat — fight another round (Q-R1)
 ```
 
@@ -858,8 +857,8 @@ now visible on the fight surface. `PvpFightSurface` follows in M7.
 
 ### 9.1 Questions for Peter (rules)
 
-- **Q-R1** — *Triggering a Fight* is a named step in the overview but neither document defines it. Who attacks in round 1 for each start — hostile reaction (strangers, surprise), party Attack, pacified-chamber Attack, Demon ambush, retreat bounce-back (§4.2.0) — and does the role strictly alternate every round in solitaire, including when the party would rather keep attacking?
-  - **Proposed default:** Strangers attack on hostile/Demon; party on Attack; strict alternation
+- **Q-R1** — *Triggering a Fight* is a named step in the overview but neither document defines it. Who attacks in round 1 for each start — hostile reaction (strangers, surprise), party Attack, pacified-chamber Attack, retreat bounce-back (§4.2.0) — and does the role strictly alternate every round in solitaire, including when the party would rather keep attacking?
+  - **Proposed default:** Strangers attack on a hostile reaction; party on Attack; strict alternation
 
 - **Q-R2** — Scroll (your own note): is the "destroy" variant usable in *any* round the party attacks, with the two surprise variants only before round 1?
   - **Proposed default:** Destroy: any attacking round; surprise variants: round 1 only

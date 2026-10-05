@@ -1,135 +1,99 @@
 # Questions for Peter — Combat Rules
 
-`DATE: 04-OCT-2026`
+`DATE: 05-OCT-2026`
 `FROM: Mark`
 `RESPONDS TO: your response of 03-OCT-2026 ([response-to-feedback-20261003.md](../../rules/response-to-feedback-20261003.md))`
 `RULES REFERENCED: [Each Round is Fought](../../rules/each-round-is-fought.md), [Fighting a Match](../../rules/fighting-a-match.md), [Strangers Default Loadout V2](../../rules/strangers-default-loadout-v2-20261003.md), [Expanded Consolidated Rules PV2026 V2](../../rules/Expanded%20Consolidated%20Rules%20PV2026%20V2.md) ("Consolidated Rules" below)`
-`CHECKED AGAINST: the Consolidated Rules, 04-OCT-2026. Where they already answer or constrain a question, the relevant text is quoted.`
+`CHECKED AGAINST: the Consolidated Rules (04-OCT-2026) and the combat code as built (05-OCT-2026: solo fights, the stranger loadout, and fights between parties)`
 
 Thank you for the detailed answers. Your corrections are in: the Thief and Woman order, the Eye being always on in its area, "uses artefacts as", Hero 5 and Spectre 5, and the Sorcerer house rule as Addendum note #4.
 
-Before the software is changed, I need a few more rulings. **Every question has a default.** If the default is right, reply "agree" and I'll use it; if not, give me the rule. The questions are in the order they matter, most blocking first. I've kept them in rules language, so you don't need the technical spec.
-
-One thing underlies several questions. In the Consolidated Rules, for a fight with strangers the **player** lays out the strangers' cards and pairs off both sides (*Setting up the fight*), and every round ends the player's turn. *Each Round is Fought* changes that: the strangers now deploy and engage, and the roles alternate. The questions below ask how the two fit together.
+**What this document asks.** How a match is fought is already built and is the same code whichever side is the strangers: strength, dice, the Spectre and Demon, the Shield, the Ring and casualties. What is new is the **strangers' loadout and how they allocate themselves in a fight**. So I've checked every earlier question against the game as it plays today. Section A lists what the game already does, for you to confirm. Section B is what remains. Every question has a default. If the default is right, reply "agree"; if not, give me the rule.
 
 ---
 
-## A. The start and end of a fight
+## A. What the game already does — please confirm
 
-The overview lists *Triggering a Fight* and *Ending a Fight*, but there is no document for either. These two are the biggest gap.
+These come from the working game, and match the Consolidated Rules unless a note says otherwise. A single "agree" covers the lot, or tell me which line to change.
 
-**1. Who attacks in round 1?** *Each Round is Fought* has the attacker and defender alternate. The Consolidated Rules give the following starts (*Encountering Strangers*, *Advantage of Surprise*, *Retreat*). For each, who is the attacker in round 1, and who has the surprise bonus?
-
-| How the fight starts | Default attacker | Default surprise |
+| # | Topic | What the game does today |
 |---|---|---|
-| The party approaches and the strangers react **hostile** ("they immediately attack") | Strangers | Strangers +1 ("Strangers gain the advantage when they attack on being approached") |
-| The party **attacks** straight after entering by a new doorway or stairway, or by magic carpet | Party | Party +1 |
-| The party **attacks** strangers found **indifferent**, on a later turn (or after re-entering, or after a dead end) | Party | None (the Scroll can give it back, as the rules say) |
-| A Demon appears in the area the party just left (extension kit) | Strangers | Strangers +1 |
-| A **blocked retreat** ("the party must return and fight another round in the same turn") | Strangers | None |
-
-Does the role then swap **every** round? The Consolidated Rules only say that for fights between parties ("the first round is fought during the attacker's turn, the second in the defender's turn"). *Default: yes, strict alternation.*
-
-A related point: the Consolidated Rules say "each round ending a turn of play". With alternation, does a round in which the **strangers** attack still end the player's turn? Does the player get the choice to retreat or continue at the start of **their own** turn only? *Default: yes to both.*
-
-**2. How does a fight end?** The Consolidated Rules say a fight continues "until all the strangers or all of the exploring party have been killed or put to sleep, or until the party chooses to retreat and does so successfully", and that a retreating party "must leave behind any treasure dropped in the area, including artefacts carried by creatures which have perished". I'll implement exactly that. What's missing is the detail, so I'll keep today's behaviour unless you say otherwise:
-- party wiped out: the game is over; strangers cleared: the party wins and takes the treasure;
-- a retreat leaves the strangers hostile for the rest of the game ("remain hostile to it for the rest of the game");
-- strangers never retreat;
-- sleeping creatures (Lotus Dust, or a Dragon lulled by the Flute) stop counting as able to fight. *Default: yes.*
-
-Are *Wrap Up the Round* and *Ending a Fight* steps for the whole round or fight, rather than for each match? *Default: yes.*
+| A1 | **Front line** | One or two creatures per side in a match. Two against two is not allowed. The player must engage every stranger a free fighter could fight before sending two against one. |
+| A2 | **Casters in the background** | Any number may back a match, chosen by creature type (Priest, Wizard, Witch, Apprentice, Scholar, Sorcerer). A background caster needs a front-line creature in that match to support. A caster with nobody to support fights hand to hand using its total strength. |
+| A3 | **Casters in fights between parties** | A defender's caster may stay behind the line, and an attacker's caster may back an engagement, only if that side has **more living members** than the other (the Consolidated Rules' "numerical advantage"). Every non-caster must stand in the line. |
+| A4 | **Spectre and Demon** | A Spectre can be fought by a magic user, or by a Man, Woman or Hero bearing the Sword. A Demon by a magic user or any Axe bearer. A Shield bearer may be matched against either and the foe is ignored that round. If nobody can fight one, the strongest creature is matched against it and slain at the start of round resolution, before the other matches. One slaying per round. A level 4+ Ring bearer is not slain. |
+| A5 | **The Ring** | +1 to every die roll of the side while any living member holds it, even if the bearer is slain that round; the Eye cancels it. A strangers' Ring counts the same way. Level 4+ bearers cannot be killed, and a defeated invulnerable stranger vanishes with the Ring. |
+| A6 | **Artefact bonuses** | By card text, through the capability classes (Sword, Axe, Staff, Shield). A Priest-class creature with the Sword gains nothing and cannot use it on a Spectre. The Dwarf may wear the Ring on **both** sides, so I treat the blank in the ally column as a typo. The Woman-Hero is a Woman **and** a Hero ("all the capabilities of a woman and a hero"). |
+| A7 | **Woman-Hero's reaction** | 1–3 hostile, 4–6 friendly, like the Hero. Her card reads "3-6 Friendly", which overlaps on 3; Mark has confirmed 4–6 and noted it under her entry. Nothing to answer unless you disagree. |
+| A8 | **Surprise** | ±1 on the first round only. Strangers have it when they react **hostile** to being approached, when the party re-enters a chamber it retreated from, and when a chest Spectre attacks. The party has it when it attacks **immediately** after a fresh, non-trap entry. Attacking strangers found indifferent, on a later turn, gives none. The Demon is **not** a special case: it follows these same rules (see A12). |
+| A9 | **How a fight ends** | The party is wiped out (game over) or no stranger is left (killed, put to sleep by Lotus Dust, destroyed by the Scroll or Holy Water). A retreat is allowed only after at least one round, and not after falling down a trap. If the way is blocked the party fights another round. A successful retreat leaves the strangers and floor treasure behind, and the strangers stay hostile. |
+| A10 | **Party casualty** | When the party loses a match with two in the front line, the player nominates one and rolls: on 4–6 the **nominated** creature dies, on 1–3 the other. (Your text also adds +1 for the Ring and 7 counts as 6. The game doesn't have that yet; I'll add it.) |
+| A11 | **Several parties** | A fight with strangers is always one party or one union. A union's commander deploys it, and "strongest fights strongest" settles any disagreement. |
+| A12 | **The Demon** | Per the card it appears in the area the party **just left**, never the one it is in. When the party enters that area it is an ordinary stranger: withdraw, attack, or test (reaction 1–5 hostile, 6 indifferent), with surprise as for any strangers. Mark has confirmed this. The game currently forces an immediate fight instead, with no reaction test; I'll change it to match. |
 
 ---
 
-## B. Forming the matches
+## B. What I need from you
 
-**3. The limit of two on the front line.** The Consolidated Rules allow "two against one" when the party is larger, and "one against two" when the strangers are larger, but never mention two against two. *Each Round is Fought* says the front line of a match "does not exceed two". Is that two **per side**, with 2v2 not allowed? *Default: two per side, 2v2 banned.*
+### 1. The attacker role
 
-May an unengaged creature on the larger side join a match that is **already engaged**, as the second front-line creature? The Consolidated Rules example says so ("the hero could turn and fight alongside the survivor of the other match"). *Default: yes, for either side.*
+Today the **player** pairs every round, so there is no attacker or defender in a fight with strangers. *Each Round is Fought* introduces them, and alternation is what lets the strangers allocate themselves. For each way a fight starts, who is the attacker in round 1?
 
-**4. When do magic users go to the background?** The Consolidated Rules already say:
-- a magic user can fight hand to hand or "remain in the background" adding its magical power to a front-line creature (or to two fighting a single enemy);
-- "any number" may combine against a single enemy;
-- among **strangers** they "will normally fight hand-to-hand, except when the over-all strength of the strangers will be improved if they remain in the background".
+| How the fight starts (as the game starts it today) | Default attacker |
+|---|---|
+| The party approaches and the strangers react hostile | Strangers |
+| The party attacks immediately after a fresh entry | Party |
+| The party attacks indifferent strangers on a later turn | Party |
+| The party re-enters a chamber it retreated from | Strangers |
+| A chest Spectre attacks | Strangers |
+| A blocked retreat ("must return and fight another round in the same turn") | Strangers |
 
-I'll use all three as written. The open points are only these:
-- In a fight between parties, casters go behind the line only "if his party has the numerical advantage". Does the same condition apply in a fight with strangers? *Default: no, but a background caster needs a front-line creature on its own side to support.*
-- Casters are placed in step (d) by the larger side, and with the front line by the smaller side. *Default: as stated.*
+Does the role swap **every** round? The Consolidated Rules only say so for fights between parties. *Default: yes.* With alternation, does a round in which the strangers attack still end the player's turn, so the choice to retreat or continue comes only at the start of the player's own turn? *Default: yes.*
 
-**5. Do casters count towards the defender's minimum?** "The defender must deploy at least as many creatures as the attacker has." The Consolidated Rules treat casters as fighters ("can either fight hand-to-hand, using their total strength, or remain in the background"). Do they count as one of those deployed creatures? *Default: yes.*
+### 2. Persistence and joining a match
 
-**6. Spectres and Demons.** The Consolidated Rules say:
-- a **Spectre** can be fought by magic users "not otherwise engaged", or by a Man, Woman or Hero bearing the Magic Sword;
-- a **Demon** can be fought with magical power, or by a bearer of the Magic Axe;
-- a Magic Shield bearer "may match himself against a spectre or demon", and it is "simply ignored for that round; neither it nor the shield bearer will be killed";
-- if the party has no magical power to pit against a Spectre, "the strongest creature in the party must be matched against the spectre, and is automatically slain".
+Today the player re-pairs everyone every round. *Each Round is Fought* has creatures **stay engaged** between rounds, and the Consolidated Rules example ("the hero could turn and fight alongside the survivor of the other match") agrees. Confirm which matches persist: a tie, a stalemate, a won match with two foes where one survives, and a lost one with two in the front line where one survives. May an unengaged creature then join an engaged match as the second front-line creature, on either side? *Default: all of those persist; joining is allowed.*
 
-I'll use these as written (Sword for the Spectre only, Axe for the Demon only, Shield for either). The open point is **timing**: is "the strongest creature is slain" decided in step (e), before the other matches are fought? *Default: yes.*
+### 3. Casualty when the strangers lose a two-creature front line
 
----
+Today the game kills the **strongest** of the pair automatically, with no die. Fights between parties do the same for both sides. Your *Fighting a Match* instead has the winning player nominate one, and on 4–6 the **other** dies, so the nominated stranger **dies on 1–3 and is spared on 4–6**. That is opposite to the party rule, and it makes a win over two strangers less certain than it is today. Is that intended? And whose Ring gives the +1 to that roll? *Default: as you wrote it; the losing side's Ring.*
 
-## C. Winning, losing and casualties
+### 4. The defender's minimum deployment
 
-**7. Who is spared when the strangers lose a two-creature front line?** For the party, *Fighting a Match* has the player nominate a creature, and "on 4, 5, 6, the loser gets their choice and that creature dies"; on 1–3 the **other** creature dies. For strangers, the winning player nominates, and on 4, 5, 6 "the **other** (not nominated) creature dies". So the nominated stranger **dies on 1–3 and is spared on 4–6**, which is the opposite way round to the party rule. Is that intended? And whose Ring gives the +1 to that roll? *Default: as written, so the nominated stranger is spared on 4–6; the losing side's Ring gives the +1.*
+Fights between parties already make the defender stand every non-caster in the line, and let casters stay back only with the numerical advantage (A3). When the **strangers** defend, should they follow the same rule, with casters counted as deployable fighters? *Default: yes.*
 
-**8. Does the Ring-bearer have to be fighting?** The card says "adds 1 to the die rolls of your party", and the rules say the bonus applies "even if the bearer is slain in that round". Is any living holder enough, even one not in the match? (The invincibility on level 4 and deeper is separate: that bearer does fight.) *Default: any living holder.*
+### 5. The Scroll
 
----
-
-## D. Scroll and consumables
-
-**9. The Scroll.** The card says it "only works when your party is attacking, not when it is being attacked". Your own note in *Each Round is Fought* asks whether it works only before the first round or before any round.
+The card says it "only works when your party is attacking, not when it is being attacked". Today the Scroll destroys every stranger without magical power in any round of an encounter or a fight, and has one variant. (The game also doesn't yet check for the Eye, as the card requires, and your two surprise variants aren't built. I'll add those.)
 - With rounds alternating, does "attacking" mean the **fight** was begun by the party, or that the party is the **attacker in this round**? *Default: the attacker in this round.*
-- Is the "destroy" variant usable in any round the party attacks, and the two surprise variants (double or add) only before round 1, since surprise lasts only the first round? *Default: yes.*
+- Is "destroy" usable in any round the party attacks, with the two surprise variants (double or add) only before round 1? *Default: yes.*
 
-**10. Consumables when the strangers attack.** The Consolidated Rules say a Strength Potion "can be taken immediately before any round of fighting" and Lotus Dust "may be used before approaching strangers, or before any round of fighting". Does that still hold in a round where the **strangers** are the attacker, so the player may use them while only deploying? *Default: yes, as the cards say.*
+### 6. Consumables when the strangers attack
 
-**11. Hidden Cards variant.** The rules say a player shows only creatures and any artefact "being used", plus "the top edges of any other treasure cards". May the strangers' decisions use anything beyond that? *Default: no. They see only what a human opponent would see, and nothing face down.*
+Today a Strength Potion or Lotus Dust can be used at any point the player acts in a fight, and the cards say "before any round of fighting". In a round where the strangers are the attacker, may the player still use them? *Default: yes, as the cards say.*
 
----
+### 7. The stranger loadout
 
-## E. How strangers use artefacts
+The game runs your V2 loadout at the **start of the fight**, and again **after every round**. Existing bearers keep what they hold, and artefacts that have reached the floor since (a dead bearer's, or one dropped when a stranger was put to sleep) are handed out afresh. Strangers who arrive later (Mutiny deserters, a Demon) are equipped at the next round boundary. Nothing is picked up in the middle of a round. Is that what you intend? *Default: yes.*
 
-**12. When is the loadout run?** The Consolidated Rules say strangers "will use the ring, magic staff, and magic sword/axe/shield to best advantage" when the fight is set up, and that an invulnerable stranger "will disappear with the ring, leaving other treasure behind". They don't say when equipping is done again. *Default:*
-- at the start of the fight;
-- again at the next deployment after a bearer dies, or when more strangers arrive (Mutiny deserters, a Demon);
-- no picking up of artefacts dropped in the middle of a fight.
+*Stranger Fight Preparations* in the overview: is it the artefact loadout only, or also an opening stance such as who starts in the background? *Default: loadout only.*
 
-**13. What does *Stranger Fight Preparations* include?** The overview names it as a step for the stranger party. Is it the artefact loadout only, or also an opening stance such as who starts in the background? Does it run once, before round 1 only? *Default: loadout only; once, plus the re-runs in question 12.*
+### 8. How strangers allocate themselves
 
-**14. Is there a default pairing procedure?** The only guidance the Consolidated Rules give for how strangers pair is the caster rule in question 4. Your loadout document tells the strangers how to **equip**. Is there a matching procedure for how they **pair** (who deploys, who they engage, who stands back)? If not, I'll derive one from "maximise the strangers' advantage within the rules" until you supply one. *Default: derive it.*
+This is the main gap. Your loadout document tells the strangers how to **equip**. Is there a matching procedure for how they **pair** (who deploys, who they engage, who stands back)?
 
-**15. Bonus wording and the Ring.** Does a bonus follow the **card text**? For example, the Sword gives strength only to a Man, Woman or Hero ("1 to the Strength of the MAN or WOMAN who bears it, or 2 to a HERO"), so a Priest-class stranger holding it gains nothing except the right to fight a Spectre. *Default: yes, card text.*
+Today the game has only this, from the Consolidated Rules' "strongest combination": when the party has fewer fighters than the strangers, each lone party fighter is also given an extra hand-to-hand stranger, strongest first. Strangers with magical power that are left over lend it from the background to the first match, strongest first. All other strangers fight hand to hand with their total strength.
 
-The Ring card lists a **Dwarf** among those who may wear it, but the who-can-use table allows a Dwarf **stranger** and not a Dwarf **ally**. The card text supports the stranger column, so I take the ally blank to be a typo. *Default: typo; both may.*
+The Consolidated Rules say strangers who are casters "will normally fight hand-to-hand, except when the over-all strength of the strangers will be improved if they remain in the background". That is a stronger test than the leftover rule above. Should I implement it as a real comparison, trying each caster in front and behind and keeping whichever gives the better total? *Default: yes. If you have a fuller procedure, send it and I'll use that instead.*
 
----
+### 9. Loose ends in the loadout document
 
-## F. Loadout points still open from before
-
-**16. Wording in the loadout.** Step 5 (the Ring) says "each creature in the party". Do you mean the **stranger** party? And is the loadout meant to run at the trigger given in question 12? *Default: stranger party; yes.*
-
-**17. The Staff bonus.** The card says "Increases the magical power of a PRIEST or WIZARD by 2". The game gives a Priest **+1** and a Wizard +2. Is the Priest +1 a deliberate house rule, or should the Priest get +2? This changes fight results, so I'd like your confirmation before I touch it. *Default: Priest +2, as the card says. A Witch or Scholar (who "use artefacts as a PRIEST") and the Sorcerer (as a Wizard) follow.*
-
-**18. A transcription point.** In loadout V2, Shield item 8 reads "Man already not bearing either Magic Sword or Magic Axe". I've read it as "Man not bearing either Magic Sword or Magic Axe". Is that right?
-
-**19. Woman-Hero.** The Consolidated Rules say "the woman-hero has all the capabilities of a woman and a hero". I take that to mean the **union**: she can bear and gain whatever a Woman or a Hero could. Please just confirm. *Default: union.*
-
----
-
-## G. A small data point
-
-**20. Woman Hero's reaction.** Her entry reads "Reacts: 1-3 Hostile. 3-6 Friendly." The 3 appears in both. Which is intended: 1–3 hostile and 4–6 friendly, or 1–2 hostile and 3–6 friendly? The Hero card is "1-3 Hostile. 4-6 Friendly". *Default: 1–3 hostile, 4–6 friendly, as for the Hero.*
-
----
-
-## H. For later, not blocking
-
-**21. Several parties.** The Consolidated Rules say parties who want to fight a common enemy "must form a union" under one commander, and that a party entering an area where a fight is in progress "cannot interfere" unless it joins the union. So I'll take it that a fight with strangers is always one party or one union, and the commander deploys it (with "strongest fights strongest" settling any disagreement). Is that right, or can two separate parties ever fight the same strangers? *Default: one party or union at a time.*
+- **Step 5 wording.** The Ring step says "each creature in the party". Do you mean the **stranger** party? *Default: yes.*
+- **The Staff bonus.** The card says "Increases the magical power of a PRIEST or WIZARD by 2". The game gives a Priest **+1** and a Wizard +2. Is the Priest +1 a deliberate house rule, or should the Priest get +2? This changes fight results, so I'd like your confirmation. *Default: Priest +2, as the card says. A Witch or Scholar (who "use artefacts as a PRIEST") and the Sorcerer (as a Wizard) follow.*
+- **A transcription point.** Shield item 8 in V2 reads "Man already not bearing either Magic Sword or Magic Axe". I've read it as "Man not bearing either Magic Sword or Magic Axe". Is that right?
 
 ---
 
 ### How to reply
 
-A short list is enough, for example: "1 agree, 2 agree, 3 agree, 4 agree, 5 agree …". Anything you change, I'll record in the rules documents and the specification so it stays your decision, not mine.
+A short list is enough, for example: "A agree, 1 agree, 2 agree, 3 as written, 4 agree …". Anything you change, I'll record in the rules documents and the specification so it stays your decision, not mine.
