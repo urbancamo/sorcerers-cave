@@ -80,11 +80,30 @@ The game runs your V2 loadout at the **start of the fight**, and again **after e
 
 ### 8. How strangers allocate themselves
 
-This is the main gap. Your loadout document tells the strangers how to **equip**. Is there a matching procedure for how they **pair** (who deploys, who they engage, who stands back)?
+Your loadout document tells the strangers how to **equip**. How they **pair** (who deploys, who they engage, who stands back) is a separate piece of work, described in [Neural Net Based Stranger Pairing](2026-10-03a-neural-net-based-stranger-pairing.md). The plan is that a program calculates the **strongest pairing from the strangers' side**, always within the rules, and a simpler rule-of-thumb takes over as a **fallback** when the fight is too big for it to handle. So I'm not asking you to write a pairing procedure, only to confirm what the program should aim for and whether you have any guidance for the fallback.
 
-Today the game has only this, from the Consolidated Rules' "strongest combination": when the party has fewer fighters than the strangers, each lone party fighter is also given an extra hand-to-hand stranger, strongest first. Strangers with magical power that are left over lend it from the background to the first match, strongest first. All other strangers fight hand to hand with their total strength.
+**Today's baseline: how the game pairs the strangers.** At present the strangers make **no choices at all**. In a fight the **player** decides the whole pairing each round: which of their creatures fight which stranger, who stands in the front line, and which magic users stay in the background. The strangers just take whatever the player assigns. Nothing carries over between rounds; the player sets everything up again each time.
 
-The Consolidated Rules say strangers who are casters "will normally fight hand-to-hand, except when the over-all strength of the strangers will be improved if they remain in the background". That is a stronger test than the leftover rule above. Should I implement it as a real comparison, trying each caster in front and behind and keeping whichever gives the better total? *Default: yes. If you have a fuller procedure, send it and I'll use that instead.*
+The game enforces the rules on the player's pairing:
+- each match is one or two creatures a side, never two against two;
+- the player must engage every stranger that a free fighter could fight;
+- a Spectre or Demon can only be matched against a creature that can fight it.
+
+The only things the game does for the strangers are these, and only when the party has **no free fighter left** and strangers are still unengaged (the Consolidated Rules' "strongest combination"):
+1. **Extra fighters.** Each of the player's one-against-one matches gets **one extra stranger** added to it. The extras come from the leftover strangers who have no magical power, **strongest first**, and they are handed out in the **order the player's matches happen to be listed**. The game doesn't try to match the strongest extra to the weakest party fighter, or to anything else.
+2. **Leftover magic users.** A leftover stranger with magical power doesn't fight hand to hand. It adds its magical power to the **first** match that isn't against a Spectre or Demon, strongest magic first.
+3. **Anyone still left over** sits out the round: no match, no dice.
+
+Otherwise, a stranger with magical power who is in a match fights hand to hand using its **total** strength (fighting plus magic). The strangers never choose to hold a magic user back in order to make the group stronger. A stranger with magical power only ends up in the background by being left over, as in point 2.
+
+When a match is won against a group of strangers, the **strongest** of the group is slain automatically.
+
+That is all the pairing the game does for the strangers, and it is what the fallback will start from.
+
+- **The aim.** Nobody knows the best strategy for winning a whole fight. The plan is for the program to look ahead over several rounds and find stronger play than we can write down, with the one-round "most damage, least taken" as the baseline it must beat. Should the standard game play that strongest opponent, or a weaker, more human-like one, with the strongest as a harder level? *Default: strongest is the top level; the standard level stays simpler.*
+- **Your strategy.** You designed the game, so your instincts are valuable test cases. When should strangers hold casters back, concentrate against one creature or spread out, keep a strong creature in reserve, or let a weak match run for several rounds? Any rule of thumb you'd use is useful, even if it's only a hunch. *No default; anything you give helps.*
+- **Casters.** The Consolidated Rules say strangers who are casters "will normally fight hand-to-hand, except when the over-all strength of the strangers will be improved if they remain in the background". The pairing program will test that directly, trying each caster in front and behind and keeping the better total. *Default: yes.*
+- **The fallback.** Do you have any guidance for pairing very large stranger groups, such as after a Mutiny, or is "strongest first, with leftover casters in the background" fine? *Default: fine.*
 
 ### 9. Loose ends in the loadout document
 
