@@ -341,7 +341,7 @@ A run's listing opens with the same banner, header and **KEY** block as the trai
 - **O1 — What is a win for the strangers?** (section 4.3). This is the same open question as in the neural-net requirements, and the choice shapes everything. It needs your decision before task 4.
 - **O2 — How the player behaves.** The party policies are guesses. Real play data from the game logs would be better, and needs your separate go-ahead since it is production data.
 - **O3 — Where the search runs.** In the mutation (atomic, but about 400 ms) or in an action (more time, not atomic) or precomputed for the common cases. To be decided after the timing spike.
-- **O4 — The simulator's speed.** The 20,000 fights per second is a guess. If the engine is slower, the budget and the design change.
+- **O4 — The simulator's speed.** *Measured 06-OCT-2026 (Appendix C): 140,000 to 350,000 fights per second on one core, so the 20,000 target is met with a wide margin. The remaining uncertainty is the cost of the search on top, and fights longer than the 1.4 rounds of the lopsided random scenarios.*
 - **O5 — The M2 dependency.** Tasks 1 and 3 onwards need the round engine. Only task 2 can start without it.
 - **O6 — Combining with the exact search.** Whether a single round should always use the exact answer and Monte Carlo only for multi-round, or whether Monte Carlo should handle both for simplicity. Proposed: exact for one-round, Monte Carlo for the rest.
 
@@ -382,3 +382,69 @@ function search(root, budget):
 | **Open-loop** | A tree made of decisions only, with the dice sampled inside rollouts |
 | **Common random numbers** | Giving every option the same dice in a trial, so differences are measured sharply |
 | **Anytime algorithm** | One that can be stopped at any moment and returns the best answer so far |
+
+## Appendix C — the first spike (06-OCT-2026)
+
+A first lean simulator exists in **`packages/pairing-lab`** (task 1 of section 10, built on the `monte-carlo` branch). It is a **spike**: every open rule is a switch set to the default proposed in the [questions for Peter](2026-10-04-questions-for-peter.md), so nothing here is validated until he answers. It is not part of the engine and is not shipped to the browser.
+
+**What it is.** A pure, seeded `simulate(scenario, rules, partyStyle, strangerStyle, seed)` that plays a whole fight forward and returns the outcome and the three rewards `R1`, `R2` and `R3` (section 4.3). It uses its own small state and a small seeded random generator (the engine's own `rollDie` does BigInt arithmetic on every roll). It reuses only the engine's pure capability table and creature data. There is a random scenario generator that draws from the real card counts, and the four party styles `GRD`, `CAU`, `MAG` and `RLG` (training spec §6.1). The strangers' `GRD` is the `HEU` baseline.
+
+**The default switches** (in `rules.ts`, `DEFAULT_RULES`):
+
+| Switch | Default | Question |
+|---|---|---|
+| `strangersAttackFirst` | yes | Q1: who attacks in round 1 |
+| `alternate` | yes | Q1: the roles swap every round |
+| `strangerCasualty` | `nominate` (Peter's text: the nominated stranger is spared on 4–6) | Q3 |
+| `shieldWardsBackers` | yes (the card text) | O2 |
+| `staffPriest` | 2 (the card) | D3 |
+| `partyRetreatRatio` | 0.5: the simulated player retreats once its strength falls below half the strangers' | new: not yet a question for Peter |
+| `maxRounds` | 30 | safety cap |
+
+Also built in, following the engine or the rules text: matches persist while unresolved, a two-creature party front line loses by nomination and a die (Ring +1, 7 counts as 6), a level 4+ Ring bearer cannot be killed, surprise applies in round 1 only, and a Spectre, Demon or Sybil is never a stranger.
+
+**Checks.** 52 tests, all passing. They include a **parity test against the engine's own `previewPlan`** (the strength arithmetic matches on 11 positions: Sword, Staff, Shield, the Sorcerer, the Eye, two against one), and statistical checks, for example a one-against-one Ogre against a Man is won by the Ogre 81.25% of the time ($26/32$, because ties persist), whichever side attacks first.
+
+**Measured speed** (Apple M3 Max, Node 26, one thread, 20,000 random scenarios per row, rules at their defaults, strangers using `GRD`):
+
+| Scenarios | Party style | Fights per second | Microseconds per fight | Rounds per fight |
+|---|---|---|---|---|
+| base | `GRD` | 237,000 | 4.2 | 1.4 |
+| base | `CAU` | 154,000 | 6.5 | 3.6 |
+| base | `MAG` | 226,000 | 4.4 | 1.5 |
+| base | `RLG` | 244,000 | 4.1 | 1.7 |
+| kit | `GRD` | 278,000 | 3.6 | 1.4 |
+| kit | `CAU` | 215,000 | 4.7 | 3.3 |
+| kit | `MAG` | 290,000 | 3.4 | 1.4 |
+| kit | `RLG` | 304,000 | 3.3 | 1.7 |
+| base, 3 or fewer strangers | `GRD` | 351,000 | 2.8 | 1.3 |
+| base, 5 or more strangers | `GRD` | 142,000 | 7.1 | 1.9 |
+
+That is **seven to seventeen times** the 20,000 fights per second proposed for MC-2, before any tuning. A search that spends 400 ms could therefore run roughly 55,000 to 140,000 fights on one core, before the cost of the search itself.
+
+**Caveats to bear in mind when reading those numbers.**
+- **The random fights are lopsided.** The party wins about 88% of them, usually in one or two rounds, because the generator makes the party at least as large as the strangers. For search, use the **strength-balanced generator** (C.1), which gives contested fights of any size.
+- **The speed is of the simulator only.** A tree search adds its own bookkeeping on top.
+- **Simplifications.** Casters back a match only through the larger side's redeploy step. The strangers' loadout is taken from the scenario, not re-run each round. Step (d) chooses greedily from fixed strength deficits. A defeated invulnerable stranger is treated as an ordinary casualty. Not modelled: consumables during a fight, the Scroll, the Sorcerer's Lotus Dust and Holy Water reductions, and the Eye's other effects.
+- **The simulated player** is the four named styles plus the retreat ratio. Nothing in this spike has been compared with how people actually play.
+
+**Run it:** `pnpm --filter @sorcerers-cave/pairing-lab test` (the tests) and `pnpm --filter @sorcerers-cave/pairing-lab bench` (the speed table above).
+
+### C.1 Size limits, the balanced generator, and speed at every size (06-OCT-2026)
+
+**The limits.** The simulator has no size limit of its own. The generator's ceilings are the game's: **30 allies in the base deck and 40 with the kit** (the creature cards that can ever be friendly, shared with the strangers), and **up to 20 strangers** (a Mutiny). These are the named constants `MAX_PARTY` and `MAX_STRANGERS` in `scenario.ts`. The earlier limit of 14 was our own, chosen for the exhaustive counts and the fixed-slot network input. **It still applies to the exact one-round search and the neural-net task**; it does not apply to Monte Carlo (training spec §3).
+
+**The balanced generator.** `balancedScenario(seed, deck, { band, maxStrangers })` draws the strangers, then adds allies until the party's total strength is within a band of the strangers' (default 0.7 to 1.4 times). Big parties therefore appear only against big or strong stranger groups, so the fights are contested.
+
+**Speed on balanced fights** (Apple M3 Max, Node 26, one thread, 10,000 fights per row, defaults, `GRD` v `GRD`):
+
+| Strangers | Mean party v strangers | Fights per second (base) | Fights per second (kit) | Strangers win (base) | Party wins (base) | Party retreats (base) |
+|---|---|---|---|---|---|---|
+| 1–3 | 2.9 v 2.0 | 309,000 | 324,000 | 22% | 63% | 15% |
+| 4–6 | 5.9 v 4.7 | 138,000 | 136,000 | 14% | 61% | 25% |
+| 7–12 | 10.3 v 8.6 | 75,000 | 80,000 | 8% | 58% | 34% |
+| 13–20 | 15.0 v 15.5 | 49,000 | 43,000 | 5% | 31% | 64% |
+
+The **slowest row is 43,000 fights per second**, still more than twice the proposed 20,000 for MC-2. At 400 ms a decision, that is about 17,000 fights even for the largest fights, or about 120,000 for small ones.
+
+**One thing these results show.** As the fights get bigger, the simulated party **retreats** more and more (64% of the 13–20 stranger fights). The retreat rule (`partyRetreatRatio`, 0.5) is an assumption of mine, and in large fights it decides more outcomes than the dice. A realistic model of when a player retreats matters most exactly where the search is hardest.

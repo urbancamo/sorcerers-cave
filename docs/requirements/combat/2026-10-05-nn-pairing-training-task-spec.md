@@ -68,6 +68,8 @@ The summed margin is −4 for both. The second pairing is far better because it 
 
 ---
 
+**On the size limit of 14.** The party limit of 14 here is a limit of the **exact enumeration** and the **fixed-slot network input**, not of the game: the game allows 30 allies in the base deck and 40 with the kit, and a Mutiny can give 20 or more strangers. The Monte Carlo simulator is not bound by 14 (Monte Carlo spec, Appendix C.1).
+
 ## 4. The exact evaluator
 
 Each match is **one stranger fighter against one party front-line creature**, with optional stranger background casters and the party's own backers. Strengths use the existing engine functions, so there is one source of truth:

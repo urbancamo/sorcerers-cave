@@ -1,0 +1,24 @@
+{
+  "name": "@sorcerers-cave/pairing-lab",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Lean fight simulator and search experiments for stranger pairing (Monte Carlo / neural-net research). Not shipped to the browser.",
+  "scripts": {
+    "test": "vitest run",
+    "bench": "PERF=1 vitest run src/perf.test.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@sorcerers-cave/engine": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "25.9.3",
+    "typescript": "^6.0.3",
+    "vitest": "5.0.0-rc.2"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "types": "./src/index.ts"
+}
