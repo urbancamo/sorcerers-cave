@@ -6,3 +6,7 @@ export * from "./sim";
 export * from "./mnemonics";
 export * from "./runlog";
 export * from "./listing";
+export * from "./battle";
+export * from "./cards";
+export * from "./battleHtml";
+export * from "./battleCmd";

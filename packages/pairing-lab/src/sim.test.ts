@@ -183,18 +183,78 @@ describe("trace hook", () => {
     const s = scn([unit(MAN)], [unit(OGR)], { strangerSurprise: 1 });
     const o = simulate(s, noRetreat, "GRD", "GRD", 11, { trace: (e) => events.push(e) });
     expect(events.length).toBeGreaterThanOrEqual(1);
-    const e = events[0]!;
+    const e = events.find((x): x is Extract<import("./types").TraceEvent, { type: "match" }> => x.type === "match")!;
     expect(e).toMatchObject({ type: "match", round: 1, party: ["MAN"], strangers: ["OGR"], partyStrength: 3, strangerStrength: 5, partyBonus: 0, strangerBonus: 1 });
     expect(e.partyDie).toBeGreaterThanOrEqual(1); expect(e.partyDie).toBeLessThanOrEqual(6);
     const tp = e.partyStrength + e.partyDie + e.partyBonus, ts = e.strangerStrength + e.strangerDie + e.strangerBonus;
     expect(e.result).toBe(ts > tp ? "S" : tp > ts ? "P" : "T");
-    expect(events.every((x) => x.type === "match")).toBe(true);
-    expect(o.rounds).toBe(events[events.length - 1]!.round);
+    expect(events.some((x) => x.type === "match")).toBe(true);
+    expect(o.rounds).toBe(events.filter((x) => x.type === "match").pop()!.round);
   });
   it("tracing does not change the outcome", () => {
     const s = scn([unit(HER, [T.SWORD]), unit(MAN), unit(MAN)], [unit(OGR), unit(TRL)]);
     for (let seed = 1; seed <= 50; seed++) {
       expect(simulate(s, DEFAULT_RULES, "GRD", "GRD", seed, { trace: () => {} })).toEqual(simulate(s, DEFAULT_RULES, "GRD", "GRD", seed));
+    }
+  });
+});
+
+describe("trace: casualties, rounds and the ending", () => {
+  it("reports who fell, the end of every round, and how the fight ended", () => {
+    const events: import("./types").TraceEvent[] = [];
+    const s = scn([unit(MAN)], [unit(OGR)]);
+    const o = simulate(s, noRetreat, "GRD", "GRD", 21, { trace: (e) => events.push(e) });
+    const types = events.map((e) => e.type);
+    expect(types[types.length - 1]).toBe("end");
+    const end = events[events.length - 1]!;
+    expect(end).toMatchObject({ type: "end", end: o.end, round: o.rounds });
+    const falls = events.filter((e) => e.type === "casualty");
+    // a 1 v 1 ends with exactly one creature falling (the fight is decided by a death), on the losing side
+    expect(falls.length).toBe(1);
+    expect(falls[0]).toMatchObject({ type: "casualty", side: o.end === "strangersWin" ? "party" : "strangers" });
+    expect(events.filter((e) => e.type === "round").length).toBe(o.rounds);
+  });
+  it("reports the nominated creature and the roll when a two-creature front line loses", () => {
+    const events: import("./types").TraceEvent[] = [];
+    // Many seeds of a lopsided 2 v 1: the lone Man is joined by a Hero and the Ogre side loses a two-creature front line at times
+    const s = scn([unit(HER), unit(MAN), unit(MAN)], [unit(OGR), unit(TRL)]);
+    let seen = false;
+    for (let seed = 1; seed <= 400 && !seen; seed++) {
+      events.length = 0;
+      simulate(s, noRetreat, "GRD", "GRD", seed, { trace: (e) => events.push(e) });
+      seen = events.some((e) => e.type === "casualty" && e.roll !== undefined);
+    }
+    expect(seen).toBe(true);
+    const c = events.find((e) => e.type === "casualty" && e.roll !== undefined)!;
+    expect(c).toMatchObject({ type: "casualty" });
+    expect((c as { nominated?: string }).nominated).toBeTruthy();
+  });
+});
+
+describe("trace carries unit indices, so a viewer can track every card", () => {
+  it("match events name the exact creatures (by index into the scenario) and casualties name who fell", () => {
+    const s = scn([unit(HER), unit(MAN), unit(MAN), unit(DWF)], [unit(OGR), unit(TRL), unit(GNT)]);
+    const CODE: Record<number, string> = { [HER]: "HER", [MAN]: "MAN", [DWF]: "DWF", [OGR]: "OGR", [TRL]: "TRL", [GNT]: "GNT" };
+    for (let seed = 1; seed <= 60; seed++) {
+      const events: import("./types").TraceEvent[] = [];
+      simulate(s, DEFAULT_RULES, "GRD", "GRD", seed, { trace: (e) => events.push(e) });
+      const fallen = new Set<string>();
+      for (const e of events) {
+        if (e.type === "match") {
+          expect(e.partyIdx.map((i) => CODE[s.party[i]!.cid])).toEqual(e.party);
+          expect(e.partyBackIdx.map((i) => CODE[s.party[i]!.cid])).toEqual(e.partyBack);
+          expect(e.strangersIdx.map((i) => CODE[s.strangers[i]!.cid])).toEqual(e.strangers);
+          expect(e.strangersBackIdx.map((i) => CODE[s.strangers[i]!.cid])).toEqual(e.strangersBack);
+          // nobody who has already fallen fights again
+          for (const i of e.partyIdx) expect(fallen.has("P" + i)).toBe(false);
+          for (const i of e.strangersIdx) expect(fallen.has("S" + i)).toBe(false);
+        } else if (e.type === "casualty") {
+          const units = e.side === "party" ? s.party : s.strangers;
+          expect(CODE[units[e.index]!.cid]).toBe(e.creature);
+          expect(fallen.has((e.side === "party" ? "P" : "S") + e.index)).toBe(false);
+          fallen.add((e.side === "party" ? "P" : "S") + e.index);
+        }
+      }
     }
   });
 });

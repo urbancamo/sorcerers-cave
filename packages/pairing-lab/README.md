@@ -41,3 +41,15 @@ pnpm --filter @sorcerers-cave/pairing-lab report -- --replay runs/NAME.json
 - `NAME.matches.log` (with `--detail N`): **one match per line** for the first N scenarios.
 
 Options: `--id --deck base|kit --generator balanced|random --seed --count --party --strangers --out --detail`.
+
+## Watching a battle
+
+`battle` turns one scenario from a stored run into a single self-contained, interactive HTML page that replays the
+fight round by round with the game's card art (thumbnails are embedded; no network requests).
+
+```
+pnpm --filter @sorcerers-cave/pairing-lab battle -- runs/NAME.json#3555 [--scenario N] [--out PATH] [--assets DIR] [--width PX] [--no-art] [--open]
+```
+
+The reference is `file.json#scenarioId` (or give `--scenario`). The battle is replayed and checked against the
+recorded outcome first. Default output: `runs/battles/<runId>-<id>.html`. Keys: ←/→ step, Home/End, Space to play.

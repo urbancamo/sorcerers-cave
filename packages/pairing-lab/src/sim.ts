@@ -25,9 +25,10 @@ export function simulate(scn: Scenario, rules: Rules, partyStyle: Style, strange
   let pvl = 0, svl = 0, r1Won = 0, r1Matches = 0;
   let end: Outcome["end"] = "cap";
 
-  const kill = (units: Unit[], i: number, party: boolean): void => {
+  const kill = (units: Unit[], i: number, party: boolean, detail?: { nominated: string; roll: number }): void => {
     const u = units[i]!; u.alive = false; u.role = FREE;
     if (party) pvl += POINTS[u.cid]!; else svl += POINTS[u.cid]!;
+    opts?.trace?.({ type: "casualty", round: F.round, side: party ? "party" : "strangers", creature: CR3[u.cid] ?? "???", index: i, ...detail });
   };
 
   for (let round = 1; round <= rules.maxRounds; round++) {
@@ -88,6 +89,7 @@ export function simulate(scn: Scenario, rules: Rules, partyStyle: Style, strange
         type: "match", round,
         party: m.pf.map((i) => CR3[P[i]!.cid] ?? "???"), partyBack: m.pb.map((i) => CR3[P[i]!.cid] ?? "???"),
         strangers: m.sf.map((i) => CR3[S[i]!.cid] ?? "???"), strangersBack: m.sb.map((i) => CR3[S[i]!.cid] ?? "???"),
+        partyIdx: m.pf.slice(), partyBackIdx: m.pb.slice(), strangersIdx: m.sf.slice(), strangersBackIdx: m.sb.slice(),
         partyStrength: str.party, strangerStrength: str.strangers, partyBonus: pBonus, strangerBonus: sBonus,
         partyDie: pDie, strangerDie: sDie, result: ts > tp ? "S" : tp > ts ? "P" : "T",
       });
@@ -97,26 +99,31 @@ export function simulate(scn: Scenario, rules: Rules, partyStyle: Style, strange
       const front = strangersWon ? m.pf : m.sf, units = strangersWon ? P : S;
       if (front.length === 1) {
         const i = front[0]!;
-        if (strangersWon && invincible(units[i]!, ctx)) continue;     // a level 4+ Ring bearer cannot be killed
+        if (strangersWon && invincible(units[i]!, ctx)) { opts?.trace?.({ type: "saved", round, side: "party", creature: CR3[units[i]!.cid] ?? "???", index: i }); continue; }   // a level 4+ Ring bearer cannot be killed
         kill(units, i, strangersWon);
         front.length = 0;
       } else if (front.length === 2) {
         const mortal = strangersWon ? front.filter((i) => !invincible(units[i]!, ctx)) : front.slice();
-        if (mortal.length === 0) continue;
+        if (mortal.length === 0) { opts?.trace?.({ type: "saved", round, side: "party", creature: CR3[units[front[0]!]!.cid] ?? "???", index: front[0]! }); continue; }
         let victim: number;
+        let detail: { nominated: string; roll: number } | undefined;
         if (mortal.length === 1) victim = mortal[0]!;
         else if (!strangersWon && rules.strangerCasualty === "strongest") {
           victim = totalOf(units[mortal[0]!]!, ctx) >= totalOf(units[mortal[1]!]!, ctx) ? mortal[0]! : mortal[1]!;
         } else {
           const nominated = strangersWon ? nominateOwn(units, mortal[0]!, mortal[1]!, F) : nominateStranger(units, mortal[0]!, mortal[1]!, F);
           const other = nominated === mortal[0]! ? mortal[1]! : mortal[0]!;
-          victim = casualtyVictim(strangersWon ? "party" : "strangers", nominated, other, F.rng.die(), (strangersWon ? pRing : sRing) ? 1 : 0);
+          const roll = F.rng.die();
+          victim = casualtyVictim(strangersWon ? "party" : "strangers", nominated, other, roll, (strangersWon ? pRing : sRing) ? 1 : 0);
+          detail = { nominated: CR3[units[nominated]!.cid] ?? "???", roll };
         }
-        kill(units, victim, strangersWon);
+        kill(units, victim, strangersWon, detail);
         const at = front.indexOf(victim);
         if (at >= 0) front.splice(at, 1);
       }
     }
+
+    opts?.trace?.({ type: "round", round, partyAlive: countAlive(P), strangersAlive: countAlive(S) });
 
     // is the fight over?
     if (countAlive(P) === 0) { end = "strangersWin"; break; }
@@ -151,6 +158,7 @@ export function simulate(scn: Scenario, rules: Rules, partyStyle: Style, strange
   }
 
   const rounds = Math.max(1, F.round);
+  opts?.trace?.({ type: "end", end, round: rounds });
   const r2 = end === "strangersWin" || end === "retreat" ? 1 : end === "partyWin" ? 0 : 0.5;
   const tot = totalP + totalS;
   return {

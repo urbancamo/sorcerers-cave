@@ -120,7 +120,7 @@ describe("formatMatchListing: one match per line", () => {
 
   it("has one row for every match fought in the run, all the same width", () => {
     let expected = 0;
-    for (const r of run.scenarios) simulate(fromPlain(r.scenario), run.run.rules, run.run.partyStyle, run.run.strangerStyle, r.seed, { trace: () => { expected++; } });
+    for (const r of run.scenarios) simulate(fromPlain(r.scenario), run.run.rules, run.run.partyStyle, run.run.strangerStyle, r.seed, { trace: (e) => { if (e.type === "match") expected++; } });
     expect(rows.length).toBe(expected);
     expect(expected).toBeGreaterThan(6);
     expect(new Set(rows.map((r) => r.length)).size).toBe(1);
@@ -129,7 +129,7 @@ describe("formatMatchListing: one match per line", () => {
     for (const w of ["SCN#", "RD", "MN", "PST", "SST", "PB", "SB", "PD", "SD", "RES", "PARTY", "STRANGERS", "KEY", "PRINTED " + PRINTED]) expect(out).toContain(w);
     const first: string[] = [];
     const r0 = run.scenarios[0]!;
-    simulate(fromPlain(r0.scenario), run.run.rules, run.run.partyStyle, run.run.strangerStyle, r0.seed, { trace: (e) => first.push(e.party.join("+") + (e.partyBack.length ? "~" + e.partyBack.join("+") : "")) });
+    simulate(fromPlain(r0.scenario), run.run.rules, run.run.partyStyle, run.run.strangerStyle, r0.seed, { trace: (e) => { if (e.type === "match") first.push(e.party.join("+") + (e.partyBack.length ? "~" + e.partyBack.join("+") : "")); } });
     expect(rows[0]).toContain(first[0]!);
   });
   it("can be limited to the first few scenarios", () => {

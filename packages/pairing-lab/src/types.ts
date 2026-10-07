@@ -76,14 +76,23 @@ export interface SimOptions {
   trace?: (e: TraceEvent) => void;
 }
 
-/** One match as it was fought: the creatures (3-letter codes), the strength totals, the die bonuses, the dice and the result
- *  ("S" the strangers won, "P" the party won, "T" a tie, so the match persists). */
-export interface TraceEvent {
-  type: "match";
-  round: number;
-  party: string[]; partyBack: string[]; strangers: string[]; strangersBack: string[];
-  partyStrength: number; strangerStrength: number;
-  partyBonus: number; strangerBonus: number;
-  partyDie: number; strangerDie: number;
-  result: "S" | "P" | "T";
-}
+/** What `trace` reports, in the order it happens. A "match" is one match as it was fought: the creatures (3-letter codes), the
+ *  strength totals, the die bonuses, the dice and the result ("S" the strangers won, "P" the party won, "T" a tie, so the match
+ *  persists). A "casualty" is a creature that fell (with the nominated creature and the roll when a two-creature front line lost);
+ *  "saved" is a level 4+ Ring bearer who could not be killed; "round" is the state at the end of a round; "end" is how it finished. */
+export type TraceEvent =
+  | {
+      type: "match";
+      round: number;
+      party: string[]; partyBack: string[]; strangers: string[]; strangersBack: string[];
+      /** The same creatures as indices into the scenario's `party` and `strangers` arrays. */
+      partyIdx: number[]; partyBackIdx: number[]; strangersIdx: number[]; strangersBackIdx: number[];
+      partyStrength: number; strangerStrength: number;
+      partyBonus: number; strangerBonus: number;
+      partyDie: number; strangerDie: number;
+      result: "S" | "P" | "T";
+    }
+  | { type: "casualty"; round: number; side: "party" | "strangers"; creature: string; index: number; nominated?: string; roll?: number }
+  | { type: "saved"; round: number; side: "party" | "strangers"; creature: string; index: number }
+  | { type: "round"; round: number; partyAlive: number; strangersAlive: number }
+  | { type: "end"; end: Outcome["end"]; round: number };

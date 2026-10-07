@@ -109,6 +109,7 @@ export function formatMatchListing(run: Run, o: { printed?: string; scenarios?: 
     const counter = new Map<number, number>();
     simulate(fromPlain(r.scenario), meta.rules, meta.partyStyle, meta.strangerStyle, r.seed, {
       trace: (e: TraceEvent) => {
+        if (e.type !== "match") return;
         const mn = (counter.get(e.round) ?? 0) + 1; counter.set(e.round, mn);
         rows.push({ cells: [String(r.id), String(e.round), String(mn), String(e.partyStrength), String(e.strangerStrength),
           String(e.partyBonus), String(e.strangerBonus), String(e.partyDie), String(e.strangerDie), e.result, side(e.party, e.partyBack), side(e.strangers, e.strangersBack)] });
