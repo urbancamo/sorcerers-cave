@@ -69,4 +69,21 @@ export interface SimOptions {
   /** Replaces the strangers' round-1 engagement (when they attack): given the attackers, their free indices, the defenders
    *  and the deployed front line, return the one-to-one pairs [attackerIdx, defenderIdx]. Everything after round 1 plays normally. */
   round1Engage?: (A: Unit[], attFree: number[], D: Unit[], defDep: number[], F: Fight) => [number, number][];
+  /** The style the party uses to deploy in round 1 (when the strangers attack), whatever its style is afterwards. Lets an
+   *  experiment hold the observed formation fixed while varying how the party plays the later rounds. */
+  round1PartyStyle?: Style;
+  /** Called for every match resolved, in order. Tracing never changes the outcome. */
+  trace?: (e: TraceEvent) => void;
+}
+
+/** One match as it was fought: the creatures (3-letter codes), the strength totals, the die bonuses, the dice and the result
+ *  ("S" the strangers won, "P" the party won, "T" a tie, so the match persists). */
+export interface TraceEvent {
+  type: "match";
+  round: number;
+  party: string[]; partyBack: string[]; strangers: string[]; strangersBack: string[];
+  partyStrength: number; strangerStrength: number;
+  partyBonus: number; strangerBonus: number;
+  partyDie: number; strangerDie: number;
+  result: "S" | "P" | "T";
 }

@@ -156,3 +156,45 @@ describe("simulate at the largest sizes", () => {
     expect(party).toBeGreaterThan(n * 0.05);
   });
 });
+
+describe("round-1 party deployment can be fixed independently of the party's style", () => {
+  const deployedInRound1 = (style: "GRD" | "CAU", fixed?: "GRD" | "CAU") => {
+    const s = scn([unit(HER), unit(DWF)], [unit(OGR)]);
+    let cid = -1;
+    simulate(s, noRetreat, style, "GRD", 5, {
+      round1PartyStyle: fixed,
+      round1Engage: (_A, af, D, defDep) => { cid = D[defDep[0]!]!.cid; return [[af[0]!, defDep[0]!]]; },
+    });
+    return cid;
+  };
+  it("a greedy party deploys the Hero, a cautious one the cheaper Dwarf", () => {
+    expect(deployedInRound1("GRD")).toBe(HER);
+    expect(deployedInRound1("CAU")).toBe(DWF);
+  });
+  it("round1PartyStyle overrides the style for the round-1 deployment only", () => {
+    expect(deployedInRound1("CAU", "GRD")).toBe(HER);
+    expect(deployedInRound1("GRD", "CAU")).toBe(DWF);
+  });
+});
+
+describe("trace hook", () => {
+  it("reports every resolved match with its strengths, die bonuses, dice and result", () => {
+    const events: import("./types").TraceEvent[] = [];
+    const s = scn([unit(MAN)], [unit(OGR)], { strangerSurprise: 1 });
+    const o = simulate(s, noRetreat, "GRD", "GRD", 11, { trace: (e) => events.push(e) });
+    expect(events.length).toBeGreaterThanOrEqual(1);
+    const e = events[0]!;
+    expect(e).toMatchObject({ type: "match", round: 1, party: ["MAN"], strangers: ["OGR"], partyStrength: 3, strangerStrength: 5, partyBonus: 0, strangerBonus: 1 });
+    expect(e.partyDie).toBeGreaterThanOrEqual(1); expect(e.partyDie).toBeLessThanOrEqual(6);
+    const tp = e.partyStrength + e.partyDie + e.partyBonus, ts = e.strangerStrength + e.strangerDie + e.strangerBonus;
+    expect(e.result).toBe(ts > tp ? "S" : tp > ts ? "P" : "T");
+    expect(events.every((x) => x.type === "match")).toBe(true);
+    expect(o.rounds).toBe(events[events.length - 1]!.round);
+  });
+  it("tracing does not change the outcome", () => {
+    const s = scn([unit(HER, [T.SWORD]), unit(MAN), unit(MAN)], [unit(OGR), unit(TRL)]);
+    for (let seed = 1; seed <= 50; seed++) {
+      expect(simulate(s, DEFAULT_RULES, "GRD", "GRD", seed, { trace: () => {} })).toEqual(simulate(s, DEFAULT_RULES, "GRD", "GRD", seed));
+    }
+  });
+});

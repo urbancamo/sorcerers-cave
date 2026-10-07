@@ -1,6 +1,7 @@
 // The fight simulator: play a fight forward, fast, from a scenario (Monte Carlo spec §4.1). Pure and seeded: the same
 // scenario, rules, styles and seed always give the same outcome, and the scenario is never modified.
 import { makeRng } from "./rng";
+import { CR3 } from "./mnemonics";
 import {
   POINTS, casualtyVictim, invincible, matchStrength, partyDieBonus, partyHasRing, strangerDieBonus, totalOf,
 } from "./rules";
@@ -41,7 +42,8 @@ export function simulate(scn: Scenario, rules: Rules, partyStyle: Style, strange
     for (let i = 0; i < A.length; i++) if (A[i]!.alive && A[i]!.role !== ENGAGED) attUnengaged++;
     for (let i = 0; i < D.length; i++) if (D[i]!.alive && D[i]!.role === FREE) defFree.push(i);
     const min = Math.min(defFree.length, attUnengaged);
-    if (min > 0) for (const i of deploy(dStyle, D, defFree, min, F)) D[i]!.role = DEPLOYED;
+    const deployStyle = round === 1 && strAtt && opts?.round1PartyStyle ? opts.round1PartyStyle : dStyle;
+    if (min > 0) for (const i of deploy(deployStyle, D, defFree, min, F)) D[i]!.role = DEPLOYED;
 
     // (c) the attacker pairs its unengaged creatures one-to-one against the defender's front line
     const attFree: number[] = [], defDep: number[] = [];
@@ -80,7 +82,15 @@ export function simulate(scn: Scenario, rules: Rules, partyStyle: Style, strange
     for (const m of F.matches) {
       if (m.pf.length === 0 || m.sf.length === 0) continue;
       const str = matchStrength(view(F, m), ctx);
-      const tp = str.party + F.rng.die() + pBonus, ts = str.strangers + F.rng.die() + sBonus;
+      const pDie = F.rng.die(), sDie = F.rng.die();
+      const tp = str.party + pDie + pBonus, ts = str.strangers + sDie + sBonus;
+      opts?.trace?.({
+        type: "match", round,
+        party: m.pf.map((i) => CR3[P[i]!.cid] ?? "???"), partyBack: m.pb.map((i) => CR3[P[i]!.cid] ?? "???"),
+        strangers: m.sf.map((i) => CR3[S[i]!.cid] ?? "???"), strangersBack: m.sb.map((i) => CR3[S[i]!.cid] ?? "???"),
+        partyStrength: str.party, strangerStrength: str.strangers, partyBonus: pBonus, strangerBonus: sBonus,
+        partyDie: pDie, strangerDie: sDie, result: ts > tp ? "S" : tp > ts ? "P" : "T",
+      });
       if (round === 1) { r1Matches++; r1Won += ts > tp ? 1 : ts === tp ? 0.5 : 0; }
       if (ts === tp) continue;                                  // a tie is unresolved: the match persists
       const strangersWon = ts > tp;

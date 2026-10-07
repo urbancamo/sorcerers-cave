@@ -7,13 +7,15 @@
   "scripts": {
     "test": "vitest run",
     "bench": "PERF=1 vitest run src/perf.test.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "report": "jiti src/cli.ts"
   },
   "dependencies": {
     "@sorcerers-cave/engine": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "25.9.3",
+    "jiti": "2.7.0",
     "typescript": "^6.0.3",
     "vitest": "5.0.0-rc.2"
   },

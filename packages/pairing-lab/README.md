@@ -26,3 +26,18 @@ const outcome = simulate(scenario, DEFAULT_RULES, "GRD", "GRD", 7); // party sty
 | `pnpm --filter @sorcerers-cave/pairing-lab test` | Run the tests |
 | `pnpm --filter @sorcerers-cave/pairing-lab typecheck` | Typecheck |
 | `pnpm --filter @sorcerers-cave/pairing-lab bench` | Speed table (fights per second, by fight size) |
+
+## Storing results
+
+`report` simulates a run and writes it to `runs/` (git-ignored):
+
+```
+pnpm --filter @sorcerers-cave/pairing-lab report -- --count 5000 --deck kit --party GRD --strangers GRD --detail 50
+pnpm --filter @sorcerers-cave/pairing-lab report -- --replay runs/NAME.json
+```
+
+- `NAME.json`: every scenario in full, with its outcome; replayable exactly.
+- `NAME.log`: a line-printer listing, **one scenario per line**, with the creatures as the game log's 3-letter codes.
+- `NAME.matches.log` (with `--detail N`): **one match per line** for the first N scenarios.
+
+Options: `--id --deck base|kit --generator balanced|random --seed --count --party --strangers --out --detail`.
