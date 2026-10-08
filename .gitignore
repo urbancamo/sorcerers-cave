@@ -56,3 +56,6 @@ next-env.d.ts
 
 # mermaid filter stderr output
 docs/requirements/mermaid-filter.err
+
+# generated PDFs of requirements documents (rebuild from the markdown with ~/bin/md2pdf-tex.sh)
+docs/requirements/**/*.pdf
