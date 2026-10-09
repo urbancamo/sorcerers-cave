@@ -1,0 +1,44 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`formatListing: one scenario per line, fixed width, mnemonics > a golden listing for a small run, so any change to the format or the rules shows up in review 1`] = `
+"=============================================================================================================================================================================
+                                                              P A I R I N G   S I M U L A T O R   R U N   L O G
+                                                                  O N E   S C E N A R I O   P E R   L I N E
+=============================================================================================================================================================================
+RUN golden   GEN BAL   DECK BAS   BASE SEED 7   SCENARIOS 12   PARTY GRD   STRANGERS GRD
+RULES ATK=S ALT=1 CAS=NOM SHW=1 STF=2 RET=0.50 MAX=30   PRINTED 2026-10-07 09:00:00   WIDTH 173
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SCN# DCK LVL CRS EYE SUP NP NS END RDS PAL SAL PVL SVL    R1    R2    R3 SEED PARTY                                               STRANGERS                                  
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+   1 BAS   1   0 -     1 12 11 RET   2   2   8  60  16 0.682 1.000 0.644    7 MAN TRL MAN WHR OGR DWF TRL MAN MAN OGR WIZ+RNG HER WIZ DWF PRI GNT WIZ WMN DRG WMN MAN PRI PRI
+   2 BAS   5   0 -     1  2  2 SWN   1   0   2  12   0 1.000 1.000 0.853    8 GNT OGR                                             OGR DRG                                    
+   3 BAS   3   0 -     1  2  1 SWN   2   0   1  10   0 1.000 1.000 0.857    9 MAN WMN+RNG                                         TRL                                        
+   4 BAS   1   0 -     0  3  2 PWN   2   3   0   0  15 0.250 0.000 0.250   10 MAN+RNG MAN WMN                                     WHR MAN                                    
+   5 BAS   2   0 -     0  4  1 PWN   3   4   0   0   0 0.500 0.000 0.500   11 MAN WMN+RNG DWF DWF                                 DRG                                        
+   6 BAS   3   0 -     1  2  2 PWN   2   1   0   5  12 0.500 0.000 0.360   12 OGR PRI+SWD+STF+RNG                                 PRI TRL                                    
+   7 BAS   2   2 -     1  6  4 RET   1   3   4  24   0 0.875 1.000 0.707   13 WIZ+SWD+RNG TRL OGR WMN MAN GNT                     UNI SOR OGR PRI                            
+   8 BAS   2   0 -     1  5  3 PWN   1   5   0   0  25 0.000 0.000 0.245   14 DWF WMN PRI+STF+RNG TRL OGR                         MAN MAN WIZ                                
+   9 BAS   4   0 -     1  1  2 PWN   2   1   0   0  12 0.000 0.000 0.278   15 WIZ+STF                                             TRL PRI                                    
+  10 BAS   2   0 -     1  9  7 RET   3   3   4  43  12 0.500 1.000 0.678   16 PRI WMN+SWD WHR OGR MAN MAN PRI MAN GNT             DWF DWF MAN DRG WIZ SOR MAN                
+  11 BAS   3   1 -     1  3  3 PWN   2   2   0   5  15 0.333 0.000 0.344   17 MAN+SWD+RNG MAN GNT                                 PRI OGR DWF                                
+  12 BAS   2   0 -     1  5  3 RET   4   1   1  30  10 0.500 1.000 0.708   18 WHR+RNG WMN PRI MAN HER                             SOR MAN WMN                                
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+                                                  * * *   E N D   O F   L I S T I N G   -   12   S C E N A R I O S   * * *
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+SUMMARY N=12 SWN=2 PWN=6 RET=4 CAP=0
+MEAN   RDS=2.08 PVL=15.75 SVL=9.75 R1=0.512 R2=0.500 R3=0.535
+-----------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+KEY  CREATURE   HER=HERO  WHR=W-HERO  OGR=OGRE  TRL=TROLL  PRI=PRIEST  MAN=MAN  WMN=WOMAN  DWF=DWARF  WIZ=WIZARD  SPC=SPECTRE  DRG=DRAGON  SOR=SORCERER  GNT=GIANT
+KEY             UNI=UNICORN
+KEY  ARTEFACT   SWD=MAGIC SWORD  STF=MAGIC STAFF  RNG=THE RING
+KEY  UNIT       CODE+ART=CREATURE BEARING ARTEFACT  !=STRENGTH POTION ACTIVE  ^=ELIXIR (+2 STRENGTH)  *N=N DRAGONS SLAIN
+KEY  DECK       BAS=BASE DECK  KIT=EXTENSION KIT
+KEY  STYLE      GRD=GREEDY (STRONGEST FIRST, THE HEU BASELINE)  CAU=CAUTIOUS (CHEAPEST FIRST, NEVER JOINS)  MAG=MAGIC-HEAVY (CASTERS BACK)  RLG=RANDOM LEGAL
+KEY  END        SWN=STRANGERS WON (PARTY WIPED OUT)  PWN=PARTY WON (STRANGERS WIPED OUT)  RET=PARTY RETREATED  CAP=ROUND CAP REACHED
+KEY  COLUMN     SCN#=SCENARIO (JSON id)  DCK=DECK  LVL=DUNGEON LEVEL  CRS=CURSES ON THE PARTY  EYE=EYE OF GOD PRESENT  SUP=STRANGERS' ROUND 1 SURPRISE  NP=PARTY SIZE
+KEY             NS=NUMBER OF STRANGERS  END=HOW THE FIGHT ENDED  RDS=ROUNDS  PAL=PARTY SURVIVORS  SAL=STRANGER SURVIVORS  PVL=PARTY VALUE LOST (VP)
+KEY             SVL=STRANGER VALUE LOST (VP)  R1=SHARE OF ROUND 1 MATCHES THE STRANGERS WON  R2=1 IF STRANGERS WIN OR PARTY RETREATS  R3=VALUE DESTROYED MINUS LOST, 0 TO 1
+KEY             SEED=SCENARIO AND DICE SEED
+=============================================================================================================================================================================
+"
+`;

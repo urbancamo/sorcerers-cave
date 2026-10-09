@@ -828,6 +828,8 @@ as long as it contains a woman.
 The presence in a party of two heroes does not double the bonus on die rolls when testing strangers. The woman-hero has
 all the capabilities of a woman and a hero.
 
+*[Clarification, not in the original text: the reaction line "1-3 Hostile. 3-6 Friendly" overlaps on 3. Played as 1-3 Hostile, 4-6 Friendly, the same as the Hero. Confirmed by Mark Wickens, 05-OCT-2026.]*
+
 ## PLAYER INTERACTION
 
 At any time, two or more exploring parties may occupy the same area and continue to act independently. Obviously, the
