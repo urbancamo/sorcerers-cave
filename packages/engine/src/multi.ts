@@ -8,7 +8,7 @@ import { validatePicks } from "./setup";
 import { buildLargePack, buildSmallPack } from "./decks";
 import { shuffle, nextSeed } from "./rng";
 import { AREA_CARDS, GATEWAY_INDEX, SPECIAL_VIPER_PIT, SPECIAL_DEEP_POOL, SPECIAL_WHIRLPOOL, SPECIAL_CHASM } from "./data/areaCards";
-import { decodeArea } from "./decode";
+import { decodeArea, decodeOpen } from "./decode";
 import { unpackCoord, packCoord, targetCoord, DIR_UP } from "./coords";
 import type { Session, Union, Detachment } from "./multi-session";
 import {
@@ -719,7 +719,7 @@ export function areaInteractionMask(mp: MpGameState, areaIdx: number): AreaInter
   const fighter = here.find((p) => p.phase === "fight");
   if (fighter) return { pvpLegal: false, reason: "a fight with strangers is under way", fightInProgress: fighter.seat };
 
-  const dec = decodeArea(area.card);
+  const dec = decodeOpen(area);
   // Special-areas revision (2026-08-08): extended from Viper Pit/Deep Pool to all four —
   // Whirlpool and Chasm are equally precarious footing, and the designer confirmed the original
   // pair was just an inconsistency, not a deliberate narrower scope.

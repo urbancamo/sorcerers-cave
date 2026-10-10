@@ -178,6 +178,11 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       // anyone who needs it, with no risk to live presentation.
       case "deadEndCardSwapped":
         break;
+      // Dead End rule: no card could be found that leaves a way on, so the party now stands where nothing
+      // remains to explore. Play continues; leaving the Cave or quitting is up to the player (decision 2).
+      case "deadEndNoViableExits":
+        out.push({ text: "There are no viable exits left: every way the party can reach is explored, blocked or leads nowhere. You may play on, or quit.", tone: "bad" });
+        break;
       case "spectreSlew":
         out.push({ text: `A Spectre's touch slays ${name(e.creatureId)}!`, tone: "bad" });
         break;

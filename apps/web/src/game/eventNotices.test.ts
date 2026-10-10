@@ -460,5 +460,11 @@ describe("deadEnd flavors (retreat vs plain move)", () => {
     const out = eventNotices([{ type: "deadEndCardSwapped", removed: 31, drawn: 175 } as GameEvent]);
     expect(out).toHaveLength(0);
   });
+
+  it("tells the player when no viable exit remains, and that they may play on or quit", () => {
+    const out = eventNotices([{ type: "deadEndNoViableExits" } as GameEvent]);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.text).toMatch(/no viable exits/i);
+  });
 });
 

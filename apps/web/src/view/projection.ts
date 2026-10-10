@@ -4,7 +4,7 @@
 // wrong bucket wherever a consumer branches on `card.category === "artifact"`) — found live via the
 // Task 16 manual smoke test (a drawn Magic Axe showed category "treasure").
 import {
-  decodeArea, unpackCoord, ALL_TREASURES, AF_DESTROYED, AF_UNRESOLVED, fluteLulls, getSubLocation,
+  decodeArea, openCard, unpackCoord, ALL_TREASURES, AF_DESTROYED, AF_UNRESOLVED, fluteLulls, getSubLocation,
   DIR_N, DIR_E, DIR_S, DIR_W, type GameState, type PlacedArea,
 } from "@sorcerers-cave/engine";
 import { resolveTile, resolveCardVariant, normExits, type TileArt, type CardArt, type Rot } from "../data/manifest";
@@ -109,13 +109,15 @@ export function projectArea(
   pa: PlacedArea, idx: number, state: GameState, art: ArtTables, liveContents?: readonly number[],
 ): Area {
   const { level, x, y } = unpackCoord(pa.coord);
-  const { d, exits, special } = decodeTopology(pa.card); // the doorways still usable
+  const { d, exits, special } = decodeTopology(openCard(pa)); // the doorways still usable
   // The tile is drawn in its PRINTED orientation: stairs added only for level connectivity
-  // (descent/carpet) are excluded from tile selection so the art is never rotated to fit. A dead end
-  // prunes doorways off `card`, and a pruned shape often has no art (a North-only tunnel), so a tile
-  // that has been pruned is drawn from `printedCard` — keeping any stair revealed since.
+  // (descent/carpet) are excluded from tile selection so the art is never rotated to fit. A placed
+  // card is never rewritten, so `pa.card` is always the tile as dealt (plus any stair revealed since):
+  // a doorway a failed move closed (`deadDoors`) stays on the art and is just no longer offered.
   const mirrored = pa.mirroredStairs ?? 0;
-  const shown = decodeTopology(pa.printedCard === undefined ? pa.card : pa.printedCard | (pa.card & 96));
+  // Games saved before the dead-end rewrite carry a pruned `card` plus the printed one in `printedCard`.
+  const legacyPrinted = (pa as { printedCard?: number }).printedCard;
+  const shown = decodeTopology(legacyPrinted === undefined ? pa.card : legacyPrinted | (pa.card & 96));
   const resolved = resolveTile(
     { exits: shown.exits, stairUp: shown.d.stairUp && (mirrored & 32) === 0, stairDown: shown.d.stairDown && (mirrored & 64) === 0, special: shown.special, isChamber: shown.d.chamber },
     art.tiles,

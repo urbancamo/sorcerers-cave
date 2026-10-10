@@ -81,7 +81,9 @@ export type GameEvent =
   | { type: "deadEnd"; dir: number; retreat?: true } // retreat: the fight bounce-back, not a plain blocked move
   // Dead End rule (§6.3.2, "forced redraw", `variants.forcedRedraw`): one per completed
   // reject-and-redraw cycle during a `move`, emitted ahead of the move's own final event(s).
-  | { type: "deadEndCardSwapped"; removed: number; drawn: number }
+  | { type: "deadEndCardSwapped"; removed: number; drawn: number; reason?: "deadEnd" | "sealed" }
+  // Dead End rule: after the swap (or none was possible) the party stands where no way on remains, with cards left to draw.
+  | { type: "deadEndNoViableExits" }
   | { type: "blocked" }
   | { type: "planRejected"; reason: string } // the submitted battle plan broke a pairing rule
   | { type: "drewChamber"; strangers: number[]; treasures: number[]; hazards: number[] }

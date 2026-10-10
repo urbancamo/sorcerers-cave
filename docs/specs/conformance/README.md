@@ -47,7 +47,7 @@ Checkpoint fields: `TRN` turn · `LVL` level · `ARA` partyArea index · `PH` ph
 (`EXP`=explore `MDS`=medusa `ENC`=encounter `FGT`=fight `PKP`=pickup `SOR`=sorcerer `END`=gameOver) · `GS` game state
 (0 playing, 1 escaped, 2 dead, 3 quit) · `SEED` the LCG cursor (`state.seed`) ·
 `LARGEIDX`/`SMALLIDX` deck cursors. `EV` lists the emitted event types in order (`-` = none).
-`<list>` is comma-separated integers, `-` when empty. PARTY: `CID` creatureId, `ST` status
+`<list>` is comma-separated integers, `-` when empty. `AREA … CARD` is the area's OPEN doorways (`card` less any `deadDoors` a failed move closed, SC-6.1-10), so a closed doorway reads as absent. PARTY: `CID` creatureId, `ST` status
 (0 original, 1 ally, 2 stone, 3 dead), `DK` dragonKills, `CARRY` treasure ids held, `BORNE` the
 borne subset. AREA: `CARD` area-card value, `COORD` packed `level*10000+y*100+x`, `FU` faceUp,
 `VIS` visited, `FLG` flags (4 = earthquake-destroyed), `MIR` mirroredStairs bits, `SD` secret-door

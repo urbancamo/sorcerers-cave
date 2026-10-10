@@ -1,4 +1,4 @@
-import { decodeArea, type DecodedArea } from "./decode";
+import { decodeArea, decodeOpen, type DecodedArea } from "./decode";
 import { DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, unpackCoord, packCoord } from "./coords";
 import { GS_PLAYING, AF_DESTROYED, AF_BELL_SPENT, type GameState } from "./state";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
@@ -117,11 +117,11 @@ function artifactActions(state: GameState): GameAction[] {
     if (has(12, (id) => id === 0 || id === 1 || usesArtifactsAs(id, 4) || usesArtifactsAs(id, 5) || id === 6 || usesArtifactsAs(id, 8))) { // Charmed Flute -> Hero/W-Hero/Priest/Man/Woman/Wizard
       const cur = state.areas[state.partyArea]!;
       const { level, x, y } = unpackCoord(cur.coord);
-      const dec = decodeArea(cur.card);
+      const dec = decodeOpen(cur);
       const below = state.areas.find((a) => a.coord === packCoord(level + 1, x, y));
-      if (!dec.stairDown && below && decodeArea(below.card).stairUp) actions.push({ type: "useArtifact", artifact: 12, dir: DIR_DOWN });
+      if (!dec.stairDown && below && decodeOpen(below).stairUp) actions.push({ type: "useArtifact", artifact: 12, dir: DIR_DOWN });
       const above = state.areas.find((a) => a.coord === packCoord(level - 1, x, y));
-      if (!dec.stairUp && above && decodeArea(above.card).stairDown) actions.push({ type: "useArtifact", artifact: 12, dir: DIR_UP });
+      if (!dec.stairUp && above && decodeOpen(above).stairDown) actions.push({ type: "useArtifact", artifact: 12, dir: DIR_UP });
     }
   }
   return actions;
@@ -130,7 +130,7 @@ function artifactActions(state: GameState): GameAction[] {
 /** Extension kit (SC-EXT-8): one `pullBellRope` action per living party member, offered while the
  *  party stands on an unspent Bell Rope tile (design US-03 — the "member picker"). */
 function bellRopeActions(state: GameState): GameAction[] {
-  const dec = decodeArea(state.areas[state.partyArea]!.card);
+  const dec = decodeOpen(state.areas[state.partyArea]!);
   if (dec.special !== SPECIAL_BELL_ROPE) return [];
   if ((state.areas[state.partyArea]!.flags & AF_BELL_SPENT) !== 0) return [];
   const actions: GameAction[] = [];
@@ -174,7 +174,7 @@ export function legalActions(state: GameState): GameAction[] {
     const canWithdraw = !state.fellThroughTrap && !prevGone && !noWithdrawTurn;
     const actions: GameAction[] = canWithdraw ? [{ type: "withdraw" }, { type: "attack" }] : [{ type: "attack" }];
     if ((state.indiffStreak ?? 0) < 3) actions.push({ type: "test" });
-    const dec = decodeArea(state.areas[state.partyArea]!.card);
+    const dec = decodeOpen(state.areas[state.partyArea]!);
     // Rules §Encountering Strangers: the party may also simply leave by any doorway, forfeiting the
     // treasure — but only during the one-shot window a qualifying indifferent test just opened
     // (Gap C, bug fix 2026-08-04; see lateralMoves' own doc comment). NOT a standing condition of
@@ -203,7 +203,7 @@ export function legalActions(state: GameState): GameAction[] {
     // fight UI), not from a menu item. Retreat is allowed only after at least one round has been fought,
     // and never back up a trap (§Retreat). A party may flee by ANY of the tile's doorways/stairs.
     if (!state.fellThroughTrap && state.fight && state.fight.round > 1 && !state.fight.retreatBlocked) {
-      const dec = decodeArea(state.areas[state.partyArea]!.card);
+      const dec = decodeOpen(state.areas[state.partyArea]!);
       if (dec.n) actions.push({ type: "retreat", dir: DIR_N });
       if (dec.e) actions.push({ type: "retreat", dir: DIR_E });
       if (dec.s) actions.push({ type: "retreat", dir: DIR_S });
@@ -218,7 +218,7 @@ export function legalActions(state: GameState): GameAction[] {
     const actions: GameAction[] = [];
     // Recovering treasure from a Deep Pool is a Giant-only pickup (§Deep Pool) — no other creature
     // can lift it out of the water; ordinary chamber pickups are open to any member.
-    const giantOnly = decodeArea(state.areas[state.partyArea]!.card).special === SPECIAL_DEEP_POOL;
+    const giantOnly = decodeOpen(state.areas[state.partyArea]!).special === SPECIAL_DEEP_POOL;
     for (let ti = 0; ti < state.treasures.length; ti++) {
       for (let mi = 0; mi < state.party.length; mi++) {
         const m = state.party[mi]!;
@@ -242,7 +242,7 @@ export function legalActions(state: GameState): GameAction[] {
   }
   if (state.phase !== "explore") return [];
 
-  const dec = decodeArea(state.areas[state.partyArea]!.card);
+  const dec = decodeOpen(state.areas[state.partyArea]!);
   const actions: GameAction[] = [];
   // Precise Locations (§10.5, §8.1): a Viper-Pit/Whirlpool ledge only reaches its two ADJACENT
   // doorways — the one directly opposite the party's current doorway is unreachable without first

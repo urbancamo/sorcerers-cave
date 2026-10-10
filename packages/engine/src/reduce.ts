@@ -1,6 +1,7 @@
 import { GS_PLAYING, GS_QUIT, GS_ESCAPED, GS_DEAD, AF_DESTROYED, AF_BELL_SPENT, AF_UNRESOLVED, type GameState, type PartyMember, type PlacedArea } from "./state";
 import { tryMove } from "./map";
-import { decodeArea } from "./decode";
+import { moveWithRedraw } from "./redraw";
+import { decodeArea, decodeOpen } from "./decode";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WHIRLPOOL, SPECIAL_WELL, SPECIAL_BELL_ROPE, SPECIAL_GREAT_HALL, TILE_MIN, TILE_MAX, TILE_TUNNEL_ES } from "./data/areaCards";
 import { viperCrossing, deepPoolCrossing, whirlpoolCrossing, giantCanRecover, sunkKey, tryReclaimSunk } from "./special";
 import { enterChamber, drawSmallCards } from "./chamber";
@@ -68,7 +69,7 @@ function persistAndExplore(state: GameState): void {
   const area = state.areas[state.partyArea]!;
   // Heavy treasure left behind in a Deep Pool sinks back onto its `dropped` pile (recoverable only by
   // a Giant on a later visit) rather than the ordinary floor contents.
-  const onDeepPool = decodeArea(area.card).special === SPECIAL_DEEP_POOL;
+  const onDeepPool = decodeOpen(area).special === SPECIAL_DEEP_POOL;
   if (onDeepPool && state.treasures.length > 0) {
     area.dropped = [...(area.dropped ?? []), ...state.treasures];
   }
@@ -381,6 +382,13 @@ function resumeFromMedusaPause(state: GameState): GameEvent[] {
   return events;
 }
 
+/** What the Dead End rule's Entry Dry Run runs on a laid card: the same steps a real move takes after `tryMove`. */
+function enterForDryRun(state: GameState): void {
+  state.fellThroughTrap = false;
+  delete state.subLocation;
+  resolveArea(state);
+}
+
 /** Resolve the area just entered: special markers, then chamber draw + hazards + phase (spec §4/§7). */
 function resolveArea(state: GameState): GameEvent[] {
   const events: GameEvent[] = [{ type: "moved", area: state.partyArea, level: state.level }];
@@ -409,7 +417,7 @@ function resolveAreaLoop(state: GameState): GameEvent[] {
       events.push({ type: "pendingDropDelivered", treasureIds: pending });
       delete state.pendingDrops![here.coord];
     }
-    const dec = decodeArea(state.areas[state.partyArea]!.card);
+    const dec = decodeOpen(state.areas[state.partyArea]!);
     if (dec.special === SPECIAL_DEEP_POOL) {
       const area = state.areas[state.partyArea]!;
       // Extension kit (SC-EXT-21, fix round): a Demon may be lurking here even though Deep Pool
@@ -554,7 +562,7 @@ function relocateDown(state: GameState): void {
     // generalized to every relocateDown caller (trap fall, descendChasm, the Whirlpool's own drag),
     // since they all share the same underlying invariant as the stairway block in map.ts: no
     // vertical arrival may ever land on a Whirlpool. Keep falling until it doesn't.
-    if (decodeArea(state.areas[idx]!.card).special !== SPECIAL_WHIRLPOOL) break;
+    if (decodeOpen(state.areas[idx]!).special !== SPECIAL_WHIRLPOOL) break;
   }
   state.prev2 = state.prev;
   state.prev = state.partyArea;
@@ -613,7 +621,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
 
     case "exitCave": {
       if (state.phase !== "explore") return { state, events: [{ type: "blocked" }] };
-      const dec = decodeArea(state.areas[state.partyArea]!.card);
+      const dec = decodeOpen(state.areas[state.partyArea]!);
       if (state.level === 1 && dec.stairUp) {
         const next = structuredClone(state);
         const events: GameEvent[] = [];
@@ -643,7 +651,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // reducer must not trust the client).
       const leavingIndifferentEncounter = state.phase === "encounter" && state.indiffLeaveOpen === true;
       if (state.phase !== "explore" && !leavingIndifferentEncounter) return { state, events: [{ type: "blocked" }] };
-      const fromSpecial = decodeArea(state.areas[state.partyArea]!.card).special;
+      const fromSpecial = decodeOpen(state.areas[state.partyArea]!).special;
       // Precise Locations (§10.5, §8.1): a Viper-Pit/Whirlpool ledge only reaches its two ADJACENT
       // doorways — block the one directly opposite the party's current doorway (retrace and an
       // island-sourced crossing are unaffected). Mirrors the same gate in selectors.ts's
@@ -672,8 +680,11 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       const largeIdxBefore = base.largeIdx; // snapshot: did tryMove burn a large-pack card for it?
       // Dead End rule (§6.3.2, "forced redraw"): only `move` ever offers the rescue — `retreat`
       // (its own call site below) has its own deliberately harsher dead-end rule and never passes it.
-      const res = tryMove(base, action.dir, base.variants?.forcedRedraw === true);
-      const swapEvents: GameEvent[] = res.swaps.map((s) => ({ type: "deadEndCardSwapped", removed: s.removed, drawn: s.drawn }));
+      // The Dead End rehearsal enters a candidate card the way the real move below does (turn aside, `resolveArea`).
+      const res = base.variants?.forcedRedraw === true
+        ? moveWithRedraw(base, action.dir, enterForDryRun)
+        : { ...tryMove(base, action.dir), swap: undefined, noViableExits: false };
+      const swapEvents: GameEvent[] = res.swap ? [{ type: "deadEndCardSwapped", ...res.swap }] : [];
       if (!res.moved) {
         if (leavingIndifferentEncounter) {
           res.state.phase = "encounter";
@@ -691,7 +702,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           // which path closed it (SC-EXT-1 byte-identity).
           delete res.state.indiffLeaveOpen;
         }
-        return { state: res.state, events: [...swapEvents, res.deadEnd ? { type: "deadEnd", dir: action.dir } : { type: "blocked" }] };
+        return { state: res.state, events: [...swapEvents, res.deadEnd ? { type: "deadEnd", dir: action.dir } : { type: "blocked" }, ...(res.noViableExits ? [{ type: "deadEndNoViableExits" } as GameEvent] : [])] };
       }
       const next = { ...res.state, turn: res.state.turn + 1 };
       next.fellThroughTrap = false; // a normal move reaches a reachable area (resolveArea re-sets it if a trap fires)
@@ -731,12 +742,16 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           next.partyArea = fromIdx;
           next.prev = oldPrev;
           relocateDown(next);
-          events.push(...resolveArea(next));
-          return { state: next, events };
+          // The cancelled move takes its Dead End swap with it (the pack stays a valid permutation: the swap
+          // was made in place), so the log must not narrate a swap that no longer shows on the map.
+          const kept: GameEvent[] = events.filter((e) => e.type !== "deadEndCardSwapped");
+          kept.push(...resolveArea(next));
+          return { state: next, events: kept };
         }
       }
 
       events.push(...resolveArea(next));
+      if (res.noViableExits) events.push({ type: "deadEndNoViableExits" });
       return { state: next, events };
     }
 
@@ -747,7 +762,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
     // to an ordinary crossing — `islandJump` alone distinguishes "stayed here" from "left."
     case "jumpToIsland": {
       if (state.phase !== "explore") return { state, events: [{ type: "blocked" }] };
-      const dec = decodeArea(state.areas[state.partyArea]!.card);
+      const dec = decodeOpen(state.areas[state.partyArea]!);
       if (!ISLAND_JUMP_SPECIALS.has(dec.special)) return { state, events: [{ type: "blocked" }] };
       if (getSubLocation(state).at !== "doorway") return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
@@ -777,7 +792,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // on the tile has a legal way to pick up treasure dropped/left there without first leaving
       // by a doorway and walking back in.
       if (state.phase !== "explore") return { state, events: [{ type: "blocked" }] };
-      const dec = decodeArea(state.areas[state.partyArea]!.card);
+      const dec = decodeOpen(state.areas[state.partyArea]!);
       if (dec.special !== SPECIAL_DEEP_POOL && dec.special !== SPECIAL_VIPER_PIT) return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
       const area = next.areas[next.partyArea]!;
@@ -825,7 +840,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
     case "takeTreasure": {
       if (state.phase !== "pickup") return { state, events: [{ type: "blocked" }] };
       // Deep Pool recovery is Giant-only: no other creature may lift treasure out of the water.
-      if (decodeArea(state.areas[state.partyArea]!.card).special === SPECIAL_DEEP_POOL) {
+      if (decodeOpen(state.areas[state.partyArea]!).special === SPECIAL_DEEP_POOL) {
         const taker = state.party[action.mi];
         if (!taker || taker.creatureId !== C_GIANT) return { state, events: [{ type: "blocked" }] };
       }
@@ -978,7 +993,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         next.treasures.push(tid);
       } else {
         const area = next.areas[next.partyArea]!;
-        const special = decodeArea(area.card).special;
+        const special = decodeOpen(area).special;
         // Special-areas revision (2026-08-08, SC-10.5-16): a Chasm/Whirlpool drop falls through the
         // floor to the level below, rather than sinking into THIS tile's own sub-location bucket —
         // delivered immediately if that area has already been entered, else queued in
@@ -1388,17 +1403,19 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
             if (next.phase !== "explore" || (action.dir !== DIR_UP && action.dir !== DIR_DOWN)) return { state, events: [{ type: "blocked" }] };
             const cur = next.areas[next.partyArea]!;
             const { level, x, y } = unpackCoord(cur.coord);
-            const dec = decodeArea(cur.card);
+            const dec = decodeOpen(cur);
             if (action.dir === DIR_DOWN) {
               if (dec.stairDown) return { state, events: [{ type: "blocked" }] }; // already a visible stair
               const below = next.areas.find((a) => a.coord === packCoord(level + 1, x, y));
-              if (!below || !decodeArea(below.card).stairUp) return { state, events: [{ type: "blocked" }] };
+              if (!below || !decodeOpen(below).stairUp) return { state, events: [{ type: "blocked" }] };
               cur.card |= 64; // reveal stair DOWN
+              if (cur.deadDoors) cur.deadDoors &= ~64;
             } else {
               if (dec.stairUp) return { state, events: [{ type: "blocked" }] };
               const above = next.areas.find((a) => a.coord === packCoord(level - 1, x, y));
-              if (!above || !decodeArea(above.card).stairDown) return { state, events: [{ type: "blocked" }] };
+              if (!above || !decodeOpen(above).stairDown) return { state, events: [{ type: "blocked" }] };
               cur.card |= 32; // reveal stair UP
+              if (cur.deadDoors) cur.deadDoors &= ~32;
             }
             return { state: next, events: [{ type: "artifactUsed", artifact: 12 }, { type: "secretDoorRevealed", dir: action.dir }] };
           }
@@ -1563,7 +1580,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // Legal on a Chasm tile in explore OR encounter phase (design US-02) — the party may dive
       // down to escape an encounter, not just at rest. No dice; the Chasm is reusable terrain.
       if (state.phase !== "explore" && state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
-      if (decodeArea(state.areas[state.partyArea]!.card).special !== SPECIAL_CHASM) return { state, events: [{ type: "blocked" }] };
+      if (decodeOpen(state.areas[state.partyArea]!).special !== SPECIAL_CHASM) return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
       // Park any pending encounter strangers/treasure back onto the chasm tile before leaving it —
       // otherwise they'd leak into the landing area's working set.
@@ -1579,7 +1596,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // required" latitude as the Chasm's escape hatch) — repeatable every turn, no spent flag
       // (Resolved interpretation 4); gated only on the small pack having a card left.
       if (state.phase !== "explore" && state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
-      if (decodeArea(state.areas[state.partyArea]!.card).special !== SPECIAL_WELL) return { state, events: [{ type: "blocked" }] };
+      if (decodeOpen(state.areas[state.partyArea]!).special !== SPECIAL_WELL) return { state, events: [{ type: "blocked" }] };
       if (state.smallIdx >= state.smallPack.length) return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
       const events: GameEvent[] = [{ type: "wellDraw" }];
@@ -1595,7 +1612,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // Legal on a Bell Rope tile in explore OR encounter phase, for a living member, ONCE per tile
       // ever (design US-03; AF_BELL_SPENT persists the spend on the placed area).
       if (state.phase !== "explore" && state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
-      if (decodeArea(state.areas[state.partyArea]!.card).special !== SPECIAL_BELL_ROPE) return { state, events: [{ type: "blocked" }] };
+      if (decodeOpen(state.areas[state.partyArea]!).special !== SPECIAL_BELL_ROPE) return { state, events: [{ type: "blocked" }] };
       if ((state.areas[state.partyArea]!.flags & AF_BELL_SPENT) !== 0) return { state, events: [{ type: "blocked" }] };
       const puller = state.party[action.mi];
       if (!puller || !(puller.status === 0 || puller.status === 1)) return { state, events: [{ type: "blocked" }] };

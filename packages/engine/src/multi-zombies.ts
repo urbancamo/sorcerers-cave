@@ -1,6 +1,6 @@
 import { GS_PLAYING, GS_DEAD, type PartyMember } from "./state";
 import type { GameEvent } from "./actions";
-import { decodeArea } from "./decode";
+import { decodeArea, decodeOpen } from "./decode";
 import { SPECIAL_DEEP_POOL } from "./data/areaCards";
 import { HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_DESERTION, HAZARD_QUARREL } from "./data/hazards";
 import { DIR_UP, DIR_DOWN, targetCoord, unpackCoord } from "./coords";
@@ -112,10 +112,10 @@ export function zombieActionGate(mp: MpGameState, seat: number, action: MpAction
       // can land the party at its doorway) only the retrace back the way it came is walkable —
       // every other exit would mean crossing the water.
       const destArea = mp.cave.areas.find((a) => a.coord === dest);
-      if (destArea && decodeArea(destArea.card).special === SPECIAL_DEEP_POOL) {
+      if (destArea && decodeOpen(destArea).special === SPECIAL_DEEP_POOL) {
         return reject("zombies will not cross water");
       }
-      if (decodeArea(here.card).special === SPECIAL_DEEP_POOL &&
+      if (decodeOpen(here).special === SPECIAL_DEEP_POOL &&
           mp.cave.areas[p.prev] && dest !== mp.cave.areas[p.prev]!.coord) {
         return reject("zombies will not cross water");
       }

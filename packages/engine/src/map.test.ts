@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { tryMove } from "./map";
-import { decodeArea } from "./decode";
+import { decodeArea, decodeOpen } from "./decode";
 import { DIR_N, DIR_E, DIR_S, DIR_UP, DIR_DOWN, packCoord } from "./coords";
 import { AF_DESTROYED } from "./state";
 import { makeState } from "./testkit";
@@ -37,21 +37,23 @@ describe("tryMove (spec §6)", () => {
     expect(r.deadEnd).toBe(true);
     expect(r.state.areas[1]).toMatchObject({ card: 12, faceUp: false });
     // The Gateway's South exit bit (4) is now pruned.
-    expect(decodeArea(r.state.areas[0]!.card).s).toBe(false);
+    expect(decodeOpen(r.state.areas[0]!).s).toBe(false);
     expect(r.state.partyArea).toBe(0); // party did not move
   });
 
-  // The live card is pruned on a dead end, but the tile keeps its printed card so the renderer can
-  // still draw the tile as it was dealt (a pruned shape often has no art — e.g. N-only).
-  it("records the printed card on the first prune and keeps it across later prunes", () => {
+  // A placed card's doors never change (the dead-end rewrite): a failed move records the dead doorway in
+  // `deadDoors`, and `card` stays exactly as dealt, so the tile art can never drift from the printed card.
+  it("a failed move closes the doorway in deadDoors and leaves the printed card untouched", () => {
     // Draw 12 = S|W has no North door → dead end moving South; draw 3 = N|E has no West door → dead end moving East.
     const s = makeState({ largePack: [12, 3], largeIdx: 0 });
     const first = tryMove(s, DIR_S);
-    expect(first.state.areas[0]!.printedCard).toBe(175); // the Gateway as printed
-    expect(decodeArea(first.state.areas[0]!.card).s).toBe(false); // live card still pruned
+    expect(first.state.areas[0]!.card).toBe(175); // the Gateway as printed
+    expect(first.state.areas[0]!.deadDoors).toBe(4); // S closed
+    expect(decodeOpen(first.state.areas[0]!).s).toBe(false);
     const second = tryMove(first.state, DIR_E);
-    expect(decodeArea(second.state.areas[0]!.card).e).toBe(false);
-    expect(second.state.areas[0]!.printedCard).toBe(175); // first prune's card, not the half-pruned one
+    expect(second.state.areas[0]!.card).toBe(175);
+    expect(second.state.areas[0]!.deadDoors).toBe(4 | 2); // S and E
+    expect("printedCard" in second.state.areas[0]!).toBe(false);
   });
 
   it("never gives an unpruned tile a printedCard", () => {
@@ -88,7 +90,7 @@ describe("tryMove (spec §6)", () => {
     const r = tryMove(s, DIR_S);
     expect(r.moved).toBe(false);
     expect(r.deadEnd).toBe(true);
-    expect(decodeArea(r.state.areas[0]!.card).s).toBe(false); // doorway onto the rubble is pruned
+    expect(decodeOpen(r.state.areas[0]!).s).toBe(false); // doorway onto the rubble is pruned
     expect(r.state.largeIdx).toBe(0); // nothing drawn
   });
 
