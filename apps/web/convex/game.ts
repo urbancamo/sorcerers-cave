@@ -21,6 +21,7 @@ const actionValidator = v.object({
   to: v.optional(v.number()),
   artifact: v.optional(v.number()),
   target: v.optional(v.number()),
+  area: v.optional(v.number()), // spareSorcerer: the discovered area to teleport to
   borne: v.optional(v.boolean()), // setBorne: bear (wield/wear) vs stow a Sword/Staff/Ring
 
   // resolveRound: the player's pairing for one fight round (front/background/strangers per match).
@@ -73,8 +74,16 @@ const variantsValidator = v.object({ extensionKit: v.optional(v.boolean()) });
 // server-side from a Convex-only env var (never `VITE_`-prefixed, so never bundled into the client),
 // mirroring `TEST_MODE_SECRET`'s own established reasoning below. Absent env var ⇒ byte-identical
 // to before this existed.
-function withForcedRedraw(variants: { extensionKit?: boolean } | undefined): { extensionKit?: boolean; forcedRedraw?: boolean } | undefined {
-  return process.env.FORCED_REDRAW_ENABLED === "1" ? { ...variants, forcedRedraw: true } : variants;
+//
+// The Sorcerer's terms (`variants.sorcererTeleport`, solo only) are folded in the same way from
+// `SORCERER_TELEPORT_ENABLED`. Off by default, so games already in progress and every existing
+// recording behave exactly as before (a defeated Sorcerer is simply slain).
+type ServerVariants = { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean };
+function withForcedRedraw(variants: { extensionKit?: boolean } | undefined): ServerVariants | undefined {
+  let out: ServerVariants | undefined = variants;
+  if (process.env.FORCED_REDRAW_ENABLED === "1") out = { ...out, forcedRedraw: true };
+  if (process.env.SORCERER_TELEPORT_ENABLED === "1") out = { ...out, sorcererTeleport: true };
+  return out;
 }
 
 export const newGame = mutation({

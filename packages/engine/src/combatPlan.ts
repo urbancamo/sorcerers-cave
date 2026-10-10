@@ -5,7 +5,7 @@ import { rollDieForState } from "./rng";
 import { ALL_CREATURES as CREATURES } from "./data/creatures";
 import { ALL_TREASURES } from "./data/treasures";
 import { frontStrength, casterMP, partyRollBonus, isCaster } from "./combat";
-import { eyePresent, ringInvincible, activeCurses, eyeForsakenByDeath, markDied, revertApprenticesOnSorcererDeath, shieldWardActive } from "./effects";
+import { eyePresent, ringInvincible, activeCurses, eyeForsakenByDeath, markDied, slaySorcerer, shieldWardActive } from "./effects";
 import { equipStrangers } from "./strangerEquip";
 import { removeStranger, gearOf } from "./strangerGear";
 import { swordBonus, axeBonus, staffBonus, swordFightsSpectre, shieldEligible } from "./capabilities";
@@ -523,8 +523,14 @@ export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEve
       // `killedStrangerIdx` only ever holds indices from the PRE-round array, all strictly less
       // than any index a push appends at the end.
       if (sid === C_SORCERER) {
-        state.sorcererKilled = true;
-        events.push({ type: "sorcererSlain" }, ...revertApprenticesOnSorcererDeath(state));
+        // With `variants.sorcererTeleport` he is only defeated for now: the player may spare him once the
+        // fight is over, so his death waits (reduce.ts `finalizeRound`). The Eye of God forbids sparing.
+        if (state.variants?.sorcererTeleport && !eyePresent(state)) {
+          state.fight!.sorcererFelled = true;
+          events.push({ type: "sorcererFelled" });
+        } else {
+          events.push(...slaySorcerer(state));
+        }
       }
     } else if (enemyTotal > partyTotal) {
       const mortal = front.filter((m) => !ringInvincible(m, state));

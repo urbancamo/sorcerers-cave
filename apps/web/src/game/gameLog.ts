@@ -160,6 +160,9 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "strangerVanished": return `${creature(e.creatureId)} (stranger) vanished with ${treasure(e.artifact)}`;
     case "dragonSlain": return `${creature(e.creatureId)} slew a dragon single-handed — Dragon-slayer ×${e.kills} (+${e.kills} fighting strength)`;
     case "sorcererSlain": return "the Sorcerer was slain (+30)";
+    case "sorcererFelled": return "the Sorcerer was defeated — the party may spare him";
+    case "sorcererSpared": return "the Sorcerer was spared, on condition that he teleport the party";
+    case "partyTeleported": return `the Sorcerer teleported the party to level ${e.level}${e.treasureIds.length ? ` with ${e.treasureIds.length} treasure(s)` : ""}`;
     case "spectreSlew": return `a Spectre slew ${creature(e.creatureId)}`;
     case "memberRevived": return `${creature(e.creatureId)} was freed from stone`;
     case "reaction": return `reaction: ${e.outcome} (rolled ${e.roll})`;
@@ -468,6 +471,9 @@ export function eventCode(e: GameEvent): string | null {
     case "memberRevived": return `RVV ${cr3(e.creatureId)}`;
     case "dragonSlain": return `DRG SLN ${cr3(e.creatureId)}`;
     case "sorcererSlain": return "SOR SLN";
+    case "sorcererFelled": return "SOR FEL";
+    case "sorcererSpared": return "SOR SPR";
+    case "partyTeleported": return `TEL L${e.level} ${e.treasureIds.length}`;
     case "treasureDropped": return `TDR ${e.count}`;
     case "heavyDownForFight": return `FDR ${e.count}`;
     case "treasureReclaimed": return `TRC ${e.count}`;

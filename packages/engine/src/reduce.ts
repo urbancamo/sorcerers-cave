@@ -15,7 +15,9 @@ import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import {
   wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, markDied, healingBalmEligible, ringInvincible, usesArtifactsAs,
   hasLivingHuman, holyWaterTargets, HW_STATUE_BASE, HW_MEDUSA, HW_STRANGER_BASE, HW_PARKED_STATUE_BASE, isHumanOrPriestClass,
+  eyePresent, slaySorcerer,
 } from "./effects";
+import { canTeleportTo } from "./sorcerer";
 import { BORNEABLE, isBorne, sweepFallen, spillCarried } from "./loot";
 import { rollDieForState } from "./rng";
 import {
@@ -191,6 +193,7 @@ function finalizeRound(state: GameState): GameEvent[] {
   const events = reconcileUnicorns(state); // a Unicorn departs if the last Woman fell (§ Unicorn)
   const partyAlive = state.party.some((m) => m.status === 0 || m.status === 1);
   if (!partyAlive) {
+    const sorcererEvents = settleFelledSorcerer(state); // (reads the fight, so before it is cleared)
     state.gs = GS_DEAD;
     state.phase = "gameOver";
     state.fight = null;
@@ -198,7 +201,7 @@ function finalizeRound(state: GameState): GameEvent[] {
     // items are lost with the bodies (plan ④a / I-12 — matters most in multiplayer, harmless in solo).
     events.push(...sweepFallen(state, "contents"));
     state.party.forEach((m) => { m.potionActive = false; });
-    events.push({ type: "gameOver", gs: GS_DEAD });
+    events.push(...sorcererEvents, { type: "gameOver", gs: GS_DEAD });
   } else if (state.strangers.length === 0) {
     // The party won: reclaim treasure dropped onto the floor to fight so it joins the pickup (§387).
     const area = state.areas[state.partyArea]!;
@@ -211,14 +214,34 @@ function finalizeRound(state: GameState): GameEvent[] {
     // ("anything they were carrying can be taken from them at the end of the turn", §Medusa; §489's
     // Eye-on-a-corpse becomes recoverable here). Borne items stay lost with the body (plan ④a).
     events.push(...sweepFallen(state, "working"));
+    const felled = state.fight?.sorcererFelled === true;
     state.fight = null;
     state.party.forEach((m) => { m.potionActive = false; });
     events.push({ type: "fightWon" });
-    if (state.treasures.length > 0) state.phase = "pickup";
-    else persistAndExplore(state);
+    if (felled && !eyePresent(state)) state.phase = "sorcerer"; // the player decides his fate before anything else
+    else {
+      if (felled) events.push(...slaySorcerer(state)); // the Eye forbids sparing him
+      afterFight(state, events);
+    }
   }
   // else: still fighting; resolveRound already advanced the round
   return events;
+}
+
+/** The party has won: loot if there is any, else on its way. A turncoat Apprentice (the Sorcerer's death breaks
+ *  her loyalty) is a stranger again, and the party must deal with her. */
+function afterFight(state: GameState, events: GameEvent[]): void {
+  if (state.strangers.length > 0) events.push(...startFight(state, 0));
+  else if (state.treasures.length > 0) state.phase = "pickup";
+  else persistAndExplore(state);
+}
+
+/** A fight ends with the Sorcerer defeated but not yet slain (wipe-out, retreat): he dies after all, with no chance
+ *  to spare him. Empty unless `variants.sorcererTeleport` marked him felled. */
+function settleFelledSorcerer(state: GameState): GameEvent[] {
+  if (!state.fight?.sorcererFelled) return [];
+  delete state.fight.sorcererFelled;
+  return slaySorcerer(state);
 }
 
 /** Free any party members left as stone in the party's CURRENT area, if a living Wizard (or the
@@ -1195,6 +1218,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       }
       // Retreat succeeds: the strangers and any dropped treasure are LEFT BEHIND in the chamber we fled.
       // What the strangers bore goes back on the floor with the rest, and is handed out afresh next fight.
+      const sorcererEvents = settleFelledSorcerer(res.state); // a Sorcerer defeated earlier in the fight dies after all
       dropAllGear(res.state);
       const fled = res.state.areas[fromIdx]!;
       fled.contents = [
@@ -1222,8 +1246,43 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       if (!res.state.hostileAreas?.includes(fromIdx)) {
         res.state.hostileAreas = [...(res.state.hostileAreas ?? []), fromIdx];
       }
-      const events = resolveArea(res.state); // resolve the area we retreated into (fresh tunnel/chamber)
+      const events = [...sorcererEvents, ...resolveArea(res.state)]; // resolve the area we retreated into (fresh tunnel/chamber)
       return { state: res.state, events };
+    }
+
+    case "slaySorcerer": {
+      // The player declines to spare the Sorcerer: he dies as the killing blow would have had him die.
+      if (state.phase !== "sorcerer") return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      const events = slaySorcerer(next);
+      afterFight(next, events);
+      return { state: next, events };
+    }
+
+    case "spareSorcerer": {
+      // Spared on condition that he transport the party, and the treasure in the chamber, to any discovered
+      // area (§The Sorcerer). He stays behind in the chamber he was defeated in.
+      if (state.phase !== "sorcerer" || !canTeleportTo(state, action.area)) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      const from = next.partyArea;
+      const carried = next.treasures;
+      next.treasures = [];
+      persistAndExplore(next); // park whatever else stays in the chamber (the sleeping, the statues)
+      next.areas[from]!.contents.push(100 + C_SORCERER);
+      const to = next.areas[action.area]!;
+      to.contents.push(...carried.map((t) => 200 + t));
+      next.prev2 = next.prev;
+      next.prev = from;
+      next.partyArea = action.area;
+      next.level = unpackCoord(to.coord).level;
+      next.fellThroughTrap = true; // magic leaves no way back: no withdrawing from the landing
+      delete next.subLocation;
+      const events: GameEvent[] = [
+        { type: "sorcererSpared" },
+        { type: "partyTeleported", from, to: action.area, level: next.level, treasureIds: carried },
+        ...resolveArea(next),
+      ];
+      return { state: next, events };
     }
 
     case "proceed": {

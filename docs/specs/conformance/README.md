@@ -44,7 +44,7 @@ END
 ```
 
 Checkpoint fields: `TRN` turn · `LVL` level · `ARA` partyArea index · `PH` phase
-(`EXP`=explore `MDS`=medusa `ENC`=encounter `FGT`=fight `PKP`=pickup `END`=gameOver) · `GS` game state
+(`EXP`=explore `MDS`=medusa `ENC`=encounter `FGT`=fight `PKP`=pickup `SOR`=sorcerer `END`=gameOver) · `GS` game state
 (0 playing, 1 escaped, 2 dead, 3 quit) · `SEED` the LCG cursor (`state.seed`) ·
 `LARGEIDX`/`SMALLIDX` deck cursors. `EV` lists the emitted event types in order (`-` = none).
 `<list>` is comma-separated integers, `-` when empty. PARTY: `CID` creatureId, `ST` status
@@ -77,6 +77,8 @@ the moment the action is applied**. Directions: 1 N, 2 E, 3 S, 4 W, 5 up, 6 down
 | `USE <artifact>[ T<target>][ D<dir>]` | useArtifact (`USE 5` with no `T` = the Medusa-pause throw; kit artifacts 15 Elixir/16 Holy Water/19 Scroll add their own target ranges, SC-EXT-22/24/25) |
 | `FIGHT <match>[;<match>…]` | resolveRound; match = `<front>[+<front>][\|<backer>[+…]]><stranger>[+<stranger>]`; `FIGHT -` = the forced-Spectre-or-Demon empty plan (SC-9.4-6, SC-EXT-21) |
 | `DESCENDCHASM` | descendChasm — kit-only, Chasm tile (SC-EXT-5) |
+| `SPARESORCERER <area>` | spareSorcerer — only with `variants.sorcererTeleport`, `sorcerer` phase (SC-12-21) |
+| `SLAYSORCERER` | slaySorcerer — only with `variants.sorcererTeleport`, `sorcerer` phase (SC-12-21) |
 | `DRAWFROMWELL` | drawFromWell — kit-only, Well tile (SC-EXT-7) |
 | `PULLBELLROPE <mi>` | pullBellRope: living member `mi` pulls it — kit-only, Bell Rope tile (SC-EXT-8) |
 | `ENTERCRYPT` | enterCrypt — kit-only, on the area a parked Crypt/Gems names (SC-EXT-13) |

@@ -7,6 +7,7 @@ import { canCarry } from "./pickup";
 import { usesArtifactsAs, holyWaterTargets, hasLivingHuman, fluteLulls, healingBalmEligible, isHumanOrPriestClass } from "./effects";
 import { getSubLocation, oppositeDir, RING_ADJACENCY_SPECIALS, ISLAND_JUMP_SPECIALS, type SubLocation } from "./subLocation";
 import { giantCanRecover, sunkKey } from "./special";
+import { teleportDestinations } from "./sorcerer";
 
 const C_GIANT = 12; // only a Giant may lift treasure out of a Deep Pool (§Deep Pool)
 
@@ -158,6 +159,10 @@ export function legalActions(state: GameState): GameAction[] {
     }
     acts.push({ type: "proceed" });
     return acts;
+  }
+  if (state.phase === "sorcerer") {
+    // The Sorcerer lies defeated (§The Sorcerer): slay him, or spare him for a teleport to any discovered area.
+    return [{ type: "slaySorcerer" }, ...teleportDestinations(state).map((area): GameAction => ({ type: "spareSorcerer", area }))];
   }
   if (state.phase === "encounter") {
     // Withdraw retreats to the area the party came from — but not back up a trap it fell through, nor

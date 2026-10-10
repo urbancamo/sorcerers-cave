@@ -25,7 +25,9 @@ export const AF_UNRESOLVED = 16;
 // Interactive mode: which controls the UI shows and which actions reduce accepts.
 // Milestone B uses only "explore" and "gameOver"; "encounter"/"fight"/"pickup" arrive in C.
 // "medusa" is the pre-hazard pause: Medusa looms and the party holds Lotus Dust — throw or proceed.
-export type GamePhase = "explore" | "medusa" | "encounter" | "fight" | "pickup" | "gameOver";
+// "sorcerer" is the pause after the Sorcerer is defeated (`variants.sorcererTeleport`): slay him, or spare
+// him in return for a teleport to any discovered area (§The Sorcerer).
+export type GamePhase = "explore" | "medusa" | "encounter" | "fight" | "pickup" | "sorcerer" | "gameOver";
 
 // Member status: 0 original, 1 ally, 2 stone, 3 dead.
 export type MemberStatus = 0 | 1 | 2 | 3;
@@ -116,6 +118,10 @@ export interface FightState {
   // which keeps the two aligned). Absent unless some stranger bears something, so a fight in which
   // nobody is equipped leaves the state byte-identical to before the loadout existed.
   gear?: number[][];
+  // The Sorcerer has been defeated in this fight (`variants.sorcererTeleport`) but not yet slain: his death
+  // (the +30 bonus, the curse lift, every Apprentice's loyalty) waits until the fight is over, when the player
+  // may spare him for a teleport instead (§The Sorcerer). Absent unless that has happened.
+  sorcererFelled?: boolean;
 }
 
 /** One pairing in a battle plan: party fighters (front), supporting casters (backers), and the
@@ -242,7 +248,7 @@ export interface GameState {
   // construction — deliberately NOT mirrored onto `MpGameState.variants` (multi.ts) or its own
   // separate Convex validator (apps/web/convex/multiplayer.ts), so a multiplayer-composed state can
   // never carry it.
-  variants?: { extensionKit?: boolean; forcedRedraw?: boolean };
+  variants?: { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean };
   // Extension kit (SC-EXT-9): the turn number `withdraw` is blocked for — set by a Well draw or a
   // Bell Rope 4-6 roll (design US-03/US-07), alongside `fellThroughTrap` on the same legality check.
   // `turn` only advances on `move`, so this self-invalidates once the party moves on — no explicit
