@@ -58,6 +58,12 @@ export type GameAction =
   | { type: "reclaimTreasure" }
   // Test Mode (§Test Mode): arm/clear the next draw or reaction override. Rejected with `blocked`
   // on any game whose `state.testMode` isn't true (reduce.ts) — never legal in a real game.
+  // The Sorcerer's terms (§The Sorcerer, `variants.sorcererTeleport`): legal only in the `sorcerer` phase,
+  // straight after the fight in which he was defeated. Spare him on condition that he transports the party
+  // and the treasure in the chamber to any discovered area (`area` indexes `state.areas`) — or slay him
+  // as the fight would have (+30, every curse lifted, every Apprentice turns hostile).
+  | { type: "spareSorcerer"; area: number }
+  | { type: "slaySorcerer" }
   | { type: "testPlaceArea"; dir: number; special: number }
   | { type: "testSetChamber"; strangers: number[]; treasures: number[]; hazards: number[] }
   | { type: "testForceReaction"; outcome: "friendly" | "indifferent" | "hostile" }
@@ -97,6 +103,13 @@ export type GameEvent =
   // after the generic `strangerKilled` so the UI can celebrate it (rulebook §Dragon).
   | { type: "dragonSlain"; creatureId: number; kills: number }
   | { type: "sorcererSlain" } // the Sorcerer himself has been defeated — the cave's master is no more
+  // The Sorcerer lost his match but, with `variants.sorcererTeleport`, is not yet slain: the party may spare him
+  // once the fight is over (the `sorcerer` phase). Followed by `sorcererSlain` or `sorcererSpared`.
+  | { type: "sorcererFelled" }
+  | { type: "sorcererSpared" } // spared, on condition that he transports the party (a `partyTeleported` follows)
+  // The party and the chamber's treasure were carried by magic from area `from` to area `to` (indices into
+  // `state.areas`), on level `level`.
+  | { type: "partyTeleported"; from: number; to: number; level: number; treasureIds: number[] }
   | { type: "spectreSlew"; creatureId: number }
   | { type: "memberRevived"; creatureId: number } // a stoned member freed by a returning Wizard's Magic Staff
   // `certain` (bug fix 2026-08-02): set only when the leader's hostileMax/indiffMax make `outcome`

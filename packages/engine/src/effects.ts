@@ -212,6 +212,14 @@ export function annihilateWithEye(state: GameState): GameEvent[] {
  * no-op whenever no Apprentice is currently allied (there is normally at most one, but a
  * full-group friendly recruit could in principle bring more than one into the same party).
  */
+/** The Sorcerer is slain: record the kill (worth 30 at scoring, lifts every curse) and break every Apprentice
+ *  ally's loyalty. The one place his death is applied, whether at the killing blow or, with
+ *  `variants.sorcererTeleport`, once the fight is over and the player has declined to spare him. */
+export function slaySorcerer(state: GameState): GameEvent[] {
+  state.sorcererKilled = true;
+  return [{ type: "sorcererSlain" }, ...revertApprenticesOnSorcererDeath(state)];
+}
+
 export function revertApprenticesOnSorcererDeath(state: GameState): GameEvent[] {
   const turned = state.party.filter((m) => m.status === 1 && m.creatureId === C_APPRENTICE);
   if (turned.length === 0) return [];

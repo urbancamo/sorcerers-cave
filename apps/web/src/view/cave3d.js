@@ -404,8 +404,11 @@ function refresh(canAct){
     const retarget = tokenMove && tokenMove.to.distanceTo(to)>0.01;
     if((!tokenMove || retarget) && partyToken.position.distanceTo(to)>0.01){
       tokenMove={from:partyToken.position.clone(), to, t0:clock.elapsedTime, dur:0.55};
-      flyFollow(to);
-      if(isoFocus!=null) setIsolation(engine.current.level, isoDir);
+      if(homeOnArrival){ homeOnArrival=false; viewSnapTile(); } // same as the Home button, on the new tile
+      else{
+        flyFollow(to);
+        if(isoFocus!=null) setIsolation(engine.current.level, isoDir);
+      }
     }
   }
 }
@@ -898,6 +901,7 @@ function animate(){
   if(partyToken){partyToken.userData.gem.rotation.y=tt*1.1;partyToken.userData.gem.position.y=1.12+Math.sin(tt*2)*0.05;
     const sc=1+Math.sin(tt*2.4)*0.06;partyToken.userData.halo.scale.set(sc,sc,sc);partyToken.userData.halo.material.opacity=0.4+Math.sin(tt*2.4)*0.18;}
   if(selectRing&&selectRing.visible)selectRing.material.opacity=0.55+Math.sin(tt*3)*0.25;
+  if(picker)picker.rings.forEach((r,i)=>{r.material.opacity=0.4+Math.sin(tt*3+i*0.8)*0.3;});
   // exit markers pulse + hover bob + billboard the chevron to point screen-outward
   exitMarkers.forEach(g=>{const f=g.userData.flash;let amp=0.07;
     if(f){const kk=(tt-f.t0);if(kk>0.6){g.userData.flash=null;}amp=0.18;}
@@ -920,12 +924,68 @@ function animate(){
 /* ============================================================
    boot
    ============================================================ */
+/* ---- destination picker (Sorcerer's teleport) ----
+   Free-orbit the whole cave, ring every area the party may be sent to, and report the one the player
+   clicks. The React dialog owns the confirm/back buttons; this only does the choosing. */
+let picker=null; // {byKey: akey -> area index, onPick, rings, hover}
+let homeOnArrival=false; // snap the camera 'home' to the party's tile once the teleport lands (see refresh)
+function pickerHover(e){
+  if(!picker) return;
+  mouse.x=(e.clientX/innerWidth)*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;ray.setFromCamera(mouse,camera);
+  const hit=ray.intersectObjects(tileMeshes,false)[0];
+  const a=hit&&hit.object.userData.area;
+  const ok=!!a&&picker.byKey.has(akey(a));
+  picker.hover.visible=ok;
+  if(ok){picker.hover.position.copy(worldPos(a));picker.hover.position.y+=0.025;}
+  renderer.domElement.style.cursor=ok?'pointer':'';
+}
+function clearPicker(){
+  if(!picker) return;
+  renderer.domElement.removeEventListener('pointermove',pickerHover);
+  renderer.domElement.style.cursor='';
+  [...picker.rings,picker.hover].forEach(r=>{fxGroup.remove(r);r.geometry.dispose();r.material.dispose();});
+  picker=null;
+  if(selectRing) selectRing.material.color.setHex(COLOR.brassBright);
+  selectCurrent(); // put the inspect ring back on the party's tile
+}
+function setPicker(opts){
+  clearPicker();
+  if(!opts) return;
+  const byKey=new Map(), rings=[];
+  for(const d of opts.destinations){
+    byKey.set(akey(d),d.idx);
+    const r=ringFlat(COLOR.brassBright,TILE_D*0.36,TILE_D*0.42);
+    r.rotation.x=-Math.PI/2; r.position.copy(worldPos(d)); r.position.y+=0.03;
+    fxGroup.add(r); rings.push(r);
+  }
+  // the tile under the cursor, if it can be chosen: a bright wash over the whole card
+  const hover=new THREE.Mesh(new THREE.PlaneGeometry(TILE_W*0.97,TILE_D*0.97),
+    new THREE.MeshBasicMaterial({color:COLOR.brassBright,transparent:true,opacity:0.42,side:THREE.DoubleSide,depthWrite:false,blending:THREE.AdditiveBlending}));
+  hover.rotation.x=-Math.PI/2; hover.visible=false; fxGroup.add(hover);
+  picker={byKey,onPick:opts.onPick,rings,hover};
+  renderer.domElement.addEventListener('pointermove',pickerHover);
+  selectRing.visible=false; selectRing.material.color.setHex(0xc79bff);
+  viewFreeOrbit();
+  setPrompt('Choose where the Sorcerer will send you — click a <b>ringed area</b>.','event');
+}
+function pickAt(){ // ray already aimed; returns true when the click was consumed by the picker
+  if(!picker) return false;
+  const hit=ray.intersectObjects(tileMeshes,false)[0];
+  const a=hit&&hit.object.userData.area;
+  const idx=a?picker.byKey.get(akey(a)):undefined;
+  if(idx===undefined) return true; // ignore clicks on tiles that can't be chosen
+  selectRing.position.copy(worldPos(a));selectRing.position.y+=0.04;selectRing.visible=true;
+  picker.onPick(idx);
+  return true;
+}
+
 let needle;
 function onPointerDown(e){ downXY=[e.clientX,e.clientY]; }
 function onPointerUp(e){
   if(!downXY)return;const moved=Math.hypot(e.clientX-downXY[0],e.clientY-downXY[1]);downXY=null;if(moved>6)return;
   if(Reveal.active())return;
   mouse.x=(e.clientX/innerWidth)*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;ray.setFromCamera(mouse,camera);
+  if(pickAt())return;
   const hitE=ray.intersectObjects(exitGroup.children,true)[0];
   if(hitE){let g=hitE.object;while(g&&!g.userData.move)g=g.parent;if(g){doMove(g.userData.move);return;}}
   const hitC=ray.intersectObjects(contentMeshes,false)[0];
@@ -975,7 +1035,7 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
   contentGroups.clear();
   for(const k of Object.keys(levelBounds)) delete levelBounds[k];
   for(const k of Object.keys(isoAlpha)) delete isoAlpha[k];
-  isoFocus=null;isoHinted=false;partyToken=null;selectRing=null;tokenMove=null;goal.active=false;
+  isoFocus=null;isoHinted=false;picker=null;homeOnArrival=false;partyToken=null;selectRing=null;tokenMove=null;goal.active=false;
   // Clear transient interaction state that lives at module scope, so a new game never inherits it from
   // however the previous one ended. In particular `busy` is left true when a game ends by leaving the
   // Cave (the exit-confirm path), which would otherwise block every move on the next game's gateway.
@@ -1035,5 +1095,5 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
     renderer.dispose();
     renderer.domElement.remove();
   }
-  return { dispose, refresh, setParty, setOtherParties, focusArea };
+  return { dispose, refresh, setParty, setOtherParties, focusArea, setPicker, snapOnArrival:()=>{homeOnArrival=true;} };
 }

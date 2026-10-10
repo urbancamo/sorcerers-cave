@@ -38,4 +38,6 @@ export function boot(opts: BootOptions): Promise<{
   setParty(party: ViewPartyMember[]): void;
   setOtherParties(list: { color: string; col: number; row: number; level: number }[]): void;
   focusArea(a: { col: number; row: number; level: number }): void;
+  snapOnArrival(): void; // the next time the party moves, frame its new tile as the Home button does
+  setPicker(opts: { destinations: { idx: number; col: number; row: number; level: number }[]; onPick: (idx: number) => void } | null): void;
 }>;

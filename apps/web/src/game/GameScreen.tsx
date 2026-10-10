@@ -5,7 +5,7 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { api } from "../../convex/_generated/api";
 import { GS_PLAYING, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
 import { useCaveGame } from "./useCaveGame";
-import { CaveCanvas } from "../view/CaveCanvas";
+import { CaveCanvas, type CaveApi } from "../view/CaveCanvas";
 import { SplashScreen } from "./SplashScreen";
 import { PartySelect } from "./PartySelect";
 import { PartyPanel } from "./PartyPanel";
@@ -13,7 +13,7 @@ import { GameOverScreen } from "./GameOverScreen";
 import { EncounterPanel } from "./EncounterPanel";
 import { ExplorePanel } from "./ExplorePanel";
 import { FightSurface } from "./FightSurface";
-import { useManifestCards } from "../data/useManifestCards";
+import { useManifestCards, useManifestArt } from "../data/useManifestCards";
 import { DiceRoll } from "./DiceRoll";
 import { rollFromEvents, type RollView } from "./rollView";
 import { eventNotices, type Notice } from "./eventNotices";
@@ -21,6 +21,8 @@ import { useDispatchWithRolls } from "./useDispatchWithRolls";
 import { showFightSurface } from "./fightGate";
 import { NoticeModal } from "./NoticeModal";
 import { FeatCelebration } from "./FeatCelebration";
+import { SorcererTerms, type DestinationPicker } from "./SorcererTerms";
+import { TeleportEffect } from "./TeleportEffect";
 import { DeadEndSwapBadge, announceDeadEndSwaps } from "./DeadEndSwapBadge";
 import { SaveGameModal } from "./SaveGameModal";
 import { GameLogModal } from "./GameLogModal";
@@ -50,6 +52,9 @@ export default function GameScreen() {
   // back to menu) from a just-forked Test Mode scenario (dismiss ⇒ keep playing the new game).
   const [savedCode, setSavedCode] = useState<{ code: string; restored: boolean } | null>(null);
   const [showLog, setShowLog] = useState(false); // shows the game-log download modal when true
+  // The Sorcerer's teleport in flight: the area chosen. The effect plays first and the action is dispatched at its
+  // peak, so the party moves under the flash (see TeleportEffect).
+  const [teleportTo, setTeleportTo] = useState<number | null>(null);
   // Multiplayer flow (behind the production-off feature flag): create/join setup → reactive lobby.
   const [mp, setMp] = useState<{ view: "create" | "join" } | { view: "lobby"; code: string } | null>(null);
   // The dice overlay lives in useDispatchWithRolls (not in EncounterPanel) so a fatal round's
@@ -90,6 +95,9 @@ export default function GameScreen() {
   onHoldMoveRef.current = holdMove;
   presentingRef.current = holding || !!roll || !!notices;
   const cards = useManifestCards();
+  const caveApi = useRef<CaveApi | null>(null);
+  const pickDestination = useCallback<DestinationPicker>((o) => caveApi.current?.setPicker(o), []);
+  const art = useManifestArt(); // tile + card art, for the Sorcerer's teleport map
   const gameOver = !!state && state.gs !== GS_PLAYING;
   // The finished game's move log, for the post-game .txt / .log downloads (fetched only at game over).
   const gameLog = useQuery(api.game.log, gameOver && gameId ? { id: gameId } : "skip") as GameLog | null | undefined;
@@ -251,13 +259,22 @@ export default function GameScreen() {
 
   return (
     <div className="relative h-screen w-screen">
-      <CaveCanvas key={gameId} engine={engine} state={displayState} canAct={!presentingRef.current} color={color} code={code ?? undefined} onPartyClick={() => setShowParty(true)} onSave={handleSave} onLog={() => setShowLog(true)} />
+      <CaveCanvas key={gameId} onReady={(api) => { caveApi.current = api; }} engine={engine} state={displayState} canAct={!presentingRef.current} color={color} code={code ?? undefined} onPartyClick={() => setShowParty(true)} onSave={handleSave} onLog={() => setShowLog(true)} />
       <EncounterPanel state={displayState} dispatch={dispatchWithRolls} />
       {fightVisible && cards && <FightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
       <ExplorePanel state={displayState} dispatch={dispatchWithRolls} />
       {displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} onSave={handleSave} />}
       {displayState.testMode && <DeadEndSwapBadge />}
       {showParty && <PartyPanel state={displayState} dispatch={dispatch} onClose={() => setShowParty(false)} />}
+      {displayState.phase === "sorcerer" && !holding && !overlay && !notices && teleportTo === null && art && (
+        <SorcererTerms state={displayState} art={art} dispatch={dispatchWithRolls} onTeleport={(area) => { caveApi.current?.snapOnArrival(); setTeleportTo(area); }} setPicker={pickDestination} />
+      )}
+      {teleportTo !== null && (
+        <TeleportEffect
+          onPeak={() => dispatchWithRolls({ type: "spareSorcerer", area: teleportTo })}
+          onDone={() => setTeleportTo(null)}
+        />
+      )}
       {overlay}
       {notices && <NoticeModal notices={notices} onClose={clearNotices} />}
       {savedCode && (

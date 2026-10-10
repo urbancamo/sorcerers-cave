@@ -252,6 +252,10 @@ export function eventNotices(events: GameEvent[]): Notice[] {
         break;
       case "sorcererSlain": // celebrated by the FeatCelebration overlay (feats.ts), not a text notice
         break;
+      case "sorcererFelled": // the Sorcerer's-terms dialog (SorcererTerms.tsx) presents this, and
+      case "sorcererSpared": // the teleport effect (TeleportEffect.tsx) the other two — no text notices
+      case "partyTeleported":
+        break;
       case "annihilated":
         out.push({ text: `The Eye of God annihilates ${name(e.creatureId)}!`, tone: "good" });
         break;

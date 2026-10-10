@@ -37,7 +37,7 @@ export function replay(
   seed: number,
   picks: readonly number[],
   actions: readonly GameAction[],
-  variants?: { extensionKit?: boolean; forcedRedraw?: boolean },
+  variants?: { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean },
   testMode?: boolean,
 ): ReplayFrame[] {
   let state = newGame(seed, picks, variants, testMode);

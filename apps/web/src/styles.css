@@ -832,6 +832,121 @@
   .scv-feat-fall { animation: none; transform: rotate(180deg); filter: grayscale(0.85) brightness(0.85); }
 }
 
+/* ---- the Sorcerer's terms: slay him, or spare him for a teleport (SorcererTerms.tsx) ---------------- */
+.scv-tp-card { max-width: min(92vw, 560px); text-align: center; }
+.scv-tp-text {
+  margin: 0;
+  font-family: var(--body);
+  font-size: 17px;
+  line-height: 1.45;
+  color: var(--parchment);
+}
+.scv-tp-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: center; }
+.scv-tp-actions .scv-primary { margin-top: 0; }
+/* While choosing, the dialog shrinks to a bar so the 3D cave stays in view and clickable. */
+.scv-tp-bar {
+  position: fixed;
+  left: 50%;
+  bottom: 18px;
+  transform: translateX(-50%);
+  z-index: 60;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: center;
+  width: min(92vw, 620px);
+  padding: 14px 18px;
+  text-align: center;
+  border-radius: 12px;
+  border: 1px solid var(--brass);
+  background: rgba(7, 7, 9, 0.88);
+  box-shadow: 0 0 28px rgba(170, 110, 255, 0.35);
+}
+
+/* The teleport itself (TeleportEffect.tsx): dark, a violet vortex that winds in, rings that contract onto the
+   party, sparks, then a flash at ~47% (1.5 s of 3.2 s) — the moment the party moves — that clears to the new place. */
+.scv-tpfx {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  background: rgba(7, 7, 9, 0.88);
+  animation: scv-tpfx-veil 3.2s ease-in-out both;
+}
+@keyframes scv-tpfx-veil { 0% { opacity: 0; } 14% { opacity: 1; } 60% { opacity: 1; } 100% { opacity: 0; } }
+.scv-tpfx-vortex {
+  position: absolute;
+  width: 150vmax;
+  height: 150vmax;
+  border-radius: 50%;
+  background: repeating-conic-gradient(from 0deg, rgba(150, 80, 230, 0.55) 0 7deg, rgba(40, 14, 80, 0.2) 7deg 14deg, rgba(230, 197, 120, 0.4) 14deg 17deg, transparent 17deg 28deg);
+  -webkit-mask-image: radial-gradient(closest-side, #000 0%, transparent 70%);
+  mask-image: radial-gradient(closest-side, #000 0%, transparent 70%);
+  animation: scv-tpfx-wind 3.2s cubic-bezier(0.55, 0, 0.7, 0.4) both;
+}
+@keyframes scv-tpfx-wind {
+  0%   { transform: rotate(0deg) scale(1.4); opacity: 0; }
+  20%  { opacity: 1; }
+  47%  { transform: rotate(760deg) scale(0.12); opacity: 1; }
+  100% { transform: rotate(900deg) scale(0.9); opacity: 0; }
+}
+.scv-tpfx-ring {
+  position: absolute;
+  width: min(80vmin, 640px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 3px solid rgba(190, 140, 255, 0.9);
+  box-shadow: 0 0 28px rgba(160, 90, 220, 0.8), inset 0 0 28px rgba(160, 90, 220, 0.5);
+  opacity: 0;
+  animation: scv-tpfx-ring 1.5s cubic-bezier(0.5, 0, 0.9, 0.6) both;
+}
+.scv-tpfx-ring.r2 { animation-delay: 0.3s; border-color: rgba(230, 197, 120, 0.9); box-shadow: 0 0 28px rgba(230, 197, 120, 0.7); }
+.scv-tpfx-ring.r3 { animation-delay: 0.6s; }
+@keyframes scv-tpfx-ring { 0% { transform: scale(1.6); opacity: 0; } 25% { opacity: 1; } 100% { transform: scale(0.04); opacity: 0.9; } }
+.scv-tpfx-core {
+  position: absolute;
+  width: min(60vmin, 480px);
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(circle, #fff 0%, rgba(215, 180, 255, 0.95) 22%, rgba(150, 80, 230, 0.55) 48%, transparent 70%);
+  opacity: 0;
+  animation: scv-tpfx-core 3.2s ease-in-out both;
+}
+@keyframes scv-tpfx-core {
+  0%, 12% { transform: scale(0.05); opacity: 0; }
+  46%     { transform: scale(1); opacity: 1; }
+  60%     { transform: scale(2.4); opacity: 0.8; }
+  100%    { transform: scale(3); opacity: 0; }
+}
+.scv-tpfx-text {
+  position: relative;
+  margin: 0;
+  font-family: var(--display);
+  font-size: clamp(16px, 3.6vw, 28px);
+  letter-spacing: 0.14em;
+  color: var(--cream);
+  text-shadow: 0 0 18px rgba(190, 140, 255, 0.9);
+  text-align: center;
+  padding: 0 24px;
+  animation: scv-tpfx-text 3.2s ease-in-out both;
+}
+@keyframes scv-tpfx-text { 0% { opacity: 0; transform: translateY(14px); } 14%, 34% { opacity: 1; transform: none; } 44%, 100% { opacity: 0; } }
+.scv-tpfx-flash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 50%, #fff 0%, #efe0ff 45%, #b98cff 100%);
+  opacity: 0;
+  animation: scv-tpfx-flash 3.2s ease-out both;
+}
+@keyframes scv-tpfx-flash { 0%, 38% { opacity: 0; } 47% { opacity: 1; } 53% { opacity: 1; } 78% { opacity: 0; } 100% { opacity: 0; } }
+.scv-tpfx.reduced { animation: scv-tpfx-reduced 0.9s ease-in-out both; }
+.scv-tpfx.reduced .scv-tpfx-vortex, .scv-tpfx.reduced .scv-tpfx-ring, .scv-tpfx.reduced .scv-tpfx-core, .scv-tpfx.reduced .scv-tpfx-flash { display: none; }
+.scv-tpfx.reduced .scv-tpfx-text { animation: none; }
+@keyframes scv-tpfx-reduced { 0% { opacity: 0; } 30%, 60% { opacity: 1; } 100% { opacity: 0; } }
+
 /* ---- splash / title screen ------------------------------------------------- */
 .scv-splash {
   position: fixed;
