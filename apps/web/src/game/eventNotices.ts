@@ -245,7 +245,7 @@ export function eventNotices(events: GameEvent[]): Notice[] {
         break;
       case "trapSprung": // the move-result trap indicator / confirm modal narrates an ordinary fall; these two add the WHY
         if (e.guideLost) out.push({ text: "Without the Dwarf to guide it, the party is taken by the trap as it tries to leave.", tone: "bad" });
-        else if (e.deliberate) out.push({ text: "The party drops through the trap on purpose — the strangers below are not expecting you, so you have the advantage of surprise.", tone: "good" });
+        else if (e.deliberate) out.push({ text: "The party drops through the trap on purpose — any strangers below are not expecting you, so you have the advantage of surprise.", tone: "good" });
         break;
       case "medusaLooms":
         out.push({ text: "Medusa looms before her gaze can land — throw the Lotus Dust at her, or proceed and brave it.", tone: "neutral" });

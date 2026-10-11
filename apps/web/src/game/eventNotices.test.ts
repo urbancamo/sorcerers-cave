@@ -96,10 +96,12 @@ describe("eventNotices — standing traps (trapRules)", () => {
     expect(n[0]!.tone).toBe("bad");
   });
 
-  it("tells the player a deliberate fall has caught the strangers below unawares", () => {
+  it("tells the player a deliberate fall gives surprise over any strangers below — without claiming there are some", () => {
     const n = eventNotices([{ type: "trapSprung", level: 2, deliberate: true }]);
     expect(n).toHaveLength(1);
-    expect(n[0]!.text).toMatch(/surprise|unawares|not expecting/i);
+    expect(n[0]!.text).toMatch(/any strangers/i);
+    expect(n[0]!.text).toMatch(/surprise/i);
+    expect(n[0]!.text).not.toMatch(/the strangers below/i);
     expect(n[0]!.tone).toBe("good");
   });
 

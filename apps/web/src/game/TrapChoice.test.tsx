@@ -27,6 +27,9 @@ describe("TrapChoice", () => {
     render(<TrapChoice dispatch={vi.fn()} />);
     expect(screen.getByText(/dwarf/i)).toBeInTheDocument();
     expect(screen.getByText(/surprise/i)).toBeInTheDocument();
+    // The area below may hold no strangers at all, so the surprise is conditional on there being some.
+    expect(screen.getByText(/if there are strangers below/i)).toBeInTheDocument();
+    expect(screen.queryByText(/the strangers below will/i)).toBeNull();
     expect(screen.getByText(/cannot return/i)).toBeInTheDocument();
   });
 });

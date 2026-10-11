@@ -1,8 +1,8 @@
 import type { GameAction } from "@sorcerers-cave/engine";
 
 /** A trap faces a party guided by a Dwarf (`variants.trapRules`, the engine's `trap` phase): be guided safely
- *  past it, or fall through it on purpose. A deliberate fall is one-way, like any trap, but the strangers below
- *  are not expecting the party, so it gains the advantage of surprise. Blocking, like the Sorcerer's terms: the
+ *  past it, or fall through it on purpose. A deliberate fall is one-way, like any trap, but it gains the
+ *  advantage of surprise over any strangers below (the area fallen into may hold none). Blocking, like the Sorcerer's terms: the
  *  choice must be made, and nothing else can be done until it is. */
 export function TrapChoice({ dispatch }: { dispatch: (a: GameAction) => void }) {
   return (
@@ -13,8 +13,8 @@ export function TrapChoice({ dispatch }: { dispatch: (a: GameAction) => void }) 
           The Dwarf can guide the party safely past it, and the trap stays where it is.
         </p>
         <p className="scv-tp-text">
-          Or the party can fall through it on purpose. The drop is one way — you cannot return up this way — but
-          the strangers below will not be expecting you, so you gain the advantage of surprise.
+          Or the party can fall through it on purpose. The drop is one way — you cannot return up this way. If there
+          are strangers below, they will not be expecting you, so you gain the advantage of surprise.
         </p>
         <div className="scv-tp-actions">
           <button className="scv-primary" onClick={() => dispatch({ type: "avoidTrap" })}>Guided past the trap</button>
