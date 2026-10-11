@@ -15,7 +15,7 @@ export interface MoveResult {
 const STAIR_UP_BIT = 32;
 const STAIR_DOWN_BIT = 64;
 
-function hasExit(d: DecodedArea, dir: number): boolean {
+export function hasExit(d: DecodedArea, dir: number): boolean {
   switch (dir) {
     case DIR_N: return d.n;
     case DIR_E: return d.e;

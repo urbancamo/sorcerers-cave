@@ -31,11 +31,11 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 3.5 Update the existing tests that assert a trap fall never grants surprise so they cover accidental falls only; add a flag-on golden replay
   - [x] 3.6 Verify all tests pass
 
-- [ ] 4. Guide lost
-  - [ ] 4.1 Write tests: Dwarf alive leaves normally; Dwarf killed then `move` (any direction, including a stair), `withdraw` and `retreat` each fall instead; retreat still leaves the chamber hostile; no tile placed and no dead end on the move; fall is accidental (no `deliberateFall`, no surprise); petrified, deserted and vanished Dwarf behave the same; no standing trap or flag off is unchanged; carpet, teleport and Chasm unaffected
-  - [ ] 4.2 Add one shared helper in `reduce.ts` that tests "standing trap here and no living Dwarf" and performs the fall (`persistAndExplore`, `relocateDown`, `trapSprung { guideLost }`, `moved`, `resolveAreaLoop`)
-  - [ ] 4.3 Call it at the top of `move`, `withdraw` and `retreat`, keeping each action's own bookkeeping (strangers left behind, `hostileAreas` on retreat, turn counted on move)
-  - [ ] 4.4 Verify all tests pass
+- [x] 4. Guide lost
+  - [x] 4.1 Write tests: Dwarf alive leaves normally; Dwarf killed then `move` (any direction, including a stair), `withdraw` and `retreat` each fall instead; retreat still leaves the chamber hostile; no tile placed and no dead end on the move; fall is accidental (no `deliberateFall`, no surprise); petrified, deserted and vanished Dwarf behave the same; no standing trap or flag off is unchanged; carpet, teleport and Chasm unaffected
+  - [x] 4.2 Add one shared helper in `reduce.ts` that tests "standing trap here and no living Dwarf" and performs the fall (`persistAndExplore`, `relocateDown`, `trapSprung { guideLost }`, `moved`, `resolveAreaLoop`)
+  - [x] 4.3 Call it at the top of `move`, `withdraw` and `retreat`, keeping each action's own bookkeeping (strangers left behind, `hostileAreas` on retreat, turn counted on move)
+  - [x] 4.4 Verify all tests pass
 
 - [ ] 5. Popup, presentation and docs
   - [ ] 5.1 Write web tests: phase `trap` renders a popup with two buttons dispatching `avoidTrap` and `fallThroughTrap`; notices, log lines and mnemonics exist for the new events and actions, including the guide-lost notice

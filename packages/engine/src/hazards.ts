@@ -28,6 +28,11 @@ function living(state: GameState): PartyMember[] {
   return state.party.filter((m) => m.status === 0 || m.status === 1);
 }
 
+/** A living Dwarf — the party's guide past a trap (`FLAG_GUIDES_PAST_TRAP`). */
+export function hasLivingDwarf(state: GameState): boolean {
+  return living(state).some((m) => (CREATURES[m.creatureId]!.flags & FLAG_GUIDES_PAST_TRAP) !== 0);
+}
+
 function livingHolds(state: GameState, treasureId: number): boolean {
   return living(state).some((m) => m.treasure.includes(treasureId));
 }
@@ -201,7 +206,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         break;
       }
       case HAZARD_TRAP: {
-        const hasDwarf = living(state).some((m) => (CREATURES[m.creatureId]!.flags & FLAG_GUIDES_PAST_TRAP) !== 0);
+        const hasDwarf = hasLivingDwarf(state);
         // Standing traps (`variants.trapRules`): "a party which includes a dwarf may ignore a trap, but not
         // two traps drawn in the same chamber". The count includes a trap already parked here, so a Well or
         // Bell draw that adds one to a chamber already holding one makes two.
