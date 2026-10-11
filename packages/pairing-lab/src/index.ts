@@ -10,3 +10,7 @@ export * from "./battle";
 export * from "./cards";
 export * from "./battleHtml";
 export * from "./battleCmd";
+export * from "./policies";
+export * from "./search";
+export * from "./strategy";
+export * from "./tournament";
