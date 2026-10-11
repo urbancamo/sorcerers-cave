@@ -25,9 +25,10 @@ export const AF_UNRESOLVED = 16;
 // Interactive mode: which controls the UI shows and which actions reduce accepts.
 // Milestone B uses only "explore" and "gameOver"; "encounter"/"fight"/"pickup" arrive in C.
 // "medusa" is the pre-hazard pause: Medusa looms and the party holds Lotus Dust — throw or proceed.
+// "trap" is the Dwarf's choice (`variants.trapRules`): guided past the trap, or fall through it on purpose.
 // "sorcerer" is the pause after the Sorcerer is defeated (`variants.sorcererTeleport`): slay him, or spare
 // him in return for a teleport to any discovered area (§The Sorcerer).
-export type GamePhase = "explore" | "medusa" | "encounter" | "fight" | "pickup" | "sorcerer" | "gameOver";
+export type GamePhase = "explore" | "medusa" | "trap" | "encounter" | "fight" | "pickup" | "sorcerer" | "gameOver";
 
 // Member status: 0 original, 1 ally, 2 stone, 3 dead.
 export type MemberStatus = 0 | 1 | 2 | 3;
@@ -197,6 +198,12 @@ export interface GameState {
   // `finishChamber`'s default recompute clobber it, and forces the Dragon-lull notice on regardless
   // of chamber freshness (a drawn Dragon is new information either way).
   medusaPause?: { freshEntry: boolean; extraDraw?: { hadSurprise?: boolean } };
+  // Set while phase === "trap" (`variants.trapRules`): the entry is held after its hazards have fired, for
+  // the Dwarf's choice — `avoidTrap` or `fallThroughTrap`. Modelled on `medusaPause`: `freshEntry` and
+  // `announceLull` are `finishChamber`'s own arguments, kept so the resumed tail settles the chamber exactly
+  // as the uninterrupted path would; `extraDraw` is set when a Well/Bell draw opened the pause, and carries
+  // the `surpriseReady` captured before the draw so the resume restores it (SC-4-16).
+  trapPause?: { freshEntry: boolean; announceLull: boolean; extraDraw?: { hadSurprise?: boolean } };
   // Indifference (per party — NOT on the shared area, so it never affects other parties; §Encountering
   // Strangers, SC-4-18a, bug fix 2026-08-04). `indiffCounts` is the DURABLE count of indifferent
   // results this party has gotten from this area's strangers, keyed by area index — it persists

@@ -15,13 +15,13 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 1.5 Read the multiplayer reduce path and per-party state; record whether parity ships now or as a follow-up (follow-up: MP never receives `trapRules`; see technical-spec)
   - [x] 1.6 Verify all tests pass (flag off: goldens and replays unchanged)
 
-- [ ] 2. Dwarf choice pause
-  - [ ] 2.1 Write tests: `legalActions` in phase `trap` is exactly `avoidTrap` and `fallThroughTrap`; both `blocked` elsewhere; avoid settles to encounter/pickup/explore; fall relocates one level down; Medusa-then-trap ordering; earlier hazards wiping the party skip the pause; Well/Bell `extraDraw` restores `surpriseReady`
-  - [ ] 2.2 Add phase `"trap"`, `trapPause` state, `avoidTrap`/`fallThroughTrap` actions and `trapLooms` event (`state.ts`, `actions.ts`)
-  - [ ] 2.3 Make `applyHazards` return `trapChoice` for a Dwarf party with one trap, after the later kit hazards have resolved
-  - [ ] 2.4 Split the post-hazard tail out of `finishChamber`; open the pause there; add the avoid and fall resumes in `reduce.ts`, with the `extraDraw` path following `medusaPause`
-  - [ ] 2.5 Offer the two actions in `legalActions` (`selectors.ts`)
-  - [ ] 2.6 Verify all tests pass
+- [x] 2. Dwarf choice pause
+  - [x] 2.1 Write tests: `legalActions` in phase `trap` is exactly `avoidTrap` and `fallThroughTrap`; both `blocked` elsewhere; avoid settles to encounter/pickup/explore; fall relocates one level down; Medusa-then-trap ordering; earlier hazards wiping the party skip the pause; Well/Bell `extraDraw` restores `surpriseReady`
+  - [x] 2.2 Add phase `"trap"`, `trapPause` state, `avoidTrap`/`fallThroughTrap` actions and `trapLooms` event (`state.ts`, `actions.ts`)
+  - [x] 2.3 Make `applyHazards` return `trapChoice` for a Dwarf party with one trap, after the later kit hazards have resolved
+  - [x] 2.4 Split the post-hazard tail out of `finishChamber`; open the pause there; add the avoid and fall resumes in `reduce.ts`, with the `extraDraw` path following `medusaPause`
+  - [x] 2.5 Offer the two actions in `legalActions` (`selectors.ts`)
+  - [x] 2.6 Verify all tests pass
 
 - [ ] 3. Deliberate fall and surprise
   - [ ] 3.1 Write tests: Dwarf-chosen fall and knowing re-entry gain +1, including into a visited chamber; fresh-draw and two-trap falls gain none; retreated chamber starts an immediate fight with the party's +1; Chasm and Crypt unchanged; `deliberateFall` is deleted on the next normal move and absent when the flag is off

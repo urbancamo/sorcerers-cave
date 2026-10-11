@@ -300,7 +300,7 @@ function medusaLooms(state: GameState): boolean {
  *  fresh entry, yet a dragon it just drew is still genuinely new information the player hasn't seen
  *  (`resolveExtraDraw` passes `true` explicitly for that case). */
 function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[], announceLull = freshEntry): boolean {
-  const { events: hzEvents, fell } = applyHazards(state);
+  const { events: hzEvents, fell, trapChoice } = applyHazards(state);
   events.push(...hzEvents);
   // A hazard may incapacitate the whole party (Medusa petrifies everyone, or Ghouls slay them) —
   // with no one left able to act, the expedition ends.
@@ -320,6 +320,22 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
     events.push({ type: "moved", area: state.partyArea, level: state.level });
     return true;
   }
+  if (trapChoice) {
+    // `trapRules`: a Dwarf-guided party meets a single trap. The earlier hazards have fired and the party
+    // survived them — hold the entry here for the Dwarf's choice (`avoidTrap` / `fallThroughTrap`).
+    state.phase = "trap";
+    state.trapPause = { freshEntry, announceLull };
+    events.push({ type: "trapLooms" });
+    return false;
+  }
+  settleChamber(state, freshEntry, events, announceLull);
+  return false;
+}
+
+/** The tail of a chamber entry once its hazards are done and the party is still here: Flute lull, Demon
+ *  ambush, a pacified area, then the phase the chamber's contents call for. Shared by the uninterrupted path
+ *  (`finishChamber`) and the resume from the Dwarf's trap choice. */
+function settleChamber(state: GameState, freshEntry: boolean, events: GameEvent[], announceLull: boolean): void {
   // The Charmed Flute lulls every Dragon for as long as the party holds it: they sleep in the
   // chamber, no longer leading or blocking, so a friendlier creature reacts and the area plays
   // out as if empty (§ Charmed Flute). Re-evaluated each entry, so they wake if the flute is gone.
@@ -335,7 +351,7 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
   // branch: otherwise `settlePacifiedArea` would silently re-park the Demon right back onto the tile
   // (or, with a Thief, slip it into a live pickup) every single re-entry, forever suppressing it.
   if (ambushIfDemon(state, events)) {
-    return false;
+    return;
   }
   // Permanently indifferent to this party (§Reactions): the party may walk freely through (any exit)
   // — so park the guards to the tile and go to explore for full traversal — but it may also still
@@ -345,7 +361,7 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
   // both that and the ordinary re-park.
   if (state.pacifiedAreas?.includes(state.partyArea)) {
     settlePacifiedArea(state);
-    return false;
+    return;
   }
   if (state.strangers.length > 0) {
     if (state.hostileAreas?.includes(state.partyArea)) {
@@ -361,7 +377,6 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
   } else {
     persistAndExplore(state);
   }
-  return false;
 }
 
 /** Resume the entry held at the Medusa pause — the dust thrown or the gaze braved — firing the
@@ -379,6 +394,27 @@ function resumeFromMedusaPause(state: GameState): GameEvent[] {
   } else if (finishChamber(state, freshEntry, events)) {
     events.push(...resolveAreaLoop(state));
   }
+  return events;
+}
+
+/** Resume the entry held at the Dwarf's trap pause (`variants.trapRules`). `fall` false: the Dwarf guides the
+ *  party past the trap and the chamber settles as it would have. `fall` true: the whole party drops one level,
+ *  one-way, exactly as an unguided trap fall does (`finishChamber`), and the landing area is resolved. */
+function resumeFromTrapPause(state: GameState, fall: boolean): GameEvent[] {
+  const pause = state.trapPause!;
+  delete state.trapPause;
+  const events: GameEvent[] = [];
+  if (fall) {
+    persistAndExplore(state);
+    relocateDown(state);
+    events.push({ type: "trapSprung", level: state.level });
+    events.push({ type: "moved", area: state.partyArea, level: state.level });
+    events.push(...resolveAreaLoop(state));
+    return events;
+  }
+  events.push({ type: "trapAvoided" });
+  settleChamber(state, pause.freshEntry, events, pause.announceLull);
+  if (pause.extraDraw && state.phase === "encounter") state.surpriseReady = pause.extraDraw.hadSurprise;
   return events;
 }
 
@@ -509,6 +545,10 @@ function finishExtraDraw(state: GameState, events: GameEvent[], hadSurprise: boo
     events.push(...resolveAreaLoop(state));
   } else if (state.phase === "encounter") {
     state.surpriseReady = hadSurprise;
+  } else if (state.phase === "trap") {
+    // A drawn trap opened the Dwarf's pause: carry the earned surprise through to its resume, as the
+    // Medusa pause does (`medusaPause.extraDraw`), so choosing to be guided past cannot clobber it.
+    state.trapPause!.extraDraw = { hadSurprise };
   }
 }
 
@@ -1305,6 +1345,14 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       if (state.phase !== "medusa") return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
       return { state: next, events: resumeFromMedusaPause(next) };
+    }
+
+    case "avoidTrap":
+    case "fallThroughTrap": {
+      // The Dwarf's choice at a trap (`variants.trapRules`): only legal in the `trap` pause.
+      if (state.phase !== "trap" || !state.trapPause) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      return { state: next, events: resumeFromTrapPause(next, action.type === "fallThroughTrap") };
     }
 
     case "useArtifact": {

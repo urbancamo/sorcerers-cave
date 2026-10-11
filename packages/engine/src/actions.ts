@@ -22,6 +22,9 @@ export type GameAction =
   | { type: "retreat"; dir: number } // flee a fight by any doorway/stair; a dead end means fight on
   | { type: "useArtifact"; artifact: number; target?: number; dir?: number }
   | { type: "proceed" } // decline the Medusa-pause throw: let her gaze (and the other hazards) fire
+  // The Dwarf's choice at a trap (`variants.trapRules`, phase `trap`): be guided past it, or fall through it.
+  | { type: "avoidTrap" }
+  | { type: "fallThroughTrap" }
   | { type: "openChest" }
   // Extension kit (SC-EXT-5): descend the Chasm — legal only on a SPECIAL_CHASM tile, in explore or
   // encounter phase (design US-02). No dice; reuses `relocateDown` (one-way, no mirrored stair-up).
@@ -98,6 +101,7 @@ export type GameEvent =
   | { type: "petrifiedOut" } // Medusa's gaze turned the WHOLE party to stone — the game ends
   | { type: "trapSprung"; level: number } // party fell through a trap to `level` (no climb back)
   | { type: "trapAvoided" } // a dwarf guided the party safely past a trap
+  | { type: "trapLooms" } // `trapRules`: a Dwarf-guided party meets a trap — play pauses for the Dwarf's choice
   | { type: "memberDied"; creatureId: number }
   | { type: "strangerKilled"; creatureId: number }
   // A creature felled a Dragon single-handed (one front fighter, no caster backer): `creatureId` is the

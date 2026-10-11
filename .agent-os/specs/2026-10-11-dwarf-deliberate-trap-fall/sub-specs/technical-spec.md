@@ -21,7 +21,7 @@ Today a trap is one-shot. `applyHazards` (`hazards.ts:200`) fires it, then clear
 
 ### Dwarf choice (new `trap` pause)
 
-- New phase `"trap"` in `GamePhase` (`state.ts:30`) and a `trapPause?: { freshEntry: boolean; extraDraw?: { hadSurprise?: boolean } }` field modelled exactly on `medusaPause` (`state.ts:199`).
+- New phase `"trap"` in `GamePhase` (`state.ts:30`) and a `trapPause?: { freshEntry: boolean; announceLull: boolean; extraDraw?: { hadSurprise?: boolean } }` field modelled on `medusaPause` (`announceLull` is `finishChamber`'s own argument, saved so the resumed tail settles the chamber identically; a Well/Bell pause sets `extraDraw` after `finishChamber` returns, in `finishExtraDraw`) (`state.ts:199`).
 - In `applyHazards`, at `HAZARD_TRAP` with a living Dwarf (`FLAG_GUIDES_PAST_TRAP`) and exactly one trap: do not emit `trapAvoided` or set `fell`; return `trapChoice: true`. The remaining kit hazards after Trap (Desertion, Harpies, Quarrel, Spell) still resolve in the same pass, as today. Two or more traps: `fell = true`, no choice, not deliberate.
 - `finishChamber` handles `trapChoice` after the whole-party-incapacitated check: set `phase = "trap"`, `trapPause = { freshEntry }`, emit `trapLooms`, return without running the tail. Split the post-hazard tail (lull, Demon ambush, pacified area, encounter/pickup/explore settle) into a function shared by the normal path and both resumes.
 - New actions (`actions.ts`): `{ type: "avoidTrap" }` and `{ type: "fallThroughTrap" }`. `legalActions` returns exactly these two in phase `trap` (`selectors.ts`, beside the `medusa` branch at line 148). `reduce` rejects them in any other phase with `blocked`.

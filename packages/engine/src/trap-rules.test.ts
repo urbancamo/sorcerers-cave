@@ -47,11 +47,12 @@ describe("standing trap — flag on", () => {
     expect(parkedTraps(s)).toBe(1);
   });
 
-  it("parks the trap when a Dwarf avoids it", () => {
+  it("parks the trap when a Dwarf meets it, and leaves the choice to the player (trapChoice)", () => {
     const s = chamberState({ variants: ON, party: [member(DWARF)], hazards: [HAZARD_TRAP] });
-    const { fell, events } = applyHazards(s);
+    const { fell, trapChoice, events } = applyHazards(s);
     expect(fell).toBe(false);
-    expect(events).toContainEqual({ type: "trapAvoided" });
+    expect(trapChoice).toBe(true);
+    expect(events).not.toContainEqual({ type: "trapAvoided" }); // emitted by avoidTrap, not here
     expect(parkedTraps(s)).toBe(1);
   });
 
