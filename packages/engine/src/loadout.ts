@@ -31,6 +31,13 @@ const RING_TIE_ORDER = [SORCERER, APPRENTICE, WIZARD, HERO, WITCH, WHERO, PRIEST
 
 export interface Allocation { artifact: number; stranger: number }
 
+/** Can this creature type be given this artefact by the loadout? The same preference lists the heuristic draws on (the Ring: exactly
+ *  the types that can wear it). A strategy's allocation is checked against this, so every strategy obeys the same eligibility. */
+export function canBearArtifact(artifact: number, creatureId: number): boolean {
+  if (artifact === T_RING) return ringEligible(creatureId);
+  return PREFERENCES[artifact]?.some((r) => r.type === creatureId) ?? false;
+}
+
 export interface LoadoutInput {
   strangers: readonly number[];            // creature ids, by stranger index
   gear: readonly (readonly number[])[];    // what each stranger already bears (same indexing)

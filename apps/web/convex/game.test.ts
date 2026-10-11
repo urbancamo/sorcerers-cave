@@ -759,3 +759,70 @@ test("applyAction accepts examineArea's area field (arg validator)", async () =>
   const id = await as.mutation(api.game.newGame, { seed: 3, picks: [0], variants: { sibyl: true } });
   await expect(as.mutation(api.game.applyAction, { id, action: { type: "examineArea", area: 0 } })).resolves.toBeDefined();
 });
+
+// ---------------------------------------------------------------------------
+// Pluggable stranger strategy (stages 1-2, docs/requirements/combat/2026-10-11-pluggable-stranger-combat.md):
+// server-stamped from a Convex-only env var, never client-settable, and a client can never forge the strangers' decision.
+// ---------------------------------------------------------------------------
+describe("strangerLevel (the strangers' strategy)", () => {
+  const ORIGINAL = process.env.STRANGER_STRATEGY;
+  afterEach(() => {
+    if (ORIGINAL === undefined) delete process.env.STRANGER_STRATEGY;
+    else process.env.STRANGER_STRATEGY = ORIGINAL;
+  });
+
+  test("unset ⇒ nothing is stamped (every existing game and recording is unchanged)", async () => {
+    delete process.env.STRANGER_STRATEGY;
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const game = await as.query(api.game.get, { id: await as.mutation(api.game.newGame, { seed: 1, picks: [0] }) });
+    expect(game?.state.variants?.strangerLevel).toBeUndefined();
+    expect(game?.variants?.strangerLevel).toBeUndefined();
+  });
+
+  test("a registered strategy id is stamped on the game and its state; an unknown id is ignored", async () => {
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    process.env.STRANGER_STRATEGY = "standard";
+    const on = await as.query(api.game.get, { id: await as.mutation(api.game.newGame, { seed: 1, picks: [0] }) });
+    expect(on?.state.variants?.strangerLevel).toBe("standard");
+    expect(on?.variants?.strangerLevel).toBe("standard");
+    process.env.STRANGER_STRATEGY = "no-such-strategy";
+    const off = await as.query(api.game.get, { id: await as.mutation(api.game.newGame, { seed: 1, picks: [0] }) });
+    expect(off?.state.variants?.strangerLevel).toBeUndefined();
+  });
+
+  test("a client cannot choose it: the newGame variants validator has no such key", async () => {
+    delete process.env.STRANGER_STRATEGY;
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    await expect(as.mutation(api.game.newGame, { seed: 1, picks: [0], variants: { strangerLevel: "standard" } as never })).rejects.toThrow();
+  });
+
+  test("a forged strangers action is rejected on the public solo path", async () => {
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+    await expect(as.mutation(api.game.applyAction, { id, action: { type: "strangersAssignArtefacts" } })).rejects.toThrow(/stranger/i);
+  });
+
+  test("a fight on a strategy game is decided inside the same call and both actions are logged", async () => {
+    process.env.STRANGER_STRATEGY = "standard";
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+    // Put the party in front of a Hero guarding a Sword.
+    await t.run(async (ctx) => {
+      const g = (await ctx.db.get(id))!;
+      await ctx.db.patch(id, { state: { ...g.state, phase: "encounter", strangers: [0, 2], treasures: [3, 5] } });
+    });
+    const res = await as.mutation(api.game.applyAction, { id, action: { type: "attack" } });
+    expect(res.state.fight?.pending).toBeUndefined();
+    expect(res.state.fight?.gear).toEqual([[3], []]);
+    const logged = await t.run((ctx) => ctx.db.query("gameEvents").withIndex("by_game", (q) => q.eq("gameId", id)).collect());
+    expect(logged.map((r) => r.action.type)).toEqual(["attack", "strangersAssignArtefacts"]);
+    expect(logged.map((r) => r.seq)).toEqual([0, 1]);
+    expect(logged[1]!.events).toContainEqual({ type: "strangerEquipped", creatureId: 0, artifact: 3 });
+    expect((await as.query(api.game.get, { id }))?.state).toEqual(res.state);
+  });
+});

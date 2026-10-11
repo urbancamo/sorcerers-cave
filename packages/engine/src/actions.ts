@@ -69,6 +69,10 @@ export type GameAction =
   // straight after the fight in which he was defeated. Spare him on condition that he transports the party
   // and the treasure in the chamber to any discovered area (`area` indexes `state.areas`) — or slay him
   // as the fight would have (+30, every curse lifted, every Apprentice turns hostile).
+  // A stranger strategy's decision (`variants.strangerLevel`): legal only while the fight is waiting on the strangers
+  // (`fight.pending`). Applied by the driver, never accepted from a client (apps/web/convex). `fallback` records that the
+  // named strategy's own answer was replaced by `standard`'s.
+  | { type: "strangersAssignArtefacts"; strategyId: string; strategyVersion: number; allocations: { artifact: number; stranger: number }[]; fallback?: { from: string; reason: string } }
   | { type: "spareSorcerer"; area: number }
   | { type: "slaySorcerer" }
   | { type: "testPlaceArea"; dir: number; special: number }
@@ -132,6 +136,7 @@ export type GameEvent =
   | { type: "fightStarted"; surprise: number }
   // Stranger loadout: a stranger picked up a fight artefact lying in the chamber (Peter's default heuristic).
   | { type: "strangerEquipped"; creatureId: number; artifact: number }
+  | { type: "strategyFallback"; from: string; reason: string } // a stranger strategy's decision was replaced by `standard`'s
   // An invulnerable Ring bearer (level 4+) was defeated: it disappears with the Ring, leaving its other gear behind.
   | { type: "strangerVanished"; creatureId: number; artifact: number }
   // One resolved pairing in a fight round: the party side and the enemy side, each with its

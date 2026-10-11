@@ -152,6 +152,8 @@ function encodeAction(a: GameAction): string {
     case "descendChasm": return "DESCENDCHASM";
     case "spareSorcerer": return `SPARESORCERER ${a.area}`;
     case "slaySorcerer": return "SLAYSORCERER";
+    // A stranger strategy's logged decision (pluggable stranger combat spec §5.3); never produced by the recorded solo vectors.
+    case "strangersAssignArtefacts": return `STRANGERS ${a.strategyId} ${a.strategyVersion} ${a.allocations.map((x) => `${x.artifact}:${x.stranger}`).join(",") || "-"}`;
     case "avoidTrap": return "AVOIDTRAP";
     case "fallThroughTrap": return "FALLTRAP";
     case "drawFromWell": return "DRAWFROMWELL";

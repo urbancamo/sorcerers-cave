@@ -31,7 +31,7 @@ import {
 // a kit id (14-20); byte-identical for ids 0-13.
 import { ALL_CREATURES as CREATURES, CREATURES as BASE_CREATURES } from "./data/creatures";
 import { TREASURES as BASE_TREASURES } from "./data/treasures";
-import { equipStrangers } from "./strangerEquip";
+import { applyAllocations, equipStrangers, loadoutViolation } from "./strangerEquip";
 import { removeStranger, addStranger, dropAllGear } from "./strangerGear";
 
 const T_EYE_OF_GOD = 13; // treasure id — must stay with its bearer or the party is cursed (§Eye of God)
@@ -767,6 +767,19 @@ export function reduce(
 
 function reduceCore(state: GameState, action: GameAction): { state: GameState; events: GameEvent[] } {
   if (state.gs !== GS_PLAYING) return { state, events: [] };
+
+  // A fight waiting on the strangers' decision (`variants.strangerLevel`) accepts only that decision (or quitting); and the
+  // decision is accepted only then (pluggable stranger strategy spec §5.5), whatever the caller claims.
+  const waiting = state.fight?.pending?.by === "strangers";
+  if (action.type === "strangersAssignArtefacts") {
+    if (!waiting || loadoutViolation(state, action.allocations) !== null) return { state, events: [{ type: "blocked" }] };
+    const next = structuredClone(state);
+    const events: GameEvent[] = action.fallback ? [{ type: "strategyFallback", from: action.fallback.from, reason: action.fallback.reason }] : [];
+    events.push(...applyAllocations(next, action.allocations));
+    delete next.fight!.pending;
+    return { state: next, events };
+  }
+  if (waiting && action.type !== "quit") return { state, events: [{ type: "blocked" }] };
 
   switch (action.type) {
     case "quit":

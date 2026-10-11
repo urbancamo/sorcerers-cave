@@ -123,6 +123,9 @@ export interface FightState {
   // (the +30 bonus, the curse lift, every Apprentice's loyalty) waits until the fight is over, when the player
   // may spare him for a teleport instead (§The Sorcerer). Absent unless that has happened.
   sorcererFelled?: boolean;
+  // The fight is waiting on a decision by the strangers (`variants.strangerLevel`, pluggable stranger strategy spec §5.3): until
+  // the driver applies it, `reduce` accepts nothing else. Never set when no strategy is configured.
+  pending?: { by: "strangers"; kind: "loadout" };
 }
 
 /** One pairing in a battle plan: party fighters (front), supporting casters (backers), and the
@@ -261,7 +264,7 @@ export interface GameState {
   // construction — deliberately NOT mirrored onto `MpGameState.variants` (multi.ts) or its own
   // separate Convex validator (apps/web/convex/multiplayer.ts), so a multiplayer-composed state can
   // never carry it.
-  variants?: { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean; sibyl?: boolean };
+  variants?: { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean; sibyl?: boolean; strangerLevel?: string };
   // Per-entry scratch (`variants.trapRules` only): how many traps `enterChamber` RELOADED from the area (a
   // standing trap the party walked back into) rather than drew fresh. Set by `enterChamber`, read inside
   // `applyHazards`, and deleted there — it can survive a Medusa pause but never an action boundary.

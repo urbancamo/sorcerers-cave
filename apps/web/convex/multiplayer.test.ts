@@ -745,3 +745,10 @@ test("act accepts examineArea (with and without an area), free of the turn", asy
   expect((forged as { events: unknown[] }).events).toEqual([{ type: "blocked" }]);
   expect((await actor.query(api.multiplayer.gameState, { gameId }))!.currentSeat).toBe(seat); // turn not passed
 });
+
+test("act rejects a forged strangers action (the strangers' decisions are never a client's to make)", async () => {
+  const t = convexTest(schema, modules);
+  const { gameId, userBySeat } = await reachPlaying(t);
+  const pv = (await userBySeat[0]!.query(api.multiplayer.playView, { gameId }))!;
+  await expect(userBySeat[pv.currentSeat]!.mutation(api.multiplayer.act, { gameId, action: { type: "strangersAssignArtefacts" } })).rejects.toThrow(/stranger/i);
+});

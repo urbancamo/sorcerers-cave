@@ -92,6 +92,26 @@ npx convex env remove TRAP_RULES_ENABLED [--prod]
 
 Any value other than the literal string `1` (including unset) is treated as off.
 
+## `STRANGER_STRATEGY`
+
+Selects the **strangers' strategy** for new solo games (pluggable stranger combat spec, stages 1 and 2:
+`docs/requirements/combat/2026-10-11-pluggable-stranger-combat.md`). Today the only decision the strangers make is who
+bears which fight artefact, so the only registered strategy is `standard` (Peter's default loadout) and setting it changes
+nothing a player can see; it exists so the plumbing (a pending decision, a checked and logged `strangersAssignArtefacts`
+action, a fallback to `standard`) is exercised in a real deployment before there is a second strategy to choose.
+
+The value is a strategy id. Unset, or an id nothing is registered under, ⇒ not stamped ⇒ the loadout is applied exactly as
+before. It is folded into a new game's `variants.strangerLevel` in `convex/game.ts`; it is **never client-settable**, and a
+client can never send a stranger decision (`applyAction` and the multiplayer `act` reject any action type starting
+`strangers`). A game keeps the value it was created with. Solo games only.
+
+```bash
+cd apps/web
+npx convex env set STRANGER_STRATEGY standard        # local dev
+npx convex env set STRANGER_STRATEGY standard --prod # production
+npx convex env remove STRANGER_STRATEGY [--prod]
+```
+
 ## `TEST_MODE_SECRET`
 
 Gates **Test Mode**, the QA harness for scripting a scenario (forced draws, forced reactions, forced

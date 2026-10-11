@@ -458,6 +458,8 @@ export function eventNotices(events: GameEvent[]): Notice[] {
           tone: "neutral",
         });
         break;
+      case "strategyFallback":
+        break; // an operator's concern (the game log), not the player's
       default:
         assertNever(e);
         break;

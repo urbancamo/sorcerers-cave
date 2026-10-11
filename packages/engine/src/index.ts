@@ -27,6 +27,8 @@ export * from "./capabilities";
 export * from "./loadout";
 export * from "./strangerGear";
 export * from "./strangerEquip";
+export * from "./strategy";
+export * from "./strangerDriver";
 export * from "./special";
 export * from "./sorcerer";
 export * from "./sibyl";

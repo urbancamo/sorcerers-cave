@@ -163,6 +163,7 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "memberDied": return `${creature(e.creatureId)} was slain`;
     case "strangerKilled": return `${creature(e.creatureId)} (stranger) was slain`;
     case "strangerEquipped": return `${creature(e.creatureId)} (stranger) took up the ${treasure(e.artifact)}`;
+    case "strategyFallback": return `The strangers' strategy ${e.from} was replaced by the standard one (${e.reason})`;
     case "strangerVanished": return `${creature(e.creatureId)} (stranger) vanished with ${treasure(e.artifact)}`;
     case "dragonSlain": return `${creature(e.creatureId)} slew a dragon single-handed — Dragon-slayer ×${e.kills} (+${e.kills} fighting strength)`;
     case "sorcererSlain": return "the Sorcerer was slain (+30)";
@@ -478,6 +479,7 @@ export function eventCode(e: GameEvent): string | null {
     case "memberDied": return `DIE ${cr3(e.creatureId)}`;
     case "strangerKilled": return `KIL ${cr3(e.creatureId)}`;
     case "strangerEquipped": return `EQP ${cr3(e.creatureId)} ${tr3(e.artifact)}`;
+    case "strategyFallback": return `FBK ${e.from}`;
     case "strangerVanished": return `VAN ${cr3(e.creatureId)} ${tr3(e.artifact)}`;
     case "spectreSlew": return `SLW ${cr3(e.creatureId)}`;
     case "memberRevived": return `RVV ${cr3(e.creatureId)}`;
