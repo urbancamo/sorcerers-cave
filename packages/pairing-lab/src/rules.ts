@@ -10,9 +10,6 @@ const B_SWORD = 1, B_STAFF = 2, B_RING = 4, B_AXE = 8, B_SHIELD = 16;
 const BIT: Record<number, number> = { [T.SWORD]: B_SWORD, [T.STAFF]: B_STAFF, [T.RING]: B_RING, [T.AXE]: B_AXE, [T.SHIELD]: B_SHIELD };
 
 export const DEFAULT_RULES: Rules = {
-  strangersAttackFirst: true,
-  alternate: true,
-  strangerCasualty: "nominate",
   shieldWardsBackers: true,
   staffPriest: 2,
   partyRetreatRatio: 0.5,
@@ -93,12 +90,15 @@ const hasRing = (units: Unit[], ctx: Ctx): boolean => {
 };
 export const partyHasRing = hasRing;
 
-/** Added to every party die roll: +1 while a living member holds the Ring, minus one per curse. */
-export const partyDieBonus = (party: Unit[], ctx: Ctx): number => (hasRing(party, ctx) ? 1 : 0) - ctx.curses;
+/** Added to every party die roll: +1 while a living member holds the Ring (fixed at the start of the round by the caller, so
+ *  it counts even if the bearer falls this round), minus one per curse, plus the surprise bonus when the party is the attacker
+ *  in round 1. */
+export const partyDieBonus = (party: Unit[], ctx: Ctx, round: number): number =>
+  (hasRing(party, ctx) ? 1 : 0) - ctx.curses + (ctx.attacker === "party" && round === 1 ? ctx.surprise : 0);
 
-/** Added to every stranger die roll: +1 for a Ring, and the surprise bonus in round 1. */
+/** Added to every stranger die roll: +1 for a Ring, plus the surprise bonus when the strangers are the attacker in round 1. */
 export const strangerDieBonus = (strangers: Unit[], ctx: Ctx, round: number): number =>
-  (hasRing(strangers, ctx) ? 1 : 0) + (round === 1 ? ctx.surprise : 0);
+  (hasRing(strangers, ctx) ? 1 : 0) + (ctx.attacker === "strangers" && round === 1 ? ctx.surprise : 0);
 
 /** The 36 dice outcomes for one match, from the strangers' point of view. `s` and `p` are the totals including die bonuses. */
 export function outcomeCounts(s: number, p: number): { win: number; tie: number; lose: number } {
@@ -110,12 +110,23 @@ export function outcomeCounts(s: number, p: number): { win: number; tie: number;
   return { win, tie, lose };
 }
 
-/** A two-creature front line loses: which of the pair dies. The party's nominated creature dies on 4-6; for the strangers,
- *  as Peter's text reads, the OTHER creature dies on 4-6. A Ring adds 1 to the roll and 7 counts as 6. */
-export function casualtyVictim(loser: "party" | "strangers", nominated: number, other: number, roll: number, ringBonus: number): number {
-  const r = Math.min(6, roll + ringBonus);
-  return loser === "party" ? (r >= 4 ? nominated : other) : (r >= 4 ? other : nominated);
+/** A two-creature front line loses (the same rule for both sides, Peter Q7 and review B3): the losing side nominates one, a die is
+ *  rolled (+1 if the loser has the Ring, 7 counts as 6), and on 4, 5 or 6 the nominated creature dies; otherwise the other does. */
+export function casualtyVictim(nominated: number, other: number, roll: number, ringBonus: number): number {
+  return Math.min(6, roll + ringBonus) >= 4 ? nominated : other;
 }
 
 /** A Ring bearer at level 4 or deeper cannot be killed (the Eye switches it off). */
 export const invincible = (u: Unit, ctx: Ctx): boolean => ctx.level >= 4 && !ctx.eye && (u.g & B_RING) !== 0;
+
+
+/** A stalemate (Peter Q3, with the invulnerable Ring bearer of his own example): *neither side can beat the other on any roll*,
+ *  where beating means being able to win the match AND being able to kill with the win. The party cannot be killed when every
+ *  creature of its front line is an invulnerable Ring bearer (level 4+). A stranger who is defeated is always removed (an
+ *  invulnerable bearer disappears with the Ring), so the party's win always counts. `pBonus`/`sBonus` are the sides' die bonuses. */
+export function isStalemate(str: { party: number; strangers: number }, pBonus: number, sBonus: number, m: MatchView, ctx: Ctx): boolean {
+  const partyCanWin = str.party + 6 + pBonus > str.strangers + 1 + sBonus;
+  const strangersCanWin = str.strangers + 6 + sBonus > str.party + 1 + pBonus;
+  const strangersCanKill = strangersCanWin && m.pf.some((u) => !invincible(u, ctx));
+  return !partyCanWin && !strangersCanKill;
+}

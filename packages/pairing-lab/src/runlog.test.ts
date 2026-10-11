@@ -54,7 +54,7 @@ describe("the JSON replay file", () => {
   });
   it("carries a version and the run settings, and every scenario in full", () => {
     const j = JSON.parse(toJson(simulateRun({ ...opts, count: 3 })));
-    expect(j.version).toBe(1);
+    expect(j.version).toBe(2);
     expect(j.kind).toBe("pairing-sim-run");
     expect(j.run).toMatchObject({ id: "t1", deck: "base", baseSeed: 100, count: 3, partyStyle: "GRD", strangerStyle: "GRD" });
     expect(j.run.rules).toEqual(DEFAULT_RULES);

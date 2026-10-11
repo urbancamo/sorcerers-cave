@@ -48,7 +48,7 @@ describe("lab strength == engine previewPlan", () => {
   for (const c of cases) {
     it(c.name, () => {
       const rules = c.name.includes("Priest +1") || c.name.includes("Staff-bearing Priest") ? PRIEST_PLUS_ONE : DEFAULT_RULES;
-      const ctx: Ctx = { eye: !!c.eye, curses: 0, level: c.level ?? 1, surprise: 0, rules };
+      const ctx: Ctx = { eye: !!c.eye, curses: 0, level: c.level ?? 1, attacker: "strangers", surprise: 0, rules };
       const lab = matchStrength({ pf: c.party, pb: c.backers ?? [], sf: c.strangers, sb: [] }, ctx);
       expect(lab).toEqual(engineStrengths(c));
     });

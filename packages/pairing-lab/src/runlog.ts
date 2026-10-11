@@ -4,10 +4,10 @@
 import { balancedScenario, randomScenario } from "./scenario";
 import { DEFAULT_RULES, unit } from "./rules";
 import { simulate } from "./sim";
-import type { Outcome, Rules, Scenario, Style, Unit } from "./types";
+import type { Outcome, Rules, Scenario, Side, Style, Unit } from "./types";
 
 export interface PlainUnit { cid: number; gear: number[]; dragonKills: number; fsBonus: number; potion: boolean }
-export interface PlainScenario { party: PlainUnit[]; strangers: PlainUnit[]; eye: boolean; curses: number; level: number; strangerSurprise: 0 | 1 }
+export interface PlainScenario { party: PlainUnit[]; strangers: PlainUnit[]; eye: boolean; curses: number; level: number; attacker: Side; surprise: 0 | 1 | 2 }
 export interface ScenarioRecord { id: number; seed: number; scenario: PlainScenario; outcome: Outcome }
 
 export interface RunOptions {
@@ -22,7 +22,7 @@ export interface RunOptions {
 }
 
 export interface Run {
-  version: 1;
+  version: 2;
   kind: "pairing-sim-run";
   run: { id: string; deck: "base" | "kit"; generator: "balanced" | "random"; baseSeed: number; count: number; partyStyle: Style; strangerStyle: Style; rules: Rules };
   scenarios: ScenarioRecord[];
@@ -31,10 +31,10 @@ export interface Run {
 const toPlainUnit = (u: Unit): PlainUnit => ({ cid: u.cid, gear: [...u.gear], dragonKills: u.dragonKills, fsBonus: u.fsBonus, potion: u.potion });
 const fromPlainUnit = (p: PlainUnit): Unit => { const u = unit(p.cid, p.gear); u.dragonKills = p.dragonKills; u.fsBonus = p.fsBonus; u.potion = p.potion; return u; };
 const toPlain = (s: Scenario): PlainScenario => ({
-  party: s.party.map(toPlainUnit), strangers: s.strangers.map(toPlainUnit), eye: s.eye, curses: s.curses, level: s.level, strangerSurprise: s.strangerSurprise,
+  party: s.party.map(toPlainUnit), strangers: s.strangers.map(toPlainUnit), eye: s.eye, curses: s.curses, level: s.level, attacker: s.attacker, surprise: s.surprise,
 });
 export const fromPlain = (p: PlainScenario): Scenario => ({
-  party: p.party.map(fromPlainUnit), strangers: p.strangers.map(fromPlainUnit), eye: p.eye, curses: p.curses, level: p.level, strangerSurprise: p.strangerSurprise,
+  party: p.party.map(fromPlainUnit), strangers: p.strangers.map(fromPlainUnit), eye: p.eye, curses: p.curses, level: p.level, attacker: p.attacker, surprise: p.surprise,
 });
 
 export function simulateRun(o: RunOptions): Run {
@@ -46,7 +46,7 @@ export function simulateRun(o: RunOptions): Run {
     scenarios.push({ id: i + 1, seed, scenario: toPlain(sc), outcome: simulate(sc, rules, o.partyStyle, o.strangerStyle, seed) });
   }
   return {
-    version: 1, kind: "pairing-sim-run",
+    version: 2, kind: "pairing-sim-run",
     run: { id: o.id, deck: o.deck, generator: o.generator, baseSeed: o.seed, count: o.count, partyStyle: o.partyStyle, strangerStyle: o.strangerStyle, rules },
     scenarios,
   };
@@ -57,7 +57,7 @@ export const toJson = (run: Run, indent = run.scenarios.length <= 2000 ? 2 : 0):
 
 export function parseRun(json: string): Run {
   const r = JSON.parse(json) as Run;
-  if (r.kind !== "pairing-sim-run" || r.version !== 1) throw new Error("not a version 1 pairing-sim-run file");
+  if (r.kind !== "pairing-sim-run" || r.version !== 2) throw new Error("not a version 2 pairing-sim-run file (version 1 was recorded under the alternating-roles rules)");
   return r;
 }
 

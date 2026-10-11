@@ -9,7 +9,8 @@
     "bench": "PERF=1 vitest run src/perf.test.ts",
     "typecheck": "tsc --noEmit",
     "report": "jiti src/cli.ts",
-    "battle": "jiti src/battleCli.ts"
+    "battle": "jiti src/battleCli.ts",
+    "tournament": "jiti src/tournamentCli.ts"
   },
   "dependencies": {
     "@sorcerers-cave/engine": "workspace:*"

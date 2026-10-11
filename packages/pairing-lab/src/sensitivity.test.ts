@@ -38,7 +38,7 @@ const spearman = (a: number[], b: number[]): number => {
 };
 
 function evalPerm(s: Scenario, k: number, a: Assumption, perm: number[], seed0: number) {
-  const c = { eye: s.eye, curses: s.curses, level: s.level, surprise: s.strangerSurprise, rules: a.rules };
+  const c = { eye: s.eye, curses: s.curses, level: s.level, attacker: s.attacker, surprise: s.surprise, rules: a.rules };
   const opts = {
     round1PartyStyle: (process.env.FIXED_FORMATION ? "GRD" : undefined) as Style | undefined,
     round1Engage: (A: any[], af: number[], D: any[], dd: number[]) => {

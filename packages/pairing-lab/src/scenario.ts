@@ -1,9 +1,9 @@
 // Random scenarios drawn from the real small-pack card counts: the strangers and the party take cards from the
 // same finite pack, so no creature type is used more often than the deck holds (scenario-space report §3).
-import { smallPackTemplate, smallPackExtension } from "@sorcerers-cave/engine";
+import { smallPackTemplate, smallPackExtension, defaultLoadout, swordBonus, axeBonus, staffBonus, shieldEligible, ringEligible } from "@sorcerers-cave/engine";
 import { makeRng, type Rng } from "./rng";
 import { DEFAULT_RULES, T, totalOf, unit } from "./rules";
-import type { Scenario, Unit } from "./types";
+import type { Scenario, Side, Unit } from "./types";
 
 /** The game's own ceilings. Allies are drawn from the creature cards that can ever be friendly: 30 in the base deck and
  *  40 with the kit (Spectre, Dragon, Sorcerer and Demon never are). Strangers can number 20 or more only after a Mutiny. */
@@ -14,16 +14,20 @@ const creatureCards = (kit: boolean): number[] =>
   [...smallPackTemplate(), ...(kit ? smallPackExtension() : [])].filter((c) => c >= 100 && c < 200).map((c) => c - 100);
 const CARDS = { base: creatureCards(false), kit: creatureCards(true) };
 
-const NOT_STRANGERS = new Set([9, 15]);        // Spectre, Demon (version 1 limit)
-const NOT_ALLIES = new Set([9, 10, 11, 15]);   // never friendly: Spectre, Dragon, Sorcerer, Demon
+// Creatures that never take part: a Spectre and a Demon (version 1 limit), and the Unicorn, which "will not fight in the current
+// situation" and so is neither engaged nor unengaged (reformulated rules, definition 9; the engine still lets it fight, C4).
+const NOT_FIGHTING = [13];
+const NOT_STRANGERS = new Set([9, 15, ...NOT_FIGHTING]);   // Spectre, Demon, Unicorn
+const NOT_ALLIES = new Set([9, 10, 11, 15, ...NOT_FIGHTING]);   // never friendly: Spectre, Dragon, Sorcerer, Demon; and the Unicorn
 
-const HUMAN = [0, 1, 5, 6, 19], PRIEST = [4, 17, 18], WIZARD = [8, 14, 11], DWARF = [7];
-const CAN_BEAR: Record<number, Set<number>> = {
-  [T.SWORD]: new Set([...HUMAN, ...PRIEST, ...WIZARD]),
-  [T.STAFF]: new Set([...PRIEST, ...WIZARD]),
-  [T.RING]: new Set([...HUMAN, ...PRIEST, ...WIZARD, ...DWARF]),
-  [T.AXE]: new Set([...HUMAN, ...PRIEST, ...WIZARD, ...DWARF]),
-  [T.SHIELD]: new Set(HUMAN),
+// Who can bear what, from the engine's own capability table (Peter's A4: the Sword is a Hero, Woman-Hero, Man, Woman or
+// Thief's; the Axe also a Dwarf's), so the lab and the game agree by construction.
+const CAN_BEAR: Record<number, (cid: number) => boolean> = {
+  [T.SWORD]: (c) => swordBonus(c) > 0,
+  [T.STAFF]: (c) => staffBonus(c) > 0,
+  [T.RING]: ringEligible,
+  [T.AXE]: (c) => axeBonus(c) > 0,
+  [T.SHIELD]: shieldEligible,
 };
 const POTION_OK = new Set([0, 1, 5, 6]);
 
@@ -42,35 +46,58 @@ function drawCount(rng: Rng, weights: number[], max: number): number {
   return w.length;
 }
 
-/** Hand the fight artefacts out and set the situation. Each artefact exists once in the pack: it is with the party,
- *  rarely with the strangers, or not in play. */
-function dress(rng: Rng, deck: "base" | "kit", party: Unit[], strangers: Unit[]): Scenario {
+/** The attacker's round-1 surprise bonus. Strangers who are approached and prove hostile always have +1. A party that attacks has 0, 1
+ *  or 2: a route that cannot be walked back (carpet, teleport, Whirlpool, Chasm, a deliberate trap fall) or a fresh doorway gives 1,
+ *  and the Scroll can add 1. The odds are an assumption (the rules give the conditions, not how often they hold). */
+function surpriseFor(rng: Rng, attacker: Side): 0 | 1 | 2 {
+  if (attacker === "strangers") return 1;
+  const r = rng.next();
+  return r < 0.45 ? 0 : r < 0.95 ? 1 : 2;
+}
+
+/** Hand the fight artefacts out and set the situation. Each artefact exists once in the pack: it is with the party, lying in the
+ *  chamber under the strangers' guard (`strangerOdds`), or not in play. The party's are placed at random among those who can bear
+ *  them; the strangers' go by Peter's Default Loadout, run once, with every artefact starting on the floor (Q10). */
+function dress(rng: Rng, deck: "base" | "kit", party: Unit[], strangers: Unit[], o: { attacker?: Side; strangerOdds?: number }): Scenario {
+  const eye = rng.next() < 0.03;
   const artefacts = deck === "kit" ? [T.SWORD, T.STAFF, T.RING, T.AXE, T.SHIELD] : [T.SWORD, T.STAFF, T.RING];
+  const odds = o.strangerOdds ?? 0.04;
+  const floor: number[] = [];
   for (const a of artefacts) {
     const roll = rng.next();
-    const side = roll < 0.55 ? party : roll < 0.59 ? strangers : null;
-    if (!side) continue;
-    const eligible = side.filter((u) => CAN_BEAR[a]!.has(u.cid));
-    if (!eligible.length) continue;
-    const u = pick(rng, eligible);
-    u.gear.push(a);
-    u.g = unit(u.cid, u.gear).g;
+    if (roll < 0.55) {
+      const eligible = party.filter((u) => CAN_BEAR[a]!(u.cid));
+      if (!eligible.length) continue;
+      const u = pick(rng, eligible);
+      u.gear.push(a);
+      u.g = unit(u.cid, u.gear).g;
+    } else if (roll < 0.55 + odds) floor.push(a);
+  }
+  if (floor.length) {
+    const allocations = defaultLoadout({ strangers: strangers.map((u) => u.cid), gear: strangers.map(() => []), floor, eyePresent: eye, pick: (n) => rng.int(n) });
+    for (const { artifact, stranger } of allocations) {
+      const u = strangers[stranger]!;
+      u.gear.push(artifact);
+      u.g = unit(u.cid, u.gear).g;
+    }
   }
   if (rng.next() < 0.2) { const c = party.filter((u) => POTION_OK.has(u.cid)); if (c.length) pick(rng, c).potion = true; }
   if (deck === "kit" && rng.next() < 0.1) pick(rng, party).fsBonus = 2;
   if (rng.next() < 0.03) pick(rng, party).dragonKills = 1;
 
   const cr = rng.next();
+  const attacker: Side = o.attacker ?? (rng.next() < 0.5 ? "strangers" : "party");
   return {
-    party, strangers,
-    eye: rng.next() < 0.03,
+    party, strangers, eye,
     curses: cr < 0.7 ? 0 : cr < 0.9 ? 1 : cr < 0.98 ? 2 : 3,
     level: 1 + rng.int(6),
-    strangerSurprise: rng.next() < 0.6 ? 1 : 0,
+    attacker, surprise: surpriseFor(rng, attacker),
   };
 }
 
 export interface ScenarioOptions {
+  attacker?: Side;      // who started the fight (default: drawn, half each way)
+  strangerOdds?: number; // the chance each fight artefact lies in the chamber with the strangers (default 0.04)
   strangers?: number;   // exact number of strangers, 1..MAX_STRANGERS (default: drawn from the usual odds, 1-6)
   party?: number;       // exact party size (default: the strangers' number plus 0-8, at most 14); capped by the allies the deck has left
 }
@@ -91,10 +118,12 @@ export function randomScenario(seed: number, deck: "base" | "kit", opts: Scenari
 
   const strangers: Unit[] = strangerIdx.map((i) => unit(cards[i]!));
   const party: Unit[] = allyIdx.slice(0, m).map((i) => unit(cards[i]!));
-  return dress(rng, deck, party, strangers);
+  return dress(rng, deck, party, strangers, opts);
 }
 
 export interface BalancedOptions {
+  attacker?: Side;       // who started the fight (default: drawn, half each way)
+  strangerOdds?: number; // the chance each fight artefact lies in the chamber with the strangers (default 0.04)
   band?: [number, number];   // the party's total strength as a multiple of the strangers' (default 0.7 to 1.4)
   maxStrangers?: number;     // at most this many strangers (default MAX_STRANGERS)
 }
@@ -105,7 +134,7 @@ export function balancedScenario(seed: number, deck: "base" | "kit", opts: Balan
   const [lo, hi] = opts.band ?? [0.7, 1.4];
   const maxK = Math.min(opts.maxStrangers ?? MAX_STRANGERS, MAX_STRANGERS);
   const cards = CARDS[deck];
-  const plain = { eye: false, curses: 0, level: 1, surprise: 0 as const, rules: DEFAULT_RULES };
+  const plain = { eye: false, curses: 0, level: 1, attacker: "party" as Side, surprise: 0 as const, rules: DEFAULT_RULES };
 
   for (let attempt = 0; attempt < 400; attempt++) {
     const rng = makeRng(Math.imul(seed, 1000003) + attempt);
@@ -129,8 +158,8 @@ export function balancedScenario(seed: number, deck: "base" | "kit", opts: Balan
     }
     if (party.length === 0 || sum < lo * strangerTotal) continue;
 
-    const s = dress(rng, deck, party, strangers);
-    const c = { eye: s.eye, curses: s.curses, level: s.level, surprise: s.strangerSurprise, rules: DEFAULT_RULES };
+    const s = dress(rng, deck, party, strangers, opts);
+    const c = { eye: s.eye, curses: s.curses, level: s.level, attacker: s.attacker, surprise: s.surprise, rules: DEFAULT_RULES };
     const ratio = s.party.reduce((a, u) => a + totalOf(u, c), 0) / s.strangers.reduce((a, u) => a + totalOf(u, c), 0);
     if (ratio >= lo && ratio <= hi) return s;     // gear and the Eye move the ratio a little, so check it again
   }
