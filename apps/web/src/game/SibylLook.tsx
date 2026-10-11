@@ -45,9 +45,10 @@ export function SibylLook({ state, actions, dispatch }: { state: GameState; acti
       {tiles.length > 0 && (
         <select className="scv-enc-select" aria-label="Look at a face-down tile" value="" onChange={(e) => lookTile(e.target.value)}>
           <option value="">Face-down tile — choose…</option>
-          {tiles.map((a, k) => (
-            <option key={a.area} value={a.area}>{`Level ${unpackCoord(state.areas[a.area!]!.coord).level} tile ${k + 1}`}</option>
-          ))}
+          {tiles.map((a) => {
+            const { level, x, y } = unpackCoord(state.areas[a.area!]!.coord); // where it lies on the map
+            return <option key={a.area} value={a.area}>{`Level ${level} (${x}, ${y})`}</option>;
+          })}
         </select>
       )}
       {seen && <p className="scv-enc-line" data-testid="sibyl-readout">{seen}</p>}

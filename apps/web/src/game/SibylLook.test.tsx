@@ -41,7 +41,10 @@ describe("SibylLook", () => {
     const dispatch = vi.fn();
     const s = stateWithSibyl();
     render(<SibylLook state={s} actions={looks(s)} dispatch={dispatch} />);
-    fireEvent.change(screen.getByRole("combobox", { name: /face-down tile/i }), { target: { value: "1" } });
+    const picker = screen.getByRole("combobox", { name: /face-down tile/i }) as HTMLSelectElement;
+    // Each option names where the tile is on the map (level and x,y), so it can be matched to what is on screen.
+    expect(Array.from(picker.options).map((o) => o.textContent)).toContain("Level 1 (50, 51)");
+    fireEvent.change(picker, { target: { value: "1" } });
     expect(dispatch).toHaveBeenCalledWith({ type: "examineArea", area: 1 });
     expect(screen.getByTestId("sibyl-readout")).toHaveTextContent("Tunnel — north, south");
   });
