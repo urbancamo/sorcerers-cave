@@ -6,6 +6,7 @@ import { C_SIBYL, SIBYL_CODE, sibylWaiting } from "./sibyl";
 import { reduce } from "./reduce";
 import { legalActions } from "./selectors";
 import { packCoord } from "./coords";
+import { newGame } from "./setup";
 
 const man = () => ({ creatureId: 5, status: 0 as const, dragonKills: 0, treasure: [] });
 
@@ -198,5 +199,36 @@ describe("pacified chambers (SC-SIB-6)", () => {
     expect(state.lulled).toEqual([C_SIBYL]);
     expect(state.treasures).toEqual([1]);
     expect(state.areas[0]!.contents).not.toContain(SIBYL_CODE); // now live, not double-parked
+  });
+});
+
+describe("Test Mode can script the Sibyl (SC-SIB-1)", () => {
+  const testGame = (variants?: { extensionKit?: boolean; sibyl?: boolean }) => newGame(1, [0], variants, true);
+
+  it("testSetChamber accepts her on a Sibyl game (kit off), and the next chamber really holds her", () => {
+    const { state, events } = reduce(testGame({ sibyl: true }), { type: "testSetChamber", strangers: [C_SIBYL], treasures: [], hazards: [] });
+    expect(events).toEqual([{ type: "testChamberQueued", strangers: [C_SIBYL], treasures: [], hazards: [] }]);
+    expect(state.testNextChamber).toEqual({ strangers: [C_SIBYL], treasures: [], hazards: [] });
+    const s = structuredClone(state);
+    enterChamber(s); // the Gateway is unvisited: the scripted chamber replaces the draw
+    expect(s.lulled).toEqual([C_SIBYL]);
+    expect(s.strangers).toEqual([]);
+  });
+
+  it("accepts her alongside kit creatures on a kit + Sibyl game", () => {
+    const { events } = reduce(testGame({ extensionKit: true, sibyl: true }), { type: "testSetChamber", strangers: [18, C_SIBYL], treasures: [], hazards: [] });
+    expect(events[0]).toMatchObject({ type: "testChamberQueued" });
+  });
+
+  it("blocks her when the game does not carry the Sibyl variant, kit or no kit", () => {
+    for (const variants of [undefined, { extensionKit: true }]) {
+      const { events } = reduce(testGame(variants), { type: "testSetChamber", strangers: [C_SIBYL], treasures: [], hazards: [] });
+      expect(events).toEqual([{ type: "blocked" }]);
+    }
+  });
+
+  it("still blocks kit-only creatures on a Sibyl-only game", () => {
+    const { events } = reduce(testGame({ sibyl: true }), { type: "testSetChamber", strangers: [18], treasures: [], hazards: [] });
+    expect(events).toEqual([{ type: "blocked" }]);
   });
 });

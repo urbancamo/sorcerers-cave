@@ -1851,9 +1851,12 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // Variant gating (SC-Test-6): a kit-only creature/treasure/hazard id is invalid content for
       // a kit-off game — an id is kit-only iff it falls beyond the base table's own length, which
       // stays correct even if a future kit expansion changes the counts.
+      // The Sibyl (id 21, SC-SIB-1) sits beyond the base table too but belongs to her OWN variant, not the
+      // kit's: she is valid exactly when `variants.sibyl` is on, whether or not the kit is.
+      if (action.strangers.includes(C_SIBYL) && !state.variants?.sibyl) return { state, events: [{ type: "blocked" }] };
       if (!state.variants?.extensionKit) {
         const kitOnly =
-          action.strangers.some((id) => id >= BASE_CREATURES.length) ||
+          action.strangers.some((id) => id >= BASE_CREATURES.length && id !== C_SIBYL) ||
           action.treasures.some((id) => id >= BASE_TREASURES.length) ||
           action.hazards.some((id) => id >= HAZARD_NAMES.length);
         if (kitOnly) return { state, events: [{ type: "blocked" }] };
