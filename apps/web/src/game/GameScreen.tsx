@@ -268,7 +268,12 @@ export default function GameScreen() {
       {displayState.testMode && <DeadEndSwapBadge />}
       {showParty && <PartyPanel state={displayState} dispatch={dispatch} onClose={() => setShowParty(false)} />}
       {displayState.phase === "trap" && !holding && !overlay && !notices && (
-        <TrapChoice dispatch={dispatchWithRolls} />
+        <TrapChoice dispatch={(a) => {
+          // A deliberate fall drops the party a level outside doMove's animation, so home the camera on the
+          // new tile when it lands — the same hand-off the Sorcerer's teleport uses.
+          if (a.type === "fallThroughTrap") caveApi.current?.snapOnArrival();
+          dispatchWithRolls(a);
+        }} />
       )}
       {displayState.phase === "sorcerer" && !holding && !overlay && !notices && teleportTo === null && art && (
         <SorcererTerms state={displayState} art={art} dispatch={dispatchWithRolls} onTeleport={(area) => { caveApi.current?.snapOnArrival(); setTeleportTo(area); }} setPicker={pickDestination} />
