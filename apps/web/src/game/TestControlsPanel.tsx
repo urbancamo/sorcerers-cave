@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  ALL_CREATURES, ALL_TREASURES, ALL_HAZARD_NAMES,
+  ALL_CREATURES, ALL_TREASURES, ALL_HAZARD_NAMES, C_SIBYL,
   CREATURES, TREASURES, HAZARD_NAMES,
   SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_TOMB, SPECIAL_GREAT_HALL,
   SPECIAL_CHASM, SPECIAL_BELL_ROPE, SPECIAL_LAIR, SPECIAL_WHIRLPOOL, SPECIAL_GALLERY, SPECIAL_WELL,
@@ -173,7 +173,9 @@ export function TestControlsPanel({ state, dispatch, onSave }: { state: GameStat
   const kitOn = !!state.variants?.extensionKit;
   const specialAreaOptions = kitOn ? SPECIAL_AREA_OPTIONS : SPECIAL_AREA_OPTIONS.filter((o) => !KIT_ONLY_IDS.has(o.id));
   const plainTileOptions = kitOn ? PLAIN_TILE_OPTIONS : PLAIN_TILE_OPTIONS.filter((o) => !KIT_ONLY_IDS.has(o.id));
-  const creatureOptions = kitOn ? ALL_CREATURES : ALL_CREATURES.filter((c) => c.id < CREATURES.length);
+  // The Sibyl (SC-SIB-1) is offered as a scripted stranger only when this game has her variant on.
+  const sibylOn = !!state.variants?.sibyl;
+  const creatureOptions = ALL_CREATURES.filter((c) => (c.id < CREATURES.length ? true : c.id === C_SIBYL ? sibylOn : kitOn));
   const treasureOptions = kitOn ? ALL_TREASURES : ALL_TREASURES.filter((t) => t.id < TREASURES.length);
   const hazardOptions = kitOn ? ALL_HAZARD_NAMES : ALL_HAZARD_NAMES.slice(0, HAZARD_NAMES.length);
 

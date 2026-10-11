@@ -3,7 +3,7 @@
 // starting party — this panel is the very first thing that renders such a draw, so the base tables
 // would crash here before a kit-on game gets past its first encounter.
 import { useEffect, useRef } from "react";
-import { ALL_CREATURES, ALL_TREASURES, carriedWeight, legalActions, type GameState, type GameAction } from "@sorcerers-cave/engine";
+import { ALL_CREATURES, ALL_TREASURES, carriedWeight, legalActions, sibylWaiting, type GameState, type GameAction } from "@sorcerers-cave/engine";
 import { memberLabel } from "./memberLabels";
 import { uncarryableNotes } from "./uncarryableNotes";
 import { ConfirmButton, ConfirmPicker } from "./ConfirmButton";
@@ -173,6 +173,10 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
       <h3 className="scv-enc-hd">{state.phase}</h3>
       {strangers.length > 0 && (
         <p className="scv-enc-line scv-enc-strangers"><span className="k">Strangers: </span>{strangers.join(", ")}</p>
+      )}
+      {/* The Sibyl is never among `state.strangers` (SC-SIB-2): name her when she is the one to be tested. */}
+      {sibylWaiting(state) && (
+        <p className="scv-enc-line" data-testid="sibyl-waits"><span className="k">The Sibyl </span>waits to be spoken to.</p>
       )}
       {treasures.length > 0 && (
         <p className="scv-enc-line scv-enc-treasure"><span className="k">Treasure: </span>{treasures.join(", ")}</p>

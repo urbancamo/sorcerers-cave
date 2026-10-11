@@ -164,7 +164,7 @@ export function GameOverScreen({
         {saved && (
           <div className="scv-hs-wrap">
             <h3 className="scv-hs-heading">High Scores</h3>
-            <LeaderboardPanel defaultKit={!!state.variants?.extensionKit} highlightId={savedId || undefined} onReplay={onReplay} />
+            <LeaderboardPanel defaultKit={!!state.variants?.extensionKit} defaultSibyl={!!state.variants?.sibyl} highlightId={savedId || undefined} onReplay={onReplay} />
           </div>
         )}
 

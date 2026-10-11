@@ -45,6 +45,15 @@ function decodeTopology(card: number) {
   return { d, exits, special: SPECIAL[d.special] ?? null };
 }
 
+/** The tile artwork for an engine area-card value, matched by its printed doorways, stairs and special
+ *  (the same match `projectArea` makes). Null when the manifest has no art for it. Used by the Sibyl's
+ *  look to show the card she reveals. */
+export function tileForCard(card: number, tiles: TileArt[]): TileArt | null {
+  const { d, exits, special } = decodeTopology(card);
+  const hit = resolveTile({ exits, stairUp: d.stairUp, stairDown: d.stairDown, special, isChamber: d.chamber }, tiles);
+  return hit ? tiles.find((t) => t.tileId === hit.tileId) ?? null : null;
+}
+
 export function laneCards(
   codes: readonly number[], cards: CardArt[], dragonsAsleep = false,
 ): { strangers: Card[]; treasure: Card[]; hazards: Card[] } {

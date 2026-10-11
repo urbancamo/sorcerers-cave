@@ -54,12 +54,14 @@ export const save = mutation({
       // Dead End rule (§6.3.2, "forced redraw"): keys this entry into its own leaderboard table too
       // — a run that could be rescued from a soft-lock isn't comparable to one that couldn't be.
       forcedRedraw: state.variants?.forcedRedraw ?? undefined,
+      // The Sibyl (SC-SIB-9): keys this entry into its own table — her presence changes the game's result.
+      sibyl: state.variants?.sibyl ?? undefined,
     });
   },
 });
 
-/** Top scores across all players (highest first), split into FOUR independent tables keyed
- *  mode × extensionKit (design 2026-07-28): solitaire and multiplayer scores aren't comparable
+/** Top scores across all players (highest first), split into EIGHT independent tables keyed
+ *  mode × extensionKit × sibyl (design 2026-07-28, SC-SIB-9): solitaire and multiplayer scores aren't comparable
  *  (a shared cave splits its treasure between seats), and neither are base and kit decks
  *  (SC-EXT-29). Omitted args = the solitaire base table; absent flags on legacy rows read as
  *  solo/base by construction. Multiplayer lists only ESCAPED seats — wipes and abandons stay
@@ -75,23 +77,28 @@ export const list = query({
   args: {
     mode: v.optional(v.union(v.literal("solo"), v.literal("multi"))),
     extensionKit: v.optional(v.boolean()),
+    sibyl: v.optional(v.boolean()),
   },
-  handler: async (ctx, { mode, extensionKit }) => {
+  handler: async (ctx, { mode, extensionKit, sibyl }) => {
     const wantMode = mode ?? "solo";
     const wantKit = extensionKit === true;
+    const wantSibyl = sibyl === true;
     // A multi row's kit flag falls back to its stored final state: rows recorded between the
     // MP-kit deploy and the `recordTerminals` stamping fix carry the variant only in `state`.
     const kitOf = (r: { extensionKit?: boolean; state: unknown }) =>
       r.extensionKit ?? (r.state as GameState).variants?.extensionKit ?? false;
+    const sibylOf = (r: { sibyl?: boolean; state: unknown }) =>
+      r.sibyl ?? (r.state as GameState).variants?.sibyl ?? false;
     const rows = await ctx.db
       .query("highScores")
       .withIndex("by_score")
       .order("desc")
-      .take(LEADERBOARD_LIMIT * 4); // over-fetch, then drop other-table entries
+      .take(LEADERBOARD_LIMIT * 8); // over-fetch, then drop other-table entries (eight tables)
     return rows
       .filter((r) =>
         (r.mode ?? "solo") === wantMode &&
         kitOf(r) === wantKit &&
+        sibylOf(r) === wantSibyl &&
         (wantMode === "solo" || r.outcome === GS_ESCAPED))
       .slice(0, LEADERBOARD_LIMIT)
       .map((r) => ({
@@ -103,6 +110,7 @@ export const list = query({
       createdAt: r.createdAt,
       extensionKit: r.extensionKit ?? undefined,
       forcedRedraw: r.forcedRedraw ?? undefined,
+      sibyl: r.sibyl ?? undefined,
       seatCount: r.seatCount ?? undefined,
     }));
   },

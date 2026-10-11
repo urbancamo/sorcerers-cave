@@ -29,10 +29,11 @@ export function PartySelect({
   title = "Choose your party",
   confirmLabel = () => "Enter the cave", // no pick count (MSW, 2026-07-28)
   kitToggle = false,
+  sibylToggle = false,
   variants: fixedVariants,
   testMode = false,
 }: {
-  onConfirm: (picks: number[], color: PartyColor, variants?: { extensionKit: boolean }) => void;
+  onConfirm: (picks: number[], color: PartyColor, variants?: { extensionKit?: boolean; sibyl?: boolean }) => void;
   /** Solo only: return to the title screen without starting. The MP draft passes no handler —
    *  leaving a lobby is its own flow — so no Back is rendered there. */
   onBack?: () => void;
@@ -41,6 +42,8 @@ export function PartySelect({
   title?: string;
   confirmLabel?: (count: number) => string;
   kitToggle?: boolean;
+  /** Solo only: shows the "Sibyl" switch (adds the optional Sibyl card; scores go in their own table). */
+  sibylToggle?: boolean;
   /** MP draft only (never combined with `kitToggle`): the game's kit flag is already fixed by the
    *  lobby, so render the kit-on/off roster directly — no interactive switch. */
   variants?: { extensionKit: boolean };
@@ -55,8 +58,13 @@ export function PartySelect({
   // Click a card to read its printed attributes full-size (a dismissable lightbox).
   const [zoom, setZoom] = useState<{ file: string; name: string } | null>(null);
 
+  const [sibyl, setSibyl] = useState(false);
   const kitOn = fixedVariants ? fixedVariants.extensionKit : (kitToggle && kit);
-  const variants = kitOn ? { extensionKit: true } : undefined;
+  const sibylOn = sibylToggle && sibyl;
+  // Only the chosen flags are present, so a variant-free game keeps the old 2-argument call shape.
+  const variants = kitOn || sibylOn
+    ? { ...(kitOn ? { extensionKit: true } : {}), ...(sibylOn ? { sibyl: true } : {}) }
+    : undefined;
   const SELECTABLE = kitOn ? [...BASE_SELECTABLE, ...KIT_SELECTABLE] : BASE_SELECTABLE;
   const effectiveStock = stock ?? startingStock(variants);
 
@@ -116,6 +124,13 @@ export function PartySelect({
           <input type="checkbox" checked={kit} onChange={toggleKit} />
           Extension kit
           <span className="scv-muted">Adds 30 area tiles and 30 cards to the decks.</span>
+        </label>
+      )}
+      {sibylToggle && (
+        <label className="scv-kit-toggle">
+          <input type="checkbox" checked={sibyl} onChange={() => setSibyl((s) => !s)} />
+          Sibyl
+          <span className="scv-muted">Adds the optional Sibyl card. Scores go in their own table.</span>
         </label>
       )}
       <div className="scv-cards">

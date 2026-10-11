@@ -168,3 +168,37 @@ describe("PartySelect — testMode lifts party limits (docs/requirements/test-mo
     expect(onConfirm).toHaveBeenCalledWith([0, 0, 6], "yellow");
   });
 });
+
+describe("PartySelect — Sibyl toggle (SC-SIB-1)", () => {
+  it("shows no Sibyl switch unless sibylToggle is set", () => {
+    render(<PartySelect onConfirm={() => {}} kitToggle />);
+    expect(screen.queryByRole("checkbox", { name: /sibyl/i })).toBeNull();
+  });
+
+  it("with sibylToggle: off by default, and confirming reports variants { sibyl: true } when on", () => {
+    const onConfirm = vi.fn();
+    render(<PartySelect onConfirm={onConfirm} sibylToggle />);
+    const toggle = screen.getByRole("checkbox", { name: /sibyl/i });
+    expect(toggle).not.toBeChecked();
+    fireEvent.click(toggle);
+    fireEvent.click(screen.getByRole("button", { name: /add Hero/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Enter the cave/i }));
+    expect(onConfirm).toHaveBeenCalledWith([0], "yellow", { sibyl: true });
+  });
+
+  it("kit and Sibyl together report both flags; Sibyl off keeps the old call shape", () => {
+    const onConfirm = vi.fn();
+    render(<PartySelect onConfirm={onConfirm} kitToggle sibylToggle />);
+    fireEvent.click(screen.getByRole("checkbox", { name: /extension kit/i }));
+    fireEvent.click(screen.getByRole("checkbox", { name: /sibyl/i }));
+    fireEvent.click(screen.getByRole("button", { name: /add Hero/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Enter the cave/i }));
+    expect(onConfirm).toHaveBeenCalledWith([0], "yellow", { extensionKit: true, sibyl: true });
+  });
+
+  it("Sibyl switched on does not change the roster or costs", () => {
+    render(<PartySelect onConfirm={() => {}} sibylToggle />);
+    fireEvent.click(screen.getByRole("checkbox", { name: /sibyl/i }));
+    expect(screen.queryByRole("button", { name: /add sibyl/i })).toBeNull();
+  });
+});

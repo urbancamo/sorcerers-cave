@@ -17,6 +17,7 @@ const mpActionValidator = v.object({
   to: v.optional(v.number()),
   artifact: v.optional(v.number()),
   target: v.optional(v.number()),
+  area: v.optional(v.number()), // examineArea: a face-down tile index (absent = the large-pack top)
   borne: v.optional(v.boolean()), // setBorne: bear vs stow a Sword/Staff/Ring
   // Trade-session baskets (I-5): treasure ids + party member indices offered.
   treasure: v.optional(v.array(v.number())),
@@ -70,7 +71,7 @@ const cleanName = (n: string) => n.trim().slice(0, NAME_MAX);
 // the composed decks and every seat's GameState.
 const variantsV = v.object({
   zombies: v.optional(v.boolean()), fogLite: v.optional(v.boolean()), concurrent: v.optional(v.boolean()),
-  extensionKit: v.optional(v.boolean()),
+  extensionKit: v.optional(v.boolean()), sibyl: v.optional(v.boolean()),
 });
 
 // How a finished party's outcome reads in the broadcast feed (keyed by terminal SeatStatus).
@@ -111,6 +112,8 @@ export function actionNarration(action: MpAction, events: GameEvent[], before: P
       case "crossedSpecial": frags.push(`crossed the ${sname(e.special)}`); break;
       case "trapSprung": frags.push(`fell through a trap to level ${e.level}`); break;
       case "mutinied": frags.push("was struck by mutiny"); break;
+      case "sibylJoins": frags.push("befriended the Sibyl"); break;
+      case "sibylExamined": frags.push("consulted the Sibyl"); break;
     }
   }
   if (action.type === "takeTreasure" && !has("rubyTaken")) {
@@ -574,6 +577,7 @@ async function recordTerminals(
       mode: "multi", gameCode: game.code, partyName: p.name,
       // Leaderboard keys (design 2026-07-28): kit games and shared caves each get their own table.
       extensionKit: after.variants?.extensionKit ?? undefined,
+      sibyl: after.variants?.sibyl ?? undefined, // SC-SIB-9: the Sibyl keys its own table
       seatCount: after.parties.length,
     });
     const verb = OUTCOME_VERB[p.status] ?? "finished";

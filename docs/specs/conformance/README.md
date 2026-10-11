@@ -98,7 +98,7 @@ generator; the final TAGGED file is the extension kit's own vector:
 | `-escape` (seed 225) | `exitCave` → `gameOver(ESCAPED)` with a laden party — valid final score 131 (§12) |
 | `-sorcerer` (seed 174) | `sorcererSlain` (+ the `SORCKILLED 1` curse-lift flag) before a party wipe |
 | `-artifacts` (seeds 257, 1237, 2678, 2355) | together, every usable artifact — Carpet 4, Lotus 5, Balm 6, Potion 8, Staff 9, Flute 12 (`USE` actions + effects) — plus the Lost-Ruby statue wrestle (×3) and the Treasure Chest (`OPENCHEST`) |
-| `-chest2` (seed 53) | `openChest` → a Spectre attacks |
+| `-chest2` (seed 53) | `openChest` → a Spectre appears and the Eye of God annihilates it (SC-11-41; re-seeded 2026-10-11 — it used to pin the bug where the chest's Spectre ignored the Eye and slew its holder) |
 | `-ring` (seed 30) | the Ring shrugs off a killing blow (`deathPrevented`) |
 | `-reclaim` (seed 148) | Deep-Pool dropped treasure reclaimed by a Giant |
 | `-medusaavert` (seed 330) | a staff-Wizard averts Medusa (`medusaAverted`) |

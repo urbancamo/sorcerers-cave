@@ -166,6 +166,9 @@ function encodeAction(a: GameAction): string {
     // happens to reach a state where it's offered (confirmed: adding it to legalActions changed no
     // existing fixture), but it must stay exhaustive here regardless.
     case "reclaimTreasure": return "RECLAIMTREASURE";
+    // The Sibyl (SC-SIB-8): the free look. Offered only to a party holding the Sibyl, which no
+    // committed vector's run ever does (the variant is off in all of them) — exhaustiveness only.
+    case "examineArea": return a.area === undefined ? "EXAMINE" : `EXAMINE ${a.area}`;
     // Test Mode (§Test Mode): QA-only actions, never offered via `legalActions` and so never chosen
     // by any policy below (base/slayer/artifacts/kit) — kept here purely so this switch stays
     // exhaustive over the full GameAction union; no committed vector file will ever contain them.

@@ -453,3 +453,20 @@ describe("downloadLog", () => {
     expect(downloadName).toBe("ABCD-log.txt");
   });
 });
+
+describe("Sibyl log stamps (SC-SIB-9)", () => {
+  it("formatLog notes the Sibyl was in play, omitted otherwise", () => {
+    const base = { game: { code: "ABCD", seed: 1, picks: [0], color: "yellow", status: "finished", createdAt: 0 }, moves: [] } as unknown as GameLog;
+    expect(formatLog(base)).not.toMatch(/Sibyl/);
+    expect(formatLog({ ...base, game: { ...base.game, variants: { sibyl: true } } })).toMatch(/Sibyl active/);
+  });
+
+  it("describes the Sibyl events", () => {
+    expect(describeEvent({ type: "sibylJoins" })).toMatch(/sibyl joined/i);
+    expect(describeEvent({ type: "sibylDeclines" })).toMatch(/indifferent/i);
+    expect(describeEvent({ type: "sibylExamined" })).toMatch(/consulted/i);
+    expect(eventCode({ type: "sibylJoins" })).toBe("SIB JIN");
+    expect(eventCode({ type: "sibylDeclines" })).toBe("SIB DEC");
+    expect(eventCode({ type: "sibylExamined" })).toBe("SIB EXM");
+  });
+});

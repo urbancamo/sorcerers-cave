@@ -63,10 +63,10 @@ export async function uniqueCode(ctx: MutationCtx): Promise<string> {
   throw new Error("Could not allocate a unique game code");
 }
 
-// Extension kit (SC-EXT-29, design US-01): the only solo-relevant key of the shared `variants`
-// shape (schema.ts) — a plain object validator here rather than reusing the full MP union, since a
+// Extension kit (SC-EXT-29, design US-01) and the Sibyl (SC-SIB-1): the only solo-relevant, player-chosen
+// keys of the shared `variants` shape (schema.ts) — a plain object validator here rather than reusing the full MP union, since a
 // solo `newGame` call never sets zombies/fogLite/concurrent.
-const variantsValidator = v.object({ extensionKit: v.optional(v.boolean()) });
+const variantsValidator = v.object({ extensionKit: v.optional(v.boolean()), sibyl: v.optional(v.boolean()) });
 
 // Dead End rule (§6.3.2, "forced redraw"): unlike `extensionKit`, this flag is never player-chosen
 // and changes scoring difficulty, so it must NOT be client-settable — `variantsValidator` above
@@ -82,8 +82,8 @@ const variantsValidator = v.object({ extensionKit: v.optional(v.boolean()) });
 // Standing traps and the Dwarf's deliberate fall (`variants.trapRules`, solo only) come from
 // `TRAP_RULES_ENABLED`, off by default for the same reason (a trap is one-shot and a Dwarf always
 // avoids it).
-type ServerVariants = { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean };
-function withForcedRedraw(variants: { extensionKit?: boolean } | undefined): ServerVariants | undefined {
+type ServerVariants = { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean; sibyl?: boolean };
+function withForcedRedraw(variants: { extensionKit?: boolean; sibyl?: boolean } | undefined): ServerVariants | undefined {
   let out: ServerVariants | undefined = variants;
   if (process.env.FORCED_REDRAW_ENABLED === "1") out = { ...out, forcedRedraw: true };
   if (process.env.SORCERER_TELEPORT_ENABLED === "1") out = { ...out, sorcererTeleport: true };

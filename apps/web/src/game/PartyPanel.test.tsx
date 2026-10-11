@@ -168,3 +168,13 @@ describe("PartyPanel", () => {
     expect(screen.getByText("10×?")).toBeInTheDocument();
   });
 });
+
+describe("PartyPanel — the Sibyl (SC-SIB-5)", () => {
+  it("notes the Sibyl travelling with the party, and shows nothing without her", () => {
+    const s = partyState();
+    const { rerender } = render(<PartyPanel state={s} dispatch={() => {}} onClose={() => {}} />);
+    expect(screen.queryByTestId("pp-sibyl")).toBeNull();
+    rerender(<PartyPanel state={{ ...s, hasSibyl: true }} dispatch={() => {}} onClose={() => {}} />);
+    expect(screen.getByTestId("pp-sibyl")).toHaveTextContent(/sibyl/i);
+  });
+});

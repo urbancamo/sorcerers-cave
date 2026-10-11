@@ -3,6 +3,7 @@ import { SPECIAL_TOMB, SPECIAL_GREAT_HALL, SPECIAL_LAIR, SPECIAL_GALLERY, SPECIA
 import { AF_DESTROYED, type GameState } from "./state";
 import type { GameEvent } from "./actions";
 import { HAZARD_TRAP } from "./data/hazards";
+import { C_SIBYL, SIBYL_CODE } from "./sibyl";
 
 const MAX_STRANGERS = 8;
 const MAX_TREASURE = 8;
@@ -22,7 +23,7 @@ const C_DEMON = 15;
 // USED to be listed here too (arriving exempt but un-relocated); it now never reaches this check
 // at all — Task 11 closes that seam by intercepting it in `classify`, below, before the Gallery
 // branch (SC-EXT-21).
-const GALLERY_EXEMPT_CREATURES = [9, 11]; // Spectre, Sorcerer
+const GALLERY_EXEMPT_CREATURES = [9, 11, 21]; // Spectre, Sorcerer, Sibyl
 
 /** Load an already-classified code straight into its working-set bucket — no draw-time transforms.
  *  Used to reload PERSISTED/parked contents (a revisit, or a stash just spilled onto the Lair):
@@ -42,6 +43,11 @@ function reload(state: GameState, code: number): void {
     if (state.hazards.length < MAX_HAZARDS) state.hazards.push(code - 300);
   } else if (code >= 200) {
     if (state.treasures.length < MAX_TREASURE) state.treasures.push(code - 200);
+  } else if (code === SIBYL_CODE) {
+    // The Sibyl never joins the strangers (SC-SIB-2): she waits in the parked-awake slot, which every
+    // leave-the-chamber path already saves, and is met only once the real strangers are dealt with.
+    state.lulled ??= [];
+    if (!state.lulled.includes(C_SIBYL)) state.lulled.push(C_SIBYL);
   } else {
     if (state.strangers.length < MAX_STRANGERS) state.strangers.push(code - 100);
   }

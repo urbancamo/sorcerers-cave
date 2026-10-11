@@ -2140,3 +2140,36 @@
   /* Trade modal: two offer columns on a phone — tighten the gutter so item names keep room. */
   .scv-trade-cols { gap: 8px; }
 }
+
+/* The Sibyl's look (SC-SIB-8): the card she reveals drifts in see-through over the view, holds, and
+   fades away. It never takes clicks, and removes itself when the animation ends (SibylLook). */
+.scv-sibyl-peek {
+  position: fixed;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+  z-index: 70;
+  animation: scv-sibyl-peek 3.4s ease-in-out forwards;
+}
+.scv-sibyl-peek img {
+  width: min(70vw, 560px);
+  height: auto;
+  border-radius: 10px;
+  filter: drop-shadow(0 0 28px rgba(186, 156, 255, 0.55));
+}
+@keyframes scv-sibyl-peek {
+  0%   { opacity: 0;    transform: scale(0.92); }
+  20%  { opacity: 0.8;  transform: scale(1); }
+  70%  { opacity: 0.8;  transform: scale(1.02); }
+  100% { opacity: 0;    transform: scale(1.06); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .scv-sibyl-peek { animation-name: scv-sibyl-peek-fade; }
+  @keyframes scv-sibyl-peek-fade {
+    0%   { opacity: 0; }
+    20%  { opacity: 0.8; }
+    70%  { opacity: 0.8; }
+    100% { opacity: 0; }
+  }
+}

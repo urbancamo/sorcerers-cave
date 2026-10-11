@@ -743,3 +743,19 @@ describe("log/replayByCode surface testMode, and replay() reproduces a test-mode
     expect(bundle?.game.testMode).toBeUndefined();
   });
 });
+
+test("newGame accepts variants.sibyl, stores it and deals the Sibyl into the pile", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 3, picks: [0], variants: { sibyl: true } });
+  const game = await as.query(api.game.get, { id });
+  expect(game?.state.variants?.sibyl).toBe(true);
+  expect((game?.state.smallPack as number[]).filter((c) => c === 121)).toHaveLength(1);
+});
+
+test("applyAction accepts examineArea's area field (arg validator)", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 3, picks: [0], variants: { sibyl: true } });
+  await expect(as.mutation(api.game.applyAction, { id, action: { type: "examineArea", area: 0 } })).resolves.toBeDefined();
+});

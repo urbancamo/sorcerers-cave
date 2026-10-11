@@ -2,7 +2,7 @@
 // The exploring party is chosen FROM this pack (those cards are removed in newGame); the remainder
 // is shuffled into the chamber draw pile. Counts match the physical deck (the conversion-kit art),
 // so each card is finite: take the lone Woman-Hero into your party and it cannot also be drawn as a
-// stranger. The variant SIBYL and blank cards are excluded from the basic game (rules §"remove the
+// stranger. The variant SIBYL and blank cards are excluded from the basic game (the SIBYL returns through `smallPackSibyl`) (rules §"remove the
 // blank cards and the SIBYL"). Unpicked starting humans remain in the pile and may turn up as
 // (indifferent) cave strangers, exactly as the rulebook intends.
 export function smallPackTemplate(): number[] {
@@ -76,4 +76,11 @@ export function smallPackExtension(): number[] {
   add(307, 1);
   add(308, 1);
   return cards;
+}
+
+// The variant SIBYL card (rules §OPTIONS AND VARIATIONS): one card, code 100 + creature id 21.
+// `buildSmallPack` (decks.ts) concatenates it onto the template before the shuffle when
+// `variants.sibyl` is set — a separate function so the base 71-card deck stays byte-identical.
+export function smallPackSibyl(): number[] {
+  return [121];
 }

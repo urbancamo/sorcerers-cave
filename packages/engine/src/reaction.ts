@@ -34,9 +34,12 @@ export function findLeader(strangers: readonly number[]): number {
  * adjustment and leader-threshold banding a genuine roll would, so a forced raw die still produces
  * a mechanically honest outcome for THIS leader rather than duplicating this banding logic
  * elsewhere.
+ *
+ * `leaderOverride` (SC-SIB-3): a creature id banded in place of the strongest stranger — the Sibyl is
+ * never among `strangers`, so her one test names her explicitly.
  */
-export function reactionRoll(state: GameState, forcedValue?: number): { seed: number; outcome: Reaction; roll: number } {
-  const leaderId = state.strangers[findLeader(state.strangers)]!;
+export function reactionRoll(state: GameState, forcedValue?: number, leaderOverride?: number): { seed: number; outcome: Reaction; roll: number } {
+  const leaderId = leaderOverride ?? state.strangers[findLeader(state.strangers)]!;
   const leader = CREATURES[leaderId]!;
   let seed = state.seed;
   let value: number;
@@ -76,8 +79,8 @@ export function reactionRoll(state: GameState, forcedValue?: number): { seed: nu
  * actually reachable for this particular leader (e.g. forcing "friendly" from an always-hostile
  * leader) still returns a sane display value rather than an out-of-range number.
  */
-export function forcedReactionRoll(state: GameState, outcome: Reaction): number {
-  const leaderId = state.strangers[findLeader(state.strangers)]!;
+export function forcedReactionRoll(state: GameState, outcome: Reaction, leaderOverride?: number): number {
+  const leaderId = leaderOverride ?? state.strangers[findLeader(state.strangers)]!;
   const leader = CREATURES[leaderId]!;
   const hostileMax = leader.hostileMax ?? 0;
   const indiffMax = leader.indiffMax ?? 6;

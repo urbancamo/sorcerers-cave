@@ -205,23 +205,23 @@ describe("HighScores", () => {
     useQueryMock.mockReturnValue([]);
     render(<LeaderboardPanel />);
     expect(screen.getByRole("tab", { name: "Base Game" })).toHaveAttribute("aria-selected", "true");
-    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "solo", extensionKit: false });
+    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "solo", extensionKit: false, sibyl: false });
   });
 
   it("LeaderboardPanel opens on the Extension Kit tab when defaultKit is set (post-kit-game)", () => {
     useQueryMock.mockReturnValue([]);
     render(<LeaderboardPanel defaultKit />);
     expect(screen.getByRole("tab", { name: "Extension Kit" })).toHaveAttribute("aria-selected", "true");
-    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "solo", extensionKit: true });
+    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "solo", extensionKit: true, sibyl: false });
   });
 
   it("switching tabs re-queries the other table", () => {
     useQueryMock.mockReturnValue([]);
     render(<LeaderboardPanel />);
     fireEvent.click(screen.getByRole("tab", { name: "Extension Kit" }));
-    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "solo", extensionKit: true });
+    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "solo", extensionKit: true, sibyl: false });
     fireEvent.click(screen.getByRole("tab", { name: "Base Game" }));
-    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "solo", extensionKit: false });
+    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "solo", extensionKit: false, sibyl: false });
   });
 
   // Four leaderboards (design 2026-07-28): a second segmented toggle splits solitaire from
@@ -232,14 +232,14 @@ describe("HighScores", () => {
     expect(screen.getByRole("tab", { name: "Solitaire" })).toHaveAttribute("aria-selected", "true");
     fireEvent.click(screen.getByRole("tab", { name: "Multiplayer" }));
     expect(screen.getByRole("tab", { name: "Multiplayer" })).toHaveAttribute("aria-selected", "true");
-    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "multi", extensionKit: false });
+    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "multi", extensionKit: false, sibyl: false });
   });
 
   it("LeaderboardPanel opens on Multiplayer when defaultMode says so", () => {
     useQueryMock.mockReturnValue([]);
     render(<LeaderboardPanel defaultMode="multi" />);
     expect(screen.getByRole("tab", { name: "Multiplayer" })).toHaveAttribute("aria-selected", "true");
-    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "multi", extensionKit: false });
+    expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "multi", extensionKit: false, sibyl: false });
   });
 
   it("the multiplayer table adds a Players column, dashed for legacy rows", () => {
@@ -289,5 +289,26 @@ describe("HighScores", () => {
     render(<HighScores rows={rows} />);
     fireEvent.click(screen.getByText("Alice"));
     expect(within(screen.getByTestId("hs-detail")).getByTestId("game-code")).toHaveTextContent(/ABCD/);
+  });
+});
+
+describe("LeaderboardPanel — Sibyl table (SC-SIB-9)", () => {
+  it("queries the Sibyl-off table by default and re-queries when the Sibyl control is switched", () => {
+    render(<LeaderboardPanel />);
+    expect(useQueryMock).toHaveBeenLastCalledWith("highScores:list", { mode: "solo", extensionKit: false, sibyl: false });
+    fireEvent.click(screen.getByRole("tab", { name: /^sibyl$/i })); // not the "No Sibyl" tab
+    expect(useQueryMock).toHaveBeenLastCalledWith("highScores:list", { mode: "solo", extensionKit: false, sibyl: true });
+  });
+
+  it("opens on the finished game's table via defaultSibyl and defaultKit", () => {
+    render(<LeaderboardPanel defaultKit defaultSibyl />);
+    expect(useQueryMock).toHaveBeenLastCalledWith("highScores:list", { mode: "solo", extensionKit: true, sibyl: true });
+  });
+
+  it("labels a Sibyl score with a flag chip in its detail view", () => {
+    const rows = [row({ _id: "s", name: "Seer", score: 10, sibyl: true, party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }] })];
+    render(<HighScores rows={rows} />);
+    fireEvent.click(screen.getByText("Seer"));
+    expect(screen.getByText("Sibyl")).toBeInTheDocument();
   });
 });

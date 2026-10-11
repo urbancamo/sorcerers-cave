@@ -26,6 +26,10 @@ export type GameAction =
   | { type: "avoidTrap" }
   | { type: "fallThroughTrap" }
   | { type: "openChest" }
+  // The Sibyl's free look (variants.sibyl, SC-SIB-8): at rest, examine the top of the large pack (no
+  // `area`) or a face-down placed tile (`area` = its index in `state.areas`). Changes nothing — the
+  // client reads the card from state and shows it only to the looking seat.
+  | { type: "examineArea"; area?: number }
   // Extension kit (SC-EXT-5): descend the Chasm — legal only on a SPECIAL_CHASM tile, in explore or
   // encounter phase (design US-02). No dice; reuses `relocateDown` (one-way, no mirrored stair-up).
   | { type: "descendChasm" }
@@ -272,6 +276,14 @@ export type GameEvent =
   // successful `exitCave` drops her from the scored party (`count`, normally one) rather than
   // let her escape with the rest.
   | { type: "apprenticeStaysBehind"; count: number }
+  // The Sibyl (variants.sibyl, SC-SIB-5): her one-time test. `sibylJoins` — she is friendly and now
+  // travels with the party (`state.hasSibyl`); `sibylDeclines` — she is indifferent and stays in the
+  // chamber, never to be tested again by this party.
+  | { type: "sibylJoins" }
+  | { type: "sibylDeclines" }
+  // Fired by `examineArea`. Deliberately carries NO card content — the event is broadcast to rivals
+  // in multiplayer, who learn only that this seat consulted the Sibyl (SC-SIB-8).
+  | { type: "sibylExamined" }
   // Extension kit (SC-EXT-21, design US-13/Resolved-6): a freshly-drawn Demon materializes into
   // `prev`'s contents instead of joining the chamber it was drawn in (`spawnDemon`, chamber.ts).
   | { type: "demonSpawned" }

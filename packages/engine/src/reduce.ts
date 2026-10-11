@@ -11,6 +11,7 @@ import { takeTreasure, canCarry } from "./pickup";
 import { unpackCoord, packCoord, targetCoord, DIR_UP, DIR_DOWN } from "./coords";
 import type { GameAction, GameEvent } from "./actions";
 import { reactionRoll, forcedReactionRoll, findLeader } from "./reaction";
+import { C_SIBYL, SIBYL_CODE, examinableAreas, isGuardCode, sibylHere, sibylWaiting } from "./sibyl";
 import { frontStrength } from "./combat";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import {
@@ -229,10 +230,66 @@ function finalizeRound(state: GameState): GameEvent[] {
   return events;
 }
 
+/** Roll one reaction for the strongest stranger — or for `leaderId` when given (the Sibyl, SC-SIB-3) —
+ *  honouring Test Mode's scripted outcome and forced die. Mutates `next` (advances `seed` on a real
+ *  roll; consumes the one-shot Test Mode overrides).
+ * Test Mode (§Test Mode): an armed testNextReaction replaces the die roll outright — the RNG
+ * (state.seed) is never touched, so this doesn't perturb any later, non-overridden roll.
+ * Checks `testMode` explicitly rather than trusting testNextReaction's mere presence —
+ * defense in depth against a hand-crafted state (same reasoning as map.ts's testNextArea
+ * check and chamber.ts's testNextChamber check).
+ * Next Roll Selector (2026-09-11, SC-Test-10): `testNextDie`/`testAllDiceRoll` take over
+ * NEXT, ahead of a genuine roll, when no `testNextReaction` is armed — the forced raw value
+ * still bands through `reactionRoll`'s normal leader-threshold logic (charisma/curse/
+ * natural-1 included), so it may not land on a specific outcome for every leader; a tester
+ * wanting a GUARANTEED outcome regardless of leader still wants `testNextReaction` instead.
+ */
+function rollReaction(next: GameState, leaderId?: number): { outcome: ReturnType<typeof reactionRoll>["outcome"]; roll: number } {
+  if (next.testMode && next.testNextReaction) {
+    const outcome = next.testNextReaction;
+    const roll = forcedReactionRoll(next, outcome, leaderId);
+    delete next.testNextReaction;
+    return { outcome, roll };
+  }
+  if (next.testMode && (next.testNextDie !== undefined || next.testAllDiceRoll !== undefined)) {
+    const forced = next.testNextDie ?? next.testAllDiceRoll!;
+    delete next.testNextDie; // one-shot; testAllDiceRoll stays armed for the rest of the turn
+    const r = reactionRoll(next, forced, leaderId);
+    return { outcome: r.outcome, roll: r.roll };
+  }
+  const r = reactionRoll(next, undefined, leaderId);
+  next.seed = r.seed;
+  return { outcome: r.outcome, roll: r.roll };
+}
+
+/** The Sibyl's one test (SC-SIB-4/5): the real strangers are dealt with and she is the only one left.
+ *  She is never hostile (her row), never counts toward the indifference streak or pacifies the area,
+ *  and is never retested — `sibylMet` is set whatever the outcome. Friendly: she travels with the party
+ *  (`hasSibyl`). Indifferent: she stays in the chamber (parked by the normal exit path). */
+function meetSibyl(state: GameState): { state: GameState; events: GameEvent[] } {
+  const next = structuredClone(state);
+  next.surpriseReady = false;
+  delete next.indiffLeaveOpen;
+  const { outcome, roll } = rollReaction(next, C_SIBYL);
+  const events: GameEvent[] = [{ type: "reaction", outcome, roll }];
+  next.sibylMet = true;
+  if (outcome === "friendly") {
+    next.lulled = (next.lulled ?? []).filter((id) => id !== C_SIBYL);
+    next.hasSibyl = true;
+    events.push({ type: "sibylJoins" });
+  } else {
+    events.push({ type: "sibylDeclines" });
+  }
+  if (next.treasures.length > 0) next.phase = "pickup"; // nothing guards it — she guards nothing
+  else persistAndExplore(next);
+  return { state: next, events };
+}
+
 /** The party has won: loot if there is any, else on its way. A turncoat Apprentice (the Sorcerer's death breaks
  *  her loyalty) is a stranger again, and the party must deal with her. */
 function afterFight(state: GameState, events: GameEvent[]): void {
   if (state.strangers.length > 0) events.push(...startFight(state, 0));
+  else if (sibylWaiting(state)) { state.phase = "encounter"; state.surpriseReady = false; } // she waits, standing aside (SC-SIB-4)
   else if (state.treasures.length > 0) state.phase = "pickup";
   else persistAndExplore(state);
 }
@@ -333,6 +390,23 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
   return false;
 }
 
+/** `settlePacifiedArea`, then — if an unmet Sibyl is here — step her out of the parked guards and open her
+ *  encounter (SC-SIB-4). Pacified guards park themselves AND everything in the parked-awake slot, which
+ *  would strand her with them: she is no guard, and a group that has been dealt with should not hide her.
+ *  Skipped when a Thief's live pickup took over the phase — she is met on the next entry instead. */
+function settlePacifiedWithSibyl(state: GameState): void {
+  const sibylPending = sibylHere(state) && state.sibylMet !== true;
+  settlePacifiedArea(state);
+  if (!sibylPending || state.phase !== "explore") return;
+  const area = state.areas[state.partyArea]!;
+  const at = area.contents.indexOf(SIBYL_CODE);
+  if (at < 0) return;
+  area.contents.splice(at, 1);
+  state.lulled = [...(state.lulled ?? []), C_SIBYL];
+  state.phase = "encounter";
+  state.surpriseReady = false;
+}
+
 /** The tail of a chamber entry once its hazards are done and the party is still here: Flute lull, Demon
  *  ambush, a pacified area, then the phase the chamber's contents call for. Shared by the uninterrupted path
  *  (`finishChamber`) and the resume from the Dwarf's trap choice. */
@@ -361,7 +435,7 @@ function settleChamber(state: GameState, freshEntry: boolean, events: GameEvent[
   // ally instead slips the guarded treasure straight into a live pickup — `settlePacifiedArea` covers
   // both that and the ordinary re-park.
   if (state.pacifiedAreas?.includes(state.partyArea)) {
-    settlePacifiedArea(state);
+    settlePacifiedWithSibyl(state);
     return;
   }
   if (state.strangers.length > 0) {
@@ -374,6 +448,9 @@ function settleChamber(state: GameState, freshEntry: boolean, events: GameEvent[
       // Surprise if attacking immediately on a fresh entry — never after a trap fall (§Surprise).
       state.surpriseReady = freshEntry && (!state.fellThroughTrap || state.deliberateFall === true);
     }
+  } else if (sibylWaiting(state)) {
+    state.phase = "encounter";
+    state.surpriseReady = false; // she is no threat — there is nothing to surprise
   } else if (state.treasures.length > 0) {
     state.phase = "pickup";
   } else {
@@ -713,6 +790,17 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         return { state: next, events };
       }
       return { state, events: [{ type: "blocked" }] };
+    }
+
+    case "examineArea": {
+      // The Sibyl's free look (SC-SIB-8): a pure read. It changes no state and returns the SAME state
+      // object, so it cannot disturb the cave, the packs or the dice.
+      if (state.phase !== "explore" || state.hasSibyl !== true) return { state, events: [{ type: "blocked" }] };
+      const lookable = action.area === undefined
+        ? state.largeIdx < state.largePack.length
+        : examinableAreas(state).includes(action.area);
+      if (!lookable) return { state, events: [{ type: "blocked" }] };
+      return { state, events: [{ type: "sibylExamined" }] };
     }
 
     case "move": {
@@ -1093,7 +1181,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         // "pickup", same as a fresh entry — instead of parking it and forcing a leave-and-return
         // round trip through resolveArea just to notice it again (SC-7.3-5/6 previously required
         // this; a pacified area's guards, or an active encounter, still park it untouchable).
-        const restingUnguarded = next.phase === "explore" && !area.contents.some((c) => c >= 100 && c < 200);
+        const restingUnguarded = next.phase === "explore" && !area.contents.some(isGuardCode);
         if (fallsThrough) {
           const { level, x, y } = unpackCoord(area.coord);
           const targetCoordVal = packCoord(level + 1, x, y);
@@ -1144,6 +1232,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
 
     case "test": {
       if (state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
+      if (sibylWaiting(state)) return meetSibyl(state);
       if ((state.indiffStreak ?? 0) >= 3) return { state, events: [{ type: "blocked" }] }; // permanently indifferent
       const next = structuredClone(state);
       next.surpriseReady = false; // approaching to test forfeits the chance of a surprise attack (§Surprise)
@@ -1152,34 +1241,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // outcome qualifies (indifferent, count still <3). `delete`, not `= false` — an always-present
       // key would change every tested state's hash even when closed (SC-EXT-1 byte-identity).
       delete next.indiffLeaveOpen;
-      // Test Mode (§Test Mode): an armed testNextReaction replaces the die roll outright — the RNG
-      // (state.seed) is never touched, so this doesn't perturb any later, non-overridden roll.
-      // Checks `testMode` explicitly rather than trusting testNextReaction's mere presence —
-      // defense in depth against a hand-crafted state (same reasoning as map.ts's testNextArea
-      // check and chamber.ts's testNextChamber check).
-      // Next Roll Selector (2026-09-11, SC-Test-10): `testNextDie`/`testAllDiceRoll` take over
-      // NEXT, ahead of a genuine roll, when no `testNextReaction` is armed — the forced raw value
-      // still bands through `reactionRoll`'s normal leader-threshold logic (charisma/curse/
-      // natural-1 included), so it may not land on a specific outcome for every leader; a tester
-      // wanting a GUARANTEED outcome regardless of leader still wants `testNextReaction` instead.
-      let outcome: ReturnType<typeof reactionRoll>["outcome"];
-      let rollValue: number;
-      if (next.testMode && next.testNextReaction) {
-        outcome = next.testNextReaction;
-        rollValue = forcedReactionRoll(next, outcome);
-        delete next.testNextReaction;
-      } else if (next.testMode && (next.testNextDie !== undefined || next.testAllDiceRoll !== undefined)) {
-        const forced = next.testNextDie ?? next.testAllDiceRoll!;
-        delete next.testNextDie; // one-shot; testAllDiceRoll stays armed for the rest of the turn
-        const roll = reactionRoll(next, forced);
-        outcome = roll.outcome;
-        rollValue = roll.roll;
-      } else {
-        const roll = reactionRoll(next);
-        next.seed = roll.seed;
-        outcome = roll.outcome;
-        rollValue = roll.roll;
-      }
+      const { outcome, roll: rollValue } = rollReaction(next);
       // `certain` (bug fix 2026-08-02): the Unicorn's hostileMax/indiffMax (0/0) make `outcome`
       // "friendly" no matter what the die shows — the roll above still genuinely advanced the seed
       // (or, under Test Mode, still returned a representative display value), but the UI has
@@ -1213,7 +1275,10 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           persistAndExplore(next); // the party moves on, leaving the Unicorn (and guarded treasure) behind
         } else {
           next.strangers = [];
-          if (next.treasures.length > 0) next.phase = "pickup";
+          // The Sibyl is met only once the real strangers are dealt with (SC-SIB-4): if she is here,
+          // stay in the encounter so she can be tested next, ahead of any pickup.
+          if (sibylWaiting(next)) next.surpriseReady = false;
+          else if (next.treasures.length > 0) next.phase = "pickup";
           else persistAndExplore(next);
         }
       } else if (outcome === "indifferent") {
@@ -1231,7 +1296,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
             next.pacifiedAreas = [...(next.pacifiedAreas ?? []), next.partyArea];
           }
           events.push({ type: "pacified" }); // tell the player they may now move on
-          settlePacifiedArea(next); // Thief present + treasure here -> live pickup; else the ordinary re-park
+          settlePacifiedWithSibyl(next); // Thief present + treasure here -> live pickup; else the ordinary re-park (and the Sibyl, if here, steps forward)
         } else {
           // Bug fix 2026-08-04 (Gap C, SC-4-18a): open the one-shot leave window — the party's VERY
           // NEXT action may freely leave by any doorway, forfeiting the treasure.
@@ -1248,11 +1313,13 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // phase) with the guards parked on the tile — un-park them (and the treasure they guard) into the
       // working set, then fight. No surprise: the chamber was already visited (§Surprise).
       if (state.phase === "explore" && state.pacifiedAreas?.includes(state.partyArea) &&
-          state.areas[state.partyArea]!.contents.some((c) => c >= 100 && c < 200)) {
+          state.areas[state.partyArea]!.contents.some(isGuardCode)) {
         const next = structuredClone(state);
         const area = next.areas[next.partyArea]!;
-        next.strangers = area.contents.filter((c) => c >= 100 && c < 200).map((c) => c - 100);
+        next.strangers = area.contents.filter(isGuardCode).map((c) => c - 100);
         next.treasures = area.contents.filter((c) => c >= 200 && c < 300).map((c) => c - 200);
+        // A parked Sibyl is no guard: she steps aside (parked awake) and is met once the fight is won.
+        if (area.contents.includes(SIBYL_CODE)) next.lulled = [...(next.lulled ?? []), C_SIBYL];
         area.contents = area.contents.filter((c) => c < 100 || c >= 300); // keep display markers / sleeping
         return { state: next, events: startFight(next, 0) };
       }
@@ -1663,9 +1730,16 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         case 1: next.curses += 1; break; // a Curse
         case 2: // a Spectre appears and attacks (one round)
           next.strangers.push(9);
-          next.fight = { surprise: -1, round: 1, focus: next.strangers.length - 1 };
-          next.phase = "fight";
-          events.push({ type: "fightStarted", surprise: -1 });
+          // Like every other Spectre arrival (`resolveAreaLoop`, `resolveExtraDraw`): a held Eye of God destroys it
+          // on sight and the Talisman drives it off on level 4+ — before it can fight. (Bug DOFO: the chest used to
+          // conjure its Spectre straight into a fight, past both.)
+          events.push(...annihilateWithEye(next));
+          events.push(...wardOffSpectres(next));
+          if (next.strangers.includes(9)) {
+            next.fight = { surprise: -1, round: 1, focus: next.strangers.length - 1 };
+            next.phase = "fight";
+            events.push({ type: "fightStarted", surprise: -1 });
+          }
           break;
         case 3: break; // Sand
         case 4: next.bonusScore += 20; break; // Silver
@@ -1801,9 +1875,12 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // Variant gating (SC-Test-6): a kit-only creature/treasure/hazard id is invalid content for
       // a kit-off game — an id is kit-only iff it falls beyond the base table's own length, which
       // stays correct even if a future kit expansion changes the counts.
+      // The Sibyl (id 21, SC-SIB-1) sits beyond the base table too but belongs to her OWN variant, not the
+      // kit's: she is valid exactly when `variants.sibyl` is on, whether or not the kit is.
+      if (action.strangers.includes(C_SIBYL) && !state.variants?.sibyl) return { state, events: [{ type: "blocked" }] };
       if (!state.variants?.extensionKit) {
         const kitOnly =
-          action.strangers.some((id) => id >= BASE_CREATURES.length) ||
+          action.strangers.some((id) => id >= BASE_CREATURES.length && id !== C_SIBYL) ||
           action.treasures.some((id) => id >= BASE_TREASURES.length) ||
           action.hazards.some((id) => id >= HAZARD_NAMES.length);
         if (kitOnly) return { state, events: [{ type: "blocked" }] };

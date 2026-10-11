@@ -377,6 +377,14 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "apprenticeStaysBehind":
         out.push({ text: "The Apprentice melts back into the dark.", tone: "neutral" });
         break;
+      case "sibylJoins":
+        out.push({ text: "The Sibyl takes your side. She will not leave the cave.", tone: "good" });
+        break;
+      case "sibylDeclines":
+        out.push({ text: "The Sibyl watches you with calm indifference, and stays where she is.", tone: "neutral" });
+        break;
+      case "sibylExamined":
+        break; // the look is its own feedback (the fading card, SibylLook) — no toast on every look
       case "demonSpawned":
         out.push({ text: "Something vast and wrong now waits on your back-trail.", tone: "bad" });
         break;
