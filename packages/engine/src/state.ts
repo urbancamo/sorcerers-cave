@@ -260,6 +260,12 @@ export interface GameState {
   // standing trap the party walked back into) rather than drew fresh. Set by `enterChamber`, read inside
   // `applyHazards`, and deleted there — it can survive a Medusa pause but never an action boundary.
   knownTraps?: number;
+  // `variants.trapRules`: the party's last trap fall was DELIBERATE — the Dwarf's player chose `fallThroughTrap`,
+  // or the party walked into a chamber it knew held a trap (the trap was reloaded, not drawn on that entry).
+  // A deliberate arrival counts as a new route (even into a visited chamber) and earns surprise, and into a
+  // retreated-from chamber it is the party that gains it. Set right after the fall, cleared (`delete`, never
+  // `= false`, SC-EXT-1) by every other relocation and by the next normal move; absent when the flag is off.
+  deliberateFall?: boolean;
   // Extension kit (SC-EXT-9): the turn number `withdraw` is blocked for — set by a Well draw or a
   // Bell Rope 4-6 roll (design US-03/US-07), alongside `fellThroughTrap` on the same legality check.
   // `turn` only advances on `move`, so this self-invalidates once the party moves on — no explicit

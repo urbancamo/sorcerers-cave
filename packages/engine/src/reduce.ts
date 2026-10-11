@@ -300,7 +300,7 @@ function medusaLooms(state: GameState): boolean {
  *  fresh entry, yet a dragon it just drew is still genuinely new information the player hasn't seen
  *  (`resolveExtraDraw` passes `true` explicitly for that case). */
 function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[], announceLull = freshEntry): boolean {
-  const { events: hzEvents, fell, trapChoice } = applyHazards(state);
+  const { events: hzEvents, fell, trapChoice, knownTrap } = applyHazards(state);
   events.push(...hzEvents);
   // A hazard may incapacitate the whole party (Medusa petrifies everyone, or Ghouls slay them) —
   // with no one left able to act, the expedition ends.
@@ -316,6 +316,7 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
     // to its contents). Clearing the working set first stops them leaking onto the tile fallen into.
     persistAndExplore(state);
     relocateDown(state);
+    if (knownTrap) state.deliberateFall = true; // `trapRules`: walking into a known trap is a deliberate fall
     events.push({ type: "trapSprung", level: state.level });
     events.push({ type: "moved", area: state.partyArea, level: state.level });
     return true;
@@ -366,11 +367,12 @@ function settleChamber(state: GameState, freshEntry: boolean, events: GameEvent[
   if (state.strangers.length > 0) {
     if (state.hostileAreas?.includes(state.partyArea)) {
       // The party retreated from these strangers before — they attack on sight (with surprise). §Retreat
-      events.push(...startFight(state, -1));
+      // Unless the party came back by a trap on purpose (`trapRules`): then it is the party that has surprise.
+      events.push(...startFight(state, state.deliberateFall === true ? 1 : -1));
     } else {
       state.phase = "encounter";
       // Surprise if attacking immediately on a fresh entry — never after a trap fall (§Surprise).
-      state.surpriseReady = freshEntry && !state.fellThroughTrap;
+      state.surpriseReady = freshEntry && (!state.fellThroughTrap || state.deliberateFall === true);
     }
   } else if (state.treasures.length > 0) {
     state.phase = "pickup";
@@ -407,6 +409,7 @@ function resumeFromTrapPause(state: GameState, fall: boolean): GameEvent[] {
   if (fall) {
     persistAndExplore(state);
     relocateDown(state);
+    state.deliberateFall = true; // the player chose to fall: the arrival earns surprise
     events.push({ type: "trapSprung", level: state.level });
     events.push({ type: "moved", area: state.partyArea, level: state.level });
     events.push(...resolveAreaLoop(state));
@@ -421,6 +424,7 @@ function resumeFromTrapPause(state: GameState, fall: boolean): GameEvent[] {
 /** What the Dead End rule's Entry Dry Run runs on a laid card: the same steps a real move takes after `tryMove`. */
 function enterForDryRun(state: GameState): void {
   state.fellThroughTrap = false;
+  delete state.deliberateFall;
   delete state.subLocation;
   resolveArea(state);
 }
@@ -513,7 +517,9 @@ function resolveAreaLoop(state: GameState): GameEvent[] {
       state.phase = "explore";
       return events;
     }
-    const freshEntry = !state.areas[state.partyArea]!.visited; // first visit by this (unused) doorway → eligible for surprise
+    // First visit by this (unused) doorway → eligible for surprise. A deliberate trap arrival (`trapRules`) is a
+    // new route in its own right, so it qualifies even into a chamber the party has already visited.
+    const freshEntry = !state.areas[state.partyArea]!.visited || state.deliberateFall === true;
     events.push(...enterChamber(state));
     events.push(...wakeGalleryStatues(state)); // Staff-Wizard cracks every Gallery statue awake (SC-EXT-11)
     events.push(...annihilateWithEye(state)); // the Eye destroys Spectres on sight (§ Eye of God)
@@ -609,6 +615,7 @@ function relocateDown(state: GameState): void {
   state.partyArea = idx;
   state.level = level;
   state.fellThroughTrap = true; // one-way: prev is the (unreachable) level above — no withdraw/retreat
+  delete state.deliberateFall; // every relocation starts accidental; the trap callers mark a deliberate one after
   delete state.subLocation; // Precise Locations (§10.5): a real position change invalidates any jump override
 }
 
@@ -635,6 +642,7 @@ function carpetMove(state: GameState, dir: number): void {
   state.partyArea = idx;
   state.level = targetLevel;
   state.fellThroughTrap = false; // carpet links both ways
+  delete state.deliberateFall;
   delete state.subLocation; // Precise Locations (§10.5): a real position change invalidates any jump override
 }
 
@@ -746,6 +754,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       }
       const next = { ...res.state, turn: res.state.turn + 1 };
       next.fellThroughTrap = false; // a normal move reaches a reachable area (resolveArea re-sets it if a trap fires)
+      delete next.deliberateFall;
       delete next.subLocation; // Precise Locations (§10.5): a real move invalidates any jump override
       delete next.testAllDiceRoll; // Next Roll Selector (SC-Test-10): "until end of turn" ends here
       const events: GameEvent[] = [...swapEvents];
@@ -1331,6 +1340,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       next.partyArea = action.area;
       next.level = unpackCoord(to.coord).level;
       next.fellThroughTrap = true; // magic leaves no way back: no withdrawing from the landing
+      delete next.deliberateFall;
       delete next.subLocation;
       const events: GameEvent[] = [
         { type: "sorcererSpared" },

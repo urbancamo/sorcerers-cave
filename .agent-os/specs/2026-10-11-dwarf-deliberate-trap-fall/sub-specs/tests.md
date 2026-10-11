@@ -29,7 +29,7 @@ This is the tests coverage details for the spec detailed in @.agent-os/specs/202
 - Deliberate fall into a previously visited chamber: attack gets +1 (new route).
 - Knowing re-entry (reloaded trap) by a party with no Dwarf: falls and attack gets +1.
 - Trap drawn on the current entry: the fall gains no surprise.
-- Two-trap fall: no surprise.
+- Two traps drawn on this entry (the Dwarf cannot avoid them): no surprise. Two standing traps entered knowingly: a deliberate fall, with surprise.
 - Retreated-from chamber below plus deliberate fall: the fight starts immediately with the party's +1, not the strangers'.
 - Chasm descent and Crypt trap: unchanged (no new surprise).
 - `deliberateFall` is `delete`d on the next normal move and absent from a flag-off state.

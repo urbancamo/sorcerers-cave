@@ -23,13 +23,13 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 2.5 Offer the two actions in `legalActions` (`selectors.ts`)
   - [x] 2.6 Verify all tests pass
 
-- [ ] 3. Deliberate fall and surprise
-  - [ ] 3.1 Write tests: Dwarf-chosen fall and knowing re-entry gain +1, including into a visited chamber; fresh-draw and two-trap falls gain none; retreated chamber starts an immediate fight with the party's +1; Chasm and Crypt unchanged; `deliberateFall` is deleted on the next normal move and absent when the flag is off
-  - [ ] 3.2 Add `deliberateFall?` (`state.ts`); set it on `fallThroughTrap` and on a forced fall from a reloaded trap; clear with `delete` beside every `fellThroughTrap` reset
-  - [ ] 3.3 Treat a deliberate arrival as a fresh entry in `resolveAreaLoop`; change the `surpriseReady` rule in `finishChamber`
-  - [ ] 3.4 Start the hostile-area fight with party surprise when `deliberateFall` is set (`reduce.ts:351`)
-  - [ ] 3.5 Update the existing tests that assert a trap fall never grants surprise so they cover accidental falls only; add a flag-on golden replay
-  - [ ] 3.6 Verify all tests pass
+- [x] 3. Deliberate fall and surprise
+  - [x] 3.1 Write tests: Dwarf-chosen fall and knowing re-entry gain +1, including into a visited chamber; fresh-draw and two-trap falls gain none; retreated chamber starts an immediate fight with the party's +1; Chasm and Crypt unchanged; `deliberateFall` is deleted on the next normal move and absent when the flag is off
+  - [x] 3.2 Add `deliberateFall?` (`state.ts`); set it on `fallThroughTrap` and on a forced fall from a reloaded trap; clear with `delete` beside every `fellThroughTrap` reset
+  - [x] 3.3 Treat a deliberate arrival as a fresh entry in `resolveAreaLoop`; change the `surpriseReady` rule in `finishChamber`
+  - [x] 3.4 Start the hostile-area fight with party surprise when `deliberateFall` is set (`reduce.ts:351`)
+  - [x] 3.5 Update the existing tests that assert a trap fall never grants surprise so they cover accidental falls only; add a flag-on golden replay
+  - [x] 3.6 Verify all tests pass
 
 - [ ] 4. Guide lost
   - [ ] 4.1 Write tests: Dwarf alive leaves normally; Dwarf killed then `move` (any direction, including a stair), `withdraw` and `retreat` each fall instead; retreat still leaves the chamber hostile; no tile placed and no dead end on the move; fall is accidental (no `deliberateFall`, no surprise); petrified, deserted and vanished Dwarf behave the same; no standing trap or flag off is unchanged; carpet, teleport and Chasm unaffected

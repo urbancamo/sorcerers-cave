@@ -46,7 +46,7 @@ export function hasStaffWizard(state: GameState): boolean {
 }
 
 /** Resolve every hazard in the working set, in priority order (spec §7.2). */
-export function applyHazards(state: GameState): { events: GameEvent[]; fell: boolean; trapChoice: boolean } {
+export function applyHazards(state: GameState): { events: GameEvent[]; fell: boolean; trapChoice: boolean; knownTrap: boolean } {
   const events: GameEvent[] = [];
   let fell = false;
   // `trapRules`: a Dwarf-guided party meeting exactly one trap does not auto-avoid it — the caller pauses for
@@ -380,6 +380,8 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
     }
   }
   state.hazards = [];
+  // A trap that was reloaded (not drawn) on this entry was KNOWN to the party: falling to it is deliberate.
+  const knownTrap = (state.knownTraps ?? 0) > 0;
   delete state.knownTraps; // per-entry scratch from `enterChamber`; never outlives the hazard pass
-  return { events, fell, trapChoice };
+  return { events, fell, trapChoice, knownTrap };
 }
