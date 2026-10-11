@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import type { AssetManifest } from "@sorcerers-cave/assets";
 import { newGame, packCoord, type GameState, type PlacedArea } from "@sorcerers-cave/engine";
 import { parseManifest, type TileArt, type CardArt } from "../data/manifest";
-import { projectArea, encodeWorkingSet, areaKey, type ArtTables } from "./projection";
+import { projectArea, encodeWorkingSet, areaKey, tileForCard, type ArtTables } from "./projection";
 
 let art: ArtTables;
 beforeAll(() => {
@@ -202,5 +202,19 @@ describe("extension kit specials (Part 2 US-02..07)", () => {
 describe("areaKey", () => {
   it("keys by level,col,row", () => {
     expect(areaKey(2, 51, 49)).toBe("2,51,49");
+  });
+});
+
+describe("tileForCard (the Sibyl's look shows the tile a card is)", () => {
+  it("finds the art for a plain tunnel by its exits", () => {
+    const t = tileForCard(5, art.tiles); // N + S
+    expect(t).not.toBeNull();
+    expect(t!.exits).toBe("NS");
+    expect(t!.type).toBe("tunnel");
+  });
+
+  it("finds a special's art, and returns null for a card with no art", () => {
+    expect(tileForCard((3 << 7) | 31, art.tiles)?.special).toBe("viper-pit"); // Viper Pit, NESW chamber
+    expect(tileForCard(0, art.tiles)).toBeNull(); // no exits at all
   });
 });

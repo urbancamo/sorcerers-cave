@@ -500,8 +500,7 @@ describe("Sibyl notices (SC-SIB-5/8)", () => {
     expect(eventNotices([{ type: "sibylDeclines" }])).toEqual([
       { text: "The Sibyl watches you with calm indifference, and stays where she is.", tone: "neutral" },
     ]);
-    expect(eventNotices([{ type: "sibylExamined" }])).toEqual([
-      { text: "The Sibyl shows you what lies hidden.", tone: "good" },
-    ]);
+    // The look is its own feedback (the fading card, SibylLook): no repeating toast on every look.
+    expect(eventNotices([{ type: "sibylExamined" }])).toEqual([]);
   });
 });

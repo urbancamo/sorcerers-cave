@@ -384,8 +384,7 @@ export function eventNotices(events: GameEvent[]): Notice[] {
         out.push({ text: "The Sibyl watches you with calm indifference, and stays where she is.", tone: "neutral" });
         break;
       case "sibylExamined":
-        out.push({ text: "The Sibyl shows you what lies hidden.", tone: "good" });
-        break;
+        break; // the look is its own feedback (the fading card, SibylLook) — no toast on every look
       case "demonSpawned":
         out.push({ text: "Something vast and wrong now waits on your back-trail.", tone: "bad" });
         break;
