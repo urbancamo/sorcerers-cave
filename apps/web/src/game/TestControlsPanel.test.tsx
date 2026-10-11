@@ -143,7 +143,7 @@ describe("TestControlsPanel", () => {
     const specialSelect = screen.getByLabelText(/next area — special/i);
     expect(specialSelect.querySelector(`option[value="${SPECIAL_WHIRLPOOL}"]`)).not.toBeNull();
     const creatureSelect = screen.getByLabelText(/add a creature/i);
-    expect(creatureSelect.querySelectorAll("option")).toHaveLength(ALL_CREATURES.length + 1);
+    expect(creatureSelect.querySelectorAll("option")).toHaveLength(ALL_CREATURES.length); // every creature but the Sibyl (her own variant), plus the placeholder
     const treasureSelect = screen.getByLabelText(/add a treasure/i);
     expect(treasureSelect.querySelectorAll("option")).toHaveLength(ALL_TREASURES.length + 1);
     const hazardSelect = screen.getByLabelText(/add a hazard/i);
@@ -342,5 +342,19 @@ describe("TestControlsPanel", () => {
     fireEvent.pointerDown(minBtn, { clientX: 100, clientY: 100, pointerId: 1 });
     fireEvent.pointerMove(handle, { clientX: 150, clientY: 130, pointerId: 1 });
     expect(panel.style.left).toBe(""); // never armed — the button's pointerdown never reached startDrag
+  });
+});
+
+describe("TestControlsPanel — the Sibyl (SC-SIB-1)", () => {
+  it("offers the Sibyl as a scripted stranger only when the Sibyl variant is on", () => {
+    const creatureNames = (state: GameState) => {
+      const { unmount } = render(<TestControlsPanel state={state} dispatch={() => {}} />);
+      const names = Array.from((screen.getByLabelText("Add a creature") as HTMLSelectElement).options).map((o) => o.textContent);
+      unmount();
+      return names;
+    };
+    expect(creatureNames(newGame(1, [0], { sibyl: true }, true))).toContain("Sibyl");
+    expect(creatureNames(testState())).not.toContain("Sibyl");
+    expect(creatureNames(kitOnState())).not.toContain("Sibyl"); // the kit alone does not bring her
   });
 });

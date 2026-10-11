@@ -1,0 +1,56 @@
+import { useState } from "react";
+import { decodeArea, unpackCoord, type GameAction, type GameState } from "@sorcerers-cave/engine";
+
+type Look = Extract<GameAction, { type: "examineArea" }>;
+
+const SPECIAL_NAME: Record<number, string> = {
+  1: "Gateway", 2: "Deep Pool", 3: "Viper Pit", 4: "Tomb", 5: "Great Hall", 6: "Chasm",
+  7: "Bell Rope", 8: "Lair", 9: "Whirlpool", 10: "Gallery", 11: "Well",
+};
+
+/** A tile card as one readable line: its kind (or special) and the ways out, e.g. "Tunnel — north, south". */
+export function describeTile(card: number): string {
+  const d = decodeArea(card);
+  const ways = [d.n && "north", d.e && "east", d.s && "south", d.w && "west", d.stairUp && "stairs up", d.stairDown && "stairs down"]
+    .filter((w): w is string => typeof w === "string");
+  const kind = SPECIAL_NAME[d.special] ?? (d.chamber ? "Chamber" : "Tunnel");
+  return `${kind} — ${ways.length ? ways.join(", ") : "no exits"}`;
+}
+
+/** The Sibyl's free look (SC-SIB-8): the top of the large pack, or any face-down tile on the map. The
+ *  card is read from `state` here, in this client only — the action's event carries no card content, so
+ *  in multiplayer rivals learn only that this seat consulted her. The readout is local UI state. */
+export function SibylLook({ state, actions, dispatch }: { state: GameState; actions: Look[]; dispatch: (a: GameAction) => void }) {
+  const [seen, setSeen] = useState<string | null>(null);
+  if (actions.length === 0) return null;
+  const pack = actions.find((a) => a.area === undefined);
+  const tiles = actions.filter((a) => a.area !== undefined);
+
+  const lookPack = () => {
+    if (!pack) return;
+    dispatch(pack);
+    setSeen(`Top of the pack: ${describeTile(state.largePack[state.largeIdx]!)}`);
+  };
+  const lookTile = (value: string) => {
+    const act = tiles.find((a) => String(a.area) === value);
+    if (!act) return;
+    dispatch(act);
+    setSeen(`Tile: ${describeTile(state.areas[act.area!]!.card)}`);
+  };
+
+  return (
+    <div className="scv-enc-assign">
+      <span className="scv-enc-row-nm">The Sibyl</span>
+      {pack && <button className="scv-enc-btn" onClick={lookPack}>Look at the top of the pack</button>}
+      {tiles.length > 0 && (
+        <select className="scv-enc-select" aria-label="Look at a face-down tile" value="" onChange={(e) => lookTile(e.target.value)}>
+          <option value="">Face-down tile — choose…</option>
+          {tiles.map((a, k) => (
+            <option key={a.area} value={a.area}>{`Level ${unpackCoord(state.areas[a.area!]!.coord).level} tile ${k + 1}`}</option>
+          ))}
+        </select>
+      )}
+      {seen && <p className="scv-enc-line" data-testid="sibyl-readout">{seen}</p>}
+    </div>
+  );
+}

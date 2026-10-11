@@ -84,6 +84,12 @@ export function PartyPanel({
           <button className="scv-pp-close" onClick={onClose} aria-label="close">×</button>
         </div>
 
+        {state.hasSibyl && (
+          <p className="scv-muted" data-testid="pp-sibyl">
+            The Sibyl travels with you — she cannot fight or be harmed, and will not leave the cave.
+          </p>
+        )}
+
         {sel && selTid !== undefined && canManage && (
           <div className="scv-pp-bar">
             <span>Move <b>{ALL_TREASURES[selTid]?.name}</b> to a member, or</span>
