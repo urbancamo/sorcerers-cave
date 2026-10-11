@@ -42,4 +42,5 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 5.2 Render the modal `TrapChoice` popup from `GameScreen.tsx` (not in the EncounterPanel; cannot be dismissed without choosing, and held back while dice or notices are showing)
   - [x] 5.3 Add `eventNotices.ts` and `gameLog.ts` entries (`TRP AVD`, `TRP FAL`, `TRP LOM`; `trapSprung` gains `deliberate?` and `guideLost?`; action codes `TAV`/`TFL`)
   - [x] 5.4 Update `docs/specs/engine-spec.md` (SC-4-14, SC-4-16, SC-7.1-11, SC-7.2-9, SC-8.1-1, SC-9.2-2, new rows incl. guide lost, Part II, Appendices A and C) and the Expanded Consolidated Rules
-  - [ ] 5.5 Run the whole test suite and `tsc`, then check the popup and the guide-lost fall in the browser with Test Mode
+  - [ ] 5.5 Run the whole test suite and `tsc` (done: engine 1159, web 706, both `tsc` clean), then check the popup and the guide-lost fall in the browser with Test Mode
+    ⚠️ Browser check pending: the Claude in Chrome extension was not connected. It needs `npx convex dev --once` (the engine is bundled into the Convex functions) and `TRAP_RULES_ENABLED=1` on the shared backend, removed again afterwards.
