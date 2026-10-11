@@ -63,6 +63,27 @@ describe("actionLabel", () => {
   });
 });
 
+describe("standing traps (trapRules)", () => {
+  it("labels the Dwarf's two choices", () => {
+    expect(actionLabel({ type: "avoidTrap" })).toMatch(/guided past/i);
+    expect(actionLabel({ type: "fallThroughTrap" })).toMatch(/fall through/i);
+  });
+
+  it("describes the pause and the three kinds of fall", () => {
+    expect(describeEvent({ type: "trapLooms" })).toMatch(/trap looms/i);
+    expect(describeEvent({ type: "trapSprung", level: 2 })).toBe("trap sprung — fell to level 2");
+    expect(describeEvent({ type: "trapSprung", level: 2, deliberate: true })).toMatch(/on purpose/i);
+    expect(describeEvent({ type: "trapSprung", level: 2, guideLost: true })).toMatch(/dwarf.*gone|guide.*lost/i);
+  });
+
+  it("encodes the pause and the falls for the printer report", () => {
+    expect(eventCode({ type: "trapLooms" })).toBe("TRP LOM");
+    expect(eventCode({ type: "trapSprung", level: 2 })).toBe("TRP L2");
+    expect(eventCode({ type: "trapSprung", level: 2, deliberate: true })).toBe("TRP L2 DEL");
+    expect(eventCode({ type: "trapSprung", level: 2, guideLost: true })).toBe("TRP L2 LST");
+  });
+});
+
 describe("describeEvent", () => {
   it("describes mapped events and falls back to the raw type for anything unmapped", () => {
     expect(describeEvent({ type: "moved", area: 1, level: 1 })).toMatch(/area 1 \(level 1\)/);

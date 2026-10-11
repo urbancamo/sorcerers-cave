@@ -99,7 +99,7 @@ export type GameEvent =
   | { type: "viperPit"; rolls: { creatureId: number; roll: number; died: boolean }[] } // a d6 per member crossing
   | { type: "eyeForsaken" } // the Eye of God was dropped or handed off — a curse falls on the party
   | { type: "petrifiedOut" } // Medusa's gaze turned the WHOLE party to stone — the game ends
-  | { type: "trapSprung"; level: number; guideLost?: boolean } // party fell through a trap to `level` (no climb back); `guideLost` (`trapRules`): the Dwarf was gone, so the trap took the party as it tried to leave
+  | { type: "trapSprung"; level: number; guideLost?: boolean; deliberate?: boolean } // party fell through a trap to `level` (no climb back); `guideLost` (`trapRules`): the Dwarf was gone, so the trap took the party as it tried to leave; `deliberate`: the fall was chosen, or the party walked into a known trap (SC-7.2-19)
   | { type: "trapAvoided" } // a dwarf guided the party safely past a trap
   | { type: "trapLooms" } // `trapRules`: a Dwarf-guided party meets a trap — play pauses for the Dwarf's choice
   | { type: "memberDied"; creatureId: number }

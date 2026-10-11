@@ -58,7 +58,7 @@ Rule text: "If a party guided by a dwarf becomes involved in a fight in a chambe
 
 ### UI and presentation
 
-- Web (`apps/web/src/game/EncounterPanel.tsx`): add `"trap"` to `ACTIVE` (line 14) and render a popup, in the manner of the Medusa pause block (line 180), with two plain buttons labelled "Guided past the trap" and "Fall through the trap". The popup is modal for the duration of the phase and cannot be dismissed without choosing.
+- Web: a new `TrapChoice` modal (`apps/web/src/game/TrapChoice.tsx`), modelled on `SorcererTerms` and mounted from `GameScreen.tsx` when `phase === "trap"` and no dice, celebration or notice is showing. Two buttons, "Guided past the trap" and "Fall through the trap", dispatch `avoidTrap` / `fallThroughTrap`; it cannot be dismissed without choosing. (The EncounterPanel is untouched: a modal is clearer than an inline row for a decision that blocks all play.)
 - `eventNotices.ts`: notices for `trapLooms`, for a deliberate fall and for a guide-lost fall (reuse `trapSprung`, adding `deliberate?` and `guideLost?` to the event; the guide-lost notice says the Dwarf's guidance is gone and the trap takes the party as they try to leave). `gameLog.ts`: action text and mnemonics for `avoidTrap` / `fallThroughTrap` / `trapLooms` (e.g. `TRP AVD`, `TRP FAL`, `TRP LOM`).
 - Test Mode panel: no change required.
 

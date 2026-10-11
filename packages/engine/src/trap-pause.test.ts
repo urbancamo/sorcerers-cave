@@ -53,12 +53,12 @@ describe("trap pause — opening", () => {
   it("two traps: no pause, the party falls", () => {
     const { state, events } = enter(enteringB([TRAP, TRAP], [member(DWARF)]));
     expect(state.phase).not.toBe("trap");
-    expect(events).toContainEqual({ type: "trapSprung", level: 2 });
+    expect(events).toContainEqual({ type: "trapSprung", level: 2, deliberate: true });
   });
 
   it("no Dwarf: no pause, the party falls", () => {
     const { events } = enter(enteringB([TRAP], [member(MAN)]));
-    expect(events).toContainEqual({ type: "trapSprung", level: 2 });
+    expect(events).toContainEqual({ type: "trapSprung", level: 2, deliberate: true });
   });
 });
 
@@ -96,7 +96,7 @@ describe("fallThroughTrap", () => {
   it("drops the party one level, leaves strangers behind and keeps the trap standing", () => {
     const paused = enter(enteringB([TRAP, DRAGON_STRANGER], [member(DWARF)])).state;
     const { state, events } = reduce(paused, { type: "fallThroughTrap" });
-    expect(events).toContainEqual({ type: "trapSprung", level: 2 });
+    expect(events).toContainEqual({ type: "trapSprung", level: 2, deliberate: true });
     expect(state.trapPause).toBeUndefined();
     expect(state.level).toBe(2);
     expect(state.fellThroughTrap).toBe(true);
@@ -159,7 +159,7 @@ describe("Well/Bell extra draw (SC-4-16)", () => {
   it("choosing to fall from the extra draw drops the party", () => {
     const paused = reduce(atWell(), { type: "drawFromWell" }).state;
     const { state, events } = reduce(paused, { type: "fallThroughTrap" });
-    expect(events).toContainEqual({ type: "trapSprung", level: 2 });
+    expect(events).toContainEqual({ type: "trapSprung", level: 2, deliberate: true });
     expect(state.level).toBe(2);
   });
 });

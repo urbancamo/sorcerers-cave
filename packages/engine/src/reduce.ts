@@ -317,7 +317,7 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
     persistAndExplore(state);
     relocateDown(state);
     if (knownTrap) state.deliberateFall = true; // `trapRules`: walking into a known trap is a deliberate fall
-    events.push({ type: "trapSprung", level: state.level });
+    events.push(knownTrap ? { type: "trapSprung", level: state.level, deliberate: true } : { type: "trapSprung", level: state.level });
     events.push({ type: "moved", area: state.partyArea, level: state.level });
     return true;
   }
@@ -410,7 +410,7 @@ function resumeFromTrapPause(state: GameState, fall: boolean): GameEvent[] {
     persistAndExplore(state);
     relocateDown(state);
     state.deliberateFall = true; // the player chose to fall: the arrival earns surprise
-    events.push({ type: "trapSprung", level: state.level });
+    events.push({ type: "trapSprung", level: state.level, deliberate: true });
     events.push({ type: "moved", area: state.partyArea, level: state.level });
     events.push(...resolveAreaLoop(state));
     return events;

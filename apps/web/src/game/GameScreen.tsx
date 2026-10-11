@@ -11,6 +11,7 @@ import { PartySelect } from "./PartySelect";
 import { PartyPanel } from "./PartyPanel";
 import { GameOverScreen } from "./GameOverScreen";
 import { EncounterPanel } from "./EncounterPanel";
+import { TrapChoice } from "./TrapChoice";
 import { ExplorePanel } from "./ExplorePanel";
 import { FightSurface } from "./FightSurface";
 import { useManifestCards, useManifestArt } from "../data/useManifestCards";
@@ -266,6 +267,9 @@ export default function GameScreen() {
       {displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} onSave={handleSave} />}
       {displayState.testMode && <DeadEndSwapBadge />}
       {showParty && <PartyPanel state={displayState} dispatch={dispatch} onClose={() => setShowParty(false)} />}
+      {displayState.phase === "trap" && !holding && !overlay && !notices && (
+        <TrapChoice dispatch={dispatchWithRolls} />
+      )}
       {displayState.phase === "sorcerer" && !holding && !overlay && !notices && teleportTo === null && art && (
         <SorcererTerms state={displayState} art={art} dispatch={dispatchWithRolls} onTeleport={(area) => { caveApi.current?.snapOnArrival(); setTeleportTo(area); }} setPicker={pickDestination} />
       )}

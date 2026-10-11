@@ -103,7 +103,7 @@ describe("standing trap — flag on", () => {
       variants: ON, party: [member(MAN)], areas: [A, B], partyArea: 0, prev: 0, prev2: 0, level: 1, largePack: [5], largeIdx: 0,
     });
     const res = reduce(s, { type: "move", dir: 2 });
-    expect(res.events).toContainEqual({ type: "trapSprung", level: 2 });
+    expect(res.events).toContainEqual({ type: "trapSprung", level: 2, deliberate: true });
     expect(res.state.areas[1]!.contents.filter((c) => c === TRAP)).toHaveLength(1);
   });
 

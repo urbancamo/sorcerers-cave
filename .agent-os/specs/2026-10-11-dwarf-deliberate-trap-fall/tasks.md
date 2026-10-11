@@ -38,8 +38,8 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
   - [x] 4.4 Verify all tests pass
 
 - [ ] 5. Popup, presentation and docs
-  - [ ] 5.1 Write web tests: phase `trap` renders a popup with two buttons dispatching `avoidTrap` and `fallThroughTrap`; notices, log lines and mnemonics exist for the new events and actions, including the guide-lost notice
-  - [ ] 5.2 Add `"trap"` to `ACTIVE` in `EncounterPanel.tsx` and render the modal popup (cannot be dismissed without choosing)
-  - [ ] 5.3 Add `eventNotices.ts` and `gameLog.ts` entries (`TRP AVD`, `TRP FAL`, `TRP LOM`; `trapSprung` gains `deliberate?` and `guideLost?`)
-  - [ ] 5.4 Update `docs/specs/engine-spec.md` (SC-4-14, SC-4-16, SC-7.1-11, SC-7.2-9, SC-8.1-1, SC-9.2-2, new rows incl. guide lost, Part II, Appendices A and C) and the Expanded Consolidated Rules
+  - [x] 5.1 Write web tests: phase `trap` renders a popup with two buttons dispatching `avoidTrap` and `fallThroughTrap`; notices, log lines and mnemonics exist for the new events and actions, including the guide-lost notice
+  - [x] 5.2 Render the modal `TrapChoice` popup from `GameScreen.tsx` (not in the EncounterPanel; cannot be dismissed without choosing, and held back while dice or notices are showing)
+  - [x] 5.3 Add `eventNotices.ts` and `gameLog.ts` entries (`TRP AVD`, `TRP FAL`, `TRP LOM`; `trapSprung` gains `deliberate?` and `guideLost?`; action codes `TAV`/`TFL`)
+  - [x] 5.4 Update `docs/specs/engine-spec.md` (SC-4-14, SC-4-16, SC-7.1-11, SC-7.2-9, SC-8.1-1, SC-9.2-2, new rows incl. guide lost, Part II, Appendices A and C) and the Expanded Consolidated Rules
   - [ ] 5.5 Run the whole test suite and `tsc`, then check the popup and the guide-lost fall in the browser with Test Mode
