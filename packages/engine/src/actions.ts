@@ -272,6 +272,11 @@ export type GameEvent =
   // successful `exitCave` drops her from the scored party (`count`, normally one) rather than
   // let her escape with the rest.
   | { type: "apprenticeStaysBehind"; count: number }
+  // The Sibyl (variants.sibyl, SC-SIB-5): her one-time test. `sibylJoins` — she is friendly and now
+  // travels with the party (`state.hasSibyl`); `sibylDeclines` — she is indifferent and stays in the
+  // chamber, never to be tested again by this party.
+  | { type: "sibylJoins" }
+  | { type: "sibylDeclines" }
   // Extension kit (SC-EXT-21, design US-13/Resolved-6): a freshly-drawn Demon materializes into
   // `prev`'s contents instead of joining the chamber it was drawn in (`spawnDemon`, chamber.ts).
   | { type: "demonSpawned" }

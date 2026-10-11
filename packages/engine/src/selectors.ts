@@ -1,4 +1,5 @@
 import { decodeArea, decodeOpen, type DecodedArea } from "./decode";
+import { isGuardCode, sibylWaiting } from "./sibyl";
 import { DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, unpackCoord, packCoord } from "./coords";
 import { GS_PLAYING, AF_DESTROYED, AF_BELL_SPENT, type GameState } from "./state";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
@@ -176,8 +177,12 @@ export function legalActions(state: GameState): GameAction[] {
     // fall (SC-EXT-9, design US-03/US-07).
     const noWithdrawTurn = state.noWithdrawTurn === state.turn;
     const canWithdraw = !state.fellThroughTrap && !prevGone && !noWithdrawTurn;
-    const actions: GameAction[] = canWithdraw ? [{ type: "withdraw" }, { type: "attack" }] : [{ type: "attack" }];
-    if ((state.indiffStreak ?? 0) < 3) actions.push({ type: "test" });
+    // A lone, unmet Sibyl is no one to attack or surprise (SC-SIB-4): she is only tested, or left.
+    const sibylOnly = sibylWaiting(state);
+    const actions: GameAction[] = [];
+    if (canWithdraw) actions.push({ type: "withdraw" });
+    if (!sibylOnly) actions.push({ type: "attack" });
+    if (sibylOnly || (state.indiffStreak ?? 0) < 3) actions.push({ type: "test" });
     const dec = decodeOpen(state.areas[state.partyArea]!);
     // Rules §Encountering Strangers: the party may also simply leave by any doorway, forfeiting the
     // treasure — but only during the one-shot window a qualifying indifferent test just opened
@@ -278,7 +283,7 @@ export function legalActions(state: GameState): GameAction[] {
   // A permanently-indifferent chamber is traversed in the explore phase, but the party may still choose
   // to attack its guards (to win the treasure they guard) — offer it while they're parked on the tile.
   if (state.pacifiedAreas?.includes(state.partyArea) &&
-      state.areas[state.partyArea]!.contents.some((c) => c >= 100 && c < 200)) {
+      state.areas[state.partyArea]!.contents.some(isGuardCode)) {
     actions.push({ type: "attack" });
   }
   // Deep Pool/Viper Pit stationary reclaim (bug fix 2026-08-02): offer a live pickup for treasure

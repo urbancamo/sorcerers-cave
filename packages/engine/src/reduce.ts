@@ -11,6 +11,7 @@ import { takeTreasure, canCarry } from "./pickup";
 import { unpackCoord, packCoord, targetCoord, DIR_UP, DIR_DOWN } from "./coords";
 import type { GameAction, GameEvent } from "./actions";
 import { reactionRoll, forcedReactionRoll, findLeader } from "./reaction";
+import { C_SIBYL, SIBYL_CODE, isGuardCode, sibylWaiting } from "./sibyl";
 import { frontStrength } from "./combat";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import {
@@ -261,10 +262,34 @@ function rollReaction(next: GameState, leaderId?: number): { outcome: ReturnType
   return { outcome: r.outcome, roll: r.roll };
 }
 
+/** The Sibyl's one test (SC-SIB-4/5): the real strangers are dealt with and she is the only one left.
+ *  She is never hostile (her row), never counts toward the indifference streak or pacifies the area,
+ *  and is never retested — `sibylMet` is set whatever the outcome. Friendly: she travels with the party
+ *  (`hasSibyl`). Indifferent: she stays in the chamber (parked by the normal exit path). */
+function meetSibyl(state: GameState): { state: GameState; events: GameEvent[] } {
+  const next = structuredClone(state);
+  next.surpriseReady = false;
+  delete next.indiffLeaveOpen;
+  const { outcome, roll } = rollReaction(next, C_SIBYL);
+  const events: GameEvent[] = [{ type: "reaction", outcome, roll }];
+  next.sibylMet = true;
+  if (outcome === "friendly") {
+    next.lulled = (next.lulled ?? []).filter((id) => id !== C_SIBYL);
+    next.hasSibyl = true;
+    events.push({ type: "sibylJoins" });
+  } else {
+    events.push({ type: "sibylDeclines" });
+  }
+  if (next.treasures.length > 0) next.phase = "pickup"; // nothing guards it — she guards nothing
+  else persistAndExplore(next);
+  return { state: next, events };
+}
+
 /** The party has won: loot if there is any, else on its way. A turncoat Apprentice (the Sorcerer's death breaks
  *  her loyalty) is a stranger again, and the party must deal with her. */
 function afterFight(state: GameState, events: GameEvent[]): void {
   if (state.strangers.length > 0) events.push(...startFight(state, 0));
+  else if (sibylWaiting(state)) { state.phase = "encounter"; state.surpriseReady = false; } // she waits, standing aside (SC-SIB-4)
   else if (state.treasures.length > 0) state.phase = "pickup";
   else persistAndExplore(state);
 }
@@ -406,6 +431,9 @@ function settleChamber(state: GameState, freshEntry: boolean, events: GameEvent[
       // Surprise if attacking immediately on a fresh entry — never after a trap fall (§Surprise).
       state.surpriseReady = freshEntry && (!state.fellThroughTrap || state.deliberateFall === true);
     }
+  } else if (sibylWaiting(state)) {
+    state.phase = "encounter";
+    state.surpriseReady = false; // she is no threat — there is nothing to surprise
   } else if (state.treasures.length > 0) {
     state.phase = "pickup";
   } else {
@@ -1176,6 +1204,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
 
     case "test": {
       if (state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
+      if (sibylWaiting(state)) return meetSibyl(state);
       if ((state.indiffStreak ?? 0) >= 3) return { state, events: [{ type: "blocked" }] }; // permanently indifferent
       const next = structuredClone(state);
       next.surpriseReady = false; // approaching to test forfeits the chance of a surprise attack (§Surprise)
@@ -1218,7 +1247,10 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           persistAndExplore(next); // the party moves on, leaving the Unicorn (and guarded treasure) behind
         } else {
           next.strangers = [];
-          if (next.treasures.length > 0) next.phase = "pickup";
+          // The Sibyl is met only once the real strangers are dealt with (SC-SIB-4): if she is here,
+          // stay in the encounter so she can be tested next, ahead of any pickup.
+          if (sibylWaiting(next)) next.surpriseReady = false;
+          else if (next.treasures.length > 0) next.phase = "pickup";
           else persistAndExplore(next);
         }
       } else if (outcome === "indifferent") {
@@ -1253,11 +1285,13 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // phase) with the guards parked on the tile — un-park them (and the treasure they guard) into the
       // working set, then fight. No surprise: the chamber was already visited (§Surprise).
       if (state.phase === "explore" && state.pacifiedAreas?.includes(state.partyArea) &&
-          state.areas[state.partyArea]!.contents.some((c) => c >= 100 && c < 200)) {
+          state.areas[state.partyArea]!.contents.some(isGuardCode)) {
         const next = structuredClone(state);
         const area = next.areas[next.partyArea]!;
-        next.strangers = area.contents.filter((c) => c >= 100 && c < 200).map((c) => c - 100);
+        next.strangers = area.contents.filter(isGuardCode).map((c) => c - 100);
         next.treasures = area.contents.filter((c) => c >= 200 && c < 300).map((c) => c - 200);
+        // A parked Sibyl is no guard: she steps aside (parked awake) and is met once the fight is won.
+        if (area.contents.includes(SIBYL_CODE)) next.lulled = [...(next.lulled ?? []), C_SIBYL];
         area.contents = area.contents.filter((c) => c < 100 || c >= 300); // keep display markers / sleeping
         return { state: next, events: startFight(next, 0) };
       }
