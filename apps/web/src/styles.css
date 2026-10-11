@@ -493,6 +493,30 @@
   text-transform: uppercase;
   color: var(--stone-dim);
 }
+.scv-tc-row .scv-tc-dir {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+.scv-tc-row .scv-tc-dir legend {
+  float: left;
+  padding: 0;
+  margin-right: 4px;
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--stone-dim);
+}
+.scv-tc-row .scv-tc-dir label {
+  flex-direction: row;
+  align-items: center;
+  gap: 3px;
+}
 .scv-tc-row select {
   font-family: var(--ui);
   font-size: 12.5px;
