@@ -235,6 +235,7 @@ function splitCave(g: GameState): { cave: CaveState; rest: PartyCore } {
  */
 function turnEnds(action: MpAction, next: GameState): boolean {
   if (next.gs !== GS_PLAYING) return true;             // party left / wiped / quit
+  if (action.type === "examineArea") return false;     // the Sibyl's look is free — it never passes the turn (SC-SIB-8)
   if (next.phase === "explore") return true;           // back at rest
   if (next.phase === "fight" && !next.fight?.casualtyQueue?.length) {
     // one round fought → pass the turn (a planned resolveRound, or the choice that completes the round)

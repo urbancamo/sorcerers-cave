@@ -11,7 +11,7 @@ import { takeTreasure, canCarry } from "./pickup";
 import { unpackCoord, packCoord, targetCoord, DIR_UP, DIR_DOWN } from "./coords";
 import type { GameAction, GameEvent } from "./actions";
 import { reactionRoll, forcedReactionRoll, findLeader } from "./reaction";
-import { C_SIBYL, SIBYL_CODE, isGuardCode, sibylWaiting } from "./sibyl";
+import { C_SIBYL, SIBYL_CODE, examinableAreas, isGuardCode, sibylWaiting } from "./sibyl";
 import { frontStrength } from "./combat";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import {
@@ -773,6 +773,17 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         return { state: next, events };
       }
       return { state, events: [{ type: "blocked" }] };
+    }
+
+    case "examineArea": {
+      // The Sibyl's free look (SC-SIB-8): a pure read. It changes no state and returns the SAME state
+      // object, so it cannot disturb the cave, the packs or the dice.
+      if (state.phase !== "explore" || state.hasSibyl !== true) return { state, events: [{ type: "blocked" }] };
+      const lookable = action.area === undefined
+        ? state.largeIdx < state.largePack.length
+        : examinableAreas(state).includes(action.area);
+      if (!lookable) return { state, events: [{ type: "blocked" }] };
+      return { state, events: [{ type: "sibylExamined" }] };
     }
 
     case "move": {

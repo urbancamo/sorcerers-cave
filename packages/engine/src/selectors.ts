@@ -1,5 +1,5 @@
 import { decodeArea, decodeOpen, type DecodedArea } from "./decode";
-import { isGuardCode, sibylWaiting } from "./sibyl";
+import { examinableAreas, isGuardCode, sibylWaiting } from "./sibyl";
 import { DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, unpackCoord, packCoord } from "./coords";
 import { GS_PLAYING, AF_DESTROYED, AF_BELL_SPENT, type GameState } from "./state";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
@@ -297,6 +297,11 @@ export function legalActions(state: GameState): GameAction[] {
     const reclaimable = area.dropped?.length ? area.dropped : sunkItems;
     const eligible = dec.special === SPECIAL_DEEP_POOL ? giantCanRecover(state, reclaimable ?? []) : fluteLulls(state);
     if (reclaimable?.length && eligible) actions.push({ type: "reclaimTreasure" });
+  }
+  // The Sibyl's free look (SC-SIB-8): the top of the large pack, and every face-down tile on the map.
+  if (state.hasSibyl === true) {
+    if (state.largeIdx < state.largePack.length) actions.push({ type: "examineArea" });
+    for (const area of examinableAreas(state)) actions.push({ type: "examineArea", area });
   }
   actions.push(...artifactActions(state));
   return actions; // quitting is via the HUD Quit button, not an in-menu action
