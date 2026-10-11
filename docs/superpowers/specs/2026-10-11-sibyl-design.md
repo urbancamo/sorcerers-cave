@@ -8,6 +8,14 @@
 > - **Separate high-score tables per combination** of mode × extension kit × Sibyl (8 tables).
 > - Stats are **all zero** (fs 0, mp 0, carry 0, points 0).
 
+> **Amended during planning (2026-10-11).** Reading the engine changed four implementation choices; the
+> visible rules are unchanged. (1) She is a **party flag** (`hasSibyl`), not a `PartyMember`: about 30
+> call sites test `status === 0 || status === 1`, and a flag gives "neutral, invulnerable, never the only
+> member, immune to mutiny, not scored, stays behind on exit" by construction. (2) While in a chamber she
+> sits in the existing parked-awake slot **`state.lulled`**, which every leave-the-chamber path already
+> saves. (3) There is **no `FLAG_SIBYL`** creature flag. (4) The look is shown as a **text readout** of the
+> tile's exits and special, not tile art. Section 3 below is superseded by these points.
+
 ## Rules being implemented
 
 From the rulebook (`docs/specs/sorcerers-cave-rules.md:603`): the Sibyl is optional; she does not
