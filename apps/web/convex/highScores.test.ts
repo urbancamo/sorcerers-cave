@@ -251,3 +251,43 @@ test("save rejects a test-mode game", async () => {
   });
   await expect(as.mutation(api.highScores.save, { gameId, name: "Tester" })).rejects.toThrow();
 });
+
+// --- Sibyl (SC-SIB-9): a third leaderboard key, mode × extensionKit × sibyl ---------------------
+
+test("save records sibyl from the finished game's state.variants, and list splits on it", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const sibylId = await as.mutation(api.game.newGame, { seed: 1, picks: [0], variants: { sibyl: true } });
+  await as.mutation(api.game.applyAction, { id: sibylId, action: { type: "exitCave" } });
+  const scoreId = await as.mutation(api.highScores.save, { gameId: sibylId, name: "Seer" });
+  expect((await t.run((ctx) => ctx.db.get(scoreId)))?.sibyl).toBe(true);
+  const plainId = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+  await as.mutation(api.game.applyAction, { id: plainId, action: { type: "exitCave" } });
+  const plainScore = await as.mutation(api.highScores.save, { gameId: plainId, name: "Plain" });
+  expect((await t.run((ctx) => ctx.db.get(plainScore)))?.sibyl).toBeFalsy();
+
+  expect((await t.query(api.highScores.list, {})).map((r) => r.name)).toEqual(["Plain"]);
+  const sibylRows = await t.query(api.highScores.list, { sibyl: true });
+  expect(sibylRows.map((r) => r.name)).toEqual(["Seer"]);
+  expect(sibylRows[0]!.sibyl).toBe(true);
+});
+
+test("list keeps kit × sibyl combinations in separate tables (legacy rows read as false)", async () => {
+  const t = convexTest(schema, modules);
+  await t.run(async (ctx) => {
+    const base = { turn: 1, areas: [], party: [] };
+    const gameId = await ctx.db.insert("games", { state: { ...base, gs: GS_ESCAPED }, status: "finished", createdAt: 0, updatedAt: 0 });
+    const mk = (name: string, score: number, extra: Record<string, unknown> = {}, state?: unknown) =>
+      ctx.db.insert("highScores", { gameId, name, score, outcome: GS_ESCAPED, party: [], createdAt: 0, state: state ?? { ...base, gs: GS_ESCAPED }, ...extra });
+    await mk("Neither", 50);
+    await mk("KitOnly", 40, { extensionKit: true });
+    await mk("SibylOnly", 30, { sibyl: true });
+    await mk("Both", 20, { extensionKit: true, sibyl: true });
+    await mk("SibylByState", 10, {}, { ...base, gs: GS_ESCAPED, variants: { sibyl: true } }); // state-derived fallback
+  });
+  const names = async (args: { extensionKit?: boolean; sibyl?: boolean }) => (await t.query(api.highScores.list, args)).map((r) => r.name);
+  expect(await names({})).toEqual(["Neither"]);
+  expect(await names({ extensionKit: true })).toEqual(["KitOnly"]);
+  expect(await names({ sibyl: true })).toEqual(["SibylOnly", "SibylByState"]);
+  expect(await names({ extensionKit: true, sibyl: true })).toEqual(["Both"]);
+});

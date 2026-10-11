@@ -491,3 +491,17 @@ describe("deadEnd flavors (retreat vs plain move)", () => {
   });
 });
 
+
+describe("Sibyl notices (SC-SIB-5/8)", () => {
+  it("announces her joining, her indifference, and the look", () => {
+    expect(eventNotices([{ type: "sibylJoins" }])).toEqual([
+      { text: "The Sibyl takes your side. She will not leave the cave.", tone: "good" },
+    ]);
+    expect(eventNotices([{ type: "sibylDeclines" }])).toEqual([
+      { text: "The Sibyl watches you with calm indifference, and stays where she is.", tone: "neutral" },
+    ]);
+    expect(eventNotices([{ type: "sibylExamined" }])).toEqual([
+      { text: "The Sibyl shows you what lies hidden.", tone: "good" },
+    ]);
+  });
+});

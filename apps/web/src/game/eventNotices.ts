@@ -377,6 +377,15 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "apprenticeStaysBehind":
         out.push({ text: "The Apprentice melts back into the dark.", tone: "neutral" });
         break;
+      case "sibylJoins":
+        out.push({ text: "The Sibyl takes your side. She will not leave the cave.", tone: "good" });
+        break;
+      case "sibylDeclines":
+        out.push({ text: "The Sibyl watches you with calm indifference, and stays where she is.", tone: "neutral" });
+        break;
+      case "sibylExamined":
+        out.push({ text: "The Sibyl shows you what lies hidden.", tone: "good" });
+        break;
       case "demonSpawned":
         out.push({ text: "Something vast and wrong now waits on your back-trail.", tone: "bad" });
         break;

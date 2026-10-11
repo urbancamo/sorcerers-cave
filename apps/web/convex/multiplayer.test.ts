@@ -707,3 +707,41 @@ test("kit-off gameState draft.remaining stays base-only — no extensionKit key,
   expect(proj!.draft!.extensionKit).toBeUndefined();
   expect(Object.keys(proj!.draft!.remaining).map(Number).sort((a, b) => a - b)).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
 });
+
+// --- Sibyl (SC-SIB-8/9): variant plumbing and the look's argument shape ---------------------------
+
+test("setVariants persists sibyl and startGame deals her into the shared pack", async () => {
+  const t = convexTest(schema, modules);
+  const host = await asUser(t);
+  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
+  const p2 = await asUser(t);
+  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await host.mutation(api.multiplayer.setVariants, { gameId, variants: { sibyl: true } });
+  expect((await p2.query(api.multiplayer.lobby, { code }))!.variants).toEqual({ sibyl: true });
+  await host.mutation(api.multiplayer.startGame, { gameId });
+  const stored = await t.run(async (ctx) => (await ctx.db.get(gameId))!.state as MpGameState);
+  expect(stored.variants).toEqual({ sibyl: true });
+  expect(stored.cave.smallPack).toHaveLength(72);
+  expect(stored.cave.smallPack.filter((c) => c === 121)).toHaveLength(1);
+});
+
+test("act accepts examineArea (with and without an area), free of the turn", async () => {
+  const t = convexTest(schema, modules);
+  const { gameId, userBySeat } = await reachPlaying(t);
+  // Give the seat whose turn it is a Sibyl, directly in the stored state.
+  const seat = (await userBySeat[0]!.query(api.multiplayer.gameState, { gameId }))!.currentSeat!;
+  await t.run(async (ctx) => {
+    const game = await ctx.db.get(gameId);
+    const mp = game!.state as MpGameState;
+    mp.parties[seat]!.hasSibyl = true;
+    await ctx.db.patch(gameId, { state: mp });
+  });
+  let actor = userBySeat[0]!;
+  if ((await actor.query(api.multiplayer.gameState, { gameId }))!.youSeat !== seat) actor = userBySeat[1]!;
+  const look = await actor.mutation(api.multiplayer.act, { gameId, action: { type: "examineArea" } });
+  expect((look as { events: unknown[] }).events).toEqual([{ type: "sibylExamined" }]);
+  // `area` must pass the validator; the Gateway is face-up so the engine blocks it (not a validation error).
+  const forged = await actor.mutation(api.multiplayer.act, { gameId, action: { type: "examineArea", area: 0 } });
+  expect((forged as { events: unknown[] }).events).toEqual([{ type: "blocked" }]);
+  expect((await actor.query(api.multiplayer.gameState, { gameId }))!.currentSeat).toBe(seat); // turn not passed
+});
