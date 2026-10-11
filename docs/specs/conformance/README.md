@@ -44,7 +44,7 @@ END
 ```
 
 Checkpoint fields: `TRN` turn · `LVL` level · `ARA` partyArea index · `PH` phase
-(`EXP`=explore `MDS`=medusa `ENC`=encounter `FGT`=fight `PKP`=pickup `SOR`=sorcerer `END`=gameOver) · `GS` game state
+(`EXP`=explore `MDS`=medusa `TRP`=trap `ENC`=encounter `FGT`=fight `PKP`=pickup `SOR`=sorcerer `END`=gameOver) · `GS` game state
 (0 playing, 1 escaped, 2 dead, 3 quit) · `SEED` the LCG cursor (`state.seed`) ·
 `LARGEIDX`/`SMALLIDX` deck cursors. `EV` lists the emitted event types in order (`-` = none).
 `<list>` is comma-separated integers, `-` when empty. `AREA … CARD` is the area's OPEN doorways (`card` less any `deadDoors` a failed move closed, SC-6.1-10), so a closed doorway reads as absent. PARTY: `CID` creatureId, `ST` status
@@ -78,6 +78,8 @@ the moment the action is applied**. Directions: 1 N, 2 E, 3 S, 4 W, 5 up, 6 down
 | `FIGHT <match>[;<match>…]` | resolveRound; match = `<front>[+<front>][\|<backer>[+…]]><stranger>[+<stranger>]`; `FIGHT -` = the forced-Spectre-or-Demon empty plan (SC-9.4-6, SC-EXT-21) |
 | `DESCENDCHASM` | descendChasm — kit-only, Chasm tile (SC-EXT-5) |
 | `SPARESORCERER <area>` | spareSorcerer — only with `variants.sorcererTeleport`, `sorcerer` phase (SC-12-21) |
+| `AVOIDTRAP` | avoidTrap — only with `variants.trapRules`, `trap` phase: the Dwarf guides the party past the trap |
+| `FALLTRAP` | fallThroughTrap — only with `variants.trapRules`, `trap` phase: the party falls through the trap on purpose |
 | `SLAYSORCERER` | slaySorcerer — only with `variants.sorcererTeleport`, `sorcerer` phase (SC-12-21) |
 | `DRAWFROMWELL` | drawFromWell — kit-only, Well tile (SC-EXT-7) |
 | `PULLBELLROPE <mi>` | pullBellRope: living member `mi` pulls it — kit-only, Bell Rope tile (SC-EXT-8) |

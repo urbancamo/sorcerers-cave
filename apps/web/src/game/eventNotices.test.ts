@@ -88,6 +88,29 @@ describe("eventNotices exhaustiveness (base hardening)", () => {
   });
 });
 
+describe("eventNotices — standing traps (trapRules)", () => {
+  it("says why a party that lost its Dwarf fell as it tried to leave", () => {
+    const n = eventNotices([{ type: "trapSprung", level: 2, guideLost: true }]);
+    expect(n).toHaveLength(1);
+    expect(n[0]!.text).toMatch(/dwarf/i);
+    expect(n[0]!.tone).toBe("bad");
+  });
+
+  it("tells the player a deliberate fall gives surprise over any strangers below — without claiming there are some", () => {
+    const n = eventNotices([{ type: "trapSprung", level: 2, deliberate: true }]);
+    expect(n).toHaveLength(1);
+    expect(n[0]!.text).toMatch(/any strangers/i);
+    expect(n[0]!.text).toMatch(/surprise/i);
+    expect(n[0]!.text).not.toMatch(/the strangers below/i);
+    expect(n[0]!.tone).toBe("good");
+  });
+
+  it("is silent for the pause itself (the popup is the prompt) and for an ordinary fall", () => {
+    expect(eventNotices([{ type: "trapLooms" }])).toHaveLength(0);
+    expect(eventNotices([{ type: "trapSprung", level: 2 }])).toHaveLength(0);
+  });
+});
+
 describe("eventNotices", () => {
   it("produces no text notices for a Viper Pit crossing (its dice overlay shows the outcome)", () => {
     const events: GameEvent[] = [

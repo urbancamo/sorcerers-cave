@@ -170,22 +170,16 @@ The "against" case points to explicit wording, and to a reversal of the rules' o
   surprise, because it has fallen *deliberately*. No change to the rules is needed, and it is worth saying so in the
   rules.
 - **What is not validated:** the first part for deliberate falls, and the second part for accidental ones. As interpretations they are
-  unsupported; as house rules they are workable.
+  unsupported; they are rejected (see 4.5).
 
 **Verdict: the proposal is not a clarification of the original wording.** The best reading is that the existing test,
-*deliberate or not*, decides, with no regard to how often the trap has been used. If you still want the warning
-idea, record it openly as a **house rule**, not as a reading of the text.
+*deliberate or not*, decides, with no regard to how often the trap has been used. The warning
+idea was considered and rejected (see 4.5).
 
-### 4.5 If the house rule is wanted
+### 4.5 Ruling (11-OCT-2026)
 
-Suggested wording, kept as small as possible:
-
-> There is no advantage when the party has fallen down a trap, unless it has done so deliberately. A party that has
-> already entered the chamber below, and then withdraws, may later return to it by a trap deliberately and gain the
-> advantage. *(House rule: the first party ever to fall down a given trap never gains the advantage, because the fall
-> alerts the strangers below.)*
-
-The bracketed sentence is the only change from the original, and it should be flagged as such.
+Q2 is rejected. No code change, and no house rule is recorded. A party that retreated from a chamber and returns to
+it by deliberately triggering a trap gains the advantage of surprise, as the existing wording already provides.
 
 ## 5. Corners the wording does not settle
 
@@ -204,11 +198,10 @@ The bracketed sentence is the only change from the original, and it should be fl
 | | For | Against | Result |
 |---|---|---|---|
 | **Q1** Deliberate falls for dwarf parties | else the dwarf party is worse off than any other; "may ignore" is permissive; nothing forbids it | "ignore" means disregard; the dwarf only guides past; the Chasm shows how optional descent is worded | **Allow it** |
-| **Q2** First fall none, later falls surprise | coherent warning story; "another way" principle; re-entry after withdrawal is natural | reverses the "not used before" test; overrides the deliberateness test; contradicts the text twice; trap "continues in effect" | **Not a reading of the text.** The re-entry case is already covered. Keep it only as a labelled house rule. |
+| **Q2** First fall none, later falls surprise | coherent warning story; "another way" principle; re-entry after withdrawal is natural | reverses the "not used before" test; overrides the deliberateness test; contradicts the text twice; trap "continues in effect" | **Rejected (11-OCT-2026).** Not a reading of the text; no house rule recorded. The re-entry case is already covered. |
 
 **Confidence.** Q1 is a reasonably clear call. Q2 is a closer call, but the text-based case against the proposal is strong, and the part of it that matters in play (a party returning on purpose by a
-trap) is already allowed. If the intent is to forbid surprise on a first deliberate fall, that is a design choice for
-Peter, and it should be presented to him as a proposed change.
+trap) is already allowed. The ruling of 11-OCT-2026 is to leave the rules as written.
 
 ---
 
@@ -229,9 +222,10 @@ and the web UI were not examined beyond a text search.*
    a deliberate fall can gain surprise. `freshEntry` is `!area.visited` (`reduce.ts:449`), which would block the
    return-to-a-visited-chamber case, so a deliberate trap arrival must count as a new route even when the chamber has
    been visited. Accidental falls still gain none.
-4. **Retreated-from chambers (needs a ruling).** The `hostileAreas` branch (`reduce.ts:328`) starts the fight with
-   surprise to the strangers before item 3 is reached. A party that retreated from a chamber and returns by trap would
-   never get its surprise.
+4. **Retreated-from chambers (ruled 11-OCT-2026: the party gains surprise).** The `hostileAreas` branch
+   (`reduce.ts:328`) starts the fight with surprise to the strangers before item 3 is reached. A party that retreated
+   from a chamber and returns by deliberately triggering a trap must instead gain the surprise, so a deliberate trap
+   arrival has to take precedence over that branch.
 5. **No first-use rule.** Nothing to build. The trap keeps "continues in effect", with no "first fall" or "warning spent"
    state.
 6. **Unchanged.** Withdraw and retreat stay blocked after a fall (`selectors.ts:169,200`). The Crypt trap stays
@@ -249,4 +243,4 @@ and the web UI were not examined beyond a text search.*
     `docs/specs/engine-spec.md`, and SC-4-14 only if the fall behaviour changes. Update the Part II prose and Appendix C.
     Add the clarification to the Expanded Consolidated Rules.
 
-Items 1 to 3 are the real changes. Item 4 needs a ruling before anyone builds it.
+Items 1 to 4 are the real changes. Q2 (item 5) is rejected: nothing to build and no house rule.

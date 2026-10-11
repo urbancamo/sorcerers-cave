@@ -160,6 +160,10 @@ export function legalActions(state: GameState): GameAction[] {
     acts.push({ type: "proceed" });
     return acts;
   }
+  if (state.phase === "trap") {
+    // The Dwarf's choice at a trap (`variants.trapRules`): be guided past it, or fall through it on purpose.
+    return [{ type: "avoidTrap" }, { type: "fallThroughTrap" }];
+  }
   if (state.phase === "sorcerer") {
     // The Sorcerer lies defeated (§The Sorcerer): slay him, or spare him for a teleport to any discovered area.
     return [{ type: "slaySorcerer" }, ...teleportDestinations(state).map((area): GameAction => ({ type: "spareSorcerer", area }))];

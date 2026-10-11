@@ -1,12 +1,12 @@
 import { GS_PLAYING, GS_QUIT, GS_ESCAPED, GS_DEAD, AF_DESTROYED, AF_BELL_SPENT, AF_UNRESOLVED, type GameState, type PartyMember, type PlacedArea } from "./state";
-import { tryMove } from "./map";
+import { tryMove, hasExit } from "./map";
 import { moveWithRedraw } from "./redraw";
 import { decodeArea, decodeOpen } from "./decode";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WHIRLPOOL, SPECIAL_WELL, SPECIAL_BELL_ROPE, SPECIAL_GREAT_HALL, TILE_MIN, TILE_MAX, TILE_TUNNEL_ES } from "./data/areaCards";
 import { viperCrossing, deepPoolCrossing, whirlpoolCrossing, giantCanRecover, sunkKey, tryReclaimSunk } from "./special";
 import { enterChamber, drawSmallCards } from "./chamber";
-import { applyHazards, hasStaffWizard } from "./hazards";
-import { HAZARD_MEDUSA, HAZARD_NAMES } from "./data/hazards";
+import { applyHazards, hasStaffWizard, hasLivingDwarf } from "./hazards";
+import { HAZARD_MEDUSA, HAZARD_TRAP, HAZARD_NAMES } from "./data/hazards";
 import { takeTreasure, canCarry } from "./pickup";
 import { unpackCoord, packCoord, targetCoord, DIR_UP, DIR_DOWN } from "./coords";
 import type { GameAction, GameEvent } from "./actions";
@@ -300,7 +300,7 @@ function medusaLooms(state: GameState): boolean {
  *  fresh entry, yet a dragon it just drew is still genuinely new information the player hasn't seen
  *  (`resolveExtraDraw` passes `true` explicitly for that case). */
 function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[], announceLull = freshEntry): boolean {
-  const { events: hzEvents, fell } = applyHazards(state);
+  const { events: hzEvents, fell, trapChoice, knownTrap } = applyHazards(state);
   events.push(...hzEvents);
   // A hazard may incapacitate the whole party (Medusa petrifies everyone, or Ghouls slay them) —
   // with no one left able to act, the expedition ends.
@@ -316,10 +316,27 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
     // to its contents). Clearing the working set first stops them leaking onto the tile fallen into.
     persistAndExplore(state);
     relocateDown(state);
-    events.push({ type: "trapSprung", level: state.level });
+    if (knownTrap) state.deliberateFall = true; // `trapRules`: walking into a known trap is a deliberate fall
+    events.push(knownTrap ? { type: "trapSprung", level: state.level, deliberate: true } : { type: "trapSprung", level: state.level });
     events.push({ type: "moved", area: state.partyArea, level: state.level });
     return true;
   }
+  if (trapChoice) {
+    // `trapRules`: a Dwarf-guided party meets a single trap. The earlier hazards have fired and the party
+    // survived them — hold the entry here for the Dwarf's choice (`avoidTrap` / `fallThroughTrap`).
+    state.phase = "trap";
+    state.trapPause = { freshEntry, announceLull };
+    events.push({ type: "trapLooms" });
+    return false;
+  }
+  settleChamber(state, freshEntry, events, announceLull);
+  return false;
+}
+
+/** The tail of a chamber entry once its hazards are done and the party is still here: Flute lull, Demon
+ *  ambush, a pacified area, then the phase the chamber's contents call for. Shared by the uninterrupted path
+ *  (`finishChamber`) and the resume from the Dwarf's trap choice. */
+function settleChamber(state: GameState, freshEntry: boolean, events: GameEvent[], announceLull: boolean): void {
   // The Charmed Flute lulls every Dragon for as long as the party holds it: they sleep in the
   // chamber, no longer leading or blocking, so a friendlier creature reacts and the area plays
   // out as if empty (§ Charmed Flute). Re-evaluated each entry, so they wake if the flute is gone.
@@ -335,7 +352,7 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
   // branch: otherwise `settlePacifiedArea` would silently re-park the Demon right back onto the tile
   // (or, with a Thief, slip it into a live pickup) every single re-entry, forever suppressing it.
   if (ambushIfDemon(state, events)) {
-    return false;
+    return;
   }
   // Permanently indifferent to this party (§Reactions): the party may walk freely through (any exit)
   // — so park the guards to the tile and go to explore for full traversal — but it may also still
@@ -345,23 +362,23 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
   // both that and the ordinary re-park.
   if (state.pacifiedAreas?.includes(state.partyArea)) {
     settlePacifiedArea(state);
-    return false;
+    return;
   }
   if (state.strangers.length > 0) {
     if (state.hostileAreas?.includes(state.partyArea)) {
       // The party retreated from these strangers before — they attack on sight (with surprise). §Retreat
-      events.push(...startFight(state, -1));
+      // Unless the party came back by a trap on purpose (`trapRules`): then it is the party that has surprise.
+      events.push(...startFight(state, state.deliberateFall === true ? 1 : -1));
     } else {
       state.phase = "encounter";
       // Surprise if attacking immediately on a fresh entry — never after a trap fall (§Surprise).
-      state.surpriseReady = freshEntry && !state.fellThroughTrap;
+      state.surpriseReady = freshEntry && (!state.fellThroughTrap || state.deliberateFall === true);
     }
   } else if (state.treasures.length > 0) {
     state.phase = "pickup";
   } else {
     persistAndExplore(state);
   }
-  return false;
 }
 
 /** Resume the entry held at the Medusa pause — the dust thrown or the gaze braved — firing the
@@ -382,9 +399,57 @@ function resumeFromMedusaPause(state: GameState): GameEvent[] {
   return events;
 }
 
+/** Resume the entry held at the Dwarf's trap pause (`variants.trapRules`). `fall` false: the Dwarf guides the
+ *  party past the trap and the chamber settles as it would have. `fall` true: the whole party drops one level,
+ *  one-way, exactly as an unguided trap fall does (`finishChamber`), and the landing area is resolved. */
+function resumeFromTrapPause(state: GameState, fall: boolean): GameEvent[] {
+  const pause = state.trapPause!;
+  delete state.trapPause;
+  const events: GameEvent[] = [];
+  if (fall) {
+    persistAndExplore(state);
+    relocateDown(state);
+    state.deliberateFall = true; // the player chose to fall: the arrival earns surprise
+    events.push({ type: "trapSprung", level: state.level, deliberate: true });
+    events.push({ type: "moved", area: state.partyArea, level: state.level });
+    events.push(...resolveAreaLoop(state));
+    return events;
+  }
+  events.push({ type: "trapAvoided" });
+  settleChamber(state, pause.freshEntry, events, pause.announceLull);
+  if (pause.extraDraw && state.phase === "encounter") state.surpriseReady = pause.extraDraw.hadSurprise;
+  return events;
+}
+
+/** Guide lost (`variants.trapRules`): "If a party guided by a dwarf becomes involved in a fight in a chamber where
+ *  there is a trap, and the dwarf is killed, the party falls down the trap as soon as it tries to leave the chamber."
+ *  True when the party stands in a chamber that holds a standing trap, has no living Dwarf, and is trying to leave
+ *  by `dir` — a doorway or stairway that exists. (A party without a Dwarf cannot otherwise be standing in such a
+ *  chamber, since entering it would already have dropped it.) `move`, `withdraw` and `retreat` ask this. */
+function guideLostHere(state: GameState, dir: number | undefined): boolean {
+  if (state.variants?.trapRules !== true || hasLivingDwarf(state)) return false;
+  const here = state.areas[state.partyArea]!;
+  if (!here.contents.includes(300 + HAZARD_TRAP)) return false;
+  return dir === undefined || hasExit(decodeOpen(here), dir);
+}
+
+/** The trap takes a party that has lost its guide, in place of the departure it attempted. The chamber is parked
+ *  (its trap stays standing), the whole party drops one level, one-way, and the landing is resolved. The fall is
+ *  accidental: `relocateDown` leaves `deliberateFall` unset, so the landing earns no surprise. */
+function springUnguidedTrap(state: GameState): GameEvent[] {
+  persistAndExplore(state);
+  relocateDown(state);
+  return [
+    { type: "trapSprung", level: state.level, guideLost: true },
+    { type: "moved", area: state.partyArea, level: state.level },
+    ...resolveAreaLoop(state),
+  ];
+}
+
 /** What the Dead End rule's Entry Dry Run runs on a laid card: the same steps a real move takes after `tryMove`. */
 function enterForDryRun(state: GameState): void {
   state.fellThroughTrap = false;
+  delete state.deliberateFall;
   delete state.subLocation;
   resolveArea(state);
 }
@@ -477,7 +542,9 @@ function resolveAreaLoop(state: GameState): GameEvent[] {
       state.phase = "explore";
       return events;
     }
-    const freshEntry = !state.areas[state.partyArea]!.visited; // first visit by this (unused) doorway → eligible for surprise
+    // First visit by this (unused) doorway → eligible for surprise. A deliberate trap arrival (`trapRules`) is a
+    // new route in its own right, so it qualifies even into a chamber the party has already visited.
+    const freshEntry = !state.areas[state.partyArea]!.visited || state.deliberateFall === true;
     events.push(...enterChamber(state));
     events.push(...wakeGalleryStatues(state)); // Staff-Wizard cracks every Gallery statue awake (SC-EXT-11)
     events.push(...annihilateWithEye(state)); // the Eye destroys Spectres on sight (§ Eye of God)
@@ -509,6 +576,10 @@ function finishExtraDraw(state: GameState, events: GameEvent[], hadSurprise: boo
     events.push(...resolveAreaLoop(state));
   } else if (state.phase === "encounter") {
     state.surpriseReady = hadSurprise;
+  } else if (state.phase === "trap") {
+    // A drawn trap opened the Dwarf's pause: carry the earned surprise through to its resume, as the
+    // Medusa pause does (`medusaPause.extraDraw`), so choosing to be guided past cannot clobber it.
+    state.trapPause!.extraDraw = { hadSurprise };
   }
 }
 
@@ -569,6 +640,7 @@ function relocateDown(state: GameState): void {
   state.partyArea = idx;
   state.level = level;
   state.fellThroughTrap = true; // one-way: prev is the (unreachable) level above — no withdraw/retreat
+  delete state.deliberateFall; // every relocation starts accidental; the trap callers mark a deliberate one after
   delete state.subLocation; // Precise Locations (§10.5): a real position change invalidates any jump override
 }
 
@@ -595,6 +667,7 @@ function carpetMove(state: GameState, dir: number): void {
   state.partyArea = idx;
   state.level = targetLevel;
   state.fellThroughTrap = false; // carpet links both ways
+  delete state.deliberateFall;
   delete state.subLocation; // Precise Locations (§10.5): a real position change invalidates any jump override
 }
 
@@ -663,6 +736,15 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           return { state, events: [{ type: "blocked" }] };
         }
       }
+      if (guideLostHere(state, action.dir)) {
+        // The Dwarf is gone: the trap takes the party as it tries to leave. No tile is placed and there is no
+        // dead end to find — the attempt costs the turn, exactly as a successful move would.
+        const fallen = structuredClone(state);
+        delete fallen.indiffLeaveOpen;
+        fallen.turn += 1;
+        delete fallen.testAllDiceRoll; // Next Roll Selector (SC-Test-10): "until end of turn" ends here
+        return { state: fallen, events: springUnguidedTrap(fallen) };
+      }
       const fromIdx = state.partyArea;
       const oldPrev = state.prev;
       // Leaving an indifferent (not yet pacified) encounter parks its strangers/treasure onto the
@@ -706,6 +788,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       }
       const next = { ...res.state, turn: res.state.turn + 1 };
       next.fellThroughTrap = false; // a normal move reaches a reachable area (resolveArea re-sets it if a trap fires)
+      delete next.deliberateFall;
       delete next.subLocation; // Precise Locations (§10.5): a real move invalidates any jump override
       delete next.testAllDiceRoll; // Next Roll Selector (SC-Test-10): "until end of turn" ends here
       const events: GameEvent[] = [...swapEvents];
@@ -809,6 +892,10 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       if (state.fellThroughTrap) return { state, events: [{ type: "blocked" }] }; // no way back up a trap
       if (state.noWithdrawTurn === state.turn) return { state, events: [{ type: "blocked" }] }; // Well/Bell fired this turn (SC-EXT-9)
       if (((state.areas[state.prev]?.flags ?? 0) & AF_DESTROYED) !== 0) return { state, events: [{ type: "blocked" }] }; // the way back collapsed (earthquake)
+      if (guideLostHere(state, undefined)) {
+        const fallen = structuredClone(state); // the Dwarf is gone: the trap takes the party instead of the step back
+        return { state: fallen, events: springUnguidedTrap(fallen) };
+      }
       const next = structuredClone(state);
       next.areas[next.partyArea]!.contents = [
         ...next.areas[next.partyArea]!.contents,
@@ -1220,7 +1307,10 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // A party may retreat by ANY doorway or stairway — even an unexplored one (§Retreat). Attempt
       // the move; if the way is a dead end (or blocked), the party must fight another round this turn.
       const fromIdx = state.partyArea;
-      const res = tryMove(state, action.dir);
+      // Guide lost (`trapRules`): the retreat succeeds in every respect except where it ends — the trap, not the
+      // doorway, takes the party. Same bookkeeping as a real retreat; only the destination differs.
+      const guideLost = guideLostHere(state, action.dir);
+      const res = guideLost ? { state: structuredClone(state), moved: true, deadEnd: false } : tryMove(state, action.dir);
       if (!res.moved) {
         // The retreat failed — a dead-end tile, or no tile left to draw (pack exhausted). Either way the
         // party can't escape this round and must fight on (§Retreat): lock out further retreats AND tell
@@ -1261,7 +1351,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       if (!res.state.hostileAreas?.includes(fromIdx)) {
         res.state.hostileAreas = [...(res.state.hostileAreas ?? []), fromIdx];
       }
-      const events = [...sorcererEvents, ...resolveArea(res.state)]; // resolve the area we retreated into (fresh tunnel/chamber)
+      const events = [...sorcererEvents, ...(guideLost ? springUnguidedTrap(res.state) : resolveArea(res.state))]; // resolve the area we retreated into (fresh tunnel/chamber)
       return { state: res.state, events };
     }
 
@@ -1291,6 +1381,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       next.partyArea = action.area;
       next.level = unpackCoord(to.coord).level;
       next.fellThroughTrap = true; // magic leaves no way back: no withdrawing from the landing
+      delete next.deliberateFall;
       delete next.subLocation;
       const events: GameEvent[] = [
         { type: "sorcererSpared" },
@@ -1305,6 +1396,14 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       if (state.phase !== "medusa") return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
       return { state: next, events: resumeFromMedusaPause(next) };
+    }
+
+    case "avoidTrap":
+    case "fallThroughTrap": {
+      // The Dwarf's choice at a trap (`variants.trapRules`): only legal in the `trap` pause.
+      if (state.phase !== "trap" || !state.trapPause) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      return { state: next, events: resumeFromTrapPause(next, action.type === "fallThroughTrap") };
     }
 
     case "useArtifact": {

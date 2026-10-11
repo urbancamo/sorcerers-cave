@@ -28,6 +28,11 @@ function living(state: GameState): PartyMember[] {
   return state.party.filter((m) => m.status === 0 || m.status === 1);
 }
 
+/** A living Dwarf — the party's guide past a trap (`FLAG_GUIDES_PAST_TRAP`). */
+export function hasLivingDwarf(state: GameState): boolean {
+  return living(state).some((m) => (CREATURES[m.creatureId]!.flags & FLAG_GUIDES_PAST_TRAP) !== 0);
+}
+
 function livingHolds(state: GameState, treasureId: number): boolean {
   return living(state).some((m) => m.treasure.includes(treasureId));
 }
@@ -46,9 +51,12 @@ export function hasStaffWizard(state: GameState): boolean {
 }
 
 /** Resolve every hazard in the working set, in priority order (spec §7.2). */
-export function applyHazards(state: GameState): { events: GameEvent[]; fell: boolean } {
+export function applyHazards(state: GameState): { events: GameEvent[]; fell: boolean; trapChoice: boolean; knownTrap: boolean } {
   const events: GameEvent[] = [];
   let fell = false;
+  // `trapRules`: a Dwarf-guided party meeting exactly one trap does not auto-avoid it — the caller pauses for
+  // the Dwarf's choice (`trap` phase). The hazards after Trap still resolve in this same pass.
+  let trapChoice = false;
   // Extension kit (SC-EXT-14/15/16/28): Desertion, Harpies, Quarrel and Spell are appended strictly
   // AFTER Trap, in that numeric order — a kit-off game's `hazards` working set can never contain ids
   // 5-8 (the base small pack has no such codes), so this extension is a no-op for the base game
@@ -198,9 +206,17 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         break;
       }
       case HAZARD_TRAP: {
-        const hasDwarf = living(state).some((m) => (CREATURES[m.creatureId]!.flags & FLAG_GUIDES_PAST_TRAP) !== 0);
-        if (hasDwarf) events.push({ type: "trapAvoided" }); // the dwarf guides the party past it
-        else fell = true;                                   // otherwise the party drops a level
+        const hasDwarf = hasLivingDwarf(state);
+        // Standing traps (`variants.trapRules`): "a party which includes a dwarf may ignore a trap, but not
+        // two traps drawn in the same chamber". The count includes a trap already parked here, so a Well or
+        // Bell draw that adds one to a chamber already holding one makes two.
+        const here = state.areas[state.partyArea];
+        const traps = state.hazards.filter((h) => h === HAZARD_TRAP).length + (here?.contents.filter((c) => c === 300 + HAZARD_TRAP).length ?? 0);
+        const tooMany = state.variants?.trapRules === true && traps >= 2;
+        if (hasDwarf && !tooMany) {
+          if (state.variants?.trapRules === true) trapChoice = true;   // the player chooses: guided past, or fall
+          else events.push({ type: "trapAvoided" });                   // the dwarf guides the party past it
+        } else fell = true;                                            // otherwise the party drops a level
         break;
       }
       case HAZARD_DESERTION: {
@@ -358,11 +374,19 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
       if ((hz === HAZARD_MEDUSA || hz === HAZARD_GHOULS) && !here.contents.includes(300 + hz)) {
         here.contents.push(300 + hz);
       }
+      // Standing traps (`variants.trapRules`): "continues in effect" — one marker per trap, whether it fell
+      // or was avoided, so it reloads on every re-entry. Unlike Medusa a duplicate is kept: two traps stay two.
+      if (hz === HAZARD_TRAP && state.variants?.trapRules === true) {
+        here.contents.push(300 + hz);
+      }
       if (hz === HAZARD_HARPIES && !harpiesFired && !here.contents.includes(300 + hz)) {
         here.contents.push(300 + hz);
       }
     }
   }
   state.hazards = [];
-  return { events, fell };
+  // A trap that was reloaded (not drawn) on this entry was KNOWN to the party: falling to it is deliberate.
+  const knownTrap = (state.knownTraps ?? 0) > 0;
+  delete state.knownTraps; // per-entry scratch from `enterChamber`; never outlives the hazard pass
+  return { events, fell, trapChoice, knownTrap };
 }

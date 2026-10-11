@@ -401,7 +401,7 @@ export function hostileDetachmentAt(mp: MpGameState, seat: number): boolean {
  * left there is silently destroyed. Used by step 3b below to decide where a cave-global consequence
  * may land on a seat that is not the one acting (SC-EXT-31).
  */
-const LIVE_WORKING_SET: ReadonlySet<GamePhase> = new Set<GamePhase>(["encounter", "fight", "medusa", "pickup"]);
+const LIVE_WORKING_SET: ReadonlySet<GamePhase> = new Set<GamePhase>(["encounter", "fight", "medusa", "trap", "pickup"]);
 
 /**
  * Runs after EVERY successful solo action in mpReduce. In order:

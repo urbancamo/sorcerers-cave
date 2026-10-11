@@ -126,8 +126,8 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "statueAroused": // folded into combatView's "guardian statue" overlay message
       case "medusaGaze": // rollView.medusaView's die-per-member overlay
       case "viperPit": // rollView.viperView's die-per-member overlay (see `hasViper` above)
-      case "trapSprung": // the move-result trap indicator / confirm modal
       case "trapAvoided": // the move-result trap indicator / confirm modal
+      case "trapLooms": // `trapRules`: the TrapChoice popup is the prompt
       // Test Mode (§Test Mode): the TestControlsPanel already shows the armed override directly —
       // nothing to narrate here.
       case "testAreaQueued":
@@ -242,6 +242,10 @@ export function eventNotices(events: GameEvent[]): Notice[] {
         break;
       case "medusaAverted":
         out.push({ text: "Medusa's gaze sweeps the party — but the Wizard's Magic Staff turns it aside; no one is stoned.", tone: "good" });
+        break;
+      case "trapSprung": // the move-result trap indicator / confirm modal narrates an ordinary fall; these two add the WHY
+        if (e.guideLost) out.push({ text: "Without the Dwarf to guide it, the party is taken by the trap as it tries to leave.", tone: "bad" });
+        else if (e.deliberate) out.push({ text: "The party drops through the trap on purpose — any strangers below are not expecting you, so you have the advantage of surprise.", tone: "good" });
         break;
       case "medusaLooms":
         out.push({ text: "Medusa looms before her gaze can land — throw the Lotus Dust at her, or proceed and brave it.", tone: "neutral" });

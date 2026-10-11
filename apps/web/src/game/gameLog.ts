@@ -87,6 +87,8 @@ export function actionLabel(a: GameAction, state?: GameState | null): string {
       return `Use ${treasure(a.artifact)}${target}` + (a.dir !== undefined ? ` (${dir(a.dir)})` : "");
     }
     case "proceed": return "Proceed — brave Medusa's gaze";
+    case "avoidTrap": return "Guided past the trap";
+    case "fallThroughTrap": return "Fall through the trap";
     case "openChest": return "Open the treasure chest";
     case "descendChasm": return "Descend the chasm";
     case "drawFromWell": return "Draw from the well";
@@ -153,7 +155,10 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "viperPit": return `viper pit crossing — ${e.rolls.filter((r) => r.died).length} fell`;
     case "eyeForsaken": return "the Eye of God was forsaken — the party is cursed";
     case "petrifiedOut": return "the whole party was turned to stone";
-    case "trapSprung": return `trap sprung — fell to level ${e.level}`;
+    case "trapSprung": return e.guideLost ? `the Dwarf was gone — the trap took the party to level ${e.level}`
+      : e.deliberate ? `fell through the trap on purpose to level ${e.level}`
+      : `trap sprung — fell to level ${e.level}`;
+    case "trapLooms": return "a trap looms — be guided past it, or fall through";
     case "trapAvoided": return "a dwarf guided the party past a trap";
     case "memberDied": return `${creature(e.creatureId)} was slain`;
     case "strangerKilled": return `${creature(e.creatureId)} (stranger) was slain`;
@@ -436,6 +441,8 @@ function actionCode(a: GameAction, state: GameState | null): { act: string; arg:
     // An untargeted USE of the Lotus Dust (5) is the Medusa-pause throw — shown as LOT>MED.
     case "useArtifact": return { act: "USE", arg: tr3(a.artifact) + (a.target !== undefined ? `>${a.artifact === 5 ? foe(a.target) : mem(a.target)}` : a.artifact === 5 ? ">MED" : "") };
     case "proceed": return { act: "PRO", arg: "" };
+    case "avoidTrap": return { act: "TAV", arg: "" };
+    case "fallThroughTrap": return { act: "TFL", arg: "" };
     case "resolveRound": return { act: "FGT", arg: a.matches.map((m) => `${[...m.front, ...m.backers].map((i) => (state?.party[i] ? cr3(state.party[i]!.creatureId) : `#${i}`)).join("+") || "-"}>${m.strangers.map(foe).join("+") || "-"}`).join(",") };
     case "descendChasm": return { act: "CHM", arg: "" };
     case "drawFromWell": return { act: "WEL", arg: "" };
@@ -482,7 +489,8 @@ export function eventCode(e: GameEvent): string | null {
     case "crossedSpecial": return `XSP ${TYPE3[e.special] ?? "???"}`;
     case "enteredSpecial": return `ESP ${TYPE3[e.special] ?? "???"}`;
     case "hazardFired": return `HAZ ${HZ3[e.hazard] ?? "???"}`;
-    case "trapSprung": return `TRP L${e.level}`;
+    case "trapSprung": return `TRP L${e.level}${e.deliberate ? " DEL" : ""}${e.guideLost ? " LST" : ""}`;
+    case "trapLooms": return "TRP LOM";
     case "trapAvoided": return "TRP AVD";
     case "medusaGaze": return `MED ${e.rolls.filter((r) => r.petrified).length}`;
     case "viperPit": return `VIP ${e.rolls.filter((r) => r.died).length}`;
@@ -603,7 +611,7 @@ function legend(kitOn: boolean): string[] {
     ...rows("HAZARD", hazards),
     ...rows("TILE", ["CHM=CHAMBER", "TUN=TUNNEL", "GTW=GATEWAY", "POL=DEEP POOL", "VPT=VIPER PIT", "TMB=TOMB", "HAL=GREAT HALL"]),
     ...rows("TILE COLS", ["EXT: N/E/S/W OPEN, - WALL", "STR: U UP, D DOWN"]),
-    ...rows("ACTION", ["MOV=MOVE", "RET=RETREAT", "OUT=EXIT CAVE", "WDR=WITHDRAW", "TST=TEST", "ATK=ATTACK", "FGT=FIGHT ROUND", "TAK=TAKE", "GIV=GIVE", "DRP=DROP", "BER=BEAR", "STW=STOW", "LVE=LEAVE", "RTK=RETAKE", "USE=USE ARTEFACT", "OPN=OPEN CHEST", "CAS=CASUALTY", "PRO=PROCEED (MEDUSA)", "QIT=QUIT"]),
+    ...rows("ACTION", ["MOV=MOVE", "RET=RETREAT", "OUT=EXIT CAVE", "WDR=WITHDRAW", "TST=TEST", "ATK=ATTACK", "FGT=FIGHT ROUND", "TAK=TAKE", "GIV=GIVE", "DRP=DROP", "BER=BEAR", "STW=STOW", "LVE=LEAVE", "RTK=RETAKE", "USE=USE ARTEFACT", "OPN=OPEN CHEST", "CAS=CASUALTY", "PRO=PROCEED (MEDUSA)", "TAV=GUIDED PAST TRAP", "TFL=FALL THROUGH TRAP", "QIT=QUIT"]),
     ...rows("EVENT", ["DRW=DREW (S:STRANGERS T:TREASURE H:HAZARDS)", "RCT=REACTION (HOS/IND/FRD)", "JOI=JOINED", "PAC=PACIFIED", "FGT SUP=FIGHT ON", "CBT=COMBAT (SIDE # V FOE # WON/LOS/TIE)", "WON=PARTY WON", "DIE=MEMBER DIED", "KIL=STRANGER SLAIN", "EQP=STRANGER TOOK UP ARTEFACT", "VAN=STRANGER VANISHED WITH RING", "SLW=SPECTRE SLEW", "CAS=CASUALTY (R# DIE)"]),
     ...rows("EVENT", ["HAZ=HAZARD (SEE KEY HAZARD)", "TRP=TRAP", "ESP/XSP=ENTER/CROSS SPECIAL", "TDR/TRC=POOL DROP/RECOVER", "FDR=FIGHT DROP", "RCL=RECLAIM", "END=GAME OVER (ESC/DED/QIT)", "DED=DEAD END", "SEC=SECRET DOOR", "SPL=ITEMS SPILLED", "ANH=ANNIHILATE", "WRD=WARD OFF", "RVV=REVIVE", "SAV=RING SAVE"]),
   ];

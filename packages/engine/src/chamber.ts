@@ -2,6 +2,7 @@ import { decodeArea, decodeOpen } from "./decode";
 import { SPECIAL_TOMB, SPECIAL_GREAT_HALL, SPECIAL_LAIR, SPECIAL_GALLERY, SPECIAL_WHIRLPOOL, SPECIAL_CHASM, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
 import { AF_DESTROYED, type GameState } from "./state";
 import type { GameEvent } from "./actions";
+import { HAZARD_TRAP } from "./data/hazards";
 
 const MAX_STRANGERS = 8;
 const MAX_TREASURE = 8;
@@ -168,6 +169,12 @@ export function enterChamber(state: GameState): GameEvent[] {
   // Giant/Flute-gated `sunkTreasure` reclaim is unaffected (handled in reduce.ts's
   // `resolveAreaLoop`, which returns before `enterChamber` runs at all for those two).
   for (const code of area.contents) reload(state, code);
+  // Standing traps (`variants.trapRules`): note how many traps came back from the area, as opposed to
+  // being drawn below, so a later fall can tell a knowing re-entry from a trap met for the first time.
+  if (state.variants?.trapRules) {
+    const known = area.contents.filter((c) => c === 300 + HAZARD_TRAP).length;
+    if (known > 0) state.knownTraps = known; else delete state.knownTraps;
+  }
   if (!area.visited) {
     area.visited = true;
     // No arrival draw for the Chasm (bug fix 2026-08-02) or the Whirlpool/Well/Bell Rope (bug fix

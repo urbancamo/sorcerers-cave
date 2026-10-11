@@ -1,0 +1,87 @@
+# Technical Specification
+
+This is the technical specification for the spec detailed in @.agent-os/specs/2026-10-11-dwarf-deliberate-trap-fall/spec.md
+
+> Created: 2026-10-11
+> Version: 1.0.0
+
+## Technical Requirements
+
+### Finding that shaped the scope
+
+Today a trap is one-shot. `applyHazards` (`hazards.ts:200`) fires it, then clears `state.hazards` (`hazards.ts:370`); only Medusa, Ghouls and Harpies are re-parked as `300 + id` in `area.contents` (`hazards.ts:358-363`). There is no standing trap to re-enter, so "knowing re-entry" and the retreated-party case need a persisted marker first.
+
+### Standing trap (gated by `variants.trapRules`)
+
+- In the re-park tail of `applyHazards`, park one `300 + HAZARD_TRAP` in `area.contents` per trap in `state.hazards`, whether it fell, was avoided, or both. Unlike Medusa, allow duplicates (no `!includes` guard) so two traps stay two.
+- `reload` (chamber.ts) already restores `300 + id` codes into `state.hazards`; confirm it keeps duplicates.
+- Record how many traps were reloaded rather than drawn on this entry in `enterChamber` as a per-entry scratch count (`state.knownTraps`, deleted after the hazard pass).
+- Well and Bell Rope extra draws add drawn traps to the working set. The "two traps" test counts the working set PLUS any traps already parked on the area, because a standing trap is not in the working set during a Well/Bell draw (it was re-parked when the entry resolved).
+- When the trap is the party's way down, the chamber behind is still parked first (`persistAndExplore`, `finishChamber`), so strangers and treasure stay.
+
+### Dwarf choice (new `trap` pause)
+
+- New phase `"trap"` in `GamePhase` (`state.ts:30`) and a `trapPause?: { freshEntry: boolean; announceLull: boolean; extraDraw?: { hadSurprise?: boolean } }` field modelled on `medusaPause` (`announceLull` is `finishChamber`'s own argument, saved so the resumed tail settles the chamber identically; a Well/Bell pause sets `extraDraw` after `finishChamber` returns, in `finishExtraDraw`) (`state.ts:199`).
+- In `applyHazards`, at `HAZARD_TRAP` with a living Dwarf (`FLAG_GUIDES_PAST_TRAP`) and exactly one trap: do not emit `trapAvoided` or set `fell`; return `trapChoice: true`. The remaining kit hazards after Trap (Desertion, Harpies, Quarrel, Spell) still resolve in the same pass, as today. Two or more traps: `fell = true`, no choice, not deliberate.
+- `finishChamber` handles `trapChoice` after the whole-party-incapacitated check: set `phase = "trap"`, `trapPause = { freshEntry }`, emit `trapLooms`, return without running the tail. Split the post-hazard tail (lull, Demon ambush, pacified area, encounter/pickup/explore settle) into a function shared by the normal path and both resumes.
+- New actions (`actions.ts`): `{ type: "avoidTrap" }` and `{ type: "fallThroughTrap" }`. `legalActions` returns exactly these two in phase `trap` (`selectors.ts`, beside the `medusa` branch at line 148). `reduce` rejects them in any other phase with `blocked`.
+- `avoidTrap`: emit `trapAvoided`, delete `trapPause`, run the shared tail. `fallThroughTrap`: set `deliberateFall`, delete `trapPause`, `persistAndExplore`, `relocateDown`, emit `trapSprung` and `moved`, then `resolveAreaLoop`, as the existing fall branch does (`reduce.ts:316-322`).
+- Extra-draw pauses follow the Medusa precedent: `trapPause.extraDraw` carries the captured `surpriseReady` so `finishExtraDraw` restores it (SC-4-16). A trap that arrives by a Well/Bell draw is freshly drawn, so a fall from it is accidental unless the Dwarf chooses to fall.
+- A Medusa pause and a trap pause can both occur in one entry; Medusa's pause comes first (it holds all hazards), the trap pause comes after the earlier hazards have fired, matching the fixed order Earthquake, Medusa, Ghouls, Mutiny, Trap (SC-7.2-1). If those hazards end the game, no trap pause opens.
+
+### Deliberate fall and surprise
+
+- New optional `state.deliberateFall?: boolean`, set (a) by `fallThroughTrap` and (b) when a fall is forced by a trap that was reloaded rather than drawn on this entry (`knownTraps > 0` and the trap fell). Never set for a trap drawn on the current entry or a two-trap fall. Cleared with `delete`, never `= false` (SC-EXT-1 byte identity), wherever `fellThroughTrap` is cleared (`reduce.ts:387`, `708`, `597`).
+- `relocateDown` stays unchanged except that its callers set `deliberateFall` after it returns; the Chasm, Whirlpool and Crypt callers do not.
+- `resolveAreaLoop`: when `deliberateFall` is set, `freshEntry` is true regardless of `area.visited`.
+- `finishChamber` surprise: `surpriseReady = freshEntry && (!fellThroughTrap || deliberateFall)` (`reduce.ts:357`).
+- Hostile (retreated-from) areas, `reduce.ts:351`: if `deliberateFall`, start the fight with surprise to the party (`startFight(state, 1)`) instead of `-1`. Assumption to confirm in review: the fight starts immediately because the strangers are hostile on sight; the party's +1 replaces the strangers' surprise. If an encounter choice is wanted instead, only this branch changes.
+- Withdraw and retreat stay blocked: `fellThroughTrap` is still true after any trap fall.
+
+### Variant gate
+
+- `variants.trapRules?: boolean` on `GameState.variants` (`state.ts:251`) and the `replay`/`newGame` variants type (`replay.ts:40`).
+- Stamped server-side from `process.env.TRAP_RULES_ENABLED === "1"` in `withForcedRedraw` (`apps/web/convex/game.ts:82`), never client-settable, same pattern as `forcedRedraw` and `sorcererTeleport`. Document in `apps/web/OPTIONS.md`.
+- With the flag off, `applyHazards` takes today's path (dwarf always avoids, trap never parked); the `trap` phase, new actions and `deliberateFall` can never occur.
+
+### Guide lost (Dwarf gone while in a trap chamber)
+
+Rule text: "If a party guided by a dwarf becomes involved in a fight in a chamber where there is a trap, and the dwarf is killed, the party falls down the trap as soon as it tries to leave the chamber."
+
+- Condition, checked at the start of `move`, `withdraw` and `retreat` when `variants.trapRules` is on: the party's current area holds a standing trap (`300 + HAZARD_TRAP` in `area.contents`) and no party member is a living Dwarf (`status` 0 or 1 with `FLAG_GUIDES_PAST_TRAP`, the same test `applyHazards` uses). No new state is needed: a party without a Dwarf cannot otherwise be standing in a standing-trap chamber, because entry would have fallen at once.
+- "No living Dwarf" deliberately covers every loss of the guide (killed, petrified, deserted, vanished), not only a kill. Review point: the rule text says "killed"; the broader test is the natural reading of "guided by a dwarf" and avoids a stranded party.
+- Effect: the departure does not happen. For `move`, no `tryMove` runs (no tile is placed, no dead-end check) and the turn counts as a move. For `withdraw` and `retreat`, the action's own bookkeeping (strangers left behind and, for a retreat, the chamber marked hostile via `hostileAreas`, `reduce.ts:1261`) still applies; only the destination changes, from the adjacent tile to `relocateDown`. A retreat's fight ends as a retreat does.
+- Resolution: `persistAndExplore` the chamber, `relocateDown`, emit `trapSprung { level, guideLost: true }` and `moved`, then `resolveAreaLoop`. `fellThroughTrap` is set by `relocateDown`; `deliberateFall` is NOT set, so the landing gains no surprise (the party did not choose to fall).
+- `legalActions` is unchanged: the exits are still offered and the fall happens on use.
+- Not covered: Magic Carpet, the Sorcerer's teleport, `descendChasm` and the Crypt; each already relocates the party by its own rule. Review point: whether the carpet should also trigger the fall.
+- Implementation shape: one shared helper in `reduce.ts`, called at the top of the three cases, so the condition and the fall resolution live in one place.
+
+### UI and presentation
+
+- Web: a new `TrapChoice` modal (`apps/web/src/game/TrapChoice.tsx`), modelled on `SorcererTerms` and mounted from `GameScreen.tsx` when `phase === "trap"` and no dice, celebration or notice is showing. Two buttons, "Guided past the trap" and "Fall through the trap", dispatch `avoidTrap` / `fallThroughTrap`; it cannot be dismissed without choosing. (The EncounterPanel is untouched: a modal is clearer than an inline row for a decision that blocks all play.)
+- `eventNotices.ts`: notices for `trapLooms`, for a deliberate fall and for a guide-lost fall (reuse `trapSprung`, adding `deliberate?` and `guideLost?` to the event; the guide-lost notice says the Dwarf's guidance is gone and the trap takes the party as they try to leave). `gameLog.ts`: action text and mnemonics for `avoidTrap` / `fallThroughTrap` / `trapLooms` (e.g. `TRP AVD`, `TRP FAL`, `TRP LOM`).
+- Test Mode panel: no change required.
+
+### Multiplayer (open point)
+
+Survey result (Task 1): multiplayer runs the solo reducer on a composed single-party view (`multi.ts:516`, `compose`), but `MpGameState.variants` carries only `zombies`, `fogLite`, `concurrent` and `extensionKit`, so a multiplayer game never sees `trapRules` and keeps today's one-shot traps. Like `forcedRedraw` and `sorcererTeleport`, the flag is solo-only by construction for now. Parity is a follow-up: thread the flag through `buildMpGame`/`compose` and the Convex multiplayer validator, and carry `deliberateFall` and the `trap` pause in the per-party state (`multi-zombies.ts` already carries `fellThroughTrap` per party). The parked marker lives on the shared area, so a standing trap would be cave-shared with no further work.
+
+## Approach Options
+
+**Option A:** Pause at hazard-resolution time, like Medusa, with new actions and a popup (Selected)
+- Pros: matches the user's popup requirement; reuses the proven Medusa pause pattern and its surprise-preservation contract; keeps the fixed hazard order.
+- Cons: touches `applyHazards`, `finishChamber`, `selectors` and the Medusa-style resume paths; the post-hazard tail must be split out.
+
+**Option B:** Choose before the move, as a separate action while standing in a trap chamber
+- Pros: no pause phase.
+- Cons: does not cover a trap drawn on entry; the dwarf is auto-saved before the player can act; conflicts with the popup requirement.
+
+**Option C:** Ask the client to confirm and send a flag with `move`
+- Pros: small engine change.
+- Cons: the engine would not own the decision; breaks replay determinism and the "UI renders from `legalActions`" contract.
+
+**Rationale:** Option A is the only one that fits both the drawn-on-entry and re-entry cases and keeps the engine the single source of truth.
+
+## External Dependencies
+
+None. No new libraries.
