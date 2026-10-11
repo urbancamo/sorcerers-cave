@@ -202,6 +202,7 @@ export default function GameScreen() {
     return (
       <PartySelect
         kitToggle
+        sibylToggle
         testMode={wantTestGame && !!testSecret}
         onBack={() => { setStarted(false); setWantTestGame(false); }}
         onConfirm={async (picks, color, variants) => {

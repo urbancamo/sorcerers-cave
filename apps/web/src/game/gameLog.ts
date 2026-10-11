@@ -21,7 +21,7 @@ export interface GameLog {
     createdAt: number;
     // Extension kit (SC-EXT-29, design US-01): absent/undefined ⇒ kit-off, same as an old,
     // pre-kit game (backward compat — a code without the flag always decodes kit-off).
-    variants?: { extensionKit?: boolean };
+    variants?: { extensionKit?: boolean; sibyl?: boolean };
     // Test Mode (SC-Test-1): mirrors `variants`'s own threading — absent/undefined ⇒ an ordinary
     // (non-test) game, so `replay()` reconstructs it exactly as before this field existed.
     testMode?: boolean;
@@ -228,6 +228,9 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "thiefPalmed": return `the Thief palmed ${treasure(e.tid)}`;
     case "apprenticeTurned": return `${e.count} Apprentice(s) turned when the Sorcerer fell` + (e.items.length ? `, dropping ${e.items.map(treasure).join(", ")}` : "");
     case "apprenticeStaysBehind": return `${e.count} Apprentice(s) stayed behind in the cave`;
+    case "sibylJoins": return "the Sibyl joined the party";
+    case "sibylDeclines": return "the Sibyl was indifferent and stayed in the cave";
+    case "sibylExamined": return "the Sibyl was consulted";
     case "demonSpawned": return "a Demon materialized";
     case "demonDispersed": return "the Demon's area was destroyed — it dispersed";
     case "demonUnfolds": return "the Demon unfolds — a forced hostile encounter";
@@ -337,6 +340,7 @@ export function formatLog(log: GameLog): string {
   // Extension kit (SC-EXT-29, design US-01): the log's opening line records the kit was active —
   // absent for a kit-off game (byte-identical to the log format before the kit existed).
   if (game.variants?.extensionKit) lines.push("Extension kit active");
+  if (game.variants?.sibyl) lines.push("Sibyl active"); // SC-SIB-9
   lines.push("");
   if (game.seed == null || game.picks == null) {
     lines.push("⚠ This game predates initial-condition logging — it cannot be replayed from scratch.", "");
@@ -546,6 +550,9 @@ export function eventCode(e: GameEvent): string | null {
     case "thiefPalmed": return `PLM ${tr3(e.tid)}`;
     case "apprenticeTurned": return `APR TRN ${e.count}`;
     case "apprenticeStaysBehind": return `APR STY ${e.count}`;
+    case "sibylJoins": return "SIB JIN";
+    case "sibylDeclines": return "SIB DEC";
+    case "sibylExamined": return "SIB EXM";
     case "demonSpawned": return "DEM SPN";
     case "demonDispersed": return "DEM DSP";
     case "demonUnfolds": return "DEM UNF";
@@ -628,7 +635,7 @@ export function logReport(log: GameLog, printed = ""): string {
   const party = (game.picks ?? []).map(cr3).join(" ") || "???";
   // Extension kit (SC-EXT-29): the opening meta line notes KIT ON — omitted (kit-off, byte-identical
   // header) when the game carries no extensionKit flag.
-  const kitTag = game.variants?.extensionKit ? "   KIT ON" : "";
+  const kitTag = (game.variants?.extensionKit ? "   KIT ON" : "") + (game.variants?.sibyl ? "   SIBYL ON" : "");
   const meta = `GAME ${game.code ?? "----"}   SEED ${game.seed ?? "------"}   PARTY ${party}   MOVES ${moves.length}   PRINTED ${printed || "----------------"}${kitTag}`.toUpperCase();
   const head = [padR("SEQ", W.seq), padR("TRN", W.trn), padR("LVL", W.lvl), padR("ARA", W.ara), padL("ACT", W.act), padL("ARG", W.arg), padL("TYP", W.typ), padL("EXT", W.ext), padL("STR", W.str), "EVENTS"].join(" ");
   const out = [RULE, centre("S O R C E R E R ' S   C A V E").replace(/\s+$/, ""), centre("A D V E N T U R E   L O G").replace(/\s+$/, ""), RULE, padL(meta, 132).replace(/\s+$/, ""), THIN, head, THIN];

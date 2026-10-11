@@ -78,6 +78,14 @@ export function MultiplayerLobby({ code, onExit }: { code: string; onExit: () =>
               />
               Extension kit <span className="scv-muted">(adds 30 area tiles and 30 cards to the decks)</span>
             </label>
+            <label className="scv-lobby-variant">
+              <input
+                type="checkbox"
+                checked={!!lob.variants?.sibyl}
+                onChange={(e) => void setVariants({ gameId, variants: { ...(lob.variants ?? {}), sibyl: e.target.checked } })}
+              />
+              Sibyl <span className="scv-muted">(adds the optional Sibyl card; scores go in their own table)</span>
+            </label>
           </>
         ) : (
           <>
@@ -92,6 +100,9 @@ export function MultiplayerLobby({ code, onExit }: { code: string; onExit: () =>
             </span>
             <span className={"scv-lobby-varchip" + (lob.variants?.extensionKit ? " on" : "")}>
               Extension kit {lob.variants?.extensionKit ? "✓" : "—"}
+            </span>
+            <span className={"scv-lobby-varchip" + (lob.variants?.sibyl ? " on" : "")}>
+              Sibyl {lob.variants?.sibyl ? "✓" : "—"}
             </span>
           </>
         )}
