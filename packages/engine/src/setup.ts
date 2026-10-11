@@ -43,7 +43,7 @@ export function validatePicks(picks: readonly number[], variants?: { extensionKi
 export function newGame(
   seed: number,
   picks: readonly number[],
-  variants?: { extensionKit?: boolean },
+  variants?: { extensionKit?: boolean; sibyl?: boolean },
   testMode?: boolean,
 ): GameState {
   if (!validatePicks(picks, variants, testMode)) throw new Error("Invalid party selection");

@@ -162,6 +162,12 @@ export interface GameState {
   sleeping?: number[]; // creatures put to sleep by Lotus Dust — inert, no longer block the party
   lulled?: number[]; // Dragons lulled by the Charmed Flute — asleep ONLY while the party holds it,
   // so they're re-evaluated on each chamber entry (parked awake; re-lulled if the flute is still held)
+  // The Sibyl (SC-SIB-5): `hasSibyl` — she joined this party (a party FLAG, not a member: she never
+  // fights, is never counted, scored or deserted, and stays behind on exit). `sibylMet` — this party
+  // has had its one test with her, whatever the outcome; she is never tested again. Both absent unless
+  // the Sibyl is in play, so a Sibyl-off state is byte-identical. `variants.sibyl` (above) adds her card.
+  hasSibyl?: true;
+  sibylMet?: true;
   seed: number; // LCG state (spec §5)
   fight: FightState | null;
   // True while the party's current position was reached by a one-way trap fall: prev is the level
@@ -255,7 +261,7 @@ export interface GameState {
   // construction — deliberately NOT mirrored onto `MpGameState.variants` (multi.ts) or its own
   // separate Convex validator (apps/web/convex/multiplayer.ts), so a multiplayer-composed state can
   // never carry it.
-  variants?: { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean };
+  variants?: { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean; sibyl?: boolean };
   // Per-entry scratch (`variants.trapRules` only): how many traps `enterChamber` RELOADED from the area (a
   // standing trap the party walked back into) rather than drew fresh. Set by `enterChamber`, read inside
   // `applyHazards`, and deleted there — it can survive a Medusa pause but never an action boundary.

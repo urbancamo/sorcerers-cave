@@ -29,6 +29,7 @@ export * from "./strangerGear";
 export * from "./strangerEquip";
 export * from "./special";
 export * from "./sorcerer";
+export * from "./sibyl";
 export * from "./subLocation";
 export * from "./effects";
 export * from "./multi";

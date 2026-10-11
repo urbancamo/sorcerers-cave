@@ -157,7 +157,7 @@ export interface MpGameState {
   // `GameState.variants.extensionKit` (state.ts:185, SC-EXT-1): gates the kit content in
   // buildLargePack/buildSmallPack (SC-EXT-4) and is threaded into every composed seat's
   // `GameState.variants` by `compose()` so solo kit rules see it (SC-EXT-30).
-  variants?: { zombies?: boolean; fogLite?: boolean; concurrent?: boolean; extensionKit?: boolean };
+  variants?: { zombies?: boolean; fogLite?: boolean; concurrent?: boolean; extensionKit?: boolean; sibyl?: boolean };
 }
 
 /** Multiplayer action = any engine action, plus the lobby-level "pass my turn" and the
@@ -209,7 +209,10 @@ function compose(mp: MpGameState, party: PartyState): GameState {
     cryptCoord: mp.cave.cryptCoord,
     // SC-10.5-16: pending Chasm/Whirlpool drops are likewise cave-shared — see CaveState.pendingDrops's doc.
     pendingDrops: mp.cave.pendingDrops,
-    ...(mp.variants?.extensionKit ? { variants: { extensionKit: true } } : {}),
+    // `sibyl` (SC-SIB-1) is threaded the same way as the kit.
+    ...(mp.variants?.extensionKit || mp.variants?.sibyl
+      ? { variants: { ...(mp.variants.extensionKit ? { extensionKit: true } : {}), ...(mp.variants.sibyl ? { sibyl: true } : {}) } }
+      : {}),
   } as unknown as GameState;
 }
 
@@ -276,7 +279,7 @@ const blocked = (mp: MpGameState): { state: MpGameState; events: GameEvent[] } =
  *  them (SC-EXT-4); absent/false leaves both packs byte-identical to today. */
 export function buildMpGame(
   seed: number, seats: { seat: number; color: string; name: string }[],
-  variants?: { zombies?: boolean; fogLite?: boolean; concurrent?: boolean; extensionKit?: boolean },
+  variants?: { zombies?: boolean; fogLite?: boolean; concurrent?: boolean; extensionKit?: boolean; sibyl?: boolean },
 ): MpGameState {
   const large = buildLargePack(seed, variants);
   const small = buildSmallPack(large.seed, variants);
