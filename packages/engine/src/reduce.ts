@@ -229,6 +229,38 @@ function finalizeRound(state: GameState): GameEvent[] {
   return events;
 }
 
+/** Roll one reaction for the strongest stranger — or for `leaderId` when given (the Sibyl, SC-SIB-3) —
+ *  honouring Test Mode's scripted outcome and forced die. Mutates `next` (advances `seed` on a real
+ *  roll; consumes the one-shot Test Mode overrides).
+ * Test Mode (§Test Mode): an armed testNextReaction replaces the die roll outright — the RNG
+ * (state.seed) is never touched, so this doesn't perturb any later, non-overridden roll.
+ * Checks `testMode` explicitly rather than trusting testNextReaction's mere presence —
+ * defense in depth against a hand-crafted state (same reasoning as map.ts's testNextArea
+ * check and chamber.ts's testNextChamber check).
+ * Next Roll Selector (2026-09-11, SC-Test-10): `testNextDie`/`testAllDiceRoll` take over
+ * NEXT, ahead of a genuine roll, when no `testNextReaction` is armed — the forced raw value
+ * still bands through `reactionRoll`'s normal leader-threshold logic (charisma/curse/
+ * natural-1 included), so it may not land on a specific outcome for every leader; a tester
+ * wanting a GUARANTEED outcome regardless of leader still wants `testNextReaction` instead.
+ */
+function rollReaction(next: GameState, leaderId?: number): { outcome: ReturnType<typeof reactionRoll>["outcome"]; roll: number } {
+  if (next.testMode && next.testNextReaction) {
+    const outcome = next.testNextReaction;
+    const roll = forcedReactionRoll(next, outcome, leaderId);
+    delete next.testNextReaction;
+    return { outcome, roll };
+  }
+  if (next.testMode && (next.testNextDie !== undefined || next.testAllDiceRoll !== undefined)) {
+    const forced = next.testNextDie ?? next.testAllDiceRoll!;
+    delete next.testNextDie; // one-shot; testAllDiceRoll stays armed for the rest of the turn
+    const r = reactionRoll(next, forced, leaderId);
+    return { outcome: r.outcome, roll: r.roll };
+  }
+  const r = reactionRoll(next, undefined, leaderId);
+  next.seed = r.seed;
+  return { outcome: r.outcome, roll: r.roll };
+}
+
 /** The party has won: loot if there is any, else on its way. A turncoat Apprentice (the Sorcerer's death breaks
  *  her loyalty) is a stranger again, and the party must deal with her. */
 function afterFight(state: GameState, events: GameEvent[]): void {
@@ -1152,34 +1184,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // outcome qualifies (indifferent, count still <3). `delete`, not `= false` — an always-present
       // key would change every tested state's hash even when closed (SC-EXT-1 byte-identity).
       delete next.indiffLeaveOpen;
-      // Test Mode (§Test Mode): an armed testNextReaction replaces the die roll outright — the RNG
-      // (state.seed) is never touched, so this doesn't perturb any later, non-overridden roll.
-      // Checks `testMode` explicitly rather than trusting testNextReaction's mere presence —
-      // defense in depth against a hand-crafted state (same reasoning as map.ts's testNextArea
-      // check and chamber.ts's testNextChamber check).
-      // Next Roll Selector (2026-09-11, SC-Test-10): `testNextDie`/`testAllDiceRoll` take over
-      // NEXT, ahead of a genuine roll, when no `testNextReaction` is armed — the forced raw value
-      // still bands through `reactionRoll`'s normal leader-threshold logic (charisma/curse/
-      // natural-1 included), so it may not land on a specific outcome for every leader; a tester
-      // wanting a GUARANTEED outcome regardless of leader still wants `testNextReaction` instead.
-      let outcome: ReturnType<typeof reactionRoll>["outcome"];
-      let rollValue: number;
-      if (next.testMode && next.testNextReaction) {
-        outcome = next.testNextReaction;
-        rollValue = forcedReactionRoll(next, outcome);
-        delete next.testNextReaction;
-      } else if (next.testMode && (next.testNextDie !== undefined || next.testAllDiceRoll !== undefined)) {
-        const forced = next.testNextDie ?? next.testAllDiceRoll!;
-        delete next.testNextDie; // one-shot; testAllDiceRoll stays armed for the rest of the turn
-        const roll = reactionRoll(next, forced);
-        outcome = roll.outcome;
-        rollValue = roll.roll;
-      } else {
-        const roll = reactionRoll(next);
-        next.seed = roll.seed;
-        outcome = roll.outcome;
-        rollValue = roll.roll;
-      }
+      const { outcome, roll: rollValue } = rollReaction(next);
       // `certain` (bug fix 2026-08-02): the Unicorn's hostileMax/indiffMax (0/0) make `outcome`
       // "friendly" no matter what the die shows — the roll above still genuinely advanced the seed
       // (or, under Test Mode, still returned a representative display value), but the UI has
