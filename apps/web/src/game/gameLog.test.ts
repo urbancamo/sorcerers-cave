@@ -63,6 +63,27 @@ describe("actionLabel", () => {
   });
 });
 
+describe("standing traps (trapRules)", () => {
+  it("labels the Dwarf's two choices", () => {
+    expect(actionLabel({ type: "avoidTrap" })).toMatch(/guided past/i);
+    expect(actionLabel({ type: "fallThroughTrap" })).toMatch(/fall through/i);
+  });
+
+  it("describes the pause and the three kinds of fall", () => {
+    expect(describeEvent({ type: "trapLooms" })).toMatch(/trap looms/i);
+    expect(describeEvent({ type: "trapSprung", level: 2 })).toBe("trap sprung — fell to level 2");
+    expect(describeEvent({ type: "trapSprung", level: 2, deliberate: true })).toMatch(/on purpose/i);
+    expect(describeEvent({ type: "trapSprung", level: 2, guideLost: true })).toMatch(/dwarf.*gone|guide.*lost/i);
+  });
+
+  it("encodes the pause and the falls for the printer report", () => {
+    expect(eventCode({ type: "trapLooms" })).toBe("TRP LOM");
+    expect(eventCode({ type: "trapSprung", level: 2 })).toBe("TRP L2");
+    expect(eventCode({ type: "trapSprung", level: 2, deliberate: true })).toBe("TRP L2 DEL");
+    expect(eventCode({ type: "trapSprung", level: 2, guideLost: true })).toBe("TRP L2 LST");
+  });
+});
+
 describe("describeEvent", () => {
   it("describes mapped events and falls back to the raw type for anything unmapped", () => {
     expect(describeEvent({ type: "moved", area: 1, level: 1 })).toMatch(/area 1 \(level 1\)/);
@@ -83,8 +104,13 @@ describe("describeEvent", () => {
   // replacement card so a bug report shows exactly what was reshuffled, not just a raw event type.
   it("describes a deadEndCardSwapped event by both card values' tile layout", () => {
     expect(describeEvent({ type: "deadEndCardSwapped", removed: 31, drawn: 175 })).toBe(
-      "dead end rescued — reshuffled chamber · exits N E S W back into the pack, drew the Gateway · exits N E S W · stair up",
+      "dead end rescued — put chamber · exits N E S W back into the pack, drew the Gateway · exits N E S W · stair up",
     );
+  });
+
+  it("names a swap forced by a Sealing Card, and the no-viable-exits warning", () => {
+    expect(describeEvent({ type: "deadEndCardSwapped", removed: 31, drawn: 175, reason: "sealed" })).toMatch(/^sealing card swapped — put /);
+    expect(describeEvent({ type: "deadEndNoViableExits" })).toMatch(/no viable exits/);
   });
 
   it("appends the tile type + layout (exits, stairs, special) to a moved event when the state is given", () => {
@@ -425,5 +451,22 @@ describe("downloadLog", () => {
 
     downloadLog(sampleLog(), "human");
     expect(downloadName).toBe("ABCD-log.txt");
+  });
+});
+
+describe("Sibyl log stamps (SC-SIB-9)", () => {
+  it("formatLog notes the Sibyl was in play, omitted otherwise", () => {
+    const base = { game: { code: "ABCD", seed: 1, picks: [0], color: "yellow", status: "finished", createdAt: 0 }, moves: [] } as unknown as GameLog;
+    expect(formatLog(base)).not.toMatch(/Sibyl/);
+    expect(formatLog({ ...base, game: { ...base.game, variants: { sibyl: true } } })).toMatch(/Sibyl active/);
+  });
+
+  it("describes the Sibyl events", () => {
+    expect(describeEvent({ type: "sibylJoins" })).toMatch(/sibyl joined/i);
+    expect(describeEvent({ type: "sibylDeclines" })).toMatch(/indifferent/i);
+    expect(describeEvent({ type: "sibylExamined" })).toMatch(/consulted/i);
+    expect(eventCode({ type: "sibylJoins" })).toBe("SIB JIN");
+    expect(eventCode({ type: "sibylDeclines" })).toBe("SIB DEC");
+    expect(eventCode({ type: "sibylExamined" })).toBe("SIB EXM");
   });
 });

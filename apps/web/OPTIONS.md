@@ -49,6 +49,49 @@ Any value other than the literal string `1` (including unset) is treated as off.
 affects games *created* after the change — an in-progress game keeps whatever value it was created
 with (`variants` is immutable for the life of a game).
 
+## `SORCERER_TELEPORT_ENABLED`
+
+Turns on **the Sorcerer's terms** (`docs/specs/engine-spec.md` SC-12-21 to SC-12-23): after the party defeats the
+Sorcerer it may spare his life on condition that he teleport the party, and the treasure in the chamber, to any
+area already discovered — a map of the cave is shown to pick from, and an effect plays as the party is carried
+away. Without it (or with it switched off) a defeated Sorcerer is simply slain at the killing blow, as before.
+Sparing him forfeits the 30-point bounty and lifts no curse. Solo games only.
+
+Like `FORCED_REDRAW_ENABLED` it is **never player-selectable and never sent by the client**; it is folded into a
+new game's `variants` in `convex/game.ts`. Off by default, and a game keeps the value it was created with, so games
+already in progress and every recording replay exactly as before.
+
+```bash
+cd apps/web
+npx convex env set SORCERER_TELEPORT_ENABLED 1        # local dev
+npx convex env set SORCERER_TELEPORT_ENABLED 1 --prod # production
+npx convex env remove SORCERER_TELEPORT_ENABLED [--prod]
+```
+
+Any value other than the literal string `1` (including unset) is treated as off.
+
+## `TRAP_RULES_ENABLED`
+
+Turns on **standing traps and the Dwarf's deliberate fall** (spec
+`.agent-os/specs/2026-10-11-dwarf-deliberate-trap-fall/`): a trap "continues in effect" — it stays in its
+chamber after it fires or is avoided, so a later re-entry meets it again — and two traps in one chamber cannot
+be avoided by a Dwarf. Without it (or with it switched off) a trap is one-shot and a Dwarf always avoids it, as
+before. Later tasks in the same spec add the Dwarf's choice popup, surprise for a deliberate fall, and the fall
+when a Dwarf-guided party loses its Dwarf. Solo games only for now.
+
+Like `FORCED_REDRAW_ENABLED` it is **never player-selectable and never sent by the client**; it is folded into a
+new game's `variants` in `convex/game.ts`. Off by default, and a game keeps the value it was created with, so games
+already in progress and every recording replay exactly as before.
+
+```bash
+cd apps/web
+npx convex env set TRAP_RULES_ENABLED 1        # local dev
+npx convex env set TRAP_RULES_ENABLED 1 --prod # production
+npx convex env remove TRAP_RULES_ENABLED [--prod]
+```
+
+Any value other than the literal string `1` (including unset) is treated as off.
+
 ## `TEST_MODE_SECRET`
 
 Gates **Test Mode**, the QA harness for scripting a scenario (forced draws, forced reactions, forced

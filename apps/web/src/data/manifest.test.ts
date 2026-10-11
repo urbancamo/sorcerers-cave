@@ -159,3 +159,13 @@ describe("real manifest ↔ engine coverage (D-1 de-risk)", () => {
     expect([...unresolved], JSON.stringify([...unresolved])).toEqual([]);
   });
 });
+
+// The REAL manifest (docs/assets/manifest.json, mirrored into public/assets by `pnpm sync-assets`): a
+// card with no entityId resolves to no art, and the renderer then draws a blank placeholder.
+describe("real asset manifest", () => {
+  it("gives the Sibyl her card art (creature 21)", () => {
+    const real = JSON.parse(readFileSync(resolve(process.cwd(), "../../docs/assets/manifest.json"), "utf8")) as AssetManifest;
+    const { cards } = parseManifest(real);
+    expect(resolveCard("creature", 21, cards)?.file).toBe("/assets/cards/small-card-s07-7.png");
+  });
+});

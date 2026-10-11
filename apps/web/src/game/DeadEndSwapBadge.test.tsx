@@ -3,7 +3,9 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import type { GameEvent } from "@sorcerers-cave/engine";
 import { DeadEndSwapBadge, announceDeadEndSwaps } from "./DeadEndSwapBadge";
 
-const swap = (removed: number, drawn: number) => ({ type: "deadEndCardSwapped", removed, drawn }) as GameEvent;
+const swap = (removed: number, drawn: number, reason?: "deadEnd" | "sealed") =>
+  ({ type: "deadEndCardSwapped", removed, drawn, ...(reason ? { reason } : {}) }) as GameEvent;
+const nvx = () => ({ type: "deadEndNoViableExits" }) as GameEvent;
 
 describe("DeadEndSwapBadge", () => {
   afterEach(() => vi.useRealTimers());
@@ -35,5 +37,26 @@ describe("DeadEndSwapBadge", () => {
     act(() => announceDeadEndSwaps([swap(31, 175)]));
     act(() => announceDeadEndSwaps([swap(10, 20), swap(20, 30)]));
     expect(screen.getByTestId("dead-end-swap-badge").textContent).toMatch(/×2/);
+  });
+
+  it("labels a dead-end rescue and a sealing-card swap differently; a missing reason means dead end", () => {
+    render(<DeadEndSwapBadge />);
+    act(() => announceDeadEndSwaps([swap(31, 175, "sealed"), swap(10, 20, "deadEnd"), swap(5, 6)]));
+    const rows = screen.getByTestId("dead-end-swap-badge").textContent ?? "";
+    expect(rows.match(/Sealing card:/g)).toHaveLength(1);
+    expect(rows.match(/Dead end:/g)).toHaveLength(2);
+    expect(rows).toMatch(/back in pack → drew/);
+  });
+
+  it("shows the no-viable-exits warning, alone or with swaps", () => {
+    render(<DeadEndSwapBadge />);
+    act(() => announceDeadEndSwaps([nvx()]));
+    let text = screen.getByTestId("dead-end-swap-badge").textContent ?? "";
+    expect(text).toMatch(/no viable exits/i);
+    expect(text).not.toMatch(/card swapped/i);
+    act(() => announceDeadEndSwaps([swap(1, 2, "deadEnd"), nvx()]));
+    text = screen.getByTestId("dead-end-swap-badge").textContent ?? "";
+    expect(text).toMatch(/card swapped/i);
+    expect(text).toMatch(/can no longer explore/i);
   });
 });

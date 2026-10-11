@@ -265,3 +265,25 @@ describe("EncounterPanel", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "proceed" });
   });
 });
+
+describe("EncounterPanel — the Sibyl (SC-SIB-4)", () => {
+  const sibylEncounter = (over: Partial<GameState> = {}): GameState =>
+    ({ ...newGame(1, [5, 6], { sibyl: true }), phase: "encounter", strangers: [], lulled: [21], ...over });
+
+  it("names her when she is the one being tested, with only Withdraw and Test on offer", () => {
+    render(<EncounterPanel state={sibylEncounter()} dispatch={() => {}} />);
+    expect(screen.getByTestId("sibyl-waits")).toHaveTextContent(/the sibyl/i);
+    expect(screen.getByRole("button", { name: /test reaction/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /attack/i })).toBeNull();
+  });
+
+  it("does not name her while real strangers are still to be dealt with first", () => {
+    render(<EncounterPanel state={sibylEncounter({ strangers: [5] })} dispatch={() => {}} />);
+    expect(screen.queryByTestId("sibyl-waits")).toBeNull();
+  });
+
+  it("does not name her once she has been met", () => {
+    render(<EncounterPanel state={sibylEncounter({ sibylMet: true, strangers: [5] })} dispatch={() => {}} />);
+    expect(screen.queryByTestId("sibyl-waits")).toBeNull();
+  });
+});

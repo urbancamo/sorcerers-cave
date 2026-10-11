@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import {
-  ALL_CREATURES, ALL_TREASURES, ALL_HAZARD_NAMES,
+  ALL_CREATURES, ALL_TREASURES, ALL_HAZARD_NAMES, C_SIBYL,
   CREATURES, TREASURES, HAZARD_NAMES,
   SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_TOMB, SPECIAL_GREAT_HALL,
   SPECIAL_CHASM, SPECIAL_BELL_ROPE, SPECIAL_LAIR, SPECIAL_WHIRLPOOL, SPECIAL_GALLERY, SPECIAL_WELL,
@@ -78,12 +78,12 @@ const KIT_ONLY_IDS = new Set([SPECIAL_CHASM, SPECIAL_BELL_ROPE, SPECIAL_LAIR, SP
 // special for a vertical move — e.g. to confirm the Whirlpool's own "no stairway may lead here"
 // block (SC-EXT-6) actually fires rather than silently connecting.
 const DIR_OPTIONS = [
-  { dir: DIR_N, label: "North" },
-  { dir: DIR_E, label: "East" },
-  { dir: DIR_S, label: "South" },
-  { dir: DIR_W, label: "West" },
-  { dir: DIR_UP, label: "Up" },
-  { dir: DIR_DOWN, label: "Down" },
+  { dir: DIR_N, label: "North", abbr: "N" },
+  { dir: DIR_E, label: "East", abbr: "E" },
+  { dir: DIR_S, label: "South", abbr: "S" },
+  { dir: DIR_W, label: "West", abbr: "W" },
+  { dir: DIR_UP, label: "Up", abbr: "U" },
+  { dir: DIR_DOWN, label: "Down", abbr: "D" },
 ];
 const DIR_LABEL = new Map(DIR_OPTIONS.map((o) => [o.dir, o.label]));
 
@@ -173,7 +173,9 @@ export function TestControlsPanel({ state, dispatch, onSave }: { state: GameStat
   const kitOn = !!state.variants?.extensionKit;
   const specialAreaOptions = kitOn ? SPECIAL_AREA_OPTIONS : SPECIAL_AREA_OPTIONS.filter((o) => !KIT_ONLY_IDS.has(o.id));
   const plainTileOptions = kitOn ? PLAIN_TILE_OPTIONS : PLAIN_TILE_OPTIONS.filter((o) => !KIT_ONLY_IDS.has(o.id));
-  const creatureOptions = kitOn ? ALL_CREATURES : ALL_CREATURES.filter((c) => c.id < CREATURES.length);
+  // The Sibyl (SC-SIB-1) is offered as a scripted stranger only when this game has her variant on.
+  const sibylOn = !!state.variants?.sibyl;
+  const creatureOptions = ALL_CREATURES.filter((c) => (c.id < CREATURES.length ? true : c.id === C_SIBYL ? sibylOn : kitOn));
   const treasureOptions = kitOn ? ALL_TREASURES : ALL_TREASURES.filter((t) => t.id < TREASURES.length);
   const hazardOptions = kitOn ? ALL_HAZARD_NAMES : ALL_HAZARD_NAMES.slice(0, HAZARD_NAMES.length);
 
@@ -219,12 +221,21 @@ export function TestControlsPanel({ state, dispatch, onSave }: { state: GameStat
 
       <div className="scv-tc-section">
         <div className="scv-tc-row">
-          <label>
-            Next area — direction
-            <select aria-label="Next area — direction" value={dir} onChange={(e) => setDir(Number(e.target.value))}>
-              {DIR_OPTIONS.map((o) => <option key={o.dir} value={o.dir}>{o.label}</option>)}
-            </select>
-          </label>
+          <fieldset className="scv-tc-dir">
+            <legend>Next area — direction</legend>
+            {DIR_OPTIONS.map((o) => (
+              <label key={o.dir}
+                     title={o.label}>
+                <input type="radio"
+                       name="next-area-direction"
+                       aria-label={o.label}
+                       value={o.dir}
+                       checked={dir === o.dir}
+                       onChange={() => setDir(o.dir)} />
+                {o.abbr}
+              </label>
+            ))}
+          </fieldset>
           <label>
             Next area — special
             <select aria-label="Next area — special" value={special} onChange={(e) => setSpecial(Number(e.target.value))}>

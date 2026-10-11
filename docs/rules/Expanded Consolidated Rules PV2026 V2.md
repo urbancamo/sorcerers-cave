@@ -4,6 +4,12 @@ Source of changes: `Consolidated-Rules-20260925-2.pdf` (Peter Vodden, PDF dated 
 previous text of this file (a copy of `Expanded Consolidated Rules PV2026.md`). The comparison covered the text only;
 the figures and page images in the PDF were not compared.
 
+## 2026-10-11 — Dwarfs and traps (clarifications only)
+
+- **Trap:** a party with a dwarf may choose to fall down a trap on purpose; a deliberate fall (including a knowing
+  return by a trap, even to a chamber the party retreated from) gains the advantage of surprise. See the clarifications
+  under Trap. No change to the original wording.
+
 ## 2026-10-04 — Aligned with Consolidated-Rules-20260925-2
 
 **Rule content**
@@ -545,6 +551,16 @@ turn in the area below, drawing more cards if this is a newly discovered chamber
 ignore a trap, but not two traps drawn in the same chamber. If a party guided by a dwarf becomes involved in a fight in
 a chamber where there is a trap, and the dwarf is killed, the party falls down the trap as soon as it tries to leave the
 chamber.
+
+*[Clarification, not in the original text: a party which includes a dwarf may choose to fall down the trap on purpose
+instead of being guided past it. A party falls "deliberately" (see Surprise) when it makes that choice, or when it goes
+into a chamber it already knows holds a trap. That includes a party which earlier retreated from the strangers below: if
+it returns to them by deliberately using a trap it gains the advantage of surprise. Confirmed by Mark Wickens,
+11-OCT-2026.]*
+
+*[Clarification, not in the original text: "the dwarf is killed" is played as the dwarf no longer being able to guide the
+party, however that came about (killed, turned to stone, deserted or otherwise gone). The fall that follows is not
+deliberate, so it gains no advantage of surprise. Played this way in the online game; not yet confirmed.]*
 
 ## Treasure Cards
 

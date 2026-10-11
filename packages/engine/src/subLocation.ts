@@ -1,4 +1,4 @@
-import { decodeArea } from "./decode";
+import { decodeArea, decodeOpen } from "./decode";
 import { DIR_N, DIR_E, DIR_S, DIR_W, unpackCoord } from "./coords";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_WHIRLPOOL, SPECIAL_CHASM } from "./data/areaCards";
 import type { GameState } from "./state";
@@ -80,7 +80,7 @@ function arrivedVertically(state: GameState): boolean {
 export function getSubLocation(state: GameState): SubLocation {
   const area = state.areas[state.partyArea];
   if (!area) return { at: "centre" };
-  const dec = decodeArea(area.card);
+  const dec = decodeOpen(area);
   if (SUB_LOCATION_SPECIALS.has(dec.special)) {
     if (state.subLocation?.area === state.partyArea && state.subLocation.at === "island") return { at: "island" };
     if (arrivedVertically(state)) return { at: "island" };

@@ -8,6 +8,9 @@ import {
 } from "@sorcerers-cave/engine";
 import { TestControlsPanel } from "./TestControlsPanel";
 
+// Radio labels in the panel's direction group, keyed by engine direction constant.
+const DIR_NAME: Record<number, string> = { [DIR_N]: "North", [DIR_UP]: "Up", [DIR_DOWN]: "Down" };
+
 const testState = (over: Partial<GameState> = {}): GameState =>
   ({ ...newGame(1, [0], undefined, true), ...over });
 const kitOnState = (over: Partial<GameState> = {}): GameState =>
@@ -88,7 +91,7 @@ describe("TestControlsPanel", () => {
   it("queues testPlaceArea with the chosen direction and special (kit-on game)", () => {
     const dispatch = vi.fn();
     render(<TestControlsPanel state={kitOnState()} dispatch={dispatch} />);
-    fireEvent.change(screen.getByLabelText(/next area — direction/i), { target: { value: String(DIR_N) } });
+    fireEvent.click(screen.getByRole("radio", { name: DIR_NAME[DIR_N] }));
     fireEvent.change(screen.getByLabelText(/next area — special/i), { target: { value: String(SPECIAL_WHIRLPOOL) } });
     fireEvent.click(screen.getByRole("button", { name: /queue next area/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "testPlaceArea", dir: DIR_N, special: SPECIAL_WHIRLPOOL });
@@ -99,15 +102,14 @@ describe("TestControlsPanel", () => {
   // no-stairway-connects block (SC-EXT-6) fires instead of silently connecting.
   it("offers Up/Down direction options", () => {
     render(<TestControlsPanel state={kitOnState()} dispatch={() => {}} />);
-    const dirSelect = screen.getByLabelText(/next area — direction/i);
-    expect(dirSelect.querySelector(`option[value="${DIR_UP}"]`)).not.toBeNull();
-    expect(dirSelect.querySelector(`option[value="${DIR_DOWN}"]`)).not.toBeNull();
+    expect(screen.getByRole("radio", { name: "Up" })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: "Down" })).toBeTruthy();
   });
 
   it("queues testPlaceArea with a vertical direction", () => {
     const dispatch = vi.fn();
     render(<TestControlsPanel state={kitOnState()} dispatch={dispatch} />);
-    fireEvent.change(screen.getByLabelText(/next area — direction/i), { target: { value: String(DIR_DOWN) } });
+    fireEvent.click(screen.getByRole("radio", { name: DIR_NAME[DIR_DOWN] }));
     fireEvent.change(screen.getByLabelText(/next area — special/i), { target: { value: String(SPECIAL_WHIRLPOOL) } });
     fireEvent.click(screen.getByRole("button", { name: /queue next area/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "testPlaceArea", dir: DIR_DOWN, special: SPECIAL_WHIRLPOOL });
@@ -116,7 +118,7 @@ describe("TestControlsPanel", () => {
   it("queues testPlaceArea with a base special on a kit-off game", () => {
     const dispatch = vi.fn();
     render(<TestControlsPanel state={testState()} dispatch={dispatch} />);
-    fireEvent.change(screen.getByLabelText(/next area — direction/i), { target: { value: String(DIR_N) } });
+    fireEvent.click(screen.getByRole("radio", { name: DIR_NAME[DIR_N] }));
     fireEvent.change(screen.getByLabelText(/next area — special/i), { target: { value: String(SPECIAL_DEEP_POOL) } });
     fireEvent.click(screen.getByRole("button", { name: /queue next area/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "testPlaceArea", dir: DIR_N, special: SPECIAL_DEEP_POOL });
@@ -141,7 +143,7 @@ describe("TestControlsPanel", () => {
     const specialSelect = screen.getByLabelText(/next area — special/i);
     expect(specialSelect.querySelector(`option[value="${SPECIAL_WHIRLPOOL}"]`)).not.toBeNull();
     const creatureSelect = screen.getByLabelText(/add a creature/i);
-    expect(creatureSelect.querySelectorAll("option")).toHaveLength(ALL_CREATURES.length + 1);
+    expect(creatureSelect.querySelectorAll("option")).toHaveLength(ALL_CREATURES.length); // every creature but the Sibyl (her own variant), plus the placeholder
     const treasureSelect = screen.getByLabelText(/add a treasure/i);
     expect(treasureSelect.querySelectorAll("option")).toHaveLength(ALL_TREASURES.length + 1);
     const hazardSelect = screen.getByLabelText(/add a hazard/i);
@@ -153,7 +155,7 @@ describe("TestControlsPanel", () => {
   it("queues testPlaceArea with a plain chamber tile", () => {
     const dispatch = vi.fn();
     render(<TestControlsPanel state={testState()} dispatch={dispatch} />);
-    fireEvent.change(screen.getByLabelText(/next area — direction/i), { target: { value: String(DIR_N) } });
+    fireEvent.click(screen.getByRole("radio", { name: DIR_NAME[DIR_N] }));
     fireEvent.change(screen.getByLabelText(/next area — special/i), { target: { value: String(TILE_CHAMBER) } });
     fireEvent.click(screen.getByRole("button", { name: /queue next area/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "testPlaceArea", dir: DIR_N, special: TILE_CHAMBER });
@@ -340,5 +342,19 @@ describe("TestControlsPanel", () => {
     fireEvent.pointerDown(minBtn, { clientX: 100, clientY: 100, pointerId: 1 });
     fireEvent.pointerMove(handle, { clientX: 150, clientY: 130, pointerId: 1 });
     expect(panel.style.left).toBe(""); // never armed — the button's pointerdown never reached startDrag
+  });
+});
+
+describe("TestControlsPanel — the Sibyl (SC-SIB-1)", () => {
+  it("offers the Sibyl as a scripted stranger only when the Sibyl variant is on", () => {
+    const creatureNames = (state: GameState) => {
+      const { unmount } = render(<TestControlsPanel state={state} dispatch={() => {}} />);
+      const names = Array.from((screen.getByLabelText("Add a creature") as HTMLSelectElement).options).map((o) => o.textContent);
+      unmount();
+      return names;
+    };
+    expect(creatureNames(newGame(1, [0], { sibyl: true }, true))).toContain("Sibyl");
+    expect(creatureNames(testState())).not.toContain("Sibyl");
+    expect(creatureNames(kitOnState())).not.toContain("Sibyl"); // the kit alone does not bring her
   });
 });

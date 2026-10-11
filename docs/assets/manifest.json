@@ -956,7 +956,7 @@
     "cards": {
       "dir": "cards",
       "source": "base",
-      "description": "Small cards: creatures, treasures, artifacts, hazards (63x88mm), upright portrait. Each card identified by its yellow name banner: name + category (creature/treasure/hazard) + engine entityId (null for the optional Sybil variant). 38 creatures + 27 treasures + 7 hazards.",
+      "description": "Small cards: creatures, treasures, artifacts, hazards (63x88mm), upright portrait. Each card identified by its yellow name banner: name + category (creature/treasure/hazard) + engine entityId (21 for the optional Sibyl variant). 38 creatures + 27 treasures + 7 hazards.",
       "count": 72,
       "items": [
         {
@@ -1395,9 +1395,9 @@
           "file": "small-card-s07-7.png",
           "w": 700,
           "h": 1000,
-          "name": "Sybil",
+          "name": "Sibyl",
           "category": "creature",
-          "entityId": null
+          "entityId": 21
         },
         {
           "file": "small-card-s07-8.png",

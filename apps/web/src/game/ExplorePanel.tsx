@@ -10,6 +10,7 @@ import { memberLabel } from "./memberLabels";
 import { ConfirmButton, ConfirmPicker } from "./ConfirmButton";
 import { holyWaterTargetName } from "./holyWaterLabel";
 import { uncarryableNotes } from "./uncarryableNotes";
+import { SibylLook } from "./SibylLook";
 
 // Explore-phase actions that aren't movement (movement lives on the 3D exit markers / keys, and
 // the Cave exit on the up-stair marker). These need a real menu — this is it.
@@ -82,6 +83,8 @@ export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: 
   // sitting at the party's current sub-location — no risk, so a plain button like `attack` rather
   // than a `jumpToIsland`-style blocking confirm.
   const reclaimTreasure = all.find((a): a is Extract<GameAction, { type: "reclaimTreasure" }> => a.type === "reclaimTreasure") ?? null;
+  // The Sibyl's free look (SC-SIB-8): the pack top and every face-down tile, offered while she travels with us.
+  const sibylLooks = all.filter((a): a is Extract<GameAction, { type: "examineArea" }> => a.type === "examineArea");
   const actions = all.filter(isExploreAction).filter((a) => !(a.type === "useArtifact" && a.artifact === 15));
   const hasKitActions = !!descendChasm || !!drawFromWell || !!enterCrypt || pullBellRope.length > 0 || useElixir.length > 0 || !!jumpToIsland;
   // Uncarryable treasure parked on this tile (design 2026-07-28): pickup auto-skips when nothing
@@ -91,7 +94,7 @@ export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: 
     state,
     state.areas[state.partyArea]!.contents.filter((c) => c >= 200 && c < 300).map((c) => c - 200),
   );
-  if (actions.length === 0 && !attack && !hasKitActions && !reclaimTreasure && notes.length === 0) return null;
+  if (actions.length === 0 && !attack && !hasKitActions && !reclaimTreasure && notes.length === 0 && sibylLooks.length === 0) return null;
 
   // Group artifact uses by artifact; openChest (and any single-option artifact) stays a plain button.
   const artByArtifact = new Map<number, UseArtifact[]>();
@@ -125,6 +128,8 @@ export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: 
           <button className="scv-enc-btn" onClick={() => dispatch(reclaimTreasure)}>Reclaim the sunk treasure</button>
         </div>
       )}
+
+      {sibylLooks.length > 0 && <SibylLook state={state} actions={sibylLooks} dispatch={dispatch} />}
 
       {dropdowns.length > 0 && (
         <div className="scv-enc-assign">

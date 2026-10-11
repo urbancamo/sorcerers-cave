@@ -4,7 +4,7 @@ import { legalActions } from "./selectors";
 import { makeState } from "./testkit";
 import { rollDie } from "./rng";
 import { packCoord, unpackCoord } from "./coords";
-import { decodeArea } from "./decode";
+import { decodeArea, decodeOpen } from "./decode";
 import { SPECIAL_CHASM, SPECIAL_WHIRLPOOL } from "./data/areaCards";
 import { GS_PLAYING, type GameState, type PartyMember } from "./state";
 
@@ -355,7 +355,7 @@ describe("Whirlpool revision (2026-08-08): no stairway may lead here", () => {
     const { state, events } = reduce(s, { type: "move", dir: DIR_DOWN });
     expect(events).toContainEqual({ type: "deadEnd", dir: DIR_DOWN });
     expect(state.partyArea).toBe(0); // never moved
-    expect(decodeArea(state.areas[0]!.card).stairDown).toBe(false); // pruned — no longer offered
+    expect(decodeOpen(state.areas[0]!).stairDown).toBe(false); // pruned — no longer offered
   });
 
   it("a vertical move that would draw the Whirlpool card never connects either — placed face-down", () => {
@@ -368,7 +368,7 @@ describe("Whirlpool revision (2026-08-08): no stairway may lead here", () => {
     const { state, events } = reduce(s, { type: "move", dir: DIR_DOWN });
     expect(events).toContainEqual({ type: "deadEnd", dir: DIR_DOWN });
     expect(state.partyArea).toBe(0);
-    expect(decodeArea(state.areas[0]!.card).stairDown).toBe(false); // pruned
+    expect(decodeOpen(state.areas[0]!).stairDown).toBe(false); // pruned
     expect(state.areas).toHaveLength(2); // the Whirlpool card WAS drawn and placed — just face-down
     const placed = state.areas[1]!;
     expect(placed.faceUp).toBe(false);
@@ -385,7 +385,7 @@ describe("Whirlpool revision (2026-08-08): no stairway may lead here", () => {
     const { state, events } = reduce(s, { type: "move", dir: DIR_DOWN });
     expect(events).toContainEqual({ type: "deadEnd", dir: DIR_DOWN }); // blocked exactly like the ordinary draw
     expect(state.partyArea).toBe(0); // never moved
-    expect(decodeArea(state.areas[0]!.card).stairDown).toBe(false); // pruned
+    expect(decodeOpen(state.areas[0]!).stairDown).toBe(false); // pruned
     expect(state.areas).toHaveLength(2); // the Whirlpool WAS placed — just face-down, same as an un-forced draw
     expect(state.areas[1]!.faceUp).toBe(false);
     expect(decodeArea(state.areas[1]!.card).special).toBe(SPECIAL_WHIRLPOOL);

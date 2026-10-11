@@ -40,11 +40,11 @@ beforeEach(() => {
   mutationSpy.mockClear();
 });
 
-test("the host sees three variant toggles — Zombies is withdrawn from the UI (MSW, 2026-07-28)", () => {
+test("the host sees four variant toggles — Zombies is withdrawn from the UI (MSW, 2026-07-28)", () => {
   (useQuery as Mock).mockReturnValue(lobbyFixture());
   render(<MultiplayerLobby code="ABCD" onExit={() => {}} />);
   const boxes = screen.getAllByRole("checkbox");
-  expect(boxes).toHaveLength(3); // fog of war, concurrent exploration, extension kit
+  expect(boxes).toHaveLength(4); // fog of war, concurrent exploration, extension kit, Sibyl
   expect(screen.queryByLabelText(/Zombies/)).toBeNull(); // implementation being rethought
   expect(screen.getByLabelText(/Fog of war/)).not.toBeChecked();
 });
@@ -107,4 +107,20 @@ test("the extension kit toggle is locked (gone, with the rest of the lobby) once
   // Once started, the lobby hands off to MultiplayerGame (mocked to null) — no toggle to touch.
   expect(screen.queryByLabelText(/Extension kit/)).toBeNull();
   expect(screen.queryAllByRole("checkbox")).toHaveLength(0);
+});
+
+test("host can switch the Sibyl on; siblings in the merged variants object are preserved", () => {
+  (useQuery as Mock).mockReturnValue(lobbyFixture({ isHost: true, variants: { extensionKit: true } }));
+  render(<MultiplayerLobby code="ABCD" onExit={() => {}} />);
+  const box = screen.getByLabelText(/Sibyl/);
+  expect(box).not.toBeChecked();
+  fireEvent.click(box);
+  expect(mutationSpy).toHaveBeenCalledWith({ gameId: "g1", variants: { extensionKit: true, sibyl: true } });
+});
+
+test("non-host sees the Sibyl as a read-only chip", () => {
+  (useQuery as Mock).mockReturnValue(lobbyFixture({ isHost: false, youSeat: 1, variants: { sibyl: true } }));
+  render(<MultiplayerLobby code="ABCD" onExit={() => {}} />);
+  expect(screen.queryByLabelText(/Sibyl/)).toBeNull();
+  expect(screen.getByText(/Sibyl ✓/)).toBeTruthy();
 });

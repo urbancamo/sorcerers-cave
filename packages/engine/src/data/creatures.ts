@@ -57,10 +57,18 @@ export const KIT_CREATURES: readonly Creature[] = [
   { id: 20, name: "Wolf", fs: 2, mp: 0, carry: 0, cost: 1, points: 2, flags: FLAG_INHUMAN, hostileMax: 4, indiffMax: 5, leaderPri: 2 },
 ];
 
-/** Combined creature lookup, indexed by absolute id 0-20 (base ids at their own index, kit ids
- *  continuing directly after). Base game code paths keep indexing `CREATURES` directly; this
- *  exists for the variant-aware helpers below and for later kit tasks (SC-EXT-2). */
-export const ALL_CREATURES: readonly Creature[] = [...CREATURES, ...KIT_CREATURES];
+// The optional Sibyl card (rules §OPTIONS AND VARIATIONS, SC-SIB-1), id 21. A SEPARATE table for the
+// same reason as `KIT_CREATURES`: `CREATURES` is pinned verbatim by `data.test.ts`. The rules give her
+// no stats, so all are zero — she never fights, carries nothing and scores nothing. `cost: null` keeps
+// her out of party selection. Reaction band (brief): 1-4 indifferent, 5-6 friendly, never hostile.
+export const SIBYL_CREATURES: readonly Creature[] = [
+  { id: 21, name: "Sibyl", fs: 0, mp: 0, carry: 0, cost: null, points: 0, flags: 0, hostileMax: 0, indiffMax: 4, leaderPri: 0 },
+];
+
+/** Combined creature lookup, indexed by absolute id (base 0-13, kit 14-20, Sibyl 21). Base game code
+ *  paths keep indexing `CREATURES` directly; this exists for the variant-aware helpers below and for
+ *  code that needs to resolve any creature id (SC-EXT-2, SC-SIB-1). */
+export const ALL_CREATURES: readonly Creature[] = [...CREATURES, ...KIT_CREATURES, ...SIBYL_CREATURES];
 
 // Kit-on-only party-selection additions (official SELECTION TABLE). Stock: Witch 3, Scholar 1,
 // Thief 1, Lion 1, Wolf 1; the kit's duplicate Woman/Dwarf copies raise base stock 3 → 4. Base

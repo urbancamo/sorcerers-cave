@@ -1,3 +1,4 @@
+import { openCard } from "./decode";
 import { describe, it, expect } from "vitest";
 import { newGame, reduce, CREATURES } from "./index";
 import { legalActions } from "./selectors";
@@ -110,7 +111,7 @@ function lcg(seed: number): () => number {
 
 // --- Vector text rendering (grammar documented in docs/specs/conformance/README.md) --------------
 
-const PHASE_CODE: Record<string, string> = { explore: "EXP", medusa: "MDS", encounter: "ENC", fight: "FGT", pickup: "PKP", gameOver: "END" };
+const PHASE_CODE: Record<string, string> = { explore: "EXP", medusa: "MDS", trap: "TRP", encounter: "ENC", fight: "FGT", pickup: "PKP", sorcerer: "SOR", gameOver: "END" };
 const list = (xs: readonly number[] | undefined): string => (xs && xs.length ? xs.join(",") : "-");
 // Precise Locations (§10.5): `PlacedArea.sunkTreasure` buckets — `<at>:<items>` per non-empty
 // bucket, `;`-joined, `-` when there are none. `at` is `island` or DIR_N..DIR_W's own 1-4 (same
@@ -149,6 +150,10 @@ function encodeAction(a: GameAction): string {
     // `enterCrypt` — see docs/specs/conformance/README.md's `-kit` row) — `pullBellRope`/`enterCrypt`
     // stay exhaustiveness-only, same as all four are for every OTHER (kit-off) run.
     case "descendChasm": return "DESCENDCHASM";
+    case "spareSorcerer": return `SPARESORCERER ${a.area}`;
+    case "slaySorcerer": return "SLAYSORCERER";
+    case "avoidTrap": return "AVOIDTRAP";
+    case "fallThroughTrap": return "FALLTRAP";
     case "drawFromWell": return "DRAWFROMWELL";
     case "pullBellRope": return `PULLBELLROPE ${a.mi}`;
     case "enterCrypt": return "ENTERCRYPT";
@@ -161,6 +166,9 @@ function encodeAction(a: GameAction): string {
     // happens to reach a state where it's offered (confirmed: adding it to legalActions changed no
     // existing fixture), but it must stay exhaustive here regardless.
     case "reclaimTreasure": return "RECLAIMTREASURE";
+    // The Sibyl (SC-SIB-8): the free look. Offered only to a party holding the Sibyl, which no
+    // committed vector's run ever does (the variant is off in all of them) — exhaustiveness only.
+    case "examineArea": return a.area === undefined ? "EXAMINE" : `EXAMINE ${a.area}`;
     // Test Mode (§Test Mode): QA-only actions, never offered via `legalActions` and so never chosen
     // by any policy below (base/slayer/artifacts/kit) — kept here purely so this switch stays
     // exhaustive over the full GameAction union; no committed vector file will ever contain them.
@@ -282,7 +290,7 @@ function buildVector(seed: number, picks: number[], policy: Policy, maxSteps: nu
   );
   state.areas.forEach((a, i) =>
     lines.push(
-      `AREA ${i} CARD ${a.card} COORD ${a.coord} FU ${a.faceUp ? 1 : 0} VIS ${a.visited ? 1 : 0} FLG ${a.flags} MIR ${a.mirroredStairs ?? 0} SD ${a.secretDoor ?? "-"} CONT ${list(a.contents)} DROP ${list(a.dropped)} SUNK ${sunkStr(a.sunkTreasure)}`,
+      `AREA ${i} CARD ${openCard(a)} COORD ${a.coord} FU ${a.faceUp ? 1 : 0} VIS ${a.visited ? 1 : 0} FLG ${a.flags} MIR ${a.mirroredStairs ?? 0} SD ${a.secretDoor ?? "-"} CONT ${list(a.contents)} DROP ${list(a.dropped)} SUNK ${sunkStr(a.sunkTreasure)}`,
     ),
   );
   lines.push("END");

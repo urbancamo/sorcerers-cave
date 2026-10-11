@@ -44,10 +44,10 @@ END
 ```
 
 Checkpoint fields: `TRN` turn · `LVL` level · `ARA` partyArea index · `PH` phase
-(`EXP`=explore `MDS`=medusa `ENC`=encounter `FGT`=fight `PKP`=pickup `END`=gameOver) · `GS` game state
+(`EXP`=explore `MDS`=medusa `TRP`=trap `ENC`=encounter `FGT`=fight `PKP`=pickup `SOR`=sorcerer `END`=gameOver) · `GS` game state
 (0 playing, 1 escaped, 2 dead, 3 quit) · `SEED` the LCG cursor (`state.seed`) ·
 `LARGEIDX`/`SMALLIDX` deck cursors. `EV` lists the emitted event types in order (`-` = none).
-`<list>` is comma-separated integers, `-` when empty. PARTY: `CID` creatureId, `ST` status
+`<list>` is comma-separated integers, `-` when empty. `AREA … CARD` is the area's OPEN doorways (`card` less any `deadDoors` a failed move closed, SC-6.1-10), so a closed doorway reads as absent. PARTY: `CID` creatureId, `ST` status
 (0 original, 1 ally, 2 stone, 3 dead), `DK` dragonKills, `CARRY` treasure ids held, `BORNE` the
 borne subset. AREA: `CARD` area-card value, `COORD` packed `level*10000+y*100+x`, `FU` faceUp,
 `VIS` visited, `FLG` flags (4 = earthquake-destroyed), `MIR` mirroredStairs bits, `SD` secret-door
@@ -77,6 +77,10 @@ the moment the action is applied**. Directions: 1 N, 2 E, 3 S, 4 W, 5 up, 6 down
 | `USE <artifact>[ T<target>][ D<dir>]` | useArtifact (`USE 5` with no `T` = the Medusa-pause throw; kit artifacts 15 Elixir/16 Holy Water/19 Scroll add their own target ranges, SC-EXT-22/24/25) |
 | `FIGHT <match>[;<match>…]` | resolveRound; match = `<front>[+<front>][\|<backer>[+…]]><stranger>[+<stranger>]`; `FIGHT -` = the forced-Spectre-or-Demon empty plan (SC-9.4-6, SC-EXT-21) |
 | `DESCENDCHASM` | descendChasm — kit-only, Chasm tile (SC-EXT-5) |
+| `SPARESORCERER <area>` | spareSorcerer — only with `variants.sorcererTeleport`, `sorcerer` phase (SC-12-21) |
+| `AVOIDTRAP` | avoidTrap — only with `variants.trapRules`, `trap` phase: the Dwarf guides the party past the trap |
+| `FALLTRAP` | fallThroughTrap — only with `variants.trapRules`, `trap` phase: the party falls through the trap on purpose |
+| `SLAYSORCERER` | slaySorcerer — only with `variants.sorcererTeleport`, `sorcerer` phase (SC-12-21) |
 | `DRAWFROMWELL` | drawFromWell — kit-only, Well tile (SC-EXT-7) |
 | `PULLBELLROPE <mi>` | pullBellRope: living member `mi` pulls it — kit-only, Bell Rope tile (SC-EXT-8) |
 | `ENTERCRYPT` | enterCrypt — kit-only, on the area a parked Crypt/Gems names (SC-EXT-13) |
@@ -94,7 +98,7 @@ generator; the final TAGGED file is the extension kit's own vector:
 | `-escape` (seed 225) | `exitCave` → `gameOver(ESCAPED)` with a laden party — valid final score 131 (§12) |
 | `-sorcerer` (seed 174) | `sorcererSlain` (+ the `SORCKILLED 1` curse-lift flag) before a party wipe |
 | `-artifacts` (seeds 257, 1237, 2678, 2355) | together, every usable artifact — Carpet 4, Lotus 5, Balm 6, Potion 8, Staff 9, Flute 12 (`USE` actions + effects) — plus the Lost-Ruby statue wrestle (×3) and the Treasure Chest (`OPENCHEST`) |
-| `-chest2` (seed 53) | `openChest` → a Spectre attacks |
+| `-chest2` (seed 53) | `openChest` → a Spectre appears and the Eye of God annihilates it (SC-11-41; re-seeded 2026-10-11 — it used to pin the bug where the chest's Spectre ignored the Eye and slew its holder) |
 | `-ring` (seed 30) | the Ring shrugs off a killing blow (`deathPrevented`) |
 | `-reclaim` (seed 148) | Deep-Pool dropped treasure reclaimed by a Giant |
 | `-medusaavert` (seed 330) | a staff-Wizard averts Medusa (`medusaAverted`) |

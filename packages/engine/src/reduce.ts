@@ -1,21 +1,25 @@
 import { GS_PLAYING, GS_QUIT, GS_ESCAPED, GS_DEAD, AF_DESTROYED, AF_BELL_SPENT, AF_UNRESOLVED, type GameState, type PartyMember, type PlacedArea } from "./state";
-import { tryMove } from "./map";
-import { decodeArea } from "./decode";
+import { tryMove, hasExit } from "./map";
+import { moveWithRedraw } from "./redraw";
+import { decodeArea, decodeOpen } from "./decode";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WHIRLPOOL, SPECIAL_WELL, SPECIAL_BELL_ROPE, SPECIAL_GREAT_HALL, TILE_MIN, TILE_MAX, TILE_TUNNEL_ES } from "./data/areaCards";
 import { viperCrossing, deepPoolCrossing, whirlpoolCrossing, giantCanRecover, sunkKey, tryReclaimSunk } from "./special";
 import { enterChamber, drawSmallCards } from "./chamber";
-import { applyHazards, hasStaffWizard } from "./hazards";
-import { HAZARD_MEDUSA, HAZARD_NAMES } from "./data/hazards";
+import { applyHazards, hasStaffWizard, hasLivingDwarf } from "./hazards";
+import { HAZARD_MEDUSA, HAZARD_TRAP, HAZARD_NAMES } from "./data/hazards";
 import { takeTreasure, canCarry } from "./pickup";
 import { unpackCoord, packCoord, targetCoord, DIR_UP, DIR_DOWN } from "./coords";
 import type { GameAction, GameEvent } from "./actions";
 import { reactionRoll, forcedReactionRoll, findLeader } from "./reaction";
+import { C_SIBYL, SIBYL_CODE, examinableAreas, isGuardCode, sibylHere, sibylWaiting } from "./sibyl";
 import { frontStrength } from "./combat";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import {
   wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, markDied, healingBalmEligible, ringInvincible, usesArtifactsAs,
   hasLivingHuman, holyWaterTargets, HW_STATUE_BASE, HW_MEDUSA, HW_STRANGER_BASE, HW_PARKED_STATUE_BASE, isHumanOrPriestClass,
+  eyePresent, slaySorcerer,
 } from "./effects";
+import { canTeleportTo } from "./sorcerer";
 import { BORNEABLE, isBorne, sweepFallen, spillCarried } from "./loot";
 import { rollDieForState } from "./rng";
 import {
@@ -66,7 +70,7 @@ function persistAndExplore(state: GameState): void {
   const area = state.areas[state.partyArea]!;
   // Heavy treasure left behind in a Deep Pool sinks back onto its `dropped` pile (recoverable only by
   // a Giant on a later visit) rather than the ordinary floor contents.
-  const onDeepPool = decodeArea(area.card).special === SPECIAL_DEEP_POOL;
+  const onDeepPool = decodeOpen(area).special === SPECIAL_DEEP_POOL;
   if (onDeepPool && state.treasures.length > 0) {
     area.dropped = [...(area.dropped ?? []), ...state.treasures];
   }
@@ -191,6 +195,7 @@ function finalizeRound(state: GameState): GameEvent[] {
   const events = reconcileUnicorns(state); // a Unicorn departs if the last Woman fell (§ Unicorn)
   const partyAlive = state.party.some((m) => m.status === 0 || m.status === 1);
   if (!partyAlive) {
+    const sorcererEvents = settleFelledSorcerer(state); // (reads the fight, so before it is cleared)
     state.gs = GS_DEAD;
     state.phase = "gameOver";
     state.fight = null;
@@ -198,7 +203,7 @@ function finalizeRound(state: GameState): GameEvent[] {
     // items are lost with the bodies (plan ④a / I-12 — matters most in multiplayer, harmless in solo).
     events.push(...sweepFallen(state, "contents"));
     state.party.forEach((m) => { m.potionActive = false; });
-    events.push({ type: "gameOver", gs: GS_DEAD });
+    events.push(...sorcererEvents, { type: "gameOver", gs: GS_DEAD });
   } else if (state.strangers.length === 0) {
     // The party won: reclaim treasure dropped onto the floor to fight so it joins the pickup (§387).
     const area = state.areas[state.partyArea]!;
@@ -211,14 +216,90 @@ function finalizeRound(state: GameState): GameEvent[] {
     // ("anything they were carrying can be taken from them at the end of the turn", §Medusa; §489's
     // Eye-on-a-corpse becomes recoverable here). Borne items stay lost with the body (plan ④a).
     events.push(...sweepFallen(state, "working"));
+    const felled = state.fight?.sorcererFelled === true;
     state.fight = null;
     state.party.forEach((m) => { m.potionActive = false; });
     events.push({ type: "fightWon" });
-    if (state.treasures.length > 0) state.phase = "pickup";
-    else persistAndExplore(state);
+    if (felled && !eyePresent(state)) state.phase = "sorcerer"; // the player decides his fate before anything else
+    else {
+      if (felled) events.push(...slaySorcerer(state)); // the Eye forbids sparing him
+      afterFight(state, events);
+    }
   }
   // else: still fighting; resolveRound already advanced the round
   return events;
+}
+
+/** Roll one reaction for the strongest stranger — or for `leaderId` when given (the Sibyl, SC-SIB-3) —
+ *  honouring Test Mode's scripted outcome and forced die. Mutates `next` (advances `seed` on a real
+ *  roll; consumes the one-shot Test Mode overrides).
+ * Test Mode (§Test Mode): an armed testNextReaction replaces the die roll outright — the RNG
+ * (state.seed) is never touched, so this doesn't perturb any later, non-overridden roll.
+ * Checks `testMode` explicitly rather than trusting testNextReaction's mere presence —
+ * defense in depth against a hand-crafted state (same reasoning as map.ts's testNextArea
+ * check and chamber.ts's testNextChamber check).
+ * Next Roll Selector (2026-09-11, SC-Test-10): `testNextDie`/`testAllDiceRoll` take over
+ * NEXT, ahead of a genuine roll, when no `testNextReaction` is armed — the forced raw value
+ * still bands through `reactionRoll`'s normal leader-threshold logic (charisma/curse/
+ * natural-1 included), so it may not land on a specific outcome for every leader; a tester
+ * wanting a GUARANTEED outcome regardless of leader still wants `testNextReaction` instead.
+ */
+function rollReaction(next: GameState, leaderId?: number): { outcome: ReturnType<typeof reactionRoll>["outcome"]; roll: number } {
+  if (next.testMode && next.testNextReaction) {
+    const outcome = next.testNextReaction;
+    const roll = forcedReactionRoll(next, outcome, leaderId);
+    delete next.testNextReaction;
+    return { outcome, roll };
+  }
+  if (next.testMode && (next.testNextDie !== undefined || next.testAllDiceRoll !== undefined)) {
+    const forced = next.testNextDie ?? next.testAllDiceRoll!;
+    delete next.testNextDie; // one-shot; testAllDiceRoll stays armed for the rest of the turn
+    const r = reactionRoll(next, forced, leaderId);
+    return { outcome: r.outcome, roll: r.roll };
+  }
+  const r = reactionRoll(next, undefined, leaderId);
+  next.seed = r.seed;
+  return { outcome: r.outcome, roll: r.roll };
+}
+
+/** The Sibyl's one test (SC-SIB-4/5): the real strangers are dealt with and she is the only one left.
+ *  She is never hostile (her row), never counts toward the indifference streak or pacifies the area,
+ *  and is never retested — `sibylMet` is set whatever the outcome. Friendly: she travels with the party
+ *  (`hasSibyl`). Indifferent: she stays in the chamber (parked by the normal exit path). */
+function meetSibyl(state: GameState): { state: GameState; events: GameEvent[] } {
+  const next = structuredClone(state);
+  next.surpriseReady = false;
+  delete next.indiffLeaveOpen;
+  const { outcome, roll } = rollReaction(next, C_SIBYL);
+  const events: GameEvent[] = [{ type: "reaction", outcome, roll }];
+  next.sibylMet = true;
+  if (outcome === "friendly") {
+    next.lulled = (next.lulled ?? []).filter((id) => id !== C_SIBYL);
+    next.hasSibyl = true;
+    events.push({ type: "sibylJoins" });
+  } else {
+    events.push({ type: "sibylDeclines" });
+  }
+  if (next.treasures.length > 0) next.phase = "pickup"; // nothing guards it — she guards nothing
+  else persistAndExplore(next);
+  return { state: next, events };
+}
+
+/** The party has won: loot if there is any, else on its way. A turncoat Apprentice (the Sorcerer's death breaks
+ *  her loyalty) is a stranger again, and the party must deal with her. */
+function afterFight(state: GameState, events: GameEvent[]): void {
+  if (state.strangers.length > 0) events.push(...startFight(state, 0));
+  else if (sibylWaiting(state)) { state.phase = "encounter"; state.surpriseReady = false; } // she waits, standing aside (SC-SIB-4)
+  else if (state.treasures.length > 0) state.phase = "pickup";
+  else persistAndExplore(state);
+}
+
+/** A fight ends with the Sorcerer defeated but not yet slain (wipe-out, retreat): he dies after all, with no chance
+ *  to spare him. Empty unless `variants.sorcererTeleport` marked him felled. */
+function settleFelledSorcerer(state: GameState): GameEvent[] {
+  if (!state.fight?.sorcererFelled) return [];
+  delete state.fight.sorcererFelled;
+  return slaySorcerer(state);
 }
 
 /** Free any party members left as stone in the party's CURRENT area, if a living Wizard (or the
@@ -276,7 +357,7 @@ function medusaLooms(state: GameState): boolean {
  *  fresh entry, yet a dragon it just drew is still genuinely new information the player hasn't seen
  *  (`resolveExtraDraw` passes `true` explicitly for that case). */
 function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[], announceLull = freshEntry): boolean {
-  const { events: hzEvents, fell } = applyHazards(state);
+  const { events: hzEvents, fell, trapChoice, knownTrap } = applyHazards(state);
   events.push(...hzEvents);
   // A hazard may incapacitate the whole party (Medusa petrifies everyone, or Ghouls slay them) —
   // with no one left able to act, the expedition ends.
@@ -292,10 +373,44 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
     // to its contents). Clearing the working set first stops them leaking onto the tile fallen into.
     persistAndExplore(state);
     relocateDown(state);
-    events.push({ type: "trapSprung", level: state.level });
+    if (knownTrap) state.deliberateFall = true; // `trapRules`: walking into a known trap is a deliberate fall
+    events.push(knownTrap ? { type: "trapSprung", level: state.level, deliberate: true } : { type: "trapSprung", level: state.level });
     events.push({ type: "moved", area: state.partyArea, level: state.level });
     return true;
   }
+  if (trapChoice) {
+    // `trapRules`: a Dwarf-guided party meets a single trap. The earlier hazards have fired and the party
+    // survived them — hold the entry here for the Dwarf's choice (`avoidTrap` / `fallThroughTrap`).
+    state.phase = "trap";
+    state.trapPause = { freshEntry, announceLull };
+    events.push({ type: "trapLooms" });
+    return false;
+  }
+  settleChamber(state, freshEntry, events, announceLull);
+  return false;
+}
+
+/** `settlePacifiedArea`, then — if an unmet Sibyl is here — step her out of the parked guards and open her
+ *  encounter (SC-SIB-4). Pacified guards park themselves AND everything in the parked-awake slot, which
+ *  would strand her with them: she is no guard, and a group that has been dealt with should not hide her.
+ *  Skipped when a Thief's live pickup took over the phase — she is met on the next entry instead. */
+function settlePacifiedWithSibyl(state: GameState): void {
+  const sibylPending = sibylHere(state) && state.sibylMet !== true;
+  settlePacifiedArea(state);
+  if (!sibylPending || state.phase !== "explore") return;
+  const area = state.areas[state.partyArea]!;
+  const at = area.contents.indexOf(SIBYL_CODE);
+  if (at < 0) return;
+  area.contents.splice(at, 1);
+  state.lulled = [...(state.lulled ?? []), C_SIBYL];
+  state.phase = "encounter";
+  state.surpriseReady = false;
+}
+
+/** The tail of a chamber entry once its hazards are done and the party is still here: Flute lull, Demon
+ *  ambush, a pacified area, then the phase the chamber's contents call for. Shared by the uninterrupted path
+ *  (`finishChamber`) and the resume from the Dwarf's trap choice. */
+function settleChamber(state: GameState, freshEntry: boolean, events: GameEvent[], announceLull: boolean): void {
   // The Charmed Flute lulls every Dragon for as long as the party holds it: they sleep in the
   // chamber, no longer leading or blocking, so a friendlier creature reacts and the area plays
   // out as if empty (§ Charmed Flute). Re-evaluated each entry, so they wake if the flute is gone.
@@ -311,7 +426,7 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
   // branch: otherwise `settlePacifiedArea` would silently re-park the Demon right back onto the tile
   // (or, with a Thief, slip it into a live pickup) every single re-entry, forever suppressing it.
   if (ambushIfDemon(state, events)) {
-    return false;
+    return;
   }
   // Permanently indifferent to this party (§Reactions): the party may walk freely through (any exit)
   // — so park the guards to the tile and go to explore for full traversal — but it may also still
@@ -320,24 +435,27 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
   // ally instead slips the guarded treasure straight into a live pickup — `settlePacifiedArea` covers
   // both that and the ordinary re-park.
   if (state.pacifiedAreas?.includes(state.partyArea)) {
-    settlePacifiedArea(state);
-    return false;
+    settlePacifiedWithSibyl(state);
+    return;
   }
   if (state.strangers.length > 0) {
     if (state.hostileAreas?.includes(state.partyArea)) {
       // The party retreated from these strangers before — they attack on sight (with surprise). §Retreat
-      events.push(...startFight(state, -1));
+      // Unless the party came back by a trap on purpose (`trapRules`): then it is the party that has surprise.
+      events.push(...startFight(state, state.deliberateFall === true ? 1 : -1));
     } else {
       state.phase = "encounter";
       // Surprise if attacking immediately on a fresh entry — never after a trap fall (§Surprise).
-      state.surpriseReady = freshEntry && !state.fellThroughTrap;
+      state.surpriseReady = freshEntry && (!state.fellThroughTrap || state.deliberateFall === true);
     }
+  } else if (sibylWaiting(state)) {
+    state.phase = "encounter";
+    state.surpriseReady = false; // she is no threat — there is nothing to surprise
   } else if (state.treasures.length > 0) {
     state.phase = "pickup";
   } else {
     persistAndExplore(state);
   }
-  return false;
 }
 
 /** Resume the entry held at the Medusa pause — the dust thrown or the gaze braved — firing the
@@ -356,6 +474,61 @@ function resumeFromMedusaPause(state: GameState): GameEvent[] {
     events.push(...resolveAreaLoop(state));
   }
   return events;
+}
+
+/** Resume the entry held at the Dwarf's trap pause (`variants.trapRules`). `fall` false: the Dwarf guides the
+ *  party past the trap and the chamber settles as it would have. `fall` true: the whole party drops one level,
+ *  one-way, exactly as an unguided trap fall does (`finishChamber`), and the landing area is resolved. */
+function resumeFromTrapPause(state: GameState, fall: boolean): GameEvent[] {
+  const pause = state.trapPause!;
+  delete state.trapPause;
+  const events: GameEvent[] = [];
+  if (fall) {
+    persistAndExplore(state);
+    relocateDown(state);
+    state.deliberateFall = true; // the player chose to fall: the arrival earns surprise
+    events.push({ type: "trapSprung", level: state.level, deliberate: true });
+    events.push({ type: "moved", area: state.partyArea, level: state.level });
+    events.push(...resolveAreaLoop(state));
+    return events;
+  }
+  events.push({ type: "trapAvoided" });
+  settleChamber(state, pause.freshEntry, events, pause.announceLull);
+  if (pause.extraDraw && state.phase === "encounter") state.surpriseReady = pause.extraDraw.hadSurprise;
+  return events;
+}
+
+/** Guide lost (`variants.trapRules`): "If a party guided by a dwarf becomes involved in a fight in a chamber where
+ *  there is a trap, and the dwarf is killed, the party falls down the trap as soon as it tries to leave the chamber."
+ *  True when the party stands in a chamber that holds a standing trap, has no living Dwarf, and is trying to leave
+ *  by `dir` — a doorway or stairway that exists. (A party without a Dwarf cannot otherwise be standing in such a
+ *  chamber, since entering it would already have dropped it.) `move`, `withdraw` and `retreat` ask this. */
+function guideLostHere(state: GameState, dir: number | undefined): boolean {
+  if (state.variants?.trapRules !== true || hasLivingDwarf(state)) return false;
+  const here = state.areas[state.partyArea]!;
+  if (!here.contents.includes(300 + HAZARD_TRAP)) return false;
+  return dir === undefined || hasExit(decodeOpen(here), dir);
+}
+
+/** The trap takes a party that has lost its guide, in place of the departure it attempted. The chamber is parked
+ *  (its trap stays standing), the whole party drops one level, one-way, and the landing is resolved. The fall is
+ *  accidental: `relocateDown` leaves `deliberateFall` unset, so the landing earns no surprise. */
+function springUnguidedTrap(state: GameState): GameEvent[] {
+  persistAndExplore(state);
+  relocateDown(state);
+  return [
+    { type: "trapSprung", level: state.level, guideLost: true },
+    { type: "moved", area: state.partyArea, level: state.level },
+    ...resolveAreaLoop(state),
+  ];
+}
+
+/** What the Dead End rule's Entry Dry Run runs on a laid card: the same steps a real move takes after `tryMove`. */
+function enterForDryRun(state: GameState): void {
+  state.fellThroughTrap = false;
+  delete state.deliberateFall;
+  delete state.subLocation;
+  resolveArea(state);
 }
 
 /** Resolve the area just entered: special markers, then chamber draw + hazards + phase (spec §4/§7). */
@@ -386,7 +559,7 @@ function resolveAreaLoop(state: GameState): GameEvent[] {
       events.push({ type: "pendingDropDelivered", treasureIds: pending });
       delete state.pendingDrops![here.coord];
     }
-    const dec = decodeArea(state.areas[state.partyArea]!.card);
+    const dec = decodeOpen(state.areas[state.partyArea]!);
     if (dec.special === SPECIAL_DEEP_POOL) {
       const area = state.areas[state.partyArea]!;
       // Extension kit (SC-EXT-21, fix round): a Demon may be lurking here even though Deep Pool
@@ -446,7 +619,9 @@ function resolveAreaLoop(state: GameState): GameEvent[] {
       state.phase = "explore";
       return events;
     }
-    const freshEntry = !state.areas[state.partyArea]!.visited; // first visit by this (unused) doorway → eligible for surprise
+    // First visit by this (unused) doorway → eligible for surprise. A deliberate trap arrival (`trapRules`) is a
+    // new route in its own right, so it qualifies even into a chamber the party has already visited.
+    const freshEntry = !state.areas[state.partyArea]!.visited || state.deliberateFall === true;
     events.push(...enterChamber(state));
     events.push(...wakeGalleryStatues(state)); // Staff-Wizard cracks every Gallery statue awake (SC-EXT-11)
     events.push(...annihilateWithEye(state)); // the Eye destroys Spectres on sight (§ Eye of God)
@@ -478,6 +653,10 @@ function finishExtraDraw(state: GameState, events: GameEvent[], hadSurprise: boo
     events.push(...resolveAreaLoop(state));
   } else if (state.phase === "encounter") {
     state.surpriseReady = hadSurprise;
+  } else if (state.phase === "trap") {
+    // A drawn trap opened the Dwarf's pause: carry the earned surprise through to its resume, as the
+    // Medusa pause does (`medusaPause.extraDraw`), so choosing to be guided past cannot clobber it.
+    state.trapPause!.extraDraw = { hadSurprise };
   }
 }
 
@@ -531,13 +710,14 @@ function relocateDown(state: GameState): void {
     // generalized to every relocateDown caller (trap fall, descendChasm, the Whirlpool's own drag),
     // since they all share the same underlying invariant as the stairway block in map.ts: no
     // vertical arrival may ever land on a Whirlpool. Keep falling until it doesn't.
-    if (decodeArea(state.areas[idx]!.card).special !== SPECIAL_WHIRLPOOL) break;
+    if (decodeOpen(state.areas[idx]!).special !== SPECIAL_WHIRLPOOL) break;
   }
   state.prev2 = state.prev;
   state.prev = state.partyArea;
   state.partyArea = idx;
   state.level = level;
   state.fellThroughTrap = true; // one-way: prev is the (unreachable) level above — no withdraw/retreat
+  delete state.deliberateFall; // every relocation starts accidental; the trap callers mark a deliberate one after
   delete state.subLocation; // Precise Locations (§10.5): a real position change invalidates any jump override
 }
 
@@ -564,6 +744,7 @@ function carpetMove(state: GameState, dir: number): void {
   state.partyArea = idx;
   state.level = targetLevel;
   state.fellThroughTrap = false; // carpet links both ways
+  delete state.deliberateFall;
   delete state.subLocation; // Precise Locations (§10.5): a real position change invalidates any jump override
 }
 
@@ -590,7 +771,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
 
     case "exitCave": {
       if (state.phase !== "explore") return { state, events: [{ type: "blocked" }] };
-      const dec = decodeArea(state.areas[state.partyArea]!.card);
+      const dec = decodeOpen(state.areas[state.partyArea]!);
       if (state.level === 1 && dec.stairUp) {
         const next = structuredClone(state);
         const events: GameEvent[] = [];
@@ -611,6 +792,17 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       return { state, events: [{ type: "blocked" }] };
     }
 
+    case "examineArea": {
+      // The Sibyl's free look (SC-SIB-8): a pure read. It changes no state and returns the SAME state
+      // object, so it cannot disturb the cave, the packs or the dice.
+      if (state.phase !== "explore" || state.hasSibyl !== true) return { state, events: [{ type: "blocked" }] };
+      const lookable = action.area === undefined
+        ? state.largeIdx < state.largePack.length
+        : examinableAreas(state).includes(action.area);
+      if (!lookable) return { state, events: [{ type: "blocked" }] };
+      return { state, events: [{ type: "sibylExamined" }] };
+    }
+
     case "move": {
       // Rules §Encountering Strangers (SC-4-18a): the party may leave the chamber by any doorway,
       // forfeiting the treasure, but only during the one-shot `indiffLeaveOpen` window opened by an
@@ -620,7 +812,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // reducer must not trust the client).
       const leavingIndifferentEncounter = state.phase === "encounter" && state.indiffLeaveOpen === true;
       if (state.phase !== "explore" && !leavingIndifferentEncounter) return { state, events: [{ type: "blocked" }] };
-      const fromSpecial = decodeArea(state.areas[state.partyArea]!.card).special;
+      const fromSpecial = decodeOpen(state.areas[state.partyArea]!).special;
       // Precise Locations (§10.5, §8.1): a Viper-Pit/Whirlpool ledge only reaches its two ADJACENT
       // doorways — block the one directly opposite the party's current doorway (retrace and an
       // island-sourced crossing are unaffected). Mirrors the same gate in selectors.ts's
@@ -631,6 +823,15 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         if (sub.at === "doorway" && sub.dir !== undefined && action.dir === oppositeDir(sub.dir)) {
           return { state, events: [{ type: "blocked" }] };
         }
+      }
+      if (guideLostHere(state, action.dir)) {
+        // The Dwarf is gone: the trap takes the party as it tries to leave. No tile is placed and there is no
+        // dead end to find — the attempt costs the turn, exactly as a successful move would.
+        const fallen = structuredClone(state);
+        delete fallen.indiffLeaveOpen;
+        fallen.turn += 1;
+        delete fallen.testAllDiceRoll; // Next Roll Selector (SC-Test-10): "until end of turn" ends here
+        return { state: fallen, events: springUnguidedTrap(fallen) };
       }
       const fromIdx = state.partyArea;
       const oldPrev = state.prev;
@@ -649,8 +850,11 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       const largeIdxBefore = base.largeIdx; // snapshot: did tryMove burn a large-pack card for it?
       // Dead End rule (§6.3.2, "forced redraw"): only `move` ever offers the rescue — `retreat`
       // (its own call site below) has its own deliberately harsher dead-end rule and never passes it.
-      const res = tryMove(base, action.dir, base.variants?.forcedRedraw === true);
-      const swapEvents: GameEvent[] = res.swaps.map((s) => ({ type: "deadEndCardSwapped", removed: s.removed, drawn: s.drawn }));
+      // The Dead End rehearsal enters a candidate card the way the real move below does (turn aside, `resolveArea`).
+      const res = base.variants?.forcedRedraw === true
+        ? moveWithRedraw(base, action.dir, enterForDryRun)
+        : { ...tryMove(base, action.dir), swap: undefined, noViableExits: false };
+      const swapEvents: GameEvent[] = res.swap ? [{ type: "deadEndCardSwapped", ...res.swap }] : [];
       if (!res.moved) {
         if (leavingIndifferentEncounter) {
           res.state.phase = "encounter";
@@ -668,10 +872,11 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           // which path closed it (SC-EXT-1 byte-identity).
           delete res.state.indiffLeaveOpen;
         }
-        return { state: res.state, events: [...swapEvents, res.deadEnd ? { type: "deadEnd", dir: action.dir } : { type: "blocked" }] };
+        return { state: res.state, events: [...swapEvents, res.deadEnd ? { type: "deadEnd", dir: action.dir } : { type: "blocked" }, ...(res.noViableExits ? [{ type: "deadEndNoViableExits" } as GameEvent] : [])] };
       }
       const next = { ...res.state, turn: res.state.turn + 1 };
       next.fellThroughTrap = false; // a normal move reaches a reachable area (resolveArea re-sets it if a trap fires)
+      delete next.deliberateFall;
       delete next.subLocation; // Precise Locations (§10.5): a real move invalidates any jump override
       delete next.testAllDiceRoll; // Next Roll Selector (SC-Test-10): "until end of turn" ends here
       const events: GameEvent[] = [...swapEvents];
@@ -708,12 +913,16 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           next.partyArea = fromIdx;
           next.prev = oldPrev;
           relocateDown(next);
-          events.push(...resolveArea(next));
-          return { state: next, events };
+          // The cancelled move takes its Dead End swap with it (the pack stays a valid permutation: the swap
+          // was made in place), so the log must not narrate a swap that no longer shows on the map.
+          const kept: GameEvent[] = events.filter((e) => e.type !== "deadEndCardSwapped");
+          kept.push(...resolveArea(next));
+          return { state: next, events: kept };
         }
       }
 
       events.push(...resolveArea(next));
+      if (res.noViableExits) events.push({ type: "deadEndNoViableExits" });
       return { state: next, events };
     }
 
@@ -724,7 +933,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
     // to an ordinary crossing — `islandJump` alone distinguishes "stayed here" from "left."
     case "jumpToIsland": {
       if (state.phase !== "explore") return { state, events: [{ type: "blocked" }] };
-      const dec = decodeArea(state.areas[state.partyArea]!.card);
+      const dec = decodeOpen(state.areas[state.partyArea]!);
       if (!ISLAND_JUMP_SPECIALS.has(dec.special)) return { state, events: [{ type: "blocked" }] };
       if (getSubLocation(state).at !== "doorway") return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
@@ -754,7 +963,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // on the tile has a legal way to pick up treasure dropped/left there without first leaving
       // by a doorway and walking back in.
       if (state.phase !== "explore") return { state, events: [{ type: "blocked" }] };
-      const dec = decodeArea(state.areas[state.partyArea]!.card);
+      const dec = decodeOpen(state.areas[state.partyArea]!);
       if (dec.special !== SPECIAL_DEEP_POOL && dec.special !== SPECIAL_VIPER_PIT) return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
       const area = next.areas[next.partyArea]!;
@@ -771,6 +980,10 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       if (state.fellThroughTrap) return { state, events: [{ type: "blocked" }] }; // no way back up a trap
       if (state.noWithdrawTurn === state.turn) return { state, events: [{ type: "blocked" }] }; // Well/Bell fired this turn (SC-EXT-9)
       if (((state.areas[state.prev]?.flags ?? 0) & AF_DESTROYED) !== 0) return { state, events: [{ type: "blocked" }] }; // the way back collapsed (earthquake)
+      if (guideLostHere(state, undefined)) {
+        const fallen = structuredClone(state); // the Dwarf is gone: the trap takes the party instead of the step back
+        return { state: fallen, events: springUnguidedTrap(fallen) };
+      }
       const next = structuredClone(state);
       next.areas[next.partyArea]!.contents = [
         ...next.areas[next.partyArea]!.contents,
@@ -802,7 +1015,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
     case "takeTreasure": {
       if (state.phase !== "pickup") return { state, events: [{ type: "blocked" }] };
       // Deep Pool recovery is Giant-only: no other creature may lift treasure out of the water.
-      if (decodeArea(state.areas[state.partyArea]!.card).special === SPECIAL_DEEP_POOL) {
+      if (decodeOpen(state.areas[state.partyArea]!).special === SPECIAL_DEEP_POOL) {
         const taker = state.party[action.mi];
         if (!taker || taker.creatureId !== C_GIANT) return { state, events: [{ type: "blocked" }] };
       }
@@ -955,7 +1168,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         next.treasures.push(tid);
       } else {
         const area = next.areas[next.partyArea]!;
-        const special = decodeArea(area.card).special;
+        const special = decodeOpen(area).special;
         // Special-areas revision (2026-08-08, SC-10.5-16): a Chasm/Whirlpool drop falls through the
         // floor to the level below, rather than sinking into THIS tile's own sub-location bucket —
         // delivered immediately if that area has already been entered, else queued in
@@ -968,7 +1181,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         // "pickup", same as a fresh entry — instead of parking it and forcing a leave-and-return
         // round trip through resolveArea just to notice it again (SC-7.3-5/6 previously required
         // this; a pacified area's guards, or an active encounter, still park it untouchable).
-        const restingUnguarded = next.phase === "explore" && !area.contents.some((c) => c >= 100 && c < 200);
+        const restingUnguarded = next.phase === "explore" && !area.contents.some(isGuardCode);
         if (fallsThrough) {
           const { level, x, y } = unpackCoord(area.coord);
           const targetCoordVal = packCoord(level + 1, x, y);
@@ -1019,6 +1232,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
 
     case "test": {
       if (state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
+      if (sibylWaiting(state)) return meetSibyl(state);
       if ((state.indiffStreak ?? 0) >= 3) return { state, events: [{ type: "blocked" }] }; // permanently indifferent
       const next = structuredClone(state);
       next.surpriseReady = false; // approaching to test forfeits the chance of a surprise attack (§Surprise)
@@ -1027,34 +1241,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // outcome qualifies (indifferent, count still <3). `delete`, not `= false` — an always-present
       // key would change every tested state's hash even when closed (SC-EXT-1 byte-identity).
       delete next.indiffLeaveOpen;
-      // Test Mode (§Test Mode): an armed testNextReaction replaces the die roll outright — the RNG
-      // (state.seed) is never touched, so this doesn't perturb any later, non-overridden roll.
-      // Checks `testMode` explicitly rather than trusting testNextReaction's mere presence —
-      // defense in depth against a hand-crafted state (same reasoning as map.ts's testNextArea
-      // check and chamber.ts's testNextChamber check).
-      // Next Roll Selector (2026-09-11, SC-Test-10): `testNextDie`/`testAllDiceRoll` take over
-      // NEXT, ahead of a genuine roll, when no `testNextReaction` is armed — the forced raw value
-      // still bands through `reactionRoll`'s normal leader-threshold logic (charisma/curse/
-      // natural-1 included), so it may not land on a specific outcome for every leader; a tester
-      // wanting a GUARANTEED outcome regardless of leader still wants `testNextReaction` instead.
-      let outcome: ReturnType<typeof reactionRoll>["outcome"];
-      let rollValue: number;
-      if (next.testMode && next.testNextReaction) {
-        outcome = next.testNextReaction;
-        rollValue = forcedReactionRoll(next, outcome);
-        delete next.testNextReaction;
-      } else if (next.testMode && (next.testNextDie !== undefined || next.testAllDiceRoll !== undefined)) {
-        const forced = next.testNextDie ?? next.testAllDiceRoll!;
-        delete next.testNextDie; // one-shot; testAllDiceRoll stays armed for the rest of the turn
-        const roll = reactionRoll(next, forced);
-        outcome = roll.outcome;
-        rollValue = roll.roll;
-      } else {
-        const roll = reactionRoll(next);
-        next.seed = roll.seed;
-        outcome = roll.outcome;
-        rollValue = roll.roll;
-      }
+      const { outcome, roll: rollValue } = rollReaction(next);
       // `certain` (bug fix 2026-08-02): the Unicorn's hostileMax/indiffMax (0/0) make `outcome`
       // "friendly" no matter what the die shows — the roll above still genuinely advanced the seed
       // (or, under Test Mode, still returned a representative display value), but the UI has
@@ -1088,7 +1275,10 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           persistAndExplore(next); // the party moves on, leaving the Unicorn (and guarded treasure) behind
         } else {
           next.strangers = [];
-          if (next.treasures.length > 0) next.phase = "pickup";
+          // The Sibyl is met only once the real strangers are dealt with (SC-SIB-4): if she is here,
+          // stay in the encounter so she can be tested next, ahead of any pickup.
+          if (sibylWaiting(next)) next.surpriseReady = false;
+          else if (next.treasures.length > 0) next.phase = "pickup";
           else persistAndExplore(next);
         }
       } else if (outcome === "indifferent") {
@@ -1106,7 +1296,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
             next.pacifiedAreas = [...(next.pacifiedAreas ?? []), next.partyArea];
           }
           events.push({ type: "pacified" }); // tell the player they may now move on
-          settlePacifiedArea(next); // Thief present + treasure here -> live pickup; else the ordinary re-park
+          settlePacifiedWithSibyl(next); // Thief present + treasure here -> live pickup; else the ordinary re-park (and the Sibyl, if here, steps forward)
         } else {
           // Bug fix 2026-08-04 (Gap C, SC-4-18a): open the one-shot leave window — the party's VERY
           // NEXT action may freely leave by any doorway, forfeiting the treasure.
@@ -1123,11 +1313,13 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // phase) with the guards parked on the tile — un-park them (and the treasure they guard) into the
       // working set, then fight. No surprise: the chamber was already visited (§Surprise).
       if (state.phase === "explore" && state.pacifiedAreas?.includes(state.partyArea) &&
-          state.areas[state.partyArea]!.contents.some((c) => c >= 100 && c < 200)) {
+          state.areas[state.partyArea]!.contents.some(isGuardCode)) {
         const next = structuredClone(state);
         const area = next.areas[next.partyArea]!;
-        next.strangers = area.contents.filter((c) => c >= 100 && c < 200).map((c) => c - 100);
+        next.strangers = area.contents.filter(isGuardCode).map((c) => c - 100);
         next.treasures = area.contents.filter((c) => c >= 200 && c < 300).map((c) => c - 200);
+        // A parked Sibyl is no guard: she steps aside (parked awake) and is met once the fight is won.
+        if (area.contents.includes(SIBYL_CODE)) next.lulled = [...(next.lulled ?? []), C_SIBYL];
         area.contents = area.contents.filter((c) => c < 100 || c >= 300); // keep display markers / sleeping
         return { state: next, events: startFight(next, 0) };
       }
@@ -1182,7 +1374,10 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // A party may retreat by ANY doorway or stairway — even an unexplored one (§Retreat). Attempt
       // the move; if the way is a dead end (or blocked), the party must fight another round this turn.
       const fromIdx = state.partyArea;
-      const res = tryMove(state, action.dir);
+      // Guide lost (`trapRules`): the retreat succeeds in every respect except where it ends — the trap, not the
+      // doorway, takes the party. Same bookkeeping as a real retreat; only the destination differs.
+      const guideLost = guideLostHere(state, action.dir);
+      const res = guideLost ? { state: structuredClone(state), moved: true, deadEnd: false } : tryMove(state, action.dir);
       if (!res.moved) {
         // The retreat failed — a dead-end tile, or no tile left to draw (pack exhausted). Either way the
         // party can't escape this round and must fight on (§Retreat): lock out further retreats AND tell
@@ -1195,6 +1390,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       }
       // Retreat succeeds: the strangers and any dropped treasure are LEFT BEHIND in the chamber we fled.
       // What the strangers bore goes back on the floor with the rest, and is handed out afresh next fight.
+      const sorcererEvents = settleFelledSorcerer(res.state); // a Sorcerer defeated earlier in the fight dies after all
       dropAllGear(res.state);
       const fled = res.state.areas[fromIdx]!;
       fled.contents = [
@@ -1222,8 +1418,44 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       if (!res.state.hostileAreas?.includes(fromIdx)) {
         res.state.hostileAreas = [...(res.state.hostileAreas ?? []), fromIdx];
       }
-      const events = resolveArea(res.state); // resolve the area we retreated into (fresh tunnel/chamber)
+      const events = [...sorcererEvents, ...(guideLost ? springUnguidedTrap(res.state) : resolveArea(res.state))]; // resolve the area we retreated into (fresh tunnel/chamber)
       return { state: res.state, events };
+    }
+
+    case "slaySorcerer": {
+      // The player declines to spare the Sorcerer: he dies as the killing blow would have had him die.
+      if (state.phase !== "sorcerer") return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      const events = slaySorcerer(next);
+      afterFight(next, events);
+      return { state: next, events };
+    }
+
+    case "spareSorcerer": {
+      // Spared on condition that he transport the party, and the treasure in the chamber, to any discovered
+      // area (§The Sorcerer). He stays behind in the chamber he was defeated in.
+      if (state.phase !== "sorcerer" || !canTeleportTo(state, action.area)) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      const from = next.partyArea;
+      const carried = next.treasures;
+      next.treasures = [];
+      persistAndExplore(next); // park whatever else stays in the chamber (the sleeping, the statues)
+      next.areas[from]!.contents.push(100 + C_SORCERER);
+      const to = next.areas[action.area]!;
+      to.contents.push(...carried.map((t) => 200 + t));
+      next.prev2 = next.prev;
+      next.prev = from;
+      next.partyArea = action.area;
+      next.level = unpackCoord(to.coord).level;
+      next.fellThroughTrap = true; // magic leaves no way back: no withdrawing from the landing
+      delete next.deliberateFall;
+      delete next.subLocation;
+      const events: GameEvent[] = [
+        { type: "sorcererSpared" },
+        { type: "partyTeleported", from, to: action.area, level: next.level, treasureIds: carried },
+        ...resolveArea(next),
+      ];
+      return { state: next, events };
     }
 
     case "proceed": {
@@ -1231,6 +1463,14 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       if (state.phase !== "medusa") return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
       return { state: next, events: resumeFromMedusaPause(next) };
+    }
+
+    case "avoidTrap":
+    case "fallThroughTrap": {
+      // The Dwarf's choice at a trap (`variants.trapRules`): only legal in the `trap` pause.
+      if (state.phase !== "trap" || !state.trapPause) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      return { state: next, events: resumeFromTrapPause(next, action.type === "fallThroughTrap") };
     }
 
     case "useArtifact": {
@@ -1329,17 +1569,19 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
             if (next.phase !== "explore" || (action.dir !== DIR_UP && action.dir !== DIR_DOWN)) return { state, events: [{ type: "blocked" }] };
             const cur = next.areas[next.partyArea]!;
             const { level, x, y } = unpackCoord(cur.coord);
-            const dec = decodeArea(cur.card);
+            const dec = decodeOpen(cur);
             if (action.dir === DIR_DOWN) {
               if (dec.stairDown) return { state, events: [{ type: "blocked" }] }; // already a visible stair
               const below = next.areas.find((a) => a.coord === packCoord(level + 1, x, y));
-              if (!below || !decodeArea(below.card).stairUp) return { state, events: [{ type: "blocked" }] };
+              if (!below || !decodeOpen(below).stairUp) return { state, events: [{ type: "blocked" }] };
               cur.card |= 64; // reveal stair DOWN
+              if (cur.deadDoors) cur.deadDoors &= ~64;
             } else {
               if (dec.stairUp) return { state, events: [{ type: "blocked" }] };
               const above = next.areas.find((a) => a.coord === packCoord(level - 1, x, y));
-              if (!above || !decodeArea(above.card).stairDown) return { state, events: [{ type: "blocked" }] };
+              if (!above || !decodeOpen(above).stairDown) return { state, events: [{ type: "blocked" }] };
               cur.card |= 32; // reveal stair UP
+              if (cur.deadDoors) cur.deadDoors &= ~32;
             }
             return { state: next, events: [{ type: "artifactUsed", artifact: 12 }, { type: "secretDoorRevealed", dir: action.dir }] };
           }
@@ -1488,9 +1730,16 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         case 1: next.curses += 1; break; // a Curse
         case 2: // a Spectre appears and attacks (one round)
           next.strangers.push(9);
-          next.fight = { surprise: -1, round: 1, focus: next.strangers.length - 1 };
-          next.phase = "fight";
-          events.push({ type: "fightStarted", surprise: -1 });
+          // Like every other Spectre arrival (`resolveAreaLoop`, `resolveExtraDraw`): a held Eye of God destroys it
+          // on sight and the Talisman drives it off on level 4+ — before it can fight. (Bug DOFO: the chest used to
+          // conjure its Spectre straight into a fight, past both.)
+          events.push(...annihilateWithEye(next));
+          events.push(...wardOffSpectres(next));
+          if (next.strangers.includes(9)) {
+            next.fight = { surprise: -1, round: 1, focus: next.strangers.length - 1 };
+            next.phase = "fight";
+            events.push({ type: "fightStarted", surprise: -1 });
+          }
           break;
         case 3: break; // Sand
         case 4: next.bonusScore += 20; break; // Silver
@@ -1504,7 +1753,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // Legal on a Chasm tile in explore OR encounter phase (design US-02) — the party may dive
       // down to escape an encounter, not just at rest. No dice; the Chasm is reusable terrain.
       if (state.phase !== "explore" && state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
-      if (decodeArea(state.areas[state.partyArea]!.card).special !== SPECIAL_CHASM) return { state, events: [{ type: "blocked" }] };
+      if (decodeOpen(state.areas[state.partyArea]!).special !== SPECIAL_CHASM) return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
       // Park any pending encounter strangers/treasure back onto the chasm tile before leaving it —
       // otherwise they'd leak into the landing area's working set.
@@ -1520,7 +1769,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // required" latitude as the Chasm's escape hatch) — repeatable every turn, no spent flag
       // (Resolved interpretation 4); gated only on the small pack having a card left.
       if (state.phase !== "explore" && state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
-      if (decodeArea(state.areas[state.partyArea]!.card).special !== SPECIAL_WELL) return { state, events: [{ type: "blocked" }] };
+      if (decodeOpen(state.areas[state.partyArea]!).special !== SPECIAL_WELL) return { state, events: [{ type: "blocked" }] };
       if (state.smallIdx >= state.smallPack.length) return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
       const events: GameEvent[] = [{ type: "wellDraw" }];
@@ -1536,7 +1785,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // Legal on a Bell Rope tile in explore OR encounter phase, for a living member, ONCE per tile
       // ever (design US-03; AF_BELL_SPENT persists the spend on the placed area).
       if (state.phase !== "explore" && state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
-      if (decodeArea(state.areas[state.partyArea]!.card).special !== SPECIAL_BELL_ROPE) return { state, events: [{ type: "blocked" }] };
+      if (decodeOpen(state.areas[state.partyArea]!).special !== SPECIAL_BELL_ROPE) return { state, events: [{ type: "blocked" }] };
       if ((state.areas[state.partyArea]!.flags & AF_BELL_SPENT) !== 0) return { state, events: [{ type: "blocked" }] };
       const puller = state.party[action.mi];
       if (!puller || !(puller.status === 0 || puller.status === 1)) return { state, events: [{ type: "blocked" }] };
@@ -1626,9 +1875,12 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // Variant gating (SC-Test-6): a kit-only creature/treasure/hazard id is invalid content for
       // a kit-off game — an id is kit-only iff it falls beyond the base table's own length, which
       // stays correct even if a future kit expansion changes the counts.
+      // The Sibyl (id 21, SC-SIB-1) sits beyond the base table too but belongs to her OWN variant, not the
+      // kit's: she is valid exactly when `variants.sibyl` is on, whether or not the kit is.
+      if (action.strangers.includes(C_SIBYL) && !state.variants?.sibyl) return { state, events: [{ type: "blocked" }] };
       if (!state.variants?.extensionKit) {
         const kitOnly =
-          action.strangers.some((id) => id >= BASE_CREATURES.length) ||
+          action.strangers.some((id) => id >= BASE_CREATURES.length && id !== C_SIBYL) ||
           action.treasures.some((id) => id >= BASE_TREASURES.length) ||
           action.hazards.some((id) => id >= HAZARD_NAMES.length);
         if (kitOnly) return { state, events: [{ type: "blocked" }] };

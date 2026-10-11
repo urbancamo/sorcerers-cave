@@ -22,6 +22,8 @@ export interface LeaderboardRow {
   // Dead End rule (§6.3.2, "forced redraw"): labels this score as recorded while the rescue variant
   // was active. Absent/false on every score recorded before/without it.
   forcedRedraw?: boolean;
+  // The Sibyl (SC-SIB-9): labels this score as a Sibyl game. Absent/false on every older score.
+  sibyl?: boolean;
   // Multiplayer only: seats that shared the cave (treasure is split, so the count is the score's
   // context). Absent on rows recorded before 2026-07-28 — rendered as "—".
   seatCount?: number;
@@ -68,6 +70,7 @@ function ScoreDetail({ row, rank, onBack, onReplay, multiplayer }: {
   const flags: string[] = [];
   if (row.extensionKit) flags.push("Extension Kit");
   if (row.forcedRedraw) flags.push("Forced Redraw");
+  if (row.sibyl) flags.push("Sibyl");
 
   const left = row.party.filter(survived);
   const artifacts = left.flatMap((m) => m.treasure).filter((t) => ALL_TREASURES[t]?.kind === "artifact").length;
@@ -244,19 +247,21 @@ export function HighScores({ rows, highlightId, onReplay, multiplayer }: {
   );
 }
 
-/** Self-fetching leaderboard with two segmented toggles selecting one of FOUR independent tables
- *  (design 2026-07-28): Solitaire|Multiplayer × Base|Extension Kit. Neither axis is comparable
+/** Self-fetching leaderboard with three segmented toggles selecting one of EIGHT independent tables
+ *  (design 2026-07-28, SC-SIB-9): Solitaire|Multiplayer × Base|Extension Kit × No Sibyl|Sibyl. Neither axis is comparable
  *  across — a shared cave splits its treasure between seats, and the kit changes the deck
  *  composition (SC-EXT-29). `defaultKit`/`defaultMode` open on the game the player just finished. */
-export function LeaderboardPanel({ defaultKit = false, defaultMode = "solo", highlightId, onReplay }: {
+export function LeaderboardPanel({ defaultKit = false, defaultSibyl = false, defaultMode = "solo", highlightId, onReplay }: {
   defaultKit?: boolean;
+  defaultSibyl?: boolean;
   defaultMode?: "solo" | "multi";
   highlightId?: string;
   onReplay?: (code: string) => Promise<string | null>;
 }) {
   const [kit, setKit] = useState(defaultKit);
+  const [sibyl, setSibyl] = useState(defaultSibyl);
   const [mode, setMode] = useState<"solo" | "multi">(defaultMode);
-  const rows = useQuery(api.highScores.list, { mode, extensionKit: kit }) as LeaderboardRow[] | undefined;
+  const rows = useQuery(api.highScores.list, { mode, extensionKit: kit, sibyl }) as LeaderboardRow[] | undefined;
   const multi = mode === "multi";
   return (
     <div>
@@ -274,6 +279,14 @@ export function LeaderboardPanel({ defaultKit = false, defaultMode = "solo", hig
         </button>
         <button role="tab" aria-selected={kit} className={"scv-hs-tab" + (kit ? " scv-hs-tab-on" : "")} onClick={() => setKit(true)}>
           Extension Kit
+        </button>
+      </div>
+      <div className="scv-hs-tabs" role="tablist" aria-label="score table sibyl">
+        <button role="tab" aria-selected={!sibyl} className={"scv-hs-tab" + (!sibyl ? " scv-hs-tab-on" : "")} onClick={() => setSibyl(false)}>
+          No Sibyl
+        </button>
+        <button role="tab" aria-selected={sibyl} className={"scv-hs-tab" + (sibyl ? " scv-hs-tab-on" : "")} onClick={() => setSibyl(true)}>
+          Sibyl
         </button>
       </div>
       {/* Stable footprint across tab switches: the body keeps the same height whether the

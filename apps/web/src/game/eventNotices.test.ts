@@ -88,6 +88,29 @@ describe("eventNotices exhaustiveness (base hardening)", () => {
   });
 });
 
+describe("eventNotices — standing traps (trapRules)", () => {
+  it("says why a party that lost its Dwarf fell as it tried to leave", () => {
+    const n = eventNotices([{ type: "trapSprung", level: 2, guideLost: true }]);
+    expect(n).toHaveLength(1);
+    expect(n[0]!.text).toMatch(/dwarf/i);
+    expect(n[0]!.tone).toBe("bad");
+  });
+
+  it("tells the player a deliberate fall gives surprise over any strangers below — without claiming there are some", () => {
+    const n = eventNotices([{ type: "trapSprung", level: 2, deliberate: true }]);
+    expect(n).toHaveLength(1);
+    expect(n[0]!.text).toMatch(/any strangers/i);
+    expect(n[0]!.text).toMatch(/surprise/i);
+    expect(n[0]!.text).not.toMatch(/the strangers below/i);
+    expect(n[0]!.tone).toBe("good");
+  });
+
+  it("is silent for the pause itself (the popup is the prompt) and for an ordinary fall", () => {
+    expect(eventNotices([{ type: "trapLooms" }])).toHaveLength(0);
+    expect(eventNotices([{ type: "trapSprung", level: 2 }])).toHaveLength(0);
+  });
+});
+
 describe("eventNotices", () => {
   it("produces no text notices for a Viper Pit crossing (its dice overlay shows the outcome)", () => {
     const events: GameEvent[] = [
@@ -460,5 +483,24 @@ describe("deadEnd flavors (retreat vs plain move)", () => {
     const out = eventNotices([{ type: "deadEndCardSwapped", removed: 31, drawn: 175 } as GameEvent]);
     expect(out).toHaveLength(0);
   });
+
+  it("tells the player when no viable exit remains, and that they may play on or quit", () => {
+    const out = eventNotices([{ type: "deadEndNoViableExits" } as GameEvent]);
+    expect(out).toHaveLength(1);
+    expect(out[0]!.text).toMatch(/no viable exits/i);
+  });
 });
 
+
+describe("Sibyl notices (SC-SIB-5/8)", () => {
+  it("announces her joining, her indifference, and the look", () => {
+    expect(eventNotices([{ type: "sibylJoins" }])).toEqual([
+      { text: "The Sibyl takes your side. She will not leave the cave.", tone: "good" },
+    ]);
+    expect(eventNotices([{ type: "sibylDeclines" }])).toEqual([
+      { text: "The Sibyl watches you with calm indifference, and stays where she is.", tone: "neutral" },
+    ]);
+    // The look is its own feedback (the fading card, SibylLook): no repeating toast on every look.
+    expect(eventNotices([{ type: "sibylExamined" }])).toEqual([]);
+  });
+});

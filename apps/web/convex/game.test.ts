@@ -85,6 +85,75 @@ describe("forcedRedraw (leaderboard-affecting, so never client-settable)", () =>
 });
 
 // ---------------------------------------------------------------------------
+// The Sorcerer's terms (`variants.sorcererTeleport`): server-stamped like forcedRedraw, off by default.
+// ---------------------------------------------------------------------------
+describe("sorcererTeleport (server-stamped, off by default)", () => {
+  const ORIGINAL = process.env.SORCERER_TELEPORT_ENABLED;
+  afterEach(() => {
+    if (ORIGINAL === undefined) delete process.env.SORCERER_TELEPORT_ENABLED;
+    else process.env.SORCERER_TELEPORT_ENABLED = ORIGINAL;
+  });
+
+  test("unset env var ⇒ no sorcererTeleport key on the stored game", async () => {
+    delete process.env.SORCERER_TELEPORT_ENABLED;
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+    const game = await as.query(api.game.get, { id });
+    expect(game?.state.variants?.sorcererTeleport).toBeUndefined();
+  });
+
+  test("SORCERER_TELEPORT_ENABLED=1 ⇒ every new game gets sorcererTeleport:true, with zero client involvement", async () => {
+    process.env.SORCERER_TELEPORT_ENABLED = "1";
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+    const game = await as.query(api.game.get, { id });
+    expect(game?.state.variants?.sorcererTeleport).toBe(true);
+    expect(game?.variants?.sorcererTeleport).toBe(true); // persisted so replay() rebuilds it
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Standing traps and the Dwarf's deliberate fall (`variants.trapRules`): server-stamped, off by default.
+// ---------------------------------------------------------------------------
+describe("trapRules (server-stamped, off by default)", () => {
+  const ORIGINAL = process.env.TRAP_RULES_ENABLED;
+  afterEach(() => {
+    if (ORIGINAL === undefined) delete process.env.TRAP_RULES_ENABLED;
+    else process.env.TRAP_RULES_ENABLED = ORIGINAL;
+  });
+
+  test("unset env var ⇒ no trapRules key on the stored game", async () => {
+    delete process.env.TRAP_RULES_ENABLED;
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+    const game = await as.query(api.game.get, { id });
+    expect(game?.state.variants?.trapRules).toBeUndefined();
+  });
+
+  test("TRAP_RULES_ENABLED=1 ⇒ every new game gets trapRules:true, with zero client involvement", async () => {
+    process.env.TRAP_RULES_ENABLED = "1";
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+    const game = await as.query(api.game.get, { id });
+    expect(game?.state.variants?.trapRules).toBe(true);
+    expect(game?.variants?.trapRules).toBe(true); // persisted so replay() rebuilds it
+  });
+
+  test("a client cannot send trapRules: the argument validator rejects the key", async () => {
+    delete process.env.TRAP_RULES_ENABLED;
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    await expect(
+      as.mutation(api.game.newGame, { seed: 1, picks: [0], variants: { trapRules: true } as never }),
+    ).rejects.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Task 2: applyAction round-trip + query authority
 // ---------------------------------------------------------------------------
 import { reduce, replay } from "@sorcerers-cave/engine";
@@ -117,6 +186,15 @@ test("applyAction accepts a resolveRound action carrying matches (arg validator)
   await expect(as.mutation(api.game.applyAction, {
     id, action: { type: "resolveRound", matches: [{ front: [0], backers: [], strangers: [0] }] },
   })).resolves.toBeDefined();
+});
+
+test("applyAction accepts a spareSorcerer action carrying its destination area (arg validator)", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 7, picks: [0] });
+  // Regression: the validator had no `area` field, so the teleport destination never reached the engine
+  // and the Sorcerer's terms came straight back. (The engine no-ops it outside the sorcerer phase.)
+  await expect(as.mutation(api.game.applyAction, { id, action: { type: "spareSorcerer", area: 0 } })).resolves.toBeDefined();
 });
 
 test("an illegal action is a no-op and is not logged", async () => {
@@ -664,4 +742,20 @@ describe("log/replayByCode surface testMode, and replay() reproduces a test-mode
     const bundle = await as.query(api.game.replayByCode, { code });
     expect(bundle?.game.testMode).toBeUndefined();
   });
+});
+
+test("newGame accepts variants.sibyl, stores it and deals the Sibyl into the pile", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 3, picks: [0], variants: { sibyl: true } });
+  const game = await as.query(api.game.get, { id });
+  expect(game?.state.variants?.sibyl).toBe(true);
+  expect((game?.state.smallPack as number[]).filter((c) => c === 121)).toHaveLength(1);
+});
+
+test("applyAction accepts examineArea's area field (arg validator)", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 3, picks: [0], variants: { sibyl: true } });
+  await expect(as.mutation(api.game.applyAction, { id, action: { type: "examineArea", area: 0 } })).resolves.toBeDefined();
 });

@@ -2,13 +2,14 @@ import {
   GS_PLAYING, GS_ESCAPED, GS_DEAD, GS_QUIT, GATEWAY_START_COORD,
   type GameState, type PartyMember,
 } from "./state";
+import { isGuardCode } from "./sibyl";
 import type { GameAction, GameEvent } from "./actions";
 import { reduce } from "./reduce";
 import { validatePicks } from "./setup";
 import { buildLargePack, buildSmallPack } from "./decks";
 import { shuffle, nextSeed } from "./rng";
 import { AREA_CARDS, GATEWAY_INDEX, SPECIAL_VIPER_PIT, SPECIAL_DEEP_POOL, SPECIAL_WHIRLPOOL, SPECIAL_CHASM } from "./data/areaCards";
-import { decodeArea } from "./decode";
+import { decodeArea, decodeOpen } from "./decode";
 import { unpackCoord, packCoord, targetCoord, DIR_UP } from "./coords";
 import type { Session, Union, Detachment } from "./multi-session";
 import {
@@ -157,7 +158,7 @@ export interface MpGameState {
   // `GameState.variants.extensionKit` (state.ts:185, SC-EXT-1): gates the kit content in
   // buildLargePack/buildSmallPack (SC-EXT-4) and is threaded into every composed seat's
   // `GameState.variants` by `compose()` so solo kit rules see it (SC-EXT-30).
-  variants?: { zombies?: boolean; fogLite?: boolean; concurrent?: boolean; extensionKit?: boolean };
+  variants?: { zombies?: boolean; fogLite?: boolean; concurrent?: boolean; extensionKit?: boolean; sibyl?: boolean };
 }
 
 /** Multiplayer action = any engine action, plus the lobby-level "pass my turn" and the
@@ -209,7 +210,10 @@ function compose(mp: MpGameState, party: PartyState): GameState {
     cryptCoord: mp.cave.cryptCoord,
     // SC-10.5-16: pending Chasm/Whirlpool drops are likewise cave-shared — see CaveState.pendingDrops's doc.
     pendingDrops: mp.cave.pendingDrops,
-    ...(mp.variants?.extensionKit ? { variants: { extensionKit: true } } : {}),
+    // `sibyl` (SC-SIB-1) is threaded the same way as the kit.
+    ...(mp.variants?.extensionKit || mp.variants?.sibyl
+      ? { variants: { ...(mp.variants.extensionKit ? { extensionKit: true } : {}), ...(mp.variants.sibyl ? { sibyl: true } : {}) } }
+      : {}),
   } as unknown as GameState;
 }
 
@@ -232,6 +236,7 @@ function splitCave(g: GameState): { cave: CaveState; rest: PartyCore } {
  */
 function turnEnds(action: MpAction, next: GameState): boolean {
   if (next.gs !== GS_PLAYING) return true;             // party left / wiped / quit
+  if (action.type === "examineArea") return false;     // the Sibyl's look is free — it never passes the turn (SC-SIB-8)
   if (next.phase === "explore") return true;           // back at rest
   if (next.phase === "fight" && !next.fight?.casualtyQueue?.length) {
     // one round fought → pass the turn (a planned resolveRound, or the choice that completes the round)
@@ -276,7 +281,7 @@ const blocked = (mp: MpGameState): { state: MpGameState; events: GameEvent[] } =
  *  them (SC-EXT-4); absent/false leaves both packs byte-identical to today. */
 export function buildMpGame(
   seed: number, seats: { seat: number; color: string; name: string }[],
-  variants?: { zombies?: boolean; fogLite?: boolean; concurrent?: boolean; extensionKit?: boolean },
+  variants?: { zombies?: boolean; fogLite?: boolean; concurrent?: boolean; extensionKit?: boolean; sibyl?: boolean },
 ): MpGameState {
   const large = buildLargePack(seed, variants);
   const small = buildSmallPack(large.seed, variants);
@@ -719,7 +724,7 @@ export function areaInteractionMask(mp: MpGameState, areaIdx: number): AreaInter
   const fighter = here.find((p) => p.phase === "fight");
   if (fighter) return { pvpLegal: false, reason: "a fight with strangers is under way", fightInProgress: fighter.seat };
 
-  const dec = decodeArea(area.card);
+  const dec = decodeOpen(area);
   // Special-areas revision (2026-08-08): extended from Viper Pit/Deep Pool to all four —
   // Whirlpool and Chasm are equally precarious footing, and the designer confirmed the original
   // pair was just an inconsistency, not a deliberate narrower scope.
@@ -728,7 +733,7 @@ export function areaInteractionMask(mp: MpGameState, areaIdx: number): AreaInter
     return { pvpLegal: false, reason: "no fighting across the pit, pool, whirlpool, or chasm", fightInProgress: null };
   }
   // Strangers "in the chamber": parked on the tile (100+cid) or live in a co-located working set.
-  const parkedStrangers = area.contents.some((c) => c >= 100 && c < 200);
+  const parkedStrangers = area.contents.some(isGuardCode); // the Sibyl guards nothing (SC-SIB-6)
   const liveStrangers = here.some((p) => p.strangers.length > 0 || (p.sleeping ?? []).length > 0);
   if (parkedStrangers || liveStrangers) {
     return { pvpLegal: false, reason: "clear the strangers first", fightInProgress: null };

@@ -21,6 +21,7 @@ const actionValidator = v.object({
   to: v.optional(v.number()),
   artifact: v.optional(v.number()),
   target: v.optional(v.number()),
+  area: v.optional(v.number()), // spareSorcerer: the discovered area to teleport to
   borne: v.optional(v.boolean()), // setBorne: bear (wield/wear) vs stow a Sword/Staff/Ring
 
   // resolveRound: the player's pairing for one fight round (front/background/strangers per match).
@@ -62,10 +63,10 @@ export async function uniqueCode(ctx: MutationCtx): Promise<string> {
   throw new Error("Could not allocate a unique game code");
 }
 
-// Extension kit (SC-EXT-29, design US-01): the only solo-relevant key of the shared `variants`
-// shape (schema.ts) — a plain object validator here rather than reusing the full MP union, since a
+// Extension kit (SC-EXT-29, design US-01) and the Sibyl (SC-SIB-1): the only solo-relevant, player-chosen
+// keys of the shared `variants` shape (schema.ts) — a plain object validator here rather than reusing the full MP union, since a
 // solo `newGame` call never sets zombies/fogLite/concurrent.
-const variantsValidator = v.object({ extensionKit: v.optional(v.boolean()) });
+const variantsValidator = v.object({ extensionKit: v.optional(v.boolean()), sibyl: v.optional(v.boolean()) });
 
 // Dead End rule (§6.3.2, "forced redraw"): unlike `extensionKit`, this flag is never player-chosen
 // and changes scoring difficulty, so it must NOT be client-settable — `variantsValidator` above
@@ -73,8 +74,21 @@ const variantsValidator = v.object({ extensionKit: v.optional(v.boolean()) });
 // server-side from a Convex-only env var (never `VITE_`-prefixed, so never bundled into the client),
 // mirroring `TEST_MODE_SECRET`'s own established reasoning below. Absent env var ⇒ byte-identical
 // to before this existed.
-function withForcedRedraw(variants: { extensionKit?: boolean } | undefined): { extensionKit?: boolean; forcedRedraw?: boolean } | undefined {
-  return process.env.FORCED_REDRAW_ENABLED === "1" ? { ...variants, forcedRedraw: true } : variants;
+//
+// The Sorcerer's terms (`variants.sorcererTeleport`, solo only) are folded in the same way from
+// `SORCERER_TELEPORT_ENABLED`. Off by default, so games already in progress and every existing
+// recording behave exactly as before (a defeated Sorcerer is simply slain).
+//
+// Standing traps and the Dwarf's deliberate fall (`variants.trapRules`, solo only) come from
+// `TRAP_RULES_ENABLED`, off by default for the same reason (a trap is one-shot and a Dwarf always
+// avoids it).
+type ServerVariants = { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean; sibyl?: boolean };
+function withForcedRedraw(variants: { extensionKit?: boolean; sibyl?: boolean } | undefined): ServerVariants | undefined {
+  let out: ServerVariants | undefined = variants;
+  if (process.env.FORCED_REDRAW_ENABLED === "1") out = { ...out, forcedRedraw: true };
+  if (process.env.SORCERER_TELEPORT_ENABLED === "1") out = { ...out, sorcererTeleport: true };
+  if (process.env.TRAP_RULES_ENABLED === "1") out = { ...out, trapRules: true };
+  return out;
 }
 
 export const newGame = mutation({

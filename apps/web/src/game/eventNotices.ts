@@ -126,8 +126,8 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "statueAroused": // folded into combatView's "guardian statue" overlay message
       case "medusaGaze": // rollView.medusaView's die-per-member overlay
       case "viperPit": // rollView.viperView's die-per-member overlay (see `hasViper` above)
-      case "trapSprung": // the move-result trap indicator / confirm modal
       case "trapAvoided": // the move-result trap indicator / confirm modal
+      case "trapLooms": // `trapRules`: the TrapChoice popup is the prompt
       // Test Mode (§Test Mode): the TestControlsPanel already shows the armed override directly —
       // nothing to narrate here.
       case "testAreaQueued":
@@ -177,6 +177,11 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       // trigger). The mechanical detail is fully captured in the debug/game logs (gameLog.ts) for
       // anyone who needs it, with no risk to live presentation.
       case "deadEndCardSwapped":
+        break;
+      // Dead End rule: no card could be found that leaves a way on, so the party now stands where nothing
+      // remains to explore. Play continues; leaving the Cave or quitting is up to the player (decision 2).
+      case "deadEndNoViableExits":
+        out.push({ text: "There are no viable exits left: every way the party can reach is explored, blocked or leads nowhere. You may play on, or quit.", tone: "bad" });
         break;
       case "spectreSlew":
         out.push({ text: `A Spectre's touch slays ${name(e.creatureId)}!`, tone: "bad" });
@@ -238,6 +243,10 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "medusaAverted":
         out.push({ text: "Medusa's gaze sweeps the party — but the Wizard's Magic Staff turns it aside; no one is stoned.", tone: "good" });
         break;
+      case "trapSprung": // the move-result trap indicator / confirm modal narrates an ordinary fall; these two add the WHY
+        if (e.guideLost) out.push({ text: "Without the Dwarf to guide it, the party is taken by the trap as it tries to leave.", tone: "bad" });
+        else if (e.deliberate) out.push({ text: "The party drops through the trap on purpose — any strangers below are not expecting you, so you have the advantage of surprise.", tone: "good" });
+        break;
       case "medusaLooms":
         out.push({ text: "Medusa looms before her gaze can land — throw the Lotus Dust at her, or proceed and brave it.", tone: "neutral" });
         break;
@@ -251,6 +260,10 @@ export function eventNotices(events: GameEvent[]): Notice[] {
         out.push({ text: `Your fighters reclaim ${plural(e.count, "treasure")} they set down for the fight.`, tone: "good" });
         break;
       case "sorcererSlain": // celebrated by the FeatCelebration overlay (feats.ts), not a text notice
+        break;
+      case "sorcererFelled": // the Sorcerer's-terms dialog (SorcererTerms.tsx) presents this, and
+      case "sorcererSpared": // the teleport effect (TeleportEffect.tsx) the other two — no text notices
+      case "partyTeleported":
         break;
       case "annihilated":
         out.push({ text: `The Eye of God annihilates ${name(e.creatureId)}!`, tone: "good" });
@@ -364,6 +377,14 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "apprenticeStaysBehind":
         out.push({ text: "The Apprentice melts back into the dark.", tone: "neutral" });
         break;
+      case "sibylJoins":
+        out.push({ text: "The Sibyl takes your side. She will not leave the cave.", tone: "good" });
+        break;
+      case "sibylDeclines":
+        out.push({ text: "The Sibyl watches you with calm indifference, and stays where she is.", tone: "neutral" });
+        break;
+      case "sibylExamined":
+        break; // the look is its own feedback (the fading card, SibylLook) — no toast on every look
       case "demonSpawned":
         out.push({ text: "Something vast and wrong now waits on your back-trail.", tone: "bad" });
         break;

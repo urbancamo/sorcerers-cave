@@ -1,7 +1,9 @@
-import { decodeArea } from "./decode";
+import { decodeArea, decodeOpen } from "./decode";
 import { SPECIAL_TOMB, SPECIAL_GREAT_HALL, SPECIAL_LAIR, SPECIAL_GALLERY, SPECIAL_WHIRLPOOL, SPECIAL_CHASM, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
 import { AF_DESTROYED, type GameState } from "./state";
 import type { GameEvent } from "./actions";
+import { HAZARD_TRAP } from "./data/hazards";
+import { C_SIBYL, SIBYL_CODE } from "./sibyl";
 
 const MAX_STRANGERS = 8;
 const MAX_TREASURE = 8;
@@ -21,7 +23,7 @@ const C_DEMON = 15;
 // USED to be listed here too (arriving exempt but un-relocated); it now never reaches this check
 // at all — Task 11 closes that seam by intercepting it in `classify`, below, before the Gallery
 // branch (SC-EXT-21).
-const GALLERY_EXEMPT_CREATURES = [9, 11]; // Spectre, Sorcerer
+const GALLERY_EXEMPT_CREATURES = [9, 11, 21]; // Spectre, Sorcerer, Sibyl
 
 /** Load an already-classified code straight into its working-set bucket — no draw-time transforms.
  *  Used to reload PERSISTED/parked contents (a revisit, or a stash just spilled onto the Lair):
@@ -41,6 +43,11 @@ function reload(state: GameState, code: number): void {
     if (state.hazards.length < MAX_HAZARDS) state.hazards.push(code - 300);
   } else if (code >= 200) {
     if (state.treasures.length < MAX_TREASURE) state.treasures.push(code - 200);
+  } else if (code === SIBYL_CODE) {
+    // The Sibyl never joins the strangers (SC-SIB-2): she waits in the parked-awake slot, which every
+    // leave-the-chamber path already saves, and is met only once the real strangers are dealt with.
+    state.lulled ??= [];
+    if (!state.lulled.includes(C_SIBYL)) state.lulled.push(C_SIBYL);
   } else {
     if (state.strangers.length < MAX_STRANGERS) state.strangers.push(code - 100);
   }
@@ -94,7 +101,7 @@ function classify(state: GameState, code: number, events: GameEvent[]): void {
   }
   if (code >= 100 && code < 200) {
     const creatureId = code - 100;
-    const dec = decodeArea(state.areas[state.partyArea]!.card);
+    const dec = decodeOpen(state.areas[state.partyArea]!);
     if (dec.special === SPECIAL_GALLERY && !GALLERY_EXEMPT_CREATURES.includes(creatureId)) {
       state.statues ??= [];
       if (state.statues.length < MAX_STRANGERS) state.statues.push(creatureId);
@@ -111,7 +118,7 @@ function classify(state: GameState, code: number, events: GameEvent[]): void {
  */
 export function enterChamber(state: GameState): GameEvent[] {
   const area = state.areas[state.partyArea]!;
-  const dec = decodeArea(area.card);
+  const dec = decodeOpen(area);
   state.strangers = [];
   state.treasures = [];
   state.hazards = [];
@@ -168,6 +175,12 @@ export function enterChamber(state: GameState): GameEvent[] {
   // Giant/Flute-gated `sunkTreasure` reclaim is unaffected (handled in reduce.ts's
   // `resolveAreaLoop`, which returns before `enterChamber` runs at all for those two).
   for (const code of area.contents) reload(state, code);
+  // Standing traps (`variants.trapRules`): note how many traps came back from the area, as opposed to
+  // being drawn below, so a later fall can tell a knowing re-entry from a trap met for the first time.
+  if (state.variants?.trapRules) {
+    const known = area.contents.filter((c) => c === 300 + HAZARD_TRAP).length;
+    if (known > 0) state.knownTraps = known; else delete state.knownTraps;
+  }
   if (!area.visited) {
     area.visited = true;
     // No arrival draw for the Chasm (bug fix 2026-08-02) or the Whirlpool/Well/Bell Rope (bug fix

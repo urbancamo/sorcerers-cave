@@ -1,25 +1,21 @@
-import { decodeArea, type DecodedArea } from "./decode";
+import { decodeArea, decodeOpen, type DecodedArea } from "./decode";
 import {
   DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN,
   targetCoord, unpackCoord,
 } from "./coords";
 import { AF_DESTROYED, type GameState, type PlacedArea } from "./state";
 import { SPECIAL_CANONICAL_CARD, AREA_TILE_CANONICAL_CARD, SPECIAL_WHIRLPOOL, TILE_MIN, TILE_MAX } from "./data/areaCards";
-import { randBelow } from "./rng";
 
 export interface MoveResult {
   state: GameState;
   moved: boolean;
   deadEnd: boolean;
-  // Dead End rule (§6.3.2, "forced redraw"): one entry per completed reject-and-redraw cycle
-  // (`allowDeadEndSwap` only) — empty whenever the swap mechanism didn't engage.
-  swaps: { removed: number; drawn: number }[];
 }
 
 const STAIR_UP_BIT = 32;
 const STAIR_DOWN_BIT = 64;
 
-function hasExit(d: DecodedArea, dir: number): boolean {
+export function hasExit(d: DecodedArea, dir: number): boolean {
   switch (dir) {
     case DIR_N: return d.n;
     case DIR_E: return d.e;
@@ -48,97 +44,34 @@ function hasReverseDoor(d: DecodedArea, dir: number): boolean {
  *  connects only if the destination shows the matching reverse doorway. Shared by `tryMove`'s
  *  existing-area branch and `isPartyStuck` (§6.3.2, Dead End rule) so the two can never drift. */
 export function existingAreaConnects(dest: PlacedArea, dir: number): boolean {
-  if (isPermanentlyBlocked(dest, dir)) return false;
-  return dir === DIR_UP || dir === DIR_DOWN || hasReverseDoor(decodeArea(dest.card), dir);
+  if (isBlockedDoorway(dest, dir)) return false;
+  return dir === DIR_UP || dir === DIR_DOWN || hasReverseDoor(decodeOpen(dest), dir);
 }
 
 /** A doorway onto `dest` that can NEVER open, whatever the party does: an earthquake-collapsed tile,
  *  or a stairway onto the Whirlpool. (A missing reverse door is a different, plain geometry mismatch.) */
-function isPermanentlyBlocked(dest: PlacedArea, dir: number): boolean {
+export function isBlockedDoorway(dest: PlacedArea, dir: number): boolean {
   if ((dest.flags & AF_DESTROYED) !== 0) return true;
   return (dir === DIR_UP || dir === DIR_DOWN) && decodeArea(dest.card).special === SPECIAL_WHIRLPOOL;
 }
 
-function pruneExit(card: number, dir: number): number {
+/** The card bit of a doorway or stairway. */
+export function doorBit(dir: number): number {
   switch (dir) {
-    case DIR_N: return card & ~1;
-    case DIR_E: return card & ~2;
-    case DIR_S: return card & ~4;
-    case DIR_W: return card & ~8;
-    // Bug fix 2026-08-08: verticals were never actually pruned (fell through to the default,
-    // untouched) — a discovered dead end via a stair kept re-offering itself forever, unlike a
-    // lateral one. Only reachable in practice via an AF_DESTROYED collapse (§Earthquake) or the
-    // Whirlpool's new "no stairway may lead here" block (§Whirlpool revision); both already call
-    // this expecting it to work like the lateral case.
-    case DIR_UP: return card & ~STAIR_UP_BIT;
-    case DIR_DOWN: return card & ~STAIR_DOWN_BIT;
-    default: return card;
+    case DIR_N: return 1;
+    case DIR_E: return 2;
+    case DIR_S: return 4;
+    case DIR_W: return 8;
+    case DIR_UP: return STAIR_UP_BIT;
+    case DIR_DOWN: return STAIR_DOWN_BIT;
+    default: return 0;
   }
 }
 
-/** Close a doorway on a placed area, first saving the card as dealt (once) so the renderer can keep
- *  drawing the tile as printed — see `PlacedArea.printedCard`. */
-function pruneArea(area: PlacedArea, dir: number): void {
-  area.printedCard ??= area.card;
-  area.card = pruneExit(area.card, dir);
-}
-
-/** `pruneExit`'s inverse — restores a bit `pruneExit` cleared. Only ever used to roll back a
- *  face-down placement that turned out to be rescuable (§6.3.2, Dead End rule). */
-function restoreExit(card: number, dir: number): number {
-  switch (dir) {
-    case DIR_N: return card | 1;
-    case DIR_E: return card | 2;
-    case DIR_S: return card | 4;
-    case DIR_W: return card | 8;
-    case DIR_UP: return card | STAIR_UP_BIT;
-    case DIR_DOWN: return card | STAIR_DOWN_BIT;
-    default: return card;
-  }
-}
-
-/** `pruneArea`'s inverse for the forced-redraw rescue: reopen the doorway, and forget the printed card
- *  if that leaves the tile exactly as dealt (a rescued dead end must leave no trace). */
-function restoreArea(area: PlacedArea, dir: number): void {
-  area.card = restoreExit(area.card, dir);
-  if (area.card === area.printedCard) delete area.printedCard;
-}
-
-/**
- * True iff the tile the party occupies has no actionable doorway or stairway left (§6.3.2, Dead End
- * rule). Only `partyArea` itself is examined — there is deliberately NO backtracking through
- * neighbouring tiles: a party sitting in a room whose every untried door has failed is stuck even if
- * a tile it came through still has unexplored exits elsewhere on the map.
- *
- * An unpruned bit counts as "actionable" only when trying it could still change anything:
- *  - Toward an already-placed area that does NOT currently connect: yes — trying it costs no turn
- *    (SC-4-9) and hasn't been attempted from here yet, even though we can already tell it will fail.
- *    EXCEPT a permanently blocked one (collapsed tile, stairway onto the Whirlpool): nothing to try,
- *    so it never counts (docs/bugs/ZICR-log.json — a room sealed off by an earthquake).
- *  - Toward an already-placed area that DOES currently connect: no. A successful connection's bit is
- *    never pruned (pruning only ever fires on failure), so counting it would count it forever; it is
- *    a way back out, not a way forward.
- *  - Toward unexplored space: yes, but only while a card remains to draw for it
- *    (`largeIdx < largePack.length`) — once the pack is exhausted, `tryMove` treats that direction as
- *    a permanent no-op (SC-6.1-6) that never prunes the bit, so an unconditional read would see a
- *    phantom "option" that can never actually resolve.
- */
-export function isPartyStuck(state: GameState, partyArea: number): boolean {
-  const packHasCards = state.largeIdx < state.largePack.length;
-  const area = state.areas[partyArea]!;
-  const dec = decodeArea(area.card);
-  const { level, x, y } = unpackCoord(area.coord);
-  for (const dir of [DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN]) {
-    if (!hasExit(dec, dir)) continue;
-    const target = targetCoord(dir, level, x, y);
-    const dest = state.areas.find((a) => a.coord === target);
-    if (!dest) {
-      if (packHasCards) return false;
-    } else if (!isPermanentlyBlocked(dest, dir) && !existingAreaConnects(dest, dir)) {
-      return false;
-    }
-  }
-  return true;
+/** Mark a doorway dead after a failed move. The printed `card` is left exactly as dealt — a placed card's
+ *  doors never change; only this mask records that the doorway has been tried and leads nowhere. */
+export function closeDoor(area: PlacedArea, dir: number): void {
+  area.deadDoors = (area.deadDoors ?? 0) | doorBit(dir);
 }
 
 /**
@@ -157,27 +90,115 @@ function mirrorReturnStair(next: GameState, dest: PlacedArea, bit: number): void
   }
 }
 
+/** A card taken off the large pack for a move (or a Test Mode scripted one), not yet laid. */
+export interface DrawnCard {
+  card: number;
+  /** Test Mode: a scripted SPECIAL always connects regardless of its printed orientation. */
+  bypassDoors: boolean;
+  /** True when it came from a Test Mode script rather than the pack, so no pack slot was used. */
+  scripted: boolean;
+}
+
+/** True when a move toward empty space has nothing to draw: the pack is empty and no Test Mode script is armed
+ *  for this direction (SC-6.1-6 — the move is then a permanent no-op that prunes nothing). */
+export function nothingToDraw(next: GameState, dir: number): boolean {
+  return !(next.testMode && next.testNextArea?.dir === dir) && next.largeIdx >= next.largePack.length;
+}
+
+/**
+ * Take the next area card for a move in `dir`. Test Mode (§Test Mode): an armed testNextArea for THIS exact
+ * direction takes over the draw entirely, and is consumed (deleted) the first time it is read.
+ * Mutates `next` (the pack index, the script). Call `nothingToDraw` first.
+ */
+export function drawAreaCard(next: GameState, dir: number): DrawnCard {
+  const override = next.testMode && next.testNextArea?.dir === dir ? next.testNextArea : undefined;
+  if (override) {
+    // SC-Test-8: `override.special` also admits the plain-tile pseudo-ids (TILE_MIN..TILE_MAX),
+    // whose canonical card lives in the sibling AREA_TILE_CANONICAL_CARD table.
+    const card = SPECIAL_CANONICAL_CARD[override.special] ?? AREA_TILE_CANONICAL_CARD[override.special]!;
+    delete next.testNextArea;
+    // Exception (SC-Test-8/SC-Test-11): a scripted plain tile (chamber or tunnel, TILE_MIN..TILE_MAX) has a
+    // real, possibly partial, door layout, so it obeys the reverse-door check like a real draw — otherwise
+    // cueing one whose doors do not face back at the party would let it walk through a wall. Specials always
+    // connect: every SPECIAL_CANONICAL_CARD has all four exits.
+    const honoursDoors = override.special >= TILE_MIN && override.special <= TILE_MAX;
+    return { card, bypassDoors: !honoursDoors, scripted: true };
+  }
+  const card = next.largePack[next.largeIdx]!;
+  next.largeIdx += 1;
+  return { card, bypassDoors: false, scripted: false };
+}
+
+/** Would this drawn card connect to a party moving in `dir`? (`moveCheck`, spec §How to Implement.) */
+export function drawnCardConnects(drawn: DrawnCard, dir: number): boolean {
+  const rawConnects = drawn.bypassDoors || dir === DIR_UP || dir === DIR_DOWN || hasReverseDoor(decodeArea(drawn.card), dir);
+  // Whirlpool revision (2026-08-08): a vertical draw that turns up the Whirlpool never connects either — "any
+  // stairway leading to this area is considered blocked." Bug fix 2026-08-09 (QOTO-01): a Test Mode override
+  // does NOT exempt this one — it is a hard rule the real game enforces, and the whole point of queuing a
+  // Whirlpool onto a vertical move in the test rig is to confirm the block still fires.
+  return rawConnects && !((dir === DIR_UP || dir === DIR_DOWN) && decodeArea(drawn.card).special === SPECIAL_WHIRLPOOL);
+}
+
+/** Lay a connecting card face up at the target of `dir` and move the party onto it. */
+export function layConnecting(next: GameState, dir: number, drawn: DrawnCard): void {
+  const current = next.areas[next.partyArea]!;
+  const { level, x, y } = unpackCoord(current.coord);
+  const target = targetCoord(dir, level, x, y);
+  let card = drawn.card;
+  // A printed stair-up on a level-1 card is a *cave exit*, not a stair to a level above (§ level-1 exits: "any
+  // stairway leading up from the first level is an exit from the Cave"). It is kept — exiting is the `exitCave`
+  // action (a DIR_UP move stays blocked on level 1), so several cards, not only the Gateway, can let a party
+  // escape. A stairway leading to an area with no matching stair pictured has a secret door at that end
+  // (§"Secret Doors"): descending onto a card with no stair up, or ascending onto one with no stair down.
+  // Mirror the missing stair so the party can retrace its steps, exclude it from tile-art selection, and lay
+  // the next letter A, B, C…
+  let mirroredStairs = 0;
+  let secretDoor: number | undefined;
+  if (dir === DIR_DOWN && (card & STAIR_UP_BIT) === 0) {
+    card = card | STAIR_UP_BIT;
+    mirroredStairs = STAIR_UP_BIT;
+  } else if (dir === DIR_UP && (card & STAIR_DOWN_BIT) === 0) {
+    card = card | STAIR_DOWN_BIT;
+    mirroredStairs = STAIR_DOWN_BIT;
+  }
+  if (mirroredStairs !== 0) {
+    secretDoor = next.secretDoors ?? 0;
+    next.secretDoors = secretDoor + 1;
+  }
+  const placed: PlacedArea = { card, coord: target, faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0, mirroredStairs, secretDoor };
+  next.areas.push(placed);
+  next.prev2 = next.prev;
+  next.prev = next.partyArea;
+  next.partyArea = next.areas.length - 1;
+  next.level = unpackCoord(target).level;
+}
+
+/** Lay a card that does NOT connect face down at the target of `dir` (a dead end) and close that doorway on the
+ *  party's area. The party does not move. */
+export function layDeadEnd(next: GameState, dir: number, drawn: DrawnCard): void {
+  const current = next.areas[next.partyArea]!;
+  const { level, x, y } = unpackCoord(current.coord);
+  next.areas.push({ card: drawn.card, coord: targetCoord(dir, level, x, y), faceUp: false, visited: false, contents: [], flags: 0, indiffCount: 0 });
+  closeDoor(current, dir);
+}
+
 /**
  * Attempt to move the party one step in `dir` (spec §6.1). Pure: returns a new state.
  * - Existing destination: stairs always connect; lateral moves need a matching reverse doorway.
  * - No destination: draw the next large-pack card; place face-up (move) if it connects,
- *   else face-down (dead-end) and prune the exit on the current card.
+ *   else face-down (dead-end) and close the doorway on the current card.
  *
- * `allowDeadEndSwap` (default false — byte-identical to before this parameter existed) engages the
- * Dead End rule (§6.3.2, "forced redraw", `variants.forcedRedraw`): only the caller passing `true`
- * ever sees the swap-and-redraw loop below; every other call site (including `retreat`, which has
- * its own deliberately harsher dead-end rule) is untouched.
+ * This is the plain move. The Dead End rule (§6.3.2, `variants.forcedRedraw`) wraps it in `redraw.ts`, and
+ * `retreat` (which has its own deliberately harsher dead-end rule) calls it directly.
  */
-export function tryMove(state: GameState, dir: number, allowDeadEndSwap = false): MoveResult {
+export function tryMove(state: GameState, dir: number): MoveResult {
   const current0 = state.areas[state.partyArea]!;
-  const dec = decodeArea(current0.card);
-  if (!hasExit(dec, dir)) return { state, moved: false, deadEnd: false, swaps: [] };
+  if (!hasExit(decodeOpen(current0), dir)) return { state, moved: false, deadEnd: false };
 
   const next = structuredClone(state);
   const current = next.areas[next.partyArea]!;
   const { level, x, y } = unpackCoord(current.coord);
   const target = targetCoord(dir, level, x, y);
-  const targetLevel = unpackCoord(target).level;
 
   const foundIdx = next.areas.findIndex((a) => a.coord === target);
   if (foundIdx >= 0) {
@@ -192,118 +213,19 @@ export function tryMove(state: GameState, dir: number, allowDeadEndSwap = false)
       next.prev2 = next.prev;
       next.prev = next.partyArea;
       next.partyArea = foundIdx;
-      next.level = targetLevel;
-      return { state: next, moved: true, deadEnd: false, swaps: [] };
+      next.level = unpackCoord(target).level;
+      return { state: next, moved: true, deadEnd: false };
     }
-    pruneArea(current, dir);
-    return { state: next, moved: false, deadEnd: true, swaps: [] };
+    closeDoor(current, dir);
+    return { state: next, moved: false, deadEnd: true };
   }
 
-  // No existing area — draw a card, retrying on a rescuable dead end (§6.3.2) when allowed. Test
-  // Mode (§Test Mode): an armed testNextArea for THIS exact direction takes over the draw entirely
-  // — including bypassing the empty-pack early return, since nothing is actually drawn from
-  // largePack. It is consumed (deleted) the first time it's read, so by construction it can only
-  // ever apply to the loop's first attempt — every later attempt falls through to a real draw.
-  if (!(next.testMode && next.testNextArea?.dir === dir) && next.largeIdx >= next.largePack.length) {
-    return { state, moved: false, deadEnd: false, swaps: [] };
+  if (nothingToDraw(next, dir)) return { state, moved: false, deadEnd: false };
+  const drawn = drawAreaCard(next, dir);
+  if (drawnCardConnects(drawn, dir)) {
+    layConnecting(next, dir, drawn);
+    return { state: next, moved: true, deadEnd: false };
   }
-
-  const swaps: { removed: number; drawn: number }[] = [];
-  let pendingRemoved: number | undefined;
-  // Bounded at one attempt per undrawn card, computed ONCE before the first draw: each iteration
-  // draws exactly one card and, on a rescued rejection, reinserts exactly one card before the next
-  // iteration, so the undrawn count is loop-invariant and this bound can never be exceeded by the
-  // swap mechanism itself.
-  const maxAttempts = allowDeadEndSwap ? Math.max(1, next.largePack.length - next.largeIdx) : 1;
-
-  for (let attempt = 1; ; attempt++) {
-    const override = next.testMode && next.testNextArea?.dir === dir ? next.testNextArea : undefined;
-    let drawn: number;
-    if (override) {
-      // SC-Test-8: `override.special` also admits the plain-tile pseudo-ids (TILE_MIN..TILE_MAX),
-      // whose canonical card lives in the sibling AREA_TILE_CANONICAL_CARD table.
-      drawn = SPECIAL_CANONICAL_CARD[override.special] ?? AREA_TILE_CANONICAL_CARD[override.special]!;
-      delete next.testNextArea;
-    } else {
-      drawn = next.largePack[next.largeIdx]!;
-      next.largeIdx += 1;
-    }
-    if (pendingRemoved !== undefined) {
-      swaps.push({ removed: pendingRemoved, drawn });
-      pendingRemoved = undefined;
-    }
-
-    // A printed stair-up on a level-1 card is a *cave exit*, not a stair to a level above (§ level-1
-    // exits: "any stairway leading up from the first level is an exit from the Cave"). It is kept —
-    // exiting is the `exitCave` action (a DIR_UP move stays blocked on level 1), so several cards,
-    // not only the Gateway, can let a party escape. Without this a party whose Gateway is destroyed
-    // can be trapped forever. Test Mode (§Test Mode): a scripted placement always connects,
-    // regardless of the special's printed orientation — the whole point is guaranteeing the tester
-    // reaches the scenario asked for. (In practice every SPECIAL_CANONICAL_CARD entry has all four
-    // exits anyway — see Task 1's own test — so this only matters if that ever changes.)
-    // Exception (SC-Test-8/SC-Test-11): a scripted plain tile (chamber or tunnel, TILE_MIN..TILE_MAX)
-    // has a real, possibly partial, door layout, so it obeys the reverse-door check like a real draw —
-    // otherwise cueing one whose doors don't face back at the party would let it walk through a wall.
-    // Specials always connect: every SPECIAL_CANONICAL_CARD has all four exits.
-    const honoursDoors = !!override && override.special >= TILE_MIN && override.special <= TILE_MAX;
-    const rawConnects = (!!override && !honoursDoors) || dir === DIR_UP || dir === DIR_DOWN || hasReverseDoor(decodeArea(drawn), dir);
-    // Whirlpool revision (2026-08-08): a vertical draw that turns up the Whirlpool never connects
-    // either — "any stairway leading to this area is considered blocked." Bug fix 2026-08-09
-    // (QOTO-01): a Test Mode override does NOT exempt this one — it's not a printed-orientation
-    // technicality Test Mode exists to bypass, it's a hard rule the real game enforces, and the whole
-    // point of queuing a Whirlpool onto a vertical move in the test rig is to confirm the block still
-    // fires. (An override still bypasses the ordinary reverse-door/orientation check above, and is
-    // still consumed here either way — see the face-down placement this falls through to below.)
-    const connects = rawConnects &&
-      !((dir === DIR_UP || dir === DIR_DOWN) && decodeArea(drawn).special === SPECIAL_WHIRLPOOL);
-
-    if (connects) {
-      // A stairway leading to an area with no matching stair pictured has a secret door at that end
-      // (§"Secret Doors"): descending onto a card with no stair up, or ascending onto one with no
-      // stair down. Mirror the missing stair so the party can retrace its steps, exclude it from
-      // tile-art selection, and lay the next letter A, B, C…
-      let mirroredStairs = 0;
-      let secretDoor: number | undefined;
-      if (dir === DIR_DOWN && (drawn & STAIR_UP_BIT) === 0) {
-        drawn = drawn | STAIR_UP_BIT;
-        mirroredStairs = STAIR_UP_BIT;
-      } else if (dir === DIR_UP && (drawn & STAIR_DOWN_BIT) === 0) {
-        drawn = drawn | STAIR_DOWN_BIT;
-        mirroredStairs = STAIR_DOWN_BIT;
-      }
-      if (mirroredStairs !== 0) {
-        secretDoor = next.secretDoors ?? 0;
-        next.secretDoors = secretDoor + 1;
-      }
-      const placed: PlacedArea = { card: drawn, coord: target, faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0, mirroredStairs, secretDoor };
-      next.areas.push(placed);
-      next.prev2 = next.prev;
-      next.prev = next.partyArea;
-      next.partyArea = next.areas.length - 1;
-      next.level = targetLevel;
-      return { state: next, moved: true, deadEnd: false, swaps };
-    }
-
-    const placed: PlacedArea = { card: drawn, coord: target, faceUp: false, visited: false, contents: [], flags: 0, indiffCount: 0 };
-    next.areas.push(placed);
-    pruneArea(current, dir);
-
-    // Placed and pruned FIRST, then checked: the rejected card's OTHER doors could open unrelated
-    // connections elsewhere, so "is the party stuck" must be evaluated against the state as it would
-    // actually be left, not a hypothetical pre-placement guess.
-    if (attempt >= maxAttempts || !isPartyStuck(next, next.partyArea)) {
-      return { state: next, moved: false, deadEnd: true, swaps };
-    }
-
-    // Rescuable dead end (§6.3.2): undo the placement and the prune, reshuffle the rejected card
-    // back into the pack at a uniformly random position among the still-undrawn cards (not a fixed
-    // "middle" index — see the spec for why), and retry the same direction.
-    next.areas.pop();
-    restoreArea(current, dir);
-    const remaining = next.largePack.length - next.largeIdx; // undrawn AFTER this draw
-    const r = randBelow(next.seed, remaining + 1);
-    next.seed = r.seed;
-    next.largePack.splice(next.largeIdx + r.value, 0, drawn);
-    pendingRemoved = drawn;
-  }
+  layDeadEnd(next, dir, drawn);
+  return { state: next, moved: false, deadEnd: true };
 }

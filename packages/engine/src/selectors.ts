@@ -1,4 +1,5 @@
-import { decodeArea, type DecodedArea } from "./decode";
+import { decodeArea, decodeOpen, type DecodedArea } from "./decode";
+import { examinableAreas, isGuardCode, sibylWaiting } from "./sibyl";
 import { DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, unpackCoord, packCoord } from "./coords";
 import { GS_PLAYING, AF_DESTROYED, AF_BELL_SPENT, type GameState } from "./state";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
@@ -7,6 +8,7 @@ import { canCarry } from "./pickup";
 import { usesArtifactsAs, holyWaterTargets, hasLivingHuman, fluteLulls, healingBalmEligible, isHumanOrPriestClass } from "./effects";
 import { getSubLocation, oppositeDir, RING_ADJACENCY_SPECIALS, ISLAND_JUMP_SPECIALS, type SubLocation } from "./subLocation";
 import { giantCanRecover, sunkKey } from "./special";
+import { teleportDestinations } from "./sorcerer";
 
 const C_GIANT = 12; // only a Giant may lift treasure out of a Deep Pool (§Deep Pool)
 
@@ -116,11 +118,11 @@ function artifactActions(state: GameState): GameAction[] {
     if (has(12, (id) => id === 0 || id === 1 || usesArtifactsAs(id, 4) || usesArtifactsAs(id, 5) || id === 6 || usesArtifactsAs(id, 8))) { // Charmed Flute -> Hero/W-Hero/Priest/Man/Woman/Wizard
       const cur = state.areas[state.partyArea]!;
       const { level, x, y } = unpackCoord(cur.coord);
-      const dec = decodeArea(cur.card);
+      const dec = decodeOpen(cur);
       const below = state.areas.find((a) => a.coord === packCoord(level + 1, x, y));
-      if (!dec.stairDown && below && decodeArea(below.card).stairUp) actions.push({ type: "useArtifact", artifact: 12, dir: DIR_DOWN });
+      if (!dec.stairDown && below && decodeOpen(below).stairUp) actions.push({ type: "useArtifact", artifact: 12, dir: DIR_DOWN });
       const above = state.areas.find((a) => a.coord === packCoord(level - 1, x, y));
-      if (!dec.stairUp && above && decodeArea(above.card).stairDown) actions.push({ type: "useArtifact", artifact: 12, dir: DIR_UP });
+      if (!dec.stairUp && above && decodeOpen(above).stairDown) actions.push({ type: "useArtifact", artifact: 12, dir: DIR_UP });
     }
   }
   return actions;
@@ -129,7 +131,7 @@ function artifactActions(state: GameState): GameAction[] {
 /** Extension kit (SC-EXT-8): one `pullBellRope` action per living party member, offered while the
  *  party stands on an unspent Bell Rope tile (design US-03 — the "member picker"). */
 function bellRopeActions(state: GameState): GameAction[] {
-  const dec = decodeArea(state.areas[state.partyArea]!.card);
+  const dec = decodeOpen(state.areas[state.partyArea]!);
   if (dec.special !== SPECIAL_BELL_ROPE) return [];
   if ((state.areas[state.partyArea]!.flags & AF_BELL_SPENT) !== 0) return [];
   const actions: GameAction[] = [];
@@ -159,6 +161,14 @@ export function legalActions(state: GameState): GameAction[] {
     acts.push({ type: "proceed" });
     return acts;
   }
+  if (state.phase === "trap") {
+    // The Dwarf's choice at a trap (`variants.trapRules`): be guided past it, or fall through it on purpose.
+    return [{ type: "avoidTrap" }, { type: "fallThroughTrap" }];
+  }
+  if (state.phase === "sorcerer") {
+    // The Sorcerer lies defeated (§The Sorcerer): slay him, or spare him for a teleport to any discovered area.
+    return [{ type: "slaySorcerer" }, ...teleportDestinations(state).map((area): GameAction => ({ type: "spareSorcerer", area }))];
+  }
   if (state.phase === "encounter") {
     // Withdraw retreats to the area the party came from — but not back up a trap it fell through, nor
     // into an area an earthquake has since collapsed (§Earthquake): both leave no way back.
@@ -167,9 +177,13 @@ export function legalActions(state: GameState): GameAction[] {
     // fall (SC-EXT-9, design US-03/US-07).
     const noWithdrawTurn = state.noWithdrawTurn === state.turn;
     const canWithdraw = !state.fellThroughTrap && !prevGone && !noWithdrawTurn;
-    const actions: GameAction[] = canWithdraw ? [{ type: "withdraw" }, { type: "attack" }] : [{ type: "attack" }];
-    if ((state.indiffStreak ?? 0) < 3) actions.push({ type: "test" });
-    const dec = decodeArea(state.areas[state.partyArea]!.card);
+    // A lone, unmet Sibyl is no one to attack or surprise (SC-SIB-4): she is only tested, or left.
+    const sibylOnly = sibylWaiting(state);
+    const actions: GameAction[] = [];
+    if (canWithdraw) actions.push({ type: "withdraw" });
+    if (!sibylOnly) actions.push({ type: "attack" });
+    if (sibylOnly || (state.indiffStreak ?? 0) < 3) actions.push({ type: "test" });
+    const dec = decodeOpen(state.areas[state.partyArea]!);
     // Rules §Encountering Strangers: the party may also simply leave by any doorway, forfeiting the
     // treasure — but only during the one-shot window a qualifying indifferent test just opened
     // (Gap C, bug fix 2026-08-04; see lateralMoves' own doc comment). NOT a standing condition of
@@ -198,7 +212,7 @@ export function legalActions(state: GameState): GameAction[] {
     // fight UI), not from a menu item. Retreat is allowed only after at least one round has been fought,
     // and never back up a trap (§Retreat). A party may flee by ANY of the tile's doorways/stairs.
     if (!state.fellThroughTrap && state.fight && state.fight.round > 1 && !state.fight.retreatBlocked) {
-      const dec = decodeArea(state.areas[state.partyArea]!.card);
+      const dec = decodeOpen(state.areas[state.partyArea]!);
       if (dec.n) actions.push({ type: "retreat", dir: DIR_N });
       if (dec.e) actions.push({ type: "retreat", dir: DIR_E });
       if (dec.s) actions.push({ type: "retreat", dir: DIR_S });
@@ -213,7 +227,7 @@ export function legalActions(state: GameState): GameAction[] {
     const actions: GameAction[] = [];
     // Recovering treasure from a Deep Pool is a Giant-only pickup (§Deep Pool) — no other creature
     // can lift it out of the water; ordinary chamber pickups are open to any member.
-    const giantOnly = decodeArea(state.areas[state.partyArea]!.card).special === SPECIAL_DEEP_POOL;
+    const giantOnly = decodeOpen(state.areas[state.partyArea]!).special === SPECIAL_DEEP_POOL;
     for (let ti = 0; ti < state.treasures.length; ti++) {
       for (let mi = 0; mi < state.party.length; mi++) {
         const m = state.party[mi]!;
@@ -237,7 +251,7 @@ export function legalActions(state: GameState): GameAction[] {
   }
   if (state.phase !== "explore") return [];
 
-  const dec = decodeArea(state.areas[state.partyArea]!.card);
+  const dec = decodeOpen(state.areas[state.partyArea]!);
   const actions: GameAction[] = [];
   // Precise Locations (§10.5, §8.1): a Viper-Pit/Whirlpool ledge only reaches its two ADJACENT
   // doorways — the one directly opposite the party's current doorway is unreachable without first
@@ -269,7 +283,7 @@ export function legalActions(state: GameState): GameAction[] {
   // A permanently-indifferent chamber is traversed in the explore phase, but the party may still choose
   // to attack its guards (to win the treasure they guard) — offer it while they're parked on the tile.
   if (state.pacifiedAreas?.includes(state.partyArea) &&
-      state.areas[state.partyArea]!.contents.some((c) => c >= 100 && c < 200)) {
+      state.areas[state.partyArea]!.contents.some(isGuardCode)) {
     actions.push({ type: "attack" });
   }
   // Deep Pool/Viper Pit stationary reclaim (bug fix 2026-08-02): offer a live pickup for treasure
@@ -283,6 +297,11 @@ export function legalActions(state: GameState): GameAction[] {
     const reclaimable = area.dropped?.length ? area.dropped : sunkItems;
     const eligible = dec.special === SPECIAL_DEEP_POOL ? giantCanRecover(state, reclaimable ?? []) : fluteLulls(state);
     if (reclaimable?.length && eligible) actions.push({ type: "reclaimTreasure" });
+  }
+  // The Sibyl's free look (SC-SIB-8): the top of the large pack, and every face-down tile on the map.
+  if (state.hasSibyl === true) {
+    if (state.largeIdx < state.largePack.length) actions.push({ type: "examineArea" });
+    for (const area of examinableAreas(state)) actions.push({ type: "examineArea", area });
   }
   actions.push(...artifactActions(state));
   return actions; // quitting is via the HUD Quit button, not an in-menu action

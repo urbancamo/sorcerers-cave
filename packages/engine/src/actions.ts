@@ -22,7 +22,14 @@ export type GameAction =
   | { type: "retreat"; dir: number } // flee a fight by any doorway/stair; a dead end means fight on
   | { type: "useArtifact"; artifact: number; target?: number; dir?: number }
   | { type: "proceed" } // decline the Medusa-pause throw: let her gaze (and the other hazards) fire
+  // The Dwarf's choice at a trap (`variants.trapRules`, phase `trap`): be guided past it, or fall through it.
+  | { type: "avoidTrap" }
+  | { type: "fallThroughTrap" }
   | { type: "openChest" }
+  // The Sibyl's free look (variants.sibyl, SC-SIB-8): at rest, examine the top of the large pack (no
+  // `area`) or a face-down placed tile (`area` = its index in `state.areas`). Changes nothing — the
+  // client reads the card from state and shows it only to the looking seat.
+  | { type: "examineArea"; area?: number }
   // Extension kit (SC-EXT-5): descend the Chasm — legal only on a SPECIAL_CHASM tile, in explore or
   // encounter phase (design US-02). No dice; reuses `relocateDown` (one-way, no mirrored stair-up).
   | { type: "descendChasm" }
@@ -58,6 +65,12 @@ export type GameAction =
   | { type: "reclaimTreasure" }
   // Test Mode (§Test Mode): arm/clear the next draw or reaction override. Rejected with `blocked`
   // on any game whose `state.testMode` isn't true (reduce.ts) — never legal in a real game.
+  // The Sorcerer's terms (§The Sorcerer, `variants.sorcererTeleport`): legal only in the `sorcerer` phase,
+  // straight after the fight in which he was defeated. Spare him on condition that he transports the party
+  // and the treasure in the chamber to any discovered area (`area` indexes `state.areas`) — or slay him
+  // as the fight would have (+30, every curse lifted, every Apprentice turns hostile).
+  | { type: "spareSorcerer"; area: number }
+  | { type: "slaySorcerer" }
   | { type: "testPlaceArea"; dir: number; special: number }
   | { type: "testSetChamber"; strangers: number[]; treasures: number[]; hazards: number[] }
   | { type: "testForceReaction"; outcome: "friendly" | "indifferent" | "hostile" }
@@ -75,7 +88,9 @@ export type GameEvent =
   | { type: "deadEnd"; dir: number; retreat?: true } // retreat: the fight bounce-back, not a plain blocked move
   // Dead End rule (§6.3.2, "forced redraw", `variants.forcedRedraw`): one per completed
   // reject-and-redraw cycle during a `move`, emitted ahead of the move's own final event(s).
-  | { type: "deadEndCardSwapped"; removed: number; drawn: number }
+  | { type: "deadEndCardSwapped"; removed: number; drawn: number; reason?: "deadEnd" | "sealed" }
+  // Dead End rule: after the swap (or none was possible) the party stands where no way on remains, with cards left to draw.
+  | { type: "deadEndNoViableExits" }
   | { type: "blocked" }
   | { type: "planRejected"; reason: string } // the submitted battle plan broke a pairing rule
   | { type: "drewChamber"; strangers: number[]; treasures: number[]; hazards: number[] }
@@ -88,8 +103,9 @@ export type GameEvent =
   | { type: "viperPit"; rolls: { creatureId: number; roll: number; died: boolean }[] } // a d6 per member crossing
   | { type: "eyeForsaken" } // the Eye of God was dropped or handed off — a curse falls on the party
   | { type: "petrifiedOut" } // Medusa's gaze turned the WHOLE party to stone — the game ends
-  | { type: "trapSprung"; level: number } // party fell through a trap to `level` (no climb back)
+  | { type: "trapSprung"; level: number; guideLost?: boolean; deliberate?: boolean } // party fell through a trap to `level` (no climb back); `guideLost` (`trapRules`): the Dwarf was gone, so the trap took the party as it tried to leave; `deliberate`: the fall was chosen, or the party walked into a known trap (SC-7.2-19)
   | { type: "trapAvoided" } // a dwarf guided the party safely past a trap
+  | { type: "trapLooms" } // `trapRules`: a Dwarf-guided party meets a trap — play pauses for the Dwarf's choice
   | { type: "memberDied"; creatureId: number }
   | { type: "strangerKilled"; creatureId: number }
   // A creature felled a Dragon single-handed (one front fighter, no caster backer): `creatureId` is the
@@ -97,6 +113,13 @@ export type GameEvent =
   // after the generic `strangerKilled` so the UI can celebrate it (rulebook §Dragon).
   | { type: "dragonSlain"; creatureId: number; kills: number }
   | { type: "sorcererSlain" } // the Sorcerer himself has been defeated — the cave's master is no more
+  // The Sorcerer lost his match but, with `variants.sorcererTeleport`, is not yet slain: the party may spare him
+  // once the fight is over (the `sorcerer` phase). Followed by `sorcererSlain` or `sorcererSpared`.
+  | { type: "sorcererFelled" }
+  | { type: "sorcererSpared" } // spared, on condition that he transports the party (a `partyTeleported` follows)
+  // The party and the chamber's treasure were carried by magic from area `from` to area `to` (indices into
+  // `state.areas`), on level `level`.
+  | { type: "partyTeleported"; from: number; to: number; level: number; treasureIds: number[] }
   | { type: "spectreSlew"; creatureId: number }
   | { type: "memberRevived"; creatureId: number } // a stoned member freed by a returning Wizard's Magic Staff
   // `certain` (bug fix 2026-08-02): set only when the leader's hostileMax/indiffMax make `outcome`
@@ -253,6 +276,14 @@ export type GameEvent =
   // successful `exitCave` drops her from the scored party (`count`, normally one) rather than
   // let her escape with the rest.
   | { type: "apprenticeStaysBehind"; count: number }
+  // The Sibyl (variants.sibyl, SC-SIB-5): her one-time test. `sibylJoins` — she is friendly and now
+  // travels with the party (`state.hasSibyl`); `sibylDeclines` — she is indifferent and stays in the
+  // chamber, never to be tested again by this party.
+  | { type: "sibylJoins" }
+  | { type: "sibylDeclines" }
+  // Fired by `examineArea`. Deliberately carries NO card content — the event is broadcast to rivals
+  // in multiplayer, who learn only that this seat consulted the Sibyl (SC-SIB-8).
+  | { type: "sibylExamined" }
   // Extension kit (SC-EXT-21, design US-13/Resolved-6): a freshly-drawn Demon materializes into
   // `prev`'s contents instead of joining the chamber it was drawn in (`spawnDemon`, chamber.ts).
   | { type: "demonSpawned" }

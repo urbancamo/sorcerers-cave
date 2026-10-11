@@ -21,7 +21,7 @@ export interface GameLog {
     createdAt: number;
     // Extension kit (SC-EXT-29, design US-01): absent/undefined ⇒ kit-off, same as an old,
     // pre-kit game (backward compat — a code without the flag always decodes kit-off).
-    variants?: { extensionKit?: boolean };
+    variants?: { extensionKit?: boolean; sibyl?: boolean };
     // Test Mode (SC-Test-1): mirrors `variants`'s own threading — absent/undefined ⇒ an ordinary
     // (non-test) game, so `replay()` reconstructs it exactly as before this field existed.
     testMode?: boolean;
@@ -87,6 +87,8 @@ export function actionLabel(a: GameAction, state?: GameState | null): string {
       return `Use ${treasure(a.artifact)}${target}` + (a.dir !== undefined ? ` (${dir(a.dir)})` : "");
     }
     case "proceed": return "Proceed — brave Medusa's gaze";
+    case "avoidTrap": return "Guided past the trap";
+    case "fallThroughTrap": return "Fall through the trap";
     case "openChest": return "Open the treasure chest";
     case "descendChasm": return "Descend the chasm";
     case "drawFromWell": return "Draw from the well";
@@ -132,9 +134,10 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
       return `moved to area ${e.area} (level ${e.level})` + (card != null ? ` — ${describeTile(card)}` : "");
     }
     case "deadEnd": return e.retreat ? `dead end to the ${dir(e.dir)} — bounced back into the fight` : `dead end to the ${dir(e.dir)}`;
-    // Dead End rule (§6.3.2, "forced redraw"): the party was fully boxed in, so the rejected card was
-    // reshuffled into the pack and a new one drawn in its place — one event per completed cycle.
-    case "deadEndCardSwapped": return `dead end rescued — reshuffled ${describeTile(e.removed)} back into the pack, drew ${describeTile(e.drawn)}`;
+    // Dead End rule (§6.3.2, "forced redraw"): the party had no way on, or the drawn card would have sealed it in,
+    // so that card was put back into the pack and another taken (`reason`: a dead end, or a Sealing Card).
+    case "deadEndCardSwapped": return `${e.reason === "sealed" ? "sealing card swapped" : "dead end rescued"} — put ${describeTile(e.removed)} back into the pack, drew ${describeTile(e.drawn)}`;
+    case "deadEndNoViableExits": return "no viable exits remain — the party can no longer explore";
     case "blocked": return "action blocked (no effect)";
     case "planRejected": return `battle plan rejected (${e.reason})`;
     case "drewChamber": {
@@ -152,7 +155,10 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "viperPit": return `viper pit crossing — ${e.rolls.filter((r) => r.died).length} fell`;
     case "eyeForsaken": return "the Eye of God was forsaken — the party is cursed";
     case "petrifiedOut": return "the whole party was turned to stone";
-    case "trapSprung": return `trap sprung — fell to level ${e.level}`;
+    case "trapSprung": return e.guideLost ? `the Dwarf was gone — the trap took the party to level ${e.level}`
+      : e.deliberate ? `fell through the trap on purpose to level ${e.level}`
+      : `trap sprung — fell to level ${e.level}`;
+    case "trapLooms": return "a trap looms — be guided past it, or fall through";
     case "trapAvoided": return "a dwarf guided the party past a trap";
     case "memberDied": return `${creature(e.creatureId)} was slain`;
     case "strangerKilled": return `${creature(e.creatureId)} (stranger) was slain`;
@@ -160,6 +166,9 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "strangerVanished": return `${creature(e.creatureId)} (stranger) vanished with ${treasure(e.artifact)}`;
     case "dragonSlain": return `${creature(e.creatureId)} slew a dragon single-handed — Dragon-slayer ×${e.kills} (+${e.kills} fighting strength)`;
     case "sorcererSlain": return "the Sorcerer was slain (+30)";
+    case "sorcererFelled": return "the Sorcerer was defeated — the party may spare him";
+    case "sorcererSpared": return "the Sorcerer was spared, on condition that he teleport the party";
+    case "partyTeleported": return `the Sorcerer teleported the party to level ${e.level}${e.treasureIds.length ? ` with ${e.treasureIds.length} treasure(s)` : ""}`;
     case "spectreSlew": return `a Spectre slew ${creature(e.creatureId)}`;
     case "memberRevived": return `${creature(e.creatureId)} was freed from stone`;
     case "reaction": return `reaction: ${e.outcome} (rolled ${e.roll})`;
@@ -219,6 +228,9 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "thiefPalmed": return `the Thief palmed ${treasure(e.tid)}`;
     case "apprenticeTurned": return `${e.count} Apprentice(s) turned when the Sorcerer fell` + (e.items.length ? `, dropping ${e.items.map(treasure).join(", ")}` : "");
     case "apprenticeStaysBehind": return `${e.count} Apprentice(s) stayed behind in the cave`;
+    case "sibylJoins": return "the Sibyl joined the party";
+    case "sibylDeclines": return "the Sibyl was indifferent and stayed in the cave";
+    case "sibylExamined": return "the Sibyl was consulted";
     case "demonSpawned": return "a Demon materialized";
     case "demonDispersed": return "the Demon's area was destroyed — it dispersed";
     case "demonUnfolds": return "the Demon unfolds — a forced hostile encounter";
@@ -328,6 +340,7 @@ export function formatLog(log: GameLog): string {
   // Extension kit (SC-EXT-29, design US-01): the log's opening line records the kit was active —
   // absent for a kit-off game (byte-identical to the log format before the kit existed).
   if (game.variants?.extensionKit) lines.push("Extension kit active");
+  if (game.variants?.sibyl) lines.push("Sibyl active"); // SC-SIB-9
   lines.push("");
   if (game.seed == null || game.picks == null) {
     lines.push("⚠ This game predates initial-condition logging — it cannot be replayed from scratch.", "");
@@ -432,6 +445,8 @@ function actionCode(a: GameAction, state: GameState | null): { act: string; arg:
     // An untargeted USE of the Lotus Dust (5) is the Medusa-pause throw — shown as LOT>MED.
     case "useArtifact": return { act: "USE", arg: tr3(a.artifact) + (a.target !== undefined ? `>${a.artifact === 5 ? foe(a.target) : mem(a.target)}` : a.artifact === 5 ? ">MED" : "") };
     case "proceed": return { act: "PRO", arg: "" };
+    case "avoidTrap": return { act: "TAV", arg: "" };
+    case "fallThroughTrap": return { act: "TFL", arg: "" };
     case "resolveRound": return { act: "FGT", arg: a.matches.map((m) => `${[...m.front, ...m.backers].map((i) => (state?.party[i] ? cr3(state.party[i]!.creatureId) : `#${i}`)).join("+") || "-"}>${m.strangers.map(foe).join("+") || "-"}`).join(",") };
     case "descendChasm": return { act: "CHM", arg: "" };
     case "drawFromWell": return { act: "WEL", arg: "" };
@@ -468,6 +483,9 @@ export function eventCode(e: GameEvent): string | null {
     case "memberRevived": return `RVV ${cr3(e.creatureId)}`;
     case "dragonSlain": return `DRG SLN ${cr3(e.creatureId)}`;
     case "sorcererSlain": return "SOR SLN";
+    case "sorcererFelled": return "SOR FEL";
+    case "sorcererSpared": return "SOR SPR";
+    case "partyTeleported": return `TEL L${e.level} ${e.treasureIds.length}`;
     case "treasureDropped": return `TDR ${e.count}`;
     case "heavyDownForFight": return `FDR ${e.count}`;
     case "treasureReclaimed": return `TRC ${e.count}`;
@@ -475,7 +493,8 @@ export function eventCode(e: GameEvent): string | null {
     case "crossedSpecial": return `XSP ${TYPE3[e.special] ?? "???"}`;
     case "enteredSpecial": return `ESP ${TYPE3[e.special] ?? "???"}`;
     case "hazardFired": return `HAZ ${HZ3[e.hazard] ?? "???"}`;
-    case "trapSprung": return `TRP L${e.level}`;
+    case "trapSprung": return `TRP L${e.level}${e.deliberate ? " DEL" : ""}${e.guideLost ? " LST" : ""}`;
+    case "trapLooms": return "TRP LOM";
     case "trapAvoided": return "TRP AVD";
     case "medusaGaze": return `MED ${e.rolls.filter((r) => r.petrified).length}`;
     case "viperPit": return `VIP ${e.rolls.filter((r) => r.died).length}`;
@@ -504,6 +523,7 @@ export function eventCode(e: GameEvent): string | null {
     case "itemsSpilled": return `SPL ${cr3(e.creatureId)} ${e.items.map(tr3).join(",")}`;
     case "deadEnd": return `DED ${d1(e.dir)}`;
     case "deadEndCardSwapped": return "SWP";
+    case "deadEndNoViableExits": return "NVX";
     case "mutinied": return `MUT ${e.deserters.length}`;
     case "planRejected": return "REJ";
     case "chasmDescend": return "CHM DSC";
@@ -530,6 +550,9 @@ export function eventCode(e: GameEvent): string | null {
     case "thiefPalmed": return `PLM ${tr3(e.tid)}`;
     case "apprenticeTurned": return `APR TRN ${e.count}`;
     case "apprenticeStaysBehind": return `APR STY ${e.count}`;
+    case "sibylJoins": return "SIB JIN";
+    case "sibylDeclines": return "SIB DEC";
+    case "sibylExamined": return "SIB EXM";
     case "demonSpawned": return "DEM SPN";
     case "demonDispersed": return "DEM DSP";
     case "demonUnfolds": return "DEM UNF";
@@ -595,7 +618,7 @@ function legend(kitOn: boolean): string[] {
     ...rows("HAZARD", hazards),
     ...rows("TILE", ["CHM=CHAMBER", "TUN=TUNNEL", "GTW=GATEWAY", "POL=DEEP POOL", "VPT=VIPER PIT", "TMB=TOMB", "HAL=GREAT HALL"]),
     ...rows("TILE COLS", ["EXT: N/E/S/W OPEN, - WALL", "STR: U UP, D DOWN"]),
-    ...rows("ACTION", ["MOV=MOVE", "RET=RETREAT", "OUT=EXIT CAVE", "WDR=WITHDRAW", "TST=TEST", "ATK=ATTACK", "FGT=FIGHT ROUND", "TAK=TAKE", "GIV=GIVE", "DRP=DROP", "BER=BEAR", "STW=STOW", "LVE=LEAVE", "RTK=RETAKE", "USE=USE ARTEFACT", "OPN=OPEN CHEST", "CAS=CASUALTY", "PRO=PROCEED (MEDUSA)", "QIT=QUIT"]),
+    ...rows("ACTION", ["MOV=MOVE", "RET=RETREAT", "OUT=EXIT CAVE", "WDR=WITHDRAW", "TST=TEST", "ATK=ATTACK", "FGT=FIGHT ROUND", "TAK=TAKE", "GIV=GIVE", "DRP=DROP", "BER=BEAR", "STW=STOW", "LVE=LEAVE", "RTK=RETAKE", "USE=USE ARTEFACT", "OPN=OPEN CHEST", "CAS=CASUALTY", "PRO=PROCEED (MEDUSA)", "TAV=GUIDED PAST TRAP", "TFL=FALL THROUGH TRAP", "QIT=QUIT"]),
     ...rows("EVENT", ["DRW=DREW (S:STRANGERS T:TREASURE H:HAZARDS)", "RCT=REACTION (HOS/IND/FRD)", "JOI=JOINED", "PAC=PACIFIED", "FGT SUP=FIGHT ON", "CBT=COMBAT (SIDE # V FOE # WON/LOS/TIE)", "WON=PARTY WON", "DIE=MEMBER DIED", "KIL=STRANGER SLAIN", "EQP=STRANGER TOOK UP ARTEFACT", "VAN=STRANGER VANISHED WITH RING", "SLW=SPECTRE SLEW", "CAS=CASUALTY (R# DIE)"]),
     ...rows("EVENT", ["HAZ=HAZARD (SEE KEY HAZARD)", "TRP=TRAP", "ESP/XSP=ENTER/CROSS SPECIAL", "TDR/TRC=POOL DROP/RECOVER", "FDR=FIGHT DROP", "RCL=RECLAIM", "END=GAME OVER (ESC/DED/QIT)", "DED=DEAD END", "SEC=SECRET DOOR", "SPL=ITEMS SPILLED", "ANH=ANNIHILATE", "WRD=WARD OFF", "RVV=REVIVE", "SAV=RING SAVE"]),
   ];
@@ -612,7 +635,7 @@ export function logReport(log: GameLog, printed = ""): string {
   const party = (game.picks ?? []).map(cr3).join(" ") || "???";
   // Extension kit (SC-EXT-29): the opening meta line notes KIT ON — omitted (kit-off, byte-identical
   // header) when the game carries no extensionKit flag.
-  const kitTag = game.variants?.extensionKit ? "   KIT ON" : "";
+  const kitTag = (game.variants?.extensionKit ? "   KIT ON" : "") + (game.variants?.sibyl ? "   SIBYL ON" : "");
   const meta = `GAME ${game.code ?? "----"}   SEED ${game.seed ?? "------"}   PARTY ${party}   MOVES ${moves.length}   PRINTED ${printed || "----------------"}${kitTag}`.toUpperCase();
   const head = [padR("SEQ", W.seq), padR("TRN", W.trn), padR("LVL", W.lvl), padR("ARA", W.ara), padL("ACT", W.act), padL("ARG", W.arg), padL("TYP", W.typ), padL("EXT", W.ext), padL("STR", W.str), "EVENTS"].join(" ");
   const out = [RULE, centre("S O R C E R E R ' S   C A V E").replace(/\s+$/, ""), centre("A D V E N T U R E   L O G").replace(/\s+$/, ""), RULE, padL(meta, 132).replace(/\s+$/, ""), THIN, head, THIN];

@@ -36,3 +36,61 @@ describe("openChest (spec §11/§16)", () => {
     expect(scoreGame(s)).toBe(50);
   });
 });
+
+// Bug DOFO (2026-10-11): an Ogre carrying the Eye of God opened the Treasure Chest, rolled a Spectre — and
+// it fought on and slew him. The Eye destroys Spectres on sight and the Talisman drives them off on level 4+,
+// but the chest conjured its Spectre straight into a fight, past both checks that guard every other arrival.
+describe("a Spectre from the chest meets the Eye and the Talisman like any other (bug DOFO)", () => {
+  const T_EYE = 13, T_TALISMAN = 7;
+  /** Open the chest for each seed until the die gives the Spectre (2); return those results. */
+  const spectreRolls = (party: ReturnType<typeof member>[], level = 1) => {
+    const out: { state: ReturnType<typeof reduce>["state"]; events: ReturnType<typeof reduce>["events"] }[] = [];
+    for (let seed = 1; seed <= 60; seed++) {
+      const s = makeState({ phase: "explore", areas: [{ ...area, coord: packCoord(level, 50, 50) }], level, party: structuredClone(party), seed });
+      const r = reduce(s, { type: "openChest" });
+      if ((r.events.find((e) => e.type === "chestOpened") as { result: number }).result === 2) out.push(r);
+    }
+    return out;
+  };
+
+  it("control: with neither, the Spectre appears and attacks", () => {
+    const rolls = spectreRolls([member(5, [14])]);
+    expect(rolls.length).toBeGreaterThan(0);
+    for (const { state } of rolls) { expect(state.phase).toBe("fight"); expect(state.strangers).toEqual([9]); }
+  });
+
+  it("the Eye, held by any living member, destroys it on sight: no fight, nothing slain", () => {
+    const rolls = spectreRolls([member(5, [14]), member(2, [T_EYE])]); // the Eye is NOT on the chest's bearer
+    expect(rolls.length).toBeGreaterThan(0);
+    for (const { state, events } of rolls) {
+      expect(events).toContainEqual({ type: "annihilated", creatureId: 9 });
+      expect(events.some((e) => e.type === "fightStarted")).toBe(false);
+      expect(state.phase).toBe("explore");
+      expect(state.strangers).toEqual([]);
+      expect(state.fight ?? null).toBeNull();
+      expect(state.party.every((m) => m.status === 0)).toBe(true);
+    }
+  });
+
+  it("the Eye on the chest's own bearer works too (the DOFO case: the Ogre held both)", () => {
+    const rolls = spectreRolls([member(2, [14, T_EYE])]);
+    expect(rolls.length).toBeGreaterThan(0);
+    for (const { state, events } of rolls) {
+      expect(events).toContainEqual({ type: "annihilated", creatureId: 9 });
+      expect(state.phase).toBe("explore");
+      expect(state.party[0]!.treasure).toContain(T_EYE); // still carrying it, no curse for keeping it
+      expect(state.curses).toBe(0);
+    }
+  });
+
+  it("the Talisman drives it off on level 4 or deeper, but not above", () => {
+    const deep = spectreRolls([member(5, [14, T_TALISMAN])], 4);
+    expect(deep.length).toBeGreaterThan(0);
+    for (const { state, events } of deep) {
+      expect(events).toContainEqual({ type: "wardedOff", creatureId: 9 });
+      expect(state.phase).toBe("explore");
+    }
+    const shallow = spectreRolls([member(5, [14, T_TALISMAN])], 3);
+    for (const { state } of shallow) expect(state.phase).toBe("fight");
+  });
+});

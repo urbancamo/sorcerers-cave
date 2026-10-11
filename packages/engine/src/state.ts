@@ -25,7 +25,10 @@ export const AF_UNRESOLVED = 16;
 // Interactive mode: which controls the UI shows and which actions reduce accepts.
 // Milestone B uses only "explore" and "gameOver"; "encounter"/"fight"/"pickup" arrive in C.
 // "medusa" is the pre-hazard pause: Medusa looms and the party holds Lotus Dust — throw or proceed.
-export type GamePhase = "explore" | "medusa" | "encounter" | "fight" | "pickup" | "gameOver";
+// "trap" is the Dwarf's choice (`variants.trapRules`): guided past the trap, or fall through it on purpose.
+// "sorcerer" is the pause after the Sorcerer is defeated (`variants.sorcererTeleport`): slay him, or spare
+// him in return for a teleport to any discovered area (§The Sorcerer).
+export type GamePhase = "explore" | "medusa" | "trap" | "encounter" | "fight" | "pickup" | "sorcerer" | "gameOver";
 
 // Member status: 0 original, 1 ally, 2 stone, 3 dead.
 export type MemberStatus = 0 | 1 | 2 | 3;
@@ -86,11 +89,11 @@ export interface PlacedArea {
   // the card. They keep `card` traversable both ways but are excluded from rendering, so the tile
   // is always drawn in its printed orientation (the original game links levels with markers).
   mirroredStairs?: number;
-  // The card as dealt, saved the first time a dead end prunes a doorway off `card` (map.ts). `card`
-  // keeps tracking which doorways are still usable, but a pruned shape often has no tile art (e.g. a
-  // North-only tunnel), so the renderer draws from this instead. Absent until a prune happens (and
-  // cleared again if the forced-redraw rescue undoes it) — an untouched tile never carries it.
-  printedCard?: number;
+  // Doorways a failed move has shown to be dead, as card bits (N=1 E=2 S=4 W=8, stair up 32, down 64).
+  // `card` is NEVER pruned — it stays exactly as printed (plus mirrored stairs), so the tile art and the
+  // exits' geometry cannot drift; the usable doorways are `card & ~deadDoors` (decode.ts `openCard`).
+  // Absent until a doorway is first found dead.
+  deadDoors?: number;
   // Set when the party descended onto this area and it shows no printed stair up: its end of the
   // stairway is a secret door (§"Secret Doors"). The 0-based value is its discovery order (→ A, B, C…).
   secretDoor?: number;
@@ -116,6 +119,10 @@ export interface FightState {
   // which keeps the two aligned). Absent unless some stranger bears something, so a fight in which
   // nobody is equipped leaves the state byte-identical to before the loadout existed.
   gear?: number[][];
+  // The Sorcerer has been defeated in this fight (`variants.sorcererTeleport`) but not yet slain: his death
+  // (the +30 bonus, the curse lift, every Apprentice's loyalty) waits until the fight is over, when the player
+  // may spare him for a teleport instead (§The Sorcerer). Absent unless that has happened.
+  sorcererFelled?: boolean;
 }
 
 /** One pairing in a battle plan: party fighters (front), supporting casters (backers), and the
@@ -155,6 +162,12 @@ export interface GameState {
   sleeping?: number[]; // creatures put to sleep by Lotus Dust — inert, no longer block the party
   lulled?: number[]; // Dragons lulled by the Charmed Flute — asleep ONLY while the party holds it,
   // so they're re-evaluated on each chamber entry (parked awake; re-lulled if the flute is still held)
+  // The Sibyl (SC-SIB-5): `hasSibyl` — she joined this party (a party FLAG, not a member: she never
+  // fights, is never counted, scored or deserted, and stays behind on exit). `sibylMet` — this party
+  // has had its one test with her, whatever the outcome; she is never tested again. Both absent unless
+  // the Sibyl is in play, so a Sibyl-off state is byte-identical. `variants.sibyl` (above) adds her card.
+  hasSibyl?: true;
+  sibylMet?: true;
   seed: number; // LCG state (spec §5)
   fight: FightState | null;
   // True while the party's current position was reached by a one-way trap fall: prev is the level
@@ -191,6 +204,12 @@ export interface GameState {
   // `finishChamber`'s default recompute clobber it, and forces the Dragon-lull notice on regardless
   // of chamber freshness (a drawn Dragon is new information either way).
   medusaPause?: { freshEntry: boolean; extraDraw?: { hadSurprise?: boolean } };
+  // Set while phase === "trap" (`variants.trapRules`): the entry is held after its hazards have fired, for
+  // the Dwarf's choice — `avoidTrap` or `fallThroughTrap`. Modelled on `medusaPause`: `freshEntry` and
+  // `announceLull` are `finishChamber`'s own arguments, kept so the resumed tail settles the chamber exactly
+  // as the uninterrupted path would; `extraDraw` is set when a Well/Bell draw opened the pause, and carries
+  // the `surpriseReady` captured before the draw so the resume restores it (SC-4-16).
+  trapPause?: { freshEntry: boolean; announceLull: boolean; extraDraw?: { hadSurprise?: boolean } };
   // Indifference (per party — NOT on the shared area, so it never affects other parties; §Encountering
   // Strangers, SC-4-18a, bug fix 2026-08-04). `indiffCounts` is the DURABLE count of indifferent
   // results this party has gotten from this area's strangers, keyed by area index — it persists
@@ -242,7 +261,17 @@ export interface GameState {
   // construction — deliberately NOT mirrored onto `MpGameState.variants` (multi.ts) or its own
   // separate Convex validator (apps/web/convex/multiplayer.ts), so a multiplayer-composed state can
   // never carry it.
-  variants?: { extensionKit?: boolean; forcedRedraw?: boolean };
+  variants?: { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean; sibyl?: boolean };
+  // Per-entry scratch (`variants.trapRules` only): how many traps `enterChamber` RELOADED from the area (a
+  // standing trap the party walked back into) rather than drew fresh. Set by `enterChamber`, read inside
+  // `applyHazards`, and deleted there — it can survive a Medusa pause but never an action boundary.
+  knownTraps?: number;
+  // `variants.trapRules`: the party's last trap fall was DELIBERATE — the Dwarf's player chose `fallThroughTrap`,
+  // or the party walked into a chamber it knew held a trap (the trap was reloaded, not drawn on that entry).
+  // A deliberate arrival counts as a new route (even into a visited chamber) and earns surprise, and into a
+  // retreated-from chamber it is the party that gains it. Set right after the fall, cleared (`delete`, never
+  // `= false`, SC-EXT-1) by every other relocation and by the next normal move; absent when the flag is off.
+  deliberateFall?: boolean;
   // Extension kit (SC-EXT-9): the turn number `withdraw` is blocked for — set by a Well draw or a
   // Bell Rope 4-6 roll (design US-03/US-07), alongside `fellThroughTrap` on the same legality check.
   // `turn` only advances on `move`, so this self-invalidates once the party moves on — no explicit
