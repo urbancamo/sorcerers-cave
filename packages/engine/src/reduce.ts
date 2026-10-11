@@ -11,7 +11,7 @@ import { takeTreasure, canCarry } from "./pickup";
 import { unpackCoord, packCoord, targetCoord, DIR_UP, DIR_DOWN } from "./coords";
 import type { GameAction, GameEvent } from "./actions";
 import { reactionRoll, forcedReactionRoll, findLeader } from "./reaction";
-import { C_SIBYL, SIBYL_CODE, examinableAreas, isGuardCode, sibylWaiting } from "./sibyl";
+import { C_SIBYL, SIBYL_CODE, examinableAreas, isGuardCode, sibylHere, sibylWaiting } from "./sibyl";
 import { frontStrength } from "./combat";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import {
@@ -390,6 +390,23 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
   return false;
 }
 
+/** `settlePacifiedArea`, then — if an unmet Sibyl is here — step her out of the parked guards and open her
+ *  encounter (SC-SIB-4). Pacified guards park themselves AND everything in the parked-awake slot, which
+ *  would strand her with them: she is no guard, and a group that has been dealt with should not hide her.
+ *  Skipped when a Thief's live pickup took over the phase — she is met on the next entry instead. */
+function settlePacifiedWithSibyl(state: GameState): void {
+  const sibylPending = sibylHere(state) && state.sibylMet !== true;
+  settlePacifiedArea(state);
+  if (!sibylPending || state.phase !== "explore") return;
+  const area = state.areas[state.partyArea]!;
+  const at = area.contents.indexOf(SIBYL_CODE);
+  if (at < 0) return;
+  area.contents.splice(at, 1);
+  state.lulled = [...(state.lulled ?? []), C_SIBYL];
+  state.phase = "encounter";
+  state.surpriseReady = false;
+}
+
 /** The tail of a chamber entry once its hazards are done and the party is still here: Flute lull, Demon
  *  ambush, a pacified area, then the phase the chamber's contents call for. Shared by the uninterrupted path
  *  (`finishChamber`) and the resume from the Dwarf's trap choice. */
@@ -418,7 +435,7 @@ function settleChamber(state: GameState, freshEntry: boolean, events: GameEvent[
   // ally instead slips the guarded treasure straight into a live pickup — `settlePacifiedArea` covers
   // both that and the ordinary re-park.
   if (state.pacifiedAreas?.includes(state.partyArea)) {
-    settlePacifiedArea(state);
+    settlePacifiedWithSibyl(state);
     return;
   }
   if (state.strangers.length > 0) {
@@ -1164,7 +1181,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         // "pickup", same as a fresh entry — instead of parking it and forcing a leave-and-return
         // round trip through resolveArea just to notice it again (SC-7.3-5/6 previously required
         // this; a pacified area's guards, or an active encounter, still park it untouchable).
-        const restingUnguarded = next.phase === "explore" && !area.contents.some((c) => c >= 100 && c < 200);
+        const restingUnguarded = next.phase === "explore" && !area.contents.some(isGuardCode);
         if (fallsThrough) {
           const { level, x, y } = unpackCoord(area.coord);
           const targetCoordVal = packCoord(level + 1, x, y);
@@ -1279,7 +1296,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
             next.pacifiedAreas = [...(next.pacifiedAreas ?? []), next.partyArea];
           }
           events.push({ type: "pacified" }); // tell the player they may now move on
-          settlePacifiedArea(next); // Thief present + treasure here -> live pickup; else the ordinary re-park
+          settlePacifiedWithSibyl(next); // Thief present + treasure here -> live pickup; else the ordinary re-park (and the Sibyl, if here, steps forward)
         } else {
           // Bug fix 2026-08-04 (Gap C, SC-4-18a): open the one-shot leave window — the party's VERY
           // NEXT action may freely leave by any doorway, forfeiting the treasure.

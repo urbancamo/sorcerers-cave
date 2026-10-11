@@ -2,6 +2,7 @@ import {
   GS_PLAYING, GS_ESCAPED, GS_DEAD, GS_QUIT, GATEWAY_START_COORD,
   type GameState, type PartyMember,
 } from "./state";
+import { isGuardCode } from "./sibyl";
 import type { GameAction, GameEvent } from "./actions";
 import { reduce } from "./reduce";
 import { validatePicks } from "./setup";
@@ -732,7 +733,7 @@ export function areaInteractionMask(mp: MpGameState, areaIdx: number): AreaInter
     return { pvpLegal: false, reason: "no fighting across the pit, pool, whirlpool, or chasm", fightInProgress: null };
   }
   // Strangers "in the chamber": parked on the tile (100+cid) or live in a co-located working set.
-  const parkedStrangers = area.contents.some((c) => c >= 100 && c < 200);
+  const parkedStrangers = area.contents.some(isGuardCode); // the Sibyl guards nothing (SC-SIB-6)
   const liveStrangers = here.some((p) => p.strangers.length > 0 || (p.sleeping ?? []).length > 0);
   if (parkedStrangers || liveStrangers) {
     return { pvpLegal: false, reason: "clear the strangers first", fightInProgress: null };

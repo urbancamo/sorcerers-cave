@@ -7,6 +7,7 @@ import { reduce } from "./reduce";
 import { legalActions } from "./selectors";
 import { packCoord } from "./coords";
 import { newGame } from "./setup";
+import { buildMpGame, areaInteractionMask } from "./multi";
 
 const man = () => ({ creatureId: 5, status: 0 as const, dragonKills: 0, treasure: [] });
 
@@ -230,5 +231,60 @@ describe("Test Mode can script the Sibyl (SC-SIB-1)", () => {
   it("still blocks kit-only creatures on a Sibyl-only game", () => {
     const { events } = reduce(testGame({ sibyl: true }), { type: "testSetChamber", strangers: [18], treasures: [], hazards: [] });
     expect(events).toEqual([{ type: "blocked" }]);
+  });
+});
+
+describe("review fixes: pacified chambers, PvP and dropped treasure (SC-SIB-4/6)", () => {
+  it("the third indifferent test pacifies the guards and then offers the Sibyl (she is not stranded with them)", () => {
+    const s = makeState({
+      phase: "encounter", party: [man()], strangers: [7], lulled: [C_SIBYL], treasures: [1], areas: [tile()],
+      indiffStreak: 2, testMode: true, testNextReaction: "indifferent",
+    });
+    const { state } = reduce(s, { type: "test" });
+    expect(state.pacifiedAreas).toContain(0);
+    expect(state.phase).toBe("encounter");
+    expect(sibylWaiting(state)).toBe(true);
+    expect(legalActions(state).map((a) => a.type)).toEqual(["withdraw", "test"]);
+    expect(state.areas[0]!.contents).toEqual(expect.arrayContaining([107, 201])); // the guards and their treasure stay parked
+    expect(state.areas[0]!.contents).not.toContain(SIBYL_CODE); // she is live, not parked
+    const met = reduce({ ...state, testNextReaction: "friendly" }, { type: "test" });
+    expect(met.state.hasSibyl).toBe(true);
+    expect(met.state.phase).toBe("explore");
+    expect(met.state.areas[0]!.contents).toEqual(expect.arrayContaining([107, 201]));
+  });
+
+  it("re-entering a pacified chamber that holds only a parked Sibyl (its guards long gone) offers her", () => {
+    const s = makeState({
+      phase: "encounter", partyArea: 1, prev: 0, party: [man()], strangers: [5], pacifiedAreas: [0],
+      areas: [tile([SIBYL_CODE]), { ...tile(), coord: packCoord(1, 50, 51) }],
+    });
+    const { state } = reduce(s, { type: "withdraw" });
+    expect(state.partyArea).toBe(0);
+    expect(state.phase).toBe("encounter");
+    expect(sibylWaiting(state)).toBe(true);
+  });
+
+  it("a Sibyl already met (parked, indifferent) does not reopen an encounter in a pacified chamber", () => {
+    const s = makeState({
+      phase: "encounter", partyArea: 1, prev: 0, party: [man()], strangers: [5], pacifiedAreas: [0], sibylMet: true,
+      areas: [tile([SIBYL_CODE]), { ...tile(), coord: packCoord(1, 50, 51) }],
+    });
+    expect(reduce(s, { type: "withdraw" }).state.phase).toBe("explore");
+  });
+
+  it("a parked Sibyl does not block PvP in her chamber: she guards nothing", () => {
+    const seats = [{ seat: 0, color: "green", name: "A" }, { seat: 1, color: "blue", name: "B" }];
+    const mp = buildMpGame(3, seats, { sibyl: true });
+    mp.cave.areas[0]!.contents = [SIBYL_CODE];
+    expect(areaInteractionMask(mp, 0).reason).not.toBe("clear the strangers first");
+    mp.cave.areas[0]!.contents = [SIBYL_CODE, 100 + 5];
+    expect(areaInteractionMask(mp, 0).reason).toBe("clear the strangers first"); // a real stranger still does
+  });
+
+  it("an item dropped beside a parked Sibyl is offered back for pickup (she is no guard)", () => {
+    const s = makeState({ phase: "explore", party: [{ ...man(), treasure: [1] }], areas: [tile([SIBYL_CODE])] });
+    const { state } = reduce(s, { type: "dropTreasure", mi: 0, idx: 0 });
+    expect(state.phase).toBe("pickup");
+    expect(state.treasures).toEqual([1]);
   });
 });
