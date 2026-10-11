@@ -44,10 +44,22 @@ Today a trap is one-shot. `applyHazards` (`hazards.ts:200`) fires it, then clear
 - Stamped server-side from `process.env.TRAP_RULES_ENABLED === "1"` in `withForcedRedraw` (`apps/web/convex/game.ts:82`), never client-settable, same pattern as `forcedRedraw` and `sorcererTeleport`. Document in `apps/web/OPTIONS.md`.
 - With the flag off, `applyHazards` takes today's path (dwarf always avoids, trap never parked); the `trap` phase, new actions and `deliberateFall` can never occur.
 
+### Guide lost (Dwarf gone while in a trap chamber)
+
+Rule text: "If a party guided by a dwarf becomes involved in a fight in a chamber where there is a trap, and the dwarf is killed, the party falls down the trap as soon as it tries to leave the chamber."
+
+- Condition, checked at the start of `move`, `withdraw` and `retreat` when `variants.trapRules` is on: the party's current area holds a standing trap (`300 + HAZARD_TRAP` in `area.contents`) and no party member is a living Dwarf (`status` 0 or 1 with `FLAG_GUIDES_PAST_TRAP`, the same test `applyHazards` uses). No new state is needed: a party without a Dwarf cannot otherwise be standing in a standing-trap chamber, because entry would have fallen at once.
+- "No living Dwarf" deliberately covers every loss of the guide (killed, petrified, deserted, vanished), not only a kill. Review point: the rule text says "killed"; the broader test is the natural reading of "guided by a dwarf" and avoids a stranded party.
+- Effect: the departure does not happen. For `move`, no `tryMove` runs (no tile is placed, no dead-end check) and the turn counts as a move. For `withdraw` and `retreat`, the action's own bookkeeping (strangers left behind and, for a retreat, the chamber marked hostile via `hostileAreas`, `reduce.ts:1261`) still applies; only the destination changes, from the adjacent tile to `relocateDown`. A retreat's fight ends as a retreat does.
+- Resolution: `persistAndExplore` the chamber, `relocateDown`, emit `trapSprung { level, guideLost: true }` and `moved`, then `resolveAreaLoop`. `fellThroughTrap` is set by `relocateDown`; `deliberateFall` is NOT set, so the landing gains no surprise (the party did not choose to fall).
+- `legalActions` is unchanged: the exits are still offered and the fall happens on use.
+- Not covered: Magic Carpet, the Sorcerer's teleport, `descendChasm` and the Crypt; each already relocates the party by its own rule. Review point: whether the carpet should also trigger the fall.
+- Implementation shape: one shared helper in `reduce.ts`, called at the top of the three cases, so the condition and the fall resolution live in one place.
+
 ### UI and presentation
 
 - Web (`apps/web/src/game/EncounterPanel.tsx`): add `"trap"` to `ACTIVE` (line 14) and render a popup, in the manner of the Medusa pause block (line 180), with two plain buttons labelled "Guided past the trap" and "Fall through the trap". The popup is modal for the duration of the phase and cannot be dismissed without choosing.
-- `eventNotices.ts`: notices for `trapLooms` and for a deliberate fall (reuse `trapSprung`, add a deliberate marker to the event: `trapSprung { level, deliberate? }`). `gameLog.ts`: action text and mnemonics for `avoidTrap` / `fallThroughTrap` / `trapLooms` (e.g. `TRP AVD`, `TRP FAL`, `TRP LOM`).
+- `eventNotices.ts`: notices for `trapLooms`, for a deliberate fall and for a guide-lost fall (reuse `trapSprung`, adding `deliberate?` and `guideLost?` to the event; the guide-lost notice says the Dwarf's guidance is gone and the trap takes the party as they try to leave). `gameLog.ts`: action text and mnemonics for `avoidTrap` / `fallThroughTrap` / `trapLooms` (e.g. `TRP AVD`, `TRP FAL`, `TRP LOM`).
 - Test Mode panel: no change required.
 
 ### Multiplayer (open point)

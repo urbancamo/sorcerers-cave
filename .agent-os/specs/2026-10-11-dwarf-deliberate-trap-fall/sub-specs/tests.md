@@ -34,6 +34,15 @@ This is the tests coverage details for the spec detailed in @.agent-os/specs/202
 - Chasm descent and Crypt trap: unchanged (no new surprise).
 - `deliberateFall` is `delete`d on the next normal move and absent from a flag-off state.
 
+**Guide lost**
+- Flag on, trap standing, Dwarf alive: `move`, `withdraw` and `retreat` leave normally.
+- Flag on, trap standing, Dwarf killed in a fight in the chamber: `move` (any direction, including a stair) falls instead; no tile is placed and no dead end can occur; turn counts.
+- Same for `withdraw` and `retreat`; a retreat still leaves the chamber hostile and the strangers behind.
+- The fall emits `trapSprung` with `guideLost`, sets `fellThroughTrap`, does not set `deliberateFall`, and an attack below has no surprise.
+- Dwarf gone by petrification, desertion or Bell Rope vanish triggers the same fall.
+- No standing trap in the chamber (trap never drawn, or flag off): leaving is unchanged.
+- Magic Carpet, the Sorcerer's teleport and `descendChasm` are unaffected.
+
 ### Integration Tests
 
 **Replay and golden**
@@ -52,6 +61,7 @@ This is the tests coverage details for the spec detailed in @.agent-os/specs/202
 
 - Queue a trap chamber with `testSetChamber` (hazard: Trap) for a Dwarf party: popup appears; each button behaves per the deliverables.
 - Re-enter the same chamber: popup appears again; a no-Dwarf party falls with no popup.
+- Choose "Guided past", kill the Dwarf in a fight, then try to leave: the party falls with the guide-lost notice.
 
 ### Mocking Requirements
 
