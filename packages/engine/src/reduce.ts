@@ -1730,9 +1730,16 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         case 1: next.curses += 1; break; // a Curse
         case 2: // a Spectre appears and attacks (one round)
           next.strangers.push(9);
-          next.fight = { surprise: -1, round: 1, focus: next.strangers.length - 1 };
-          next.phase = "fight";
-          events.push({ type: "fightStarted", surprise: -1 });
+          // Like every other Spectre arrival (`resolveAreaLoop`, `resolveExtraDraw`): a held Eye of God destroys it
+          // on sight and the Talisman drives it off on level 4+ — before it can fight. (Bug DOFO: the chest used to
+          // conjure its Spectre straight into a fight, past both.)
+          events.push(...annihilateWithEye(next));
+          events.push(...wardOffSpectres(next));
+          if (next.strangers.includes(9)) {
+            next.fight = { surprise: -1, round: 1, focus: next.strangers.length - 1 };
+            next.phase = "fight";
+            events.push({ type: "fightStarted", surprise: -1 });
+          }
           break;
         case 3: break; // Sand
         case 4: next.bonusScore += 20; break; // Silver
