@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { decodeArea, unpackCoord, type GameAction, type GameState } from "@sorcerers-cave/engine";
 import { useManifestArt } from "../data/useManifestCards";
 import { tileForCard } from "../view/projection";
@@ -79,7 +80,9 @@ export function SibylLook({ state, actions, dispatch }: { state: GameState; acti
         </select>
       )}
       {seen && <p className="scv-enc-line" data-testid="sibyl-readout">{seen}</p>}
-      {peek && (
+      {/* Portalled to <body>: the action panel is `transform`ed and clips its content, which would make a
+          `position: fixed` card lay out inside the panel (and its fade look like the panel fading). */}
+      {peek && createPortal(
         <div
           key={peek.n}
           className="scv-sibyl-peek"
@@ -89,7 +92,8 @@ export function SibylLook({ state, actions, dispatch }: { state: GameState; acti
           onAnimationEnd={() => setPeek(null)}
         >
           <img src={peek.file} alt="" />
-        </div>
+        </div>,
+        document.body,
       )}
     </div>
   );

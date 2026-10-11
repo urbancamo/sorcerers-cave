@@ -82,6 +82,15 @@ describe("SibylLook — the fading card", () => {
     expect(screen.queryByTestId("sibyl-peek")).toBeNull();
   });
 
+  it("is drawn on the page itself, not inside the panel: a transformed, clipped parent would trap a fixed overlay", () => {
+    const s = stateWithSibyl();
+    const { container } = render(<SibylLook state={s} actions={looks(s)} dispatch={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: /top of the pack/i }));
+    const peek = screen.getByTestId("sibyl-peek");
+    expect(container.contains(peek)).toBe(false);
+    expect(peek.parentElement).toBe(document.body);
+  });
+
   it("shows a face-down tile's art too", () => {
     const s = stateWithSibyl();
     render(<SibylLook state={s} actions={looks(s)} dispatch={() => {}} />);
