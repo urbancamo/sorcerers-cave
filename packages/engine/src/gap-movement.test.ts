@@ -1,7 +1,8 @@
 import { describe, it, expect } from "vitest";
 import { tryMove } from "./map";
+import { moveWithRedraw } from "./redraw";
 import { reduce } from "./reduce";
-import { decodeArea } from "./decode";
+import { decodeArea, decodeOpen } from "./decode";
 import { makeState } from "./testkit";
 import { packCoord, DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN } from "./coords";
 import { GS_ESCAPED } from "./state";
@@ -32,7 +33,7 @@ describe("map/reduce gap behaviour (spec §6)", () => {
     expect(r.state.partyArea).toBe(0);
     expect(r.state.largeIdx).toBe(0);
     // The Gateway's East exit bit (2) is now pruned so it is no longer offered.
-    expect(decodeArea(r.state.areas[0]!.card).e).toBe(false);
+    expect(decodeOpen(r.state.areas[0]!).e).toBe(false);
   });
 
   // SC-6.2-1 — exitCave via reduce. On level 1 standing on a card that shows a stair up, in the
@@ -110,8 +111,8 @@ describe("map/reduce gap behaviour (spec §6)", () => {
       // SC-6.3-2 (§Dead End, "forced redraw"): even with the rescue variant ON, a card with zero
       // printed exits refuses every direction identically — there is nothing to draw or swap when
       // `hasExit` fails before the loop is ever reached.
-      const rescue = tryMove(s, dir, true);
-      expect(rescue).toEqual({ ...r, swaps: [] });
+      const rescue = moveWithRedraw(s, dir, () => undefined);
+      expect(rescue).toEqual({ ...r, noViableExits: false });
     }
   });
 });

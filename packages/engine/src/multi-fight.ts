@@ -5,7 +5,7 @@ import { shieldedMP } from "./combatPlan";
 import { eyeForsakenByDeath, ringInvincible, shieldWardActive } from "./effects";
 import { sweepFallen } from "./loot";
 import { rollDie } from "./rng";
-import { decodeArea } from "./decode";
+import { decodeArea, decodeOpen } from "./decode";
 import { ALL_CREATURES } from "./data/creatures";
 import { ALL_TREASURES } from "./data/treasures";
 import { canCarry } from "./pickup";
@@ -545,7 +545,7 @@ export function retreatPvp(mp: MpGameState, seat: number, dir: number, _now: num
   if (!side) return blocked(mp);
 
   const area = mp.cave.areas[s.area]!;
-  const dec = decodeArea(area.card);
+  const dec = decodeOpen(area);
   const open =
     dir === DIR_N ? dec.n : dir === DIR_E ? dec.e : dir === DIR_S ? dec.s : dir === DIR_W ? dec.w :
     dir === DIR_UP ? dec.stairUp : dir === DIR_DOWN ? dec.stairDown : false;
@@ -557,7 +557,7 @@ export function retreatPvp(mp: MpGameState, seat: number, dir: number, _now: num
   const dest = mp.cave.areas[destIdx]!;
   if ((dest.flags & AF_DESTROYED) !== 0) return blocked(mp);
   if (dir !== DIR_UP && dir !== DIR_DOWN) {
-    const dd = decodeArea(dest.card);
+    const dd = decodeOpen(dest);
     const back = dir === DIR_N ? dd.s : dir === DIR_E ? dd.w : dir === DIR_S ? dd.n : dd.e;
     if (!back) return blocked(mp); // no matching reverse doorway — a dead end, not an escape
   }

@@ -26,3 +26,14 @@ export function decodeArea(value: number): DecodedArea {
     special: (value >> 7) & 15,
   };
 }
+
+/** The doorways of a placed area that can still be tried: its printed `card` less any `deadDoors` a failed
+ *  move has closed. Everything that asks "is there an exit this way" reads this, never `card` directly. */
+export function openCard(area: { card: number; deadDoors?: number }): number {
+  return area.card & ~(area.deadDoors ?? 0);
+}
+
+/** `decodeArea` of the area's open doorways. */
+export function decodeOpen(area: { card: number; deadDoors?: number }): DecodedArea {
+  return decodeArea(openCard(area));
+}

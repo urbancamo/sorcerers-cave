@@ -1439,6 +1439,9 @@ with the facts.
 
 ## Progress to date
 
+**Implemented 2026-10-10** (solo, behind `variants.forcedRedraw`): `packages/engine/src/redraw.ts` (`viableExitsCheck`, `areaCardViableExits`, `swapAreaCard`, `moveWithRedraw`), the draw/lay helpers in `map.ts`, and the `deadEndNoViableExits` event and notice. The pruning flaw (a failed move rewrote the placed card) is fixed at the same time: the card is never changed, and a closed doorway is recorded in `PlacedArea.deadDoors`. Spec rows SC-6.1-10, SC-6.1-19 and SC-6.3-2..4. Scenarios 3, 9, 14, 15b, 17, 24 and 27 do not yet have a direct test (engine-spec Appendix C). Deviations and open points: the Entry Dry Run rehearses the entry, not a preceding Viper Pit / Deep Pool / Whirlpool crossing roll; old recorded games played with the previous swap will not replay identically.
+
+
 A review against the multiplayer engine (`multi.ts`) found the algorithm is **valid for multiplayer in principle**:
 
 - Multiplayer composes each seat's state from the shared cave (tiles, pack, seed) plus that seat's party, then runs the

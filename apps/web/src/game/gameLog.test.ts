@@ -83,8 +83,13 @@ describe("describeEvent", () => {
   // replacement card so a bug report shows exactly what was reshuffled, not just a raw event type.
   it("describes a deadEndCardSwapped event by both card values' tile layout", () => {
     expect(describeEvent({ type: "deadEndCardSwapped", removed: 31, drawn: 175 })).toBe(
-      "dead end rescued — reshuffled chamber · exits N E S W back into the pack, drew the Gateway · exits N E S W · stair up",
+      "dead end rescued — put chamber · exits N E S W back into the pack, drew the Gateway · exits N E S W · stair up",
     );
+  });
+
+  it("names a swap forced by a Sealing Card, and the no-viable-exits warning", () => {
+    expect(describeEvent({ type: "deadEndCardSwapped", removed: 31, drawn: 175, reason: "sealed" })).toMatch(/^sealing card swapped — put /);
+    expect(describeEvent({ type: "deadEndNoViableExits" })).toMatch(/no viable exits/);
   });
 
   it("appends the tile type + layout (exits, stairs, special) to a moved event when the state is given", () => {

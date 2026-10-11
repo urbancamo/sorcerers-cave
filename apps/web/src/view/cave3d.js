@@ -362,10 +362,9 @@ function reconcileTiles(canAct){
   // Detect an already-meshed coord whose tile IDENTITY changed (Spell's tunnel remap) — queue it;
   // the add/remove diffing above never sees this since the coord itself didn't change. Gated on
   // `a.faceDown` (AF_UNRESOLVED, the Spell replacement's own signature — a wholesale new
-  // PlacedArea) so a dead-end's exit-prune is never mistaken for one: pruneExit (map.ts) mutates
-  // the CURRENT tile's card IN PLACE to close off that direction, which can shift its derived
-  // tileId/rot too, but leaves the party's already-visited tile exactly as un-face-down as it was
-  // — swapping its mesh there redrew the tile the party is standing on, not the remapped one.
+  // PlacedArea) so a dead end's closed doorway is never mistaken for one. A placed card is no longer
+  // rewritten (map.ts records a dead doorway in `deadDoors`), so the tile identity cannot shift that way
+  // any more; the gate is kept as a belt-and-braces guard.
   for(const m of tileMeshes){
     const ua=m.userData.area; if(!ua) continue;
     const a=want.get(akey(ua)); if(!a) continue;

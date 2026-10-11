@@ -132,9 +132,10 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
       return `moved to area ${e.area} (level ${e.level})` + (card != null ? ` — ${describeTile(card)}` : "");
     }
     case "deadEnd": return e.retreat ? `dead end to the ${dir(e.dir)} — bounced back into the fight` : `dead end to the ${dir(e.dir)}`;
-    // Dead End rule (§6.3.2, "forced redraw"): the party was fully boxed in, so the rejected card was
-    // reshuffled into the pack and a new one drawn in its place — one event per completed cycle.
-    case "deadEndCardSwapped": return `dead end rescued — reshuffled ${describeTile(e.removed)} back into the pack, drew ${describeTile(e.drawn)}`;
+    // Dead End rule (§6.3.2, "forced redraw"): the party had no way on, or the drawn card would have sealed it in,
+    // so that card was put back into the pack and another taken (`reason`: a dead end, or a Sealing Card).
+    case "deadEndCardSwapped": return `${e.reason === "sealed" ? "sealing card swapped" : "dead end rescued"} — put ${describeTile(e.removed)} back into the pack, drew ${describeTile(e.drawn)}`;
+    case "deadEndNoViableExits": return "no viable exits remain — the party can no longer explore";
     case "blocked": return "action blocked (no effect)";
     case "planRejected": return `battle plan rejected (${e.reason})`;
     case "drewChamber": {
@@ -510,6 +511,7 @@ export function eventCode(e: GameEvent): string | null {
     case "itemsSpilled": return `SPL ${cr3(e.creatureId)} ${e.items.map(tr3).join(",")}`;
     case "deadEnd": return `DED ${d1(e.dir)}`;
     case "deadEndCardSwapped": return "SWP";
+    case "deadEndNoViableExits": return "NVX";
     case "mutinied": return `MUT ${e.deserters.length}`;
     case "planRejected": return "REJ";
     case "chasmDescend": return "CHM DSC";

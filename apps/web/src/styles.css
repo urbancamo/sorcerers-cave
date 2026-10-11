@@ -493,6 +493,30 @@
   text-transform: uppercase;
   color: var(--stone-dim);
 }
+.scv-tc-row .scv-tc-dir {
+  display: flex;
+  flex-flow: row nowrap;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  border: none;
+  min-width: 0;
+}
+.scv-tc-row .scv-tc-dir legend {
+  float: left;
+  padding: 0;
+  margin-right: 4px;
+  font-size: 10.5px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--stone-dim);
+}
+.scv-tc-row .scv-tc-dir label {
+  flex-direction: row;
+  align-items: center;
+  gap: 3px;
+}
 .scv-tc-row select {
   font-family: var(--ui);
   font-size: 12.5px;
@@ -1173,6 +1197,7 @@
 }
 .scv-swapbadge-close:hover { color: var(--cream); }
 .scv-swapbadge-row { margin-top: 3px; color: var(--stone); }
+.scv-swapbadge-warn { color: #e74c3c; font-weight: 600; }
 @keyframes scv-swapbadge-in { from { opacity: 0; transform: translate(-50%, -6px); } to { opacity: 1; transform: translate(-50%, 0); } }
 
 /* In-play multiplayer overlays (over the 3D scene). */

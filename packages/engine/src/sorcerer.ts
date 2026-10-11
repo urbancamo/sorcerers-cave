@@ -2,7 +2,7 @@
 // companions may spare his life on condition that he transports the party and any treasure in the chamber, by
 // magical means, to an area of the player's choice. This is the destination rule, shared by the legal-action
 // list and the reducer so the two cannot disagree.
-import { decodeArea } from "./decode";
+import { decodeArea, decodeOpen } from "./decode";
 import { AF_DESTROYED, AF_UNRESOLVED, type GameState } from "./state";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_WHIRLPOOL } from "./data/areaCards";
 
@@ -16,7 +16,7 @@ export function canTeleportTo(state: GameState, idx: number): boolean {
   const a = state.areas[idx];
   if (!a || idx === state.partyArea || !a.faceUp) return false;
   if ((a.flags & (AF_DESTROYED | AF_UNRESOLVED)) !== 0) return false;
-  return !NO_LANDING.has(decodeArea(a.card).special);
+  return !NO_LANDING.has(decodeOpen(a).special);
 }
 
 /** Indices into `state.areas` of every area the party may be teleported to. */

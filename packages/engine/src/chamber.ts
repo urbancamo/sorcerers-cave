@@ -1,4 +1,4 @@
-import { decodeArea } from "./decode";
+import { decodeArea, decodeOpen } from "./decode";
 import { SPECIAL_TOMB, SPECIAL_GREAT_HALL, SPECIAL_LAIR, SPECIAL_GALLERY, SPECIAL_WHIRLPOOL, SPECIAL_CHASM, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
 import { AF_DESTROYED, type GameState } from "./state";
 import type { GameEvent } from "./actions";
@@ -94,7 +94,7 @@ function classify(state: GameState, code: number, events: GameEvent[]): void {
   }
   if (code >= 100 && code < 200) {
     const creatureId = code - 100;
-    const dec = decodeArea(state.areas[state.partyArea]!.card);
+    const dec = decodeOpen(state.areas[state.partyArea]!);
     if (dec.special === SPECIAL_GALLERY && !GALLERY_EXEMPT_CREATURES.includes(creatureId)) {
       state.statues ??= [];
       if (state.statues.length < MAX_STRANGERS) state.statues.push(creatureId);
@@ -111,7 +111,7 @@ function classify(state: GameState, code: number, events: GameEvent[]): void {
  */
 export function enterChamber(state: GameState): GameEvent[] {
   const area = state.areas[state.partyArea]!;
-  const dec = decodeArea(area.card);
+  const dec = decodeOpen(area);
   state.strangers = [];
   state.treasures = [];
   state.hazards = [];

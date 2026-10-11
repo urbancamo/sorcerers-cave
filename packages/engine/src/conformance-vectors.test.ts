@@ -1,3 +1,4 @@
+import { openCard } from "./decode";
 import { describe, it, expect } from "vitest";
 import { newGame, reduce, CREATURES } from "./index";
 import { legalActions } from "./selectors";
@@ -284,7 +285,7 @@ function buildVector(seed: number, picks: number[], policy: Policy, maxSteps: nu
   );
   state.areas.forEach((a, i) =>
     lines.push(
-      `AREA ${i} CARD ${a.card} COORD ${a.coord} FU ${a.faceUp ? 1 : 0} VIS ${a.visited ? 1 : 0} FLG ${a.flags} MIR ${a.mirroredStairs ?? 0} SD ${a.secretDoor ?? "-"} CONT ${list(a.contents)} DROP ${list(a.dropped)} SUNK ${sunkStr(a.sunkTreasure)}`,
+      `AREA ${i} CARD ${openCard(a)} COORD ${a.coord} FU ${a.faceUp ? 1 : 0} VIS ${a.visited ? 1 : 0} FLG ${a.flags} MIR ${a.mirroredStairs ?? 0} SD ${a.secretDoor ?? "-"} CONT ${list(a.contents)} DROP ${list(a.dropped)} SUNK ${sunkStr(a.sunkTreasure)}`,
     ),
   );
   lines.push("END");

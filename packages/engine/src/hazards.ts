@@ -9,7 +9,7 @@ import {
   HAZARD_HARPIES, HAZARD_QUARREL, HAZARD_SPELL,
 } from "./data/hazards";
 import { SPECIAL_GATEWAY } from "./data/areaCards";
-import { decodeArea } from "./decode";
+import { decodeArea, decodeOpen } from "./decode";
 import { AF_DESTROYED, AF_UNRESOLVED, type GameState, type PartyMember } from "./state";
 import type { GameEvent } from "./actions";
 import { frontStrength, partyRollBonus } from "./combat";
@@ -319,7 +319,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         // Fires once on draw (design US-22, SC-EXT-28): only an un-destroyed, non-gateway TUNNEL
         // (not chamber) `prev` is eligible, and the large pack must have a card left to draw.
         const prevArea = state.areas[state.prev];
-        const dec = prevArea ? decodeArea(prevArea.card) : undefined;
+        const dec = prevArea ? decodeOpen(prevArea) : undefined;
         const eligible = !!prevArea && state.prev !== state.partyArea
           && (prevArea.flags & AF_DESTROYED) === 0
           && !!dec && !dec.chamber && dec.special !== SPECIAL_GATEWAY

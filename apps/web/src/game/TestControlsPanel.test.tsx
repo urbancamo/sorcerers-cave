@@ -8,6 +8,9 @@ import {
 } from "@sorcerers-cave/engine";
 import { TestControlsPanel } from "./TestControlsPanel";
 
+// Radio labels in the panel's direction group, keyed by engine direction constant.
+const DIR_NAME: Record<number, string> = { [DIR_N]: "North", [DIR_UP]: "Up", [DIR_DOWN]: "Down" };
+
 const testState = (over: Partial<GameState> = {}): GameState =>
   ({ ...newGame(1, [0], undefined, true), ...over });
 const kitOnState = (over: Partial<GameState> = {}): GameState =>
@@ -88,7 +91,7 @@ describe("TestControlsPanel", () => {
   it("queues testPlaceArea with the chosen direction and special (kit-on game)", () => {
     const dispatch = vi.fn();
     render(<TestControlsPanel state={kitOnState()} dispatch={dispatch} />);
-    fireEvent.change(screen.getByLabelText(/next area — direction/i), { target: { value: String(DIR_N) } });
+    fireEvent.click(screen.getByRole("radio", { name: DIR_NAME[DIR_N] }));
     fireEvent.change(screen.getByLabelText(/next area — special/i), { target: { value: String(SPECIAL_WHIRLPOOL) } });
     fireEvent.click(screen.getByRole("button", { name: /queue next area/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "testPlaceArea", dir: DIR_N, special: SPECIAL_WHIRLPOOL });
@@ -99,15 +102,14 @@ describe("TestControlsPanel", () => {
   // no-stairway-connects block (SC-EXT-6) fires instead of silently connecting.
   it("offers Up/Down direction options", () => {
     render(<TestControlsPanel state={kitOnState()} dispatch={() => {}} />);
-    const dirSelect = screen.getByLabelText(/next area — direction/i);
-    expect(dirSelect.querySelector(`option[value="${DIR_UP}"]`)).not.toBeNull();
-    expect(dirSelect.querySelector(`option[value="${DIR_DOWN}"]`)).not.toBeNull();
+    expect(screen.getByRole("radio", { name: "Up" })).toBeTruthy();
+    expect(screen.getByRole("radio", { name: "Down" })).toBeTruthy();
   });
 
   it("queues testPlaceArea with a vertical direction", () => {
     const dispatch = vi.fn();
     render(<TestControlsPanel state={kitOnState()} dispatch={dispatch} />);
-    fireEvent.change(screen.getByLabelText(/next area — direction/i), { target: { value: String(DIR_DOWN) } });
+    fireEvent.click(screen.getByRole("radio", { name: DIR_NAME[DIR_DOWN] }));
     fireEvent.change(screen.getByLabelText(/next area — special/i), { target: { value: String(SPECIAL_WHIRLPOOL) } });
     fireEvent.click(screen.getByRole("button", { name: /queue next area/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "testPlaceArea", dir: DIR_DOWN, special: SPECIAL_WHIRLPOOL });
@@ -116,7 +118,7 @@ describe("TestControlsPanel", () => {
   it("queues testPlaceArea with a base special on a kit-off game", () => {
     const dispatch = vi.fn();
     render(<TestControlsPanel state={testState()} dispatch={dispatch} />);
-    fireEvent.change(screen.getByLabelText(/next area — direction/i), { target: { value: String(DIR_N) } });
+    fireEvent.click(screen.getByRole("radio", { name: DIR_NAME[DIR_N] }));
     fireEvent.change(screen.getByLabelText(/next area — special/i), { target: { value: String(SPECIAL_DEEP_POOL) } });
     fireEvent.click(screen.getByRole("button", { name: /queue next area/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "testPlaceArea", dir: DIR_N, special: SPECIAL_DEEP_POOL });
@@ -153,7 +155,7 @@ describe("TestControlsPanel", () => {
   it("queues testPlaceArea with a plain chamber tile", () => {
     const dispatch = vi.fn();
     render(<TestControlsPanel state={testState()} dispatch={dispatch} />);
-    fireEvent.change(screen.getByLabelText(/next area — direction/i), { target: { value: String(DIR_N) } });
+    fireEvent.click(screen.getByRole("radio", { name: DIR_NAME[DIR_N] }));
     fireEvent.change(screen.getByLabelText(/next area — special/i), { target: { value: String(TILE_CHAMBER) } });
     fireEvent.click(screen.getByRole("button", { name: /queue next area/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "testPlaceArea", dir: DIR_N, special: TILE_CHAMBER });

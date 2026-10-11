@@ -4,6 +4,7 @@ export * from "./coords";
 export * from "./state";
 export * from "./setup";
 export * from "./map";
+export * from "./redraw";
 export * from "./actions";
 export * from "./reduce";
 export * from "./replay";
