@@ -205,6 +205,46 @@ trap) is already allowed. The ruling of 11-OCT-2026 is to leave the rules as wri
 
 ---
 
+## Ruling (11-OCT-2026), supplementary issue: how many traps can Dwarves guide past?
+
+*Raised by Peter in his [response of 10-OCT-2026](combat/2026-10-10-peters-response-to-review-of-reformulated-rules.md), Q8: "Can a party with two Dwarfs guide past two Trap hazards drawn together?" He found "one trap only" not credible and suggested a debate. Mark ruled instead, below; Peter should be told, and the ruling reopened if he objects.*
+
+**Ruling: a party with *n* Dwarves can guide past *n* traps.**
+
+**Reasoning.** The Consolidated Rules say a party "which includes **a** dwarf may ignore a trap, but not two traps drawn in the
+same chamber". Read literally, the set of parties "including a dwarf" contains parties with two, three or four Dwarves, so no party
+could ever pass a second trap. That would need an invented reason why a second Dwarf loses its ability merely because the first is
+busy guiding. The sensible reading is that each Dwarf guides one trap, and "but not two traps" states the limit for the party the
+sentence describes: one with a single Dwarf.
+
+**How it works (for implementation).** Let `n` be the number of the party's **living, able** Dwarves (the same test as
+`hasLivingDwarf`: status alive or ally, so a petrified or fallen Dwarf does not count) and `t` the number of traps in the chamber,
+standing plus newly drawn (the count `HAZARD_TRAP` already makes).
+
+| Situation | Result |
+|---|---|
+| `t ≤ n` | Every trap can be guided past. With `trapRules` on, the Dwarf's choice popup is offered once for the chamber: guided past (all `t`), or fall through (deliberate, so it earns surprise, as ruled in Q1/Q2 of the earlier debate) |
+| `t > n` (including `n = 0`) | The guide cannot cover every trap, so the party falls. This is **not a choice**, so it is **not deliberate**: no surprise (corner case 3 above, unchanged) |
+| A Dwarf is lost in the chamber (killed, petrified) so that `n < t` | Guide lost: the party falls the first time it tries to leave, by the same rule as today, and gains no surprise. This generalises the single-Dwarf case |
+
+A Dwarf's guidance is judged afresh on each entry; there is no state carried between chambers, so a Dwarf is never "busy" elsewhere.
+
+**Scope.** `variants.trapRules` only. With it off, a party with any Dwarf still avoids any trap, exactly as today (that is the
+existing off-mode approximation, kept so recorded games replay unchanged). Solo only for now; in multiplayer a Dwarf on loan in a
+union is a separate question.
+
+**Code that changed (implemented 11-OCT-2026).**
+- `hazards.ts`, the `HAZARD_TRAP` case: replace `hasLivingDwarf` and `tooMany` (`traps >= 2`) with `livingDwarves >= traps`. Add a
+  `livingDwarfCount` helper beside `hasLivingDwarf`.
+- `reduce.ts`, `guideLostHere`: replace "no living Dwarf" with "fewer living Dwarves than traps in the chamber".
+- Tests: two Dwarves with two traps (guided or fall); two Dwarves with three traps (fall, no surprise); one Dwarf dies leaving
+  `n < t` (guide lost); the popup with `n ≥ t`; off-mode unchanged.
+- Docs, per `CLAUDE.md`: `docs/specs/engine-spec.md` (the trap rows SC-7.2-17 to SC-7.2-20), the manual's *House Rules → Standing
+  traps* (it currently says two traps cannot be avoided), `apps/web/OPTIONS.md`, and the trap spec
+  `.agent-os/specs/2026-10-11-dwarf-deliberate-trap-fall/spec.md` (its "Spec Scope" 1 and the user story say one Dwarf, two traps).
+
+---
+
 ## Addendum: code changes needed to match the recommended interpretations
 
 *Added 09-OCT-2026 after reading the engine (`packages/engine/src`). Nothing has been changed yet. The multiplayer path

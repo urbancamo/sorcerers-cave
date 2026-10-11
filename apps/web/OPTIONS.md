@@ -74,8 +74,8 @@ Any value other than the literal string `1` (including unset) is treated as off.
 
 Turns on **standing traps and the Dwarf's deliberate fall** (spec
 `.agent-os/specs/2026-10-11-dwarf-deliberate-trap-fall/`): a trap "continues in effect" — it stays in its
-chamber after it fires or is avoided, so a later re-entry meets it again — and two traps in one chamber cannot
-be avoided by a Dwarf. Without it (or with it switched off) a trap is one-shot and a Dwarf always avoids it, as
+chamber after it fires or is avoided, so a later re-entry meets it again — and each Dwarf can guide the party
+past one trap, so a party with n Dwarves can pass n traps in a chamber. Without it (or with it switched off) a trap is one-shot and a Dwarf always avoids it, as
 before. Later tasks in the same spec add the Dwarf's choice popup, surprise for a deliberate fall, and the fall
 when a Dwarf-guided party loses its Dwarf. Solo games only for now.
 

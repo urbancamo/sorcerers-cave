@@ -54,6 +54,13 @@ A party guided past a trap that loses its Dwarf (killed in a fight in the chambe
 2. With `trapRules` on, a party without a Dwarf that re-enters a chamber where a trap already sits falls again and gains surprise below; a trap drawn on the current entry gains none. A Dwarf-guided party whose Dwarf dies in that chamber falls, with no surprise, when it next tries to leave.
 3. With `trapRules` off, behaviour and recorded games are byte-identical to today.
 
+## Follow-up ruling (11-OCT-2026, implemented)
+
+A party with *n* Dwarves can guide past *n* traps, so "two traps in one chamber cannot be avoided by a Dwarf" holds only for a party
+with a single Dwarf. Guide-lost generalises to "fewer living Dwarves than traps in the chamber". Details, reasoning and the code that
+changes: `docs/requirements/2026-10-09-dwarfs-and-surprise-rule-debate.md`, *Ruling (11-OCT-2026), supplementary issue*. The statements
+above about "one Dwarf, two traps" are superseded by it: the engine now counts living Dwarves against traps.
+
 ## Spec Documentation
 
 - Technical Specification: @.agent-os/specs/2026-10-11-dwarf-deliberate-trap-fall/sub-specs/technical-spec.md

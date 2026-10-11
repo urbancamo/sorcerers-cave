@@ -3,7 +3,7 @@ import { useConvex, useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { api } from "../../convex/_generated/api";
-import { GS_PLAYING, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
+import { GS_PLAYING, HAZARD_TRAP, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
 import { useCaveGame } from "./useCaveGame";
 import { CaveCanvas, type CaveApi } from "../view/CaveCanvas";
 import { SplashScreen } from "./SplashScreen";
@@ -269,7 +269,7 @@ export default function GameScreen() {
       {displayState.testMode && <DeadEndSwapBadge />}
       {showParty && <PartyPanel state={displayState} dispatch={dispatch} onClose={() => setShowParty(false)} />}
       {displayState.phase === "trap" && !holding && !overlay && !notices && (
-        <TrapChoice dispatch={(a) => {
+        <TrapChoice traps={displayState.areas[displayState.partyArea]?.contents.filter((c) => c === 300 + HAZARD_TRAP).length || 1} dispatch={(a) => {
           // A deliberate fall drops the party a level outside doMove's animation, so home the camera on the
           // new tile when it lands — the same hand-off the Sorcerer's teleport uses.
           if (a.type === "fallThroughTrap") caveApi.current?.snapOnArrival();

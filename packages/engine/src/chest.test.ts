@@ -94,3 +94,21 @@ describe("a Spectre from the chest meets the Eye and the Talisman like any other
     for (const { state } of shallow) expect(state.phase).toBe("fight");
   });
 });
+
+// Peter, 10-OCT-2026 (Q6): the chest Spectre gets NO surprise attack — the Consolidated Rules say it "attacks", not
+// "surprise attacks". The engine used to start that fight with the strangers holding surprise (-1).
+describe("the chest Spectre fights without surprise (Peter, Q6)", () => {
+  it("starts the fight with surprise 0 on either side", () => {
+    let seen = 0;
+    for (let seed = 1; seed <= 60; seed++) {
+      const s = makeState({ phase: "explore", areas: [area], party: [member(5, [14])], seed });
+      const { state, events } = reduce(s, { type: "openChest" });
+      if ((events.find((e) => e.type === "chestOpened") as { result: number }).result !== 2) continue;
+      seen++;
+      expect(state.phase).toBe("fight");
+      expect(state.fight?.surprise).toBe(0);
+      expect(events).toContainEqual({ type: "fightStarted", surprise: 0 });
+    }
+    expect(seen).toBeGreaterThan(0);
+  });
+});

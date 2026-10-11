@@ -28,9 +28,15 @@ function living(state: GameState): PartyMember[] {
   return state.party.filter((m) => m.status === 0 || m.status === 1);
 }
 
+/** How many living Dwarves the party has — each can guide the party past one trap (`FLAG_GUIDES_PAST_TRAP`).
+ *  "Living" is alive or ally, so a petrified or fallen Dwarf does not count. */
+export function livingDwarfCount(state: GameState): number {
+  return living(state).filter((m) => (CREATURES[m.creatureId]!.flags & FLAG_GUIDES_PAST_TRAP) !== 0).length;
+}
+
 /** A living Dwarf — the party's guide past a trap (`FLAG_GUIDES_PAST_TRAP`). */
 export function hasLivingDwarf(state: GameState): boolean {
-  return living(state).some((m) => (CREATURES[m.creatureId]!.flags & FLAG_GUIDES_PAST_TRAP) !== 0);
+  return livingDwarfCount(state) > 0;
 }
 
 function livingHolds(state: GameState, treasureId: number): boolean {
@@ -206,14 +212,15 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         break;
       }
       case HAZARD_TRAP: {
-        const hasDwarf = hasLivingDwarf(state);
+        const dwarves = livingDwarfCount(state);
         // Standing traps (`variants.trapRules`): "a party which includes a dwarf may ignore a trap, but not
-        // two traps drawn in the same chamber". The count includes a trap already parked here, so a Well or
-        // Bell draw that adds one to a chamber already holding one makes two.
+        // two traps drawn in the same chamber" — read (ruled 11-OCT-2026) as one trap per Dwarf: a party with n
+        // Dwarves can guide past n traps. The count includes a trap already parked here, so a Well or Bell draw
+        // that adds one to a chamber already holding one makes two. With the flag off a Dwarf avoids any trap.
         const here = state.areas[state.partyArea];
         const traps = state.hazards.filter((h) => h === HAZARD_TRAP).length + (here?.contents.filter((c) => c === 300 + HAZARD_TRAP).length ?? 0);
-        const tooMany = state.variants?.trapRules === true && traps >= 2;
-        if (hasDwarf && !tooMany) {
+        const guided = state.variants?.trapRules === true ? dwarves >= traps : dwarves > 0;
+        if (guided) {
           if (state.variants?.trapRules === true) trapChoice = true;   // the player chooses: guided past, or fall
           else events.push({ type: "trapAvoided" });                   // the dwarf guides the party past it
         } else fell = true;                                            // otherwise the party drops a level

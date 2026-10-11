@@ -5,7 +5,7 @@ import { decodeArea, decodeOpen } from "./decode";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WHIRLPOOL, SPECIAL_WELL, SPECIAL_BELL_ROPE, SPECIAL_GREAT_HALL, TILE_MIN, TILE_MAX, TILE_TUNNEL_ES } from "./data/areaCards";
 import { viperCrossing, deepPoolCrossing, whirlpoolCrossing, giantCanRecover, sunkKey, tryReclaimSunk } from "./special";
 import { enterChamber, drawSmallCards } from "./chamber";
-import { applyHazards, hasStaffWizard, hasLivingDwarf } from "./hazards";
+import { applyHazards, hasStaffWizard, livingDwarfCount } from "./hazards";
 import { HAZARD_MEDUSA, HAZARD_TRAP, HAZARD_NAMES } from "./data/hazards";
 import { takeTreasure, canCarry } from "./pickup";
 import { unpackCoord, packCoord, targetCoord, DIR_UP, DIR_DOWN } from "./coords";
@@ -500,13 +500,16 @@ function resumeFromTrapPause(state: GameState, fall: boolean): GameEvent[] {
 
 /** Guide lost (`variants.trapRules`): "If a party guided by a dwarf becomes involved in a fight in a chamber where
  *  there is a trap, and the dwarf is killed, the party falls down the trap as soon as it tries to leave the chamber."
- *  True when the party stands in a chamber that holds a standing trap, has no living Dwarf, and is trying to leave
+ *  True when the party stands in a chamber that holds standing traps, has fewer living Dwarves than traps (each Dwarf
+ *  guides one), and is trying to leave
  *  by `dir` — a doorway or stairway that exists. (A party without a Dwarf cannot otherwise be standing in such a
  *  chamber, since entering it would already have dropped it.) `move`, `withdraw` and `retreat` ask this. */
 function guideLostHere(state: GameState, dir: number | undefined): boolean {
-  if (state.variants?.trapRules !== true || hasLivingDwarf(state)) return false;
+  if (state.variants?.trapRules !== true) return false;
   const here = state.areas[state.partyArea]!;
-  if (!here.contents.includes(300 + HAZARD_TRAP)) return false;
+  // One Dwarf guides one trap (ruled 11-OCT-2026): the guide is lost once there are fewer living Dwarves than traps here.
+  const traps = here.contents.filter((c) => c === 300 + HAZARD_TRAP).length;
+  if (traps === 0 || livingDwarfCount(state) >= traps) return false;
   return dir === undefined || hasExit(decodeOpen(here), dir);
 }
 
@@ -1736,9 +1739,11 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           events.push(...annihilateWithEye(next));
           events.push(...wardOffSpectres(next));
           if (next.strangers.includes(9)) {
-            next.fight = { surprise: -1, round: 1, focus: next.strangers.length - 1 };
+            // No surprise either way (Peter, 10-OCT-2026, Q6): the Consolidated Rules say the Spectre "attacks", not
+            // "surprise attacks".
+            next.fight = { surprise: 0, round: 1, focus: next.strangers.length - 1 };
             next.phase = "fight";
-            events.push({ type: "fightStarted", surprise: -1 });
+            events.push({ type: "fightStarted", surprise: 0 });
           }
           break;
         case 3: break; // Sand
