@@ -78,11 +78,16 @@ const variantsValidator = v.object({ extensionKit: v.optional(v.boolean()) });
 // The Sorcerer's terms (`variants.sorcererTeleport`, solo only) are folded in the same way from
 // `SORCERER_TELEPORT_ENABLED`. Off by default, so games already in progress and every existing
 // recording behave exactly as before (a defeated Sorcerer is simply slain).
-type ServerVariants = { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean };
+//
+// Standing traps and the Dwarf's deliberate fall (`variants.trapRules`, solo only) come from
+// `TRAP_RULES_ENABLED`, off by default for the same reason (a trap is one-shot and a Dwarf always
+// avoids it).
+type ServerVariants = { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean };
 function withForcedRedraw(variants: { extensionKit?: boolean } | undefined): ServerVariants | undefined {
   let out: ServerVariants | undefined = variants;
   if (process.env.FORCED_REDRAW_ENABLED === "1") out = { ...out, forcedRedraw: true };
   if (process.env.SORCERER_TELEPORT_ENABLED === "1") out = { ...out, sorcererTeleport: true };
+  if (process.env.TRAP_RULES_ENABLED === "1") out = { ...out, trapRules: true };
   return out;
 }
 

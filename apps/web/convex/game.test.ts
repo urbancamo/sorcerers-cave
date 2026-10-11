@@ -115,6 +115,45 @@ describe("sorcererTeleport (server-stamped, off by default)", () => {
 });
 
 // ---------------------------------------------------------------------------
+// Standing traps and the Dwarf's deliberate fall (`variants.trapRules`): server-stamped, off by default.
+// ---------------------------------------------------------------------------
+describe("trapRules (server-stamped, off by default)", () => {
+  const ORIGINAL = process.env.TRAP_RULES_ENABLED;
+  afterEach(() => {
+    if (ORIGINAL === undefined) delete process.env.TRAP_RULES_ENABLED;
+    else process.env.TRAP_RULES_ENABLED = ORIGINAL;
+  });
+
+  test("unset env var ⇒ no trapRules key on the stored game", async () => {
+    delete process.env.TRAP_RULES_ENABLED;
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+    const game = await as.query(api.game.get, { id });
+    expect(game?.state.variants?.trapRules).toBeUndefined();
+  });
+
+  test("TRAP_RULES_ENABLED=1 ⇒ every new game gets trapRules:true, with zero client involvement", async () => {
+    process.env.TRAP_RULES_ENABLED = "1";
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+    const game = await as.query(api.game.get, { id });
+    expect(game?.state.variants?.trapRules).toBe(true);
+    expect(game?.variants?.trapRules).toBe(true); // persisted so replay() rebuilds it
+  });
+
+  test("a client cannot send trapRules: the argument validator rejects the key", async () => {
+    delete process.env.TRAP_RULES_ENABLED;
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    await expect(
+      as.mutation(api.game.newGame, { seed: 1, picks: [0], variants: { trapRules: true } as never }),
+    ).rejects.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Task 2: applyAction round-trip + query authority
 // ---------------------------------------------------------------------------
 import { reduce, replay } from "@sorcerers-cave/engine";

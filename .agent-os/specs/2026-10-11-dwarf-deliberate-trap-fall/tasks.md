@@ -7,13 +7,13 @@ These are the tasks to be completed for the spec detailed in @.agent-os/specs/20
 
 ## Tasks
 
-- [ ] 1. Variant gate and standing trap
-  - [ ] 1.1 Write tests: `TRAP_RULES_ENABLED=1` stamps `variants.trapRules` in `game.test.ts` (unset does not; a client-sent key is rejected); `applyHazards` and `reload` — flag off is unchanged, flag on parks one `300 + HAZARD_TRAP` per trap (duplicates kept) and reload restores them
-  - [ ] 1.2 Add `trapRules` to `GameState.variants` (`state.ts`), the `replay`/`newGame` variants types and the `schema.ts` validator; stamp it in `withForcedRedraw` (`apps/web/convex/game.ts`); document it in `apps/web/OPTIONS.md`
-  - [ ] 1.3 Park traps in the `applyHazards` re-park tail, gated on `trapRules`; count reloaded versus drawn traps per entry in `enterChamber` (`knownTraps` scratch, deleted after the hazard pass)
-  - [ ] 1.4 Two or more traps in the working set: a Dwarf cannot avoid (covers Well/Bell extra draws)
-  - [ ] 1.5 Read the multiplayer reduce path and per-party state; record whether parity ships now or as a follow-up
-  - [ ] 1.6 Verify all tests pass (flag off: goldens and replays unchanged)
+- [x] 1. Variant gate and standing trap
+  - [x] 1.1 Write tests: `TRAP_RULES_ENABLED=1` stamps `variants.trapRules` in `game.test.ts` (unset does not; a client-sent key is rejected); `applyHazards` and `reload` — flag off is unchanged, flag on parks one `300 + HAZARD_TRAP` per trap (duplicates kept) and reload restores them
+  - [x] 1.2 Add `trapRules` to `GameState.variants` (`state.ts`), the `replay`/`newGame` variants types and the `schema.ts` validator; stamp it in `withForcedRedraw` (`apps/web/convex/game.ts`); document it in `apps/web/OPTIONS.md`
+  - [x] 1.3 Park traps in the `applyHazards` re-park tail, gated on `trapRules`; count reloaded versus drawn traps per entry in `enterChamber` (`knownTraps` scratch, deleted after the hazard pass)
+  - [x] 1.4 Two or more traps in the working set: a Dwarf cannot avoid (covers Well/Bell extra draws)
+  - [x] 1.5 Read the multiplayer reduce path and per-party state; record whether parity ships now or as a follow-up (follow-up: MP never receives `trapRules`; see technical-spec)
+  - [x] 1.6 Verify all tests pass (flag off: goldens and replays unchanged)
 
 - [ ] 2. Dwarf choice pause
   - [ ] 2.1 Write tests: `legalActions` in phase `trap` is exactly `avoidTrap` and `fallThroughTrap`; both `blocked` elsewhere; avoid settles to encounter/pickup/explore; fall relocates one level down; Medusa-then-trap ordering; earlier hazards wiping the party skip the pause; Well/Bell `extraDraw` restores `surpriseReady`

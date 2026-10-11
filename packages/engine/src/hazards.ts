@@ -199,8 +199,14 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
       }
       case HAZARD_TRAP: {
         const hasDwarf = living(state).some((m) => (CREATURES[m.creatureId]!.flags & FLAG_GUIDES_PAST_TRAP) !== 0);
-        if (hasDwarf) events.push({ type: "trapAvoided" }); // the dwarf guides the party past it
-        else fell = true;                                   // otherwise the party drops a level
+        // Standing traps (`variants.trapRules`): "a party which includes a dwarf may ignore a trap, but not
+        // two traps drawn in the same chamber". The count includes a trap already parked here, so a Well or
+        // Bell draw that adds one to a chamber already holding one makes two.
+        const here = state.areas[state.partyArea];
+        const traps = state.hazards.filter((h) => h === HAZARD_TRAP).length + (here?.contents.filter((c) => c === 300 + HAZARD_TRAP).length ?? 0);
+        const tooMany = state.variants?.trapRules === true && traps >= 2;
+        if (hasDwarf && !tooMany) events.push({ type: "trapAvoided" }); // the dwarf guides the party past it
+        else fell = true;                                               // otherwise the party drops a level
         break;
       }
       case HAZARD_DESERTION: {
@@ -358,11 +364,17 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
       if ((hz === HAZARD_MEDUSA || hz === HAZARD_GHOULS) && !here.contents.includes(300 + hz)) {
         here.contents.push(300 + hz);
       }
+      // Standing traps (`variants.trapRules`): "continues in effect" — one marker per trap, whether it fell
+      // or was avoided, so it reloads on every re-entry. Unlike Medusa a duplicate is kept: two traps stay two.
+      if (hz === HAZARD_TRAP && state.variants?.trapRules === true) {
+        here.contents.push(300 + hz);
+      }
       if (hz === HAZARD_HARPIES && !harpiesFired && !here.contents.includes(300 + hz)) {
         here.contents.push(300 + hz);
       }
     }
   }
   state.hazards = [];
+  delete state.knownTraps; // per-entry scratch from `enterChamber`; never outlives the hazard pass
   return { events, fell };
 }

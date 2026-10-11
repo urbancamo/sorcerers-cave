@@ -16,7 +16,7 @@ Today a trap is one-shot. `applyHazards` (`hazards.ts:200`) fires it, then clear
 - In the re-park tail of `applyHazards`, park one `300 + HAZARD_TRAP` in `area.contents` per trap in `state.hazards`, whether it fell, was avoided, or both. Unlike Medusa, allow duplicates (no `!includes` guard) so two traps stay two.
 - `reload` (chamber.ts) already restores `300 + id` codes into `state.hazards`; confirm it keeps duplicates.
 - Record how many traps were reloaded rather than drawn on this entry in `enterChamber` as a per-entry scratch count (`state.knownTraps`, deleted after the hazard pass).
-- Well and Bell Rope extra draws add drawn traps to the working set; the total in the working set decides "two traps".
+- Well and Bell Rope extra draws add drawn traps to the working set. The "two traps" test counts the working set PLUS any traps already parked on the area, because a standing trap is not in the working set during a Well/Bell draw (it was re-parked when the entry resolved).
 - When the trap is the party's way down, the chamber behind is still parked first (`persistAndExplore`, `finishChamber`), so strangers and treasure stay.
 
 ### Dwarf choice (new `trap` pause)
@@ -64,7 +64,7 @@ Rule text: "If a party guided by a dwarf becomes involved in a fight in a chambe
 
 ### Multiplayer (open point)
 
-The parked marker lives on the shared area, so another party meets a standing trap through the same reload. The multiplayer reducer and per-party state (`multi-zombies.ts` carries `fellThroughTrap` per party) need `deliberateFall` and the `trap` pause per acting party. Task 1 of the build is to read the multiplayer reduce path and either implement parity or record it as a follow-up if the solo path is shipped first.
+Survey result (Task 1): multiplayer runs the solo reducer on a composed single-party view (`multi.ts:516`, `compose`), but `MpGameState.variants` carries only `zombies`, `fogLite`, `concurrent` and `extensionKit`, so a multiplayer game never sees `trapRules` and keeps today's one-shot traps. Like `forcedRedraw` and `sorcererTeleport`, the flag is solo-only by construction for now. Parity is a follow-up: thread the flag through `buildMpGame`/`compose` and the Convex multiplayer validator, and carry `deliberateFall` and the `trap` pause in the per-party state (`multi-zombies.ts` already carries `fellThroughTrap` per party). The parked marker lives on the shared area, so a standing trap would be cave-shared with no further work.
 
 ## Approach Options
 

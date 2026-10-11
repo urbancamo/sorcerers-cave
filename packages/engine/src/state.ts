@@ -248,7 +248,11 @@ export interface GameState {
   // construction — deliberately NOT mirrored onto `MpGameState.variants` (multi.ts) or its own
   // separate Convex validator (apps/web/convex/multiplayer.ts), so a multiplayer-composed state can
   // never carry it.
-  variants?: { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean };
+  variants?: { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean };
+  // Per-entry scratch (`variants.trapRules` only): how many traps `enterChamber` RELOADED from the area (a
+  // standing trap the party walked back into) rather than drew fresh. Set by `enterChamber`, read inside
+  // `applyHazards`, and deleted there — it can survive a Medusa pause but never an action boundary.
+  knownTraps?: number;
   // Extension kit (SC-EXT-9): the turn number `withdraw` is blocked for — set by a Well draw or a
   // Bell Rope 4-6 roll (design US-03/US-07), alongside `fellThroughTrap` on the same legality check.
   // `turn` only advances on `move`, so this self-invalidates once the party moves on — no explicit
