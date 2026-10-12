@@ -38,6 +38,13 @@ describe("FeatParticles", () => {
     expect(c.fill).toHaveBeenCalled();
   });
 
+  it("plays faster when given a speed, so a short window holds the whole show", () => {
+    render(<FeatParticles speed={3} />);
+    frame(0);
+    for (let ms = 50; ms <= 300; ms += 50) frame(ms);   // 0.3 s real = 0.9 s of show: the arcane stream (from 0.5 s) is under way
+    expect(c.arc).toHaveBeenCalled();
+  });
+
   it("stops animating when it is removed", () => {
     const { unmount } = render(<FeatParticles />);
     frame(0);

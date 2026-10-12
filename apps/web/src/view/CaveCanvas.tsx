@@ -12,6 +12,7 @@ const TILE_AR = 1728 / 1210; // all tiles are 1728×1210 landscape (manifest)
 /** The camera/selection handles the 3D view gives its parent. */
 export interface CaveApi {
   focusArea: (a: { col: number; row: number; level: number }) => void;
+  frameArea: (a: { col: number; row: number; level: number }, instant?: boolean) => void;
   snapOnArrival: () => void;
   setPicker: (opts: { destinations: { idx: number; col: number; row: number; level: number }[]; onPick: (idx: number) => void } | null) => void;
 }
@@ -29,7 +30,7 @@ export interface OtherPartyToken {
 
 export function CaveCanvas({ engine, state, canAct, color, onPartyClick, onSave, onLog, onQuit, code, otherParties, onReady, multiplayer, turnLabel, turnColor }: { engine: CaveEngine; state: GameState; canAct?: boolean; color: PartyColor; onPartyClick?: () => void; onSave?: () => void; onLog?: () => void; onQuit?: () => void; code?: string; otherParties?: OtherPartyToken[]; onReady?: (api: CaveApi) => void; multiplayer?: boolean; turnLabel?: string; turnColor?: string }) {
   const mountRef = useRef<HTMLDivElement>(null);
-  const ctrl = useRef<{ dispose(): void; refresh(canAct?: boolean): void; setParty(p: ReturnType<typeof viewParty>): void; setPicker?: CaveApi["setPicker"]; snapOnArrival?: CaveApi["snapOnArrival"]; setOtherParties?: (list: OtherPartyToken[]) => void; focusArea?: (a: { col: number; row: number; level: number }) => void } | null>(null);
+  const ctrl = useRef<{ dispose(): void; refresh(canAct?: boolean): void; setParty(p: ReturnType<typeof viewParty>): void; setPicker?: CaveApi["setPicker"]; snapOnArrival?: CaveApi["snapOnArrival"]; setOtherParties?: (list: OtherPartyToken[]) => void; focusArea?: (a: { col: number; row: number; level: number }) => void; frameArea?: (a: { col: number; row: number; level: number }, instant?: boolean) => void } | null>(null);
   const cardsRef = useRef<CardArt[]>([]); // small-card art for resolving carried items in the roster
   const colorRef = useRef(color);
   colorRef.current = color;
@@ -57,7 +58,7 @@ export function CaveCanvas({ engine, state, canAct, color, onPartyClick, onSave,
         onQuit: onQuitRef.current ? () => onQuitRef.current?.() : undefined,
       });
       ctrl.current?.setOtherParties?.(otherRef.current); // apply any pins known at boot
-      onReady?.({ focusArea: (a) => ctrl.current?.focusArea?.(a), setPicker: (o) => ctrl.current?.setPicker?.(o), snapOnArrival: () => ctrl.current?.snapOnArrival?.() }); // hand the camera API to the parent
+      onReady?.({ focusArea: (a) => ctrl.current?.focusArea?.(a), frameArea: (a, instant) => ctrl.current?.frameArea?.(a, instant), setPicker: (o) => ctrl.current?.setPicker?.(o), snapOnArrival: () => ctrl.current?.snapOnArrival?.() }); // hand the camera API to the parent
     })();
     return () => {
       cancelled = true;
