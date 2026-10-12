@@ -76,3 +76,7 @@ BAND   LEVEL      N      R3     dR3   +-95%     R2     dR2  decisions fallbacks 
 - **Smaller than the lab's gain** (+1 to +2 points from 4 strangers up). The party here is `standard` only, the lab drew from four styles; an opponent that plays greedily leaves less to exploit. The target proposed in §5 (at least +0.01 R3) is **not met**, so the bands are still for you and Peter to set.
 - **Cost**: about 0.1 to 0.3 s per decision on this machine (the 800-fight run took about 3 minutes); no fallbacks, nothing stuck.
 - Hidden information: the rollouts copy the real game, so the party's replies in a rollout are `standard`'s, played with full knowledge of the position. Everything in a fight is visible to both sides, so nothing hidden is used; a strategy that must not see more than the human-visible view (an external one, stage 6) would need its own rollout source.
+
+## 7. Bands accepted (12-OCT-2026)
+
+The bands are accepted as measured, against `standard` on the same fights (R3 from the strangers' side): `novice` about -0.01 to -0.025; `expert` about +0.005 to +0.008 up to 12 strangers and level at 13-20. The earlier target of +0.01 for `expert` is withdrawn. Re-measure if `standard`, the rules or a strategy changes (`pnpm --filter @sorcerers-cave/pairing-lab levels`).
