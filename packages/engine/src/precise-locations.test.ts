@@ -492,3 +492,18 @@ describe("stationary reclaim — Deep Pool/Viper Pit (bug fix 2026-08-02)", () =
     expect(state.areas[0]!.dropped ?? []).toEqual([]);
   });
 });
+
+describe("Chasm has no lateral crossing (bug fix 2026-10-12)", () => {
+  it("offers only the entry doorway (retrace) among lateral moves", () => {
+    const s = westEntryState(CHASM_CARD);
+    const moves = legalActions(s).filter((a) => a.type === "move").map((a: any) => a.dir);
+    expect(moves).toEqual([DIR_W]);
+  });
+
+  it("blocks a move to another doorway in the reducer", () => {
+    const s = westEntryState(CHASM_CARD);
+    for (const dir of [DIR_N, DIR_E, DIR_S]) {
+      expect(reduce(s, { type: "move", dir }).events).toEqual([{ type: "blocked" }]);
+    }
+  });
+});
