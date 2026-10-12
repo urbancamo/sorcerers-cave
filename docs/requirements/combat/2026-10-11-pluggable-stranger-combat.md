@@ -244,7 +244,7 @@ Stages 1–3 do not depend on any open rule question and can ship with zero chan
 | **2. Logged decisions, driver, gating** *(built 11-OCT-2026, uncommitted; solo only, see SC-9.6-9 to SC-9.6-12)* | `strangersAssignArtefacts` action; `driveStrangers`; fallback and `strategyFallback`; public/multiplayer rejection; log header with strategy id/version | 1 | Replay of a strategy-on game is exact and never builds a strategy (P6); forgery tests pass on both paths (P7) |
 | **3. Bench** *(built 11-OCT-2026, uncommitted; exit criterion NOT met, see [the bench note](2026-10-11-smart-loadout-bench.md))* | Lab adapter; a first real alternative for the loadout (Peter's "Smart Loadout": best of the ≤ 81 allocations by exact evaluation) | 2 | The smart loadout beats `standard` in the lab on the agreed measure, inside the budget (P10) |
 | **4. Revised round engine** | Technical spec milestones M1–M3: the round engine behind `variants.combatRevision`; `deploy`, `engage`, `redeploy`, `chooseCasualty` hooks; the lab imports the engine | 0 (C1–C4), 2 | A full fight plays headlessly with the flag on; legacy path unchanged; **BUILT 12-OCT-2026** (engine, uncommitted until asked): see the status note below |
-| **5. More built-ins** | `novice`, `expert` (budgeted), calibration report | 4 | Bands agreed; legality sweep clean |
+| **5. More built-ins** *(built 12-OCT-2026)* | `novice`, `expert` (budgeted), calibration report | 4 | Legality sweep clean (**met**); bands agreed (**open**: `novice` is weaker as intended, `expert` is not distinguishable from `standard`; see [the calibration](2026-10-12-stranger-levels-calibration.md)) |
 | **6. External strategy** | Asynchronous driver, pending state, model call, fallback rate measured | 4, 5 | Decisions logged and replayable offline (P6, P11) |
 
 ## 7. Conflicts between the documents and the engine
@@ -326,3 +326,13 @@ These need a ruling because they change what a strategy is asked to decide.
 - **Multiplayer fights against strangers** are not wired to the driver (solo only, as for the loadout), and player-versus-player fights are untouched.
 - **Fights started outside `startFight`** other than the Treasure Chest Spectre have none (checked: there are none). Fights that start with surprise 0 and no player action (a turncoat Apprentice, the chest Spectre) make the **party** the attacker; that is provisional until Peter says who attacks there.
 - The Scroll is not modelled (as in the lab). `smart` and the Monte Carlo strategy do not use the hooks yet (stage 5).
+
+---
+
+## Stage 5 status (12-OCT-2026)
+
+**Built (engine-spec SC-9.7-10, SC-9.7-11):** the `novice` and `expert` strategies, a 150-fight legality sweep per level (no fallback, every fight ends, identical replay), and `pnpm levels` in the pairing lab with [a first calibration report](2026-10-12-stranger-levels-calibration.md).
+
+**Result:** legality is clean (zero fallbacks in about 9,600 level-fights). `novice` is 1 to 2.5 points of R3 below `standard`, as intended. `expert` is **not** better than `standard` (within ±0.002): scoring one round exactly reproduces what greedy already does, and the Monte Carlo gain the lab measured came from playing fights out.
+
+**Open:** agree the bands (§5 of the report), and decide whether `expert` stays as it is or gets a rollout search, which needs a rollout simulator in the engine (hook contexts carry views, not state). Nothing in `apps/web` or Convex selects a level yet, so the manual needs no change.
