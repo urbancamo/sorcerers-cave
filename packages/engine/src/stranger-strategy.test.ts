@@ -65,7 +65,7 @@ describe("stage 1: the loadout seam", () => {
   });
 
   it("the standard strategy is deterministic: the same context gives the same decision (P9)", () => {
-    const ctx = { view: { strangers: [MAN, MAN, MAN], gear: [[], [], []], floor: [SWORD], eyePresent: false, level: 1, round: 1 }, rngSeed: 99, budget: { maxNodes: 100 } };
+    const ctx = { view: { strangers: [MAN, MAN, MAN], gear: [[], [], []], floor: [SWORD], eyePresent: false, level: 1, round: 1, party: [], partyRollBonus: 0 }, rngSeed: 99, budget: { maxNodes: 100 } };
     expect(standardStrategy.assignArtefacts(ctx)).toEqual(standardStrategy.assignArtefacts(ctx));
   });
 });

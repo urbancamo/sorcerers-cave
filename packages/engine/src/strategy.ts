@@ -16,6 +16,10 @@ export interface LoadoutContext {
     eyePresent: boolean;
     level: number;
     round: number;
+    /** The opposing party as the strangers can see it: each living member's front-line strength and how much of it is magic. */
+    party: readonly { creatureId: number; strength: number; magic: number }[];
+    /** The die bonus the party has this fight (its Ring, less curses). */
+    partyRollBonus: number;
   };
   /** A per-decision random stream seed, derived from the game seed without advancing it (P8). */
   rngSeed: number;

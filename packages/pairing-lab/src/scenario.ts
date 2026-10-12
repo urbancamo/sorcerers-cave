@@ -5,6 +5,10 @@ import { makeRng, type Rng } from "./rng";
 import { DEFAULT_RULES, T, totalOf, unit } from "./rules";
 import type { Scenario, Side, Unit } from "./types";
 
+/** Decides who bears the fight artefacts lying in the chamber, given the finished fight (so it can see the party). Returns the
+ *  allocations, as the engine's loadout does. */
+export type LoadoutFn = (input: { strangers: Unit[]; floor: number[]; eye: boolean; party: Unit[]; level: number; curses: number; scenario?: Scenario }) => { artifact: number; stranger: number }[];
+
 /** The game's own ceilings. Allies are drawn from the creature cards that can ever be friendly: 30 in the base deck and
  *  40 with the kit (Spectre, Dragon, Sorcerer and Demon never are). Strangers can number 20 or more only after a Mutiny. */
 export const MAX_PARTY = { base: 30, kit: 40 } as const;
@@ -58,7 +62,7 @@ function surpriseFor(rng: Rng, attacker: Side): 0 | 1 | 2 {
 /** Hand the fight artefacts out and set the situation. Each artefact exists once in the pack: it is with the party, lying in the
  *  chamber under the strangers' guard (`strangerOdds`), or not in play. The party's are placed at random among those who can bear
  *  them; the strangers' go by Peter's Default Loadout, run once, with every artefact starting on the floor (Q10). */
-function dress(rng: Rng, deck: "base" | "kit", party: Unit[], strangers: Unit[], o: { attacker?: Side; strangerOdds?: number }): Scenario {
+function dress(rng: Rng, deck: "base" | "kit", party: Unit[], strangers: Unit[], o: { attacker?: Side; strangerOdds?: number; loadout?: LoadoutFn; deferLoadout?: boolean }): Scenario {
   const eye = rng.next() < 0.03;
   const artefacts = deck === "kit" ? [T.SWORD, T.STAFF, T.RING, T.AXE, T.SHIELD] : [T.SWORD, T.STAFF, T.RING];
   const odds = o.strangerOdds ?? 0.04;
@@ -73,7 +77,7 @@ function dress(rng: Rng, deck: "base" | "kit", party: Unit[], strangers: Unit[],
       u.g = unit(u.cid, u.gear).g;
     } else if (roll < 0.55 + odds) floor.push(a);
   }
-  if (floor.length) {
+  if (floor.length && !o.loadout && !o.deferLoadout) {
     const allocations = defaultLoadout({ strangers: strangers.map((u) => u.cid), gear: strangers.map(() => []), floor, eyePresent: eye, pick: (n) => rng.int(n) });
     for (const { artifact, stranger } of allocations) {
       const u = strangers[stranger]!;
@@ -87,15 +91,23 @@ function dress(rng: Rng, deck: "base" | "kit", party: Unit[], strangers: Unit[],
 
   const cr = rng.next();
   const attacker: Side = o.attacker ?? (rng.next() < 0.5 ? "strangers" : "party");
-  return {
-    party, strangers, eye,
-    curses: cr < 0.7 ? 0 : cr < 0.9 ? 1 : cr < 0.98 ? 2 : 3,
-    level: 1 + rng.int(6),
-    attacker, surprise: surpriseFor(rng, attacker),
-  };
+  const curses = cr < 0.7 ? 0 : cr < 0.9 ? 1 : cr < 0.98 ? 2 : 3;
+  const level = 1 + rng.int(6);
+  const surprise = surpriseFor(rng, attacker);
+  // A loadout strategy decides last, so it sees the party as it will fight (its gear, bonuses, the level and the curses).
+  if (floor.length && o.loadout) {
+    for (const { artifact, stranger } of o.loadout({ strangers, floor, eye, party, level, curses })) {
+      const u = strangers[stranger]!;
+      u.gear.push(artifact);
+      u.g = unit(u.cid, u.gear).g;
+    }
+  }
+  return { party, strangers, eye, curses, level, attacker, surprise, ...(o.deferLoadout && floor.length ? { floor } : {}) };
 }
 
 export interface ScenarioOptions {
+  deferLoadout?: boolean;   // leave the strangers unarmed and record the floor artefacts in `Scenario.floor`, to be handed out with `armStrangers`
+  loadout?: LoadoutFn;   // decides the strangers' artefacts (default: the engine's default loadout)
   attacker?: Side;      // who started the fight (default: drawn, half each way)
   strangerOdds?: number; // the chance each fight artefact lies in the chamber with the strangers (default 0.04)
   strangers?: number;   // exact number of strangers, 1..MAX_STRANGERS (default: drawn from the usual odds, 1-6)
@@ -122,6 +134,8 @@ export function randomScenario(seed: number, deck: "base" | "kit", opts: Scenari
 }
 
 export interface BalancedOptions {
+  deferLoadout?: boolean;   // see ScenarioOptions
+  loadout?: LoadoutFn;   // decides the strangers' artefacts (default: the engine's default loadout)
   attacker?: Side;       // who started the fight (default: drawn, half each way)
   strangerOdds?: number; // the chance each fight artefact lies in the chamber with the strangers (default 0.04)
   band?: [number, number];   // the party's total strength as a multiple of the strangers' (default 0.7 to 1.4)
@@ -164,4 +178,19 @@ export function balancedScenario(seed: number, deck: "base" | "kit", opts: Balan
     if (ratio >= lo && ratio <= hi) return s;     // gear and the Eye move the ratio a little, so check it again
   }
   throw new Error("balancedScenario: could not build a fight in the band (band too narrow?)");
+}
+
+/** A copy of a scenario whose deferred floor artefacts have been handed to the strangers by `loadout`. */
+export function armStrangers(scn: Scenario, loadout: LoadoutFn): Scenario {
+  const strangers = scn.strangers.map((u) => ({ ...u, gear: u.gear.slice() }));
+  const floor = scn.floor ?? [];
+  if (floor.length) {
+    for (const { artifact, stranger } of loadout({ strangers, floor, eye: scn.eye, party: scn.party, level: scn.level, curses: scn.curses, scenario: scn })) {
+      const u = strangers[stranger]!;
+      u.gear.push(artifact);
+      u.g = unit(u.cid, u.gear).g;
+    }
+  }
+  const { floor: _floor, ...rest } = scn;
+  return { ...rest, strangers };
 }

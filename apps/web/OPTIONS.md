@@ -96,8 +96,8 @@ Any value other than the literal string `1` (including unset) is treated as off.
 
 Selects the **strangers' strategy** for new solo games (pluggable stranger combat spec, stages 1 and 2:
 `docs/requirements/combat/2026-10-11-pluggable-stranger-combat.md`). Today the only decision the strangers make is who
-bears which fight artefact, so the only registered strategy is `standard` (Peter's default loadout) and setting it changes
-nothing a player can see; it exists so the plumbing (a pending decision, a checked and logged `strangersAssignArtefacts`
+bears which fight artefact, so the registered strategies are `standard` (Peter's default loadout) and `smart` (an exact-evaluation loadout
+that the lab found no better than `standard`); setting `standard` changes nothing a player can see; it exists so the plumbing (a pending decision, a checked and logged `strangersAssignArtefacts`
 action, a fallback to `standard`) is exercised in a real deployment before there is a second strategy to choose.
 
 The value is a strategy id. Unset, or an id nothing is registered under, ⇒ not stamped ⇒ the loadout is applied exactly as

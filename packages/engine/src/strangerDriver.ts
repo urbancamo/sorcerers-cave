@@ -6,6 +6,8 @@ import { reduce } from "./reduce";
 import { loadoutViolation } from "./strangerEquip";
 import { alignedGear } from "./strangerGear";
 import { eyePresent } from "./effects";
+import { casterMP, frontStrength, partyRollBonus } from "./combat";
+import "./builtinStrategies";
 import { getStrategy, standardStrategy, type LoadoutContext, type LoadoutDecision, type StrangerStrategy } from "./strategy";
 import type { GameAction, GameEvent } from "./actions";
 import type { GameState } from "./state";
@@ -27,6 +29,8 @@ function contextOf(state: GameState): LoadoutContext {
     view: {
       strangers: state.strangers.slice(), gear: alignedGear(state).map((g) => g.slice()), floor: state.treasures.slice(),
       eyePresent: eyePresent(state), level: state.level, round: state.fight?.round ?? 0,
+      party: state.party.filter((m) => m.status === 0 || m.status === 1).map((m) => ({ creatureId: m.creatureId, strength: frontStrength(m, state), magic: casterMP(m, state) })),
+      partyRollBonus: partyRollBonus(state),
     },
     rngSeed: decisionSeed(state), budget: { maxNodes: 1 << 20 },
   };

@@ -43,6 +43,7 @@ export interface Scenario {
   level: number;
   attacker: Side;       // "strangers": approached and proved hostile (always +1); "party": attacked, with a route-based bonus
   surprise: 0 | 1 | 2;  // the attacker's round-1 bonus
+  floor?: number[];     // fight artefacts lying in the chamber that the strangers have NOT yet been armed with (only when the loadout was deferred)
 }
 
 /** How a simulated side makes its choices (training task spec §6.1). The strangers' `GRD` is the `HEU` baseline. */
