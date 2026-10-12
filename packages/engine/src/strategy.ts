@@ -51,12 +51,19 @@ export interface FightView {
 }
 interface HookBase { view: FightView; rngSeed: number; budget: { maxNodes: number; deadlineMs?: number } }
 
+/** Rollouts (spec stage 5, Monte Carlo): play each candidate decision out to the end of the fight on COPIES of the game, with the
+ *  rest of the fight played by `standard` on both sides, and answer each candidate's mean result for the strangers (R3: value
+ *  destroyed less value lost, as a fraction of everything in the fight; 0.5 is even, higher is better). Every candidate is judged on
+ *  the same dice (rollout j uses the same seed for all of them), so differences are not luck. An illegal candidate scores -1.
+ *  The engine's own rules play the rollouts, so a search can never believe a rule the game does not have. */
+export type Evaluate<D> = (candidates: readonly D[], rollouts: number) => number[];
+
 /** Defender, step c: choose which of your unengaged creatures to put in the front line — at least `min`, or all of them if fewer. */
-export interface DeployContext extends HookBase { free: readonly number[]; min: number }
+export interface DeployContext extends HookBase { free: readonly number[]; min: number; evaluate?: Evaluate<DeployDecision> }
 export interface DeployDecision { creatures: number[] }
 /** Attacker, step d: pair your unengaged creatures one-to-one against the defender's deployed front line, until none can be paired.
  *  `legalPairs` lists every pairing the rules allow (a Spectre cannot be paired with a fighter who has no magic, and so on). */
-export interface EngageContext extends HookBase { own: readonly number[]; foes: readonly number[]; legalPairs: readonly { party: number; stranger: number }[] }
+export interface EngageContext extends HookBase { own: readonly number[]; foes: readonly number[]; legalPairs: readonly { party: number; stranger: number }[]; evaluate?: Evaluate<EngageDecision> }
 export interface EngageDecision { pairs: { party: number; stranger: number }[] }
 /** Step e, either side: put unengaged creatures in a match's front line (never a third, never a new match) or a caster in its background.
  *  `legalMoves` lists every single move the rules allow; a side need not move anyone. */

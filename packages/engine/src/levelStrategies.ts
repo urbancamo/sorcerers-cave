@@ -82,11 +82,10 @@ function matchValue(s: UnitView, p: UnitView, view: FightView): number {
   return p.points * winChance(sStr, pStr) - s.points * winChance(pStr, sStr);
 }
 
-/** `expert`: judges deployments and pairings by the exact expected value of the round's matches, within a node budget, and
- *  never does worse than `standard`'s answer (which it scores first and keeps unless something is strictly better). */
-export const expertStrategy: StrangerStrategy = {
-  id: "expert", version: 1, kind: "builtin",
-  assignArtefacts: (ctx) => standardStrategy.assignArtefacts(ctx),
+/** The first expert (version 1): judges deployments and pairings by the exact expected value of the round's matches, within a node
+ *  budget, and never does worse than `standard`'s answer (which it scores first and keeps unless something is strictly better).
+ *  The calibration found it indistinguishable from `standard`; it now serves as one candidate generator for the rollout search. */
+const expectedValue: Pick<StrangerStrategy, "deploy" | "engage" | "chooseCasualty"> = {
 
   deploy(ctx: DeployContext): DeployDecision {
     const v = ctx.view, mine = strangerUnits(v);
@@ -151,4 +150,70 @@ export const expertStrategy: StrangerStrategy = {
     if (ua.strength !== ub.strength) return { nominated: ua.strength < ub.strength ? a : b };
     return { nominated: Math.min(a, b) };
   },
+};
+
+// ---------------------------------------------------------------------------------------------------------------------------
+// expert, version 2: a flat Monte Carlo rollout search (the lab's `mcPolicy`, ported onto the engine's own rules)
+
+/** Candidates tried per decision and rollouts per candidate. The lab found 8 x 16 nearly as good as 16 x 48 (first tournament, §3). */
+export const EXPERT_CANDIDATES = 8, EXPERT_ROLLOUTS = 16;
+
+const sameSet = (a: readonly number[]): string => a.slice().sort((x, y) => x - y).join(",");
+const samePairs = (a: readonly { party: number; stranger: number }[]): string => a.map((p) => `${p.party}-${p.stranger}`).sort().join(",");
+
+/** The best-scoring candidate by rollouts, keeping the first (`standard`'s) unless another is strictly better. */
+function pickBest<D>(candidates: D[], evaluate: ((c: readonly D[], rollouts: number) => number[]) | undefined, key: (d: D) => string): D {
+  const seen = new Set<string>();
+  const unique = candidates.filter((c) => { const k = key(c); if (seen.has(k)) return false; seen.add(k); return true; }).slice(0, EXPERT_CANDIDATES);
+  if (unique.length === 1 || !evaluate) return unique[0]!;
+  const scores = evaluate(unique, EXPERT_ROLLOUTS);
+  let best = 0;
+  for (let i = 1; i < unique.length; i++) if (scores[i]! > scores[best]! + 1e-9) best = i;
+  return unique[best]!;
+}
+
+/** A pairing built greedily: attackers in `ownOrder`, each taking the first legal foe in `foeOrder` that is still free. Maximal by construction. */
+function greedyPairs(ctx: EngageContext, ownOrder: readonly number[], foeOrder: readonly number[]): EngageDecision {
+  const pairs: EngageDecision["pairs"] = [], usedFoe = new Set<number>();
+  for (const a of ownOrder) {
+    for (const f of foeOrder) {
+      const p = ctx.legalPairs.find((x) => x.stranger === a && x.party === f);
+      if (p && !usedFoe.has(f)) { usedFoe.add(f); pairs.push({ party: p.party, stranger: p.stranger }); break; }
+    }
+  }
+  return { pairs };
+}
+
+export const expertStrategy: StrangerStrategy = {
+  id: "expert", version: 2, kind: "builtin",
+  assignArtefacts: (ctx) => standardStrategy.assignArtefacts(ctx),
+
+  deploy(ctx: DeployContext): DeployDecision {
+    const r = stream(ctx.rngSeed), units = strangerUnits(ctx.view);
+    const strongest = ctx.free.slice().sort((a, b) => units.get(b)!.strength - units.get(a)!.strength || a - b);
+    const candidates: DeployDecision[] = [standardStrategy.deploy!(ctx), expectedValue.deploy!(ctx)];
+    candidates.push({ creatures: strongest.slice(0, ctx.min) }, { creatures: strongest.slice().reverse().slice(0, ctx.min) }, { creatures: strongest });
+    for (let tries = 0; candidates.length < EXPERT_CANDIDATES * 2 && tries < 20; tries++) {
+      const f = r.shuffle(ctx.free);
+      candidates.push({ creatures: f.slice(0, ctx.min + r.below(f.length - ctx.min + 1)) });
+    }
+    return pickBest(candidates, ctx.evaluate, (d) => sameSet(d.creatures));
+  },
+
+  engage(ctx: EngageContext): EngageDecision {
+    const r = stream(ctx.rngSeed), mine = strangerUnits(ctx.view), theirs = new Map(ctx.view.party.map((u) => [u.index, u]));
+    const own = ctx.own.slice().sort((a, b) => mine.get(b)!.strength - mine.get(a)!.strength || a - b);
+    const foes = ctx.foes.slice().sort((a, b) => theirs.get(b)!.strength - theirs.get(a)!.strength || a - b);
+    const candidates: EngageDecision[] = [
+      standardStrategy.engage!(ctx), expectedValue.engage!(ctx),
+      greedyPairs(ctx, own, foes), greedyPairs(ctx, own, foes.slice().reverse()),
+      greedyPairs(ctx, own.slice().reverse(), foes), greedyPairs(ctx, own.slice().reverse(), foes.slice().reverse()),
+    ];
+    for (let tries = 0; candidates.length < EXPERT_CANDIDATES * 2 && tries < 20; tries++) candidates.push(greedyPairs(ctx, r.shuffle(ctx.own), r.shuffle(ctx.foes)));
+    return pickBest(candidates, ctx.evaluate, (d) => samePairs(d.pairs));
+  },
+
+  // Surplus is `standard`'s. A lost pair nominates the cheaper creature (the die then spares or takes it with equal odds, so the
+  // nomination only decides which of the two is exposed, and the cheaper one costs least if it falls).
+  chooseCasualty: expectedValue.chooseCasualty!,
 };

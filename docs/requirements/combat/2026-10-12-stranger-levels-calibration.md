@@ -54,3 +54,25 @@ BAND   LEVEL      N      R3     dR3   +-95%     R2     dR2  decisions fallbacks 
 
 1. **Bands.** Proposed target, against `standard` in the band 4-6 and above: `novice` about -0.02 R3 (met), `expert` at least +0.01 R3 (**not met**).
 2. **`expert`.** Either accept it as an alias-strength "expert = standard + exact checks" for now, or port the lab's Monte Carlo rollout search into the engine behind the budget, which is the one approach measured to gain. That needs a rollout simulator the engine does not have (hook contexts carry views, not state), so it is its own piece of work.
+
+## 6. Update: `expert` version 2 — the Monte Carlo rollout search, ported (12-OCT-2026)
+
+`expert` now plays candidate deployments and pairings out to the end of the fight on copies of the game and keeps the best (flat Monte Carlo, 8 candidates x 16 rollouts, the lab's `MC8x16`). The rollouts are run by **the engine's own rules** (`reduce`, the driver, the party as `standard`), not by a second simulator, so the search cannot believe a rule the game lacks (spec §5.8). The hooks gain an `evaluate(candidates, rollouts)` function for this; the version-1 expected-value model survives as one candidate generator. Casualty and surplus are not searched (as in the lab).
+
+```
+pnpm --filter @sorcerers-cave/pairing-lab levels 800 kit 0.5 standard,expert
+BAND   LEVEL      N      R3     dR3   +-95%     R2     dR2  decisions fallbacks stuck
+1-3    standard   800   0.481   0.000   0.000   0.389   0.000       2581         0     0
+1-3    expert     800   0.486   0.005   0.003   0.401   0.013       2580         0     0
+4-6    standard   800   0.489   0.000   0.000   0.410   0.000       5317         0     0
+4-6    expert     800   0.497   0.008   0.005   0.427   0.018       6070         0     0
+7-12   standard   800   0.498   0.000   0.000   0.432   0.000       7803         0     0
+7-12   expert     800   0.505   0.007   0.005   0.455   0.022       8705         0     0
+13-20  standard   800   0.513   0.000   0.000   0.469   0.000      10920         0     0
+13-20  expert     800   0.514   0.001   0.003   0.475   0.006      11756         0     0
+```
+
+- **It now beats `standard`**: +0.5 to +0.8 points of R3 (and +1.3 to +2.2 points of R2) in the first three bands, each outside its interval; nothing measurable at 13-20 strangers. The version-1 model was at ±0.002.
+- **Smaller than the lab's gain** (+1 to +2 points from 4 strangers up). The party here is `standard` only, the lab drew from four styles; an opponent that plays greedily leaves less to exploit. The target proposed in §5 (at least +0.01 R3) is **not met**, so the bands are still for you and Peter to set.
+- **Cost**: about 0.1 to 0.3 s per decision on this machine (the 800-fight run took about 3 minutes); no fallbacks, nothing stuck.
+- Hidden information: the rollouts copy the real game, so the party's replies in a rollout are `standard`'s, played with full knowledge of the position. Everything in a fight is visible to both sides, so nothing hidden is used; a strategy that must not see more than the human-visible view (an external one, stage 6) would need its own rollout source.

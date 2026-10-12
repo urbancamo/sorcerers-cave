@@ -336,3 +336,5 @@ These need a ruling because they change what a strategy is asked to decide.
 **Result:** legality is clean (zero fallbacks in about 9,600 level-fights). `novice` is 1 to 2.5 points of R3 below `standard`, as intended. `expert` is **not** better than `standard` (within ±0.002): scoring one round exactly reproduces what greedy already does, and the Monte Carlo gain the lab measured came from playing fights out.
 
 **Open:** agree the bands (§5 of the report), and decide whether `expert` stays as it is or gets a rollout search, which needs a rollout simulator in the engine (hook contexts carry views, not state). Nothing in `apps/web` or Convex selects a level yet, so the manual needs no change.
+
+**Update — `expert` v2 (12-OCT-2026):** the lab's Monte Carlo rollout search is ported: the hooks gain `evaluate(candidates, rollouts)`, run by the engine's own `reduce` and driver on copies of the game (SC-9.7-10). Result: +0.5 to +0.8 points of R3 over `standard` up to 12 strangers, nothing measurable at 13-20; see §6 of [the calibration](2026-10-12-stranger-levels-calibration.md). The target of +0.01 is not met; bands are still open.

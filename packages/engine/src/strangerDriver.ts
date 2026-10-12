@@ -6,12 +6,14 @@ import { reduce } from "./reduce";
 import { loadoutViolation } from "./strangerEquip";
 import { alignedGear } from "./strangerGear";
 import { eyePresent } from "./effects";
+import { ALL_CREATURES } from "./data/creatures";
+import { partyAction, type PlayedFight } from "./partyPlay";
 import { casterMP, frontStrength, partyRollBonus } from "./combat";
 import "./builtinStrategies";
 import {
   deployViolation, engageViolation, fightView, freeOf, legalMoves, legalPairs, nominateViolation, redeployViolation,
 } from "./revisedRound";
-import { getStrategy, standardStrategy, type LoadoutContext, type LoadoutDecision, type StrangerStrategy } from "./strategy";
+import { getStrategy, standardStrategy, type Evaluate, type LoadoutContext, type LoadoutDecision, type StrangerStrategy } from "./strategy";
 import type { GameAction, GameEvent } from "./actions";
 import type { GameState } from "./state";
 
@@ -79,6 +81,61 @@ function decideHook<D>(
 /** The fixed part of a hook's context: the view, a per-decision seed and a budget. */
 const hookBase = (state: GameState) => ({ view: fightView(state), rngSeed: decisionSeed(state), budget: { maxNodes: 1 << 20 } });
 
+const POINTS = ALL_CREATURES.map((c) => c.points);
+
+/** A fight played to its end headlessly: the strangers through this driver, the party through `standard`. */
+export function playOutRevised(start: GameState, maxSteps = 5000): PlayedFight {
+  let state = start;
+  const actions: GameAction[] = [], events: GameEvent[] = [];
+  for (let i = 0; i < maxSteps; i++) {
+    const driven = driveStrangers(state);
+    for (const a of driven.applied) { actions.push(a.action); events.push(...a.events); }
+    state = driven.state;
+    if (!state.fight) return { state, actions, events, end: state.phase === "gameOver" ? "lost" : "won" };
+    if (state.fight.rev?.standoff) return { state, actions, events, end: "standoff" };
+    const action = partyAction(state);
+    if (!action) return { state, actions, events, end: "stuck" };
+    const r = reduce(state, action);
+    if (r.events.length === 1 && (r.events[0]!.type === "blocked" || r.events[0]!.type === "planRejected")) throw new Error(`the engine refused the party's ${action.type}: ${JSON.stringify(r.events[0])}`);
+    actions.push(action); events.push(...r.events);
+    state = r.state;
+  }
+  return { state, actions, events, end: "stuck" };
+}
+
+/** The strangers' result of a finished fight as a fraction: 0.5 plus half the net value destroyed over everything in the fight (R3). */
+function resultForStrangers(total: number, events: readonly GameEvent[]): number {
+  let svl = 0, pvl = 0;
+  for (const e of events) {
+    if (e.type === "strangerKilled") svl += POINTS[e.creatureId]!;
+    else if (e.type === "memberDied") pvl += POINTS[e.creatureId]!;
+  }
+  return total ? 0.5 + (0.5 * (pvl - svl)) / total : 0.5;
+}
+
+/** Rollout seed `j` for a decision: the same for every candidate, so they are compared on the same dice. */
+const rolloutSeed = (decision: number, j: number): number => ((Math.imul(decision ^ 0x9e3779b9, 2654435761) + Math.imul(j + 1, 40503)) >>> 1) || 1;
+
+/** The `evaluate` a hook receives: each candidate action is applied to a copy of the game, then the rest of the fight is played with
+ *  `standard` on both sides under fresh dice. */
+function evaluator<D>(state: GameState, seed: number, toAction: (d: D) => GameAction): Evaluate<D> {
+  const total = state.party.filter((m) => m.status === 0 || m.status === 1).reduce((a, m) => a + POINTS[m.creatureId]!, 0) + state.strangers.reduce((a, c) => a + POINTS[c]!, 0);
+  return (candidates, rollouts) => candidates.map((d) => {
+    const action = toAction(d);
+    let sum = 0;
+    for (let j = 0; j < rollouts; j++) {
+      const copy = structuredClone(state);
+      copy.seed = rolloutSeed(seed, j);
+      copy.variants = { ...copy.variants, strangerLevel: "standard" };
+      const first = reduce(copy, action);
+      if (first.events.length === 1 && (first.events[0]!.type === "blocked" || first.events[0]!.type === "planRejected")) return -1;
+      const played = playOutRevised(first.state);
+      sum += resultForStrangers(total, [...first.events, ...played.events]);
+    }
+    return sum / rollouts;
+  });
+}
+
 /** Answer whatever pending pairing decision the strangers have, as the action the engine then validates and applies. */
 function pairingAction(state: GameState, strategy: StrangerStrategy): GameAction {
   const pending = state.fight!.pending!;
@@ -86,12 +143,20 @@ function pairingAction(state: GameState, strategy: StrangerStrategy): GameAction
     ({ strategyId: r.strategy.id, strategyVersion: r.strategy.version, ...(r.fallback ? { fallback: r.fallback } : {}) });
   switch (pending.kind) {
     case "deploy": {
-      const ctx = { ...hookBase(state), free: freeOf(state, "strangers"), min: pending.min };
+      const base = hookBase(state);
+      const ctx = {
+        ...base, free: freeOf(state, "strangers"), min: pending.min,
+        evaluate: evaluator(state, base.rngSeed, (d: { creatures: number[] }): GameAction => ({ type: "strangersDeploy", strategyId: "rollout", strategyVersion: 0, creatures: d.creatures.slice() })),
+      };
       const r = decideHook(strategy, (s) => s.deploy?.(ctx), (d) => deployViolation(state, "strangers", d?.creatures));
       return { type: "strangersDeploy", ...meta(r), creatures: r.decision.creatures.slice() };
     }
     case "engage": {
-      const ctx = { ...hookBase(state), own: freeOf(state, "strangers"), foes: state.fight!.rev!.deployed.party.slice(), legalPairs: legalPairs(state, "strangers") };
+      const base = hookBase(state);
+      const ctx = {
+        ...base, own: freeOf(state, "strangers"), foes: state.fight!.rev!.deployed.party.slice(), legalPairs: legalPairs(state, "strangers"),
+        evaluate: evaluator(state, base.rngSeed, (d: { pairs: { party: number; stranger: number }[] }): GameAction => ({ type: "strangersEngage", strategyId: "rollout", strategyVersion: 0, pairs: d.pairs.map((p) => ({ party: p.party, stranger: p.stranger })) })),
+      };
       const r = decideHook(strategy, (s) => s.engage?.(ctx), (d) => engageViolation(state, "strangers", d?.pairs));
       return { type: "strangersEngage", ...meta(r), pairs: r.decision.pairs.map((p) => ({ party: p.party, stranger: p.stranger })) };
     }
