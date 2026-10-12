@@ -62,6 +62,15 @@ describe("particleShow — the Sorcerer's fall", () => {
     expect(isDone(show)).toBe(true);
   });
 
+  it("can be run without the firework bursts: only the rising arcane energy and embers, and it still finishes", () => {
+    const show = createShow({ bursts: false });
+    const seen = new Set<string>();
+    for (let t = 0; t < 14; t += 0.05) { tick(show, 0.05, SIZE, ORIGIN, seeded(1)); show.particles.forEach((p) => seen.add(p.kind)); }
+    expect(seen.has("spark")).toBe(false);
+    expect(seen.has("arcane") && seen.has("ember")).toBe(true);
+    expect(isDone(show)).toBe(true);
+  });
+
   it("is not done while the show is still scheduled to emit, even with no live particles", () => {
     expect(isDone(createShow())).toBe(false);
     const show = createShow();

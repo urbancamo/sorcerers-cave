@@ -16,7 +16,9 @@ export const BURST_TIMES = [2.4, 3.2, 4.0];
 const BURST_SPARKS = 110;
 const SPARK_GRAVITY = 320, SPARK_DRAG = 0.3; // px/s², 1/s
 
-export const createShow = (): Show => ({ particles: [], t: 0, burstsDone: 0, arcaneCarry: 0, emberCarry: 0 });
+/** `bursts: false` leaves out the three firework bursts (they count as already done), keeping the rising energy and embers. */
+export const createShow = (opts: { bursts?: boolean } = {}): Show =>
+  ({ particles: [], t: 0, burstsDone: opts.bursts === false ? BURST_TIMES.length : 0, arcaneCarry: 0, emberCarry: 0 });
 
 /** Finished once everything that will ever be emitted has been, and the last particle has burned out. */
 export const isDone = (s: Show): boolean =>

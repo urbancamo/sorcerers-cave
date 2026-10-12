@@ -1,7 +1,8 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { createRef } from "react";
-import { CaveHud } from "./CaveHud";
+import type { GameState } from "@sorcerers-cave/engine";
+import { CaveHud, cursesInForce } from "./CaveHud";
 
 const ref = () => createRef<HTMLDivElement>();
 
@@ -44,5 +45,15 @@ describe("CaveHud — game code chip", () => {
   it("hides the CODE box when no code is given", () => {
     render(<CaveHud mountRef={ref()} />);
     expect(screen.queryByText("Code")).toBeNull();
+  });
+});
+
+describe("cursesInForce — the curse chip follows the rules, not the raw counter", () => {
+  it("counts every curse while the Sorcerer lives", () => {
+    expect(cursesInForce({ curses: 3, sorcererKilled: false } as GameState)).toBe(3);
+  });
+
+  it("is zero once the Sorcerer is slain, however many were taken", () => {
+    expect(cursesInForce({ curses: 3, sorcererKilled: true } as GameState)).toBe(0);
   });
 });

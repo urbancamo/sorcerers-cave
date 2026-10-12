@@ -1,4 +1,5 @@
 import type { RefObject } from "react";
+import { activeCurses, type GameState } from "@sorcerers-cave/engine";
 import "./cave.css";
 
 /**
@@ -7,6 +8,9 @@ import "./cave.css";
  * discovery overlay (`reveal.js`) is preserved verbatim. The `#scene` div
  * receives the React container ref so `boot` can append its WebGL canvas there.
  */
+/** The curses actually in force: slaying the Sorcerer lifts them all (engine `activeCurses`), so the chip must not show the raw counter. */
+export const cursesInForce = (state: GameState): number => activeCurses(state);
+
 export function CaveHud({ mountRef, onPartyClick, onSave, onLog, code, turnLabel, turnColor, curses, kitActive, testMode }: { mountRef: RefObject<HTMLDivElement | null>; onPartyClick?: () => void; onSave?: () => void; onLog?: () => void; code?: string; turnLabel?: string; turnColor?: string; curses?: number; kitActive?: boolean; testMode?: boolean }) {
   return (
     <>

@@ -3,7 +3,7 @@ import { useConvex, useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { api } from "../../convex/_generated/api";
-import { GS_PLAYING, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
+import { GS_PLAYING, unpackCoord, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
 import { useCaveGame } from "./useCaveGame";
 import { CaveCanvas, type CaveApi } from "../view/CaveCanvas";
 import { SplashScreen } from "./SplashScreen";
@@ -54,7 +54,7 @@ export default function GameScreen() {
   const [savedCode, setSavedCode] = useState<{ code: string; restored: boolean } | null>(null);
   const [showLog, setShowLog] = useState(false); // shows the game-log download modal when true
   // The Sorcerer's teleport in flight: the area chosen. The effect plays first and the action is dispatched at its
-  // peak, so the party moves under the flash (see TeleportEffect).
+  // peak, when the screen is black (see TeleportEffect).
   const [teleportTo, setTeleportTo] = useState<number | null>(null);
   // Multiplayer flow (behind the production-off feature flag): create/join setup → reactive lobby.
   const [mp, setMp] = useState<{ view: "create" | "join" } | { view: "lobby"; code: string } | null>(null);
@@ -98,6 +98,19 @@ export default function GameScreen() {
   const cards = useManifestCards();
   const caveApi = useRef<CaveApi | null>(null);
   const pickDestination = useCallback<DestinationPicker>((o) => caveApi.current?.setPicker(o), []);
+  // The Sorcerer's teleport. Once the destination is chosen the camera settles on the party's own chamber (the particles
+  // rise there); at full black the party is moved and the camera cuts to the destination (after the view has taken the
+  // move, so the cut is the last thing to happen), so the fade up finds the destination steady.
+  const chamberAt = (i: number) => { const { level, x, y } = unpackCoord(displayState.areas[i]!.coord); return { col: x, row: y, level }; };
+  const startTeleport = (area: number) => {
+    caveApi.current?.frameArea(chamberAt(displayState.partyArea));
+    setTeleportTo(area);
+  };
+  const arriveAt = (area: number) => {
+    dispatchWithRolls({ type: "spareSorcerer", area });
+    const to = chamberAt(area);
+    setTimeout(() => caveApi.current?.frameArea(to, true), 300);
+  };
   const art = useManifestArt(); // tile + card art, for the Sorcerer's teleport map
   const gameOver = !!state && state.gs !== GS_PLAYING;
   // The finished game's move log, for the post-game .txt / .log downloads (fetched only at game over).
@@ -277,11 +290,11 @@ export default function GameScreen() {
         }} />
       )}
       {displayState.phase === "sorcerer" && !holding && !overlay && !notices && teleportTo === null && art && (
-        <SorcererTerms state={displayState} art={art} dispatch={dispatchWithRolls} onTeleport={(area) => { caveApi.current?.snapOnArrival(); setTeleportTo(area); }} setPicker={pickDestination} />
+        <SorcererTerms state={displayState} art={art} dispatch={dispatchWithRolls} onTeleport={startTeleport} setPicker={pickDestination} />
       )}
       {teleportTo !== null && (
         <TeleportEffect
-          onPeak={() => dispatchWithRolls({ type: "spareSorcerer", area: teleportTo })}
+          onPeak={() => arriveAt(teleportTo)}
           onDone={() => setTeleportTo(null)}
         />
       )}

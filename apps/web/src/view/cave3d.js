@@ -614,6 +614,11 @@ function frameSnap(area){
   flyTo(wp.clone().add(new THREE.Vector3(0,dist*0.96,dist*0.27)),wp,fov);
 }
 function viewSnapTile(){const a=engine.current;setMode('snap','Overhead · '+a.name);setIsolation(a.level,'only');frameSnap(a);}
+function frameArea(a,instant){ // a: {col,row,level} — frame that chamber overhead, as the Home button does; `instant` cuts there with no flight
+  if(a==null) return;
+  setMode('snap','Overhead'); setIsolation(a.level,'only'); frameSnap(a);
+  if(instant){camera.position.copy(goal.pos);controls.target.copy(goal.target);camera.fov=goal.fov;camera.updateProjectionMatrix();goal.active=false;controls.enabled=true;}
+}
 function focusArea(a){ // a: {col,row,level} — fly the camera to that area (free-roam spectating)
   if(a==null) return;
   setMode('orbit','Spectating'); setIsolation(a.level);
@@ -1082,7 +1087,7 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
   frameSnap(engine.current); // fit the start chamber + its exits to the viewport
   controls.update();
   setPrompt('Your party stands in <b>'+engine.current.name+'</b>. Click a glowing doorway, or press N/E/S/W.','event');
-  window.__cave={scene,camera,controls,renderer,THREE,engine,tileMeshes,exitMarkers,doMove,worldPos,layContents,contentGroup,setParty,setOtherParties,focusArea};
+  window.__cave={scene,camera,controls,renderer,THREE,engine,tileMeshes,exitMarkers,doMove,worldPos,layContents,contentGroup,setParty,setOtherParties,focusArea,frameArea};
   document.getElementById('loader').classList.add('hide');animate();
 
   function dispose(){
@@ -1094,5 +1099,5 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
     renderer.dispose();
     renderer.domElement.remove();
   }
-  return { dispose, refresh, setParty, setOtherParties, focusArea, setPicker, snapOnArrival:()=>{homeOnArrival=true;} };
+  return { dispose, refresh, setParty, setOtherParties, focusArea, frameArea, setPicker, snapOnArrival:()=>{homeOnArrival=true;} };
 }
