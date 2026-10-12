@@ -2,5 +2,8 @@
 // a strategy can build on `standard` without a circular import.
 import { registerStrategy } from "./strategy";
 import { smartStrategy } from "./smartLoadout";
+import { expertStrategy, noviceStrategy } from "./levelStrategies";
 
 registerStrategy(smartStrategy);
+registerStrategy(noviceStrategy);
+registerStrategy(expertStrategy);
