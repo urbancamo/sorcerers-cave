@@ -85,7 +85,7 @@ function chasmDescends(state: GameState, area: PlacedArea): boolean {
  * and the search never marks the map — its visited set is local to the call. The Whirlpool is keyed by (area, arrival
  * doorway) because the doorway opposite the one the party came in by is not usable there.
  */
-export function viableExitsCheck(state: GameState, startIdx: number): boolean {
+export function viableExitsCheck(state: GameState, startIdx: number, startArrivalOverride?: number): boolean {
   const visited = new Set<string>();
   // The party's own arrival doorway matters only on a Whirlpool; getSubLocation derives it for the party's tile.
   let startArrival: number | undefined;
@@ -93,6 +93,7 @@ export function viableExitsCheck(state: GameState, startIdx: number): boolean {
     const sub = getSubLocation(state);
     if (sub.at === "doorway") startArrival = sub.dir;
   }
+  if (startArrivalOverride !== undefined) startArrival = startArrivalOverride;
   const stack: { idx: number; arrival?: number }[] = [{ idx: startIdx, arrival: startArrival }];
   while (stack.length > 0) {
     const { idx, arrival } = stack.pop()!;
@@ -213,7 +214,11 @@ export function moveWithRedraw(state: GameState, dir: number, enter: EnterArea):
   } else {
     const wouldBe = structuredClone(next);
     layDeadEnd(wouldBe, dir, drawn);
-    if (viableExitsCheck(wouldBe, wouldBe.partyArea)) {
+    // On a Whirlpool a dead-end attempt still wades the party to that ledge (reduce.ts "move"), so the
+    // search starts from the new ledge, not the old one.
+    const wades = decodeOpen(cur).special === SPECIAL_WHIRLPOOL && LATERAL.includes(dir)
+      && getSubLocation(state).at === "doorway" && getSubLocation(state).dir !== dir;
+    if (viableExitsCheck(wouldBe, wouldBe.partyArea, wades ? dir : undefined)) {
       layDeadEnd(next, dir, drawn);
       return { state: next, moved: false, deadEnd: true, noViableExits: false };
     }

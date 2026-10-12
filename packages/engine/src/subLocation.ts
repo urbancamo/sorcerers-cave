@@ -99,7 +99,10 @@ export function getSubLocation(state: GameState): SubLocation {
   if (!area) return { at: "centre" };
   const dec = decodeOpen(area);
   if (SUB_LOCATION_SPECIALS.has(dec.special)) {
-    if (state.subLocation?.area === state.partyArea && state.subLocation.at === "island") return { at: "island" };
+    const override = state.subLocation?.area === state.partyArea ? state.subLocation : undefined;
+    if (override?.at === "island") return { at: "island" };
+    // A Whirlpool wade (reduce.ts "move") shifts the party to another ledge without leaving the tile.
+    if (override?.at === "doorway") return { at: "doorway", dir: override.dir };
     if (arrivedVertically(state)) return { at: "island" };
     return { at: "doorway", dir: doorwayDir(state) };
   }
