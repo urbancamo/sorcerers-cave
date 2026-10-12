@@ -4,7 +4,7 @@ import type { GameState } from "@sorcerers-cave/engine";
 import { loadManifest, indexTilesById, type CardArt } from "../data/manifest";
 import { boot } from "./cave3d";
 import { viewParty } from "./viewParty";
-import { CaveHud } from "./CaveHud";
+import { CaveHud, cursesInForce } from "./CaveHud";
 import { partyColorHex, type PartyColor } from "../game/partyColors";
 
 const TILE_AR = 1728 / 1210; // all tiles are 1728×1210 landscape (manifest)
@@ -85,5 +85,5 @@ export function CaveCanvas({ engine, state, canAct, color, onPartyClick, onSave,
     ctrl.current?.setOtherParties?.(otherParties ?? []);
   }, [otherParties]);
 
-  return <CaveHud mountRef={mountRef} onPartyClick={onPartyClick} onSave={onSave} onLog={onLog} code={code} turnLabel={turnLabel} turnColor={turnColor} curses={state.curses} kitActive={!!state.variants?.extensionKit} testMode={!!state.testMode} />;
+  return <CaveHud mountRef={mountRef} onPartyClick={onPartyClick} onSave={onSave} onLog={onLog} code={code} turnLabel={turnLabel} turnColor={turnColor} curses={cursesInForce(state)} kitActive={!!state.variants?.extensionKit} testMode={!!state.testMode} />;
 }

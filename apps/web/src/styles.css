@@ -888,7 +888,8 @@
 }
 
 /* The teleport itself (TeleportEffect.tsx): dark, a violet vortex that winds in, rings that contract onto the
-   party, sparks, then a flash at ~47% (1.5 s of 3.2 s) — the moment the party moves — that clears to the new place. */
+   party, sparks, then a slow fade to black reaching full at ~47% (1.5 s of 3.2 s) — the moment the party moves — and a
+   fade up on the new place. No white flash and no rapid brightness change (light sensitivity). */
 .scv-tpfx {
   position: fixed;
   inset: 0;
@@ -934,15 +935,15 @@
   width: min(60vmin, 480px);
   aspect-ratio: 1;
   border-radius: 50%;
-  background: radial-gradient(circle, #fff 0%, rgba(215, 180, 255, 0.95) 22%, rgba(150, 80, 230, 0.55) 48%, transparent 70%);
+  background: radial-gradient(circle, rgba(190, 140, 255, 0.55) 0%, rgba(150, 80, 230, 0.3) 45%, transparent 70%);
   opacity: 0;
   animation: scv-tpfx-core 3.2s ease-in-out both;
 }
 @keyframes scv-tpfx-core {
   0%, 12% { transform: scale(0.05); opacity: 0; }
-  46%     { transform: scale(1); opacity: 1; }
-  60%     { transform: scale(2.4); opacity: 0.8; }
-  100%    { transform: scale(3); opacity: 0; }
+  36%     { transform: scale(1); opacity: 0.7; }
+  47%     { transform: scale(1); opacity: 0; }
+  100%    { transform: scale(1); opacity: 0; }
 }
 .scv-tpfx-text {
   position: relative;
@@ -961,11 +962,11 @@
   position: absolute;
   inset: 0;
   pointer-events: none;
-  background: radial-gradient(circle at 50% 50%, #fff 0%, #efe0ff 45%, #b98cff 100%);
+  background: #000;
   opacity: 0;
   animation: scv-tpfx-flash 3.2s ease-out both;
 }
-@keyframes scv-tpfx-flash { 0%, 38% { opacity: 0; } 47% { opacity: 1; } 53% { opacity: 1; } 78% { opacity: 0; } 100% { opacity: 0; } }
+@keyframes scv-tpfx-flash { 0%, 25% { opacity: 0; } 47% { opacity: 1; } 60% { opacity: 1; } 90% { opacity: 0; } 100% { opacity: 0; } }
 .scv-tpfx.reduced { animation: scv-tpfx-reduced 0.9s ease-in-out both; }
 .scv-tpfx.reduced .scv-tpfx-vortex, .scv-tpfx.reduced .scv-tpfx-ring, .scv-tpfx.reduced .scv-tpfx-core, .scv-tpfx.reduced .scv-tpfx-flash { display: none; }
 .scv-tpfx.reduced .scv-tpfx-text { animation: none; }

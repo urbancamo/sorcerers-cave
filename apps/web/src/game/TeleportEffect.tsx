@@ -1,13 +1,13 @@
 import { useEffect, useRef } from "react";
 import { FeatParticles, prefersReducedMotion } from "./FeatParticles";
 
-// When, in ms, the white flash peaks (the moment the party actually moves) and when the effect has played out.
+// When, in ms, the screen is fully black (the moment the party actually moves) and when the effect has played out.
 export const TELEPORT_PEAK_MS = 1500;
 export const TELEPORT_END_MS = 3200;
 
 /** The Sorcerer's teleport: the cave darkens, a violet vortex spins up and draws in, rings contract round the
- *  party, sparks stream, and a flash whites out the screen — at which moment `onPeak` fires (the game state moves
- *  the party underneath) — then it clears to reveal the new place. `onDone` fires when it has played out. Under
+ *  party, sparks stream, and the screen fades to black — at which moment `onPeak` fires (the game state moves
+ *  the party underneath) — then it fades back up on the new place (no white flash: light-sensitive players). `onDone` fires when it has played out. Under
  *  prefers-reduced-motion it is a short fade with the same two callbacks. */
 export function TeleportEffect({ onPeak, onDone }: { onPeak: () => void; onDone: () => void }) {
   const reduce = prefersReducedMotion();
