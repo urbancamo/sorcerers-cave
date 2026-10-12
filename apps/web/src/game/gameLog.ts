@@ -164,6 +164,11 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "strangerKilled": return `${creature(e.creatureId)} (stranger) was slain`;
     case "strangerEquipped": return `${creature(e.creatureId)} (stranger) took up the ${treasure(e.artifact)}`;
     case "strategyFallback": return `The strangers' strategy ${e.from} was replaced by the standard one (${e.reason})`;
+    case "deployed": return `${e.side} deployed ${e.creatures.length}`;
+    case "engaged": return `${e.pairs.length} match${e.pairs.length === 1 ? "" : "es"} engaged`;
+    case "redeployed": return `${e.side} placed ${e.moves.length} surplus`;
+    case "strangerCasualty": return `strangers nominated ${creature(e.nominated)}; the die fell on ${creature(e.victim)} (rolled ${e.roll})`;
+    case "fightStandoff": return "no side can continue — the fight is a standoff";
     case "strangerVanished": return `${creature(e.creatureId)} (stranger) vanished with ${treasure(e.artifact)}`;
     case "dragonSlain": return `${creature(e.creatureId)} slew a dragon single-handed — Dragon-slayer ×${e.kills} (+${e.kills} fighting strength)`;
     case "sorcererSlain": return "the Sorcerer was slain (+30)";
@@ -480,6 +485,11 @@ export function eventCode(e: GameEvent): string | null {
     case "strangerKilled": return `KIL ${cr3(e.creatureId)}`;
     case "strangerEquipped": return `EQP ${cr3(e.creatureId)} ${tr3(e.artifact)}`;
     case "strategyFallback": return `FBK ${e.from}`;
+    case "deployed": return `DEP ${e.side === "party" ? "P" : "S"} ${e.creatures.length}`;
+    case "engaged": return `ENG ${e.pairs.length}`;
+    case "redeployed": return `RDP ${e.side === "party" ? "P" : "S"} ${e.moves.length}`;
+    case "strangerCasualty": return `SCS ${cr3(e.nominated)} ${cr3(e.victim)} R${e.roll}`;
+    case "fightStandoff": return "STANDOFF";
     case "strangerVanished": return `VAN ${cr3(e.creatureId)} ${tr3(e.artifact)}`;
     case "spectreSlew": return `SLW ${cr3(e.creatureId)}`;
     case "memberRevived": return `RVV ${cr3(e.creatureId)}`;

@@ -73,6 +73,17 @@ export type GameAction =
   // (`fight.pending`). Applied by the driver, never accepted from a client (apps/web/convex). `fallback` records that the
   // named strategy's own answer was replaced by `standard`'s.
   | { type: "strangersAssignArtefacts"; strategyId: string; strategyVersion: number; allocations: { artifact: number; stranger: number }[]; fallback?: { from: string; reason: string } }
+  // The revised round engine (`variants.combatRevision`): the party's formation decisions. `deploy` (defender: put at least as many
+  // unengaged creatures in the front line as the attacker has), `engage` (attacker: pair its unengaged creatures one-to-one against
+  // the deployed front line), `redeploy` (either side's surplus: join a match's front line or, for a caster, back it).
+  | { type: "deploy"; creatures: number[] }
+  | { type: "engage"; pairs: { party: number; stranger: number }[] }
+  | { type: "redeploy"; moves: { creature: number; match: number; back: boolean }[] }
+  // The strangers' counterparts, applied by the driver and never accepted from a client (like `strangersAssignArtefacts`).
+  | { type: "strangersDeploy"; strategyId: string; strategyVersion: number; creatures: number[]; fallback?: { from: string; reason: string } }
+  | { type: "strangersEngage"; strategyId: string; strategyVersion: number; pairs: { party: number; stranger: number }[]; fallback?: { from: string; reason: string } }
+  | { type: "strangersRedeploy"; strategyId: string; strategyVersion: number; moves: { creature: number; match: number; back: boolean }[]; fallback?: { from: string; reason: string } }
+  | { type: "strangersNominate"; strategyId: string; strategyVersion: number; nominated: number; fallback?: { from: string; reason: string } }
   | { type: "spareSorcerer"; area: number }
   | { type: "slaySorcerer" }
   | { type: "testPlaceArea"; dir: number; special: number }
@@ -151,6 +162,12 @@ export type GameEvent =
       enemyTotal: number;
       result: "partyWon" | "enemyWon" | "tie";
     }
+  // Revised round engine: what each side put where. Indices are `state.party` / `state.strangers` positions at the time.
+  | { type: "deployed"; side: "party" | "strangers"; creatures: number[] }
+  | { type: "engaged"; pairs: { party: number; stranger: number }[] }
+  | { type: "redeployed"; side: "party" | "strangers"; moves: { creature: number; match: number; back: boolean }[] }
+  | { type: "strangerCasualty"; nominated: number; victim: number; roll: number } // a stranger pair lost: `nominated` falls on 4-6, else the other (creature ids)
+  | { type: "fightStandoff" } // no side can continue a match, make one or break a stalemate: the fight is over and the party must withdraw
   | { type: "fightWon" }
   // A losing pair's casualty was decided: `roll` is the d6, `gotPreference` whether 4-6 honoured the choice.
   | { type: "casualtyChosen"; creatureId: number; roll: number; gotPreference: boolean }

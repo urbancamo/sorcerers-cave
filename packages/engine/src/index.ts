@@ -41,3 +41,6 @@ export * from "./multi-trade";
 export * from "./multi-fight";
 export * from "./multi-union";
 export * from "./multi-zombies";
+export { playRevisedFight, partyAction, type PlayedFight } from "./headless";
+export { fightView, freeOf, legalMoves, legalPairs, canPair, isRevised, matchStrength } from "./revisedRound";
+export type { FightView, UnitView, MatchView, DeployContext, DeployDecision, EngageContext, EngageDecision, RedeployContext, RedeployDecision, CasualtyContext, CasualtyDecision } from "./strategy";

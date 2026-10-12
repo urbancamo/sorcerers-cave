@@ -153,6 +153,13 @@ function encodeAction(a: GameAction): string {
     case "spareSorcerer": return `SPARESORCERER ${a.area}`;
     case "slaySorcerer": return "SLAYSORCERER";
     // A stranger strategy's logged decision (pluggable stranger combat spec §5.3); never produced by the recorded solo vectors.
+    case "deploy": return `DEPLOY ${a.creatures.join(",") || "-"}`;
+    case "engage": return `ENGAGE ${a.pairs.map((x) => `${x.party}:${x.stranger}`).join(",") || "-"}`;
+    case "redeploy": return `REDEPLOY ${a.moves.map((x) => `${x.creature}:${x.match}${x.back ? "b" : "f"}`).join(",") || "-"}`;
+    case "strangersDeploy": return `STRANGERS-DEPLOY ${a.strategyId} ${a.strategyVersion} ${a.creatures.join(",") || "-"}`;
+    case "strangersEngage": return `STRANGERS-ENGAGE ${a.strategyId} ${a.strategyVersion} ${a.pairs.map((x) => `${x.party}:${x.stranger}`).join(",") || "-"}`;
+    case "strangersRedeploy": return `STRANGERS-REDEPLOY ${a.strategyId} ${a.strategyVersion} ${a.moves.map((x) => `${x.creature}:${x.match}${x.back ? "b" : "f"}`).join(",") || "-"}`;
+    case "strangersNominate": return `STRANGERS-NOMINATE ${a.strategyId} ${a.strategyVersion} ${a.nominated}`;
     case "strangersAssignArtefacts": return `STRANGERS ${a.strategyId} ${a.strategyVersion} ${a.allocations.map((x) => `${x.artifact}:${x.stranger}`).join(",") || "-"}`;
     case "avoidTrap": return "AVOIDTRAP";
     case "fallThroughTrap": return "FALLTRAP";

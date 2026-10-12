@@ -33,6 +33,10 @@ import { ALL_CREATURES as CREATURES, CREATURES as BASE_CREATURES } from "./data/
 import { TREASURES as BASE_TREASURES } from "./data/treasures";
 import { applyAllocations, equipStrangers, loadoutViolation } from "./strangerEquip";
 import { removeStranger, addStranger, dropAllGear } from "./strangerGear";
+import {
+  advance as advanceRevised, applyDeploy, applyEngage, applyNominate, applyRedeploy, deployViolation, dropPartyMember, engageViolation, initRevised,
+  nominateViolation, redeployViolation, resumeAfterCasualties,
+} from "./revisedRound";
 
 const T_EYE_OF_GOD = 13; // treasure id — must stay with its bearer or the party is cursed (§Eye of God)
 const C_GIANT = 12; // only a Giant can recover treasure cast into a Deep Pool (§Deep Pool)
@@ -156,7 +160,15 @@ function startFight(state: GameState, surprise: number): GameEvent[] {
   state.surpriseReady = false; // the surprise (if any) is now baked into the fight
   state.fightDrops = []; // fresh fight — forget any earlier drop record
   // Stranger Fight Preparations: the strangers pick up any fight artefacts guarded in the chamber.
-  return [{ type: "fightStarted", surprise }, ...equipStrangers(state)];
+  const events: GameEvent[] = [{ type: "fightStarted", surprise }, ...equipStrangers(state)];
+  return [...events, ...beginRevised(state)];
+}
+
+/** With `variants.combatRevision` the fight is played by the revised round engine (revisedRound.ts): set it up and run it to the first decision. */
+function beginRevised(state: GameState): GameEvent[] {
+  if (!state.variants?.combatRevision || !state.fight) return [];
+  initRevised(state);
+  return state.fight.pending ? [] : advanceRevised(state);   // a pending loadout decision starts the rounds when it is answered
 }
 
 /** Extension kit (SC-EXT-21, design US-13): a Demon present in `state.strangers` forces an
@@ -768,18 +780,52 @@ export function reduce(
 function reduceCore(state: GameState, action: GameAction): { state: GameState; events: GameEvent[] } {
   if (state.gs !== GS_PLAYING) return { state, events: [] };
 
-  // A fight waiting on the strangers' decision (`variants.strangerLevel`) accepts only that decision (or quitting); and the
-  // decision is accepted only then (pluggable stranger strategy spec §5.5), whatever the caller claims.
-  const waiting = state.fight?.pending?.by === "strangers";
+  // A fight waiting on the strangers' decision (`variants.strangerLevel`, or the revised round engine) accepts only that decision (or
+  // quitting); and the decision is accepted only then (pluggable stranger strategy spec §5.5), whatever the caller claims.
+  const pending = state.fight?.pending;
+  const waiting = pending?.by === "strangers";
+  const strangersTurn = (kind: string): boolean => pending?.by === "strangers" && pending.kind === kind;
+  const revBlocked = { state, events: [{ type: "blocked" }] as GameEvent[] };
   if (action.type === "strangersAssignArtefacts") {
-    if (!waiting || loadoutViolation(state, action.allocations) !== null) return { state, events: [{ type: "blocked" }] };
+    if (!strangersTurn("loadout") || loadoutViolation(state, action.allocations) !== null) return revBlocked;
     const next = structuredClone(state);
     const events: GameEvent[] = action.fallback ? [{ type: "strategyFallback", from: action.fallback.from, reason: action.fallback.reason }] : [];
     events.push(...applyAllocations(next, action.allocations));
     delete next.fight!.pending;
+    if (next.fight!.rev) events.push(...advanceRevised(next));   // the loadout is the last thing before round 1
     return { state: next, events };
   }
-  if (waiting && action.type !== "quit") return { state, events: [{ type: "blocked" }] };
+  if (action.type === "strangersDeploy" || action.type === "strangersEngage" || action.type === "strangersRedeploy" || action.type === "strangersNominate") {
+    const kind = action.type === "strangersDeploy" ? "deploy" : action.type === "strangersEngage" ? "engage" : action.type === "strangersRedeploy" ? "redeploy" : "casualty";
+    if (!strangersTurn(kind) || !state.fight?.rev) return revBlocked;
+    const bad = action.type === "strangersDeploy" ? deployViolation(state, "strangers", action.creatures)
+      : action.type === "strangersEngage" ? engageViolation(state, "strangers", action.pairs)
+      : action.type === "strangersRedeploy" ? redeployViolation(state, "strangers", action.moves.map((m) => ({ ...m })))
+      : nominateViolation(state, action.nominated);
+    if (bad !== null) return revBlocked;
+    const next = structuredClone(state);
+    const events: GameEvent[] = action.fallback ? [{ type: "strategyFallback", from: action.fallback.from, reason: action.fallback.reason }] : [];
+    events.push(...(action.type === "strangersDeploy" ? applyDeploy(next, "strangers", action.creatures)
+      : action.type === "strangersEngage" ? applyEngage(next, "strangers", action.pairs)
+      : action.type === "strangersRedeploy" ? applyRedeploy(next, "strangers", action.moves)
+      : applyNominate(next, action.nominated)));
+    events.push(...finalizeRound(next));
+    return { state: next, events };
+  }
+  if (action.type === "deploy" || action.type === "engage" || action.type === "redeploy") {
+    if (state.phase !== "fight" || !state.fight?.rev || pending?.by !== "party" || pending.kind !== (action.type === "redeploy" ? "redeploy" : action.type)) return revBlocked;
+    const bad = action.type === "deploy" ? deployViolation(state, "party", action.creatures)
+      : action.type === "engage" ? engageViolation(state, "party", action.pairs)
+      : redeployViolation(state, "party", action.moves.map((m) => ({ ...m })));
+    if (bad !== null) return { state, events: [{ type: "planRejected", reason: bad }] };
+    const next = structuredClone(state);
+    const events = action.type === "deploy" ? applyDeploy(next, "party", action.creatures)
+      : action.type === "engage" ? applyEngage(next, "party", action.pairs)
+      : applyRedeploy(next, "party", action.moves);
+    events.push(...finalizeRound(next));
+    return { state: next, events };
+  }
+  if (waiting && action.type !== "quit") return revBlocked;
 
   switch (action.type) {
     case "quit":
@@ -1346,7 +1392,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
     }
 
     case "resolveRound": {
-      if (state.phase !== "fight") return { state, events: [{ type: "blocked" }] };
+      if (state.phase !== "fight" || state.fight?.rev) return { state, events: [{ type: "blocked" }] };   // a revised fight is played by deploy / engage / redeploy
       if (state.fight?.casualtyQueue?.length) return { state, events: [{ type: "blocked" }] }; // finish the choice first
       const check = validatePlan(state, { matches: action.matches });
       if (!check.ok) return { state, events: [{ type: "planRejected", reason: check.reason }] };
@@ -1367,8 +1413,11 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       const preferred = action.idx;
       const other = pair.find((i) => i !== preferred)!;
       const roll = rollDieForState(next);
-      const victim = roll >= 4 ? preferred : other; // 4-6 grants the player's preference (§"A Round of Fighting")
+      // 4-6 grants the player's preference (§"A Round of Fighting"). The revised rules add the Ring's +1 (a 7 counting as 6), as for the strangers.
+      const ring = next.fight!.rev?.bonus?.partyRing ? 1 : 0;
+      const victim = Math.min(6, roll + ring) >= 4 ? preferred : other;
       markDied(next, next.party[victim]!);
+      dropPartyMember(next, victim);
       const events: GameEvent[] = [
         { type: "casualtyChosen", creatureId: next.party[victim]!.creatureId, roll, gotPreference: victim === preferred },
         { type: "memberDied", creatureId: next.party[victim]!.creatureId },
@@ -1377,6 +1426,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       queue.shift();
       if (queue.length === 0) {
         next.fight!.casualtyQueue = undefined;
+        if (next.fight!.rev) events.push(...resumeAfterCasualties(next));
         events.push(...finalizeRound(next));
       }
       return { state: next, events };
@@ -1756,7 +1806,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
             // "surprise attacks".
             next.fight = { surprise: 0, round: 1, focus: next.strangers.length - 1 };
             next.phase = "fight";
-            events.push({ type: "fightStarted", surprise: 0 });
+            events.push({ type: "fightStarted", surprise: 0 }, ...beginRevised(next));
           }
           break;
         case 3: break; // Sand

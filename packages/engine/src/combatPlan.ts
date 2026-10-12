@@ -30,7 +30,7 @@ export type PlanError =
   | "strangerReused" | "groupTooBig" | "twoVsTwo" | "backerNotCaster"
   | "backerNoFront" | "spectreNeedsMagic" | "demonNeedsMagic" | "mustEngageAll";
 
-const living = (state: GameState, i: number): boolean => {
+export const living = (state: GameState, i: number): boolean => {
   const m = state.party[i];
   return !!m && (m.status === 0 || m.status === 1);
 };
@@ -44,14 +44,14 @@ const canSwordSpectre = (state: GameState, m: PartyMember): boolean =>
 const canAxeDemon = (state: GameState, m: PartyMember): boolean =>
   !eyePresent(state) && m.treasure.includes(T_MAGIC_AXE);
 
-const MAGIC_ONLY_IDS = [C_SPECTRE, C_DEMON];
+export const MAGIC_ONLY_IDS = [C_SPECTRE, C_DEMON];
 
 /** Extension kit (SC-EXT-27, design US-23/Resolved-15): does THIS match's own front line — not the
  *  whole party — include a live, eligible Magic Shield bearer? Pairing-scoped: only strangers
  *  slotted directly against this match's front are ever warded, never a different match's foes and
  *  never a leftover enemy caster folded in from the background (`enemyBackers`, §395) — those
  *  aren't literally "paired" against anyone. */
-const matchShielded = (state: GameState, front: readonly number[]): boolean =>
+export const matchShielded = (state: GameState, front: readonly number[]): boolean =>
   front.some((i) => { const m = state.party[i]; return !!m && shieldWardActive(state, m); });
 
 /** The Shield's effect on one foe's mp CONTRIBUTION, given its un-warded `base` (from `enemyMP`,
@@ -71,7 +71,7 @@ const canShieldStalemate = (state: GameState, m: PartyMember): boolean => shield
 /** Does `m` have the enabling artifact for the specific magic-only foe `sid` (Sword for a
  *  Spectre, Axe for a Demon, or the Shield's stalemate clause for either)? Only meaningful when
  *  `sid` is one of `MAGIC_ONLY_IDS`. */
-const magicOnlyBypass = (state: GameState, m: PartyMember, sid: number): boolean =>
+export const magicOnlyBypass = (state: GameState, m: PartyMember, sid: number): boolean =>
   (sid === C_SPECTRE && canSwordSpectre(state, m)) || (sid === C_DEMON && canAxeDemon(state, m)) || canShieldStalemate(state, m);
 
 /** Unlike the Sword/Axe (which let their bearer fight a magic-only foe normally, win or lose), the
@@ -88,7 +88,7 @@ const shieldOnlyQualifies = (state: GameState, m: PartyMember, sid: number): boo
 
 /** Is this whole match a Magic Shield stalemate — every stranger a magic-only foe (Spectre/Demon),
  *  and EVERY front member's ability to face ALL of them coming solely from the Shield? (SC-EXT-40) */
-const isShieldStalemate = (state: GameState, mt: { front: readonly number[]; strangers: readonly number[] }): boolean =>
+export const isShieldStalemate = (state: GameState, mt: { front: readonly number[]; strangers: readonly number[] }): boolean =>
   mt.strangers.length > 0 &&
   mt.strangers.every((si) => MAGIC_ONLY_IDS.includes(state.strangers[si]!)) &&
   mt.front.every((i) => mt.strangers.every((si) => shieldOnlyQualifies(state, state.party[i]!, state.strangers[si]!)));
@@ -213,7 +213,7 @@ export function strangerMP(state: GameState, si: number): number {
 }
 
 /** Is stranger `si` bearing a live Magic Shield? (Only a Hero/Man/Woman class bearer has its ward live.) */
-const strangerShielded = (state: GameState, si: number): boolean =>
+export const strangerShielded = (state: GameState, si: number): boolean =>
   !eyePresent(state) && bears(state, si, T_MAGIC_SHIELD) && shieldEligible(state.strangers[si]!);
 
 /** Bonus the Ring gives the stranger side's die rolls: +1 when any stranger wears one (the bearer must be
@@ -224,7 +224,7 @@ export function enemyRollBonus(state: GameState): number {
 
 /** Is stranger `si` an invulnerable Ring bearer — level 4 or deeper, Ring worn, no Eye? ("On being defeated an
  *  invulnerable stranger will disappear with the ring, leaving other treasure behind.") */
-const strangerInvincible = (state: GameState, si: number): boolean =>
+export const strangerInvincible = (state: GameState, si: number): boolean =>
   state.level >= 4 && !eyePresent(state) && bears(state, si, T_THE_RING);
 
 /** A match as it will actually be fought: the player's front + backers, the foe(s) it faces (the

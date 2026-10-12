@@ -125,7 +125,37 @@ export interface FightState {
   sorcererFelled?: boolean;
   // The fight is waiting on a decision by the strangers (`variants.strangerLevel`, pluggable stranger strategy spec §5.3): until
   // the driver applies it, `reduce` accepts nothing else. Never set when no strategy is configured.
-  pending?: { by: "strangers"; kind: "loadout" };
+  pending?: PendingDecision;
+  // The revised round engine (`variants.combatRevision`, revisedRound.ts): present only for a fight played by the revised rules.
+  rev?: RevFight;
+}
+
+/** What the fight is waiting for. The strangers' decisions are taken by the driver (strangerDriver.ts); the party's by the player. */
+export type PendingDecision =
+  | { by: "strangers"; kind: "loadout" }
+  | { by: "strangers" | "party"; kind: "deploy"; min: number }
+  | { by: "strangers" | "party"; kind: "engage" }
+  | { by: "strangers" | "party"; kind: "redeploy" }
+  | { by: "strangers"; kind: "casualty"; pair: [number, number] };
+
+/** One engagement in the revised round engine: indices into `state.party` and `state.strangers`. `pf`/`sf` are the one or two
+ *  front-line creatures, `pb`/`sb` the casters lending magic from the background this round. Matches persist from round to round. */
+export interface RevMatch { pf: number[]; pb: number[]; sf: number[]; sb: number[] }
+
+/** The revised round engine's own bookkeeping (Peter's reformulated rules, as ruled 10-OCT-2026): the roles never change, a round
+ *  is deploy → engage → surplus → fight → wrap-up, and a fight ends by his single test. */
+export interface RevFight {
+  attacker: "party" | "strangers";           // who started the fight; fixed for the whole fight
+  matches: RevMatch[];
+  deployed: { party: number[]; strangers: number[] };   // unengaged creatures already in the front line this round
+  step: "deploy" | "engage" | "surplus" | "fight" | "wrap";
+  surplusTurn: number;                       // 0: the attacker's surplus decision is next, 1: the defender's
+  progress: boolean;                         // something happened this round (else the standoff ends the fight)
+  cursor: number;                            // the next match to fight
+  nominating?: number;                       // the match whose stranger pair lost and is waiting to nominate a casualty
+  bonus?: { party: number; strangers: number; partyRing: boolean; strangersRing: boolean };   // die bonuses fixed at the start of the fight step
+  killed: number[];                          // stranger indices slain this round, removed at wrap-up
+  standoff?: true;                           // the fight is over by the Q2 test; the party's only way out is to retreat
 }
 
 /** One pairing in a battle plan: party fighters (front), supporting casters (backers), and the
@@ -264,7 +294,7 @@ export interface GameState {
   // construction — deliberately NOT mirrored onto `MpGameState.variants` (multi.ts) or its own
   // separate Convex validator (apps/web/convex/multiplayer.ts), so a multiplayer-composed state can
   // never carry it.
-  variants?: { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean; sibyl?: boolean; strangerLevel?: string };
+  variants?: { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean; sibyl?: boolean; strangerLevel?: string; combatRevision?: boolean };
   // Per-entry scratch (`variants.trapRules` only): how many traps `enterChamber` RELOADED from the area (a
   // standing trap the party walked back into) rather than drew fresh. Set by `enterChamber`, read inside
   // `applyHazards`, and deleted there — it can survive a Medusa pause but never an action boundary.

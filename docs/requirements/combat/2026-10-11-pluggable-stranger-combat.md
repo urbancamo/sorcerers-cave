@@ -243,7 +243,7 @@ Stages 1–3 do not depend on any open rule question and can ship with zero chan
 | **1. Extract the loadout seam** *(built 11-OCT-2026, uncommitted)* | `StrangerStrategy` with `assignArtefacts` only; registry; `standard` = `defaultLoadout`; `variants.strangerLevel` plumbing (absent = legacy) | — | All goldens, conformance vectors and replays unchanged (P1); a second trivial strategy proves selection |
 | **2. Logged decisions, driver, gating** *(built 11-OCT-2026, uncommitted; solo only, see SC-9.6-9 to SC-9.6-12)* | `strangersAssignArtefacts` action; `driveStrangers`; fallback and `strategyFallback`; public/multiplayer rejection; log header with strategy id/version | 1 | Replay of a strategy-on game is exact and never builds a strategy (P6); forgery tests pass on both paths (P7) |
 | **3. Bench** *(built 11-OCT-2026, uncommitted; exit criterion NOT met, see [the bench note](2026-10-11-smart-loadout-bench.md))* | Lab adapter; a first real alternative for the loadout (Peter's "Smart Loadout": best of the ≤ 81 allocations by exact evaluation) | 2 | The smart loadout beats `standard` in the lab on the agreed measure, inside the budget (P10) |
-| **4. Revised round engine** | Technical spec milestones M1–M3: the round engine behind `variants.combatRevision`; `deploy`, `engage`, `redeploy`, `chooseCasualty` hooks; the lab imports the engine | 0 (C1–C4), 2 | A full fight plays headlessly with the flag on; legacy path unchanged |
+| **4. Revised round engine** | Technical spec milestones M1–M3: the round engine behind `variants.combatRevision`; `deploy`, `engage`, `redeploy`, `chooseCasualty` hooks; the lab imports the engine | 0 (C1–C4), 2 | A full fight plays headlessly with the flag on; legacy path unchanged; **BUILT 12-OCT-2026** (engine, uncommitted until asked): see the status note below |
 | **5. More built-ins** | `novice`, `expert` (budgeted), calibration report | 4 | Bands agreed; legality sweep clean |
 | **6. External strategy** | Asynchronous driver, pending state, model call, fallback rate measured | 4, 5 | Decisions logged and replayable offline (P6, P11) |
 
@@ -306,3 +306,23 @@ These need a ruling because they change what a strategy is asked to decide.
 | §5.8, P14 | Pairing-lab README; review §4 (changes to the lab) |
 | §7 C1–C4 | Review B1, B3, B7, R7, R9 |
 | §2 | `loadout.ts`, `strangerEquip.ts`, `combatPlan.ts`, `convex/game.ts`, `multi.ts`, `replay.ts`, `pairing-lab/src` |
+
+---
+
+## Stage 4 status (12-OCT-2026)
+
+**C4 is ruled:** the Unicorn fights with non-magical strength 4 (so Definition 9's "neither engaged nor unengaged" is not applied to it); the engine already did this and the revised engine adds no special case (engine-spec SC-9.7-9).
+
+**Built (engine-spec SC-9.7-1 to SC-9.7-9):**
+- `revisedRound.ts`: the round machine behind `variants.combatRevision` — fixed roles, deploy → engage → surplus → fight → wrap-up, persistent matches, 2 v 2 allowed, tie/stalemate persists, the lost-pair rule (nominate, then a die; both sides), Peter's Q2 end test and the standoff, the loadout once before round 1.
+- Party actions `deploy`, `engage`, `redeploy`; stranger actions `strangersDeploy`, `strangersEngage`, `strangersRedeploy`, `strangersNominate` (driver-applied, rejected from clients); events `deployed`, `engaged`, `redeployed`, `strangerCasualty`, `fightStandoff`.
+- The four pairing hooks on `StrangerStrategy` (optional; omitted ones are `standard`'s), plain-data `FightView`, engine-supplied `legalPairs` / `legalMoves`, the generalised driver with the same legality check and `fallback` as the loadout.
+- `standard`'s pairing decisions (the lab's GRD, provisional per D7), written side-generically so the same code plays the party in `playRevisedFight`.
+- Evidence: `revised-round.test.ts` (whole fights to the end, determinism, replay, legality, Spectre, standoff, casualty) and `engineFight.test.ts` in the lab (five positions × 400 fights, engine vs lab simulator within sampling noise). Legacy path: the whole existing suite is unchanged and green.
+
+**Not done, and why:**
+- **The lab still has its own simulator.** The exit criterion said the lab would import the engine and delete its copy. It is kept as the fast simulator (hundreds of thousands of fights) and locked to the engine by `engineFight.test.ts` instead; deleting it would make every search slower for no gain in fidelity. The lab's strategy adapter does not yet call the engine's hooks.
+- **No surface and no switch.** Nothing in `apps/web` (UI, Convex schema or `game.ts` env) sets `combatRevision`, so no player or server can reach it; the manual needs no change until one does. The player's formation screen (technical spec §7) is its own piece of work.
+- **Multiplayer fights against strangers** are not wired to the driver (solo only, as for the loadout), and player-versus-player fights are untouched.
+- **Fights started outside `startFight`** other than the Treasure Chest Spectre have none (checked: there are none). Fights that start with surprise 0 and no player action (a turncoat Apprentice, the chest Spectre) make the **party** the attacker; that is provisional until Peter says who attacks there.
+- The Scroll is not modelled (as in the lab). `smart` and the Monte Carlo strategy do not use the hooks yet (stage 5).
