@@ -50,12 +50,14 @@ An external strategy, such as a model endpoint, answers a stranger decision outs
 - Record when the decision was requested (a server-supplied timestamp, passed in, since the engine stays pure) and a request id. Replay never needs these.
 - Test: while a decision is pending, player actions are refused. A forged `strangers*` action is rejected in every phase (P7).
 
-### 6.3 Convex: the asynchronous path (`apps/web/convex`)
+### 6.3 Convex: the asynchronous path (`apps/web/convex`) *(built 13-OCT-2026; engine-spec SC-9.7-15)*
 - Read `convex/_generated/ai/guidelines.md` first (project `CLAUDE.md`).
 - `applyAction` ends by scheduling an internal action, `resolveStrangerDecision(gameId, requestId)`, whenever `driveStrangers` returns `awaiting`.
 - That action reads the state, builds `pendingContext`, `fetch`es the endpoint under the level's own `deadlineMs`, and commits through an internal mutation. The mutation re-checks that the request id still matches, applies via `applyStrangerDecision`, then drives any further built-in or external decisions.
 - On an error, a non-OK response or a timeout, it commits `standard`'s decision with `fallback.reason`. A late arrival of the real answer is dropped because the request id no longer matches.
-- A scheduled `sweepStale` watchdog resolves any decision pending longer than the timeout, covering a crashed action.
+- **Watchdog, as built:** not a periodic sweep but one job per request, scheduled with the decision at the level's deadline plus a 2 s grace (`WATCHDOG_GRACE_MS`), which commits the `timeout` fallback if nothing has settled the request. It covers a crashed action, and it fires nothing if the answer already arrived (the request id is gone, so the commit is stale).
+- **Endpoint contract, as built:** `POST` JSON `{ version: 1, requestId, strategyId, strategyVersion, kind, context }` with `Authorization: Bearer <EXTERNAL_STRATEGY_SECRET>` to `EXTERNAL_STRATEGY_URL`; the answer is `{ version: 1, decision }`. Documented in `apps/web/OPTIONS.md`.
+- **Leaderboard (D2), as built:** `highScores.save` refuses a game whose `strangerLevel` is not `standard`. The client does not yet hide the save control for such a game.
 - Endpoint URL and secret live in Convex env vars. The response is validated against a versioned schema, and the secret is never logged.
 
 ### 6.4 Client

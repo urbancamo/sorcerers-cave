@@ -2,7 +2,7 @@ import { describe, it, expect, afterEach } from "vitest";
 import { reduce } from "./reduce";
 import { makeState } from "./testkit";
 import { pendingContext } from "./strangerDriver";
-import { registerStrategy, unregisterStrategy, type StrangerStrategy } from "./strategy";
+import { getStrategy, registerStrategy, unregisterStrategy, type StrangerStrategy } from "./strategy";
 import { EXTERNAL_LEVELS, externalStrategy } from "./externalLevels";
 import type { GameState, PartyMember } from "./state";
 
@@ -36,6 +36,12 @@ describe("an external level declares its thinking time", () => {
     const s = externalStrategy({ id: "ext-test", version: 2, budget: { deadlineMs: 900 } });
     expect(s).toMatchObject({ id: "ext-test", version: 2, kind: "external", budget: { deadlineMs: 900 } });
     expect(() => s.assignArtefacts({} as never)).toThrow(/outside/);
+  });
+
+  it("ext-easy and ext-hard are registered, as external levels with their declared deadlines", () => {
+    for (const [id, def] of Object.entries(EXTERNAL_LEVELS)) {
+      expect(getStrategy(id)).toMatchObject({ id, version: def.version, kind: "external", budget: { deadlineMs: def.deadlineMs } });
+    }
   });
 
   it("easy thinks for less time than hard", () => {

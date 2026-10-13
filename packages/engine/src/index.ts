@@ -29,6 +29,7 @@ export * from "./strangerGear";
 export * from "./strangerEquip";
 export * from "./strategy";
 export * from "./strangerDriver";
+export * from "./externalLevels";
 export * from "./smartLoadout";
 export * from "./special";
 export * from "./sorcerer";

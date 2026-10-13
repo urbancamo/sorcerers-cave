@@ -78,6 +78,19 @@ describe("applyStrangerDecision: the apply", () => {
     }
   });
 
+  it("a failure the caller reports (timeout, bad status) overrides even a legal answer, and is the recorded reason", () => {
+    const legal = { allocations: [{ artifact: SWORD, stranger: 0 }] };
+    const { state, applied } = applyStrangerDecision(loadoutFight("ext"), legal, META, "timeout");
+    expect(applied.action).toMatchObject({ type: "strangersAssignArtefacts", strategyId: "standard", fallback: { from: "ext", reason: "timeout" } });
+    expect(applied.events[0]).toEqual({ type: "strategyFallback", from: "ext", reason: "timeout" });
+    expect(state.fight!.pending).toBeUndefined();
+  });
+
+  it("a reported failure needs no answer at all", () => {
+    const { applied } = applyStrangerDecision(deployFight("ext"), undefined, META, "endpoint not configured");
+    expect(applied.action).toMatchObject({ type: "strangersDeploy", strategyId: "standard", fallback: { from: "ext", reason: "endpoint not configured" } });
+  });
+
   it("applies a legal deploy", () => {
     const { applied, state } = applyStrangerDecision(deployFight("ext"), { creatures: [0, 1] }, META);
     expect(applied.action).toEqual({ type: "strangersDeploy", ...META, creatures: [0, 1] });

@@ -226,13 +226,15 @@ function pairingAction(state: GameState, strategy: StrangerStrategy): GameAction
 }
 
 /** The apply: a decision made elsewhere (an external strategy's answer) checked against the legality layer, replaced by `standard`'s
- *  when it is illegal or malformed (P5), and applied through `reduce` as a logged action (P6). Never throws on a bad answer. */
-export function applyStrangerDecision(state: GameState, raw: unknown, meta: DecisionMeta): { state: GameState; applied: AppliedAction } {
+ *  when it is illegal or malformed (P5), and applied through `reduce` as a logged action (P6). Never throws on a bad answer.
+ *  `failure` is the caller's report that no usable answer arrived (a timeout, a bad status): the answer is then ignored and the
+ *  fallback's recorded reason is `failure`. */
+export function applyStrangerDecision(state: GameState, raw: unknown, meta: DecisionMeta, failure?: string): { state: GameState; applied: AppliedAction } {
   const pc = pendingContext(state);
   if (!pc) throw new Error("no pending stranger decision to apply");
   const field = (key: string): unknown => (raw && typeof raw === "object" ? (raw as Record<string, unknown>)[key] : undefined);
-  let reason: string | null;
-  switch (pc.kind) {
+  let reason: string | null = failure ?? null;
+  if (failure === undefined) switch (pc.kind) {
     case "loadout": reason = loadoutViolation(state, field("allocations")); break;
     case "deploy": reason = deployViolation(state, "strangers", field("creatures")); break;
     case "engage": reason = engageViolation(state, "strangers", field("pairs")); break;

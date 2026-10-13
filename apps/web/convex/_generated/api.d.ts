@@ -13,6 +13,7 @@ import type * as game from "../game.js";
 import type * as highScores from "../highScores.js";
 import type * as http from "../http.js";
 import type * as multiplayer from "../multiplayer.js";
+import type * as strangerDecision from "../strangerDecision.js";
 
 import type {
   ApiFromModules,
@@ -26,6 +27,7 @@ declare const fullApi: ApiFromModules<{
   highScores: typeof highScores;
   http: typeof http;
   multiplayer: typeof multiplayer;
+  strangerDecision: typeof strangerDecision;
 }>;
 
 /**

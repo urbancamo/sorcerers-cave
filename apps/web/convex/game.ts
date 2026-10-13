@@ -1,11 +1,13 @@
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { nextSeq, park } from "./strangerDecision";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import {
   newGame as createGameState,
   validatePicks,
   reduce,
   driveStrangers,
+  awaitingRequest,
   hasStrategy,
   GS_PLAYING,
   type GameState,
@@ -244,22 +246,18 @@ export const applyAction = mutation({
     const reduced = reduce(game.state as GameState, action as GameAction);
     const { events, midState } = reduced;
     // A fight that now waits on the strangers' strategy is decided in this same call; every decision is logged like a player action.
+    // An external level cannot be: its decision is parked (strangerDecision.ts) and committed when the endpoint answers.
     const driven = driveStrangers(reduced.state);
-    const state = driven.state;
+    let state = driven.state;
+    const blockedNoop = events.length === 1 && events[0]!.type === "blocked";
+    const rows = blockedNoop ? [] : [{ action: action as GameAction, events }, ...driven.applied];
+    let seq = await nextSeq(ctx, id);
+    // Only a decision not yet handed over: a refused player action while one waits must not ask the endpoint a second time.
+    if (driven.awaiting && !awaitingRequest(state)) state = await park(ctx, id, state, seq + rows.length);
     const status = state.gs === GS_PLAYING ? "active" : "finished";
     await ctx.db.patch(id, { state, status, updatedAt: Date.now() });
 
-    const blockedNoop = events.length === 1 && events[0]!.type === "blocked";
-    if (!blockedNoop) {
-      const last = await ctx.db
-        .query("gameEvents")
-        .withIndex("by_game", (q) => q.eq("gameId", id))
-        .order("desc")
-        .first();
-      let seq = (last?.seq ?? -1) + 1;
-      await ctx.db.insert("gameEvents", { gameId: id, seq: seq++, action, events });
-      for (const d of driven.applied) await ctx.db.insert("gameEvents", { gameId: id, seq: seq++, action: d.action, events: d.events });
-    }
+    for (const r of rows) await ctx.db.insert("gameEvents", { gameId: id, seq: seq++, action: r.action, events: r.events });
     // midState (SC-4-43): the pre-relocation presentation snapshot — never persisted,
     // returned only so the client can hold the interrupted room as the backdrop.
     return { state, events, midState };

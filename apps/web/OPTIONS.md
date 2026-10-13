@@ -112,6 +112,31 @@ npx convex env set STRANGER_STRATEGY standard --prod # production
 npx convex env remove STRANGER_STRATEGY [--prod]
 ```
 
+### External levels: `ext-easy`, `ext-hard`, `EXTERNAL_STRATEGY_URL`, `EXTERNAL_STRATEGY_SECRET`
+
+`STRANGER_STRATEGY` may also name an **external level** (`ext-easy`, `ext-hard`): the strangers' decision is then made by an
+endpoint you run, outside the game server (stage 6 of the same spec; plan in
+`docs/requirements/combat/2026-10-13-stage-6-external-strategy-plan.md`). The fight waits on it. Each level has its own
+thinking time (`ext-easy` 1.5 s, `ext-hard` 6 s); if the endpoint is slow, fails, or answers illegally, `standard` decides instead
+and the substitution is logged with its reason.
+
+| Variable | Meaning |
+|---|---|
+| `EXTERNAL_STRATEGY_URL` | The endpoint. Unset ⇒ every external decision falls back to `standard` at once ("endpoint not configured"). |
+| `EXTERNAL_STRATEGY_SECRET` | Sent as `Authorization: Bearer <secret>`. Never logged and never sent to the client. |
+
+The endpoint is sent `POST` JSON `{ version: 1, requestId, strategyId, strategyVersion, kind, context }` (`kind` is `loadout`, `deploy`,
+`engage`, `redeploy` or `casualty`; `context` is only what a human opponent could see) and must answer `{ version: 1, decision }`.
+
+Games against any level other than `standard` are **not eligible for the leaderboard** (`highScores.save` refuses them).
+
+```bash
+cd apps/web
+npx convex env set STRANGER_STRATEGY ext-easy
+npx convex env set EXTERNAL_STRATEGY_URL https://your-endpoint.example/decide
+npx convex env set EXTERNAL_STRATEGY_SECRET <secret>
+```
+
 ## `TEST_MODE_SECRET`
 
 Gates **Test Mode**, the QA harness for scripting a scenario (forced draws, forced reactions, forced
