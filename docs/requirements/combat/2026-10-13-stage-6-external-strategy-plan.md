@@ -32,15 +32,15 @@ An external strategy, such as a model endpoint, answers a stranger decision outs
 
 ## 4. Work packages
 
-### 6.1 Engine: split "ask" from "apply" (pure, no I/O)
+### 6.1 Engine: split "ask" from "apply" (pure, no I/O) *(built 13-OCT-2026; engine-spec SC-9.7-12)*
 - Add `pendingContext(state)` to `strangerDriver.ts`. It returns the serialisable context for the current pending decision: kind, `fightView`, `legalPairs` or `legalMoves`, `min`, and `rngSeed`. The sync driver builds the same thing today.
 - Add `applyStrangerDecision(state, kind, rawDecision, meta)`. It runs the existing legality check, falls back to `standard` on violation, and calls `reduce`.
 - Refactor `driveStrangers` onto those two functions. It must stay byte-identical for built-ins (P1).
 - Add an `external` strategy kind. `driveStrangers` stops at a pending decision owned by an external strategy and returns `{ state, applied, awaiting }`, instead of falling back as "late".
 
-### 6.1b Level-defined thinking time
+### 6.1b Level-defined thinking time *(built 13-OCT-2026; engine-spec SC-9.7-13)*
 - A level declares its budget as data on the strategy: `budget: { deadlineMs, maxNodes? }`. `pendingContext` passes it to the endpoint (the context already has a `budget` field), and the action uses `deadlineMs` as its fetch timeout.
-- Register external levels as separate ids, such as `ext-easy` (short deadline) and `ext-hard` (long deadline). Each is stamped through `STRANGER_STRATEGY` like any other level, so the budget is fixed per game with the level (P2).
+- External levels are separate ids, such as `ext-easy` (short deadline) and `ext-hard` (long deadline), defined in `externalLevels.ts`. **They are registered in 6.3, not 6.1b**: selecting one before the asynchronous path exists would leave the fight pending forever. Each is stamped through `STRANGER_STRATEGY` like any other level, so the budget is fixed per game with the level (P2).
 - `EXTERNAL_STRATEGY_TIMEOUT_MS` stays only as a server-side ceiling that no level's `deadlineMs` may exceed (Convex action limits).
 - The timeout watchdog and the fallback use the pending decision's own deadline, recorded when it was requested.
 - Levels may also differ in what they do with the time, such as search width. That is the strategy's business and not an engine concern.

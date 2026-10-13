@@ -53,8 +53,14 @@ function contextOf(state: GameState): LoadoutContext {
       party: state.party.filter((m) => m.status === 0 || m.status === 1).map((m) => ({ creatureId: m.creatureId, strength: frontStrength(m, state), magic: casterMP(m, state) })),
       partyRollBonus: partyRollBonus(state),
     },
-    rngSeed: decisionSeed(state), budget: { maxNodes: 1 << 20 },
+    rngSeed: decisionSeed(state), budget: budgetOf(state),
   };
+}
+
+/** The thinking budget the configured level declares: the default node cap, plus its deadline if it has one. */
+function budgetOf(state: GameState): { maxNodes: number; deadlineMs?: number } {
+  const b = getStrategy(state.variants?.strangerLevel ?? "standard").budget;
+  return { maxNodes: b?.maxNodes ?? 1 << 20, ...(b?.deadlineMs !== undefined ? { deadlineMs: b.deadlineMs } : {}) };
 }
 
 const isThenable = (x: unknown): boolean => typeof (x as { then?: unknown } | null)?.then === "function";
@@ -95,7 +101,7 @@ function decideHook<D>(
 }
 
 /** The fixed part of a hook's context: the view, a per-decision seed and a budget. */
-const hookBase = (state: GameState) => ({ view: fightView(state), rngSeed: decisionSeed(state), budget: { maxNodes: 1 << 20 } });
+const hookBase = (state: GameState) => ({ view: fightView(state), rngSeed: decisionSeed(state), budget: budgetOf(state) });
 
 const POINTS = ALL_CREATURES.map((c) => c.points);
 

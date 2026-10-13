@@ -23,7 +23,7 @@ const registered: string[] = [];
 const register = (s: StrangerStrategy) => { registerStrategy(s); registered.push(s.id); };
 afterEach(() => { while (registered.length) unregisterStrategy(registered.pop()!); });
 const external: StrangerStrategy = {
-  id: "ext", version: 7, kind: "external",
+  id: "ext", version: 7, kind: "external", budget: { deadlineMs: 1000 },
   assignArtefacts: () => { throw new Error("an external strategy is never called in process"); },
 };
 const META = { strategyId: "ext", strategyVersion: 7 };

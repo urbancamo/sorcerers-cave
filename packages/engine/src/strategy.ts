@@ -73,11 +73,16 @@ export interface RedeployDecision { moves: { creature: number; match: number; ba
 export interface CasualtyContext extends HookBase { pair: readonly [number, number] }
 export interface CasualtyDecision { nominated: number }
 
+/** How long a level may think. `deadlineMs` is the wall-clock time an external level has to answer (required of one); `maxNodes` caps
+ *  an in-process search and defaults to 2^20. Declared by the level, so thinking time is part of what a level IS (stage 6.1b). */
+export interface StrategyBudget { deadlineMs?: number; maxNodes?: number }
+
 export interface StrangerStrategy {
   readonly id: string;
   /** Bumped on any behaviour change; written to every logged decision. */
   readonly version: number;
   readonly kind: "builtin" | "external";
+  readonly budget?: StrategyBudget;
   assignArtefacts(ctx: LoadoutContext): LoadoutDecision;
   // The pairing hooks (revised round engine only). Any a strategy leaves out are `standard`'s.
   deploy?(ctx: DeployContext): DeployDecision;
@@ -105,6 +110,9 @@ const registry = new Map<string, StrangerStrategy>([[standardStrategy.id, standa
 
 export function registerStrategy(s: StrangerStrategy): void {
   if (s.id === standardStrategy.id) throw new Error("the standard strategy cannot be replaced");
+  if (s.kind === "external" && !(Number.isInteger(s.budget?.deadlineMs) && s.budget!.deadlineMs! > 0)) {
+    throw new Error(`external strategy ${s.id} must declare a positive whole-millisecond budget.deadlineMs`);
+  }
   registry.set(s.id, s);
 }
 /** Remove a registered strategy (tests, hot reload). `standard` cannot be removed. */
