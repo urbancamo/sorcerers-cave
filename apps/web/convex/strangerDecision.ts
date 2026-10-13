@@ -8,16 +8,14 @@ import { internalAction, internalMutation, internalQuery, type MutationCtx, type
 import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
+import { askEndpoint, type Job } from "./endpointClient";
 import {
   applyStrangerDecision, awaitingRequest, driveStrangers, getStrategy, markAwaiting, pendingContext, GS_PLAYING,
-  type GameState, type PendingKind,
+  type GameState,
 } from "@sorcerers-cave/engine";
 
 /** How long after a level's own deadline the watchdog waits before taking the decision itself. */
 export const WATCHDOG_GRACE_MS = 2000;
-
-/** The version of the request/response contract with the endpoint. */
-const CONTRACT_VERSION = 1;
 
 /** The next free `seq` in a game's log. */
 export async function nextSeq(ctx: QueryCtx, gameId: Id<"games">): Promise<number> {
@@ -36,8 +34,6 @@ export async function park(ctx: MutationCtx, gameId: Id<"games">, state: GameSta
   return marked;
 }
 
-interface Job { requestId: string; kind: PendingKind; context: unknown; strategyId: string; strategyVersion: number; deadlineMs: number }
-
 /** What to ask for a request, or null if it has been settled already. */
 export const load = internalQuery({
   args: { gameId: v.id("games"), requestId: v.string() },
@@ -53,48 +49,13 @@ export const load = internalQuery({
   },
 });
 
-/** Ask the endpoint under the level's deadline. Never throws: a failure comes back as its recorded reason. */
-async function ask(job: Job): Promise<{ raw: unknown } | { failure: string }> {
-  const url = process.env.EXTERNAL_STRATEGY_URL;
-  if (!url) return { failure: "endpoint not configured" };
-  const secret = process.env.EXTERNAL_STRATEGY_SECRET;
-  const controller = new AbortController();
-  let timedOut = false;
-  let timer: ReturnType<typeof setTimeout> | undefined;
-  // Raced rather than relying on the abort signal alone, so an endpoint (or fetch) that ignores it is still cut off.
-  const deadline = new Promise<never>((_, reject) => {
-    timer = setTimeout(() => { timedOut = true; reject(new Error("timeout")); controller.abort(); }, job.deadlineMs);
-  });
-  const call = async (): Promise<{ raw: unknown } | { failure: string }> => {
-    const res = await fetch(url, {
-      method: "POST",
-      headers: { "Content-Type": "application/json", ...(secret ? { Authorization: `Bearer ${secret}` } : {}) },
-      body: JSON.stringify({ version: CONTRACT_VERSION, requestId: job.requestId, strategyId: job.strategyId, strategyVersion: job.strategyVersion, kind: job.kind, context: job.context }),
-      signal: controller.signal,
-    });
-    if (!res.ok) return { failure: `endpoint answered ${res.status}` };
-    let body: { version?: unknown; decision?: unknown };
-    try { body = await res.json(); } catch { return { failure: "endpoint answer was not JSON" }; }
-    if (!body || typeof body !== "object" || body.version !== CONTRACT_VERSION) return { failure: "endpoint answer has the wrong version" };
-    if (body.decision === undefined || body.decision === null) return { failure: "endpoint answer has no decision" };
-    return { raw: body.decision };
-  };
-  try {
-    return await Promise.race([call(), deadline]);
-  } catch (e) {
-    return { failure: timedOut ? "timeout" : e instanceof Error ? e.message : String(e) };
-  } finally {
-    clearTimeout(timer);
-  }
-}
-
 /** Ask the endpoint for a parked decision and commit what comes back. */
 export const resolve = internalAction({
   args: { gameId: v.id("games"), requestId: v.string() },
   handler: async (ctx, { gameId, requestId }): Promise<null> => {
     const job: Job | null = await ctx.runQuery(internal.strangerDecision.load, { gameId, requestId });
     if (!job) return null;
-    const answer = await ask(job);
+    const answer = await askEndpoint(job, { url: process.env.EXTERNAL_STRATEGY_URL, secret: process.env.EXTERNAL_STRATEGY_SECRET });
     await ctx.runMutation(internal.strangerDecision.commit, { gameId, requestId, ...("raw" in answer ? { raw: answer.raw } : { failure: answer.failure }) });
     return null;
   },

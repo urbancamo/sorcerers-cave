@@ -68,9 +68,12 @@ An external strategy, such as a model endpoint, answers a stranger decision outs
 - Log per-decision latency and the fallback reason on the logged action. Add a small query or script reporting the fallback rate per strategy.
 - **As built:** a `gameEvents` row for an asked decision carries `strategyId` (the level asked; the logged action names `standard` on a fallback) and `latencyMs` (request to commit; a timeout fallback records the time it took to give up). Built-in rows carry neither. The fallback reason was already on the action. `strangerDecision:report { strategyId }` (internal query, indexed by `by_strategyId`) returns decisions, fallbacks, fallback rate, reasons and p50/p95 latency over the newest 5000. Documented in `apps/web/OPTIONS.md`.
 
-### 6.6 Lab and measurement
+### 6.6 Lab and measurement *(built 13-OCT-2026; lab and `endpointClient.ts` only, no engine-spec change)*
 - Add a stub external strategy: a local HTTP server wrapping the `expert` hooks.
 - Add a lab command that runs a fight through the full async path against the stub. It reports fallback rate, p50/p95 latency and the legality-sweep result. This is where "fallback rate measured" is met.
+- **As built:** `stubEndpoint.ts` is the stub, with injectable faults (delay, hang, 500, malformed body, illegal decision). `asyncBench.ts` (`playAsync`, `measureAsync`) plays fights through `driveStrangers`, `markAwaiting`, the **same HTTP client the Convex action uses** (extracted to `apps/web/convex/endpointClient.ts`, so the lab cannot drift from production) and `applyStrangerDecision`. A fight's logged actions replay offline to the identical final state (P6). Run `pnpm --filter @sorcerers-cave/pairing-lab async`.
+- **First measurement, healthy stub** (`ext-easy`, 4-12 strangers, 30 fights, 134 decisions): fallback rate 0.0%, 0 illegal answers, 0 stuck fights, latency p50 1.7 ms, p95 2.1 ms. With injected faults (10% 500, 5% illegal, 5-25 ms delay) every fight still finished; 22 of 134 decisions fell back, 15 for 500s and 7 caught as illegal.
+- **Limit:** a remote endpoint never gets `evaluate` (it cannot clone the game), so the stub wrapping `expert` answers its pairing decisions as `standard`'s first candidate. It proves the plumbing, not a strength. A real model has to bring its own search or evaluation.
 - A real model or neural net is separate work (the NN documents). Stage 6 only has to prove the plumbing.
 
 ### 6.7 Docs (per `CLAUDE.md`)

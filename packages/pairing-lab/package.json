@@ -12,7 +12,8 @@
     "battle": "jiti src/battleCli.ts",
     "tournament": "jiti src/tournamentCli.ts",
     "loadout": "jiti src/loadoutCli.ts",
-    "levels": "jiti src/levelsCli.ts"
+    "levels": "jiti src/levelsCli.ts",
+    "async": "jiti src/asyncCli.ts"
   },
   "dependencies": {
     "@sorcerers-cave/engine": "workspace:*"
