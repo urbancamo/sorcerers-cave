@@ -137,6 +137,15 @@ npx convex env set EXTERNAL_STRATEGY_URL https://your-endpoint.example/decide
 npx convex env set EXTERNAL_STRATEGY_SECRET <secret>
 ```
 
+**How a level is doing.** Each decision asked of an endpoint is logged with the level asked (`strategyId`) and how long it took
+(`latencyMs`, including the wait before a timeout fallback). To see a level's fallback rate, the reasons and p50/p95 latency over its
+newest 5000 decisions:
+
+```bash
+cd apps/web
+npx convex run strangerDecision:report '{"strategyId":"ext-easy"}'
+```
+
 ## `TEST_MODE_SECRET`
 
 Gates **Test Mode**, the QA harness for scripting a scenario (forced draws, forced reactions, forced

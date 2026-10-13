@@ -113,12 +113,42 @@ export const commit = internalMutation({
     const strategy = getStrategy(state.variants?.strangerLevel ?? "standard");
     const answered = applyStrangerDecision(state, raw, { strategyId: strategy.id, strategyVersion: strategy.version }, failure);
     const driven = driveStrangers(answered.state);
-    const rows = [answered.applied, ...driven.applied];
+    // Only the decision that was asked of the endpoint carries the observation; any built-in ones driven after it do not.
+    const asked = { ...answered.applied, strategyId: strategy.id, latencyMs: Math.max(0, Date.now() - awaitingRequest(state)!.at) };
+    const rows = [asked, ...driven.applied];
     let seq = await nextSeq(ctx, gameId);
     let next = driven.state;
     if (driven.awaiting && !awaitingRequest(next)) next = await park(ctx, gameId, next, seq + rows.length);
     await ctx.db.patch(gameId, { state: next, status: next.gs === GS_PLAYING ? "active" : "finished", updatedAt: Date.now() });
-    for (const r of rows) await ctx.db.insert("gameEvents", { gameId, seq: seq++, action: r.action, events: r.events });
+    for (const r of rows) await ctx.db.insert("gameEvents", { gameId, seq: seq++, ...r });
     return { committed: true };
+  },
+});
+
+/** The newest decisions a report reads for one level. */
+const REPORT_LIMIT = 5000;
+
+/** The value at percentile `p` (0-100) of `sorted`, by the nearest-rank method. */
+function percentile(sorted: number[], p: number): number | null {
+  return sorted.length ? sorted[Math.min(sorted.length - 1, Math.max(0, Math.ceil((p / 100) * sorted.length) - 1))]! : null;
+}
+
+/** How an external level has fared (P15): of its newest decisions, how many fell back to `standard` and why, and how long it took to
+ *  answer. Run from the dashboard or `npx convex run strangerDecision:report '{"strategyId":"ext-easy"}'`. */
+export const report = internalQuery({
+  args: { strategyId: v.string() },
+  handler: async (ctx, { strategyId }) => {
+    const rows = await ctx.db.query("gameEvents").withIndex("by_strategyId", (q) => q.eq("strategyId", strategyId)).order("desc").take(REPORT_LIMIT);
+    const reasons: Record<string, number> = {};
+    for (const r of rows) {
+      const reason = r.action?.fallback?.reason;
+      if (typeof reason === "string") reasons[reason] = (reasons[reason] ?? 0) + 1;
+    }
+    const fallbacks = Object.values(reasons).reduce((a, b) => a + b, 0);
+    const latencies = rows.map((r) => r.latencyMs).filter((n): n is number => n !== undefined).sort((a, b) => a - b);
+    return {
+      strategyId, decisions: rows.length, fallbacks, fallbackRate: rows.length ? fallbacks / rows.length : null, reasons,
+      latencyMs: { p50: percentile(latencies, 50), p95: percentile(latencies, 95) },
+    };
   },
 });

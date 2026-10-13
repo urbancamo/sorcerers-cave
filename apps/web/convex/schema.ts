@@ -75,7 +75,11 @@ export default defineSchema({
     seq: v.number(),
     action: v.any(),
     events: v.any(),
-  }).index("by_game", ["gameId", "seq"]),
+    // Only on a decision that was asked of an external stranger level (stage 6.5): the level asked, and how long its answer (or the
+    // fallback in its place) took. The logged action names `standard` when it fell back, so the level is kept here for the report.
+    strategyId: v.optional(v.string()),
+    latencyMs: v.optional(v.number()),
+  }).index("by_game", ["gameId", "seq"]).index("by_strategyId", ["strategyId"]),
   // Global, shared leaderboard. `party` and `state` keep the full final snapshot so the
   // attributes behind a score can be inspected later.
   highScores: defineTable({

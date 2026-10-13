@@ -281,3 +281,54 @@ describe("only standard is ranked (D2)", () => {
     await expect(as.mutation(api.highScores.save, { gameId: id as Id<"games">, name: "x" })).rejects.toThrow(/stranger/i);
   });
 });
+
+// Stage 6.5 (P15): every decision asked of an endpoint records which level was asked and how long the answer took, on its log row;
+// a report turns those rows into a fallback rate and latency percentiles per level.
+describe("observability", () => {
+  test("an answered decision records the level asked and its latency; other rows record neither", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => json(LEGAL)));
+    const s = await setup();
+    await s.start();
+    await s.runResolve();
+    const [attack, decision] = await s.log();
+    expect(attack!.strategyId).toBeUndefined();
+    expect(attack!.latencyMs).toBeUndefined();
+    expect(decision!.strategyId).toBe("ext-easy");
+    expect(decision!.latencyMs).toBeGreaterThanOrEqual(0);
+    expect(decision!.latencyMs).toBeLessThan(EASY);
+  });
+
+  test("a fallback still names the level that was asked, with the time it took to give up", async () => {
+    vi.stubGlobal("fetch", vi.fn(() => new Promise(() => {})));
+    const s = await setup();
+    await s.start();
+    vi.advanceTimersByTime(1);
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalled());
+    vi.advanceTimersByTime(EASY);
+    await s.t.finishInProgressScheduledFunctions();
+    const decision = (await s.log())[1]!;
+    expect(decision.strategyId).toBe("ext-easy");                      // not "standard", whose decision it carries
+    expect(decision.latencyMs).toBeGreaterThanOrEqual(EASY);
+  });
+
+  test("the report gives the fallback rate, reasons and latency percentiles for a level", async () => {
+    vi.stubGlobal("fetch", vi.fn(async () => json(LEGAL)));
+    const s = await setup();
+    await s.start();
+    await s.runResolve();
+    const row = (latencyMs: number, reason?: string) => ({
+      gameId: s.id, seq: 100 + latencyMs, events: [], strategyId: "ext-easy", latencyMs,
+      action: { type: "strangersEngage", strategyId: reason ? "standard" : "ext-easy", ...(reason ? { fallback: { from: "ext-easy", reason } } : {}) },
+    });
+    await s.t.run(async (ctx) => {
+      for (const r of [row(10), row(20), row(30), row(40, "timeout"), row(50, "endpoint answered 500")]) await ctx.db.insert("gameEvents", r);
+      await ctx.db.insert("gameEvents", { ...row(5), strategyId: "ext-hard" });
+    });
+    const report = await s.t.query(internal.strangerDecision.report, { strategyId: "ext-easy" });
+    expect(report).toMatchObject({ strategyId: "ext-easy", decisions: 6, fallbacks: 2, fallbackRate: 2 / 6, reasons: { timeout: 1, "endpoint answered 500": 1 } });
+    expect(report.latencyMs.p50).toBeGreaterThan(0);
+    expect(report.latencyMs.p95).toBe(50);
+    expect((await s.t.query(internal.strangerDecision.report, { strategyId: "ext-hard" })).decisions).toBe(1);
+    expect(await s.t.query(internal.strangerDecision.report, { strategyId: "nobody" })).toMatchObject({ decisions: 0, fallbackRate: null });
+  });
+});

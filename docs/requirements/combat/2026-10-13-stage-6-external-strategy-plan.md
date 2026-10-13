@@ -64,8 +64,9 @@ An external strategy, such as a model endpoint, answers a stranger decision outs
 - Show "the strangers are deciding…" while `pending.by === "strangers"`, re-rendered from the existing reactive game query. No new input.
 - **As built:** `FightSurface` shows a `role="status"` line, "The strangers are deciding…", while `fight.pending.by === "strangers"`. It disables "Roll the round" and hides the retreat and artefact buttons, which `reduce` would refuse anyway. The line pulses unless the player prefers reduced motion. The leaderboard save control is still not hidden for an external-level game (see 6.3).
 
-### 6.5 Observability (P15)
+### 6.5 Observability (P15) *(built 13-OCT-2026; web/Convex only, no engine-spec change)*
 - Log per-decision latency and the fallback reason on the logged action. Add a small query or script reporting the fallback rate per strategy.
+- **As built:** a `gameEvents` row for an asked decision carries `strategyId` (the level asked; the logged action names `standard` on a fallback) and `latencyMs` (request to commit; a timeout fallback records the time it took to give up). Built-in rows carry neither. The fallback reason was already on the action. `strangerDecision:report { strategyId }` (internal query, indexed by `by_strategyId`) returns decisions, fallbacks, fallback rate, reasons and p50/p95 latency over the newest 5000. Documented in `apps/web/OPTIONS.md`.
 
 ### 6.6 Lab and measurement
 - Add a stub external strategy: a local HTTP server wrapping the `expert` hooks.
