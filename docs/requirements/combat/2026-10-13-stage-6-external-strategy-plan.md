@@ -1,7 +1,7 @@
 # Stage 6 — External Strategy: Implementation Plan
 
 `DATE: 13-OCT-2026`
-`STATUS: APPROVED with the defaults below (13-OCT-2026). Rebuilt from the spec and the code; nothing is built yet.`
+`STATUS: BUILT 13-OCT-2026 (6.1 to 6.7), committed on combat-review. Exit criterion met against the lab stub; not yet run against a real model (see §8).`
 `RELATED: [pluggable stranger combat](2026-10-11-pluggable-stranger-combat.md) §4 (P1–P15), §5.3–§5.7, §6 stage 6, §9 (D2, D4–D6) · [stranger levels calibration](2026-10-12-stranger-levels-calibration.md)`
 
 ## 1. Where things stand
@@ -76,10 +76,11 @@ An external strategy, such as a model endpoint, answers a stranger decision outs
 - **Limit:** a remote endpoint never gets `evaluate` (it cannot clone the game), so the stub wrapping `expert` answers its pairing decisions as `standard`'s first candidate. It proves the plumbing, not a strength. A real model has to bring its own search or evaluation.
 - A real model or neural net is separate work (the NN documents). Stage 6 only has to prove the plumbing.
 
-### 6.7 Docs (per `CLAUDE.md`)
+### 6.7 Docs (per `CLAUDE.md`) *(built 13-OCT-2026)*
 - `docs/specs/engine-spec.md`: new `SC-9.7-*` rows for `pendingContext`, `applyStrangerDecision`, the persisted pending state and the timeout fallback; amend Appendix C for any test gaps.
 - Update the stage 6 row and add a status note in the pluggable-combat spec.
 - The manual needs no change, since players cannot reach the feature. Say so in the PR.
+- **As built:** engine-spec rows SC-9.7-12 to SC-9.7-16 (16 is new: observability and the lab measurement), the stale "not registered" wording in SC-9.7-13 corrected, the Part II narrative and Appendix C updated. The manual was checked and needs no change: no player can select an external level (server-stamped env only) and the only visible effect is the "the strangers are deciding" line.
 
 ## 5. Tests (TDD, written first)
 
@@ -102,3 +103,9 @@ Commit per package on `combat-review`, in the repo's `feat(engine,web): … (sta
 - **D4 is settled for stage 6:** thinking time is level-defined (§3 row 2, 6.1b). What remains for Peter is only whether a level's clock should *stretch* with the human's thinking time (attacker pairing only). That is a later enhancement and not needed here.
 - **Real model contract items** (cost ceiling, schema versioning policy) stay open until a real model exists.
 - **Revised combat is not reachable from `apps/web`**, because nothing sets `combatRevision`. A stage 6 strategy therefore runs in real games only through the loadout path for now. The pairing hooks run in the lab and in headless fights. To confirm: is that acceptable for stage 6?
+
+## 8. Outcome
+
+- **Exit criterion:** decisions are logged and replayable offline (P6, P11): met (`asyncBench.test.ts`, replay test). The fallback rate is measured: met against the lab stub (0.0% healthy; 16.4% with injected faults, every fight finished, none stuck).
+- **Not done, by design:** a real model endpoint, its cost ceiling and schema-versioning policy; multiplayer wiring; hiding the leaderboard save control for an external-level game (the server already refuses it); the open question in §7 about reaching revised combat from `apps/web`.
+- **Before a real model:** run the lab against it for fallback rate and p50/p95 under real latency, then tune `EXTERNAL_LEVELS` deadlines (still provisional).
