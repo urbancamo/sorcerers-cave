@@ -45,7 +45,7 @@ An external strategy, such as a model endpoint, answers a stranger decision outs
 - The timeout watchdog and the fallback use the pending decision's own deadline, recorded when it was requested.
 - Levels may also differ in what they do with the time, such as search width. That is the strategy's business and not an engine concern.
 
-### 6.2 Pending state that persists
+### 6.2 Pending state that persists *(built 13-OCT-2026; engine-spec SC-9.7-14)*
 - For external strategies, `fight.pending` survives the mutation. `reduce` already accepts only the matching stranger action while it is pending.
 - Record when the decision was requested (a server-supplied timestamp, passed in, since the engine stays pure) and a request id. Replay never needs these.
 - Test: while a decision is pending, player actions are refused. A forged `strangers*` action is rejected in every phase (P7).

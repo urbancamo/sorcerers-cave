@@ -131,12 +131,17 @@ export interface FightState {
 }
 
 /** What the fight is waiting for. The strangers' decisions are taken by the driver (strangerDriver.ts); the party's by the player. */
-export type PendingDecision =
+export type PendingDecision = (
   | { by: "strangers"; kind: "loadout" }
   | { by: "strangers" | "party"; kind: "deploy"; min: number }
   | { by: "strangers" | "party"; kind: "engage" }
   | { by: "strangers" | "party"; kind: "redeploy" }
-  | { by: "strangers"; kind: "casualty"; pair: [number, number] };
+  | { by: "strangers"; kind: "casualty"; pair: [number, number] }
+) & { request?: PendingRequest };
+
+/** A decision handed to an external strategy and not yet answered (stage 6.2): which request, when it was asked (the caller's clock, in
+ *  ms) and how long the level may think. Lives only in the stored state, never in the log, and goes with the pending decision. */
+export interface PendingRequest { id: string; at: number; deadlineMs: number }
 
 /** One engagement in the revised round engine: indices into `state.party` and `state.strangers`. `pf`/`sf` are the one or two
  *  front-line creatures, `pb`/`sb` the casters lending magic from the background this round. Matches persist from round to round. */

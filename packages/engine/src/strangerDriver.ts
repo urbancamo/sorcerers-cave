@@ -18,7 +18,7 @@ import {
   type LoadoutDecision, type RedeployContext, type StrangerStrategy,
 } from "./strategy";
 import type { GameAction, GameEvent } from "./actions";
-import type { GameState } from "./state";
+import type { GameState, PendingRequest } from "./state";
 
 export interface AppliedAction { action: GameAction; events: GameEvent[] }
 
@@ -258,6 +258,25 @@ function standardDecision(pc: PendingContext): unknown {
     case "redeploy": return std.redeploy!(pc.context);
     case "casualty": return std.chooseCasualty!(pc.context);
   }
+}
+
+/** Record that the pending stranger decision has been handed to an external strategy (stage 6.2): the caller's request id and clock, and
+ *  the configured level's deadline. Pure: the clock is passed in. The record is stored state only, never logged, and goes when the
+ *  decision is answered. */
+export function markAwaiting(state: GameState, requestId: string, at: number): GameState {
+  const pending = state.fight?.pending;
+  if (!pending || pending.by !== "strangers") throw new Error("no pending stranger decision to await");
+  const deadlineMs = budgetOf(state).deadlineMs;
+  if (deadlineMs === undefined) throw new Error("the configured level declares no deadline, so it cannot be awaited");
+  const next = structuredClone(state);
+  next.fight!.pending = { ...pending, request: { id: requestId, at, deadlineMs } };
+  return next;
+}
+
+/** The request recorded on the pending stranger decision, or null. */
+export function awaitingRequest(state: GameState): PendingRequest | null {
+  const pending = state.fight?.pending;
+  return pending && pending.by === "strangers" ? pending.request ?? null : null;
 }
 
 /** `awaiting` names the decision an external strategy has been asked and has not yet answered: the loop stops there and leaves the
