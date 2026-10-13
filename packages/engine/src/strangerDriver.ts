@@ -13,11 +13,27 @@ import "./builtinStrategies";
 import {
   deployViolation, engageViolation, fightView, freeOf, legalMoves, legalPairs, nominateViolation, redeployViolation,
 } from "./revisedRound";
-import { getStrategy, standardStrategy, type Evaluate, type LoadoutContext, type LoadoutDecision, type StrangerStrategy } from "./strategy";
+import {
+  getStrategy, standardStrategy, type CasualtyContext, type DeployContext, type EngageContext, type Evaluate, type LoadoutContext,
+  type LoadoutDecision, type RedeployContext, type StrangerStrategy,
+} from "./strategy";
 import type { GameAction, GameEvent } from "./actions";
 import type { GameState } from "./state";
 
 export interface AppliedAction { action: GameAction; events: GameEvent[] }
+
+/** A decision the strangers can be asked for. */
+export type PendingKind = "loadout" | "deploy" | "engage" | "redeploy" | "casualty";
+/** What a strategy is asked, as plain data (no functions, so it survives JSON): the ask half of the driver, for a strategy that
+ *  answers outside the mutation (stage 6). A search strategy running in process also gets `evaluate`, added by `pairingAction`. */
+export type PendingContext =
+  | { kind: "loadout"; context: LoadoutContext }
+  | { kind: "deploy"; context: Omit<DeployContext, "evaluate"> }
+  | { kind: "engage"; context: Omit<EngageContext, "evaluate"> }
+  | { kind: "redeploy"; context: RedeployContext }
+  | { kind: "casualty"; context: CasualtyContext };
+/** Who answered, recorded on the logged action. */
+export interface DecisionMeta { strategyId: string; strategyVersion: number }
 
 const MAX_DECISIONS = 4000;   // a safety stop: a revised fight asks a few decisions a round, and ends within its round limit
 
@@ -136,58 +152,120 @@ function evaluator<D>(state: GameState, seed: number, toAction: (d: D) => GameAc
   });
 }
 
-/** Answer whatever pending pairing decision the strangers have, as the action the engine then validates and applies. */
-function pairingAction(state: GameState, strategy: StrangerStrategy): GameAction {
-  const pending = state.fight!.pending!;
-  const meta = (r: { strategy: StrangerStrategy; fallback?: { from: string; reason: string } }) =>
-    ({ strategyId: r.strategy.id, strategyVersion: r.strategy.version, ...(r.fallback ? { fallback: r.fallback } : {}) });
+/** The plain-data context of a pending pairing decision. */
+function pairingContext(state: GameState): Exclude<PendingContext, { kind: "loadout" }> {
+  const pending = state.fight!.pending!, base = hookBase(state);
   switch (pending.kind) {
-    case "deploy": {
-      const base = hookBase(state);
-      const ctx = {
-        ...base, free: freeOf(state, "strangers"), min: pending.min,
-        evaluate: evaluator(state, base.rngSeed, (d: { creatures: number[] }): GameAction => ({ type: "strangersDeploy", strategyId: "rollout", strategyVersion: 0, creatures: d.creatures.slice() })),
-      };
-      const r = decideHook(strategy, (s) => s.deploy?.(ctx), (d) => deployViolation(state, "strangers", d?.creatures));
-      return { type: "strangersDeploy", ...meta(r), creatures: r.decision.creatures.slice() };
-    }
-    case "engage": {
-      const base = hookBase(state);
-      const ctx = {
-        ...base, own: freeOf(state, "strangers"), foes: state.fight!.rev!.deployed.party.slice(), legalPairs: legalPairs(state, "strangers"),
-        evaluate: evaluator(state, base.rngSeed, (d: { pairs: { party: number; stranger: number }[] }): GameAction => ({ type: "strangersEngage", strategyId: "rollout", strategyVersion: 0, pairs: d.pairs.map((p) => ({ party: p.party, stranger: p.stranger })) })),
-      };
-      const r = decideHook(strategy, (s) => s.engage?.(ctx), (d) => engageViolation(state, "strangers", d?.pairs));
-      return { type: "strangersEngage", ...meta(r), pairs: r.decision.pairs.map((p) => ({ party: p.party, stranger: p.stranger })) };
-    }
+    case "deploy": return { kind: "deploy", context: { ...base, free: freeOf(state, "strangers"), min: pending.min } };
+    case "engage": return { kind: "engage", context: { ...base, own: freeOf(state, "strangers"), foes: state.fight!.rev!.deployed.party.slice(), legalPairs: legalPairs(state, "strangers") } };
     case "redeploy": {
       const moves = legalMoves(state, "strangers");
-      const ctx = { ...hookBase(state), candidates: [...new Set(moves.map((m) => m.creature))], legalMoves: moves };
-      const r = decideHook(strategy, (s) => s.redeploy?.(ctx), (d) => redeployViolation(state, "strangers", d?.moves));
-      return { type: "strangersRedeploy", ...meta(r), moves: r.decision.moves.map((m) => ({ creature: m.creature, match: m.match, back: m.back })) };
+      return { kind: "redeploy", context: { ...base, candidates: [...new Set(moves.map((m) => m.creature))], legalMoves: moves } };
     }
-    case "casualty": {
-      const ctx = { ...hookBase(state), pair: pending.pair };
-      const r = decideHook(strategy, (s) => s.chooseCasualty?.(ctx), (d) => nominateViolation(state, d?.nominated));
-      return { type: "strangersNominate", ...meta(r), nominated: r.decision.nominated };
-    }
-    default:
-      throw new Error(`no pairing decision for ${pending.kind}`);
+    case "casualty": return { kind: "casualty", context: { ...base, pair: pending.pair } };
+    default: throw new Error(`no pairing decision for ${pending.kind}`);
   }
 }
 
-export function driveStrangers(state: GameState): { state: GameState; applied: AppliedAction[] } {
+/** The ask: what the strangers are being asked now, or null when the fight is not waiting on them. */
+export function pendingContext(state: GameState): PendingContext | null {
+  const pending = state.fight?.pending;
+  if (!pending || pending.by !== "strangers") return null;
+  return pending.kind === "loadout" ? { kind: "loadout", context: contextOf(state) } : pairingContext(state);
+}
+
+/** The logged action for a decision, whoever made it. */
+function strangerAction(kind: PendingKind, decision: unknown, used: DecisionMeta, fallback?: { from: string; reason: string }): GameAction {
+  const meta = { ...used, ...(fallback ? { fallback } : {}) };
+  switch (kind) {
+    case "loadout": return { type: "strangersAssignArtefacts", ...meta, allocations: (decision as LoadoutDecision).allocations.map((a) => ({ artifact: a.artifact, stranger: a.stranger })) };
+    case "deploy": return { type: "strangersDeploy", ...meta, creatures: (decision as { creatures: number[] }).creatures.slice() };
+    case "engage": return { type: "strangersEngage", ...meta, pairs: (decision as { pairs: { party: number; stranger: number }[] }).pairs.map((p) => ({ party: p.party, stranger: p.stranger })) };
+    case "redeploy": return { type: "strangersRedeploy", ...meta, moves: (decision as { moves: { creature: number; match: number; back: boolean }[] }).moves.map((m) => ({ creature: m.creature, match: m.match, back: m.back })) };
+    case "casualty": return { type: "strangersNominate", ...meta, nominated: (decision as { nominated: number }).nominated };
+  }
+}
+
+/** Answer whatever pending pairing decision the strangers have, as the action the engine then validates and applies. */
+function pairingAction(state: GameState, strategy: StrangerStrategy): GameAction {
+  const pc = pairingContext(state);
+  const meta = (r: { strategy: StrangerStrategy; fallback?: { from: string; reason: string } }): [DecisionMeta, typeof r.fallback] =>
+    [{ strategyId: r.strategy.id, strategyVersion: r.strategy.version }, r.fallback];
+  switch (pc.kind) {
+    case "deploy": {
+      const ctx = {
+        ...pc.context,
+        evaluate: evaluator(state, pc.context.rngSeed, (d: { creatures: number[] }): GameAction => strangerAction("deploy", d, { strategyId: "rollout", strategyVersion: 0 })),
+      };
+      const r = decideHook(strategy, (s) => s.deploy?.(ctx), (d) => deployViolation(state, "strangers", d?.creatures));
+      return strangerAction("deploy", r.decision, ...meta(r));
+    }
+    case "engage": {
+      const ctx = {
+        ...pc.context,
+        evaluate: evaluator(state, pc.context.rngSeed, (d: { pairs: { party: number; stranger: number }[] }): GameAction => strangerAction("engage", d, { strategyId: "rollout", strategyVersion: 0 })),
+      };
+      const r = decideHook(strategy, (s) => s.engage?.(ctx), (d) => engageViolation(state, "strangers", d?.pairs));
+      return strangerAction("engage", r.decision, ...meta(r));
+    }
+    case "redeploy": {
+      const r = decideHook(strategy, (s) => s.redeploy?.(pc.context), (d) => redeployViolation(state, "strangers", d?.moves));
+      return strangerAction("redeploy", r.decision, ...meta(r));
+    }
+    case "casualty": {
+      const r = decideHook(strategy, (s) => s.chooseCasualty?.(pc.context), (d) => nominateViolation(state, d?.nominated));
+      return strangerAction("casualty", r.decision, ...meta(r));
+    }
+  }
+}
+
+/** The apply: a decision made elsewhere (an external strategy's answer) checked against the legality layer, replaced by `standard`'s
+ *  when it is illegal or malformed (P5), and applied through `reduce` as a logged action (P6). Never throws on a bad answer. */
+export function applyStrangerDecision(state: GameState, raw: unknown, meta: DecisionMeta): { state: GameState; applied: AppliedAction } {
+  const pc = pendingContext(state);
+  if (!pc) throw new Error("no pending stranger decision to apply");
+  const field = (key: string): unknown => (raw && typeof raw === "object" ? (raw as Record<string, unknown>)[key] : undefined);
+  let reason: string | null;
+  switch (pc.kind) {
+    case "loadout": reason = loadoutViolation(state, field("allocations")); break;
+    case "deploy": reason = deployViolation(state, "strangers", field("creatures")); break;
+    case "engage": reason = engageViolation(state, "strangers", field("pairs")); break;
+    case "redeploy": reason = redeployViolation(state, "strangers", field("moves")); break;
+    case "casualty": reason = nominateViolation(state, field("nominated")); break;
+  }
+  const std = standardStrategy;
+  const action = reason === null
+    ? strangerAction(pc.kind, raw, meta)
+    : strangerAction(pc.kind, standardDecision(pc), { strategyId: std.id, strategyVersion: std.version }, { from: meta.strategyId, reason });
+  const r = reduce(state, action);
+  if (r.events.length === 1 && r.events[0]!.type === "blocked") throw new Error("the engine refused a stranger decision it had just validated");
+  return { state: r.state, applied: { action, events: r.events } };
+}
+
+/** `standard`'s answer to a pending decision. */
+function standardDecision(pc: PendingContext): unknown {
+  const std = standardStrategy;
+  switch (pc.kind) {
+    case "loadout": return std.assignArtefacts(pc.context);
+    case "deploy": return std.deploy!(pc.context);
+    case "engage": return std.engage!(pc.context);
+    case "redeploy": return std.redeploy!(pc.context);
+    case "casualty": return std.chooseCasualty!(pc.context);
+  }
+}
+
+/** `awaiting` names the decision an external strategy has been asked and has not yet answered: the loop stops there and leaves the
+ *  fight pending, for `applyStrangerDecision` to resume (stage 6). Built-in strategies never leave anything awaited. */
+export function driveStrangers(state: GameState): { state: GameState; applied: AppliedAction[]; awaiting?: PendingKind } {
   const applied: AppliedAction[] = [];
   let cur = state;
   for (let i = 0; i < MAX_DECISIONS && cur.fight?.pending?.by === "strangers"; i++) {
     const strategy = getStrategy(cur.variants?.strangerLevel ?? "standard");
+    if (strategy.kind === "external") return { state: cur, applied, awaiting: cur.fight.pending.kind };
     let action: GameAction;
     if (cur.fight.pending.kind === "loadout") {
       const { strategy: used, decision, fallback } = decide(cur, strategy);
-      action = {
-        type: "strangersAssignArtefacts", strategyId: used.id, strategyVersion: used.version,
-        allocations: decision.allocations.map((a) => ({ artifact: a.artifact, stranger: a.stranger })), ...(fallback ? { fallback } : {}),
-      };
+      action = strangerAction("loadout", decision, { strategyId: used.id, strategyVersion: used.version }, fallback);
     } else action = pairingAction(cur, strategy);
     const r = reduce(cur, action);
     if (r.events.length === 1 && r.events[0]!.type === "blocked") throw new Error("the engine refused a stranger decision it had just validated");
