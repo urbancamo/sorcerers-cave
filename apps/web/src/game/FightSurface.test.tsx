@@ -16,6 +16,22 @@ const fightState = (over: Partial<GameState> = {}): GameState =>
   ({ ...newGame(1, [6, 4]), phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, strangers: [3, 9], ...over });
 
 describe("FightSurface", () => {
+  it("says the strangers are deciding, and offers nothing, while their decision is pending", () => {
+    const dispatch = vi.fn();
+    const s = fightState({ fight: { surprise: 0, round: 1, focus: 0, pending: { by: "strangers", kind: "engage" } } });
+    render(<FightSurface state={s} dispatch={dispatch} cards={cards} />);
+    expect(screen.getByRole("status")).toHaveTextContent(/the strangers are deciding/i);
+    expect(screen.getByRole("button", { name: /roll the round/i })).toBeDisabled();
+    fireEvent.click(screen.getByTestId("tray-0"));
+    fireEvent.click(screen.getByTestId("front-0"));
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it("shows no deciding notice when the party is the one to act", () => {
+    render(<FightSurface state={fightState()} dispatch={vi.fn()} cards={cards} />);
+    expect(screen.queryByRole("status")).toBeNull();
+  });
+
   it("Roll is disabled until the plan is legal, then dispatches resolveRound", () => {
     const dispatch = vi.fn();
     render(<FightSurface state={fightState()} dispatch={dispatch} cards={cards} />); // Woman, Priest vs Troll, Spectre

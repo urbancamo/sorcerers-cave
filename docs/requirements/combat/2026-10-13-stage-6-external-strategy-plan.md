@@ -60,8 +60,9 @@ An external strategy, such as a model endpoint, answers a stranger decision outs
 - **Leaderboard (D2), as built:** `highScores.save` refuses a game whose `strangerLevel` is not `standard`. The client does not yet hide the save control for such a game.
 - Endpoint URL and secret live in Convex env vars. The response is validated against a versioned schema, and the secret is never logged.
 
-### 6.4 Client
+### 6.4 Client *(built 13-OCT-2026; web only, no engine-spec change)*
 - Show "the strangers are deciding…" while `pending.by === "strangers"`, re-rendered from the existing reactive game query. No new input.
+- **As built:** `FightSurface` shows a `role="status"` line, "The strangers are deciding…", while `fight.pending.by === "strangers"`. It disables "Roll the round" and hides the retreat and artefact buttons, which `reduce` would refuse anyway. The line pulses unless the player prefers reduced motion. The leaderboard save control is still not hidden for an external-level game (see 6.3).
 
 ### 6.5 Observability (P15)
 - Log per-decision latency and the fallback reason on the logged action. Add a small query or script reporting the fallback rate per strategy.
