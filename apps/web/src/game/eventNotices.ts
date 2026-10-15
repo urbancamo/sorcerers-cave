@@ -240,6 +240,9 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "ghoulsWarded":
         out.push({ text: "The party's Talisman wards off the Ghouls — they slink away unfought.", tone: "good" });
         break;
+      case "ghoulsAttack":
+        out.push({ text: `The Ghouls rise and fall on the party — ${e.count} of them, strength 2 each.`, tone: "bad" });
+        break;
       case "medusaAverted":
         out.push({ text: "Medusa's gaze sweeps the party — but the Wizard's Magic Staff turns it aside; no one is stoned.", tone: "good" });
         break;

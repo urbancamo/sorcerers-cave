@@ -182,6 +182,7 @@ export type GameEvent =
   | { type: "rubyTaken" }
   | { type: "statueAroused" } // the Lost-Ruby statue slew the member who tried to wrest it (labels the dice overlay)
   | { type: "wardedOff"; creatureId: number }
+  | { type: "ghoulsAttack"; count: number } // the revised combat: the Ghouls fall on the party as a party of their own, one per creature
   | { type: "ghoulsWarded" } // a party member's Talisman turned the Ghouls away (card)
   | { type: "medusaAverted" } // a Wizard's Magic Staff turned Medusa's gaze aside — no one stoned (card)
   // The Medusa pause (§Lotus Dust "Works on MEDUSA"): the party entered her lair holding Lotus Dust,

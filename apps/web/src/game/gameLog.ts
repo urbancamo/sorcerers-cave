@@ -196,6 +196,7 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "statueAroused": return "the guardian statue struck";
     case "wardedOff": return `the Talisman warded off ${creature(e.creatureId)}`;
     case "ghoulsWarded": return "the Talisman warded off the Ghouls";
+    case "ghoulsAttack": return `${e.count} Ghoul${e.count === 1 ? "" : "s"} fall on the party`;
     case "medusaAverted": return "the Magic Staff turned Medusa's gaze aside";
     case "medusaLooms": return "Medusa looms — throw the Lotus Dust, or proceed";
     case "medusaSlept": return "the Lotus Dust put Medusa to sleep (two turns)";
@@ -525,6 +526,7 @@ export function eventCode(e: GameEvent): string | null {
     case "deathPrevented": return `SAV ${cr3(e.creatureId)}`;
     case "wardedOff": return `WRD ${cr3(e.creatureId)}`;
     case "ghoulsWarded": return "WRD GHL";
+    case "ghoulsAttack": return `GHL ${e.count}`;
     case "medusaAverted": return "MED AVD";
     case "medusaLooms": return "MED LOM";
     case "medusaSlept": return "MED SLP";

@@ -113,6 +113,10 @@ export interface FightState {
   casualtyQueue?: number[][];
   // The revised combat only (Peter, 14-OCT-2026): the fight ends automatically after one round — the Spectre from the Treasure Chest.
   oneRound?: true;
+  // The revised combat only (Peter, 14-OCT-2026, "Ghouls Fight"): this fight is against the hazard's Ghouls, a party of its own. The
+  // chamber's real strangers wait in `aside` and come back when the Ghouls are beaten; `freshEntry`/`announceLull` are the chamber
+  // entry's settings, handed on to the rest of that entry.
+  ghouls?: { aside: number[]; freshEntry: boolean; announceLull: boolean };
   // A retreat this round hit a dead end (§Retreat): no further retreat may be tried — the party must
   // fight another round. Cleared when a round is actually fought.
   retreatBlocked?: boolean;
@@ -253,6 +257,8 @@ export interface GameState {
   // `announceLull` are `finishChamber`'s own arguments, kept so the resumed tail settles the chamber exactly
   // as the uninterrupted path would; `extraDraw` is set when a Well/Bell draw opened the pause, and carries
   // the `surpriseReady` captured before the draw so the resume restores it (SC-4-16).
+  // The revised combat: the Ghouls struck on this chamber entry and are yet to be fought (see `settleChamber`).
+  ghoulsPending?: true;
   trapPause?: { freshEntry: boolean; announceLull: boolean; extraDraw?: { hadSurprise?: boolean } };
   // Indifference (per party — NOT on the shared area, so it never affects other parties; §Encountering
   // Strangers, SC-4-18a, bug fix 2026-08-04). `indiffCounts` is the DURABLE count of indifferent

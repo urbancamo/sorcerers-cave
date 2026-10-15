@@ -29,7 +29,7 @@ import {
 // Extension kit (SC-EXT-17): aliases `ALL_CREATURES` — `strongestStranger`'s fight-focus pick and
 // the Lost-Ruby wrestler's combat-roll name both index by an actual creatureId that may already be
 // a kit id (14-20); byte-identical for ids 0-13.
-import { ALL_CREATURES as CREATURES, CREATURES as BASE_CREATURES } from "./data/creatures";
+import { ALL_CREATURES as CREATURES, CREATURES as BASE_CREATURES, C_GHOUL } from "./data/creatures";
 import { TREASURES as BASE_TREASURES } from "./data/treasures";
 import { applyAllocations, equipStrangers, loadoutViolation } from "./strangerEquip";
 import { removeStranger, addStranger, dropAllGear } from "./strangerGear";
@@ -229,10 +229,14 @@ function finalizeRound(state: GameState): GameEvent[] {
     // Eye-on-a-corpse becomes recoverable here). Borne items stay lost with the body (plan ④a).
     events.push(...sweepFallen(state, "working"));
     const felled = state.fight?.sorcererFelled === true;
+    const ghouls = state.fight?.ghouls;
     state.fight = null;
     state.party.forEach((m) => { m.potionActive = false; });
     events.push({ type: "fightWon" });
-    if (felled && !eyePresent(state)) state.phase = "sorcerer"; // the player decides his fate before anything else
+    if (ghouls) {   // the Ghouls are beaten (they lurk on, for the next party): the chamber's own strangers are met now
+      state.strangers = ghouls.aside;
+      settleChamber(state, ghouls.freshEntry, events, ghouls.announceLull);
+    } else if (felled && !eyePresent(state)) state.phase = "sorcerer"; // the player decides his fate before anything else
     else {
       if (felled) events.push(...slaySorcerer(state)); // the Eye forbids sparing him
       afterFight(state, events);
@@ -369,7 +373,7 @@ function medusaLooms(state: GameState): boolean {
  *  fresh entry, yet a dragon it just drew is still genuinely new information the player hasn't seen
  *  (`resolveExtraDraw` passes `true` explicitly for that case). */
 function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[], announceLull = freshEntry): boolean {
-  const { events: hzEvents, fell, trapChoice, knownTrap } = applyHazards(state);
+  const { events: hzEvents, fell, trapChoice, knownTrap, ghouls } = applyHazards(state);
   events.push(...hzEvents);
   // A hazard may incapacitate the whole party (Medusa petrifies everyone, or Ghouls slay them) —
   // with no one left able to act, the expedition ends.
@@ -390,6 +394,7 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
     events.push({ type: "moved", area: state.partyArea, level: state.level });
     return true;
   }
+  if (ghouls) state.ghoulsPending = true;   // fought as the entry's last hazard, once the trap (if any) is settled (see settleChamber)
   if (trapChoice) {
     // `trapRules`: a Dwarf-guided party meets a single trap. The earlier hazards have fired and the party
     // survived them — hold the entry here for the Dwarf's choice (`avoidTrap` / `fallThroughTrap`).
@@ -423,6 +428,20 @@ function settlePacifiedWithSibyl(state: GameState): void {
  *  ambush, a pacified area, then the phase the chamber's contents call for. Shared by the uninterrupted path
  *  (`finishChamber`) and the resume from the Dwarf's trap choice. */
 function settleChamber(state: GameState, freshEntry: boolean, events: GameEvent[], announceLull: boolean): void {
+  // The revised combat's Ghouls (Peter, 14-OCT-2026): a party of strength-2 creatures, one per creature of the party, fought by the round
+  // engine before anyone else in the chamber is met. The chamber's real strangers wait; the entry resumes when the Ghouls are beaten.
+  if (state.ghoulsPending) {
+    delete state.ghoulsPending;
+    const count = state.party.filter((m) => m.status === 0 || m.status === 1).length;
+    const aside = state.strangers;
+    state.strangers = Array<number>(count).fill(C_GHOUL);
+    state.fight = { surprise: 0, round: 1, focus: 0, ghouls: { aside, freshEntry, announceLull } };
+    state.phase = "fight";
+    state.surpriseReady = false;
+    state.fightDrops = [];
+    events.push({ type: "ghoulsAttack", count }, { type: "fightStarted", surprise: 0 }, ...beginRevised(state));
+    return;
+  }
   // The Charmed Flute lulls every Dragon for as long as the party holds it: they sleep in the
   // chamber, no longer leading or blocking, so a friendlier creature reacts and the area plays
   // out as if empty (§ Charmed Flute). Re-evaluated each entry, so they wake if the flute is gone.
@@ -1465,6 +1484,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // What the strangers bore goes back on the floor with the rest, and is handed out afresh next fight.
       const sorcererEvents = settleFelledSorcerer(res.state); // a Sorcerer defeated earlier in the fight dies after all
       dropAllGear(res.state);
+      if (res.state.fight?.ghouls) res.state.strangers = res.state.fight.ghouls.aside;   // the Ghouls stay in their lair; the real strangers are left as they were
       const fled = res.state.areas[fromIdx]!;
       fled.contents = [
         ...fled.contents,

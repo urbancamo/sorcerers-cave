@@ -57,7 +57,7 @@ export function hasStaffWizard(state: GameState): boolean {
 }
 
 /** Resolve every hazard in the working set, in priority order (spec §7.2). */
-export function applyHazards(state: GameState): { events: GameEvent[]; fell: boolean; trapChoice: boolean; knownTrap: boolean } {
+export function applyHazards(state: GameState): { events: GameEvent[]; fell: boolean; trapChoice: boolean; knownTrap: boolean; ghouls: boolean } {
   const events: GameEvent[] = [];
   let fell = false;
   // `trapRules`: a Dwarf-guided party meeting exactly one trap does not auto-avoid it — the caller pauses for
@@ -77,6 +77,9 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
   // which always lurk again whatever happened this visit. Set only inside the HAZARD_HARPIES switch
   // case (never on the park-and-`continue` branch below), so it exactly tracks that distinction.
   let harpiesFired = false;
+  // The revised combat (Peter, 14-OCT-2026): the Ghouls are fought as a party of their own, by the round engine, once the rest of the
+  // entry is settled — not here by one roll per member. The caller starts that fight; this pass only says they struck.
+  let ghouls = false;
 
   for (const hz of order) {
     if (!state.hazards.includes(hz)) continue;
@@ -146,6 +149,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         break;
       }
       case HAZARD_GHOULS: {
+        if (state.variants?.combatRevision) { ghouls = true; break; }
         // The attack forces everyone to drop heavy treasure to fight; it lands on the chamber floor,
         // visible and reclaimable at the end of the turn (§Ghouls). `ALL_TREASURES` (base + kit,
         // SC-EXT-2) — a kit heavy treasure (Crypt/Gems 21, Idol 18) would otherwise crash this
@@ -395,5 +399,5 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
   // A trap that was reloaded (not drawn) on this entry was KNOWN to the party: falling to it is deliberate.
   const knownTrap = (state.knownTraps ?? 0) > 0;
   delete state.knownTraps; // per-entry scratch from `enterChamber`; never outlives the hazard pass
-  return { events, fell, trapChoice, knownTrap };
+  return { events, fell, trapChoice, knownTrap, ghouls };
 }
