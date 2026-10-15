@@ -111,6 +111,9 @@ function artifactActions(state: GameState): GameAction[] {
     state.party.forEach((m, idx) => { if (m.status === 2 && m.stoneArea === state.partyArea) actions.push({ type: "useArtifact", artifact: 9, target: idx }); });
   }
   if (state.phase === "explore") {
+    // The turncoat Apprentice (revised combat): the party may linger where the Sorcerer was slain, and so meet her (any other action
+    // that leaves the area parts company with her instead).
+    if (state.apprenticeWatch === state.partyArea && !state.fight && state.party.some((m) => m.status === 1 && m.creatureId === 14)) actions.push({ type: "stay" });
     if (has(4, (id) => usesArtifactsAs(id, 4) || usesArtifactsAs(id, 8))) { // Magic Carpet -> teleport in each available direction
       for (const dir of [DIR_N, DIR_E, DIR_S, DIR_W, DIR_DOWN]) actions.push({ type: "useArtifact", artifact: 4, dir });
       if (state.level > 1) actions.push({ type: "useArtifact", artifact: 4, dir: DIR_UP });

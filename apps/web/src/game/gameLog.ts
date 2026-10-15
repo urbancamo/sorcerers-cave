@@ -237,6 +237,8 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "thiefPalmed": return `the Thief palmed ${treasure(e.tid)}`;
     case "apprenticeTurned": return `${e.count} Apprentice(s) turned when the Sorcerer fell` + (e.items.length ? `, dropping ${e.items.map(treasure).join(", ")}` : "");
     case "apprenticeStaysBehind": return `${e.count} Apprentice(s) stayed behind in the cave`;
+    case "apprenticeWaits": return `${e.count} Apprentice(s) have lost their master — leave this area, or they will turn on the party`;
+    case "apprenticeParts": return `${e.count} Apprentice(s) left behind as the party moved on`;
     case "sibylJoins": return "the Sibyl joined the party";
     case "sibylDeclines": return "the Sibyl was indifferent and stayed in the cave";
     case "sibylExamined": return "the Sibyl was consulted";
@@ -568,6 +570,8 @@ export function eventCode(e: GameEvent): string | null {
     case "thiefPalmed": return `PLM ${tr3(e.tid)}`;
     case "apprenticeTurned": return `APR TRN ${e.count}`;
     case "apprenticeStaysBehind": return `APR STY ${e.count}`;
+    case "apprenticeWaits": return `APR WAIT ${e.count}`;
+    case "apprenticeParts": return `APR PART ${e.count}`;
     case "sibylJoins": return "SIB JIN";
     case "sibylDeclines": return "SIB DEC";
     case "sibylExamined": return "SIB EXM";

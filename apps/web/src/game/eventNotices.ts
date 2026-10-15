@@ -380,6 +380,12 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "apprenticeStaysBehind":
         out.push({ text: "The Apprentice melts back into the dark.", tone: "neutral" });
         break;
+      case "apprenticeWaits":
+        out.push({ text: "The Sorcerer is dead, and the Apprentice watches you. Leave this area now, or she will turn on you.", tone: "bad" });
+        break;
+      case "apprenticeParts":
+        out.push({ text: "The Apprentice does not follow. She stays behind in the chamber.", tone: "neutral" });
+        break;
       case "sibylJoins":
         out.push({ text: "The Sibyl takes your side. She will not leave the cave.", tone: "good" });
         break;

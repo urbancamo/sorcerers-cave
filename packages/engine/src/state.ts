@@ -259,6 +259,9 @@ export interface GameState {
   // the `surpriseReady` captured before the draw so the resume restores it (SC-4-16).
   // The revised combat: the Ghouls struck on this chamber entry and are yet to be fought (see `settleChamber`).
   ghoulsPending?: true;
+  // The revised combat (Peter, 14-OCT-2026, Special Fights 6): the Sorcerer was slain with an Apprentice in the party. She stays an ally
+  // while the party may still leave this area (the value); `stay` turns her on it, leaving parts company with her.
+  apprenticeWatch?: number;
   trapPause?: { freshEntry: boolean; announceLull: boolean; extraDraw?: { hadSurprise?: boolean } };
   // Indifference (per party — NOT on the shared area, so it never affects other parties; §Encountering
   // Strangers, SC-4-18a, bug fix 2026-08-04). `indiffCounts` is the DURABLE count of indifferent

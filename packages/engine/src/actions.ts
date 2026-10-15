@@ -87,6 +87,7 @@ export type GameAction =
   | { type: "strangersNominate"; strategyId: string; strategyVersion: number; nominated: number; fallback?: { from: string; reason: string } }
   | { type: "spareSorcerer"; area: number }
   | { type: "slaySorcerer" }
+  | { type: "stay" }   // the revised combat: remain in the area after the Sorcerer's death instead of leaving, and so meet the turncoat Apprentice
   | { type: "testPlaceArea"; dir: number; special: number }
   | { type: "testSetChamber"; strangers: number[]; treasures: number[]; hazards: number[] }
   | { type: "testForceReaction"; outcome: "friendly" | "indifferent" | "hostile" }
@@ -302,6 +303,10 @@ export type GameEvent =
   // successful `exitCave` drops her from the scored party (`count`, normally one) rather than
   // let her escape with the rest.
   | { type: "apprenticeStaysBehind"; count: number }
+  // The revised combat (Peter, 14-OCT-2026): the Sorcerer is dead but she has not turned yet — the party may leave (`apprenticeParts`:
+  // she is left behind, her goods on the floor) or stay (`apprenticeTurned`: she joins the strangers there and they attack).
+  | { type: "apprenticeWaits"; count: number }
+  | { type: "apprenticeParts"; count: number }
   // The Sibyl (variants.sibyl, SC-SIB-5): her one-time test. `sibylJoins` — she is friendly and now
   // travels with the party (`state.hasSibyl`); `sibylDeclines` — she is indifferent and stays in the
   // chamber, never to be tested again by this party.

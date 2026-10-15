@@ -152,6 +152,7 @@ function encodeAction(a: GameAction): string {
     case "descendChasm": return "DESCENDCHASM";
     case "spareSorcerer": return `SPARESORCERER ${a.area}`;
     case "slaySorcerer": return "SLAYSORCERER";
+    case "stay": return "STAY";
     // A stranger strategy's logged decision (pluggable stranger combat spec §5.3); never produced by the recorded solo vectors.
     case "deploy": return `DEPLOY ${a.creatures.join(",") || "-"}`;
     case "engage": return `ENGAGE ${a.pairs.map((x) => `${x.party}:${x.stranger}`).join(",") || "-"}`;

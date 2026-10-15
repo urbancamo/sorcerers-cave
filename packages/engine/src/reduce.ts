@@ -17,7 +17,7 @@ import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import {
   wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, markDied, healingBalmEligible, ringInvincible, usesArtifactsAs,
   hasLivingHuman, holyWaterTargets, HW_STATUE_BASE, HW_MEDUSA, HW_STRANGER_BASE, HW_PARKED_STATUE_BASE, isHumanOrPriestClass,
-  eyePresent, slaySorcerer,
+  eyePresent, slaySorcerer, revertApprenticesOnSorcererDeath,
 } from "./effects";
 import { canTeleportTo } from "./sorcerer";
 import { BORNEABLE, isBorne, sweepFallen, spillCarried } from "./loot";
@@ -299,6 +299,19 @@ function meetSibyl(state: GameState): { state: GameState; events: GameEvent[] } 
   if (next.treasures.length > 0) next.phase = "pickup"; // nothing guards it — she guards nothing
   else persistAndExplore(next);
   return { state: next, events };
+}
+
+/** The revised combat: the party leaves the area where the Sorcerer was slain, so each Apprentice ally parts company with it — left
+ *  behind in the chamber, with what she carried on the floor, and no attack (Peter, 14-OCT-2026). Ends the watch. */
+function partCompany(state: GameState): GameEvent[] {
+  const at = state.apprenticeWatch!;
+  delete state.apprenticeWatch;
+  const gone = state.party.filter((m) => m.status === 1 && m.creatureId === C_APPRENTICE);
+  if (gone.length === 0) return [];
+  const area = state.areas[at]!;
+  for (const a of gone) area.contents.push(100 + a.creatureId, ...a.treasure.map((t) => 200 + t));
+  state.party = state.party.filter((m) => !gone.includes(m));
+  return [{ type: "apprenticeParts", count: gone.length }];
 }
 
 /** The party has won: loot if there is any, else on its way. A turncoat Apprentice (the Sorcerer's death breaks
@@ -787,7 +800,16 @@ export function reduce(
   action: GameAction,
 ): { state: GameState; events: GameEvent[]; midState?: GameState } {
   pendingMidState = null;
-  const result = reduceCore(state, action);
+  let result = reduceCore(state, action);
+  // The revised combat's turncoat Apprentice (Peter, 14-OCT-2026): an action that takes the party out of the area where the Sorcerer was
+  // slain parts company with her first, so she is never in the party for whatever it meets next. The action is replayed from the party
+  // without her (same dice), and her leaving is reported ahead of its events.
+  if (state.apprenticeWatch !== undefined && result.state.partyArea !== state.apprenticeWatch) {
+    const pre = structuredClone(state);
+    const parted = partCompany(pre);
+    const redo = reduceCore(pre, action);
+    result = { state: redo.state, events: [...parted, ...redo.events] };
+  }
   if (pendingMidState !== null) {
     const midState: GameState = pendingMidState;
     pendingMidState = null;
@@ -1483,6 +1505,10 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // Retreat succeeds: the strangers and any dropped treasure are LEFT BEHIND in the chamber we fled.
       // What the strangers bore goes back on the floor with the rest, and is handed out afresh next fight.
       const sorcererEvents = settleFelledSorcerer(res.state); // a Sorcerer defeated earlier in the fight dies after all
+      if (res.state.apprenticeWatch !== undefined) {   // ...and the party has already left the area where he fell: she is left there too
+        res.state.apprenticeWatch = fromIdx;
+        sorcererEvents.push(...partCompany(res.state));
+      }
       dropAllGear(res.state);
       if (res.state.fight?.ghouls) res.state.strangers = res.state.fight.ghouls.aside;   // the Ghouls stay in their lair; the real strangers are left as they were
       const fled = res.state.areas[fromIdx]!;
@@ -1513,6 +1539,22 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       }
       const events = [...sorcererEvents, ...(guideLost ? springUnguidedTrap(res.state) : resolveArea(res.state))]; // resolve the area we retreated into (fresh tunnel/chamber)
       return { state: res.state, events };
+    }
+
+    case "stay": {
+      // The revised combat (Peter, 14-OCT-2026): the party lingers where the Sorcerer was slain, so the Apprentice joins the other
+      // strangers there and they attack it with surprise.
+      if (state.phase !== "explore" || state.fight || state.apprenticeWatch !== state.partyArea) return { state, events: [{ type: "blocked" }] };
+      if (!state.party.some((m) => m.status === 1 && m.creatureId === C_APPRENTICE)) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      delete next.apprenticeWatch;
+      const events = revertApprenticesOnSorcererDeath(next);
+      const area = next.areas[next.partyArea]!;
+      next.strangers.push(...area.contents.filter(isGuardCode).map((c) => c - 100));   // every guard of the chamber joins her
+      next.treasures.push(...area.contents.filter((c) => c >= 200 && c < 300).map((c) => c - 200));
+      area.contents = area.contents.filter((c) => !isGuardCode(c) && (c < 200 || c >= 300));
+      events.push(...startFight(next, -1));
+      return { state: next, events };
     }
 
     case "slaySorcerer": {

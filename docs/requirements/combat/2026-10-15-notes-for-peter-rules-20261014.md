@@ -4,7 +4,7 @@
 DATE: 15-OCT-2026
 FOR: Peter
 RE: "Fighting Rules Reformulated (Draft 20261014)" compared with the new combat engine
-STATUS: Three changes made (the chest Spectre, the Scroll, the Ghouls). The rest are listed below, not yet built.
+STATUS: Four changes made (the chest Spectre, the Scroll, the Ghouls, the turncoat Apprentice). The rest are listed below, not yet built.
 ```
 
 I read your 14 October draft and compared each passage you marked in blue with the new (revised) combat engine. This
@@ -66,14 +66,29 @@ I will change it.
 and so on), straight before its strangers, not between Medusa and Mutiny. If Mutiny thins the party first, there are
 fewer Ghouls. A party that falls through a trap never meets them. Please say if you want the original order kept.
 
+**The turncoat Apprentice now waits to see whether you leave**, following your Special Fights item 6.
+
+- When the player slays the Sorcerer with an Apprentice in the party, she no longer turns at once. She stays an ally, and the
+  party is told she is watching.
+- If the party leaves the area by any route (a move, a withdrawal, a retreat, the carpet and so on), she parts company: she is
+  left in the chamber with what she carried on the floor, and nobody attacks.
+- If the party chooses to stay, she turns. She and every other stranger in the area (the guards parked there) attack the party
+  **with surprise**, and the treasure of the area is theirs to guard.
+- A retreat from a fight in which the Sorcerer fell counts as leaving.
+- The old combat still turns her on the spot.
+
+**Your ruling needed (answered provisionally):** the game's "turn" only advances when the party moves, so "does not leave in
+its next turn" has no natural trigger. I read it as an explicit choice for the player: **Stay** (the Apprentice turns) or
+leave (she is left behind). Free actions such as picking up treasure or rearranging who carries what do not count as
+staying. If you meant something else (for example, any action that uses up the turn), please say so. I also assumed
+that if the party leaves, she does not follow it and does not attack; your draft does not say what becomes of her.
+
 ## Still different from your draft (not yet built)
 
 Roughly smallest to largest.
 
 1. **The Scroll: now built for the new combat** (see below). The old combat still reads it the old way.
-2. **Turncoat Apprentice.** Today the Apprentice turns into a stranger the moment the Sorcerer is slain, and the fight
-   that follows has no surprise. Your draft says she joins the other strangers only if the party does not leave in its next
-   turn, and then they attack with surprise. That needs a "stay or leave" step the game does not have.
+2. **Turncoat Apprentice: now built for the new combat** (see above). The old combat still turns her at once.
 3. **Ghouls: now built for the new combat** (see above). The old combat still uses one roll per member.
 4. **Stranger preparation.** Your draft says all artefacts are assumed to be on the floor, guarded by the strangers, before
    they choose loadouts. I believe this is already how it works, but I have not traced it line by line.
@@ -87,10 +102,9 @@ Roughly smallest to largest.
 
 ## What I did not do
 
-- I made the chest Spectre, Scroll and Ghouls changes, with tests. All of the engine tests pass (1336), as do the web tests (784).
+- I made the chest Spectre, Scroll, Ghouls and turncoat Apprentice changes, with tests. All of the engine tests pass (1343), as do the web tests (784).
 - Nothing in the web game shows the Scroll choice yet. The new combat is not reachable by players, and the choice will
   come with the formation screen.
-- The turncoat Apprentice item above is not started. It will be built for the new combat only, leaving the old combat as
-  it is.
+- Nothing in the web game offers the Stay choice yet, for the same reason as the Scroll.
 - The rules as converted into the project: `docs/rules/fighting-rules-reformulated-20261014.md` (your wording, with the
   changed passages marked).
