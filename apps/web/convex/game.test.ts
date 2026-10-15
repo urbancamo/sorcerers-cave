@@ -826,3 +826,51 @@ describe("strangerLevel (the strangers' strategy)", () => {
     expect((await as.query(api.game.get, { id }))?.state).toEqual(res.state);
   });
 });
+
+// The revised combat (`variants.combatRevision`, Peter's reformulated fighting rules): server-stamped like forcedRedraw, off by default.
+describe("combatRevision (server-stamped, off by default)", () => {
+  const ORIGINAL = process.env.REVISED_COMBAT_ENABLED;
+  afterEach(() => {
+    if (ORIGINAL === undefined) delete process.env.REVISED_COMBAT_ENABLED;
+    else process.env.REVISED_COMBAT_ENABLED = ORIGINAL;
+  });
+
+  test("unset ⇒ no combatRevision key on the stored game", async () => {
+    delete process.env.REVISED_COMBAT_ENABLED;
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const game = await as.query(api.game.get, { id: await as.mutation(api.game.newGame, { seed: 1, picks: [0] }) });
+    expect(game?.state.variants?.combatRevision).toBeUndefined();
+    expect(game?.variants?.combatRevision).toBeUndefined();
+  });
+
+  test("REVISED_COMBAT_ENABLED=1 ⇒ every new game gets combatRevision:true, persisted so replay() rebuilds it", async () => {
+    process.env.REVISED_COMBAT_ENABLED = "1";
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const game = await as.query(api.game.get, { id: await as.mutation(api.game.newGame, { seed: 1, picks: [0] }) });
+    expect(game?.state.variants?.combatRevision).toBe(true);
+    expect(game?.variants?.combatRevision).toBe(true);
+  });
+
+  test("a client cannot choose it: the newGame variants validator has no such key", async () => {
+    delete process.env.REVISED_COMBAT_ENABLED;
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    await expect(as.mutation(api.game.newGame, { seed: 1, picks: [0], variants: { combatRevision: true } as never })).rejects.toThrow();
+  });
+
+  test("the fight decisions of the revised combat pass the action validator (reduce then refuses them outside a fight)", async () => {
+    process.env.REVISED_COMBAT_ENABLED = "1";
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+    for (const action of [
+      { type: "deploy", creatures: [0] }, { type: "engage", pairs: [{ party: 0, stranger: 0 }] },
+      { type: "redeploy", moves: [{ creature: 0, match: 0, back: false }] }, { type: "scroll", use: "decline" }, { type: "stay" },
+    ]) {
+      const r = await as.mutation(api.game.applyAction, { id, action });
+      expect(r.events).toEqual([{ type: "blocked" }]);
+    }
+  });
+});

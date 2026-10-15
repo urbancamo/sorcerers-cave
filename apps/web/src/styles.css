@@ -2014,6 +2014,12 @@
 @media (prefers-reduced-motion: reduce) { .scv-fight-deciding { animation: none; } }
 .scv-fight-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .scv-fight-row { display: flex; gap: 12px; }
+/* The revised combat's formation screen (RevisedFightSurface): matches in play, then the decision being asked. */
+.scv-rev-matches { display: flex; flex-direction: column; gap: 10px; }
+.scv-rev-match { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.scv-rev-side { display: flex; gap: 10px; align-items: flex-start; }
+.scv-rev-decision { display: flex; flex-direction: column; gap: 8px; }
+.scv-rev-moves { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .scv-fight-btn { font-family: var(--ui); font-size: 13.5px; padding: 9px 14px; border-radius: 9px; border: 1px solid var(--line-strong); color: var(--parchment); background: rgba(201,161,78,.06); cursor: pointer; }
 .scv-fight-btn.primary { border-color: var(--brass); color: var(--cream); background: rgba(201,161,78,.16); font-weight: 600; }
 .scv-fight-btn.ghost { background: transparent; } .scv-fight-btn:disabled { opacity: .4; cursor: default; }

@@ -14,6 +14,7 @@ import { EncounterPanel } from "./EncounterPanel";
 import { TrapChoice } from "./TrapChoice";
 import { ExplorePanel } from "./ExplorePanel";
 import { FightSurface } from "./FightSurface";
+import { RevisedFightSurface } from "./RevisedFightSurface";
 import { useManifestCards, useManifestArt } from "../data/useManifestCards";
 import { DiceRoll } from "./DiceRoll";
 import { rollFromEvents, type RollView } from "./rollView";
@@ -264,6 +265,7 @@ export default function GameScreen() {
       <CaveCanvas key={gameId} onReady={(api) => { caveApi.current = api; }} engine={engine} state={displayState} canAct={!presentingRef.current} color={color} code={code ?? undefined} onPartyClick={() => setShowParty(true)} onSave={handleSave} onLog={() => setShowLog(true)} />
       <EncounterPanel state={displayState} dispatch={dispatchWithRolls} />
       {fightVisible && cards && <FightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
+      {fightVisible && cards && <RevisedFightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
       <ExplorePanel state={displayState} dispatch={dispatchWithRolls} />
       {displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} onSave={handleSave} />}
       {displayState.testMode && <DeadEndSwapBadge />}

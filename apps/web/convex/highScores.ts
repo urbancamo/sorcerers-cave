@@ -38,6 +38,8 @@ export const save = mutation({
     // Only the standard stranger level is ranked (pluggable stranger combat spec D2): another level changes how hard the game is.
     const level = state.variants?.strangerLevel;
     if (level && level !== "standard") throw new Error("Games against a non-standard stranger level cannot be recorded on the leaderboard");
+    // The revised combat is still provisional rules (Peter's drafts), so its games are not ranked against the standard game's.
+    if (state.variants?.combatRevision) throw new Error("Games played with the revised combat cannot be recorded on the leaderboard");
     const cleanName = name.trim().slice(0, MAX_NAME) || "Anonymous";
     const score = scoreGame(state); // authoritative — never trust a client score
 

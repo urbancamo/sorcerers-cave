@@ -40,7 +40,7 @@ export default defineSchema({
     // `forcedRedraw` (§6.3.2, Dead End rule): solo-only, stamped server-side by `game.ts`'s
     // `withForcedRedraw` from a Convex-only env var — never accepted from a client argument, since
     // it affects scoring difficulty and must stay out of the leaderboard's normal comparison.
-    variants: v.optional(v.object({ zombies: v.optional(v.boolean()), fogLite: v.optional(v.boolean()), concurrent: v.optional(v.boolean()), extensionKit: v.optional(v.boolean()), forcedRedraw: v.optional(v.boolean()), sorcererTeleport: v.optional(v.boolean()), trapRules: v.optional(v.boolean()), sibyl: v.optional(v.boolean()), strangerLevel: v.optional(v.string()) })),
+    variants: v.optional(v.object({ zombies: v.optional(v.boolean()), fogLite: v.optional(v.boolean()), concurrent: v.optional(v.boolean()), extensionKit: v.optional(v.boolean()), forcedRedraw: v.optional(v.boolean()), sorcererTeleport: v.optional(v.boolean()), trapRules: v.optional(v.boolean()), sibyl: v.optional(v.boolean()), strangerLevel: v.optional(v.string()), combatRevision: v.optional(v.boolean()) })),
     createdAt: v.number(),
     updatedAt: v.number(),
   })

@@ -10,8 +10,10 @@ STATUS: Four changes made (the chest Spectre, the Scroll, the Ghouls, the turnco
 I read your 14 October draft and compared each passage you marked in blue with the new (revised) combat engine. This
 note says what already matches, what I changed, what is still different, and two questions for you.
 
-The old combat is untouched throughout. Nothing in the live game switches the new combat on yet, so players cannot reach
-any of this.
+The old combat is untouched throughout. The new combat can now be switched on for a whole deployment (a server setting,
+`REVISED_COMBAT_ENABLED`; players cannot choose it), and then a fight is played on a round-by-round screen with all of the
+choices below. It is off in the live game until we agree it should be on, and a game played with it cannot be recorded on the
+leaderboard while the rules are provisional.
 
 ## Already matching your draft
 
@@ -103,8 +105,8 @@ Roughly smallest to largest.
 ## What I did not do
 
 - I made the chest Spectre, Scroll, Ghouls and turncoat Apprentice changes, with tests. All of the engine tests pass (1343), as do the web tests (784).
-- Nothing in the web game shows the Scroll choice yet. The new combat is not reachable by players, and the choice will
-  come with the formation screen.
-- Nothing in the web game offers the Stay choice yet, for the same reason as the Scroll.
+- The Scroll choice, the Stay choice and the other round decisions are on the new fight screen. I could not try it in a
+  live game, because our development and live games share one backend and I did not want to switch the setting on for live
+  players; it is covered by tests only so far.
 - The rules as converted into the project: `docs/rules/fighting-rules-reformulated-20261014.md` (your wording, with the
   changed passages marked).

@@ -60,7 +60,7 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
     prevComposition.current = composition;
   }, [composition]);
   const draftNow = stale ? emptyDraft() : draft;
-  if (state.phase !== "fight" || !state.fight) return null;
+  if (state.phase !== "fight" || !state.fight || state.fight.rev) return null;   // a revised fight has its own surface (RevisedFightSurface)
 
   // Party-wide "#N" labels so duplicate classes are told apart on every card and in the casualty prompt.
   const labels = memberLabels(state.party);

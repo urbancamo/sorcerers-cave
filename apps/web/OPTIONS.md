@@ -70,6 +70,30 @@ npx convex env remove SORCERER_TELEPORT_ENABLED [--prod]
 
 Any value other than the literal string `1` (including unset) is treated as off.
 
+## `REVISED_COMBAT_ENABLED`
+
+Turns on **the revised combat** (`variants.combatRevision`; Peter's reformulated fighting rules, `docs/rules/fighting-rules-reformulated-20261014.md`,
+engine spec SC-9.7-1 to SC-9.7-17, SC-7.2-21, SC-EXT-42). A fight is no longer one battle plan: it is played round by round on a
+formation screen. The defender deploys, the attacker pairs its free creatures against that front line, either side may then send
+extra creatures into a match, and the matches are fought; a tied or unwinnable match persists into the next round, and the fight ends
+when no match can be decided. It also changes the Scroll (a choice at the start of each round, not a one-off artefact use), the chest
+Spectre (one round only), the Ghouls (a stranger party of their own) and the Apprentice (she turns only if you stay after the
+Sorcerer's death). Solo games only. Without it (or with it switched off) fights are played exactly as before.
+
+Like `FORCED_REDRAW_ENABLED` it is **never player-selectable and never sent by the client**; it is folded into a new game's
+`variants` in `convex/game.ts`. A game keeps the value it was created with. These rules are still provisional, so **a game played
+with it cannot be recorded on the leaderboard** (`highScores.save` refuses it). The strangers' side is played by the level named by
+`STRANGER_STRATEGY` (`standard` when unset).
+
+```bash
+cd apps/web
+npx convex env set REVISED_COMBAT_ENABLED 1        # local dev
+npx convex env set REVISED_COMBAT_ENABLED 1 --prod # production
+npx convex env remove REVISED_COMBAT_ENABLED [--prod]
+```
+
+Any value other than the literal string `1` (including unset) is treated as off.
+
 ## `TRAP_RULES_ENABLED`
 
 Turns on **standing traps and the Dwarf's deliberate fall** (spec

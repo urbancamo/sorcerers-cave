@@ -35,6 +35,13 @@ const actionValidator = v.object({
     strangers: v.array(v.number()),
   }))),
 
+  // The revised combat's party decisions (`variants.combatRevision`): deploy's creatures, engage's pairs, redeploy's moves, and the
+  // Scroll's choice. reduce() enforces the semantics (and that a fight is waiting for them).
+  creatures: v.optional(v.array(v.number())),
+  pairs: v.optional(v.array(v.object({ party: v.number(), stranger: v.number() }))),
+  moves: v.optional(v.array(v.object({ creature: v.number(), match: v.number(), back: v.boolean() }))),
+  use: v.optional(v.union(v.literal("destroy"), v.literal("surprise"), v.literal("decline"))),
+
   // Test Mode (§Test Mode): testPlaceArea's special id, testSetChamber's three id lists,
   // testForceReaction's outcome, and testForceDie/testForceAllDice's raw die value (SC-Test-10).
   // reduce() enforces semantics (including the testMode gate) — this validator only needs to
@@ -87,15 +94,19 @@ const variantsValidator = v.object({ extensionKit: v.optional(v.boolean()), siby
 // `TRAP_RULES_ENABLED`, off by default for the same reason (a trap is one-shot and a Dwarf always
 // avoids it).
 //
+// The revised combat (`variants.combatRevision`, solo only; Peter's reformulated fighting rules) comes from
+// `REVISED_COMBAT_ENABLED`, off by default: a fight is then played round by round with a formation screen instead of the battle plan.
+//
 // The strangers' strategy (`variants.strangerLevel`, solo only; pluggable stranger combat spec) comes from
 // `STRANGER_STRATEGY`, a registered strategy id. Unset, or an id no strategy is registered under, ⇒ not stamped ⇒ the
 // loadout is derived exactly as before. Never accepted from a client.
-type ServerVariants = { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean; sibyl?: boolean; strangerLevel?: string };
+type ServerVariants = { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean; sibyl?: boolean; strangerLevel?: string; combatRevision?: boolean };
 function withForcedRedraw(variants: { extensionKit?: boolean; sibyl?: boolean } | undefined): ServerVariants | undefined {
   let out: ServerVariants | undefined = variants;
   if (process.env.FORCED_REDRAW_ENABLED === "1") out = { ...out, forcedRedraw: true };
   if (process.env.SORCERER_TELEPORT_ENABLED === "1") out = { ...out, sorcererTeleport: true };
   if (process.env.TRAP_RULES_ENABLED === "1") out = { ...out, trapRules: true };
+  if (process.env.REVISED_COMBAT_ENABLED === "1") out = { ...out, combatRevision: true };
   const strategy = process.env.STRANGER_STRATEGY;
   if (strategy && hasStrategy(strategy)) out = { ...out, strangerLevel: strategy };
   return out;

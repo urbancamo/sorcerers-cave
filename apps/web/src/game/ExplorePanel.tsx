@@ -84,6 +84,9 @@ export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: 
   // than a `jumpToIsland`-style blocking confirm.
   const reclaimTreasure = all.find((a): a is Extract<GameAction, { type: "reclaimTreasure" }> => a.type === "reclaimTreasure") ?? null;
   // The Sibyl's free look (SC-SIB-8): the pack top and every face-down tile, offered while she travels with us.
+  // The turncoat Apprentice (revised combat, Peter's Special Fights 6): the Sorcerer is dead and she is still an ally. Leaving parts company
+  // with her; staying turns her, and every stranger here, on the party.
+  const stay = all.find((a) => a.type === "stay") ?? null;
   const sibylLooks = all.filter((a): a is Extract<GameAction, { type: "examineArea" }> => a.type === "examineArea");
   const actions = all.filter(isExploreAction).filter((a) => !(a.type === "useArtifact" && a.artifact === 15));
   const hasKitActions = !!descendChasm || !!drawFromWell || !!enterCrypt || pullBellRope.length > 0 || useElixir.length > 0 || !!jumpToIsland;
@@ -94,7 +97,7 @@ export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: 
     state,
     state.areas[state.partyArea]!.contents.filter((c) => c >= 200 && c < 300).map((c) => c - 200),
   );
-  if (actions.length === 0 && !attack && !hasKitActions && !reclaimTreasure && notes.length === 0 && sibylLooks.length === 0) return null;
+  if (actions.length === 0 && !attack && !hasKitActions && !reclaimTreasure && notes.length === 0 && sibylLooks.length === 0 && !stay) return null;
 
   // Group artifact uses by artifact; openChest (and any single-option artifact) stays a plain button.
   const artByArtifact = new Map<number, UseArtifact[]>();
@@ -120,6 +123,13 @@ export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: 
       {attack && (
         <div className="scv-enc-actions">
           <button className="scv-enc-btn" onClick={() => dispatch(attack)}>Attack the guardians</button>
+        </div>
+      )}
+
+      {stay && (
+        <div className="scv-enc-actions" data-testid="apprentice-watch">
+          <p className="scv-enc-line">The Sorcerer is dead, and the Apprentice is watching you. Leave this area and she is left behind — stay, and she turns on you.</p>
+          <ConfirmButton label="Stay here" confirmText="The Apprentice turns, and she and every stranger here attack the party with surprise." onConfirm={() => dispatch(stay)} />
         </div>
       )}
 
