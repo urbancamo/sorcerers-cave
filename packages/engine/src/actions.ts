@@ -167,6 +167,7 @@ export type GameEvent =
   | { type: "engaged"; pairs: { party: number; stranger: number }[] }
   | { type: "redeployed"; side: "party" | "strangers"; moves: { creature: number; match: number; back: boolean }[] }
   | { type: "strangerCasualty"; nominated: number; victim: number; roll: number } // a stranger pair lost: `nominated` falls on 4-6, else the other (creature ids)
+  | { type: "spectreDeparts" } // the chest Spectre's one round is over and it vanishes (revised combat, Peter 14-OCT-2026)
   | { type: "fightStandoff" } // no side can continue a match, make one or break a stalemate: the fight is over and the party must withdraw
   | { type: "fightWon" }
   // A losing pair's casualty was decided: `roll` is the d6, `gotPreference` whether 4-6 honoured the choice.

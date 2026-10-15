@@ -1805,6 +1805,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
             // No surprise either way (Peter, 10-OCT-2026, Q6): the Consolidated Rules say the Spectre "attacks", not
             // "surprise attacks".
             next.fight = { surprise: 0, round: 1, focus: next.strangers.length - 1 };
+            if (next.variants?.combatRevision) next.fight.oneRound = true;   // Peter, 14-OCT-2026: the fight ends after one round
             next.phase = "fight";
             events.push({ type: "fightStarted", surprise: 0 }, ...beginRevised(next));
           }

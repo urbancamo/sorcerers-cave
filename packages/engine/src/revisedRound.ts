@@ -31,6 +31,7 @@ type Side = "party" | "strangers";
 type Move = { creature: number; match: number; back: boolean };
 type Pair = { party: number; stranger: number };
 
+const C_SPECTRE = 9;
 const C_DRAGON = 10;
 const C_SORCERER = 11;
 const C_APPRENTICE = 14;
@@ -494,6 +495,11 @@ function wrapUp(state: GameState): GameEvent[] {
   fight.round += 1;
   fight.retreatBlocked = false;                    // a round was fought: retreat opens again
   if (livingParty(state).length === 0 || state.strangers.length === 0) return events;
+  if (fight.oneRound) {   // the chest Spectre attacks for one round only, then vanishes (Peter, 14-OCT-2026)
+    for (let i = state.strangers.length - 1; i >= 0; i--) if (state.strangers[i] === C_SPECTRE) removeStranger(state, i);
+    events.push({ type: "spectreDeparts" });
+    return events;
+  }
 
   const keep: RevMatch[] = [];
   for (const m of rev.matches) {

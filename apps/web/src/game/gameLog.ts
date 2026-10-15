@@ -168,6 +168,7 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "engaged": return `${e.pairs.length} match${e.pairs.length === 1 ? "" : "es"} engaged`;
     case "redeployed": return `${e.side} placed ${e.moves.length} surplus`;
     case "strangerCasualty": return `strangers nominated ${creature(e.nominated)}; the die fell on ${creature(e.victim)} (rolled ${e.roll})`;
+    case "spectreDeparts": return "the Spectre has had its one round and vanishes";
     case "fightStandoff": return "no side can continue — the fight is a standoff";
     case "strangerVanished": return `${creature(e.creatureId)} (stranger) vanished with ${treasure(e.artifact)}`;
     case "dragonSlain": return `${creature(e.creatureId)} slew a dragon single-handed — Dragon-slayer ×${e.kills} (+${e.kills} fighting strength)`;
@@ -489,6 +490,7 @@ export function eventCode(e: GameEvent): string | null {
     case "engaged": return `ENG ${e.pairs.length}`;
     case "redeployed": return `RDP ${e.side === "party" ? "P" : "S"} ${e.moves.length}`;
     case "strangerCasualty": return `SCS ${cr3(e.nominated)} ${cr3(e.victim)} R${e.roll}`;
+    case "spectreDeparts": return "SPD";
     case "fightStandoff": return "STANDOFF";
     case "strangerVanished": return `VAN ${cr3(e.creatureId)} ${tr3(e.artifact)}`;
     case "spectreSlew": return `SLW ${cr3(e.creatureId)}`;
