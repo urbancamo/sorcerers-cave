@@ -95,6 +95,14 @@ Roughly smallest to largest.
 4. **Stranger preparation.** Your draft says all artefacts are assumed to be on the floor, guarded by the strangers, before
    they choose loadouts. I believe this is already how it works, but I have not traced it line by line.
 
+## One thing I added that is not in your draft
+
+Playing the new combat I found that when every one of the party's creatures was already in a match, the next round was
+fought immediately: a Woman and a Dwarf lost round 1 to a Man, the Dwarf fell, and the Woman was fought and killed in the
+same step, so the party never had the chance to retreat. From the second round on, a round in which the party has nothing to
+decide now stops and asks "fight on, or retreat?" first. Your draft does not mention this; I think it is what you intend
+(retreat is allowed between rounds), but please say if not.
+
 ## Where the draft still leaves things open
 
 - **Who attacks in the chest Spectre fight?** Your draft gives it no surprise bonus but does not name the attacker.

@@ -283,6 +283,7 @@ const destroyedByScroll = (id: number): boolean => CREATURES[id]!.mp === 0 && id
 
 export function applyScroll(state: GameState, use: "destroy" | "surprise" | "decline"): GameEvent[] {
   const fight = state.fight!, rev = fight.rev!, events: GameEvent[] = [];
+  rev.partyActed = true;
   delete fight.pending;
   rev.step = "deploy";
   if (use === "decline") return [...events, ...advance(state)];
@@ -307,6 +308,7 @@ export function applyScroll(state: GameState, use: "destroy" | "surprise" | "dec
 
 export function applyDeploy(state: GameState, side: Side, creatures: number[]): GameEvent[] {
   const rev = revOf(state);
+  if (side === "party") rev.partyActed = true;
   rev.deployed[side] = creatures.slice();
   rev.step = "engage";
   delete state.fight!.pending;
@@ -315,6 +317,7 @@ export function applyDeploy(state: GameState, side: Side, creatures: number[]): 
 
 export function applyEngage(state: GameState, attacker: Side, pairs: Pair[]): GameEvent[] {
   const rev = revOf(state), def = other(attacker);
+  if (attacker === "party") rev.partyActed = true;
   for (const p of pairs) {
     rev.matches.push(attacker === "strangers" ? { sf: [p.stranger], pf: [p.party], pb: [], sb: [] } : { pf: [p.party], sf: [p.stranger], pb: [], sb: [] });
     rev.progress = true;
@@ -328,6 +331,7 @@ export function applyEngage(state: GameState, attacker: Side, pairs: Pair[]): Ga
 
 export function applyRedeploy(state: GameState, side: Side, moves: Move[]): GameEvent[] {
   const rev = revOf(state);
+  if (side === "party") rev.partyActed = true;
   for (const mv of moves) {
     const m = rev.matches[mv.match]!;
     (mv.back ? back(m, side) : front(m, side)).push(mv.creature);
@@ -400,7 +404,17 @@ export function advance(state: GameState): GameEvent[] {
         return events;
       }
       case "surplus": {
-        if (rev.surplusTurn >= 2) { rev.step = "fight"; break; }
+        if (rev.surplusTurn >= 2) {
+          // A round from the second on in which the party has had nothing to decide (every creature is already in a match) would be
+          // fought on the spot, with no chance to retreat first. Pause on an empty redeploy: fight on, or retreat.
+          const retreatOpen = !state.fellThroughTrap && !fight.retreatBlocked;
+          if (fight.round >= 2 && !rev.partyActed && retreatOpen && livingParty(state).length > 0 && rev.matches.length > 0) {
+            rev.partyActed = true;
+            fight.pending = { by: "party", kind: "redeploy" };
+            return events;
+          }
+          rev.step = "fight"; break;
+        }
         const side = rev.surplusTurn === 0 ? rev.attacker : other(rev.attacker);
         if (rev.matches.length === 0 || legalMoves(state, side).length === 0) { rev.surplusTurn++; break; }
         fight.pending = { by: side, kind: "redeploy" };
@@ -561,7 +575,7 @@ function wrapUp(state: GameState): GameEvent[] {
     events.push({ type: "fightStandoff" });
     return events;
   }
-  rev.step = "scroll"; rev.surplusTurn = 0; rev.progress = false; rev.cursor = 0; delete rev.bonus;
+  rev.step = "scroll"; rev.surplusTurn = 0; rev.progress = false; rev.cursor = 0; delete rev.bonus; delete rev.partyActed;
   return events;
 }
 

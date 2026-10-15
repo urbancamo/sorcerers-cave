@@ -124,6 +124,21 @@ describe("RevisedFightSurface", () => {
     expect(sent.moves).toHaveLength(1);
   });
 
+  it("redeploy with nothing to arrange says so, and still offers fight-on and retreat", () => {
+    const dispatch = vi.fn();
+    const s = attacking([OGRE]);
+    s.fight!.round = 2; s.fight!.pending = { by: "party", kind: "redeploy" };
+    s.fight!.rev!.matches = [{ pf: [0], pb: [], sf: [0], sb: [] }];
+    s.fight!.rev!.deployed = { party: [], strangers: [] };
+    s.party.forEach((m, i) => { if (i > 0) m.status = 3; });
+    s.areas[s.partyArea]!.card = 15 | 16;
+    render(<RevisedFightSurface state={s} dispatch={dispatch} cards={cards} />);
+    expect(screen.getByText(/nothing to arrange/i)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /retreat/i })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /roll the round/i }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "redeploy", moves: [] });
+  });
+
   it("says the strangers are deciding, and offers nothing, while their decision is pending", () => {
     const s = attacking([OGRE]);
     s.fight!.pending = { by: "strangers", kind: "engage" };

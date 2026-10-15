@@ -189,7 +189,11 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
 
       {mine?.kind === "redeploy" && (
         <div className="scv-rev-decision" data-testid="rev-redeploy">
-          <p className="scv-fight-sub">Send spare creatures into a match, or a caster behind one. You need not move anyone.</p>
+          <p className="scv-fight-sub">
+            {allMoves.length
+              ? "Send spare creatures into a match, or a caster behind one. You need not move anyone."
+              : "Nothing to arrange — every creature is already in a match. Fight on, or retreat."}
+          </p>
           <div className="scv-rev-moves">
             {allMoves.map((m) => {
               const on = usedMoves.some((x) => x.creature === m.creature && x.match === m.match && x.back === m.back);

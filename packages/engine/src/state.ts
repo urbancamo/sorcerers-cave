@@ -162,6 +162,7 @@ export interface RevFight {
   deployed: { party: number[]; strangers: number[] };   // unengaged creatures already in the front line this round
   step: "scroll" | "deploy" | "engage" | "surplus" | "fight" | "wrap";
   surplusTurn: number;                       // 0: the attacker's surplus decision is next, 1: the defender's
+  partyActed?: boolean;                      // the party was asked something this round (else a round from the second on pauses for a retreat)
   progress: boolean;                         // something happened this round (else the standoff ends the fight)
   cursor: number;                            // the next match to fight
   nominating?: number;                       // the match whose stranger pair lost and is waiting to nominate a casualty
