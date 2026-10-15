@@ -135,6 +135,7 @@ export interface FightState {
 /** What the fight is waiting for. The strangers' decisions are taken by the driver (strangerDriver.ts); the party's by the player. */
 export type PendingDecision = (
   | { by: "strangers"; kind: "loadout" }
+  | { by: "party"; kind: "scroll"; surprise: boolean }   // the Scroll option (revised combat, attacker only); `surprise`: round 1, the bonus is also on offer
   | { by: "strangers" | "party"; kind: "deploy"; min: number }
   | { by: "strangers" | "party"; kind: "engage" }
   | { by: "strangers" | "party"; kind: "redeploy" }
@@ -155,12 +156,13 @@ export interface RevFight {
   attacker: "party" | "strangers";           // who started the fight; fixed for the whole fight
   matches: RevMatch[];
   deployed: { party: number[]; strangers: number[] };   // unengaged creatures already in the front line this round
-  step: "deploy" | "engage" | "surplus" | "fight" | "wrap";
+  step: "scroll" | "deploy" | "engage" | "surplus" | "fight" | "wrap";
   surplusTurn: number;                       // 0: the attacker's surplus decision is next, 1: the defender's
   progress: boolean;                         // something happened this round (else the standoff ends the fight)
   cursor: number;                            // the next match to fight
   nominating?: number;                       // the match whose stranger pair lost and is waiting to nominate a casualty
   bonus?: { party: number; strangers: number; partyRing: boolean; strangersRing: boolean };   // die bonuses fixed at the start of the fight step
+  scrollSurprise?: true;                     // the attacker used the Scroll for +1 surprise in round 1
   killed: number[];                          // stranger indices slain this round, removed at wrap-up
   standoff?: true;                           // the fight is over by the Q2 test; the party's only way out is to retreat
 }
@@ -188,6 +190,8 @@ export interface GameState {
   sorcererKilled: boolean;
   areas: PlacedArea[];
   partyArea: number; // index into areas
+  // The revised combat's Scroll (Peter, 14-OCT-2026): the areas where it has been used — it cannot be used in one of them again.
+  scrollAreas?: number[];
   level: number;
   prev: number; // previous area index
   prev2: number; // area two moves back (earthquake)

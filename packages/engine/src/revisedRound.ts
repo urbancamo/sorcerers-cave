@@ -17,7 +17,7 @@ import { ALL_CREATURES as CREATURES } from "./data/creatures";
 import { ALL_TREASURES } from "./data/treasures";
 import { rollDieForState } from "./rng";
 import { casterMP, frontStrength, isCaster, partyRollBonus } from "./combat";
-import { eyeForsakenByDeath, eyePresent, markDied, ringInvincible, slaySorcerer } from "./effects";
+import { eyeForsakenByDeath, eyePresent, hasLivingHuman, markDied, ringInvincible, slaySorcerer } from "./effects";
 import {
   MAGIC_ONLY_IDS, enemyRollBonus, isShieldStalemate, living, magicOnlyBypass, matchShielded, shieldedMP, strangerFS, strangerInvincible,
   strangerMP, strangerShielded,
@@ -33,6 +33,8 @@ type Pair = { party: number; stranger: number };
 
 const C_SPECTRE = 9;
 const C_DRAGON = 10;
+const C_SIBYL = 21;
+const T_SCROLL = 19;
 const C_SORCERER = 11;
 const C_APPRENTICE = 14;
 const T_THE_RING = 10;
@@ -218,7 +220,7 @@ function bonusesFor(state: GameState): NonNullable<RevFight["bonus"]> {
   const surprise = fight.round === 1 ? 1 : 0;
   const sBonus = enemyRollBonus(state);
   return {
-    party: partyRollBonus(state) + (surprise && rev.attacker === "party" && fight.surprise > 0 ? 1 : 0),
+    party: partyRollBonus(state) + (surprise && rev.attacker === "party" && fight.surprise > 0 ? 1 : 0) + (surprise && rev.scrollSurprise ? 1 : 0),
     strangers: sBonus + (surprise && rev.attacker === "strangers" && fight.surprise < 0 ? 1 : 0),
     partyRing: !eyePresent(state) && livingParty(state).some((i) => state.party[i]!.treasure.includes(T_THE_RING)),
     strangersRing: sBonus > 0,
@@ -260,8 +262,47 @@ export function initRevised(state: GameState): void {
   const fight = state.fight!;
   fight.rev = {
     attacker: fight.surprise < 0 ? "strangers" : "party", matches: [], deployed: { party: [], strangers: [] },
-    step: "deploy", surplusTurn: 0, progress: false, cursor: 0, killed: [],
+    step: "scroll", surplusTurn: 0, progress: false, cursor: 0, killed: [],
   };
+}
+
+// ---------------------------------------------------------------------------------------------------------------------------
+// The Scroll option (Peter's Step b, 14-OCT-2026): the attacking player party only, once per area, never under the Eye
+
+/** Is the Scroll on offer to the party now? It must be the attacker, a living member must carry the Scroll and a living human be present
+ *  to read it, the Eye absent, the area unused, and there must be something to gain: the round-1 surprise, or a stranger to destroy. */
+function scrollOffered(state: GameState): boolean {
+  const fight = state.fight!;
+  if (fight.rev!.attacker !== "party" || eyePresent(state) || state.scrollAreas?.includes(state.partyArea)) return false;
+  if (!livingParty(state).some((i) => state.party[i]!.treasure.includes(T_SCROLL)) || !hasLivingHuman(state)) return false;
+  return fight.round === 1 || state.strangers.some(destroyedByScroll);
+}
+
+/** The Scroll destroys a stranger without innate magical power — a Ring-bearer on level 4+ too (Peter, 15-OCT-2026) — but not the Sibyl. */
+const destroyedByScroll = (id: number): boolean => CREATURES[id]!.mp === 0 && id !== C_SIBYL;
+
+export function applyScroll(state: GameState, use: "destroy" | "surprise" | "decline"): GameEvent[] {
+  const fight = state.fight!, rev = fight.rev!, events: GameEvent[] = [];
+  delete fight.pending;
+  rev.step = "deploy";
+  if (use === "decline") return [...events, ...advance(state)];
+  state.curses += 1;                                          // the attacker is cursed either way; the Scroll is not consumed
+  state.scrollAreas = [...(state.scrollAreas ?? []), state.partyArea];
+  if (use === "surprise") return [{ type: "scrollSurprise" }, ...((rev.scrollSurprise = true), advance(state))];
+  const destroyed: number[] = [], survivors: number[] = [];
+  for (let i = state.strangers.length - 1; i >= 0; i--) {    // highest first, so the indices still to visit stay put
+    const id = state.strangers[i]!;
+    if (!destroyedByScroll(id)) { survivors.unshift(id); continue; }
+    destroyed.unshift(id);
+    removeStranger(state, i);                                 // what they bore falls to the floor
+    const shift = (list: number[]): number[] => list.filter((n) => n !== i).map((n) => (n > i ? n - 1 : n));
+    for (const m of rev.matches) { m.sf = shift(m.sf); m.sb = shift(m.sb); }
+    rev.deployed.strangers = shift(rev.deployed.strangers);
+  }
+  rev.matches = rev.matches.filter((m) => m.sf.length > 0);   // a match whose strangers are gone dissolves; its party side is unengaged again
+  rev.progress = true;
+  events.push({ type: "scrollRead", destroyed, survivors });
+  return [...events, ...advance(state)];
 }
 
 export function applyDeploy(state: GameState, side: Side, creatures: number[]): GameEvent[] {
@@ -341,6 +382,11 @@ export function advance(state: GameState): GameEvent[] {
     // a side wiped out ends the fight, but only once the round is wrapped (the slain are removed there)
     if (rev.step !== "fight" && rev.step !== "wrap" && (livingParty(state).length === 0 || livingStrangers(state).length === 0)) return events;
     switch (rev.step) {
+      case "scroll": {
+        if (scrollOffered(state)) { fight.pending = { by: "party", kind: "scroll", surprise: fight.round === 1 }; return events; }
+        rev.step = "deploy";
+        break;
+      }
       case "deploy": {
         const attacker = rev.attacker, defender = other(attacker);
         const attFree = freeOf(state, attacker).length, defFree = freeOf(state, defender);
@@ -515,7 +561,7 @@ function wrapUp(state: GameState): GameEvent[] {
     events.push({ type: "fightStandoff" });
     return events;
   }
-  rev.step = "deploy"; rev.surplusTurn = 0; rev.progress = false; rev.cursor = 0; delete rev.bonus;
+  rev.step = "scroll"; rev.surplusTurn = 0; rev.progress = false; rev.cursor = 0; delete rev.bonus;
   return events;
 }
 

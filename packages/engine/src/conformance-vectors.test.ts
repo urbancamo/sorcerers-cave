@@ -155,6 +155,7 @@ function encodeAction(a: GameAction): string {
     // A stranger strategy's logged decision (pluggable stranger combat spec §5.3); never produced by the recorded solo vectors.
     case "deploy": return `DEPLOY ${a.creatures.join(",") || "-"}`;
     case "engage": return `ENGAGE ${a.pairs.map((x) => `${x.party}:${x.stranger}`).join(",") || "-"}`;
+    case "scroll": return `SCROLL ${a.use.toUpperCase()}`;
     case "redeploy": return `REDEPLOY ${a.moves.map((x) => `${x.creature}:${x.match}${x.back ? "b" : "f"}`).join(",") || "-"}`;
     case "strangersDeploy": return `STRANGERS-DEPLOY ${a.strategyId} ${a.strategyVersion} ${a.creatures.join(",") || "-"}`;
     case "strangersEngage": return `STRANGERS-ENGAGE ${a.strategyId} ${a.strategyVersion} ${a.pairs.map((x) => `${x.party}:${x.stranger}`).join(",") || "-"}`;

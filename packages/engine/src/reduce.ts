@@ -34,7 +34,7 @@ import { TREASURES as BASE_TREASURES } from "./data/treasures";
 import { applyAllocations, equipStrangers, loadoutViolation } from "./strangerEquip";
 import { removeStranger, addStranger, dropAllGear } from "./strangerGear";
 import {
-  advance as advanceRevised, applyDeploy, applyEngage, applyNominate, applyRedeploy, deployViolation, dropPartyMember, engageViolation, initRevised,
+  advance as advanceRevised, applyScroll, applyDeploy, applyEngage, applyNominate, applyRedeploy, deployViolation, dropPartyMember, engageViolation, initRevised,
   nominateViolation, redeployViolation, resumeAfterCasualties,
 } from "./revisedRound";
 
@@ -822,6 +822,13 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
     const events = action.type === "deploy" ? applyDeploy(next, "party", action.creatures)
       : action.type === "engage" ? applyEngage(next, "party", action.pairs)
       : applyRedeploy(next, "party", action.moves);
+    events.push(...finalizeRound(next));
+    return { state: next, events };
+  }
+  if (action.type === "scroll") {
+    if (state.phase !== "fight" || !state.fight?.rev || pending?.by !== "party" || pending.kind !== "scroll" || (action.use === "surprise" && !pending.surprise)) return revBlocked;
+    const next = structuredClone(state);
+    const events = applyScroll(next, action.use);
     events.push(...finalizeRound(next));
     return { state: next, events };
   }
@@ -1759,6 +1766,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         }
         case 19: { // Scroll — destroys every mp===0 stranger in the area; curses the party (US-21, SC-EXT-25)
           if (next.phase !== "encounter" && next.phase !== "fight") return { state, events: [{ type: "blocked" }] };
+          if (next.variants?.combatRevision) return { state, events: [{ type: "blocked" }] };   // the revised combat has its own Scroll step (revisedRound.ts)
           if (!hasLivingHuman(next) || next.strangers.length === 0) return { state, events: [{ type: "blocked" }] };
           consume();
           const destroyed: number[] = [];

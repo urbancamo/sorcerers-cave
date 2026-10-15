@@ -460,7 +460,7 @@ export function eventNotices(events: GameEvent[]): Notice[] {
         break;
       case "strategyFallback":
         break; // an operator's concern (the game log), not the player's
-      case "deployed": case "engaged": case "redeployed": case "strangerCasualty": case "fightStandoff": case "spectreDeparts":
+      case "deployed": case "engaged": case "redeployed": case "strangerCasualty": case "fightStandoff": case "spectreDeparts": case "scrollSurprise":
         break; // the revised round engine (`variants.combatRevision`) has no player surface yet
       default:
         assertNever(e);

@@ -78,6 +78,7 @@ export type GameAction =
   // the deployed front line), `redeploy` (either side's surplus: join a match's front line or, for a caster, back it).
   | { type: "deploy"; creatures: number[] }
   | { type: "engage"; pairs: { party: number; stranger: number }[] }
+  | { type: "scroll"; use: "destroy" | "surprise" | "decline" }   // the attacker's Scroll option in a revised fight (`surprise` only in round 1)
   | { type: "redeploy"; moves: { creature: number; match: number; back: boolean }[] }
   // The strangers' counterparts, applied by the driver and never accepted from a client (like `strangersAssignArtefacts`).
   | { type: "strangersDeploy"; strategyId: string; strategyVersion: number; creatures: number[]; fallback?: { from: string; reason: string } }
@@ -167,6 +168,7 @@ export type GameEvent =
   | { type: "engaged"; pairs: { party: number; stranger: number }[] }
   | { type: "redeployed"; side: "party" | "strangers"; moves: { creature: number; match: number; back: boolean }[] }
   | { type: "strangerCasualty"; nominated: number; victim: number; roll: number } // a stranger pair lost: `nominated` falls on 4-6, else the other (creature ids)
+  | { type: "scrollSurprise" } // the Scroll used in round 1 for +1 to the surprise bonus (revised combat)
   | { type: "spectreDeparts" } // the chest Spectre's one round is over and it vanishes (revised combat, Peter 14-OCT-2026)
   | { type: "fightStandoff" } // no side can continue a match, make one or break a stalemate: the fight is over and the party must withdraw
   | { type: "fightWon" }

@@ -4,7 +4,7 @@
 DATE: 15-OCT-2026
 FOR: Peter
 RE: "Fighting Rules Reformulated (Draft 20261014)" compared with the new combat engine
-STATUS: One change made (the chest Spectre). The rest are listed below, not yet built.
+STATUS: Two changes made (the chest Spectre, the Scroll). The rest are listed below, not yet built.
 ```
 
 I read your 14 October draft and compared each passage you marked in blue with the new (revised) combat engine. This
@@ -36,17 +36,24 @@ round. I chose "it vanishes", which fits the old wording that it "appears and at
 the area as an ordinary stranger and the party meets it again if they linger or come back. If you prefer that, say so and
 I will change it.
 
+**The Scroll is now a step of each round in the new combat**, following your Step b and your ring-bearer clarification of
+15 October.
+
+- It is offered only to a player party that is the attacker, carries the Scroll with a human present, with no Eye, and
+  not in an area where it has already been used.
+- It can destroy every stranger without innate magical power. A non-magic Ring-bearer on level 4 or deeper is destroyed
+  like the rest and drops the Ring. The Sibyl is never destroyed. What the destroyed carried falls to the floor.
+- In round 1 the attacker can instead add 1 to its surprise bonus.
+- Either way the attacker is cursed. The Scroll is not used up, but cannot be used again in the same area.
+- If nobody is left the party has won (a round with no matches); a caster that survives is fought as usual.
+- Strangers never read it, and the standard party in our tests always declines it, because it costs a curse.
+- Reading it any other way is closed in the new combat. The old combat is unchanged.
+
 ## Still different from your draft (not yet built)
 
 Roughly smallest to largest.
 
-1. **The Scroll.** This is the biggest gap.
-   - The game still lets any human in the party read it, in any round, and it is used up when read. Your draft has it
-     attacker-only, never consumed, and not usable in an area where it has already been used.
-   - Your draft also lets the attacker use it in round 1 to add 1 to the surprise bonus instead of destroying fighters.
-     The game has no such option.
-   - Your draft says an invulnerable Ring-bearer on level 4 or below is defeated and disappears with the Ring. The game
-     does not do that. I have not checked how Sybil and the Magic Shield are handled.
+1. **The Scroll: now built for the new combat** (see below). The old combat still reads it the old way.
 2. **Turncoat Apprentice.** Today the Apprentice turns into a stranger the moment the Sorcerer is slain, and the fight
    that follows has no surprise. Your draft says she joins the other strangers only if the party does not leave in its next
    turn, and then they attack with surprise. That needs a "stay or leave" step the game does not have.
@@ -65,9 +72,10 @@ Roughly smallest to largest.
 
 ## What I did not do
 
-- I made the chest Spectre change, with tests, and nothing else. All of the engine tests pass (1316), as do the web tests
-  (784).
-- The Scroll, turncoat Apprentice and Ghouls items above are not started. They will be built for the new combat only,
-  leaving the old combat as it is.
+- I made the chest Spectre and Scroll changes, with tests. All of the engine tests pass (1328), as do the web tests (784).
+- Nothing in the web game shows the Scroll choice yet. The new combat is not reachable by players, and the choice will
+  come with the formation screen.
+- The turncoat Apprentice and Ghouls items above are not started. They will be built for the new combat only, leaving the
+  old combat as it is.
 - The rules as converted into the project: `docs/rules/fighting-rules-reformulated-20261014.md` (your wording, with the
   changed passages marked).

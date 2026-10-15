@@ -25,6 +25,7 @@ export function partyAction(state: GameState): GameAction | null {
   if (pending?.by !== "party") return null;
   const base = { view: fightView(state), rngSeed: 0, budget: { maxNodes: 1 }, side: "party" as const };
   switch (pending.kind) {
+    case "scroll": return { type: "scroll", use: "decline" };   // the `standard` party never reads the Scroll: it costs a curse
     case "deploy": return { type: "deploy", creatures: standardDeploy({ ...base, free: freeOf(state, "party"), min: pending.min }).creatures };
     case "engage": {
       const ctx = { ...base, own: freeOf(state, "party"), foes: fight.rev.deployed.strangers.slice(), legalPairs: legalPairs(state, "party") };
