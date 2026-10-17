@@ -45,7 +45,7 @@ export function normExits(exits: string): string {
 }
 
 const tileIdOf = (file: string) => file.replace(/^area-tile-/, "").replace(/\.png$/, "");
-const cardIdOf = (file: string) => file.replace(/^small-card-/, "").replace(/\.png$/, "");
+const cardIdOf = (file: string) => file.replace(/^small-card-/, "").replace(/\.(png|jpe?g)$/, "");
 const urlOf = (dir: string, file: string) => `${ASSET_BASE}/${dir}/${file}`;
 
 const tilesOf = (cat: AssetCategory | undefined): TileArt[] =>

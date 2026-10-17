@@ -340,7 +340,7 @@ describe("MP-kit golden firewall — kit-on multiplayer behaviour is frozen", ()
     // ends the loan naturally", would have returned him at step 12 and is contradicted here.)
     const d = probes.dissolve;
     expect(d).not.toBeNull();
-    expect(d!.step).toBe(41);
+    expect(d!.step).toBe(40);   // was 41 before the EWD deck card (AREA_CARDS[41], SC-3-3, 18-OCT-2026) shifted this scripted game by a step
     expect(d!.subSeat).toBe(1);
     expect(d!.subParty).toContainEqual(expect.objectContaining({ creatureId: 5, status: 3 }));
     for (const m of d!.subParty) expect(m.mpTag).toBeUndefined();     // came home, loan record gone
