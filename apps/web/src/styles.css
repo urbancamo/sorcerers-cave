@@ -2018,6 +2018,27 @@
 .scv-rev-matches { display: flex; flex-direction: column; gap: 10px; }
 .scv-rev-match { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .scv-rev-side { display: flex; gap: 10px; align-items: flex-start; }
+.scv-rev-frontline { align-self: flex-start; min-width: 254px; }
+/* The Ghouls' announcement (RevisedFightSurface): a cold, green-lit gloom with drifting mist and a guttering title. Decoration only. */
+.scv-ghouls { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; padding: 16px; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 40%, rgba(24,44,30,.92), rgba(4,8,6,.97) 70%); animation: scv-ghouls-in .9s ease-out both; }
+.scv-ghouls-mist { position: absolute; inset: -20%; pointer-events: none; opacity: .5;
+  background: radial-gradient(40% 30% at 20% 70%, rgba(120,190,140,.35), transparent 70%), radial-gradient(35% 28% at 80% 30%, rgba(140,200,160,.28), transparent 70%),
+              radial-gradient(45% 30% at 55% 85%, rgba(100,170,125,.3), transparent 70%);
+  filter: blur(14px); animation: scv-ghouls-drift 14s ease-in-out infinite alternate; }
+.scv-ghouls-card { position: relative; max-width: 460px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; padding: 26px 24px;
+  border: 1px solid rgba(140,200,160,.35); border-radius: 14px; background: rgba(6,12,9,.72); box-shadow: 0 0 60px -10px rgba(110,190,135,.5), inset 0 0 40px rgba(0,0,0,.6); }
+.scv-ghouls-skull { font-size: 54px; line-height: 1; color: #c9e8d0; text-shadow: 0 0 18px rgba(130,220,160,.9), 0 0 42px rgba(90,180,120,.6); animation: scv-ghouls-rise 3.2s ease-in-out infinite; }
+.scv-ghouls-title { margin: 0; font-family: var(--display); font-size: 30px; letter-spacing: .06em; color: #d6f0dc; text-shadow: 0 0 14px rgba(120,210,150,.8); animation: scv-ghouls-gutter 4.5s linear infinite; }
+.scv-ghouls-lede { margin: 0; font-family: var(--body); font-style: italic; font-size: 15px; color: var(--parchment); }
+.scv-ghouls-facts { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 7px; font-family: var(--body); font-size: 13.5px; color: var(--stone); text-align: left; }
+.scv-ghouls-facts li::before { content: "✦ "; color: #7fae8f; }
+.scv-ghouls-facts b { color: var(--cream); font-weight: 600; }
+@keyframes scv-ghouls-in { from { opacity: 0; filter: brightness(2.2); } to { opacity: 1; filter: none; } }
+@keyframes scv-ghouls-drift { from { transform: translate3d(-4%, 2%, 0) scale(1); } to { transform: translate3d(4%, -3%, 0) scale(1.12); } }
+@keyframes scv-ghouls-rise { 0%, 100% { transform: translateY(3px); opacity: .85; } 50% { transform: translateY(-5px); opacity: 1; } }
+@keyframes scv-ghouls-gutter { 0%, 100% { opacity: 1; } 8% { opacity: .55; } 10% { opacity: 1; } 46% { opacity: 1; } 48% { opacity: .35; } 50% { opacity: .9; } 52% { opacity: .5; } 54% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .scv-ghouls, .scv-ghouls-mist, .scv-ghouls-skull, .scv-ghouls-title { animation: none; } }
 .scv-rev-decision { display: flex; flex-direction: column; gap: 8px; }
 .scv-rev-moves { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .scv-fight-btn { font-family: var(--ui); font-size: 13.5px; padding: 9px 14px; border-radius: 9px; border: 1px solid var(--line-strong); color: var(--parchment); background: rgba(201,161,78,.06); cursor: pointer; }
