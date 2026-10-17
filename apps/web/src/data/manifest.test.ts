@@ -136,9 +136,14 @@ describe("real manifest ↔ engine coverage (D-1 de-risk)", () => {
     real = parseManifest(REAL);
   });
 
-  it("parses 90 tiles and 102 cards from the real manifest (base + extension-kit merged)", () => {
+  it("parses 90 tiles and 103 cards from the real manifest (base + extension-kit merged)", () => {
     expect(real.tiles.length).toBe(90);
-    expect(real.cards.length).toBe(102);
+    expect(real.cards.length).toBe(103);
+  });
+
+  it("has a card for the revised combat's Ghoul (creature 22), a .jpg", () => {
+    const ghoul = resolveCard("creature", 22, real.cards);
+    expect(ghoul).toMatchObject({ cardId: "ghoul", file: "/assets/cards/small-card-ghoul.jpg", name: "Ghoul" });
   });
 
   it("every engine area-card topology resolves to a tile + rotation", () => {

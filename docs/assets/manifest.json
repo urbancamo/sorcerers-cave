@@ -506,7 +506,7 @@
           "file": "area-tile-s12-3.png",
           "w": 1728,
           "h": 1210,
-          "exits": "ESW",
+          "exits": "NEW",
           "tileType": "chamber",
           "special": null,
           "stairUp": false,
@@ -639,8 +639,8 @@
           "exits": "EW",
           "tileType": "tunnel",
           "special": null,
-          "stairUp": true,
-          "stairDown": false
+          "stairUp": false,
+          "stairDown": true
         }
       ]
     },
@@ -956,8 +956,8 @@
     "cards": {
       "dir": "cards",
       "source": "base",
-      "description": "Small cards: creatures, treasures, artifacts, hazards (63x88mm), upright portrait. Each card identified by its yellow name banner: name + category (creature/treasure/hazard) + engine entityId (21 for the optional Sibyl variant). 38 creatures + 27 treasures + 7 hazards.",
-      "count": 72,
+      "description": "Small cards: creatures, treasures, artifacts, hazards (63x88mm), upright portrait. Each card identified by its yellow name banner: name + category (creature/treasure/hazard) + engine entityId (21 for the optional Sibyl variant, 22 for the revised-combat Ghoul). 39 creatures + 27 treasures + 7 hazards.",
+      "count": 73,
       "items": [
         {
           "file": "small-card-s01-1.png",
@@ -1398,6 +1398,14 @@
           "name": "Sibyl",
           "category": "creature",
           "entityId": 21
+        },
+        {
+          "file": "small-card-ghoul.jpg",
+          "w": 700,
+          "h": 1000,
+          "name": "Ghoul",
+          "category": "creature",
+          "entityId": 22
         },
         {
           "file": "small-card-s07-8.png",
