@@ -9,6 +9,7 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as endpointClient from "../endpointClient.js";
 import type * as game from "../game.js";
 import type * as highScores from "../highScores.js";
 import type * as http from "../http.js";
@@ -23,6 +24,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  endpointClient: typeof endpointClient;
   game: typeof game;
   highScores: typeof highScores;
   http: typeof http;
