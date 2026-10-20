@@ -261,11 +261,11 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
   return (
     <div className="scv-fight scv-rev" data-testid="rev-fight">
       {introDue && (
-        <div className="scv-ghouls" role="dialog" aria-label="The Ghouls attack" data-testid="ghouls-intro">
+        <div className="scv-ghouls" role="dialog" aria-label="Ghouls attack" data-testid="ghouls-intro">
           <div className="scv-ghouls-mist" aria-hidden="true" />
           <div className="scv-ghouls-card">
             <div className="scv-ghouls-skull" aria-hidden="true">☠</div>
-            <h2 className="scv-ghouls-title">The Ghouls attack!</h2>
+            <h2 className="scv-ghouls-title">Ghouls attack!</h2>
             <p className="scv-ghouls-lede">They boil out of the dark: <b>{state.strangers.length}</b> of them, one for every creature in your party.</p>
             <ul className="scv-ghouls-facts">
               <li>Each Ghoul fights at <b>strength 2</b>, and neither side has surprise.</li>

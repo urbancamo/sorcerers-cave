@@ -104,7 +104,7 @@ describe("RevisedFightSurface", () => {
       const dispatch = vi.fn();
       render(<RevisedFightSurface state={ghoulFight([5, 6, 7], 3)} dispatch={dispatch} cards={cards} />);
       const intro = screen.getByTestId("ghouls-intro");
-      expect(intro).toHaveTextContent(/the ghouls attack/i);
+      expect(intro).toHaveTextContent(/ghouls attack/i);
       expect(intro).toHaveTextContent(/strength 2/i);
       expect(intro).toHaveTextContent(/heavy treasure/i);
       expect(intro).toHaveTextContent(/next party/i);
