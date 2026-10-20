@@ -156,7 +156,7 @@ describe("trapRules (server-stamped, off by default)", () => {
 // ---------------------------------------------------------------------------
 // Task 2: applyAction round-trip + query authority
 // ---------------------------------------------------------------------------
-import { reduce, replay } from "@sorcerers-cave/engine";
+import { reduce, replay, driveStrangers } from "@sorcerers-cave/engine";
 // `asUser` and `createGameState` are defined above (Task 1).
 
 test("applyAction matches the local engine and logs the event", async () => {
@@ -175,6 +175,21 @@ test("applyAction matches the local engine and logs the event", async () => {
   );
   expect(logged.length).toBe(1);
   expect(logged[0]!.seq).toBe(0);
+});
+
+test("applyAction returns the strangers' automatic follow-ups too, so the client can present their dice", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 7, picks: [0] });
+  // A revised-combat encounter: after the party attacks, the strangers' deployment is decided by the server in the same call.
+  const base = createGameState(7, [0]);
+  const enc = { ...base, phase: "encounter" as const, strangers: [10], treasures: [], variants: { ...base.variants, combatRevision: true } };
+  await t.run((ctx) => ctx.db.patch(id, { state: enc as never }));
+  const mine = reduce(enc, { type: "attack" });
+  const driven = driveStrangers(mine.state);
+  expect(driven.applied.length).toBeGreaterThan(0);
+  const res = await as.mutation(api.game.applyAction, { id, action: { type: "attack" } });
+  expect(res.events).toEqual([...mine.events, ...driven.applied.flatMap((a) => a.events)]);
 });
 
 test("applyAction accepts a resolveRound action carrying matches (arg validator)", async () => {

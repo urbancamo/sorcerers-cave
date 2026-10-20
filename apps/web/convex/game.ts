@@ -271,7 +271,9 @@ export const applyAction = mutation({
     for (const r of rows) await ctx.db.insert("gameEvents", { gameId: id, seq: seq++, action: r.action, events: r.events });
     // midState (SC-4-43): the pre-relocation presentation snapshot — never persisted,
     // returned only so the client can hold the interrupted room as the backdrop.
-    return { state, events, midState };
+    // The events the client presents (dice, notices) include the strangers' automatic follow-ups: in a revised fight the
+    // round's rolls (and a game-ending one) often fall in the call the server drove after the player's own action.
+    return { state, events: [...events, ...driven.applied.flatMap((a) => a.events)], midState };
   },
 });
 
