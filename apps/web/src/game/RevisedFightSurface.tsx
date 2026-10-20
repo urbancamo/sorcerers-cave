@@ -269,9 +269,9 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
             <p className="scv-ghouls-lede">They boil out of the dark: <b>{state.strangers.length}</b> of them, one for every creature in your party.</p>
             <ul className="scv-ghouls-facts">
               <li>Each Ghoul fights at <b>strength 2</b>, and neither side has surprise.</li>
-              <li>Each of your creatures will face one — <b>whoever loses a duel is slain</b>.</li>
-              <li>Your <b>heavy treasure is dropped</b> for the fight; you can take it back if you win.</li>
-              <li>Win or flee, the Ghouls stay here and <b>attack the next party</b> that comes in.</li>
+              <li>Each of your creatures faces one, <b>one round only</b> — whoever loses a duel is slain, and any Ghoul left then withdraws.</li>
+              <li>Your <b>heavy treasure is dropped</b> for the fight, and taken back afterwards.</li>
+              <li>The Ghouls stay here and <b>attack the next party</b> that comes in.</li>
             </ul>
             <button className="scv-fight-btn primary" autoFocus onClick={() => setSeen(true)}>Face the Ghouls ☠</button>
           </div>

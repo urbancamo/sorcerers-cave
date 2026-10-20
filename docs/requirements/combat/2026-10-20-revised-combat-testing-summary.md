@@ -24,7 +24,7 @@ Other things to look for:
 - A **"Ghouls attack!"** announcement appears before anything is rolled, with a reminder of what the Ghouls do. Press **Face the Ghouls**.
 - There is **one Ghoul (strength 2) for each creature in your party**, no surprise either way.
 - Your creatures are **matched to Ghouls automatically** (no choice, as they are all identical). You see each of your creatures beside its Ghoul while the dice roll.
-- You then fight in the usual rounds, so later rounds still ask you for any decisions (for example moving a creature in).
+- **One round only, one on one.** Everything is rolled once. A creature that loses its duel is slain; any Ghoul left standing then withdraws and the combat is over.
 - **There is no retreat from the Ghouls.** They are treated as a hazard.
 - The Ghouls stay in the chamber after you beat them, and attack any party that comes back.
 - Any real strangers in the chamber wait, and are met after the Ghouls are beaten.

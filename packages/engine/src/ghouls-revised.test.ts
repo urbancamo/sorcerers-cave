@@ -113,3 +113,26 @@ describe("the Trap is dealt with last: the Ghouls are fought before it springs (
     if (played.state.phase !== "gameOver") expect(played.state.phase).toBe("trap");
   });
 });
+
+describe("the Ghouls fight is one round, one on one (Peter, 20-OCT-2026)", () => {
+  it("pairs each creature with its own Ghoul, rolls once, and then the Ghouls left withdraw and the combat is over", () => {
+    let ended = 0, departed = 0;
+    for (let seed = 1; seed <= 40; seed++) {
+      const r = enteringGhouls([member(HERO), member(HERO), member(HERO)], [], { seed });
+      let s = driveStrangers(r.state).state;
+      expect(s.fight!.pending).toMatchObject({ by: "party", kind: "engage" });
+      const foes = s.fight!.rev!.deployed.strangers;
+      const out = reduce(s, { type: "engage", pairs: [0, 1, 2].map((p) => ({ party: p, stranger: foes[p]! })) });
+      expect(out.events.filter((e) => e.type === "combatRoll")).toHaveLength(3);          // one match each, one roll each
+      s = driveStrangers(out.state).state;
+      if (s.phase === "gameOver") continue;
+      ended++;
+      expect(s.fight).toBeNull();                                                          // no second round
+      expect(s.strangers).not.toContain(C_GHOUL);
+      if (out.events.some((e) => e.type === "ghoulsDepart")) departed++;
+      expect(s.areas[s.partyArea]!.contents).toContain(300 + HAZARD_GHOULS);               // they lurk on
+    }
+    expect(ended).toBeGreaterThan(0);
+    expect(departed).toBeGreaterThan(0);
+  });
+});

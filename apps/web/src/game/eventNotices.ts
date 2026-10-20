@@ -246,7 +246,7 @@ export function eventNotices(events: GameEvent[]): Notice[] {
         out.push({ text: "Medusa's gaze sweeps the party — but the Wizard's Magic Staff turns it aside; no one is stoned.", tone: "good" });
         break;
       case "trapSprung": // the move-result trap indicator / confirm modal narrates an ordinary fall; these two add the WHY
-        if (events.some((x) => x.type === "fightWon") && !e.guideLost && !e.deliberate) out.push({ text: "With the Ghouls beaten, the floor gives way — the party plunges a level deeper!", tone: "bad" });   // the Trap is dealt with last, after a fight: no move indicator narrates this fall
+        if (events.some((x) => x.type === "fightWon") && !e.guideLost && !e.deliberate) out.push({ text: "With the Ghouls gone, the floor gives way — the party plunges a level deeper!", tone: "bad" });   // the Trap is dealt with last, after a fight: no move indicator narrates this fall
         else if (e.guideLost) out.push({ text: "Without the Dwarf to guide it, the party is taken by the trap as it tries to leave.", tone: "bad" });
         else if (e.deliberate) out.push({ text: "The party drops through the trap on purpose — any strangers below are not expecting you, so you have the advantage of surprise.", tone: "good" });
         break;
@@ -469,7 +469,7 @@ export function eventNotices(events: GameEvent[]): Notice[] {
         break;
       case "strategyFallback":
         break; // an operator's concern (the game log), not the player's
-      case "deployed": case "engaged": case "redeployed": case "strangerCasualty": case "fightStandoff": case "spectreDeparts": case "scrollSurprise":
+      case "deployed": case "engaged": case "redeployed": case "strangerCasualty": case "fightStandoff": case "spectreDeparts": case "ghoulsDepart": case "scrollSurprise":
         break; // the revised round engine (`variants.combatRevision`) has no player surface yet
       default:
         assertNever(e);

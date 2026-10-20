@@ -561,6 +561,12 @@ function wrapUp(state: GameState): GameEvent[] {
     return events;
   }
 
+  if (fight.ghouls) {   // the Ghouls fight one round only, one on one; any Ghoul left then withdraws and the combat is over (Peter, 20-OCT-2026)
+    state.strangers = [];
+    events.push({ type: "ghoulsDepart" });
+    return events;
+  }
+
   const keep: RevMatch[] = [];
   for (const m of rev.matches) {
     if (m.pf.length === 0 || m.sf.length === 0) continue;   // an empty front line dissolves the match; its survivors become unengaged

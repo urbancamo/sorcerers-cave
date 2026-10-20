@@ -169,6 +169,7 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "redeployed": return `${e.side} placed ${e.moves.length} surplus`;
     case "strangerCasualty": return `strangers nominated ${creature(e.nominated)}; the die fell on ${creature(e.victim)} (rolled ${e.roll})`;
     case "scrollSurprise": return "the Scroll is read for surprise — +1 to the attacker's first-round bonus";
+    case "ghoulsDepart": return "the Ghouls have had their one round and withdraw";
     case "spectreDeparts": return "the Spectre has had its one round and vanishes";
     case "fightStandoff": return "no side can continue — the fight is a standoff";
     case "strangerVanished": return `${creature(e.creatureId)} (stranger) vanished with ${treasure(e.artifact)}`;
@@ -495,6 +496,7 @@ export function eventCode(e: GameEvent): string | null {
     case "redeployed": return `RDP ${e.side === "party" ? "P" : "S"} ${e.moves.length}`;
     case "strangerCasualty": return `SCS ${cr3(e.nominated)} ${cr3(e.victim)} R${e.roll}`;
     case "scrollSurprise": return "SCS+";
+    case "ghoulsDepart": return "GHD";
     case "spectreDeparts": return "SPD";
     case "fightStandoff": return "STANDOFF";
     case "strangerVanished": return `VAN ${cr3(e.creatureId)} ${tr3(e.artifact)}`;
