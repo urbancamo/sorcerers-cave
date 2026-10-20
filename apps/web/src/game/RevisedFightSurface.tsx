@@ -314,12 +314,6 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
 
       {free.length > 0 && !(mine?.kind === "scroll") && (
         <div className="scv-fight-tray" data-testid="rev-tray">
-          <span className="scv-fight-cap">
-            {mine?.kind === "deploy" ? "Drag creatures into your front line (or tap them):"
-              : mine?.kind === "engage" ? "Tap a fighter, then the foe to face it:"
-              : mine?.kind === "redeploy" ? "Spare creatures — drag one onto a match (or tap it, then the match):"
-              : "Your creatures not yet in a match:"}
-          </span>
           {free.filter((i) => mine?.kind !== "deploy" || !usedChosen.includes(i)).map((i) => {
             const taken = inPairs(usedPairs).has(i);
             const redeployable = mine?.kind === "redeploy" && allMoves.some((m) => m.creature === i) && !usedMoves.some((x) => x.creature === i);
@@ -335,16 +329,6 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
         </div>
       )}
       {free.length === 0 && inMatch.size === 0 && <span className="scv-fight-hint">no creature is free</span>}
-
-      {mine?.kind === "redeploy" && (
-        <div className="scv-rev-decision" data-testid="rev-redeploy">
-          <p className="scv-fight-sub">
-            {allMoves.length
-              ? "Drag a spare creature onto a match to send it in — a caster can go in the \"behind\" slot. You need not move anyone."
-              : "Nothing to arrange — every creature is already in a match. Fight on, or retreat."}
-          </p>
-        </div>
-      )}
 
       {deciding && <p className="scv-fight-reason scv-fight-deciding" role="status">The strangers are deciding…</p>}
       {autoPairs && !introDue && <p className="scv-fight-reason scv-fight-deciding" role="status">The Ghouls close in — each of your creatures faces one…</p>}

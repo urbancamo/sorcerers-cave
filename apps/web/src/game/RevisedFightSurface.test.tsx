@@ -258,7 +258,7 @@ describe("RevisedFightSurface", () => {
     expect(dispatch).toHaveBeenLastCalledWith({ type: "redeploy", moves: [] });
   });
 
-  it("redeploy with nothing to arrange says so, and still offers fight-on and retreat", () => {
+  it("redeploy with nothing to arrange still offers fight-on and retreat", () => {
     const dispatch = vi.fn();
     const s = attacking([OGRE]);
     s.fight!.round = 2; s.fight!.pending = { by: "party", kind: "redeploy" };
@@ -267,7 +267,7 @@ describe("RevisedFightSurface", () => {
     s.party.forEach((m, i) => { if (i > 0) m.status = 3; });
     s.areas[s.partyArea]!.card = 15 | 16;
     render(<RevisedFightSurface state={s} dispatch={dispatch} cards={cards} />);
-    expect(screen.getByText(/nothing to arrange/i)).toBeInTheDocument();
+    expect(screen.queryByTestId("rev-tray")).toBeNull();
     expect(screen.getByRole("button", { name: /retreat/i })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /^fight/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "redeploy", moves: [] });
