@@ -1021,6 +1021,7 @@ function peekTile(d){
   flipTile(m,false,a).then(()=>setTimeout(()=>{
     const cur=engine.areas.find(x=>akey(x)===k);
     if(tileMeshes.includes(m) && cur && cur.faceDown) flipTile(m,true,a);   // unless a party has entered it meanwhile
+    setTimeout(viewSnapTile,800);   // once it has turned over, go 'home': back to the party's own tile
   },3500));
 }
 function pickAt(){ // ray already aimed; returns true when the click was consumed by the picker
