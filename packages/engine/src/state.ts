@@ -33,6 +33,9 @@ export type GamePhase = "explore" | "medusa" | "trap" | "encounter" | "fight" | 
 // Member status: 0 original, 1 ally, 2 stone, 3 dead.
 export type MemberStatus = 0 | 1 | 2 | 3;
 
+/** The Trap held back until the Ghouls are beaten: it `fell` (the unguided party drops), or the Dwarf `choice` (trapRules) is still to be made. */
+export interface GhoulsTrap { fell: boolean; knownTrap: boolean; choice: boolean }
+
 export interface PartyMember {
   creatureId: number;
   status: MemberStatus;
@@ -116,7 +119,7 @@ export interface FightState {
   // The revised combat only (Peter, 14-OCT-2026, "Ghouls Fight"): this fight is against the hazard's Ghouls, a party of its own. The
   // chamber's real strangers wait in `aside` and come back when the Ghouls are beaten; `freshEntry`/`announceLull` are the chamber
   // entry's settings, handed on to the rest of that entry.
-  ghouls?: { aside: number[]; freshEntry: boolean; announceLull: boolean };
+  ghouls?: { aside: number[]; freshEntry: boolean; announceLull: boolean; trap?: GhoulsTrap };
   // A retreat this round hit a dead end (§Retreat): no further retreat may be tried — the party must
   // fight another round. Cleared when a round is actually fought.
   retreatBlocked?: boolean;
@@ -260,6 +263,8 @@ export interface GameState {
   // the `surpriseReady` captured before the draw so the resume restores it (SC-4-16).
   // The revised combat: the Ghouls struck on this chamber entry and are yet to be fought (see `settleChamber`).
   ghoulsPending?: true;
+  /** A Trap drawn with the Ghouls waits for them (it is dealt with last): carried into `fight.ghouls.trap` when their fight starts. */
+  ghoulsTrap?: GhoulsTrap;
   // The revised combat (Peter, 14-OCT-2026, Special Fights 6): the Sorcerer was slain with an Apprentice in the party. She stays an ally
   // while the party may still leave this area (the value); `stay` turns her on it, leaving parts company with her.
   apprenticeWatch?: number;

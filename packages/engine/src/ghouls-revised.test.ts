@@ -4,7 +4,7 @@ import { makeState } from "./testkit";
 import { packCoord } from "./coords";
 import { driveStrangers } from "./strangerDriver";
 import { playRevisedFight } from "./headless";
-import { HAZARD_GHOULS } from "./data/hazards";
+import { HAZARD_GHOULS, HAZARD_TRAP } from "./data/hazards";
 import { ALL_CREATURES, C_GHOUL } from "./data/creatures";
 import type { GameState, PartyMember } from "./state";
 
@@ -98,5 +98,37 @@ describe("the revised Ghouls fight", () => {
       expect(lair.filter((c) => c === 100 + OGRE)).toHaveLength(aside.length);
     }
     expect(retreated).toBeGreaterThan(0);
+  });
+});
+
+// a level-3 entry draws three cards: the Ghouls, the Trap and one more
+const L3 = { level: 3, areas: [{ ...A, coord: packCoord(3, 50, 50) }] };
+describe("the Trap is dealt with last: the Ghouls are fought before it springs (Rules, \"Hazard cards\")", () => {
+  it("an unguided party fights the Ghouls first, and falls only once they are beaten", () => {
+    const r = enteringGhouls([member(HERO), member(HERO)], [300 + HAZARD_TRAP], { seed: 4, ...L3 });
+    expect(r.state.phase).toBe("fight");
+    expect(r.state.fight!.ghouls).toBeDefined();
+    expect(r.state.fight!.ghouls!.trap).toMatchObject({ fell: true });   // the Trap waits
+    expect(r.state.level).toBe(3);                                   // not fallen yet
+    expect(r.events.some((e) => e.type === "trapSprung")).toBe(false);
+    const played = playRevisedFight(driveStrangers(r.state).state);
+    if (played.state.phase === "gameOver") return;
+    expect(played.state.level).toBe(4);                              // the Trap sprang afterwards
+    expect(played.events.some((e) => e.type === "trapSprung")).toBe(true);
+  });
+
+  it("a retreat from the Ghouls leaves the Trap unsprung", () => {
+    const r = enteringGhouls([member(HERO), member(HERO)], [300 + HAZARD_TRAP], { seed: 4, ...L3, largePack: Array(6).fill(15 | 16) });
+    const s = driveStrangers(r.state).state;
+    s.fight!.round = 2;
+    const out = [0, 1, 2, 3].map((dir) => reduce(s, { type: "retreat", dir: dir as 0 | 1 | 2 | 3 })).find((o) => !o.events.some((e) => e.type === "blocked" || e.type === "deadEnd"));
+    if (out) expect(out.state.level).toBe(3);
+  });
+
+  it("with the Dwarf's choice (trapRules) the choice comes after the Ghouls", () => {
+    const r = enteringGhouls([member(DWARF), member(HERO)], [300 + HAZARD_TRAP], { seed: 4, ...L3, variants: { combatRevision: true, trapRules: true } });
+    expect(r.state.phase).toBe("fight");                             // the Ghouls first
+    const played = playRevisedFight(driveStrangers(r.state).state);
+    if (played.state.phase !== "gameOver") expect(played.state.phase).toBe("trap");
   });
 });

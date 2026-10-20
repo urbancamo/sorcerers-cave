@@ -235,7 +235,19 @@ function finalizeRound(state: GameState): GameEvent[] {
     events.push({ type: "fightWon" });
     if (ghouls) {   // the Ghouls are beaten (they lurk on, for the next party): the chamber's own strangers are met now
       state.strangers = ghouls.aside;
-      settleChamber(state, ghouls.freshEntry, events, ghouls.announceLull);
+      const trap = ghouls.trap;
+      if (trap?.fell) {   // the Trap, dealt with last, now springs
+        persistAndExplore(state);
+        relocateDown(state);
+        if (trap.knownTrap) state.deliberateFall = true;
+        events.push(trap.knownTrap ? { type: "trapSprung", level: state.level, deliberate: true } : { type: "trapSprung", level: state.level });
+        events.push({ type: "moved", area: state.partyArea, level: state.level });
+        events.push(...resolveAreaLoop(state));
+      } else if (trap?.choice) {   // trapRules: the Dwarf's choice, held until the Ghouls are beaten
+        state.phase = "trap";
+        state.trapPause = { freshEntry: ghouls.freshEntry, announceLull: ghouls.announceLull };
+        events.push({ type: "trapLooms" });
+      } else settleChamber(state, ghouls.freshEntry, events, ghouls.announceLull);
     } else if (felled && !eyePresent(state)) state.phase = "sorcerer"; // the player decides his fate before anything else
     else {
       if (felled) events.push(...slaySorcerer(state)); // the Eye forbids sparing him
@@ -397,6 +409,14 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
     events.push({ type: "gameOver", gs: GS_DEAD });
     return false;
   }
+  // The Trap is dealt with last (Rules, "Hazard cards"): with the revised Ghouls in the chamber they are fought first, and the fall
+  // (or the Dwarf's choice) waits for the party to beat them. A retreat leaves the trap unsprung.
+  if (ghouls && (fell || trapChoice)) {
+    state.ghoulsPending = true;
+    state.ghoulsTrap = { fell: !!fell, knownTrap: !!knownTrap, choice: !!trapChoice };
+    settleChamber(state, freshEntry, events, announceLull);
+    return false;
+  }
   if (fell) {
     // The party falls away from this chamber — its strangers and treasure stay behind here (parked
     // to its contents). Clearing the working set first stops them leaking onto the tile fallen into.
@@ -445,10 +465,12 @@ function settleChamber(state: GameState, freshEntry: boolean, events: GameEvent[
   // engine before anyone else in the chamber is met. The chamber's real strangers wait; the entry resumes when the Ghouls are beaten.
   if (state.ghoulsPending) {
     delete state.ghoulsPending;
+    const trap = state.ghoulsTrap;
+    delete state.ghoulsTrap;
     const count = state.party.filter((m) => m.status === 0 || m.status === 1).length;
     const aside = state.strangers;
     state.strangers = Array<number>(count).fill(C_GHOUL);
-    state.fight = { surprise: 0, round: 1, focus: 0, ghouls: { aside, freshEntry, announceLull } };
+    state.fight = { surprise: 0, round: 1, focus: 0, ghouls: { aside, freshEntry, announceLull, ...(trap ? { trap } : {}) } };
     state.phase = "fight";
     state.surpriseReady = false;
     state.fightDrops = [];
