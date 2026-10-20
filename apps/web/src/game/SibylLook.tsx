@@ -1,8 +1,9 @@
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { decodeArea, unpackCoord, type GameAction, type GameState } from "@sorcerers-cave/engine";
 import { useManifestArt } from "../data/useManifestCards";
 import { tileForCard } from "../view/projection";
+import type { DestinationPicker } from "./SorcererTerms";
 
 type Look = Extract<GameAction, { type: "examineArea" }>;
 
@@ -38,12 +39,16 @@ function takeIntro(): boolean {
  *  in multiplayer rivals learn only that this seat consulted her. The revealed tile appears as a
  *  see-through card that fades in and out over the view; the text readout stays as a record. All of it is
  *  local UI state. */
-export function SibylLook({ state, actions, dispatch }: { state: GameState; actions: Look[]; dispatch: (a: GameAction) => void }) {
+export function SibylLook({ state, actions, dispatch, tools }: {
+  state: GameState; actions: Look[]; dispatch: (a: GameAction) => void;
+  /** The 3D cave view: choose a face-down tile on the map, and turn it up for a few seconds. */
+  tools?: { pick: DestinationPicker; peek: (a: { col: number; row: number; level: number }) => void };
+}) {
+  const [picking, setPicking] = useState(false);
   const [seen, setSeen] = useState<string | null>(null);
   const [peek, setPeek] = useState<{ n: number; file: string } | null>(null);
   const looks = useRef(0);
   const art = useManifestArt();
-  if (actions.length === 0) return null;
   const pack = actions.find((a) => a.area === undefined);
   const tiles = actions.filter((a) => a.area !== undefined);
 
@@ -59,26 +64,34 @@ export function SibylLook({ state, actions, dispatch }: { state: GameState; acti
     dispatch(pack);
     reveal("Top of the pack", state.largePack[state.largeIdx]!);
   };
-  const lookTile = (value: string) => {
-    const act = tiles.find((a) => String(a.area) === value);
-    if (!act) return;
-    dispatch(act);
-    reveal("Tile", state.areas[act.area!]!.card);
-  };
+  // Choosing a face-down tile: the cave view rings every one; the player clicks it on the map, it is turned up for a few
+  // seconds and turned down again (no text record: they must remember what they saw).
+  useEffect(() => {
+    if (!picking || !tools) return;
+    const destinations = tiles.map((a) => { const { level, x, y } = unpackCoord(state.areas[a.area!]!.coord); return { idx: a.area!, col: x, row: y, level }; });
+    tools.pick({
+      destinations,
+      prompt: "The Sibyl will show you one face-down tile — click a <b>ringed tile</b>.",
+      onPick: (idx) => {
+        const act = tiles.find((a) => a.area === idx);
+        const d = destinations.find((x) => x.idx === idx);
+        setPicking(false);
+        if (!act || !d) return;
+        dispatch(act);
+        tools.peek(d);
+      },
+    });
+    return () => tools.pick(null);
+  }, [picking]);   // eslint-disable-line react-hooks/exhaustive-deps
+  if (actions.length === 0) return null;
 
   return (
     <div className="scv-enc-assign">
       <span className="scv-enc-row-nm">The Sibyl</span>
       {pack && <button className="scv-enc-btn" onClick={lookPack}>Look at the top of the pack</button>}
-      {tiles.length > 0 && (
-        <select className="scv-enc-select" aria-label="Look at a face-down tile" value="" onChange={(e) => lookTile(e.target.value)}>
-          <option value="">Face-down tile — choose…</option>
-          {tiles.map((a) => {
-            const { level, x, y } = unpackCoord(state.areas[a.area!]!.coord); // where it lies on the map
-            return <option key={a.area} value={a.area}>{`Level ${level} (${x}, ${y})`}</option>;
-          })}
-        </select>
-      )}
+      {picking
+        ? <button className="scv-enc-btn" onClick={() => setPicking(false)}>Cancel — choose a tile on the map</button>
+        : <button className="scv-enc-btn" disabled={tiles.length === 0 || !tools} onClick={() => setPicking(true)}>Look at a face-down tile</button>}
       {seen && <p className="scv-enc-line" data-testid="sibyl-readout">{seen}</p>}
       {/* Portalled to <body>: the action panel is `transform`ed and clips its content, which would make a
           `position: fixed` card lay out inside the panel (and its fade look like the panel fading). */}

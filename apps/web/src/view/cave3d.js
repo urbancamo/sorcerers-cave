@@ -1011,7 +1011,17 @@ function setPicker(opts){
   renderer.domElement.addEventListener('pointermove',pickerHover);
   selectRing.visible=false; selectRing.material.color.setHex(0xc79bff);
   viewFreeOrbit();
-  setPrompt('Choose where the Sorcerer will send you — click a <b>ringed area</b>.','event');
+  setPrompt(opts.prompt||'Choose where the Sorcerer will send you — click a <b>ringed area</b>.','event');
+}
+/** The Sibyl's look at a face-down tile: turn it up for a few seconds, then back down — the player must remember it. */
+function peekTile(d){
+  const k=akey(d), m=tileMeshes.find(x=>x.userData.area&&akey(x.userData.area)===k);
+  if(!m||!m.userData.down) return;
+  const a=m.userData.area;
+  flipTile(m,false,a).then(()=>setTimeout(()=>{
+    const cur=engine.areas.find(x=>akey(x)===k);
+    if(tileMeshes.includes(m) && cur && cur.faceDown) flipTile(m,true,a);   // unless a party has entered it meanwhile
+  },3500));
 }
 function pickAt(){ // ray already aimed; returns true when the click was consumed by the picker
   if(!picker) return false;
@@ -1140,5 +1150,5 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
     renderer.dispose();
     renderer.domElement.remove();
   }
-  return { dispose, refresh, setParty, setOtherParties, focusArea, frameArea, setPicker, snapOnArrival:()=>{homeOnArrival=true;} };
+  return { dispose, refresh, setParty, setOtherParties, focusArea, frameArea, setPicker, peekTile, snapOnArrival:()=>{homeOnArrival=true;} };
 }

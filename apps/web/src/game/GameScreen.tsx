@@ -288,7 +288,7 @@ export default function GameScreen() {
       <EncounterPanel state={displayState} dispatch={dispatchWithRolls} />
       {fightVisible && cards && <FightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
       {fightVisible && cards && <RevisedFightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
-      <ExplorePanel state={displayState} dispatch={dispatchWithRolls} />
+      <ExplorePanel state={displayState} dispatch={dispatchWithRolls} sibylTools={{ pick: pickDestination, peek: (a) => caveApi.current?.peekTile(a) }} />
       {displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} onSave={handleSave} />}
       {displayState.testMode && <DeadEndSwapBadge />}
       {showParty && <PartyPanel state={displayState} dispatch={dispatch} onClose={() => setShowParty(false)} />}

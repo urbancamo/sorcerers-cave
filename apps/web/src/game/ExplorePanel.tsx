@@ -63,7 +63,7 @@ const isExploreAction = (a: GameAction): a is ExploreAction =>
 /** The explore-phase action menu: open the Treasure Chest and use exploration artifacts
  *  (Healing Balm, Magic Staff, Magic Carpet, Charmed Flute). Hidden when none are available.
  *  An artifact with several targets/directions (e.g. the Magic Carpet) collapses to one dropdown. */
-export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: (a: GameAction) => void }) {
+export function ExplorePanel({ state, dispatch, sibylTools }: { state: GameState; dispatch: (a: GameAction) => void; sibylTools?: React.ComponentProps<typeof SibylLook>["tools"] }) {
   if (state.phase !== "explore") return null;
   const all = legalActions(state);
   // A permanently-indifferent chamber is traversed in explore, but the party may still attack its guards.
@@ -139,7 +139,7 @@ export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: 
         </div>
       )}
 
-      {sibylLooks.length > 0 && <SibylLook state={state} actions={sibylLooks} dispatch={dispatch} />}
+      {sibylLooks.length > 0 && <SibylLook state={state} actions={sibylLooks} dispatch={dispatch} tools={sibylTools} />}
 
       {dropdowns.length > 0 && (
         <div className="scv-enc-assign">

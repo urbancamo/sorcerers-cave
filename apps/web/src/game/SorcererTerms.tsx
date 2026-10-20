@@ -6,6 +6,7 @@ import { projectArea, type ArtTables } from "../view/projection";
 export type DestinationPicker = (opts: {
   destinations: { idx: number; col: number; row: number; level: number }[];
   onPick: (idx: number) => void;
+  prompt?: string;
 } | null) => void;
 
 /** The Sorcerer lies defeated (§The Sorcerer): slay him for the bounty, or spare him on condition that he teleport
