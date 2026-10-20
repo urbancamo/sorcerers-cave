@@ -15,7 +15,7 @@ describe("rollFromEvents", () => {
     expect(v?.message).toBe("1 member of the party fell, 2 fought off their Ghouls.");
     expect(v?.message).not.toMatch(/victory/i);
     expect(v?.tone).toBe("bad");
-    expect(rollFromEvents([roll("partyWon", "Hero")])?.message).toBe("0 members of the party fell, 1 fought off a Ghoul.");
+    expect(rollFromEvents([roll("partyWon", "Hero")])?.message).toBe("no members of the party fell, 1 fought off a Ghoul.");
   });
 
   it("builds a single-die reaction view, with a join message on a friendly recruit", () => {

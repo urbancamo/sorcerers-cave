@@ -71,7 +71,7 @@ function combatView(events: GameEvent[]): RollView | null {
     const wonDuels = rolls.filter((r) => r.result === "partyWon").length;
     const held = rolls.filter((r) => r.result === "tie").length;
     const tally = [
-      `${plural(lost, "member")} of the party fell`,
+      `${lost === 0 ? "no members" : plural(lost, "member")} of the party fell`,
       `${wonDuels} fought off ${wonDuels === 1 ? "a Ghoul" : "their Ghouls"}`,
       ...(held ? [`${held} held ${held === 1 ? "its" : "their"} ground`] : []),
     ].join(", ");
