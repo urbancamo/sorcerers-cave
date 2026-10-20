@@ -111,6 +111,15 @@ describe("RevisedFightSurface", () => {
       expect(dispatch).not.toHaveBeenCalled();
     });
 
+    it("shows each creature matched up beside its Ghoul once they are faced, while the round is rolled", () => {
+      render(<RevisedFightSurface state={ghoulFight([5, 6, 7], 3)} dispatch={vi.fn()} cards={cards} />);
+      expect(screen.queryAllByTestId(/^rev-slot-/).every((el) => /—/.test(el.textContent ?? ""))).toBe(true);   // nothing paired yet
+      fireEvent.click(screen.getByRole("button", { name: /face the ghouls/i }));
+      const slots = screen.getAllByTestId(/^rev-slot-/);
+      expect(slots).toHaveLength(3);
+      for (const el of slots) expect(el.textContent).not.toMatch(/—|pick a creature/);   // each Ghoul has a party creature beside it
+    });
+
     it("then pairs every creature with a Ghoul for the party, since which Ghoul it faces changes nothing", () => {
       const dispatch = vi.fn();
       render(<RevisedFightSurface state={ghoulFight([5, 6, 7], 3)} dispatch={dispatch} cards={cards} />);

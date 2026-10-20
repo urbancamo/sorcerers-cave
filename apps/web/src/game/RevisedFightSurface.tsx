@@ -111,7 +111,8 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
   const free = freeOf(state, "party");
   const deployedFoes = rev.deployed.strangers.filter((s) => !rev.matches.some((m) => m.sf.includes(s)));
   const inPairs = (list: Pair[]) => new Set(list.map((p) => p.party));
-  const usedPairs = stale ? [] : pairs, usedChosen = stale ? [] : chosen, usedMoves = stale ? [] : moves;
+  // The Ghouls' pairing is made for the party: show it as soon as the Ghouls have been faced (and so while the round is rolled).
+  const usedPairs = stale ? [] : autoPairs && !introDue ? autoPairs : pairs, usedChosen = stale ? [] : chosen, usedMoves = stale ? [] : moves;
 
   // --- the decisions ------------------------------------------------------------------------------------------------------------
   const tapFree = (i: number): void => {
@@ -211,7 +212,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
 
           const front = deployedFoes.includes(s);
           const paired = usedPairs.find((p) => p.stranger === s);
-          const target = mine?.kind === "engage" && front;
+          const target = mine?.kind === "engage" && front && !autoPairs;
           const struck = strangerUnits.get(s)?.strength ?? 0;
           return (
             <div key={`i${s}`} className={`scv-match${paired ? "" : " scv-match-idle"}`} data-testid={`rev-row-${s}`}>
