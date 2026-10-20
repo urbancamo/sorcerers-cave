@@ -316,7 +316,9 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
         <div className="scv-fight-tray" data-testid="rev-tray">
           <span className="scv-fight-cap">
             {mine?.kind === "deploy" ? "Drag creatures into your front line (or tap them):"
-              : mine?.kind === "engage" ? "Tap a fighter, then the foe to face it:"
+              : mine?.kind === "engage" ? (free.length > Math.max(0, rev.deployed.strangers.length - inPairs(usedPairs).size)
+                ? "Tap a fighter, then the foe to face it. Each foe takes one fighter now — spare creatures join a match (or a caster goes behind) at the next step:"
+                : "Tap a fighter, then the foe to face it:")
               : mine?.kind === "redeploy" ? "Spare creatures — drag one onto a match (or tap it, then the match):"
               : "Your creatures not yet in a match:"}
           </span>
