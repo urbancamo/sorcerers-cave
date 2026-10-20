@@ -66,7 +66,7 @@ describe("RevisedFightSurface", () => {
     const s = attacking([OGRE]);
     expect(s.fight!.pending).toMatchObject({ by: "party", kind: "engage" });
     render(<RevisedFightSurface state={s} dispatch={dispatch} cards={cards} />);
-    const go = screen.getByRole("button", { name: /confirm pairings/i });
+    const go = screen.getByRole("button", { name: /confirm initial pairings/i });
     expect(go).toBeDisabled();                                   // an unengaged fighter could still be paired
     fireEvent.click(screen.getByTestId("rev-free-0"));
     fireEvent.click(screen.getByTestId("rev-foe-0"));
@@ -159,7 +159,7 @@ describe("RevisedFightSurface", () => {
     fireEvent.click(screen.getByTestId("rev-free-0"));
     fireEvent.click(screen.getByTestId("rev-foe-0"));
     fireEvent.click(screen.getByRole("button", { name: /undo|reset/i }));
-    expect(screen.getByRole("button", { name: /confirm pairings/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /confirm initial pairings/i })).toBeDisabled();
   });
 
   it("deploy: the defending party chooses at least the minimum to stand in front", () => {
@@ -265,7 +265,7 @@ describe("RevisedFightSurface", () => {
     s.fight!.pending = { by: "strangers", kind: "engage" };
     render(<RevisedFightSurface state={s} dispatch={vi.fn()} cards={cards} />);
     expect(screen.getByRole("status")).toHaveTextContent(/the strangers are deciding/i);
-    expect(screen.queryByRole("button", { name: /confirm pairings/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /confirm initial pairings/i })).toBeNull();
   });
 
   it("a lost front line asks which creature falls", () => {
