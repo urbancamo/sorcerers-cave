@@ -63,14 +63,13 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
   // `trapRules`: a Dwarf-guided party meeting exactly one trap does not auto-avoid it — the caller pauses for
   // the Dwarf's choice (`trap` phase), once this pass has resolved every other hazard.
   let trapChoice = false;
-  // Extension kit (SC-EXT-14/15/16/28): Desertion, Harpies, Quarrel and Spell are appended after Mutiny, in that numeric order — a kit-off
-  // game's `hazards` working set can never contain ids 5-8 (the base small pack has no such codes), so they are a no-op for the base game
-  // (SC-EXT-1 byte-identity). The Trap is always dealt with LAST (Rules, "Hazard cards"), kit or no kit: its fall (or the Dwarf's choice)
-  // is only acted on by the caller once every hazard here has fired.
+  // Rules, "Hazard cards": Earthquake, Spell, Harpies, Medusa, Ghouls, Quarrel, Desertion, Mutiny, Trap. The Trap is always last, so the
+  // caller acts on its fall (or the Dwarf's choice) only once every other hazard has fired. Extension-kit hazards (Desertion, Harpies,
+  // Quarrel, Spell: SC-EXT-14/15/16/28) are no-ops for the base game — a kit-off `hazards` working set can never contain ids 5-8
+  // (the base small pack has no such codes), so SC-EXT-1 byte-identity holds.
   const order = [
-    HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_MUTINY,
-    HAZARD_DESERTION, HAZARD_HARPIES, HAZARD_QUARREL, HAZARD_SPELL,
-    HAZARD_TRAP,
+    HAZARD_EARTHQUAKE, HAZARD_SPELL, HAZARD_HARPIES, HAZARD_MEDUSA, HAZARD_GHOULS,
+    HAZARD_QUARREL, HAZARD_DESERTION, HAZARD_MUTINY, HAZARD_TRAP,
   ];
   // Harpies (SC-EXT-15) actually stole this pass — as opposed to parking — so it must NOT re-park
   // below (design US-10 "After firing, the card leaves the game (no re-park)"), unlike Medusa/Ghouls
