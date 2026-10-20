@@ -36,7 +36,7 @@ function hazardNotice(hz: number): Notice | null {
   switch (hz) {
     case HAZARD_EARTHQUAKE: return { text: "An earthquake! The area behind you collapses.", tone: "bad" };
     case HAZARD_MEDUSA: return { text: "Medusa's gaze sweeps the party — the unlucky are turned to stone.", tone: "bad" };
-    case HAZARD_GHOULS: return { text: "Ghouls fall upon the party!", tone: "bad" };
+    case HAZARD_GHOULS: return null; // announced by the fight surface (revised combat) or shown as the per-member dice (legacy)
     case HAZARD_MUTINY: return null; // see the `mutinied` event
     case HAZARD_TRAP: return null;   // see trapSprung / trapAvoided (confirm modal)
     case HAZARD_DESERTION: return null; // see the per-ally `desertionRoll` / `wolfUnmoved` events
