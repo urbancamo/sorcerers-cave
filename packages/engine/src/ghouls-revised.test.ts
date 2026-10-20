@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
+import { legalActions } from "./selectors";
 import { makeState } from "./testkit";
 import { packCoord } from "./coords";
 import { driveStrangers } from "./strangerDriver";
@@ -80,24 +81,12 @@ describe("the revised Ghouls fight", () => {
     if (played.state.phase !== "gameOver") expect(played.state.areas[played.state.partyArea]!.contents).toContain(300 + HAZARD_GHOULS);
   });
 
-  it("a retreat leaves the Ghouls to their lair and parks only the real strangers", () => {
-    let retreated = 0;
-    for (let seed = 1; seed <= 30; seed++) {
-      const r = enteringGhouls([member(HERO), member(HERO)], Array(6).fill(100 + OGRE),
-        { seed, level: 3, areas: [{ ...A, coord: packCoord(3, 50, 50) }], largePack: Array(6).fill(15 | 16) });   // a chamber open on every side
-      const s = driveStrangers(r.state).state;
-      s.fight!.round = 2;                                 // a round has been fought: the party may retreat
-      const aside = s.fight!.ghouls!.aside;
-      const fledFrom = s.partyArea;
-      const out = [0, 1, 2, 3].map((dir) => reduce(s, { type: "retreat", dir: dir as 0 | 1 | 2 | 3 })).find((o) => !o.events.some((e) => e.type === "blocked" || e.type === "deadEnd"));
-      if (!out) continue;
-      retreated++;
-      const lair = out.state.areas[fledFrom]!.contents;
-      expect(lair).toContain(300 + HAZARD_GHOULS);
-      expect(lair).not.toContain(100 + C_GHOUL);
-      expect(lair.filter((c) => c === 100 + OGRE)).toHaveLength(aside.length);
-    }
-    expect(retreated).toBeGreaterThan(0);
+  it("there is no retreat from the Ghouls: they are a hazard, so none is offered and one is refused", () => {
+    const r = enteringGhouls([member(HERO), member(HERO)], [], { seed: 3, largePack: [15 | 16] });
+    const s = driveStrangers(r.state).state;
+    s.fight!.round = 2;                                 // a round has been fought: any other fight would allow a retreat now
+    expect(legalActions(s).some((a) => a.type === "retreat")).toBe(false);
+    for (const dir of [0, 1, 2, 3] as const) expect(reduce(s, { type: "retreat", dir }).events[0]).toMatchObject({ type: "blocked" });
   });
 });
 
@@ -115,14 +104,6 @@ describe("the Trap is dealt with last: the Ghouls are fought before it springs (
     if (played.state.phase === "gameOver") return;
     expect(played.state.level).toBe(4);                              // the Trap sprang afterwards
     expect(played.events.some((e) => e.type === "trapSprung")).toBe(true);
-  });
-
-  it("a retreat from the Ghouls leaves the Trap unsprung", () => {
-    const r = enteringGhouls([member(HERO), member(HERO)], [300 + HAZARD_TRAP], { seed: 4, ...L3, largePack: Array(6).fill(15 | 16) });
-    const s = driveStrangers(r.state).state;
-    s.fight!.round = 2;
-    const out = [0, 1, 2, 3].map((dir) => reduce(s, { type: "retreat", dir: dir as 0 | 1 | 2 | 3 })).find((o) => !o.events.some((e) => e.type === "blocked" || e.type === "deadEnd"));
-    if (out) expect(out.state.level).toBe(3);
   });
 
   it("with the Dwarf's choice (trapRules) the choice comes after the Ghouls", () => {

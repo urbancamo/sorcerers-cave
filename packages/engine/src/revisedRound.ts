@@ -407,7 +407,7 @@ export function advance(state: GameState): GameEvent[] {
         if (rev.surplusTurn >= 2) {
           // A round from the second on in which the party has had nothing to decide (every creature is already in a match) would be
           // fought on the spot, with no chance to retreat first. Pause on an empty redeploy: fight on, or retreat.
-          const retreatOpen = !state.fellThroughTrap && !fight.retreatBlocked;
+          const retreatOpen = !state.fellThroughTrap && !fight.retreatBlocked && !fight.ghouls;   // there is no retreat from the Ghouls
           if (fight.round >= 2 && !rev.partyActed && retreatOpen && livingParty(state).length > 0 && rev.matches.length > 0) {
             rev.partyActed = true;
             fight.pending = { by: "party", kind: "redeploy" };

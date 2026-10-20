@@ -1540,6 +1540,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
     case "retreat": {
       if (state.phase !== "fight") return { state, events: [{ type: "blocked" }] };
       if (state.fellThroughTrap) return { state, events: [{ type: "blocked" }] }; // no way back up a trap
+      if (state.fight?.ghouls) return { state, events: [{ type: "blocked" }] };   // the Ghouls are a hazard: no retreat from them
       // A party may retreat only after at least one round has been fought (§Retreat).
       if (!state.fight || state.fight.round <= 1) return { state, events: [{ type: "blocked" }] };
       // A party may retreat by ANY doorway or stairway — even an unexplored one (§Retreat). Attempt
@@ -1567,7 +1568,6 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         sorcererEvents.push(...partCompany(res.state));
       }
       dropAllGear(res.state);
-      if (res.state.fight?.ghouls) res.state.strangers = res.state.fight.ghouls.aside;   // the Ghouls stay in their lair; the real strangers are left as they were
       const fled = res.state.areas[fromIdx]!;
       fled.contents = [
         ...fled.contents,

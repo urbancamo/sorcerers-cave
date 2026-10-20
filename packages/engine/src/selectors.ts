@@ -214,8 +214,8 @@ export function legalActions(state: GameState): GameAction[] {
     const actions: GameAction[] = [];
     // The round itself is resolved from the player's pairing via the `resolveRound` action (built by the
     // fight UI), not from a menu item. Retreat is allowed only after at least one round has been fought,
-    // and never back up a trap (§Retreat). A party may flee by ANY of the tile's doorways/stairs.
-    if (!state.fellThroughTrap && state.fight && state.fight.round > 1 && !state.fight.retreatBlocked) {
+    // and never back up a trap (§Retreat), nor from the Ghouls (a hazard, not a stranger party: no retreat). A party may flee by ANY of the tile's doorways/stairs.
+    if (!state.fellThroughTrap && !state.fight?.ghouls && state.fight && state.fight.round > 1 && !state.fight.retreatBlocked) {
       const dec = decodeOpen(state.areas[state.partyArea]!);
       if (dec.n) actions.push({ type: "retreat", dir: DIR_N });
       if (dec.e) actions.push({ type: "retreat", dir: DIR_E });
