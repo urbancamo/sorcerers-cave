@@ -93,7 +93,16 @@ export default function GameScreen() {
   const stateRef = useRef<GameState | null>(state);
   stateRef.current = state;
   const getSnapshot = useCallback(() => stateRef.current, []);
-  const { roll, notices, celebration, clearCelebration, holding, heldState, dispatchWithRolls, holdMove, clearRoll, clearNotices } = useDispatchWithRolls(dispatch, getSnapshot);
+  const { roll, notices, celebration, clearCelebration, holding, heldState, dispatchWithRolls, holdMove, clearRoll, clearNotices } = useDispatchWithRolls(
+    // A fall that happens outside a canvas move (the Trap, dealt with last, after the Ghouls fight) drops the party a level with no
+    // move animation: home the camera on the new tile when it lands, as the Home button would, so only the party's level is shown.
+    async (a: GameAction) => {
+      const res = await dispatch(a);
+      if ((res as { events?: GameEvent[] } | null)?.events?.some((e) => e.type === "trapSprung")) caveApi.current?.snapOnArrival();
+      return res;
+    },
+    getSnapshot,
+  );
   onHoldMoveRef.current = holdMove;
   presentingRef.current = holding || !!roll || !!notices;
   const cards = useManifestCards();
