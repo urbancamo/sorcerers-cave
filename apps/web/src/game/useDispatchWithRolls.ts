@@ -46,7 +46,8 @@ export function useDispatchWithRolls<S = unknown>(
         // surface any silent-event notices (artifact effects, lulled dragons, …). The hold
         // persists while either is up; with neither there is nothing to wait for — release.
         if (view) setRoll(view);
-        if (!view && ns.length) setNotices(ns);
+        // A fall after a fight (the Trap is dealt with last) has no move indicator of its own: its notice waits behind the dice.
+        if ((!view || events.some((e) => e.type === "trapSprung")) && ns.length) setNotices(ns);
         if (!view && !ns.length) setHeldState(null);
         return res;
       } catch (e) {

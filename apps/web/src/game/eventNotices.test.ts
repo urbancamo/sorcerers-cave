@@ -105,6 +105,12 @@ describe("eventNotices — standing traps (trapRules)", () => {
     expect(n[0]!.tone).toBe("good");
   });
 
+  it("announces a fall that follows a won fight (the Ghouls, then the Trap), which no move indicator narrates", () => {
+    const n = eventNotices([{ type: "fightWon" }, { type: "trapSprung", level: 2 }]);
+    expect(n).toHaveLength(1);
+    expect(n[0]!.text).toMatch(/floor gives way/i);
+  });
+
   it("is silent for the pause itself (the popup is the prompt) and for an ordinary fall", () => {
     expect(eventNotices([{ type: "trapLooms" }])).toHaveLength(0);
     expect(eventNotices([{ type: "trapSprung", level: 2 }])).toHaveLength(0);
