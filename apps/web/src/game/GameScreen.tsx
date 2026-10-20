@@ -301,7 +301,7 @@ export default function GameScreen() {
         />
       )}
       {overlay}
-      {notices && <NoticeModal notices={notices} onClose={clearNotices} />}
+      {notices && !roll && <NoticeModal notices={notices} onClose={clearNotices} />}   {/* after the dice: the outcome they explain (e.g. a trap fall) is told once the player has continued */}
       {savedCode && (
         <SaveGameModal
           code={savedCode.code}
