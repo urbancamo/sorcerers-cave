@@ -802,11 +802,12 @@ function renderRoster(){const b=document.getElementById('rosterBody');b.innerHTM
   PARTY.forEach(m=>{const row=document.createElement('div');row.className='mbr'+(m.lead?' lead':'')+(m.petrified?' petrified':'');
     const carry=m.carry||0, load=m.load||0, free=Math.max(0,carry-load);
     const pct=carry>0?Math.min(100,Math.round((load/carry)*100)):0;
-    const cap=carry>0
+    const cap=m.sibyl ? '<div class="cap"><span class="cap-tx none">cannot fight or be harmed</span></div>' : carry>0
       ? '<div class="cap"><div class="cap-bar"><i style="width:'+pct+'%"></i></div><span class="cap-tx">'+load+'/'+carry+' kg · '+free+' free</span></div>'
       : '<div class="cap"><span class="cap-tx none">no carry capacity</span></div>';
     const carryRow=carryRowHtml({items:Array.isArray(m.items)?m.items:[],awards:Array.isArray(m.awards)?m.awards:[],dragonCard:m.dragonCard||null});
     const badge=m.petrified?'<span class="badge stone" title="Turned to stone — cure with a Magic Staff">stone</span>'
+      :m.sibyl?'<span class="badge ally" title="Travels with the party — she cannot fight or be harmed">guide</span>'
       :m.ally?'<span class="badge ally" title="Befriended ally">ally</span>':'';
     row.innerHTML='<div class="sig">'+escAttr(m.sig)+'</div><div class="who"><div class="nm-line"><span class="nm">'+escAttr(m.label||m.name)+'</span>'+badge+'</div>'+cap+carryRow+'</div>';
     b.appendChild(row);});}
@@ -1068,7 +1069,7 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
 
   buildSelectRing();buildPartyToken();
 
-  const revealParty=PARTY.map(p=>({name:p.name,fs:p.fs,mp:p.mp,charisma:!!p.charisma}));
+  const revealParty=PARTY.filter(p=>!p.sibyl).map(p=>({name:p.name,fs:p.fs,mp:p.mp,charisma:!!p.charisma}));
   Reveal.init({
     party:revealParty,
     focusCard:(card)=>showCard(card, engine.current.name),

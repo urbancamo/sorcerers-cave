@@ -20,6 +20,18 @@ describe("viewParty", () => {
     expect(p.slice(1).every((m) => m.lead === false)).toBe(true);
   });
 
+  it("lists the Sibyl last in the roster while she travels with the party (she is a flag, not a member)", () => {
+    const state = newGame(1, [5, 6]);
+    expect(viewParty(state).some((m) => m.name === "Sibyl")).toBe(false);
+    state.hasSibyl = true;
+    const p = viewParty(state);
+    expect(p).toHaveLength(state.party.length + 1);
+    const sibyl = p[p.length - 1]!;
+    expect(sibyl).toMatchObject({ name: "Sibyl", sibyl: true, carry: 0, petrified: false });
+    expect(p[0]!.lead).toBe(true);
+    expect(sibyl.lead).toBeUndefined();
+  });
+
   it("reports carry capacity, heavy load, and carried items (with resolved art)", () => {
     const state = newGame(1, [5, 6]); // Man (carry 50) + Woman
     state.party[0]!.treasure.push(1, 7); // Gold (heavy, 25kg) + Talisman (artifact, 0kg)

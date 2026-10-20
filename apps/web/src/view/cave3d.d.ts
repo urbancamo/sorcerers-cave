@@ -21,6 +21,7 @@ export interface ViewPartyMember {
   ally: boolean;      // befriended stranger (status 1), not an original recruit
   petrified: boolean; // turned to stone (status 2) — incapacitated until cured
   stoneArea: number | null; // when petrified, the area index it was left in (for the in-chamber display)
+  sibyl?: boolean;    // the optional Sibyl travelling with the party: listed in the roster, but no fighter (a party flag, not a member)
 }
 export interface BootOptions {
   mount: HTMLElement;
