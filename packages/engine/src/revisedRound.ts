@@ -100,6 +100,7 @@ export function legalPairs(state: GameState, attacker: Side): Pair[] {
 /** Every single placement the rules allow in step e for `side`, given the matches as they stand. */
 export function legalMoves(state: GameState, side: Side): Move[] {
   const rev = revOf(state), out: Move[] = [];
+  if (rev.review && side === "party") return out;   // the arrangement is final: the party only looks, then fights on
   const caster = (i: number): boolean => (side === "party" ? isCaster(state.party[i]!) : CREATURES[state.strangers[i]!]!.mp > 0);
   for (const c of candidatesOf(state, side)) rev.matches.forEach((m, mi) => {
     if (front(m, side).length < 2 && compatible(state, m, side, c)) out.push({ creature: c, match: mi, back: false });
@@ -149,6 +150,7 @@ export function engageViolation(state: GameState, attacker: Side, pairs: unknown
 export function redeployViolation(state: GameState, side: Side, moves: unknown): string | null {
   if (!Array.isArray(moves)) return "moves is not a list";
   const rev = revOf(state), cand = candidatesOf(state, side);
+  if (rev.review && side === "party" && moves.length > 0) return "the arrangement is final: nothing may be moved now";
   const fronts = rev.matches.map((m) => ({ pf: m.pf.slice(), sf: m.sf.slice() }));
   const moved = new Set<number>();
   for (const mv of moves) {
@@ -317,7 +319,7 @@ export function applyDeploy(state: GameState, side: Side, creatures: number[]): 
 
 export function applyEngage(state: GameState, attacker: Side, pairs: Pair[]): GameEvent[] {
   const rev = revOf(state), def = other(attacker);
-  if (attacker === "party") rev.partyActed = true;
+  if (attacker === "party") rev.partyActed = true; else if (pairs.length) rev.strangersMoved = true;
   for (const p of pairs) {
     rev.matches.push(attacker === "strangers" ? { sf: [p.stranger], pf: [p.party], pb: [], sb: [] } : { pf: [p.party], sf: [p.stranger], pb: [], sb: [] });
     rev.progress = true;
@@ -331,7 +333,8 @@ export function applyEngage(state: GameState, attacker: Side, pairs: Pair[]): Ga
 
 export function applyRedeploy(state: GameState, side: Side, moves: Move[]): GameEvent[] {
   const rev = revOf(state);
-  if (side === "party") rev.partyActed = true;
+  if (side === "party") { rev.partyActed = true; delete rev.review; if (rev.strangersMoved) rev.reviewed = true; }   // a party that decided after the strangers acted has seen how they stand
+  else if (moves.length) rev.strangersMoved = true;
   for (const mv of moves) {
     const m = rev.matches[mv.match]!;
     (mv.back ? back(m, side) : front(m, side)).push(mv.creature);
@@ -405,6 +408,13 @@ export function advance(state: GameState): GameEvent[] {
       }
       case "surplus": {
         if (rev.surplusTurn >= 2) {
+          // The strangers paired up or sent surplus creatures into the matches and the party has had no decision since: show it how they
+          // stand before any die is rolled (it may then only fight on, or retreat).
+          if (rev.strangersMoved && !rev.reviewed && livingParty(state).length > 0) {
+            rev.reviewed = true; rev.review = true; rev.partyActed = true;
+            fight.pending = { by: "party", kind: "redeploy" };
+            return events;
+          }
           // A round from the second on in which the party has had nothing to decide (every creature is already in a match) would be
           // fought on the spot, with no chance to retreat first. Pause on an empty redeploy: fight on, or retreat.
           const retreatOpen = !state.fellThroughTrap && !fight.retreatBlocked && !fight.ghouls;   // there is no retreat from the Ghouls
@@ -581,7 +591,7 @@ function wrapUp(state: GameState): GameEvent[] {
     events.push({ type: "fightStandoff" });
     return events;
   }
-  rev.step = "scroll"; rev.surplusTurn = 0; rev.progress = false; rev.cursor = 0; delete rev.bonus; delete rev.partyActed;
+  rev.step = "scroll"; rev.surplusTurn = 0; rev.progress = false; rev.cursor = 0; delete rev.bonus; delete rev.partyActed; delete rev.strangersMoved; delete rev.reviewed; delete rev.review;
   return events;
 }
 

@@ -165,6 +165,9 @@ export interface RevFight {
   deployed: { party: number[]; strangers: number[] };   // unengaged creatures already in the front line this round
   step: "scroll" | "deploy" | "engage" | "surplus" | "fight" | "wrap";
   surplusTurn: number;                       // 0: the attacker's surplus decision is next, 1: the defender's
+  strangersMoved?: boolean;                  // the strangers sent a surplus creature into a match this round
+  review?: boolean;                          // the party is looking at the finished arrangement before the dice: it may only fight on (or retreat)
+  reviewed?: boolean;                        // that look has been had this round
   partyActed?: boolean;                      // the party was asked something this round (else a round from the second on pauses for a retreat)
   progress: boolean;                         // something happened this round (else the standoff ends the fight)
   cursor: number;                            // the next match to fight

@@ -3,7 +3,7 @@ import { reduce } from "./reduce";
 import { makeState } from "./testkit";
 import { driveStrangers } from "./strangerDriver";
 import { playRevisedFight, partyAction } from "./headless";
-import { freeOf, legalPairs } from "./revisedRound";
+import { freeOf, legalMoves, legalPairs } from "./revisedRound";
 import type { GameAction, GameEvent } from "./actions";
 import type { GameState, PartyMember } from "./state";
 
@@ -195,5 +195,42 @@ describe("the revised round engine: whole fights, headless", () => {
     const sa = p.actions.filter((a: GameAction) => a.type.startsWith("strangers"));
     expect(sa.length).toBeGreaterThan(0);
     for (const a of sa) expect(a).toMatchObject({ strategyId: "standard", strategyVersion: 1 });
+  });
+});
+
+describe("the review before the dice", () => {
+  /** A fight the strangers start (surprise), the party deploying everyone: the strangers then pair up with no decision left for the party. */
+  const ambushedAndDeployed = (seed: number): { s: GameState; log: GameEvent[] } => {
+    let s = encounter([HERO, MAN], [OGRE, OGRE, OGRE], { testMode: true, seed });
+    s = reduce(s, { type: "testForceReaction", outcome: "hostile" }).state;
+    s = reduce(s, { type: "test" }).state;
+    const r = reduce(s, { type: "deploy", creatures: [0, 1] });
+    return { s: driveStrangers(r.state).state, log: r.events };
+  };
+
+  it("when the strangers pair up with the party, the party sees the arrangement before the round is rolled", () => {
+    const { s, log } = ambushedAndDeployed(7);
+    expect(s.fight!.rev!.review).toBe(true);
+    expect(s.fight!.pending).toEqual({ by: "party", kind: "redeploy" });
+    expect(s.fight!.rev!.matches).toHaveLength(2);                                       // the strangers' pairings are in place
+    expect(log.some((e) => e.type === "combatRoll")).toBe(false);                        // nothing rolled yet
+    expect(legalMoves(s, "party")).toEqual([]);                                          // the party may only look
+    expect(reduce(s, { type: "redeploy", moves: [{ creature: 0, match: 0, back: false }] }).events[0]).toMatchObject({ type: "planRejected" });
+    const go = reduce(s, { type: "redeploy", moves: [] });
+    expect(go.events.some((e) => e.type === "combatRoll")).toBe(true);                   // fight on: now the dice
+  });
+
+  it("is not asked twice: a party that decided after the strangers acted has already seen how they stand", () => {
+    for (let seed = 1; seed <= 20; seed++) {
+      let s = encounter([HERO, MAN, WOMAN], [OGRE, TROLL], { testMode: true, seed });
+      s = reduce(s, { type: "testForceReaction", outcome: "hostile" }).state;
+      s = reduce(s, { type: "test" }).state;
+      s = driveStrangers(reduce(s, { type: "deploy", creatures: [0, 1, 2] }).state).state;
+      if (s.fight?.pending?.kind === "redeploy" && !s.fight.rev!.review) {
+        const r = reduce(s, { type: "redeploy", moves: [] });
+        expect(r.state.fight?.rev?.review ?? false).toBe(false);
+        return;
+      }
+    }
   });
 });

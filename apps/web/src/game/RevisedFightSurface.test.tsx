@@ -267,6 +267,16 @@ describe("RevisedFightSurface", () => {
     expect(dispatch).toHaveBeenLastCalledWith({ type: "redeploy", moves: [] });
   });
 
+  it("review: after the strangers pair up, the party sees the arrangement and can only fight on", () => {
+    const dispatch = vi.fn();
+    const s = reaching("redeploy");
+    s.fight!.rev!.review = true;
+    render(<RevisedFightSurface state={s} dispatch={dispatch} cards={cards} />);
+    expect(screen.getByTestId("rev-review")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /^fight/i }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "redeploy", moves: [] });
+  });
+
   it("redeploy with nothing to arrange still offers fight-on and retreat", () => {
     const dispatch = vi.fn();
     const s = attacking([OGRE]);

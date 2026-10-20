@@ -284,6 +284,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
             {fight.surprise === 1 ? "You took them by surprise — +1 this round" : "The strangers surprised you — −1 this round"}
           </span>
         )}
+        {rev.review && <span className="scv-fight-banner" data-testid="rev-review">The strangers have taken their places</span>}
         <span className="scv-fight-cap">{rev.attacker === "party" ? "You attack" : "They attack"} · your dice {bonus >= 0 ? "+" : "−"}{Math.abs(bonus)}</span>
       </div>
 

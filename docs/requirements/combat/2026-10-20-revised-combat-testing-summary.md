@@ -12,6 +12,7 @@ A fight is a series of rounds. Each round asks for a few decisions in turn, and 
 2. **Defender puts creatures in the front line.** If you defend, drag creatures into the front-line box (or tap them).
 3. **Attacker makes the initial pairings.** If you attack, tap one of your fighters, then the foe it will face. Press **Confirm Initial Pairings** (there is an **Undo pairings** button).
 4. **Spare creatures join in.** Drag a spare creature onto a match to make it two against one (never more), or drag a Priest/Wizard into the "behind" slot to lend magic. The strength tally updates as you place them. Press **Fight** (or **Undo moves** first). You don't have to move anyone.
+   - **A look before the dice:** if the strangers have paired up with your creatures (or sent spares into matches) and you have had no decision since, the screen pauses once so you can see the arrangement. Only **Fight** (or retreat) is possible then.
 5. **The matches are rolled**, one dice pair per match, then results.
 
 Other things to look for:
