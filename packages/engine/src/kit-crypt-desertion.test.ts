@@ -342,7 +342,7 @@ describe("Desertion — per-ally rolls, removal, Wolf immunity (US-09, SC-EXT-14
     expect(s.party).toHaveLength(1);
   });
 
-  it("fires strictly AFTER Trap in the fixed hazard order, in the same pass", () => {
+  it("fires BEFORE Trap — the Trap is always dealt with last — in the same pass", () => {
     const s = makeState({
       party: [member(DWARF, 0), member(MAN, 1)], // Dwarf avoids the trap; the Man ally still rolls
       hazards: [HAZARD_DESERTION, HAZARD_TRAP], // insertion order is irrelevant — `order` decides
@@ -352,7 +352,8 @@ describe("Desertion — per-ally rolls, removal, Wolf immunity (US-09, SC-EXT-14
     const trapIdx = events.findIndex((e) => e.type === "hazardFired" && e.hazard === HAZARD_TRAP);
     const desertionIdx = events.findIndex((e) => e.type === "hazardFired" && e.hazard === HAZARD_DESERTION);
     expect(trapIdx).toBeGreaterThanOrEqual(0);
-    expect(desertionIdx).toBeGreaterThan(trapIdx);
+    expect(desertionIdx).toBeGreaterThanOrEqual(0);
+    expect(desertionIdx).toBeLessThan(trapIdx);
   });
 
   it("fires immediately when drawn in a chamber, via the normal hazard-phase pipeline", () => {
