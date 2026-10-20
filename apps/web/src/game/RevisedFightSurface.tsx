@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
 // ALL_CREATURES/ALL_TREASURES (SC-EXT-29): a kit id or a Ghoul can stand in any fight.
 import {
-  ALL_CREATURES, ALL_TREASURES, legalActions, fightView, freeOf, legalMoves, legalPairs, deployViolation, engageViolation, redeployViolation,
+  ALL_CREATURES, ALL_TREASURES, legalActions, fightView, freeOf, matchStrength, legalMoves, legalPairs, deployViolation, engageViolation, redeployViolation,
   type GameState, type GameAction, type UnitView,
 } from "@sorcerers-cave/engine";
 import type { CardArt } from "../data/manifest";
@@ -186,7 +186,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
               </div>
             </div>
             <div className="scv-match-vs">
-              <span className="them">{view.matches[mi]?.strangerStrength}</span><span className="x">vs</span><span className="me">{view.matches[mi]?.partyStrength}</span>
+              <span className="them">{view.matches[mi]?.strangerStrength}</span><span className="x">vs</span><span className="me">{matchStrength(state, { ...m, pf: [...m.pf, ...addedTo(mi, false)], pb: [...m.pb, ...addedTo(mi, true)] }).party}</span>
             </div>
             <div className="scv-match-party">
               <div className="scv-match-line">

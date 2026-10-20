@@ -224,6 +224,19 @@ describe("RevisedFightSurface", () => {
     expect(dispatch).toHaveBeenLastCalledWith({ type: "redeploy", moves: [{ creature: m.creature, match: m.match, back: m.back }] });
   });
 
+  it("redeploy: the party's strength in the tally includes a creature added but not yet confirmed", () => {
+    const s = reaching("redeploy");
+    const { m, card, slot } = firstMove(s);
+    const { container } = render(<RevisedFightSurface state={s} dispatch={vi.fn()} cards={cards} />);
+    const me = () => Number(container.querySelectorAll(".scv-match-vs .me")[m.match]!.textContent);
+    const before = me();
+    fireEvent.click(screen.getByTestId(card));
+    fireEvent.click(screen.getByTestId(slot));
+    expect(me()).toBeGreaterThan(before);
+    fireEvent.click(screen.getByRole("button", { name: /undo moves/i }));
+    expect(me()).toBe(before);
+  });
+
   it("redeploy: a creature dragged onto a match it may join is sent as a move", () => {
     const dispatch = vi.fn();
     const s = reaching("redeploy");
