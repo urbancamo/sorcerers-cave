@@ -25,9 +25,9 @@ import { reduce } from "./reduce";
 import type { GameAction } from "./actions";
 
 describe("area cards data (§3)", () => {
-  it("SC-3-3: AREA_CARDS[41] === 42 (the EWU tile, NOT 74/EWD)", () => {
-    expect(AREA_CARDS[41]).toBe(42);
-    expect(AREA_CARDS[41]).not.toBe(74);
+  it("SC-3-3: AREA_CARDS[41] === 74 (the EWD tile — the original card's down stair, NOT 42/EWU)", () => {
+    expect(AREA_CARDS[41]).toBe(74);
+    expect(AREA_CARDS[41]).not.toBe(42);
   });
 
   it("SC-10-2: each special-area type appears exactly once; the Gateway (1) is at index 21", () => {

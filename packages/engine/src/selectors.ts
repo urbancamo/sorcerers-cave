@@ -6,7 +6,7 @@ import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WELL, SPEC
 import type { GameAction } from "./actions";
 import { canCarry } from "./pickup";
 import { usesArtifactsAs, holyWaterTargets, hasLivingHuman, fluteLulls, healingBalmEligible, isHumanOrPriestClass } from "./effects";
-import { getSubLocation, oppositeDir, RING_ADJACENCY_SPECIALS, ISLAND_JUMP_SPECIALS, type SubLocation } from "./subLocation";
+import { getSubLocation, chasmMoveAllowed, oppositeDir, RING_ADJACENCY_SPECIALS, ISLAND_JUMP_SPECIALS, type SubLocation } from "./subLocation";
 import { giantCanRecover, sunkKey } from "./special";
 import { teleportDestinations } from "./sorcerer";
 
@@ -32,14 +32,15 @@ function lateralMoves(state: GameState, dec: DecodedArea, sub: SubLocation): Gam
   const actions: GameAction[] = [];
   const blockedDir = RING_ADJACENCY_SPECIALS.has(dec.special) && sub.at === "doorway" && sub.dir !== undefined
     ? oppositeDir(sub.dir) : undefined;
-  if (dec.n && blockedDir !== DIR_N) actions.push({ type: "move", dir: DIR_N });
-  if (dec.e && blockedDir !== DIR_E) actions.push({ type: "move", dir: DIR_E });
-  if (dec.s && blockedDir !== DIR_S) actions.push({ type: "move", dir: DIR_S });
-  if (dec.w && blockedDir !== DIR_W) actions.push({ type: "move", dir: DIR_W });
-  if (dec.stairDown) actions.push({ type: "move", dir: DIR_DOWN });
+  const ok = (dir: number) => chasmMoveAllowed(state, dir);
+  if (dec.n && blockedDir !== DIR_N && ok(DIR_N)) actions.push({ type: "move", dir: DIR_N });
+  if (dec.e && blockedDir !== DIR_E && ok(DIR_E)) actions.push({ type: "move", dir: DIR_E });
+  if (dec.s && blockedDir !== DIR_S && ok(DIR_S)) actions.push({ type: "move", dir: DIR_S });
+  if (dec.w && blockedDir !== DIR_W && ok(DIR_W)) actions.push({ type: "move", dir: DIR_W });
+  if (dec.stairDown && ok(DIR_DOWN)) actions.push({ type: "move", dir: DIR_DOWN });
   // An ordinary climb is an "any doorway" leave like any other; the level-1 stair-up cave exit is
   // deliberately excluded (see doc comment above) — that one stays explore-only.
-  if (dec.stairUp && state.level > 1) actions.push({ type: "move", dir: DIR_UP });
+  if (dec.stairUp && state.level > 1 && ok(DIR_UP)) actions.push({ type: "move", dir: DIR_UP });
   return actions;
 }
 

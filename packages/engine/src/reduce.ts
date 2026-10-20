@@ -23,7 +23,7 @@ import { canTeleportTo } from "./sorcerer";
 import { BORNEABLE, isBorne, sweepFallen, spillCarried } from "./loot";
 import { rollDieForState } from "./rng";
 import {
-  getSubLocation, oppositeDir, RING_ADJACENCY_SPECIALS, ISLAND_JUMP_SPECIALS, SUB_LOCATION_SPECIALS,
+  getSubLocation, chasmMoveAllowed, oppositeDir, RING_ADJACENCY_SPECIALS, ISLAND_JUMP_SPECIALS, SUB_LOCATION_SPECIALS,
   type SubAt,
 } from "./subLocation";
 // Extension kit (SC-EXT-17): aliases `ALL_CREATURES` — `strongestStranger`'s fight-focus pick and
@@ -934,6 +934,8 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           return { state, events: [{ type: "blocked" }] };
         }
       }
+      // The Chasm has no lateral crossing — only descend or retrace the way in (bug fix 2026-10-12).
+      if (!chasmMoveAllowed(state, action.dir)) return { state, events: [{ type: "blocked" }] };
       if (guideLostHere(state, action.dir)) {
         // The Dwarf is gone: the trap takes the party as it tries to leave. No tile is placed and there is no
         // dead end to find — the attempt costs the turn, exactly as a successful move would.
@@ -982,6 +984,36 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           // which path closed it (SC-EXT-1 byte-identity).
           delete res.state.indiffLeaveOpen;
         }
+        // Whirlpool wading (bug fix 2026-10-12): a dead-end attempt from a ledge still wades the party
+        // through the shallows to THAT doorway's ledge — one segment per move, so W>S then S>E are two
+        // separate moves. Same d6 as any crossing: 1-2 drags the party down (the attempt is undone),
+        // 3-6 leaves the party on the new ledge with the dead end revealed.
+        const standing = getSubLocation(state);
+        if (res.deadEnd && !leavingIndifferentEncounter && fromSpecial === SPECIAL_WHIRLPOOL
+            && standing.at === "doorway" && standing.dir !== undefined && standing.dir !== action.dir) {
+          const wade = res.state;
+          wade.turn += 1;
+          delete wade.testAllDiceRoll; // Next Roll Selector (SC-Test-10): "until end of turn" ends here
+          const { events: wpEvents, dragged } = whirlpoolCrossing(wade);
+          const evs: GameEvent[] = [...swapEvents, { type: "deadEnd", dir: action.dir }, ...wpEvents];
+          if (dragged) {
+            // Undo the attempt exactly like a cancelled lateral move: give back a freshly placed tile's
+            // card and reopen the doorway, then drop the whole party a level from the Whirlpool's tile.
+            if (wade.areas.length > areasBefore) {
+              wade.areas.pop();
+              wade.largeIdx = largeIdxBefore;
+            }
+            const from = wade.areas[fromIdx]!;
+            const origDead = state.areas[fromIdx]!.deadDoors;
+            if (origDead === undefined) delete from.deadDoors; else from.deadDoors = origDead;
+            delete wade.subLocation;
+            relocateDown(wade);
+            return { state: wade, events: [...evs.filter((e) => e.type !== "deadEndCardSwapped" && e.type !== "deadEnd"), ...resolveArea(wade)] };
+          }
+          wade.subLocation = { area: fromIdx, at: "doorway", dir: action.dir };
+          if (res.noViableExits) evs.push({ type: "deadEndNoViableExits" });
+          return { state: wade, events: evs };
+        }
         return { state: res.state, events: [...swapEvents, res.deadEnd ? { type: "deadEnd", dir: action.dir } : { type: "blocked" }, ...(res.noViableExits ? [{ type: "deadEndNoViableExits" } as GameEvent] : [])] };
       }
       const next = { ...res.state, turn: res.state.turn + 1 };
@@ -990,7 +1022,10 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       delete next.subLocation; // Precise Locations (§10.5): a real move invalidates any jump override
       delete next.testAllDiceRoll; // Next Roll Selector (SC-Test-10): "until end of turn" ends here
       const events: GameEvent[] = [...swapEvents];
-      const crossing = next.partyArea !== oldPrev; // not simply going back the way we came
+      // Not simply going back the way we came — except after a Whirlpool wade, where the ledge the party
+      // stands on (not `prev`) decides which doorway is the "way we came".
+      const wadedTo = state.subLocation?.at === "doorway" && state.subLocation.area === fromIdx ? state.subLocation.dir : undefined;
+      const crossing = wadedTo !== undefined ? action.dir !== wadedTo : next.partyArea !== oldPrev;
 
       if (crossing && fromSpecial === SPECIAL_VIPER_PIT) {
         events.push({ type: "crossedSpecial", special: SPECIAL_VIPER_PIT });

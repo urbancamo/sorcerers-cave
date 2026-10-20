@@ -6,8 +6,8 @@ export const prefersReducedMotion = (): boolean =>
 
 /** The Sorcerer's-fall particle show (featParticles.ts) painted on a canvas that fills its positioned
  *  parent, behind the celebration panel. It runs once, stops by itself when the last spark burns out, and is
- *  cancelled on unmount. Draws nothing at all under prefers-reduced-motion, or if there is no 2D context. */
-export function FeatParticles() {
+ *  cancelled on unmount. `speed` plays it faster (2 = twice as fast); `bursts` false leaves out the firework bursts. Draws nothing at all under prefers-reduced-motion, or if there is no 2D context. */
+export function FeatParticles({ speed = 1, bursts = true }: { speed?: number; bursts?: boolean } = {}) {
   const ref = useRef<HTMLCanvasElement>(null);
   const reduce = prefersReducedMotion();
 
@@ -17,7 +17,7 @@ export function FeatParticles() {
     const ctx = canvas?.getContext("2d");
     if (!canvas || !ctx) return;
 
-    const show = createShow();
+    const show = createShow({ bursts });
     const size = { w: 0, h: 0 };
     let raf = 0;
     let last: number | null = null;
@@ -31,7 +31,7 @@ export function FeatParticles() {
     window.addEventListener("resize", fit);
 
     const loop = (ms: number) => {
-      const dt = last === null ? 0 : Math.min(0.05, (ms - last) / 1000); // a stalled tab must not fast-forward the show
+      const dt = speed * (last === null ? 0 : Math.min(0.05, (ms - last) / 1000)); // a stalled tab must not fast-forward the show
       last = ms;
       tick(show, dt, size, { x: size.w / 2, y: size.h * 0.42 }, Math.random);
       ctx.clearRect(0, 0, size.w, size.h);
@@ -48,7 +48,7 @@ export function FeatParticles() {
     };
     raf = requestAnimationFrame(loop);
     return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", fit); };
-  }, [reduce]);
+  }, [reduce, speed, bursts]);
 
   if (reduce) return null;
   return <canvas ref={ref} className="scv-feat-particles" aria-hidden="true" data-testid="feat-particles" />;

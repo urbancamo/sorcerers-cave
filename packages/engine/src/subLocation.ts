@@ -1,5 +1,5 @@
 import { decodeArea, decodeOpen } from "./decode";
-import { DIR_N, DIR_E, DIR_S, DIR_W, unpackCoord } from "./coords";
+import { DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, unpackCoord } from "./coords";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_WHIRLPOOL, SPECIAL_CHASM } from "./data/areaCards";
 import type { GameState } from "./state";
 
@@ -67,6 +67,23 @@ function arrivedVertically(state: GameState): boolean {
 }
 
 /**
+ * The Chasm has no lateral crossing: a party that walked or climbed in may only descend or retrace
+ * the way it came (bug fix 2026-10-12). Returns false for a move the Chasm forbids. Never restricts
+ * a party with no known entry (trap fall / jumped island / game start), so it can't be soft-locked.
+ */
+export function chasmMoveAllowed(state: GameState, dir: number): boolean {
+  if (decodeOpen(state.areas[state.partyArea]!).special !== SPECIAL_CHASM) return true;
+  if (state.fellThroughTrap || state.prev === state.partyArea) return true;
+  const cur = state.areas[state.partyArea];
+  const prev = state.areas[state.prev];
+  if (!cur || !prev) return true;
+  const level = unpackCoord(cur.coord).level;
+  const prevLevel = unpackCoord(prev.coord).level;
+  if (prevLevel !== level) return dir === (prevLevel < level ? DIR_UP : DIR_DOWN);
+  return dir === doorwayDir(state);
+}
+
+/**
  * Where the party currently sits on its tile (Peter's precise-locations model, §10.5). Pure —
  * derived from existing position/arrival fields, plus the one explicit override `jumpToIsland`
  * writes (`state.subLocation`), for the one same-tile shift geometry alone can't capture.
@@ -82,7 +99,10 @@ export function getSubLocation(state: GameState): SubLocation {
   if (!area) return { at: "centre" };
   const dec = decodeOpen(area);
   if (SUB_LOCATION_SPECIALS.has(dec.special)) {
-    if (state.subLocation?.area === state.partyArea && state.subLocation.at === "island") return { at: "island" };
+    const override = state.subLocation?.area === state.partyArea ? state.subLocation : undefined;
+    if (override?.at === "island") return { at: "island" };
+    // A Whirlpool wade (reduce.ts "move") shifts the party to another ledge without leaving the tile.
+    if (override?.at === "doorway") return { at: "doorway", dir: override.dir };
     if (arrivedVertically(state)) return { at: "island" };
     return { at: "doorway", dir: doorwayDir(state) };
   }

@@ -38,6 +38,7 @@ export function boot(opts: BootOptions): Promise<{
   setParty(party: ViewPartyMember[]): void;
   setOtherParties(list: { color: string; col: number; row: number; level: number }[]): void;
   focusArea(a: { col: number; row: number; level: number }): void;
+  frameArea(a: { col: number; row: number; level: number }, instant?: boolean): void; // overhead view of that chamber; instant = cut, no flight
   snapOnArrival(): void; // the next time the party moves, frame its new tile as the Home button does
   setPicker(opts: { destinations: { idx: number; col: number; row: number; level: number }[]; onPick: (idx: number) => void } | null): void;
 }>;

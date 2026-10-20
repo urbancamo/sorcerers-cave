@@ -23,7 +23,7 @@ export const AREA_CARDS: readonly number[] = [
   29, 23, 9, 7, 11, 415, 9, 43, 75, 9, // 10-19
   9, 175, 39, 71, 14, 31, 27, 29, 67, 30, // 20-29
   14, 5, 69, 31, 23, 29, 30, 47, 46, 11, // 30-39
-  3, 42, 31, 3, 78, 27, 10, 76, 15, 7, // 40-49 (idx 41: EWU=42; was 74/EWD, which has no tile)
+  3, 74, 31, 3, 78, 27, 10, 76, 15, 7, // 40-49 (idx 41: EWD=74 — Peter: the original card has the DOWN stair; 18-OCT-2026 tile s15-4 redrawn to match, it was EWU=42)
   27, 45, 23, 13, 13, 12, 78, 10, 5, 12, // 50-59
   29, // 60
 ];

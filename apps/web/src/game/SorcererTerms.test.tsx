@@ -3,7 +3,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { newGame, packCoord, type GameState, type PlacedArea } from "@sorcerers-cave/engine";
 import type { TileArt, CardArt } from "../data/manifest";
 import { SorcererTerms } from "./SorcererTerms";
-import { TeleportEffect, TELEPORT_PEAK_MS, TELEPORT_END_MS } from "./TeleportEffect";
+import { TeleportEffect, TELEPORT_PEAK_MS, TELEPORT_HOLD_MS, TELEPORT_END_MS } from "./TeleportEffect";
 
 const tile: TileArt = { tileId: "t1", file: "/tiles/t1.png", exits: "NESW", type: "chamber", stairUp: false, stairDown: false, special: null };
 const art = { tiles: [tile], cards: [] as CardArt[] };
@@ -83,26 +83,31 @@ describe("TeleportEffect", () => {
   });
   afterEach(() => { vi.useRealTimers(); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
-  it("fires the move at the flash and finishes when it has played out", () => {
+  it("moves the party at full black and finishes when it has played out", () => {
     vi.stubGlobal("matchMedia", (q: string) => ({ matches: false, media: q }));
     const onPeak = vi.fn(), onDone = vi.fn();
     render(<TeleportEffect onPeak={onPeak} onDone={onDone} />);
     expect(screen.getByTestId("teleport-effect")).toBeInTheDocument();
+    expect(screen.getByTestId("feat-particles")).toBeInTheDocument();   // rising particles over the cave where the party stands
+    expect(screen.getByText(/magic carries you away/i)).toBeInTheDocument();   // the words sit on the veil that fades to black
     act(() => { vi.advanceTimersByTime(TELEPORT_PEAK_MS - 1); });
     expect(onPeak).not.toHaveBeenCalled();
     act(() => { vi.advanceTimersByTime(1); });
     expect(onPeak).toHaveBeenCalledOnce();
+    act(() => { vi.advanceTimersByTime(TELEPORT_HOLD_MS); });
+    expect(screen.getByTestId("feat-particles")).toBeInTheDocument();   // a second show, at the destination, as the fade up begins
     expect(onDone).not.toHaveBeenCalled();
     act(() => { vi.advanceTimersByTime(TELEPORT_END_MS); });
     expect(onDone).toHaveBeenCalledOnce();
     expect(onPeak).toHaveBeenCalledOnce();
   });
 
-  it("is a short fade under reduced motion, with the same two callbacks", () => {
+  it("is just the words under reduced motion (no sparks), with the same two callbacks", () => {
     vi.stubGlobal("matchMedia", (q: string) => ({ matches: true, media: q }));
     const onPeak = vi.fn(), onDone = vi.fn();
     render(<TeleportEffect onPeak={onPeak} onDone={onDone} />);
     expect(screen.getByTestId("teleport-effect")).toHaveClass("reduced");
+    expect(screen.queryByTestId("feat-particles")).toBeNull();
     act(() => { vi.advanceTimersByTime(1000); });
     expect(onPeak).toHaveBeenCalledOnce();
     expect(onDone).toHaveBeenCalledOnce();

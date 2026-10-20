@@ -228,7 +228,7 @@ export interface GameState {
   // only while `area === partyArea`; every real move invalidates it (cleared in the "move" case,
   // relocateDown and carpetMove) so a stale entry never survives a later revisit. See
   // subLocation.ts's `getSubLocation`, which everything else reads through.
-  subLocation?: { area: number; at: "island" };
+  subLocation?: { area: number; at: "island" } | { area: number; at: "doorway"; dir: number };
   // True only for the turn the party freshly enters a chamber with strangers by an unused doorway
   // or magic carpet (NOT a trap fall): the party gains the advantage of surprise if it attacks now.
   // Cleared once the party tests reaction (no longer an immediate attack) or the fight begins.
