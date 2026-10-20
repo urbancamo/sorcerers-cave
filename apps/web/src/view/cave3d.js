@@ -115,21 +115,49 @@ const contentMeshes=[]; const cardAnims=[];
 let partyToken=null, selectRing=null, tokenMove=null;
 
 /* ---- build a single area's tile ---- */
-async function buildAreaMesh(area, spawn){
+/** The back of an area card: what a dead-end (or Spell-unresolved) tile shows once it is face down. Drawn, not an asset. */
+let cardBackTex=null;
+function cardBackTexture(){
+  if(cardBackTex) return cardBackTex;
+  const w=640,h=Math.round(w*TILE_D/TILE_W),cv=document.createElement('canvas');cv.width=w;cv.height=h;
+  const c=cv.getContext('2d'),r=h*0.07,m=h*0.03;
+  const rr=(x,y,ww,hh,rad)=>{c.beginPath();c.moveTo(x+rad,y);c.arcTo(x+ww,y,x+ww,y+hh,rad);c.arcTo(x+ww,y+hh,x,y+hh,rad);c.arcTo(x,y+hh,x,y,rad);c.arcTo(x,y,x+ww,y,rad);c.closePath();};
+  rr(m,m,w-2*m,h-2*m,r);c.fillStyle='#1d1812';c.fill();
+  c.lineWidth=h*0.02;c.strokeStyle='#8a6d3b';c.stroke();
+  rr(m*3.2,m*3.2,w-6.4*m,h-6.4*m,r*0.6);c.lineWidth=h*0.008;c.strokeStyle='rgba(201,161,78,.55)';c.stroke();
+  c.fillStyle='rgba(201,161,78,.6)';c.font=Math.round(h*0.42)+'px serif';c.textAlign='center';c.textBaseline='middle';c.fillText('\u2726',w/2,h/2+h*0.02);
+  cardBackTex=new THREE.CanvasTexture(cv);cardBackTex.colorSpace=THREE.SRGBColorSpace;cardBackTex.anisotropy=maxAniso;
+  return cardBackTex;
+}
+/** Lay an area's mesh. A face-down area is drawn as a card back; `revealFirst` (a dead end just tried) shows its real face for a
+ *  few seconds so the player can read it, then flips it face down — as at the table, they must remember it from then on. */
+async function buildAreaMesh(area, spawn, revealFirst){
   const k=akey(area); // never lay two meshes for the same coord (optimistic + reconcile can race)
   if(pendingTiles.has(k) || tileMeshes.some(m=>m.userData.area&&akey(m.userData.area)===k)) return;
   pendingTiles.add(k);
-  const tex=await loadAlphaTexture(area.tileId? (tiles.get(area.tileId)?.file ?? ''):'');
+  const down=!!area.faceDown && !revealFirst;
+  const tex=down? cardBackTexture() : await loadAlphaTexture(area.tileId? (tiles.get(area.tileId)?.file ?? ''):'');
   const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,alphaTest:0.03,side:THREE.DoubleSide,depthWrite:true});
   if(area.destroyed) mat.color.setHex(DESTROYED_TINT); // earthquake rubble — darkened so it reads as collapsed
   const mesh=new THREE.Mesh(new THREE.PlaneGeometry(TILE_W,TILE_D),mat);
   mesh.rotation.x=-Math.PI/2;
   if(area.rot) mesh.rotation.z=THREE.MathUtils.degToRad(-area.rot);
   const p=worldPos(area); mesh.position.copy(p); mesh.renderOrder=2;
-  mesh.userData.area=area; mesh.userData.lvl=area.level; regMat(mat); area._mesh=mesh; tileGroup.add(mesh); tileMeshes.push(mesh);
+  mesh.userData.area=area; mesh.userData.lvl=area.level; mesh.userData.down=down; mesh.userData.basePos=p.clone();
+  regMat(mat); area._mesh=mesh; tileGroup.add(mesh); tileMeshes.push(mesh);
   pendingTiles.delete(k);
   if(spawn){ mat.opacity=0; mesh.position.y=p.y+1.4; spawnAnims.push({mesh,p,t0:clock.elapsedTime}); }
   if(area.cardId){ addCardGlow(area); }
+  if(revealFirst && area.faceDown) setTimeout(()=>{ if(tileMeshes.includes(mesh)) flipTile(mesh,true,area); }, 3600);
+}
+/* Flip a tile over: it rises, turns edge-on (the texture swaps at the half-way point), and settles. */
+const flipAnims=[];
+async function flipTile(mesh, toDown, area){
+  if(!!mesh.userData.down===toDown) return;
+  mesh.userData.down=toDown;
+  const tex=toDown? cardBackTexture() : await loadAlphaTexture(area.tileId? (tiles.get(area.tileId)?.file ?? ''):'');
+  if(!tileMeshes.includes(mesh)) return;
+  flipAnims.push({mesh,tex,t0:clock.elapsedTime,swapped:false});
 }
 function addCardGlow(area){
   const c=engine; const card=area.cardId;
@@ -337,6 +365,7 @@ function disposeTileMesh(mesh){
   if(mesh.material){ mesh.material.map?.dispose?.(); mesh.material.dispose(); }
   let i=tileMeshes.indexOf(mesh); if(i>=0) tileMeshes.splice(i,1);
   i=spawnAnims.findIndex(s=>s.mesh===mesh); if(i>=0) spawnAnims.splice(i,1);
+  i=flipAnims.findIndex(f=>f.mesh===mesh); if(i>=0) flipAnims.splice(i,1);
 }
 // Like disposeTileMesh, but the mesh fades/sinks out over time (animate()'s despawnAnims tick)
 // instead of vanishing on the spot — the visible half of a remap swap. Freed from `tileMeshes`
@@ -369,6 +398,11 @@ function reconcileTiles(canAct){
     const ua=m.userData.area; if(!ua) continue;
     const a=want.get(akey(ua)); if(!a) continue;
     if(a.faceDown && (a.tileId!==ua.tileId||a.rot!==ua.rot) && !pendingRemaps.has(akey(a))) pendingRemaps.set(akey(a),a);
+  }
+  // A face-down tile the party has now entered (or a Spell tile resolved) turns face up.
+  for(const m of tileMeshes){
+    const ua=m.userData.area; if(!ua) continue;
+    const a=want.get(akey(ua)); if(a && m.userData.down && !a.faceDown) flipTile(m,false,a);
   }
   if(pendingRemaps.size && canAct!==false){
     for(const [k,a] of [...pendingRemaps]){
@@ -644,8 +678,8 @@ function doMove(dir){
   }
   const ev=engine.tryMove(dir);
   if(!ev.moved){
-    if(ev.placed){ // a tile was drawn onto a dead-end frontier — lay it down even though we can't enter
-      buildAreaMesh(ev.placed,true).then(()=>{rebuildPlatforms();rebuildStairs();rebuildSecretDoors();rebuildLevelButtons();});
+    if(ev.placed){ // a tile was drawn onto a dead-end frontier — show it face up for a few seconds, then flip it face down
+      buildAreaMesh(ev.placed,true,true).then(()=>{rebuildPlatforms();rebuildStairs();rebuildSecretDoors();rebuildLevelButtons();});
       refreshExitMarkers(); // the attempted exit was pruned
     }
     setPrompt(ev.deadEnd?'That way is a dead end.':'No exit that way.','danger'); flashMarker(dir,true); return;
@@ -887,6 +921,12 @@ function animate(){
   // spawn anims
   for(let i=spawnAnims.length-1;i>=0;i--){const s=spawnAnims[i],k=Math.min(1,(tt-s.t0)/0.5);
     s.mesh.material.opacity=k;s.mesh.position.y=s.p.y+(1-k)*1.4;if(k>=1)spawnAnims.splice(i,1);}
+  // flip anims — a dead end turned face down (or a face-down tile turned up): rise, edge-on, swap the face, settle
+  for(let i=flipAnims.length-1;i>=0;i--){const f=flipAnims[i],k=Math.min(1,(tt-f.t0)/0.7),m=f.mesh,b=m.userData.basePos;
+    m.scale.x=Math.max(0.03,Math.abs(Math.cos(Math.PI*k)));
+    if(b) m.position.y=b.y+0.7*Math.sin(Math.PI*k);
+    if(!f.swapped&&k>=0.5){f.swapped=true;if(f.tex){m.material.map=f.tex;m.material.needsUpdate=true;}}
+    if(k>=1){m.scale.x=1;if(b)m.position.y=b.y;flipAnims.splice(i,1);}}
   // despawn anims — the outgoing half of a tile swap (e.g. Spell's tunnel remap): mirrors spawn's
   // fade-in-and-drop with a fade-out-and-sink, then frees the mesh for good.
   for(let i=despawnAnims.length-1;i>=0;i--){const s=despawnAnims[i],k=Math.min(1,(tt-s.t0)/0.5);
