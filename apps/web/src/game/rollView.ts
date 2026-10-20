@@ -29,6 +29,8 @@ function reactionView(reaction: Extract<GameEvent, { type: "reaction" }>, joined
   return { title: "Reaction roll", lanes: [{ enemy: { value: reaction.roll } }], message, tone };
 }
 
+const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
+
 /** Turn a fight round's combat rolls into a party-vs-enemy overlay with both dice side by side. */
 function combatView(events: GameEvent[]): RollView | null {
   const rolls = events.filter((e): e is Extract<GameEvent, { type: "combatRoll" }> => e.type === "combatRoll");
@@ -62,6 +64,18 @@ function combatView(events: GameEvent[]): RollView | null {
         ? "The statue strikes — the party is slain…"
         : "The statue strikes your champion down!";
     return { title: "The guardian statue", lanes, message, tone: rubyTaken ? "good" : "bad" };
+  }
+
+  // The Ghouls fight one round and withdraw: there is no "victory" — count who fell and who fought them off.
+  if (rolls.every((r) => /^Ghoul/.test(r.enemy))) {
+    const wonDuels = rolls.filter((r) => r.result === "partyWon").length;
+    const held = rolls.filter((r) => r.result === "tie").length;
+    const tally = [
+      `${plural(lost, "member")} of the party fell`,
+      `${wonDuels} fought off ${wonDuels === 1 ? "a Ghoul" : "their Ghouls"}`,
+      ...(held ? [`${held} held ${held === 1 ? "its" : "their"} ground`] : []),
+    ].join(", ");
+    return { title: "The Ghouls", lanes, message: over ? `The Ghouls slay the party… (${tally})` : `${tally}.`, tone: lost > 0 ? "bad" : "good" };
   }
 
   const message = over
