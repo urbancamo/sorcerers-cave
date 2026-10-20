@@ -369,9 +369,10 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
           </>
         )}
         {mine?.kind === "redeploy" && (
-          <button className="scv-fight-btn primary" disabled={redeployBad !== null} onClick={() => dispatch({ type: "redeploy", moves: usedMoves })}>
-            {usedMoves.length ? "Make these moves — roll the round ⚔" : "No changes — roll the round ⚔"}
-          </button>
+          <>
+            <button className="scv-fight-btn primary" disabled={redeployBad !== null} onClick={() => dispatch({ type: "redeploy", moves: usedMoves })}>Fight ⚔</button>
+            {usedMoves.length > 0 && <button className="scv-fight-btn ghost" onClick={() => { setMoves([]); setPicked(null); }}>Undo moves</button>}
+          </>
         )}
         {!deciding && retreats.length > 0 && (
           <div className="scv-retreat">
