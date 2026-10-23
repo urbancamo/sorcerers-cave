@@ -178,24 +178,24 @@ const flipAnims=[];
    fades in over the old one; and a face-down tile the party enters fades to the real tile. */
 const fogFades=[];
 const settleFogFade=f=>{ f.mesh.material.map=f.tex; f.mesh.material.needsUpdate=true; f.mesh.remove(f.over); f.over.material.dispose(); };
-function startFade(mesh, tex){
+function startFade(mesh, tex, dur=0.9){
   const busy=fogFades.findIndex(f=>f.mesh===mesh); if(busy>=0){ settleFogFade(fogFades[busy]); fogFades.splice(busy,1); } // an earlier fade is cut short
   const over=new THREE.Mesh(mesh.geometry,new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false}));
   over.position.z=0.02; over.renderOrder=3; mesh.add(over); // z is the tile's own up: a hair above its face
-  fogFades.push({mesh,over,tex,t0:clock.elapsedTime});
+  fogFades.push({mesh,over,tex,dur,t0:clock.elapsedTime});
 }
-async function fadeToFog(mesh, area){
+async function fadeToFog(mesh, area, dur){
   const stubs=area.fogStubs||'';
   if(mesh.userData.down && mesh.userData.fogStubs===stubs) return;
   mesh.userData.down=true; mesh.userData.fogStubs=stubs;
   const tex=await faceDownTexture(area);
-  if(tileMeshes.includes(mesh)) startFade(mesh,tex);
+  if(tileMeshes.includes(mesh)) startFade(mesh,tex,dur);
 }
-async function fadeToFace(mesh, area){
+async function fadeToFace(mesh, area, dur){
   if(!mesh.userData.down) return;
   mesh.userData.down=false; mesh.userData.fogStubs=null;
   const tex=await loadAlphaTexture(area.tileId? (tiles.get(area.tileId)?.file ?? ''):'');
-  if(tileMeshes.includes(mesh)) startFade(mesh,tex);
+  if(tileMeshes.includes(mesh)) startFade(mesh,tex,dur);
 }
 async function flipTile(mesh, toDown, area){
   if(!!mesh.userData.down===toDown) return;
@@ -412,6 +412,7 @@ function disposeTileMesh(mesh){
   i=spawnAnims.findIndex(s=>s.mesh===mesh); if(i>=0) spawnAnims.splice(i,1);
   i=flipAnims.findIndex(f=>f.mesh===mesh); if(i>=0) flipAnims.splice(i,1);
   i=fogFades.findIndex(f=>f.mesh===mesh); if(i>=0){ fogFades[i].over.material.dispose(); fogFades.splice(i,1); }
+  i=peekGlows.findIndex(p=>p.mesh===mesh); if(i>=0){ peekGlows[i].g.material.dispose(); peekGlows[i].g.geometry.dispose(); peekGlows.splice(i,1); }
 }
 // Like disposeTileMesh, but the mesh fades/sinks out over time (animate()'s despawnAnims tick)
 // instead of vanishing on the spot — the visible half of a remap swap. Freed from `tileMeshes`
@@ -975,8 +976,12 @@ function animate(){
     if(b) m.position.y=b.y+0.7*Math.sin(Math.PI*k);
     if(!f.swapped&&k>=0.5){f.swapped=true;if(f.tex){m.material.map=f.tex;m.material.needsUpdate=true;}}
     if(k>=1){m.scale.x=1;if(b)m.position.y=b.y;flipAnims.splice(i,1);}}
+  // the Sibyl's glow — the card's own envelope: in, hold, out
+  for(let i=peekGlows.length-1;i>=0;i--){const p=peekGlows[i],u=(tt-p.t0)/PEEK_S;
+    if(u>=1||!tileMeshes.includes(p.mesh)){p.mesh.remove(p.g);p.g.material.dispose();p.g.geometry.dispose();peekGlows.splice(i,1);continue;}
+    p.g.material.opacity=0.8*(u<0.2?u/0.2:u<0.7?1:(1-u)/0.3);}
   // fog fades — a dead end read, then crossfaded to its fog card (laid over it), which finally replaces the face
-  for(let i=fogFades.length-1;i>=0;i--){const f=fogFades[i],k=Math.min(1,(tt-f.t0)/0.9);
+  for(let i=fogFades.length-1;i>=0;i--){const f=fogFades[i],k=Math.min(1,(tt-f.t0)/f.dur);
     f.over.material.opacity=k;
     if(k>=1){settleFogFade(f);fogFades.splice(i,1);}}
   // despawn anims — the outgoing half of a tile swap (e.g. Spell's tunnel remap): mirrors spawn's
@@ -1065,16 +1070,37 @@ function setPicker(opts){
   viewFreeOrbit();
   setPrompt(opts.prompt||'Choose where the Sorcerer will send you — click a <b>ringed area</b>.','event');
 }
-/** The Sibyl's look at a face-down tile: turn it up for a few seconds, then back down — the player must remember it. */
+/* The Sibyl's glow: the soft violet frame the top-of-the-pack card wears (styles.css .scv-sibyl-peek), laid round a tile she is showing. */
+let peekGlowTex=null;
+function peekGlowTexture(){
+  if(peekGlowTex) return peekGlowTex;
+  const w=640,h=Math.round(w*TILE_D/TILE_W),pad=0.12,cv=document.createElement('canvas');cv.width=w;cv.height=h;
+  const c=cv.getContext('2d'),x=w*pad/(1+2*pad),y=h*pad/(1+2*pad),rw=w-2*x,rh=h-2*y;
+  c.shadowColor='rgba(186,156,255,0.9)';c.shadowBlur=w*0.05;c.fillStyle='#bc9cff';c.fillRect(x,y,rw,rh);
+  c.shadowColor='transparent';c.globalCompositeOperation='destination-out';c.fillRect(x,y,rw,rh); // the tile itself stays clear: only the frame shows
+  peekGlowTex=new THREE.CanvasTexture(cv);peekGlowTex.colorSpace=THREE.SRGBColorSpace;
+  return peekGlowTex;
+}
+const peekGlows=[];
+const PEEK_S=3.4;   // the same breath as the card: in over the first fifth, held to 70%, out by the end
+function addPeekGlow(mesh){
+  const g=new THREE.Mesh(new THREE.PlaneGeometry(TILE_W*1.24,TILE_D*1.24),new THREE.MeshBasicMaterial({map:peekGlowTexture(),transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide}));
+  g.position.z=0.03; g.renderOrder=3; mesh.add(g);
+  peekGlows.push({mesh,g,t0:clock.elapsedTime});
+}
+/** The Sibyl's look at a face-down tile: its fog card fades to the real card and back, in the violet frame of her top-of-the-pack
+ *  card — the player must remember what they saw. */
 function peekTile(d){
   const k=akey(d), m=tileMeshes.find(x=>x.userData.area&&akey(x.userData.area)===k);
   if(!m||!m.userData.down) return;
   const a=m.userData.area;
-  flipTile(m,false,a).then(()=>setTimeout(()=>{
+  addPeekGlow(m);
+  fadeToFace(m,a,PEEK_S*0.2);
+  setTimeout(()=>{
     const cur=engine.areas.find(x=>akey(x)===k);
-    if(tileMeshes.includes(m) && cur && cur.faceDown) flipTile(m,true,a);   // unless a party has entered it meanwhile
-    setTimeout(viewSnapTile,800);   // once it has turned over, go 'home': back to the party's own tile
-  },3500));
+    if(tileMeshes.includes(m) && cur && cur.faceDown) fadeToFog(m,cur,PEEK_S*0.3);   // unless a party has entered it meanwhile
+    setTimeout(viewSnapTile,PEEK_S*0.3*1000+800);   // once it has faded back, go 'home': back to the party's own tile
+  },PEEK_S*0.7*1000);
 }
 function pickAt(){ // ray already aimed; returns true when the click was consumed by the picker
   if(!picker) return false;

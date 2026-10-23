@@ -41,7 +41,7 @@ function takeIntro(): boolean {
  *  local UI state. */
 export function SibylLook({ state, actions, dispatch, tools }: {
   state: GameState; actions: Look[]; dispatch: (a: GameAction) => void;
-  /** The 3D cave view: choose a face-down tile on the map, and turn it up for a few seconds. */
+  /** The 3D cave view: choose a face-down tile on the map, and fade it up for a few seconds. */
   tools?: { pick: DestinationPicker; peek: (a: { col: number; row: number; level: number }) => void };
 }) {
   const [picking, setPicking] = useState(false);
@@ -65,7 +65,7 @@ export function SibylLook({ state, actions, dispatch, tools }: {
     reveal("Top of the pack", state.largePack[state.largeIdx]!);
   };
   // Choosing a face-down tile: the cave view rings every one; the player clicks it on the map, it is turned up for a few
-  // seconds and turned down again (no text record: they must remember what they saw).
+  // seconds and faded down again (no text record: they must remember what they saw).
   useEffect(() => {
     if (!picking || !tools) return;
     const destinations = tiles.map((a) => { const { level, x, y } = unpackCoord(state.areas[a.area!]!.coord); return { idx: a.area!, col: x, row: y, level }; });
