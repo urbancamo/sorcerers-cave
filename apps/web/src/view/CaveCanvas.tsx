@@ -1,7 +1,7 @@
 import { useEffect, useRef } from "react";
 import type { CaveEngine } from "./ports";
 import type { GameState } from "@sorcerers-cave/engine";
-import { loadManifest, indexTilesById, type CardArt } from "../data/manifest";
+import { loadManifest, indexTilesById, resolveDeadEnd, type CardArt } from "../data/manifest";
 import { boot } from "./cave3d";
 import { viewParty } from "./viewParty";
 import { CaveHud, cursesInForce } from "./CaveHud";
@@ -46,13 +46,14 @@ export function CaveCanvas({ engine, state, canAct, color, onPartyClick, onSave,
     if (!mount) return;
     let cancelled = false;
     void (async () => {
-      const { tiles, cards } = await loadManifest();
+      const { tiles, cards, deadEnds } = await loadManifest();
       if (cancelled) return;
       cardsRef.current = cards;
       ctrl.current = await boot({
         mount,
         engine,
         tiles: indexTilesById(tiles),
+        deadEnd: (exits) => resolveDeadEnd(exits, deadEnds ?? [])?.file ?? null, // (mocked manifests may carry none)
         party: viewParty(state, cards),
         tileAR: TILE_AR,
         partyColor: partyColorHex(colorRef.current),

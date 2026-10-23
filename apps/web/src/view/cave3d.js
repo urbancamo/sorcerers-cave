@@ -15,7 +15,7 @@ const TILE_W=4.3, LEVEL_GAP=5.2; let TILE_D;
 const DESTROYED_TINT=0x4a4036; // earthquake-collapsed tile: darkened rubble tone
 const DIRV={N:[0,-1],S:[0,1],E:[1,0],W:[-1,0]};
 
-let engine, startLevel, tiles, PARTY=[], partyColorHex, isMultiplayer=false;
+let engine, startLevel, tiles, deadEndArt=()=>null, PARTY=[], partyColorHex, isMultiplayer=false;
 const lvlIndex=l=>l-startLevel;
 function worldPos(a){ return new THREE.Vector3(a.col*TILE_W, -lvlIndex(a.level)*LEVEL_GAP, a.row*TILE_D); }
 // Precise Locations (engine SC-10.5): offset toward the doorway a sub-location names, reusing the
@@ -57,6 +57,22 @@ function loadAlphaTexture(src,maxW=1024){
     img.onerror=()=>res(null); img.src=src;
   });
   texCache.set(src,p); return p;
+}
+/* The fog dead-end cards, loaded before they are shown: unlike a tile, nothing is cut away — the dark vignette is part of the card. */
+const fogCache=new Map();
+function loadFogTexture(src,maxW=1024){
+  if(fogCache.has(src))return fogCache.get(src);
+  const p=new Promise(res=>{
+    const img=new Image(); img.crossOrigin='anonymous';
+    img.onload=()=>{
+      const sc=Math.min(1,maxW/img.width),w=Math.round(img.width*sc),h=Math.round(img.height*sc);
+      const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      const tex=new THREE.CanvasTexture(cv);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=maxAniso;res(tex);
+    };
+    img.onerror=()=>res(null); img.src=src;
+  });
+  fogCache.set(src,p); return p;
 }
 function makeGridTexture(){
   const s=128,cv=document.createElement('canvas');cv.width=cv.height=s;
@@ -129,33 +145,62 @@ function cardBackTexture(){
   cardBackTex=new THREE.CanvasTexture(cv);cardBackTex.colorSpace=THREE.SRGBColorSpace;cardBackTex.anisotropy=maxAniso;
   return cardBackTex;
 }
-/** Lay an area's mesh. A face-down area is drawn as a card back; `revealFirst` (a dead end just tried) shows its real face for a
- *  few seconds so the player can read it, then flips it face down — as at the table, they must remember it from then on. */
+/** What a face-down area shows: the fog dead-end card with a stub on each side the party tried it from (the drawn card back if the manifest has none). */
+async function faceDownTexture(area){
+  const file=deadEndArt(area.fogStubs||'');
+  return (file && await loadFogTexture(file)) || cardBackTexture();
+}
+/** Lay an area's mesh. A face-down area is drawn as its fog card; `revealFirst` (a dead end just tried) shows its real face for a
+ *  few seconds so the player can read it, then fades it to the fog card — as at the table, they must remember it from then on. */
 async function buildAreaMesh(area, spawn, revealFirst){
   const k=akey(area); // never lay two meshes for the same coord (optimistic + reconcile can race)
   if(pendingTiles.has(k) || tileMeshes.some(m=>m.userData.area&&akey(m.userData.area)===k)) return;
   pendingTiles.add(k);
   const down=!!area.faceDown && !revealFirst;
-  const tex=down? cardBackTexture() : await loadAlphaTexture(area.tileId? (tiles.get(area.tileId)?.file ?? ''):'');
+  const tex=down? await faceDownTexture(area) : await loadAlphaTexture(area.tileId? (tiles.get(area.tileId)?.file ?? ''):'');
   const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,alphaTest:0.03,side:THREE.DoubleSide,depthWrite:true});
   if(area.destroyed) mat.color.setHex(DESTROYED_TINT); // earthquake rubble — darkened so it reads as collapsed
   const mesh=new THREE.Mesh(new THREE.PlaneGeometry(TILE_W,TILE_D),mat);
   mesh.rotation.x=-Math.PI/2;
   if(area.rot) mesh.rotation.z=THREE.MathUtils.degToRad(-area.rot);
   const p=worldPos(area); mesh.position.copy(p); mesh.renderOrder=2;
-  mesh.userData.area=area; mesh.userData.lvl=area.level; mesh.userData.down=down; mesh.userData.basePos=p.clone();
+  mesh.userData.area=area; mesh.userData.lvl=area.level; mesh.userData.down=down; mesh.userData.fogStubs=down?(area.fogStubs||''):null; mesh.userData.basePos=p.clone();
   regMat(mat); area._mesh=mesh; tileGroup.add(mesh); tileMeshes.push(mesh);
   pendingTiles.delete(k);
   if(spawn){ mat.opacity=0; mesh.position.y=p.y+1.4; spawnAnims.push({mesh,p,t0:clock.elapsedTime}); }
   if(area.cardId){ addCardGlow(area); }
-  if(revealFirst && area.faceDown) setTimeout(()=>{ if(tileMeshes.includes(mesh)) flipTile(mesh,true,area); }, 3600);
+  if(revealFirst && area.faceDown) setTimeout(()=>{ if(tileMeshes.includes(mesh)) fadeToFog(mesh, engine.areas.find(x=>akey(x)===k)||area); }, 3600); // (by then another doorway into it may have been tried)
 }
 /* Flip a tile over: it rises, turns edge-on (the texture swaps at the half-way point), and settles. */
 const flipAnims=[];
+/* Fades between a tile's faces: the new face is laid over the tile and fades in, then takes the tile's place. A dead end, once read,
+   fades to its fog card; run again for a tile already face down when another doorway into it is tried (a new stub), the fresh card
+   fades in over the old one; and a face-down tile the party enters fades to the real tile. */
+const fogFades=[];
+const settleFogFade=f=>{ f.mesh.material.map=f.tex; f.mesh.material.needsUpdate=true; f.mesh.remove(f.over); f.over.material.dispose(); };
+function startFade(mesh, tex){
+  const busy=fogFades.findIndex(f=>f.mesh===mesh); if(busy>=0){ settleFogFade(fogFades[busy]); fogFades.splice(busy,1); } // an earlier fade is cut short
+  const over=new THREE.Mesh(mesh.geometry,new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false}));
+  over.position.z=0.02; over.renderOrder=3; mesh.add(over); // z is the tile's own up: a hair above its face
+  fogFades.push({mesh,over,tex,t0:clock.elapsedTime});
+}
+async function fadeToFog(mesh, area){
+  const stubs=area.fogStubs||'';
+  if(mesh.userData.down && mesh.userData.fogStubs===stubs) return;
+  mesh.userData.down=true; mesh.userData.fogStubs=stubs;
+  const tex=await faceDownTexture(area);
+  if(tileMeshes.includes(mesh)) startFade(mesh,tex);
+}
+async function fadeToFace(mesh, area){
+  if(!mesh.userData.down) return;
+  mesh.userData.down=false; mesh.userData.fogStubs=null;
+  const tex=await loadAlphaTexture(area.tileId? (tiles.get(area.tileId)?.file ?? ''):'');
+  if(tileMeshes.includes(mesh)) startFade(mesh,tex);
+}
 async function flipTile(mesh, toDown, area){
   if(!!mesh.userData.down===toDown) return;
-  mesh.userData.down=toDown;
-  const tex=toDown? cardBackTexture() : await loadAlphaTexture(area.tileId? (tiles.get(area.tileId)?.file ?? ''):'');
+  mesh.userData.down=toDown; mesh.userData.fogStubs=toDown?(area.fogStubs||''):null;
+  const tex=toDown? await faceDownTexture(area) : await loadAlphaTexture(area.tileId? (tiles.get(area.tileId)?.file ?? ''):'');
   if(!tileMeshes.includes(mesh)) return;
   flipAnims.push({mesh,tex,t0:clock.elapsedTime,swapped:false});
 }
@@ -366,6 +411,7 @@ function disposeTileMesh(mesh){
   let i=tileMeshes.indexOf(mesh); if(i>=0) tileMeshes.splice(i,1);
   i=spawnAnims.findIndex(s=>s.mesh===mesh); if(i>=0) spawnAnims.splice(i,1);
   i=flipAnims.findIndex(f=>f.mesh===mesh); if(i>=0) flipAnims.splice(i,1);
+  i=fogFades.findIndex(f=>f.mesh===mesh); if(i>=0){ fogFades[i].over.material.dispose(); fogFades.splice(i,1); }
 }
 // Like disposeTileMesh, but the mesh fades/sinks out over time (animate()'s despawnAnims tick)
 // instead of vanishing on the spot — the visible half of a remap swap. Freed from `tileMeshes`
@@ -399,10 +445,11 @@ function reconcileTiles(canAct){
     const a=want.get(akey(ua)); if(!a) continue;
     if(a.faceDown && (a.tileId!==ua.tileId||a.rot!==ua.rot) && !pendingRemaps.has(akey(a))) pendingRemaps.set(akey(a),a);
   }
-  // A face-down tile the party has now entered (or a Spell tile resolved) turns face up.
+  // A face-down tile the party has now entered (or a Spell tile resolved) fades to its real face.
   for(const m of tileMeshes){
     const ua=m.userData.area; if(!ua) continue;
-    const a=want.get(akey(ua)); if(a && m.userData.down && !a.faceDown) flipTile(m,false,a);
+    const a=want.get(akey(ua)); if(a && m.userData.down && !a.faceDown) fadeToFace(m,a);
+    else if(a && m.userData.down && a.faceDown) fadeToFog(m,a); // another doorway into it was tried: its fog card gains a stub
   }
   if(pendingRemaps.size && canAct!==false){
     for(const [k,a] of [...pendingRemaps]){
@@ -682,6 +729,7 @@ function doMove(dir){
       buildAreaMesh(ev.placed,true,true).then(()=>{rebuildPlatforms();rebuildStairs();rebuildSecretDoors();rebuildLevelButtons();});
       refreshExitMarkers(); // the attempted exit was pruned
     }
+    else if(ev.deadEnd) reconcileTiles(); // a tile already laid: if it is face down, its fog card gains the stub for this doorway
     setPrompt(ev.deadEnd?'That way is a dead end.':'No exit that way.','danger'); flashMarker(dir,true); return;
   }
   busy=true;
@@ -927,6 +975,10 @@ function animate(){
     if(b) m.position.y=b.y+0.7*Math.sin(Math.PI*k);
     if(!f.swapped&&k>=0.5){f.swapped=true;if(f.tex){m.material.map=f.tex;m.material.needsUpdate=true;}}
     if(k>=1){m.scale.x=1;if(b)m.position.y=b.y;flipAnims.splice(i,1);}}
+  // fog fades — a dead end read, then crossfaded to its fog card (laid over it), which finally replaces the face
+  for(let i=fogFades.length-1;i>=0;i--){const f=fogFades[i],k=Math.min(1,(tt-f.t0)/0.9);
+    f.over.material.opacity=k;
+    if(k>=1){settleFogFade(f);fogFades.splice(i,1);}}
   // despawn anims — the outgoing half of a tile swap (e.g. Spell's tunnel remap): mirrors spawn's
   // fade-in-and-drop with a fade-out-and-sink, then frees the mesh for good.
   for(let i=despawnAnims.length-1;i>=0;i--){const s=despawnAnims[i],k=Math.min(1,(tt-s.t0)/0.5);
@@ -1065,8 +1117,8 @@ function onResize(){
   if(lastSnapArea && orbitBtn && !orbitBtn.classList.contains('active')) frameSnap(lastSnapArea);
 }
 
-export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr, tileAR, partyColor, onQuit, multiplayer }){
-  engine=eng; startLevel=eng.startLevel; tiles=tileMap; PARTY=partyArr; TILE_D=TILE_W/tileAR; partyColorHex=partyColor; isMultiplayer=!!multiplayer;
+export async function boot({ mount, engine: eng, tiles: tileMap, deadEnd, party: partyArr, tileAR, partyColor, onQuit, multiplayer }){
+  engine=eng; startLevel=eng.startLevel; tiles=tileMap; deadEndArt=deadEnd||(()=>null); PARTY=partyArr; TILE_D=TILE_W/tileAR; partyColorHex=partyColor; isMultiplayer=!!multiplayer;
 
   /* ---- renderer / scene / camera ---- */
   renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});

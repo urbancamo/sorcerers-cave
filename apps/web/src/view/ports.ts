@@ -62,6 +62,9 @@ export interface Area {
   subLocation?: { at: 'doorway' | 'centre' | 'island'; dir?: 'N' | 'E' | 'S' | 'W' };
   visited: boolean;
   faceDown: boolean;     // placed but unrevealed (excluded from edge-matching)
+  // Sides of this area facing a tile whose doorway into it was tried and found a dead end (N,E,S,W order): where the fog card
+  // shown over it while face down puts its stubs. Empty for a face-down tile nobody tried a doorway into (e.g. a Spell remap).
+  fogStubs?: Exits;
   destroyed: boolean;    // collapsed by an earthquake — impassable, drawn as rubble
   secretDoor: number | null; // discovery order of a secret-door stair up (0 → "A"), else null
 

@@ -2144,6 +2144,80 @@
           "h": 375
         }
       ]
+    },
+    "deadEnds": {
+      "dir": "dead-ends",
+      "source": "fog",
+      "description": "Fog dead-end cards (Peter Vodden's fog-of-war set, docs/fow-cards), LANDSCAPE like the area tiles: the source portraits rotated 90 degrees counter-clockwise. Each shows only the doorway stubs of the dead-end card it stands for; `exits` (canonical N,E,S,W order) names where those stubs are, from the source file name. Shown in place of a dead-end area card once it has been looked at. The NESW card has no stubs: it stands in for any dead end with three or more doorways.",
+      "count": 11,
+      "items": [
+        {
+          "file": "dead-end-n.jpg",
+          "w": 1728,
+          "h": 1210,
+          "exits": "N"
+        },
+        {
+          "file": "dead-end-e.jpg",
+          "w": 1728,
+          "h": 1210,
+          "exits": "E"
+        },
+        {
+          "file": "dead-end-s.jpg",
+          "w": 1728,
+          "h": 1210,
+          "exits": "S"
+        },
+        {
+          "file": "dead-end-w.jpg",
+          "w": 1728,
+          "h": 1210,
+          "exits": "W"
+        },
+        {
+          "file": "dead-end-ne.jpg",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NE"
+        },
+        {
+          "file": "dead-end-se.jpg",
+          "w": 1728,
+          "h": 1210,
+          "exits": "SE"
+        },
+        {
+          "file": "dead-end-sw.jpg",
+          "w": 1728,
+          "h": 1210,
+          "exits": "SW"
+        },
+        {
+          "file": "dead-end-nw.jpg",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NW"
+        },
+        {
+          "file": "dead-end-ns.jpg",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NS"
+        },
+        {
+          "file": "dead-end-ew.jpg",
+          "w": 1728,
+          "h": 1210,
+          "exits": "EW"
+        },
+        {
+          "file": "dead-end-nesw.jpg",
+          "w": 1728,
+          "h": 1210,
+          "exits": "NESW"
+        }
+      ]
     }
   }
 }

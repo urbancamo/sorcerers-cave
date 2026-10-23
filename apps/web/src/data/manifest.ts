@@ -28,6 +28,13 @@ export interface CardArt {
   kitArt?: true;
 }
 
+/** A fog dead-end card (landscape, like the tiles) resolved from the manifest: it shows only the doorway stubs of the
+ *  dead-end area card it stands for. */
+export interface DeadEndArt {
+  exits: string;        // canonical, N,E,S,W order
+  file: string;
+}
+
 /** The topology a placed area needs art for (engine-agnostic; the caller decodes engine cards). */
 export interface Topology {
   exits: string;        // ABSOLUTE exits (engine's final orientation)
@@ -69,16 +76,26 @@ const cardsOf = (cat: AssetCategory | undefined, kitArt?: true): CardArt[] =>
     ...(kitArt ? { kitArt } : {}),
   }));
 
+const deadEndsOf = (cat: AssetCategory | undefined): DeadEndArt[] =>
+  (cat?.items ?? []).map((it: AssetItem) => ({ exits: normExits(it.exits ?? ""), file: urlOf(cat!.dir, it.file) }));
+
 /**
  * Parse the raw manifest into tile and card art tables. `tilesExtension`/`cardsExtension` (the
  * extension kit's art) are always merged in — kit-off games never place/draw the kit's tile or
  * entity ids, so the extra entries are inert; this keeps the merge unconditional and simple
  * (design §1.4). Extension cards carry `kitArt: true` for later kit-art-preference logic.
  */
-export function parseManifest(m: AssetManifest): { tiles: TileArt[]; cards: CardArt[] } {
+export function parseManifest(m: AssetManifest): { tiles: TileArt[]; cards: CardArt[]; deadEnds: DeadEndArt[] } {
   const tiles: TileArt[] = [...tilesOf(m.categories["tiles"]), ...tilesOf(m.categories["tilesExtension"])];
   const cards: CardArt[] = [...cardsOf(m.categories["cards"]), ...cardsOf(m.categories["cardsExtension"], true)];
-  return { tiles, cards };
+  return { tiles, cards, deadEnds: deadEndsOf(m.categories["deadEnds"]) };
+}
+
+/** The fog card with a stub on each of these sides. There is no card for three stubs (or none), so those get the plain fog card —
+ *  the one with no stubs (NESW). Null when the manifest has no fog cards at all. */
+export function resolveDeadEnd(exits: string, deadEnds: DeadEndArt[]): DeadEndArt | null {
+  const want = normExits(exits);
+  return deadEnds.find((d) => d.exits === want) ?? deadEnds.find((d) => d.exits === "NESW") ?? null;
 }
 
 /**
@@ -135,7 +152,7 @@ export function indexTilesById(tiles: TileArt[]): Map<string, TileArt> {
 }
 
 /** Fetch + parse the served manifest at runtime (browser). */
-export async function loadManifest(base: string = ASSET_BASE): Promise<{ tiles: TileArt[]; cards: CardArt[] }> {
+export async function loadManifest(base: string = ASSET_BASE): Promise<{ tiles: TileArt[]; cards: CardArt[]; deadEnds: DeadEndArt[] }> {
   const res = await fetch(`${base}/manifest.json`);
   if (!res.ok) throw new Error(`manifest fetch failed: ${res.status}`);
   return parseManifest((await res.json()) as AssetManifest);

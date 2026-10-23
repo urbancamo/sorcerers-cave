@@ -27,6 +27,7 @@ export interface BootOptions {
   mount: HTMLElement;
   engine: CaveEngine;
   tiles: Map<string, TileArt>;
+  deadEnd?: (exits: string) => string | null; // the fog dead-end card's image URL for a face-down area with stubs on these sides
   party: ViewPartyMember[];
   tileAR: number;
   partyColor?: string; // marker colour (hex)
