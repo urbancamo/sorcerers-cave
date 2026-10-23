@@ -35,7 +35,7 @@ import { applyAllocations, equipStrangers, loadoutViolation } from "./strangerEq
 import { removeStranger, addStranger, dropAllGear } from "./strangerGear";
 import {
   advance as advanceRevised, applyScroll, applyDeploy, applyEngage, applyNominate, applyRedeploy, deployViolation, dropPartyMember, engageViolation, initRevised,
-  nominateViolation, redeployViolation, resumeAfterCasualties,
+  nominateViolation, redeployViolation, removeStrangerFromFight, resumeAfterCasualties,
 } from "./revisedRound";
 
 const T_EYE_OF_GOD = 13; // treasure id — must stay with its bearer or the party is cursed (§Eye of God)
@@ -1726,7 +1726,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
             return ok;
           }
           (next.sleeping ??= []).push(sid); // the creature sleeps — inert, but stays in the chamber
-          removeStranger(next, action.target); // (what it bore drops onto the floor)
+          removeStrangerFromFight(next, action.target); // (what it bore drops onto the floor)
           consume();
           if (next.strangers.length === 0) { // no one left awake to face — the party may proceed past the sleepers
             next.fight = null;
@@ -1863,7 +1863,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
             }
             case "destroy": { // Spectre/Demon stranger or lurker — removed outright, no fight, no score
               const idx = found.target - HW_STRANGER_BASE;
-              removeStranger(next, idx);
+              removeStrangerFromFight(next, idx);
               events.push({ type: "holyWaterFoeDestroyed", creatureId: found.creatureId! });
               if (next.strangers.length === 0) { // mirrors Lotus Dust's own empty-strangers cleanup above
                 next.fight = null;

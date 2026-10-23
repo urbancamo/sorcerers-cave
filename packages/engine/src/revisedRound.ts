@@ -283,6 +283,20 @@ function scrollOffered(state: GameState): boolean {
 /** The Scroll destroys a stranger without innate magical power — a Ring-bearer on level 4+ too (Peter, 15-OCT-2026) — but not the Sibyl. */
 const destroyedByScroll = (id: number): boolean => CREATURES[id]!.mp === 0 && id !== C_SIBYL;
 
+/** Remove stranger `i` in the middle of a fight (Lotus Dust sends it to sleep, Holy Water destroys it). In a revised fight every stored
+ *  stranger position shifts down past it, and a match left with no front-line stranger dissolves (its party side is unengaged again). */
+export function removeStrangerFromFight(state: GameState, i: number): number[] {
+  const dropped = removeStranger(state, i);
+  const rev = state.fight?.rev;
+  if (!rev) return dropped;
+  const shift = (list: number[]): number[] => list.filter((n) => n !== i).map((n) => (n > i ? n - 1 : n));
+  for (const m of rev.matches) { m.sf = shift(m.sf); m.sb = shift(m.sb); }
+  rev.matches = rev.matches.filter((m) => m.sf.length > 0);
+  rev.deployed.strangers = shift(rev.deployed.strangers);
+  rev.killed = shift(rev.killed);
+  return dropped;
+}
+
 export function applyScroll(state: GameState, use: "destroy" | "surprise" | "decline"): GameEvent[] {
   const fight = state.fight!, rev = fight.rev!, events: GameEvent[] = [];
   rev.partyActed = true;
