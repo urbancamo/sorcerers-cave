@@ -1557,7 +1557,8 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         // tryMove clones the state for a dead end but returns the original for a no-tile way, so clone
         // before flagging the latter to avoid mutating the input state.
         const next = res.deadEnd ? res.state : structuredClone(state);
-        if (next.fight) next.fight = { ...next.fight, retreatBlocked: true };
+        // (Not in a standoff: no round can be fought there to open retreat again, so locking it would leave the party with no action at all.)
+        if (next.fight && !next.fight.rev?.standoff) next.fight = { ...next.fight, retreatBlocked: true };
         return { state: next, events: [{ type: "deadEnd", dir: action.dir, retreat: true }] };
       }
       // Retreat succeeds: the strangers and any dropped treasure are LEFT BEHIND in the chamber we fled.

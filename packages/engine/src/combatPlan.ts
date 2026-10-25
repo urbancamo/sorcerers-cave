@@ -89,7 +89,7 @@ const shieldOnlyQualifies = (state: GameState, m: PartyMember, sid: number): boo
 /** Is this whole match a Magic Shield stalemate — every stranger a magic-only foe (Spectre/Demon),
  *  and EVERY front member's ability to face ALL of them coming solely from the Shield? (SC-EXT-40) */
 export const isShieldStalemate = (state: GameState, mt: { front: readonly number[]; strangers: readonly number[] }): boolean =>
-  mt.strangers.length > 0 &&
+  mt.strangers.length > 0 && mt.front.length > 0 &&   // an empty front is no stalemate: a Spectre with nobody facing it yet
   mt.strangers.every((si) => MAGIC_ONLY_IDS.includes(state.strangers[si]!)) &&
   mt.front.every((i) => mt.strangers.every((si) => shieldOnlyQualifies(state, state.party[i]!, state.strangers[si]!)));
 
