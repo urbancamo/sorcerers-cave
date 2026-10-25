@@ -4,7 +4,7 @@
 // wrong bucket wherever a consumer branches on `card.category === "artifact"`) — found live via the
 // Task 16 manual smoke test (a drawn Magic Axe showed category "treasure").
 import {
-  decodeArea, openCard, unpackCoord, ALL_TREASURES, AF_DESTROYED, AF_UNRESOLVED, fluteLulls, getSubLocation,
+  decodeArea, openCard, unpackCoord, ALL_CREATURES, ALL_TREASURES, AF_DESTROYED, AF_UNRESOLVED, fluteLulls, getSubLocation,
   targetCoord, doorBit, DIR_N, DIR_E, DIR_S, DIR_W, type GameState, type PlacedArea,
 } from "@sorcerers-cave/engine";
 import { resolveTile, resolveCardVariant, normExits, type TileArt, type CardArt, type Rot } from "../data/manifest";
@@ -89,6 +89,10 @@ export function laneCards(
     else if (kind === "hazard") hazards.push(card);
     else treasure.push(card);
   }
+  // The leader (the stranger whose reaction the group follows, as the engine's findLeader picks) comes first: it is the card shown on
+  // top of the pile and magnified. Stable, so equals keep their draw order; statues are scenery and never lead.
+  const rank = (c: Card): number => (c.stone ? -1 : ALL_CREATURES[Number(c.entityId)]?.leaderPri ?? 0);
+  strangers.sort((a, b) => rank(b) - rank(a));
   return { strangers, treasure, hazards };
 }
 

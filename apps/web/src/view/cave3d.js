@@ -586,7 +586,7 @@ function layContents(area, animated){
       const o=makeCardObject(card,yaw);
       faces.push(o.userData.face);
       o.userData.face.userData.area=area;
-      const ty=0.07 + dealIdx*0.016;                    // later cards stack on top
+      const ty=0.07 + dealIdx*0.016 + (lane.list===area.strangers ? (n-1-2*i)*0.016 : 0);   // later cards stack on top — but the leader (first) tops the creatures
       o.position.set(x,ty,z);
       if(animated){ o.position.y=ty+1.5; o.userData.fade=[o.children[0].material,o.children[1].material,o.userData.face.material];
         o.userData.fade.forEach(m=>m.opacity=0);

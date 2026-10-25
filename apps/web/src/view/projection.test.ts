@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import type { AssetManifest } from "@sorcerers-cave/assets";
 import { newGame, packCoord, type GameState, type PlacedArea } from "@sorcerers-cave/engine";
 import { parseManifest, type TileArt, type CardArt } from "../data/manifest";
-import { projectArea, encodeWorkingSet, areaKey, tileForCard, type ArtTables } from "./projection";
+import { projectArea, encodeWorkingSet, areaKey, tileForCard, laneCards, type ArtTables } from "./projection";
 
 let art: ArtTables;
 beforeAll(() => {
@@ -255,5 +255,19 @@ describe("projectArea fogStubs", () => {
     expect(projectArea(dead, 2, state, art).fogStubs).toBe("SW");
     state.areas = [dead]; state.partyArea = 0;
     expect(projectArea(dead, 0, state, art).fogStubs).toBe("");
+  });
+});
+
+describe("laneCards: the leader comes first", () => {
+  it("puts the group's leader (the engine's findLeader) at the head of the strangers, whatever the draw order", () => {
+    const DWARF = 7, OGRE = 2, WIZARD = 8;   // leadership: Wizard › Ogre › Dwarf
+    const { strangers } = laneCards([100 + DWARF, 100 + OGRE, 100 + WIZARD, 100 + DWARF], art.cards);
+    expect(strangers.map((c) => c.entityId)).toEqual([String(WIZARD), String(OGRE), String(DWARF), String(DWARF)]);
+  });
+
+  it("keeps the draw order between equals and leaves the treasure lane alone", () => {
+    const { strangers, treasure } = laneCards([100, 101, 200, 201], art.cards);   // Hero and W-Hero rank equally
+    expect(strangers.map((c) => c.entityId)).toEqual(["0", "1"]);
+    expect(treasure.map((c) => c.entityId)).toEqual(["0", "1"]);
   });
 });
