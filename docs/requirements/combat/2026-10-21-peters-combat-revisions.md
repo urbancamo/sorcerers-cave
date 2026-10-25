@@ -52,10 +52,11 @@ Principle (B): the game asks for player input only when the player has a real ch
   1. The existing hostile pop-up (text per open question 4), unchanged.
   2. A brief timed pause for it to be read (~1.6 s, skippable with a click or key).
   3. The battle view, with the passive message **"The attackers have chosen their targets…"** and one button, **"Roll the Round"**.
+  **As built (2026-10-25):** the existing pop-up already waits for a click, which is the time to read it, so no extra blank timer is added between it and the battle view. The battle view appears at once with that message and button. A timed pause can still be added if Peter wants one.
   The message states the case for the party defending. For the party attacking, the equivalent message is **"You have chosen your targets…"** (an inference from B, to be confirmed).
 - **R1.4 One-click pair-and-roll, party attacks with nothing left to decide (A).** When the party attacks and, after pairing, step [e] holds no decision for either side (equal numbers, or no legal surplus placement), the "Confirm Initial Pairings" button is replaced by **"Roll the Round"**. One click pairs and rolls. No extra prompt is added.
 - **R1.5 Surplus placement stays a decision (A).** When the party attacks and has surplus creatures to place, keep the two-stage flow (pairings, then placement and "Fight ⚔"). The final button is labelled **"Roll the Round"** for consistency.
-- **R1.6 A roll pause is always shown before dice (A, B).** Even when R1.1–R1.4 removed every other decision, the player sees the battle lines (matches, strengths, the die bonus), the existing Retreat and artefact buttons, and the "Roll the Round" button. This extends the existing review pause (`rev.review`) to the case where the strangers engaged but had no surplus to move. **Engine impact: the review condition at `revisedRound.ts:427` must also cover strangers' pairings, so the engine-level review is the single source of the pause. This needs an `engine-spec.md` update.**
+- **R1.6 A roll pause is always shown before dice (A, B).** Even when R1.1–R1.4 removed every other decision, the player sees the battle lines (matches, strengths, the die bonus), the existing Retreat and artefact buttons, and the "Roll the Round" button. **Revised 2026-10-25 after tracing the engine: no engine change is needed.** When the strangers attack, the engine already raises its review pause after their pairings (party 1 v 1, 2 v 2, 2 v 3 and 2 v 1 all do), which is the pause R1.1 leads into. When the party attacks, the pairing confirmation is itself the roll (R1.4). The earlier plan to extend `strangersMoved` at `revisedRound.ts:427` was based on tracing only the party-attacks case, and is dropped.
 - **R1.7 Unchanged.** What the strangers' Fight Plan decides; all dice, strength and outcomes; the Ghouls fight (already automatic); the Scroll step [b].
 
 ### R2 — The hand is fixed, flat, overlapping and shrinks to fit (replaces initial R2.1)
@@ -88,7 +89,7 @@ Principle (B): the game asks for player input only when the player has a real ch
 
 ## Documents to update in the same change (project rules)
 
-- `docs/specs/engine-spec.md`, for R1.6 only (the one engine change): amend the review-pause row, add an `SC-<§>-<n>` row ("the party always gets a roll-the-round pause"), the Part II prose, the code refs and the test reference.
+- `docs/specs/engine-spec.md`: no change, because no engine code changes (R1.6 revised).
 - `apps/web/public/manual.html`: the Fights section (pairing and front-line wording near line 1028; the Retreat text near line 499) must describe the automatic deployment, the "Roll the Round" pause and the new hand. Bump the footer `Updated` date.
 - The Appendix C gap list if test coverage changes.
 
@@ -104,4 +105,4 @@ Principle (B): the game asks for player input only when the player has a real ch
 2. R2.1–R2.5, R2.7–R2.9 (the fan hand).
 3. R3 (retreat bar).
 4. R1.1–R1.5 (UI auto-dispatch, passive sequence, relabel).
-5. R1.6 (engine change, spec, tests, manual).
+5. ~~R1.6 (engine change)~~: dropped, see R1.6. Steps 1–4 complete the plan.

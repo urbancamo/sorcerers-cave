@@ -191,6 +191,50 @@ describe("RevisedFightSurface", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "deploy", creatures: [0, 1] });
   });
 
+  /** The strangers attack a party that must stand every one of its creatures in front (min = all it has free). */
+  const forcedDefence = (): GameState => {
+    const base: GameState = { ...newGame(1, [5, 6]), variants: { combatRevision: true }, phase: "encounter", strangers: [OGRE, TROLL], treasures: [] };
+    const defending = structuredClone(driveStrangers(reduce({ ...base, fight: null }, { type: "attack" }).state).state);
+    defending.fight!.rev!.attacker = "strangers";
+    defending.fight!.pending = { by: "party", kind: "deploy", min: 2 };
+    defending.fight!.rev!.step = "deploy";
+    return defending;
+  };
+
+  it("deploy: a defending party with no choice is deployed at once, once, and is not asked to drag anything", () => {
+    const dispatch = vi.fn();
+    render(<StrictMode><RevisedFightSurface state={forcedDefence()} dispatch={dispatch} cards={cards} /></StrictMode>);
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch).toHaveBeenCalledWith({ type: "deploy", creatures: [0, 1] });
+    expect(screen.queryByTestId("rev-frontline")).toBeNull();
+    expect(screen.queryByRole("button", { name: /stand|deploy/i })).toBeNull();
+    expect(screen.getByRole("status")).toHaveTextContent(/drawing up their line/i);
+  });
+
+  it("the review pause names the attackers when the strangers attacked, and the button rolls the round", () => {
+    const s = forcedDefence();
+    s.fight!.pending = { by: "party", kind: "redeploy" }; s.fight!.rev!.step = "surplus"; s.fight!.rev!.review = true;
+    render(<RevisedFightSurface state={s} dispatch={vi.fn()} cards={cards} />);
+    expect(screen.getByTestId("rev-review")).toHaveTextContent("The attackers have chosen their targets");
+    expect(screen.getByRole("button", { name: /roll the round/i })).toBeInTheDocument();
+  });
+
+  it("engage: when there is only one pairing to make it is laid out ready, and one click rolls the round", () => {
+    const dispatch = vi.fn();
+    const s = attacking([OGRE], {}, [5]);                       // one fighter against one foe
+    render(<RevisedFightSurface state={s} dispatch={dispatch} cards={cards} />);
+    const go = screen.getByRole("button", { name: /roll the round/i });
+    expect(go).not.toBeDisabled();
+    expect(screen.queryByRole("button", { name: /undo pairings/i })).toBeNull();
+    fireEvent.click(go);
+    expect(dispatch).toHaveBeenCalledWith({ type: "engage", pairs: [{ party: 0, stranger: 0 }] });
+  });
+
+  it("engage: with a real choice to make, the player pairs as before and the button still confirms pairings", () => {
+    render(<RevisedFightSurface state={attacking([OGRE, TROLL], {}, [5, 6])} dispatch={vi.fn()} cards={cards} />);
+    expect(screen.getByRole("button", { name: /confirm initial pairings/i })).toBeDisabled();
+  });
+
   it("deploy: creatures can be dragged into the front line, and dragged-in ones are sent", () => {
     const dispatch = vi.fn();
     const base: GameState = { ...newGame(1, [5, 6, 7]), variants: { combatRevision: true }, phase: "encounter", strangers: [OGRE, TROLL], treasures: [] };
@@ -211,7 +255,7 @@ describe("RevisedFightSurface", () => {
     const dispatch = vi.fn();
     const s = reaching("redeploy");
     render(<RevisedFightSurface state={s} dispatch={dispatch} cards={cards} />);
-    fireEvent.click(screen.getByRole("button", { name: /^fight/i }));
+    fireEvent.click(screen.getByRole("button", { name: /roll the round/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "redeploy", moves: [] });
   });
 
@@ -229,7 +273,7 @@ describe("RevisedFightSurface", () => {
     expect(screen.queryAllByTestId(/^rev-place-/)).toHaveLength(0);   // no button per placement any more
     fireEvent.click(screen.getByTestId(card));
     fireEvent.click(screen.getByTestId(slot));
-    fireEvent.click(screen.getByRole("button", { name: /^fight/i }));
+    fireEvent.click(screen.getByRole("button", { name: /roll the round/i }));
     expect(dispatch).toHaveBeenLastCalledWith({ type: "redeploy", moves: [{ creature: m.creature, match: m.match, back: m.back }] });
   });
 
@@ -253,7 +297,7 @@ describe("RevisedFightSurface", () => {
     render(<RevisedFightSurface state={s} dispatch={dispatch} cards={cards} />);
     const data = { getData: () => String(m.creature) };
     fireEvent.drop(screen.getByTestId(slot), { dataTransfer: data });
-    fireEvent.click(screen.getByRole("button", { name: /^fight/i }));
+    fireEvent.click(screen.getByRole("button", { name: /roll the round/i }));
     expect(dispatch).toHaveBeenLastCalledWith({ type: "redeploy", moves: [{ creature: m.creature, match: m.match, back: m.back }] });
   });
 
@@ -263,7 +307,7 @@ describe("RevisedFightSurface", () => {
     const { m } = firstMove(s);
     render(<RevisedFightSurface state={s} dispatch={dispatch} cards={cards} />);
     fireEvent.drop(screen.getByTestId(`rev-m${m.back ? "front" : "back"}-${m.match}`), { dataTransfer: { getData: () => String(m.creature) } });
-    fireEvent.click(screen.getByRole("button", { name: /^fight/i }));
+    fireEvent.click(screen.getByRole("button", { name: /roll the round/i }));
     expect(dispatch).toHaveBeenLastCalledWith({ type: "redeploy", moves: [] });
   });
 
@@ -273,7 +317,7 @@ describe("RevisedFightSurface", () => {
     s.fight!.rev!.review = true;
     render(<RevisedFightSurface state={s} dispatch={dispatch} cards={cards} />);
     expect(screen.getByTestId("rev-review")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /^fight/i }));
+    fireEvent.click(screen.getByRole("button", { name: /roll the round/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "redeploy", moves: [] });
   });
 
@@ -288,7 +332,7 @@ describe("RevisedFightSurface", () => {
     render(<RevisedFightSurface state={s} dispatch={dispatch} cards={cards} />);
     expect(screen.queryByTestId("rev-tray")).toBeNull();
     expect(screen.getByRole("button", { name: /retreat/i })).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: /^fight/i }));
+    fireEvent.click(screen.getByRole("button", { name: /roll the round/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "redeploy", moves: [] });
   });
 

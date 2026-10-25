@@ -68,6 +68,30 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
     dispatch({ type: "engage", pairs: autoPairs });
   }, [key, autoPairs !== null, introDue]);   // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Where the rules leave the party no choice, it is not asked (Peter's 2026-10-21 impressions, R1). A defending party that must stand every
+  // free creature in the front line is deployed at once; the round is still not rolled for it — the strangers pair up and the party is shown
+  // their line before any die falls.
+  const forcedDeploy: number[] | null = (() => {
+    if (state.phase !== "fight" || !fight || !rev || fight.pending?.by !== "party" || fight.pending.kind !== "deploy" || fight.casualtyQueue?.length) return null;
+    const all = freeOf(state, "party");
+    return all.length > 0 && fight.pending.min >= all.length && deployViolation(state, "party", all) === null ? all : null;
+  })();
+  const sentDeploy = useRef("");
+  useEffect(() => {
+    if (!forcedDeploy || introDue || sentDeploy.current === key) return;
+    sentDeploy.current = key;
+    dispatch({ type: "deploy", creatures: forcedDeploy });
+  }, [key, forcedDeploy !== null, introDue]);   // eslint-disable-line react-hooks/exhaustive-deps
+  // An attacking party whose every fighter has exactly one possible foe (none wanted twice) has one legal pairing: it is laid out ready,
+  // so the player has only to roll. (Not sent on its own: the player still gets to see the lines before the dice.)
+  const forcedPairs: Pair[] | null = (() => {
+    if (autoPairs || state.phase !== "fight" || !fight || !rev || fight.pending?.by !== "party" || fight.pending.kind !== "engage" || fight.casualtyQueue?.length) return null;
+    const lp = legalPairs(state, "party");
+    if (!lp.length || new Set(lp.map((q) => q.party)).size !== lp.length || new Set(lp.map((q) => q.stranger)).size !== lp.length) return null;
+    const out = lp.map((q) => ({ party: q.party, stranger: q.stranger }));
+    return engageViolation(state, "party", out) === null ? out : null;
+  })();
+
   if (state.phase !== "fight" || !fight || !rev) return null;
 
   const labels = memberLabels(state.party);
@@ -114,7 +138,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
   const deployedFoes = rev.deployed.strangers.filter((s) => !rev.matches.some((m) => m.sf.includes(s)));
   const inPairs = (list: Pair[]) => new Set(list.map((p) => p.party));
   // The Ghouls' pairing is made for the party: show it as soon as the Ghouls have been faced (and so while the round is rolled).
-  const usedPairs = stale ? [] : autoPairs && !introDue ? autoPairs : pairs, usedChosen = stale ? [] : chosen, usedMoves = stale ? [] : moves;
+  const usedPairs = stale ? [] : autoPairs && !introDue ? autoPairs : forcedPairs && pairs.length === 0 ? forcedPairs : pairs, usedChosen = stale ? [] : chosen, usedMoves = stale ? [] : moves;
 
   // --- the decisions ------------------------------------------------------------------------------------------------------------
   const tapFree = (i: number): void => {
@@ -132,6 +156,8 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
     setPairs([...usedPairs.filter((p) => p.stranger !== s), { party: picked, stranger: s }]);
     setPicked(null);
   };
+  // With every creature on both sides in a pairing (and no stranger held back), nothing is left to place in step (e): confirming the pairings is rolling the round.
+  const rollsNow = mine?.kind === "engage" && usedPairs.length > 0 && free.length === usedPairs.length && deployedFoes.length === usedPairs.length && freeOf(state, "strangers").length === 0;
   const engageBad = mine?.kind === "engage" ? engageViolation(state, "party", usedPairs) : "";
   const deployBad = mine?.kind === "deploy" ? deployViolation(state, "party", usedChosen) : "";
   const allMoves = mine?.kind === "redeploy" ? legalMoves(state, "party") : [];
@@ -300,7 +326,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
             {fight.surprise === 1 ? "You took them by surprise — +1 this round" : "The strangers surprised you — −1 this round"}
           </span>
         )}
-        {rev.review && <span className="scv-fight-banner" data-testid="rev-review">The strangers have taken their places</span>}
+        {rev.review && <span className="scv-fight-banner" data-testid="rev-review">{rev.attacker === "strangers" ? "The attackers have chosen their targets…" : "The strangers have taken their places"}</span>}
         <span className="scv-fight-cap">{rev.attacker === "party" ? "You attack" : "They attack"} · your dice {bonus >= 0 ? "+" : "−"}{Math.abs(bonus)}</span>
       </div>
 
@@ -321,7 +347,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
         </div>
       )}
 
-      {mine?.kind === "deploy" && (
+      {mine?.kind === "deploy" && !forcedDeploy && (
         <div className="scv-match-front scv-rev-frontline" data-testid="rev-frontline"
              onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); dropFront(e.dataTransfer.getData("application/x-scv-member")); }}>
           <span className="scv-match-slotlbl">⚔ your front line (at least {mine.min})</span>
@@ -330,7 +356,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
         </div>
       )}
 
-      {free.length > 0 && !(mine?.kind === "scroll") && (
+      {free.length > 0 && !(mine?.kind === "scroll") && !forcedDeploy && (
         <FightHand testId="rev-tray">
           {free.filter((i) => mine?.kind !== "deploy" || !usedChosen.includes(i)).map((i) => {
             const taken = inPairs(usedPairs).has(i);
@@ -349,6 +375,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
       {free.length === 0 && inMatch.size === 0 && <span className="scv-fight-hint">no creature is free</span>}
 
       {deciding && <p className="scv-fight-reason scv-fight-deciding" role="status">The strangers are deciding…</p>}
+      {forcedDeploy && <p className="scv-fight-reason scv-fight-deciding" role="status">The strangers are drawing up their line…</p>}
       {autoPairs && !introDue && <p className="scv-fight-reason scv-fight-deciding" role="status">The Ghouls close in — each of your creatures faces one…</p>}
       {rev.standoff && (
         <p className="scv-fight-reason" data-testid="rev-standoff">
@@ -356,23 +383,23 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
         </p>
       )}
       {mine?.kind === "engage" && engageBad && usedPairs.length > 0 && <p className="scv-fight-reason">{engageBad}</p>}
-      {mine?.kind === "deploy" && usedChosen.length > 0 && deployBad && <p className="scv-fight-reason">{deployBad}</p>}
+      {mine?.kind === "deploy" && !forcedDeploy && usedChosen.length > 0 && deployBad && <p className="scv-fight-reason">{deployBad}</p>}
 
       <div className="scv-fight-actions">
-        {mine?.kind === "deploy" && (
+        {mine?.kind === "deploy" && !forcedDeploy && (
           <button className="scv-fight-btn primary" disabled={deployBad !== null} onClick={() => dispatch({ type: "deploy", creatures: usedChosen })}>
             Stand in the front line
           </button>
         )}
         {mine?.kind === "engage" && (
           <>
-            <button className="scv-fight-btn primary" disabled={engageBad !== null} onClick={() => dispatch({ type: "engage", pairs: usedPairs })}>Confirm Initial Pairings</button>
-            <button className="scv-fight-btn ghost" onClick={() => { setPairs([]); setPicked(null); }}>Undo pairings</button>
+            <button className="scv-fight-btn primary" disabled={engageBad !== null} onClick={() => dispatch({ type: "engage", pairs: usedPairs })}>{rollsNow ? "Roll the Round ⚔" : "Confirm Initial Pairings"}</button>
+            {!forcedPairs && <button className="scv-fight-btn ghost" onClick={() => { setPairs([]); setPicked(null); }}>Undo pairings</button>}
           </>
         )}
         {mine?.kind === "redeploy" && (
           <>
-            <button className="scv-fight-btn primary" disabled={redeployBad !== null} onClick={() => dispatch({ type: "redeploy", moves: usedMoves })}>Fight ⚔</button>
+            <button className="scv-fight-btn primary" disabled={redeployBad !== null} onClick={() => dispatch({ type: "redeploy", moves: usedMoves })}>Roll the Round ⚔</button>
             {usedMoves.length > 0 && <button className="scv-fight-btn ghost" onClick={() => { setMoves([]); setPicked(null); }}>Undo moves</button>}
           </>
         )}
