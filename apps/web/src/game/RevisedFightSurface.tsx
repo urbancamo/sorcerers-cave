@@ -30,12 +30,13 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
   const [pairs, setPairs] = useState<Pair[]>([]);              // engage: the pairings so far
   const [moves, setMoves] = useState<Move[]>([]);              // redeploy: the placements so far
   const [retreatOpen, setRetreatOpen] = useState(false);
+  const [restored, setRestored] = useState(false);          // the battle view popping back in after a cancelled retreat
 
   // A new decision (or a changed line-up) starts from a clean slate, so no choice made for the last one lingers.
   const key = fight ? `${fight.round}|${fight.pending?.kind ?? ""}|${fight.pending?.by ?? ""}|${state.party.map((m) => m.status).join("")}|${state.strangers.join(",")}` : "";
   const lastKey = useRef(key);
   useEffect(() => {
-    if (lastKey.current !== key) { setPicked(null); setChosen([]); setPairs([]); setMoves([]); setRetreatOpen(false); lastKey.current = key; }
+    if (lastKey.current !== key) { setPicked(null); setChosen([]); setPairs([]); setMoves([]); setRetreatOpen(false); setRestored(false); lastKey.current = key; }
   }, [key]);
   const stale = lastKey.current !== key;   // render this pass from a clean slate, before the effect has run
 
@@ -259,8 +260,22 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
     ...idleFoes.map((s) => ({ lead: leadRank([s]), first: s, el: renderIdle(s) })),
   ].sort((a, b) => b.lead - a.lead || a.first - b.first);
 
+  // Choosing a way out: the battle view gives way to a slim bar so the map shows through (Peter's 2026-10-20 impressions, R3). Nothing is
+  // lost by it: the picks and pairings live in this component's state, and Cancel brings the battle view back.
+  if (retreatOpen && !deciding && retreats.length > 0) {
+    return (
+      <div key="retreat" className="scv-fight scv-rev-retreat" data-testid="rev-retreat">
+        <h3 className="scv-fight-hd">⚔ Fight · Round {fight.round} — retreat which way?</h3>
+        <div className="scv-retreat-bar" data-testid="retreat-menu">
+          {retreats.map((a) => <button key={a.dir} className="scv-fight-btn" onClick={() => dispatch(a)}>{DIR_NAME[a.dir]}</button>)}
+          <button className="scv-fight-btn ghost" onClick={() => { setRetreatOpen(false); setRestored(true); }}>Cancel</button>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="scv-fight scv-rev" data-testid="rev-fight">
+    <div key="fight" className={`scv-fight scv-rev${restored ? " scv-rev-restore" : ""}`} data-testid="rev-fight">
       {introDue && (
         <div className="scv-ghouls" role="dialog" aria-label="Ghouls attack" data-testid="ghouls-intro">
           <div className="scv-ghouls-mist" aria-hidden="true" />
@@ -361,16 +376,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
             {usedMoves.length > 0 && <button className="scv-fight-btn ghost" onClick={() => { setMoves([]); setPicked(null); }}>Undo moves</button>}
           </>
         )}
-        {!deciding && retreats.length > 0 && (
-          <div className="scv-retreat">
-            <button className="scv-fight-btn" onClick={() => setRetreatOpen((o) => !o)}>Retreat ▾</button>
-            {retreatOpen && (
-              <div className="scv-retreat-menu" data-testid="retreat-menu">
-                {retreats.map((a) => <button key={a.dir} className="scv-fight-btn" onClick={() => dispatch(a)}>{DIR_NAME[a.dir]}</button>)}
-              </div>
-            )}
-          </div>
-        )}
+        {!deciding && retreats.length > 0 && <button className="scv-fight-btn" onClick={() => setRetreatOpen(true)}>Retreat…</button>}
         {!deciding && artifacts.map((a, i) => {
           const nm = ALL_TREASURES[a.artifact]?.name ?? "artefact";
           const tgt = a.target === undefined ? null

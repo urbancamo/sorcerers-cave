@@ -321,6 +321,25 @@ describe("RevisedFightSurface", () => {
     expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "retreat" }));
   });
 
+  it("Retreat shrinks the view to a bar of ways out so the map shows, and Cancel brings it back with the pairing intact", () => {
+    const dispatch = vi.fn();
+    const s = attacking([OGRE]);
+    s.fight!.round = 2;
+    s.areas[s.partyArea]!.card = 15 | 16;
+    render(<RevisedFightSurface state={s} dispatch={dispatch} cards={cards} />);
+    fireEvent.click(screen.getByTestId("rev-free-0"));
+    fireEvent.click(screen.getByTestId("rev-foe-0"));            // a pairing under way
+    fireEvent.click(screen.getByRole("button", { name: /retreat/i }));
+    expect(screen.getByTestId("rev-retreat")).toBeInTheDocument();
+    expect(screen.queryByTestId("rev-matches")).toBeNull();      // neither the battlefield...
+    expect(screen.queryByTestId("rev-tray")).toBeNull();         // ...nor the hand covers the map
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+    expect(screen.queryByTestId("rev-retreat")).toBeNull();
+    expect(screen.getByTestId("rev-tray")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /confirm initial pairings/i })).not.toBeDisabled();   // the pairing survived
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
   it("shows the round, the surprise banner and the die bonus", () => {
     const s = attacking([OGRE], { surpriseReady: true });
     render(<RevisedFightSurface state={s} dispatch={vi.fn()} cards={cards} />);

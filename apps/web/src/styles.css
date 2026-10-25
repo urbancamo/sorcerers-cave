@@ -2001,6 +2001,13 @@
 .scv-fight-btn:hover:not(:disabled) { border-color: var(--brass); color: var(--cream); }
 .scv-retreat { position: relative; } .scv-retreat-menu { position: absolute; bottom: 110%; left: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px; background: rgba(15,15,20,.96); border: 1px solid var(--line-strong); border-radius: 10px; }
 
+/* Retreat (RevisedFightSurface): the battle view shrinks to a slim bar of ways out so the map shows, and pops back if the retreat is cancelled. */
+.scv-rev-retreat { width: min(560px, 96vw); }
+.scv-retreat-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.scv-rev-retreat, .scv-rev-restore { animation: scv-rev-pop .2s ease-out both; }
+@keyframes scv-rev-pop { from { opacity: 0; scale: .92; } to { opacity: 1; scale: 1; } }
+@media (prefers-reduced-motion: reduce) { .scv-rev-retreat, .scv-rev-restore { animation: none; } }
+
 /* ---- two-sided PvP fight surface (spec §I-10) — same shell as the solo fight ---- */
 .scv-pvp { z-index: 60; } /* over the canvas and any other panel, like the trade modal */
 .scv-pvp-round { font-family: var(--ui); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--brass-bright); white-space: nowrap; }
