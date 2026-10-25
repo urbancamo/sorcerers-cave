@@ -29,7 +29,9 @@ The screenshot also shows the surprised-party case (2 v 2, strangers attack, the
 | 3 | The hand should be the flat, overlapping, shrink-to-fit "fan" | B | **Yes, as a design request** | The splash fan (`.scv-fan-slot`, `styles.css:953`) already has the machinery: overlap via negative margin, hover straightens and scales 1.5×, z-order. The fight hand (`.scv-fight-tray`) is a wrapping flex row of 116 px cards with 18 px gaps, so a large party wraps and grows. The card art puts its key numbers at the **top-left**, so overlapping each card by the card to its right keeps them visible. Note that the effective-strength badge sits at the **top-right** (`.scv-fc-badge`, `styles.css:2056`), which an overlap would hide. See R2.4. |
 | 4 | See the map when choosing a retreat | A | **Yes** | The panel is bottom-fixed and can fill the viewport. The Retreat menu pops up inside it. |
 
-## Open questions (decide before building)
+## Decisions (settled 2026-10-25)
+
+All six questions below are answered: the recommendations were accepted, and the pop-up is confirmed as the existing hostile one (question 4). The fan hand is shown **always** (question 5). The ~1.6 s pause and the "You have chosen your targets…" wording are approved (question 6 and R1.3). The questions are kept for the reasoning.
 
 1. **Party outnumbers strangers (A).** Merge pairing and surplus placement into one screen with one "Roll the Round" button? That is a bigger change, because the engine needs the matches to exist before surplus can be placed. **Recommendation: no.** Remove the redundant pause only when step [e] has nothing to decide, because surplus placement is a real decision.
 2. **Forced pairings (A).** May a single legal pairing set be auto-made? **Recommendation: yes** (R1.2).
