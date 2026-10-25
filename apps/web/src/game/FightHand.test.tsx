@@ -28,4 +28,11 @@ describe("FightHand", () => {
     const z = ([...screen.getByTestId("hand").children] as HTMLElement[]).map((s) => Number(s.style.zIndex));
     expect(z).toEqual([...z].sort((a, b) => a - b));
   });
+
+  it("draws nothing for an empty hand, and a row once cards arrive", () => {
+    const { container, rerender } = render(<FightHand testId="hand">{[]}</FightHand>);
+    expect(container).toBeEmptyDOMElement();
+    rerender(<FightHand testId="hand">{cards(2)}</FightHand>);
+    expect(screen.getByTestId("hand").children).toHaveLength(2);
+  });
 });

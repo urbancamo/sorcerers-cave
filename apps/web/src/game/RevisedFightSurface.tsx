@@ -294,7 +294,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
         <h3 className="scv-fight-hd">⚔ Fight · Round {fight.round} — retreat which way?</h3>
         <div className="scv-retreat-bar" data-testid="retreat-menu">
           {retreats.map((a) => <button key={a.dir} className="scv-fight-btn" onClick={() => dispatch(a)}>{DIR_NAME[a.dir]}</button>)}
-          <button className="scv-fight-btn ghost" onClick={() => { setRetreatOpen(false); setRestored(true); }}>Cancel</button>
+          <button className="scv-fight-btn ghost" autoFocus onClick={() => { setRetreatOpen(false); setRestored(true); }}>Cancel</button>
         </div>
       </div>
     );

@@ -7,7 +7,7 @@ import { handFit, HAND_CARD } from "./handFit";
 export function FightHand({ children, testId }: { children: ReactNode[]; testId?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [avail, setAvail] = useState(0);
-  const n = children.length;
+  const n = children.length, empty = n === 0;
 
   useLayoutEffect(() => {
     const el = ref.current;
@@ -18,8 +18,9 @@ export function FightHand({ children, testId }: { children: ReactNode[]; testId?
     const ro = new ResizeObserver(measure);
     ro.observe(el);
     return () => ro.disconnect();
-  }, []);
+  }, [empty]);   // the row is measured once it exists: it is not drawn at all while the hand is empty
 
+  if (empty) return null;
   const { cw, stride } = handFit(avail, n);
   const style = { "--hand-cw": `${cw}px`, "--hand-scale": String(Math.max(1, HAND_CARD / cw) * 1.12) } as CSSProperties;
   return (

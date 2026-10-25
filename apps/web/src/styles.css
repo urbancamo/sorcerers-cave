@@ -1902,7 +1902,7 @@
 
 /* ---- player-driven fight surface ---- */
 .scv-fight { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 55;
-  width: min(960px, 96vw); max-height: calc(100vh - 32px); box-sizing: border-box; overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
+  width: min(960px, 96vw); max-height: calc(100vh - 32px); overflow-y: auto; display: flex; flex-direction: column; gap: 12px;
   padding: 14px 18px; background: linear-gradient(180deg, rgba(21,21,27,.94), rgba(10,10,14,.97));
   border: 1px solid var(--line-strong); border-radius: 16px; backdrop-filter: blur(8px);
   box-shadow: 0 30px 70px -28px rgba(0,0,0,.9); color: var(--parchment); font-family: var(--ui); }
@@ -1910,6 +1910,8 @@
 /* The revised fight: header, hand, prompts and action row stay put and only the battlefield scrolls (Peter's 2026-10-20/21 impressions,
    R2.6). The battlefield keeps a minimum height, so when the fixed parts alone outgrow a very short window the panel as a whole scrolls
    (the .scv-fight overflow) rather than a control becoming unreachable. */
+/* Border-box, so the padding is inside the height cap: as content-box it ran 30px past it and the header off the top of the screen. */
+.scv-rev, .scv-rev-retreat { box-sizing: border-box; }
 .scv-rev { overflow-y: auto; }
 .scv-rev > * { flex: none; }
 .scv-rev > .scv-fight-strangers { flex: 1 1 auto; min-height: 160px; overflow-y: auto; overscroll-behavior: contain; }
