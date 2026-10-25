@@ -2094,6 +2094,8 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 .scv-hand-slot:hover, .scv-hand-slot:focus-within, .scv-hand-slot:has(.is-sel) { z-index: 100 !important; }
 .scv-hand-slot:hover .scv-fc, .scv-hand-slot:focus-within .scv-fc, .scv-hand .scv-fc.is-sel { transform: translateY(-12px) scale(var(--hand-scale, 1.12)); }
 .scv-hand-slot:hover .scv-fc-cap, .scv-hand-slot:focus-within .scv-fc-cap, .scv-hand .scv-fc.is-sel .scv-fc-cap { display: block; }
+.scv-hand-slot.no-pop:hover .scv-fc:not(.is-sel), .scv-hand-slot.no-pop:focus-within .scv-fc:not(.is-sel) { transform: none; }
+.scv-hand-slot.no-pop:hover .scv-fc:not(.is-sel) .scv-fc-cap { display: none; }
 .scv-hand .scv-fc.is-sel .scv-fc-art { outline-offset: 0; }
 @media (prefers-reduced-motion: reduce) { .scv-hand .scv-fc { transition: none; } }
 

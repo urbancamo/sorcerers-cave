@@ -40,6 +40,14 @@ export function FightCard({
         data-testid={testId}
         draggable={draggable}
         onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; if (dragId !== undefined) e.dataTransfer.setData("application/x-scv-member", String(dragId)); }}
+        onDragEnd={(e) => {
+          // A drag leaves the source card stuck in :hover/:focus, so it stays raised in the hand; let it settle until the pointer next moves.
+          const frame = e.currentTarget, slot = frame.closest(".scv-hand-slot");
+          frame.blur();
+          if (!slot) return;
+          slot.classList.add("no-pop");
+          window.addEventListener("pointermove", () => slot.classList.remove("no-pop"), { once: true });
+        }}
         onClick={onPick}
         role={onPick ? "button" : undefined}
         tabIndex={onPick ? 0 : undefined}
