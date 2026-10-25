@@ -211,6 +211,42 @@ describe("RevisedFightSurface", () => {
     expect(screen.getByRole("status")).toHaveTextContent(/drawing up their line/i);
   });
 
+  // Bug report (Mark, 25-OCT-2026): standing both creatures in the front line against a lone stranger left the second out of the fight, because the
+  // strangers pair one-to-one and the extra defender is a spare to be placed. It is now placed in the match for the player (undoably).
+  describe("a defender stood in front but left unpaired", () => {
+    // The state the engine reaches when a Woman and a Man both stand in front against a lone Ogre that attacks: the Ogre has paired with the
+    // first, the second is deployed but unengaged, and it is the party's turn to place surplus (checked against the engine by hand).
+    const afterDeployBoth = (): GameState => {
+      const s = structuredClone(attacking([OGRE], {}, [5, 6]));
+      const rev = s.fight!.rev!;
+      rev.attacker = "strangers"; rev.step = "surplus"; rev.surplusTurn = 1; rev.partyActed = true; rev.strangersMoved = true;
+      rev.matches = [{ sf: [0], pf: [0], pb: [], sb: [] }];
+      rev.deployed = { party: [1], strangers: [] };
+      s.fight!.pending = { by: "party", kind: "redeploy" };
+      return s;
+    };
+
+    it("is placed in the match already, so rolling sends it in", () => {
+      const dispatch = vi.fn();
+      const s = afterDeployBoth();
+      render(<RevisedFightSurface state={s} dispatch={dispatch} cards={cards} />);
+      expect(screen.getByTestId("rev-mfront-0")).toHaveTextContent(/joining/i);
+      fireEvent.click(screen.getByRole("button", { name: /roll the round/i }));
+      const sent = dispatch.mock.calls[0]![0] as Extract<GameAction, { type: "redeploy" }>;
+      expect(sent.moves).toEqual([{ creature: 1, match: 0, back: false }]);
+      expect(reduce(s, sent).state.fight?.rev?.matches[0]?.pf ?? [0, 1]).toBeDefined();
+    });
+
+    it("can still be taken back out, and stays out", () => {
+      const dispatch = vi.fn();
+      render(<RevisedFightSurface state={afterDeployBoth()} dispatch={dispatch} cards={cards} />);
+      fireEvent.click(screen.getByTestId("rev-join-1"));
+      expect(screen.getByTestId("rev-mfront-0")).not.toHaveTextContent(/joining/i);
+      fireEvent.click(screen.getByRole("button", { name: /roll the round/i }));
+      expect(dispatch).toHaveBeenCalledWith({ type: "redeploy", moves: [] });
+    });
+  });
+
   it("the review pause names the attackers when the strangers attacked, and the button rolls the round", () => {
     const s = forcedDefence();
     s.fight!.pending = { by: "party", kind: "redeploy" }; s.fight!.rev!.step = "surplus"; s.fight!.rev!.review = true;
@@ -260,7 +296,7 @@ describe("RevisedFightSurface", () => {
       fireEvent.click(screen.getByTestId("rev-foe-0"));
       fireEvent.click(screen.getByTestId("rev-free-1"));
       fireEvent.click(screen.getByTestId("rev-slot-0"));
-      fireEvent.click(screen.getByText(/joining/i));                           // tap the joiner to undo
+      fireEvent.click(screen.getByTestId("rev-join-1"));                          // tap the joiner to undo
       expect(screen.getByTestId("rev-row-0")).not.toHaveTextContent(/joining/i);
       fireEvent.click(screen.getByTestId("rev-free-1"));
       fireEvent.click(screen.getByTestId("rev-slot-0"));

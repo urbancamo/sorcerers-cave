@@ -32,7 +32,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
   const [picked, setPicked] = useState<number | null>(null);   // a party creature tapped, waiting for its foe
   const [chosen, setChosen] = useState<number[]>([]);          // deploy: the creatures to stand in front
   const [pairs, setPairs] = useState<Pair[]>([]);              // engage: the pairings so far
-  const [placed, setPlaced] = useState<Placement[]>([]);         // the spares placed so far (tentative until the round is rolled)
+  const [placed, setPlaced] = useState<Placement[] | null>(null);   // the spares placed so far (tentative until the round is rolled); null = untouched, so the obvious placement stands
   const [retreatOpen, setRetreatOpen] = useState(false);
   const [restored, setRestored] = useState(false);          // the battle view popping back in after a cancelled retreat
 
@@ -40,7 +40,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
   const key = fight ? `${fight.round}|${fight.pending?.kind ?? ""}|${fight.pending?.by ?? ""}|${state.party.map((m) => m.status).join("")}|${state.strangers.join(",")}` : "";
   const lastKey = useRef(key);
   useEffect(() => {
-    if (lastKey.current !== key) { setPicked(null); setChosen([]); setPairs([]); setPlaced([]); setRetreatOpen(false); setRestored(false); lastKey.current = key; }
+    if (lastKey.current !== key) { setPicked(null); setChosen([]); setPairs([]); setPlaced(null); setRetreatOpen(false); setRestored(false); lastKey.current = key; }
   }, [key]);
   const stale = lastKey.current !== key;   // render this pass from a clean slate, before the effect has run
 
@@ -144,7 +144,21 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
   // The Ghouls' pairing is made for the party: show it as soon as the Ghouls have been faced (and so while the round is rolled).
   const usedPairs = stale ? [] : autoPairs && !introDue ? autoPairs : forcedPairs && pairs.length === 0 ? forcedPairs : pairs, usedChosen = stale ? [] : chosen;
   // Placements aimed at a pairing that has since been taken back fall away with it.
-  const usedPlaced = stale ? [] : placed.filter((x) => x.foe === undefined || usedPairs.some((p) => p.stranger === x.foe));
+  // A creature the player stood in the front line that the attacker did not pair (the strangers engage one-to-one) is a spare, and it has only
+  // one place worth going: when the rules leave it exactly one, it is already put there, so choosing it for the front line means it fights.
+  // (Any placement can be undone; the player's own changes replace this.)
+  const obvious: Placement[] = (() => {
+    if (stale || mine?.kind !== "redeploy") return [];
+    const all = legalMoves(state, "party"), out: Placement[] = [];
+    for (const c of rev.deployed.party) {
+      const opts = all.filter((m) => m.creature === c);
+      if (opts.length !== 1) continue;
+      const next = [...out, { creature: c, back: opts[0]!.back, mi: opts[0]!.match }];
+      if (redeployViolation(state, "party", next.map((x) => ({ creature: x.creature, match: x.mi!, back: x.back }))) === null) out.push(next[next.length - 1]!);
+    }
+    return out;
+  })();
+  const usedPlaced = stale ? [] : (placed ?? obvious).filter((x) => x.foe === undefined || usedPairs.some((p) => p.stranger === x.foe));
   // A pairing's match is numbered after the matches that already stand, in the order the pairs are sent.
   const toMoves = (list: Placement[]): Move[] => list.map((x) => ({ creature: x.creature, back: x.back, match: x.mi ?? rev.matches.length + usedPairs.findIndex((p) => p.stranger === x.foe) }));
   const usedMoves = toMoves(usedPlaced);
@@ -238,7 +252,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
               <div className="scv-match-line">
                 <div className="scv-match-front" {...slotProps(mi, false, `rev-mfront-${mi}`)}>
                   {m.pf.map((i) => partyCard(i))}
-                  {addedTo(mi, false).map((i) => partyCard(i, { caption: "joining — tap to undo", onPick: () => takeBack(i) }))}
+                  {addedTo(mi, false).map((i) => partyCard(i, { testId: `rev-join-${i}`, caption: "joining — tap to undo", onPick: () => takeBack(i) }))}
                   {/* The front holds two positions, as in the battle plan: empty ones only fill it out, so a second fighter never widens the row. */}
                   {placing && Array.from({ length: Math.max(0, 2 - m.pf.length - addedTo(mi, false).length) }, (_, k) => (
                     <span key={`e${k}`} className="scv-slot-empty">drop a creature</span>
@@ -246,7 +260,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
                 </div>
                 <div className="scv-match-bg" {...slotProps(mi, true, `rev-mback-${mi}`)}>
                   <span className="scv-match-slotlbl">✦ behind</span>
-                  {[...m.pb, ...addedTo(mi, true)].map((i) => partyCard(i, m.pb.includes(i) ? {} : { caption: "joining — tap to undo", onPick: () => takeBack(i) }))}
+                  {[...m.pb, ...addedTo(mi, true)].map((i) => partyCard(i, m.pb.includes(i) ? {} : { testId: `rev-join-${i}`, caption: "joining — tap to undo", onPick: () => takeBack(i) }))}
                   {m.pb.length + addedTo(mi, true).length === 0 && <span className="scv-match-hint">magic user</span>}
                 </div>
               </div>
@@ -294,7 +308,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
                        onDragOver={target ? (e) => e.preventDefault() : undefined}
                        onDrop={target ? (e) => { e.preventDefault(); tapFoe(s, e.dataTransfer.getData("application/x-scv-member")); } : undefined}>
                     {paired && partyCard(paired.party, { caption: "tap to take back" })}
-                    {paired && addedToFoe(s, false).map((i) => partyCard(i, { caption: "joining — tap to undo", onPick: () => takeBack(i) }))}
+                    {paired && addedToFoe(s, false).map((i) => partyCard(i, { testId: `rev-join-${i}`, caption: "joining — tap to undo", onPick: () => takeBack(i) }))}
                     {paired && target && addedToFoe(s, false).length === 0 && <span className="scv-slot-empty">drop a creature</span>}
                     {!paired && <span className="scv-slot-empty">{target ? "pick a creature, then tap here" : "—"}</span>}
                   </div>
@@ -306,7 +320,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
                     onDrop: (e: DragEvent) => { e.preventDefault(); placeAt({ foe: s }, true, e.dataTransfer.getData("application/x-scv-member")); },
                   } : {})}>
                     <span className="scv-match-slotlbl">✦ behind</span>
-                    {paired && addedToFoe(s, true).map((i) => partyCard(i, { caption: "joining — tap to undo", onPick: () => takeBack(i) }))}
+                    {paired && addedToFoe(s, true).map((i) => partyCard(i, { testId: `rev-join-${i}`, caption: "joining — tap to undo", onPick: () => takeBack(i) }))}
                     {(!paired || addedToFoe(s, true).length === 0) && <span className="scv-match-hint">magic user</span>}
                   </div>
                 </div>
