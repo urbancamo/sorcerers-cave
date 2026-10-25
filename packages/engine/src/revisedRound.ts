@@ -17,12 +17,13 @@ import { ALL_CREATURES as CREATURES } from "./data/creatures";
 import { ALL_TREASURES } from "./data/treasures";
 import { rollDieForState } from "./rng";
 import { casterMP, frontStrength, isCaster, partyRollBonus } from "./combat";
-import { eyeForsakenByDeath, eyePresent, hasLivingHuman, markDied, ringInvincible, slaySorcerer } from "./effects";
+import { activeCurses, eyeForsakenByDeath, eyePresent, hasLivingHuman, markDied, ringInvincible, slaySorcerer } from "./effects";
+import { axeBonus, staffBonus, swordBonus } from "./capabilities";
 import {
-  MAGIC_ONLY_IDS, enemyRollBonus, isShieldStalemate, living, magicOnlyBypass, matchShielded, shieldedMP, strangerFS, strangerInvincible,
+  MAGIC_ONLY_IDS, enemyMP, enemyRollBonus, isShieldStalemate, living, magicOnlyBypass, matchShielded, shieldedMP, strangerFS, strangerInvincible,
   strangerMP, strangerShielded,
 } from "./combatPlan";
-import { removeStranger } from "./strangerGear";
+import { gearOf, removeStranger } from "./strangerGear";
 import type { GameState, RevFight, RevMatch } from "./state";
 import type { GameEvent } from "./actions";
 import type { FightView, MatchView, UnitView } from "./strategy";
@@ -38,6 +39,9 @@ const T_SCROLL = 19;
 const C_SORCERER = 11;
 const C_APPRENTICE = 14;
 const T_THE_RING = 10;
+const T_MAGIC_SWORD = 3;
+const T_MAGIC_STAFF = 9;
+const T_MAGIC_AXE = 17;
 const MAX_ROUNDS = 200;   // a safety stop; Peter's test and the no-progress rule end every real fight long before
 
 const other = (s: Side): Side => (s === "party" ? "strangers" : "party");
@@ -204,6 +208,80 @@ export function matchStrength(state: GameState, m: RevMatch): Strength {
   };
   const strangers = [...m.sf, ...m.sb].reduce((a, s) => a + (m.sf.includes(s) ? strangerFS(state, s) : 0) + wardedMP(s), 0);
   return { party, strangers, shieldStalemate, ward };
+}
+
+/** One line of the arithmetic behind a match's two totals, for the fight screen to show (Peter's 2026-10-21 impressions, R4).
+ *  `roll` chips adjust the die and are not in the totals; the rest are. `side` "both" is a note about the whole match. */
+export interface MatchChip { label: string; value: number; side: "party" | "strangers" | "both"; roll: boolean }
+export interface MatchBreakdown {
+  /** The card fighting strengths the totals start from: the front line's, except a caster fighting a magic-only foe by magic alone. */
+  partyBase: number; strangerBase: number;
+  chips: MatchChip[];
+}
+
+/** What `matchStrength` adds up, itemised: `partyBase` plus every party strength chip is `matchStrength(...).party`, and likewise for the
+ *  strangers (the tests hold it to that). Built from the same helpers and rules as `matchStrength`, so the two cannot disagree. */
+export function matchModifiers(state: GameState, m: RevMatch): MatchBreakdown {
+  const eye = eyePresent(state), fight = state.fight!, rev = revOf(state);
+  const magicOnly = m.sf.some((s) => isMagicOnly(state, s));
+  const shieldedFoe = m.sf.find((s) => strangerShielded(state, s));
+  const partyMagicOff = !magicOnly && shieldedFoe !== undefined;
+  const chips: MatchChip[] = [];
+  const add = (side: MatchChip["side"], label: string, value: number, roll = false): void => { if (value !== 0) chips.push({ label, value, side, roll }); };
+  const holds = (i: number, t: number): boolean => state.party[i]!.treasure.includes(t);
+
+  // The party's front line, then its magic behind it.
+  let partyBase = 0, partyMagic = 0;
+  const magicChips = (i: number, mp: number, label: string): void => {
+    const mem = state.party[i]!, nm = CREATURES[mem.creatureId]!.name, staff = holds(i, T_MAGIC_STAFF) && !eye ? staffBonus(mem.creatureId) : 0;
+    add("party", `${label} · ${nm}`, mp - staff);
+    add("party", `Magic Staff · ${nm}`, staff);
+    partyMagic += mp;
+  };
+  for (const i of m.pf) {
+    const mem = state.party[i]!, c = CREATURES[mem.creatureId]!, nm = c.name, mp = casterMP(mem, state);
+    if (magicOnly && mp > 0) { magicChips(i, mp, "Magic"); continue; }   // against a magic-only foe a caster fights with its magic alone
+    partyBase += c.fs;
+    add("party", `Dragon-slayer · ${nm}`, mem.dragonKills);
+    add("party", `Elixir · ${nm}`, mem.fsBonus ?? 0);
+    if (mp > 0) magicChips(i, mp, "Magic");
+    if (!eye && holds(i, T_MAGIC_SWORD)) add("party", `Magic Sword · ${nm}`, swordBonus(mem.creatureId));
+    if (!eye && holds(i, T_MAGIC_AXE)) add("party", `Magic Axe · ${nm}`, axeBonus(mem.creatureId));
+    if (mem.potionActive) add("party", `Strength Potion · ${nm}`, 2);
+  }
+  for (const i of m.pb) { const mp = casterMP(state.party[i]!, state); if (mp > 0) magicChips(i, mp, "Behind"); }
+  // A stranger's live Magic Shield turns the party's magic aside, front and behind.
+  if (partyMagicOff) add("party", `Magic Shield · ${CREATURES[state.strangers[shieldedFoe]!]!.name}`, -partyMagic);
+
+  // The strangers: the front line's strength and every caster's magic, front or behind.
+  let strangerBase = 0;
+  const shielded = matchShielded(state, m.pf);
+  for (const s of m.sf) {
+    const sid = state.strangers[s]!, nm = CREATURES[sid]!.name, gear = gearOf(state, s);
+    strangerBase += CREATURES[sid]!.fs;
+    if (!eye && gear.includes(T_MAGIC_SWORD)) add("strangers", `Magic Sword · ${nm}`, swordBonus(sid));
+    if (!eye && gear.includes(T_MAGIC_AXE)) add("strangers", `Magic Axe · ${nm}`, axeBonus(sid));
+  }
+  for (const s of [...m.sf, ...m.sb]) {
+    const sid = state.strangers[s]!, nm = CREATURES[sid]!.name, mp = strangerMP(state, s), card = enemyMP(state, sid);
+    add("strangers", `${m.sf.includes(s) ? "Magic" : "Behind"} · ${nm}`, card);
+    add("strangers", `Magic Staff · ${nm}`, mp - card);
+    if (shielded && mp > 0) add("strangers", `Magic Shield · ${nm}`, shieldedMP(sid, mp) - mp);
+  }
+
+  // The die: the Ring, curses and the round-1 surprise. These are fight-wide, so every match carries them.
+  const b = rev.bonus ?? bonusesFor(state), round1 = fight.round === 1;
+  add("party", "The Ring", b.partyRing ? 1 : 0, true);
+  add("party", activeCurses(state) > 1 ? `Curse ×${activeCurses(state)}` : "Curse", -activeCurses(state), true);
+  add("party", "Surprise", round1 && rev.attacker === "party" && fight.surprise > 0 ? 1 : 0, true);
+  add("party", "Scroll — surprise", round1 && rev.scrollSurprise ? 1 : 0, true);
+  const ringBearer = state.strangers.findIndex((_, s) => gearOf(state, s).includes(T_THE_RING));
+  add("strangers", ringBearer >= 0 ? `The Ring · ${CREATURES[state.strangers[ringBearer]!]!.name}` : "The Ring", b.strangersRing ? 1 : 0, true);
+  add("strangers", "Surprise", round1 && rev.attacker === "strangers" && fight.surprise < 0 ? 1 : 0, true);
+
+  if (eye) chips.push({ label: "Eye of God — magic & artefacts nullified", value: 0, side: "both", roll: false });
+  if (isShieldStalemate(state, { front: m.pf, strangers: m.sf })) chips.push({ label: "Magic Shield — a standoff, neither side can be harmed", value: 0, side: "both", roll: false });
+  return { partyBase, strangerBase, chips };
 }
 
 /** Peter's Q3 (with his invulnerable Ring bearer): a match is a stalemate when neither side can beat the other on any roll — where

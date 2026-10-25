@@ -1,0 +1,2555 @@
+{
+  "version": 1,
+  "game": {
+    "code": "DOSX",
+    "color": "blue",
+    "createdAt": 1792923015893,
+    "picks": [
+      1,
+      7
+    ],
+    "seed": 1792923015881,
+    "status": "active",
+    "variants": {
+      "combatRevision": true,
+      "forcedRedraw": true,
+      "sorcererTeleport": true,
+      "trapRules": true
+    }
+  },
+  "moves": [
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 1,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 0
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 2,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 1
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 1,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 2
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 4,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 3
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 2,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 4
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 2,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 5
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 1,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 6
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 6,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 7
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 3,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 8
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 2,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 9
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 6,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 10
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 3,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 11
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 6,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 12
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 1,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 13
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 2,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 14
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 4,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 15
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 8,
+          "level": 1,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [
+            1,
+            7,
+            0
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 16
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 17
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 18
+    },
+    {
+      "action": {
+        "mi": 1,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 19
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 5,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 20
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 7,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 21
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 9,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 22
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 10,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 23
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 11,
+          "level": 1,
+          "type": "moved"
+        },
+        {
+          "special": 3,
+          "type": "enteredSpecial"
+        }
+      ],
+      "seq": 24
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 10,
+          "level": 1,
+          "type": "moved"
+        }
+      ],
+      "seq": 25
+    },
+    {
+      "action": {
+        "dir": 6,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 12,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            5,
+            5
+          ],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 26
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "friendly",
+          "roll": 4,
+          "type": "reaction"
+        },
+        {
+          "count": 2,
+          "type": "strangersJoined"
+        }
+      ],
+      "seq": 27
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 13,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            8,
+            5
+          ],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 28
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "indifferent",
+          "roll": 4,
+          "type": "reaction"
+        }
+      ],
+      "seq": 29
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "friendly",
+          "roll": 6,
+          "type": "reaction"
+        },
+        {
+          "count": 2,
+          "type": "strangersJoined"
+        }
+      ],
+      "seq": 30
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 14,
+          "level": 2,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            12
+          ],
+          "treasures": [
+            13
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 31
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "hostile",
+          "roll": 2,
+          "type": "reaction"
+        },
+        {
+          "surprise": -1,
+          "type": "fightStarted"
+        }
+      ],
+      "seq": 32
+    },
+    {
+      "action": {
+        "creatures": [
+          0,
+          3
+        ],
+        "type": "deploy"
+      },
+      "events": [
+        {
+          "creatures": [
+            0,
+            3
+          ],
+          "side": "party",
+          "type": "deployed"
+        }
+      ],
+      "seq": 33
+    },
+    {
+      "action": {
+        "pairs": [
+          {
+            "party": 0,
+            "stranger": 0
+          }
+        ],
+        "strategyId": "standard",
+        "strategyVersion": 1,
+        "type": "strangersEngage"
+      },
+      "events": [
+        {
+          "pairs": [
+            {
+              "party": 0,
+              "stranger": 0
+            }
+          ],
+          "type": "engaged"
+        }
+      ],
+      "seq": 34
+    },
+    {
+      "action": {
+        "moves": [
+          {
+            "back": true,
+            "creature": 4,
+            "match": 0
+          },
+          {
+            "back": false,
+            "creature": 2,
+            "match": 0
+          }
+        ],
+        "type": "redeploy"
+      },
+      "events": [
+        {
+          "moves": [
+            {
+              "back": true,
+              "creature": 4,
+              "match": 0
+            },
+            {
+              "back": false,
+              "creature": 2,
+              "match": 0
+            }
+          ],
+          "side": "party",
+          "type": "redeployed"
+        },
+        {
+          "enemy": "Giant",
+          "enemyRoll": 1,
+          "enemyTotal": 9,
+          "party": "W-Hero + Man + Wizard",
+          "partyRoll": 4,
+          "partyTotal": 11,
+          "result": "partyWon",
+          "type": "combatRoll"
+        },
+        {
+          "creatureId": 12,
+          "type": "strangerKilled"
+        },
+        {
+          "type": "fightWon"
+        }
+      ],
+      "seq": 35
+    },
+    {
+      "action": {
+        "mi": 1,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 36
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 37
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 1,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 38
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 16,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 39
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 4,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 40
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 18,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 41
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 19,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 42
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 20,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 43
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 19,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 44
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 18,
+          "level": 2,
+          "type": "moved"
+        }
+      ],
+      "seq": 45
+    },
+    {
+      "action": {
+        "dir": 6,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 21,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            13
+          ],
+          "treasures": [
+            1,
+            14
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 46
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "certain": true,
+          "outcome": "friendly",
+          "roll": 3,
+          "type": "reaction"
+        },
+        {
+          "count": 1,
+          "type": "strangersJoined"
+        }
+      ],
+      "seq": 47
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 48
+    },
+    {
+      "action": {
+        "type": "leaveTreasure"
+      },
+      "events": [],
+      "seq": 49
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 22,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 50
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 23,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 51
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 24,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            6,
+            9
+          ],
+          "treasures": [
+            0
+          ],
+          "type": "drewChamber"
+        },
+        {
+          "creatureId": 9,
+          "type": "annihilated"
+        }
+      ],
+      "seq": 52
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "friendly",
+          "roll": 6,
+          "type": "reaction"
+        },
+        {
+          "count": 1,
+          "type": "strangersJoined"
+        }
+      ],
+      "seq": 53
+    },
+    {
+      "action": {
+        "mi": 2,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 54
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 1,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 55
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 26,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            10,
+            9,
+            3
+          ],
+          "treasures": [],
+          "type": "drewChamber"
+        },
+        {
+          "creatureId": 9,
+          "type": "annihilated"
+        }
+      ],
+      "seq": 56
+    },
+    {
+      "action": {
+        "type": "attack"
+      },
+      "events": [
+        {
+          "surprise": 1,
+          "type": "fightStarted"
+        }
+      ],
+      "seq": 57
+    },
+    {
+      "action": {
+        "creatures": [
+          0,
+          1
+        ],
+        "strategyId": "standard",
+        "strategyVersion": 1,
+        "type": "strangersDeploy"
+      },
+      "events": [
+        {
+          "creatures": [
+            0,
+            1
+          ],
+          "side": "strangers",
+          "type": "deployed"
+        }
+      ],
+      "seq": 58
+    },
+    {
+      "action": {
+        "pairs": [
+          {
+            "party": 0,
+            "stranger": 0
+          },
+          {
+            "party": 2,
+            "stranger": 1
+          }
+        ],
+        "type": "engage"
+      },
+      "events": [
+        {
+          "pairs": [
+            {
+              "party": 0,
+              "stranger": 0
+            },
+            {
+              "party": 2,
+              "stranger": 1
+            }
+          ],
+          "type": "engaged"
+        }
+      ],
+      "seq": 59
+    },
+    {
+      "action": {
+        "moves": [
+          {
+            "back": true,
+            "creature": 4,
+            "match": 0
+          },
+          {
+            "back": false,
+            "creature": 5,
+            "match": 0
+          },
+          {
+            "back": false,
+            "creature": 3,
+            "match": 1
+          }
+        ],
+        "type": "redeploy"
+      },
+      "events": [
+        {
+          "moves": [
+            {
+              "back": true,
+              "creature": 4,
+              "match": 0
+            },
+            {
+              "back": false,
+              "creature": 5,
+              "match": 0
+            },
+            {
+              "back": false,
+              "creature": 3,
+              "match": 1
+            }
+          ],
+          "side": "party",
+          "type": "redeployed"
+        },
+        {
+          "enemy": "Dragon",
+          "enemyRoll": 3,
+          "enemyTotal": 9,
+          "party": "W-Hero + Man + Wizard",
+          "partyRoll": 5,
+          "partyTotal": 13,
+          "result": "partyWon",
+          "type": "combatRoll"
+        },
+        {
+          "creatureId": 10,
+          "type": "strangerKilled"
+        },
+        {
+          "enemy": "Troll",
+          "enemyRoll": 6,
+          "enemyTotal": 10,
+          "party": "Man + Man",
+          "partyRoll": 4,
+          "partyTotal": 11,
+          "result": "partyWon",
+          "type": "combatRoll"
+        },
+        {
+          "creatureId": 3,
+          "type": "strangerKilled"
+        },
+        {
+          "type": "fightWon"
+        }
+      ],
+      "seq": 60
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 61
+    },
+    {
+      "action": {
+        "mi": 2,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 62
+    },
+    {
+      "action": {
+        "mi": 2,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 63
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 1,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 64
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 28,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            4,
+            10
+          ],
+          "treasures": [
+            11
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 65
+    },
+    {
+      "action": {
+        "type": "attack"
+      },
+      "events": [
+        {
+          "surprise": 1,
+          "type": "fightStarted"
+        }
+      ],
+      "seq": 66
+    },
+    {
+      "action": {
+        "creatures": [
+          1,
+          0
+        ],
+        "strategyId": "standard",
+        "strategyVersion": 1,
+        "type": "strangersDeploy"
+      },
+      "events": [
+        {
+          "creatures": [
+            1,
+            0
+          ],
+          "side": "strangers",
+          "type": "deployed"
+        }
+      ],
+      "seq": 67
+    },
+    {
+      "action": {
+        "pairs": [
+          {
+            "party": 0,
+            "stranger": 1
+          },
+          {
+            "party": 3,
+            "stranger": 0
+          }
+        ],
+        "type": "engage"
+      },
+      "events": [
+        {
+          "pairs": [
+            {
+              "party": 0,
+              "stranger": 1
+            },
+            {
+              "party": 3,
+              "stranger": 0
+            }
+          ],
+          "type": "engaged"
+        }
+      ],
+      "seq": 68
+    },
+    {
+      "action": {
+        "moves": [
+          {
+            "back": true,
+            "creature": 4,
+            "match": 1
+          },
+          {
+            "back": false,
+            "creature": 2,
+            "match": 1
+          },
+          {
+            "back": false,
+            "creature": 6,
+            "match": 0
+          }
+        ],
+        "type": "redeploy"
+      },
+      "events": [
+        {
+          "moves": [
+            {
+              "back": true,
+              "creature": 4,
+              "match": 1
+            },
+            {
+              "back": false,
+              "creature": 2,
+              "match": 1
+            },
+            {
+              "back": false,
+              "creature": 6,
+              "match": 0
+            }
+          ],
+          "side": "party",
+          "type": "redeployed"
+        },
+        {
+          "enemy": "Dragon",
+          "enemyRoll": 5,
+          "enemyTotal": 11,
+          "party": "W-Hero + Unicorn",
+          "partyRoll": 6,
+          "partyTotal": 15,
+          "result": "partyWon",
+          "type": "combatRoll"
+        },
+        {
+          "creatureId": 10,
+          "type": "strangerKilled"
+        },
+        {
+          "enemy": "Priest",
+          "enemyRoll": 3,
+          "enemyTotal": 5,
+          "party": "Man + Man + Wizard",
+          "partyRoll": 6,
+          "partyTotal": 13,
+          "result": "partyWon",
+          "type": "combatRoll"
+        },
+        {
+          "creatureId": 4,
+          "type": "strangerKilled"
+        },
+        {
+          "type": "fightWon"
+        }
+      ],
+      "seq": 69
+    },
+    {
+      "action": {
+        "type": "retakeDropped"
+      },
+      "events": [
+        {
+          "count": 3,
+          "type": "droppedRetaken"
+        }
+      ],
+      "seq": 70
+    },
+    {
+      "action": {
+        "type": "leaveTreasure"
+      },
+      "events": [],
+      "seq": 71
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 29,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [
+            3,
+            1,
+            6
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 72
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 73
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 74
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 75
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 1,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 76
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 3,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 77
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 4,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 78
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 28,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [
+            11
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 79
+    },
+    {
+      "action": {
+        "type": "leaveTreasure"
+      },
+      "events": [],
+      "seq": 80
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 26,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 81
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 24,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 82
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 23,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 83
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 22,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 84
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 21,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [],
+          "treasures": [
+            14
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 85
+    },
+    {
+      "action": {
+        "type": "leaveTreasure"
+      },
+      "events": [],
+      "seq": 86
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 33,
+          "level": 3,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            12,
+            10
+          ],
+          "treasures": [
+            0
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 87
+    },
+    {
+      "action": {
+        "type": "attack"
+      },
+      "events": [
+        {
+          "surprise": 1,
+          "type": "fightStarted"
+        }
+      ],
+      "seq": 88
+    },
+    {
+      "action": {
+        "creatures": [
+          0,
+          1
+        ],
+        "strategyId": "standard",
+        "strategyVersion": 1,
+        "type": "strangersDeploy"
+      },
+      "events": [
+        {
+          "creatures": [
+            0,
+            1
+          ],
+          "side": "strangers",
+          "type": "deployed"
+        }
+      ],
+      "seq": 89
+    },
+    {
+      "action": {
+        "pairs": [
+          {
+            "party": 0,
+            "stranger": 1
+          },
+          {
+            "party": 2,
+            "stranger": 0
+          }
+        ],
+        "type": "engage"
+      },
+      "events": [
+        {
+          "pairs": [
+            {
+              "party": 0,
+              "stranger": 1
+            },
+            {
+              "party": 2,
+              "stranger": 0
+            }
+          ],
+          "type": "engaged"
+        }
+      ],
+      "seq": 90
+    },
+    {
+      "action": {
+        "moves": [
+          {
+            "back": true,
+            "creature": 4,
+            "match": 1
+          },
+          {
+            "back": false,
+            "creature": 3,
+            "match": 0
+          },
+          {
+            "back": false,
+            "creature": 5,
+            "match": 1
+          }
+        ],
+        "type": "redeploy"
+      },
+      "events": [
+        {
+          "moves": [
+            {
+              "back": true,
+              "creature": 4,
+              "match": 1
+            },
+            {
+              "back": false,
+              "creature": 3,
+              "match": 0
+            },
+            {
+              "back": false,
+              "creature": 5,
+              "match": 1
+            }
+          ],
+          "side": "party",
+          "type": "redeployed"
+        },
+        {
+          "enemy": "Dragon",
+          "enemyRoll": 3,
+          "enemyTotal": 9,
+          "party": "W-Hero + Man",
+          "partyRoll": 5,
+          "partyTotal": 13,
+          "result": "partyWon",
+          "type": "combatRoll"
+        },
+        {
+          "creatureId": 10,
+          "type": "strangerKilled"
+        },
+        {
+          "enemy": "Giant",
+          "enemyRoll": 1,
+          "enemyTotal": 8,
+          "party": "Man + Man + Wizard",
+          "partyRoll": 6,
+          "partyTotal": 13,
+          "result": "partyWon",
+          "type": "combatRoll"
+        },
+        {
+          "creatureId": 12,
+          "type": "strangerKilled"
+        },
+        {
+          "type": "fightWon"
+        }
+      ],
+      "seq": 91
+    },
+    {
+      "action": {
+        "type": "retakeDropped"
+      },
+      "events": [
+        {
+          "count": 4,
+          "type": "droppedRetaken"
+        }
+      ],
+      "seq": 92
+    },
+    {
+      "action": {
+        "mi": 3,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 93
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 34,
+          "level": 3,
+          "type": "moved"
+        }
+      ],
+      "seq": 94
+    },
+    {
+      "action": {
+        "dir": 6,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 35,
+          "level": 4,
+          "type": "moved"
+        }
+      ],
+      "seq": 95
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 36,
+          "level": 4,
+          "type": "moved"
+        },
+        {
+          "hazards": [
+            1
+          ],
+          "strangers": [
+            11,
+            2
+          ],
+          "treasures": [
+            1
+          ],
+          "type": "drewChamber"
+        },
+        {
+          "hazard": 1,
+          "type": "hazardFired"
+        },
+        {
+          "type": "trapLooms"
+        }
+      ],
+      "seq": 96
+    },
+    {
+      "action": {
+        "type": "avoidTrap"
+      },
+      "events": [
+        {
+          "type": "trapAvoided"
+        }
+      ],
+      "seq": 97
+    },
+    {
+      "action": {
+        "type": "withdraw"
+      },
+      "events": [
+        {
+          "area": 35,
+          "level": 4,
+          "type": "moved"
+        }
+      ],
+      "seq": 98
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 37,
+          "level": 4,
+          "type": "moved"
+        },
+        {
+          "hazards": [
+            1,
+            4
+          ],
+          "strangers": [
+            7
+          ],
+          "treasures": [
+            0
+          ],
+          "type": "drewChamber"
+        },
+        {
+          "type": "ghoulsWarded"
+        },
+        {
+          "hazard": 1,
+          "type": "hazardFired"
+        },
+        {
+          "type": "trapLooms"
+        }
+      ],
+      "seq": 99
+    },
+    {
+      "action": {
+        "type": "avoidTrap"
+      },
+      "events": [
+        {
+          "type": "trapAvoided"
+        }
+      ],
+      "seq": 100
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "friendly",
+          "roll": 4,
+          "type": "reaction"
+        },
+        {
+          "count": 1,
+          "type": "strangersJoined"
+        }
+      ],
+      "seq": 101
+    },
+    {
+      "action": {
+        "mi": 3,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 102
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 38,
+          "level": 4,
+          "type": "moved"
+        }
+      ],
+      "seq": 103
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "dir": 2,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 104
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 37,
+          "level": 4,
+          "type": "moved"
+        },
+        {
+          "hazards": [
+            1,
+            4
+          ],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        },
+        {
+          "type": "ghoulsWarded"
+        },
+        {
+          "hazard": 1,
+          "type": "hazardFired"
+        },
+        {
+          "type": "trapLooms"
+        }
+      ],
+      "seq": 105
+    },
+    {
+      "action": {
+        "type": "avoidTrap"
+      },
+      "events": [
+        {
+          "type": "trapAvoided"
+        }
+      ],
+      "seq": 106
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 38,
+          "level": 4,
+          "type": "moved"
+        }
+      ],
+      "seq": 107
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 40,
+          "level": 4,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            6
+          ],
+          "treasures": [
+            9,
+            0,
+            8
+          ],
+          "type": "drewChamber"
+        }
+      ],
+      "seq": 108
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "friendly",
+          "roll": 5,
+          "type": "reaction"
+        },
+        {
+          "count": 1,
+          "type": "strangersJoined"
+        }
+      ],
+      "seq": 109
+    },
+    {
+      "action": {
+        "mi": 4,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 110
+    },
+    {
+      "action": {
+        "mi": 5,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 111
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 112
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 38,
+          "level": 4,
+          "type": "moved"
+        }
+      ],
+      "seq": 113
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 37,
+          "level": 4,
+          "type": "moved"
+        },
+        {
+          "hazards": [
+            1,
+            4
+          ],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        },
+        {
+          "type": "ghoulsWarded"
+        },
+        {
+          "hazard": 1,
+          "type": "hazardFired"
+        },
+        {
+          "type": "trapLooms"
+        }
+      ],
+      "seq": 114
+    },
+    {
+      "action": {
+        "type": "avoidTrap"
+      },
+      "events": [
+        {
+          "type": "trapAvoided"
+        }
+      ],
+      "seq": 115
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 41,
+          "level": 4,
+          "type": "moved"
+        }
+      ],
+      "seq": 116
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 39,
+          "level": 4,
+          "type": "moved"
+        }
+      ],
+      "seq": 117
+    },
+    {
+      "action": {
+        "dir": 3,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 42,
+          "level": 4,
+          "type": "moved"
+        },
+        {
+          "hazards": [],
+          "strangers": [
+            6,
+            9
+          ],
+          "treasures": [
+            2,
+            10
+          ],
+          "type": "drewChamber"
+        },
+        {
+          "creatureId": 9,
+          "type": "annihilated"
+        }
+      ],
+      "seq": 118
+    },
+    {
+      "action": {
+        "type": "test"
+      },
+      "events": [
+        {
+          "outcome": "friendly",
+          "roll": 6,
+          "type": "reaction"
+        },
+        {
+          "count": 1,
+          "type": "strangersJoined"
+        }
+      ],
+      "seq": 119
+    },
+    {
+      "action": {
+        "mi": 0,
+        "ti": 1,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 120
+    },
+    {
+      "action": {
+        "mi": 5,
+        "ti": 0,
+        "type": "takeTreasure"
+      },
+      "events": [],
+      "seq": 121
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 39,
+          "level": 4,
+          "type": "moved"
+        }
+      ],
+      "seq": 122
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 41,
+          "level": 4,
+          "type": "moved"
+        }
+      ],
+      "seq": 123
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 37,
+          "level": 4,
+          "type": "moved"
+        },
+        {
+          "hazards": [
+            1,
+            4
+          ],
+          "strangers": [],
+          "treasures": [],
+          "type": "drewChamber"
+        },
+        {
+          "type": "ghoulsWarded"
+        },
+        {
+          "hazard": 1,
+          "type": "hazardFired"
+        },
+        {
+          "type": "trapLooms"
+        }
+      ],
+      "seq": 124
+    },
+    {
+      "action": {
+        "type": "avoidTrap"
+      },
+      "events": [
+        {
+          "type": "trapAvoided"
+        }
+      ],
+      "seq": 125
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 35,
+          "level": 4,
+          "type": "moved"
+        }
+      ],
+      "seq": 126
+    },
+    {
+      "action": {
+        "dir": 4,
+        "type": "move"
+      },
+      "events": [
+        {
+          "area": 36,
+          "level": 4,
+          "type": "moved"
+        },
+        {
+          "hazards": [
+            1
+          ],
+          "strangers": [
+            11,
+            2
+          ],
+          "treasures": [
+            1
+          ],
+          "type": "drewChamber"
+        },
+        {
+          "hazard": 1,
+          "type": "hazardFired"
+        },
+        {
+          "type": "trapLooms"
+        }
+      ],
+      "seq": 127
+    },
+    {
+      "action": {
+        "type": "avoidTrap"
+      },
+      "events": [
+        {
+          "type": "trapAvoided"
+        }
+      ],
+      "seq": 128
+    },
+    {
+      "action": {
+        "type": "attack"
+      },
+      "events": [
+        {
+          "surprise": 0,
+          "type": "fightStarted"
+        }
+      ],
+      "seq": 129
+    },
+    {
+      "action": {
+        "creatures": [
+          0,
+          1
+        ],
+        "strategyId": "standard",
+        "strategyVersion": 1,
+        "type": "strangersDeploy"
+      },
+      "events": [
+        {
+          "creatures": [
+            0,
+            1
+          ],
+          "side": "strangers",
+          "type": "deployed"
+        }
+      ],
+      "seq": 130
+    },
+    {
+      "action": {
+        "artifact": 8,
+        "target": 0,
+        "type": "useArtifact"
+      },
+      "events": [
+        {
+          "artifact": 8,
+          "type": "artifactUsed"
+        }
+      ],
+      "seq": 131
+    },
+    {
+      "action": {
+        "pairs": [
+          {
+            "party": 0,
+            "stranger": 0
+          },
+          {
+            "party": 6,
+            "stranger": 1
+          }
+        ],
+        "type": "engage"
+      },
+      "events": [
+        {
+          "pairs": [
+            {
+              "party": 0,
+              "stranger": 0
+            },
+            {
+              "party": 6,
+              "stranger": 1
+            }
+          ],
+          "type": "engaged"
+        }
+      ],
+      "seq": 132
+    },
+    {
+      "action": {
+        "moves": [
+          {
+            "back": true,
+            "creature": 4,
+            "match": 0
+          },
+          {
+            "back": false,
+            "creature": 3,
+            "match": 0
+          },
+          {
+            "back": false,
+            "creature": 5,
+            "match": 1
+          }
+        ],
+        "type": "redeploy"
+      },
+      "events": [
+        {
+          "moves": [
+            {
+              "back": true,
+              "creature": 4,
+              "match": 0
+            },
+            {
+              "back": false,
+              "creature": 3,
+              "match": 0
+            },
+            {
+              "back": false,
+              "creature": 5,
+              "match": 1
+            }
+          ],
+          "side": "party",
+          "type": "redeployed"
+        },
+        {
+          "enemy": "Sorcerer",
+          "enemyRoll": 4,
+          "enemyTotal": 15,
+          "party": "W-Hero + Man + Wizard",
+          "partyRoll": 4,
+          "partyTotal": 13,
+          "result": "enemyWon",
+          "type": "combatRoll"
+        },
+        {
+          "enemy": "Ogre",
+          "enemyRoll": 3,
+          "enemyTotal": 8,
+          "party": "Unicorn + Man",
+          "partyRoll": 5,
+          "partyTotal": 12,
+          "result": "partyWon",
+          "type": "combatRoll"
+        },
+        {
+          "creatureId": 2,
+          "type": "strangerKilled"
+        }
+      ],
+      "seq": 133
+    },
+    {
+      "action": {
+        "idx": 3,
+        "type": "chooseCasualty"
+      },
+      "events": [
+        {
+          "creatureId": 1,
+          "gotPreference": false,
+          "roll": 2,
+          "type": "casualtyChosen"
+        },
+        {
+          "creatureId": 1,
+          "type": "memberDied"
+        }
+      ],
+      "seq": 134
+    },
+    {
+      "action": {
+        "dir": 1,
+        "type": "retreat"
+      },
+      "events": [
+        {
+          "dir": 1,
+          "retreat": true,
+          "type": "deadEnd"
+        }
+      ],
+      "seq": 135
+    },
+    {
+      "action": {
+        "moves": [
+          {
+            "back": false,
+            "creature": 2,
+            "match": 0
+          },
+          {
+            "back": true,
+            "creature": 4,
+            "match": 0
+          }
+        ],
+        "type": "redeploy"
+      },
+      "events": [
+        {
+          "moves": [
+            {
+              "back": false,
+              "creature": 2,
+              "match": 0
+            },
+            {
+              "back": true,
+              "creature": 4,
+              "match": 0
+            }
+          ],
+          "side": "party",
+          "type": "redeployed"
+        },
+        {
+          "enemy": "Sorcerer",
+          "enemyRoll": 6,
+          "enemyTotal": 17,
+          "party": "Man + Man + Wizard",
+          "partyRoll": 3,
+          "partyTotal": 9,
+          "result": "enemyWon",
+          "type": "combatRoll"
+        }
+      ],
+      "seq": 136
+    },
+    {
+      "action": {
+        "idx": 2,
+        "type": "chooseCasualty"
+      },
+      "events": [
+        {
+          "creatureId": 5,
+          "gotPreference": false,
+          "roll": 1,
+          "type": "casualtyChosen"
+        },
+        {
+          "creatureId": 5,
+          "type": "memberDied"
+        }
+      ],
+      "seq": 137
+    },
+    {
+      "action": {
+        "dir": 2,
+        "type": "retreat"
+      },
+      "events": [
+        {
+          "area": 35,
+          "level": 4,
+          "type": "moved"
+        }
+      ],
+      "seq": 138
+    }
+  ]
+}
