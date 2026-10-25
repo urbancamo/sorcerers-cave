@@ -66,13 +66,13 @@ describe("RevisedFightSurface", () => {
     const s = attacking([OGRE]);
     expect(s.fight!.pending).toMatchObject({ by: "party", kind: "engage" });
     render(<RevisedFightSurface state={s} dispatch={dispatch} cards={cards} />);
-    const go = screen.getByRole("button", { name: /confirm initial pairings/i });
+    const go = screen.getByRole("button", { name: /roll the round/i });
     expect(go).toBeDisabled();                                   // an unengaged fighter could still be paired
     fireEvent.click(screen.getByTestId("rev-free-0"));
     fireEvent.click(screen.getByTestId("rev-foe-0"));
     expect(go).not.toBeDisabled();
     fireEvent.click(go);
-    expect(dispatch).toHaveBeenCalledWith({ type: "engage", pairs: [{ party: 0, stranger: 0 }] });
+    expect(dispatch).toHaveBeenCalledWith({ type: "engage", pairs: [{ party: 0, stranger: 0 }], moves: [] });
   });
 
   it("shows each stranger as its own row, with the paired fighter beside it", () => {
@@ -168,7 +168,7 @@ describe("RevisedFightSurface", () => {
     fireEvent.click(screen.getByTestId("rev-free-0"));
     fireEvent.click(screen.getByTestId("rev-foe-0"));
     fireEvent.click(screen.getByRole("button", { name: /undo|reset/i }));
-    expect(screen.getByRole("button", { name: /confirm initial pairings/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /roll the round/i })).toBeDisabled();
   });
 
   it("deploy: the defending party chooses at least the minimum to stand in front", () => {
@@ -227,12 +227,101 @@ describe("RevisedFightSurface", () => {
     expect(go).not.toBeDisabled();
     expect(screen.queryByRole("button", { name: /undo pairings/i })).toBeNull();
     fireEvent.click(go);
-    expect(dispatch).toHaveBeenCalledWith({ type: "engage", pairs: [{ party: 0, stranger: 0 }] });
+    expect(dispatch).toHaveBeenCalledWith({ type: "engage", pairs: [{ party: 0, stranger: 0 }], moves: [] });
   });
 
-  it("engage: with a real choice to make, the player pairs as before and the button still confirms pairings", () => {
+  it("engage: with a real choice to make, the player pairs as before and the roll button waits for a complete pairing", () => {
     render(<RevisedFightSurface state={attacking([OGRE, TROLL], {}, [5, 6])} dispatch={vi.fn()} cards={cards} />);
-    expect(screen.getByRole("button", { name: /confirm initial pairings/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /roll the round/i })).toBeDisabled();
+  });
+
+  // R1.8 (Peter, 25-OCT-2026): pairing and placing the spares are one session; nothing is sent until the round is rolled.
+  describe("engage: one placement session", () => {
+    it("lets a spare join a tentative pairing, shows it in the tally, and sends pairs and placements together on Roll the Round", () => {
+      const dispatch = vi.fn();
+      render(<RevisedFightSurface state={attacking([OGRE])} dispatch={dispatch} cards={cards} />);
+      fireEvent.click(screen.getByTestId("rev-free-0"));
+      fireEvent.click(screen.getByTestId("rev-foe-0"));
+      const alone = screen.getByTestId("rev-row-0").querySelector(".scv-match-vs .me")!.textContent;
+      fireEvent.click(screen.getByTestId("rev-free-1"));
+      fireEvent.click(screen.getByTestId("rev-slot-0"));                       // the spare stands beside the pairing
+      expect(screen.getByTestId("rev-row-0")).toHaveTextContent(/joining/i);
+      expect(screen.getByTestId("rev-row-0").querySelector(".scv-match-vs .me")!.textContent).not.toBe(alone);
+      expect(dispatch).not.toHaveBeenCalled();                                 // still tentative
+      fireEvent.click(screen.getByRole("button", { name: /roll the round/i }));
+      expect(dispatch).toHaveBeenCalledTimes(1);
+      expect(dispatch).toHaveBeenCalledWith({ type: "engage", pairs: [{ party: 0, stranger: 0 }], moves: [{ creature: 1, match: 0, back: false }] });
+    });
+
+    it("lets a placement be undone, and swapped by taking the pairing back", () => {
+      const dispatch = vi.fn();
+      render(<RevisedFightSurface state={attacking([OGRE])} dispatch={dispatch} cards={cards} />);
+      fireEvent.click(screen.getByTestId("rev-free-0"));
+      fireEvent.click(screen.getByTestId("rev-foe-0"));
+      fireEvent.click(screen.getByTestId("rev-free-1"));
+      fireEvent.click(screen.getByTestId("rev-slot-0"));
+      fireEvent.click(screen.getByText(/joining/i));                           // tap the joiner to undo
+      expect(screen.getByTestId("rev-row-0")).not.toHaveTextContent(/joining/i);
+      fireEvent.click(screen.getByTestId("rev-free-1"));
+      fireEvent.click(screen.getByTestId("rev-slot-0"));
+      fireEvent.click(screen.getByRole("button", { name: /undo pairings/i }));   // starts the whole arrangement again
+      expect(screen.getByTestId("rev-row-0")).not.toHaveTextContent(/joining/i);
+      expect(screen.getByRole("button", { name: /roll the round/i })).toBeDisabled();
+      expect(dispatch).not.toHaveBeenCalled();
+    });
+
+    it("drops a placement whose pairing is taken back, rather than sending it", () => {
+      const dispatch = vi.fn();
+      render(<RevisedFightSurface state={attacking([OGRE])} dispatch={dispatch} cards={cards} />);
+      fireEvent.click(screen.getByTestId("rev-free-0"));
+      fireEvent.click(screen.getByTestId("rev-foe-0"));
+      fireEvent.click(screen.getByTestId("rev-free-1"));
+      fireEvent.click(screen.getByTestId("rev-slot-0"));
+      fireEvent.click(screen.getByText(/tap to take back/i));                  // takes back the pairing itself
+      expect(screen.getByTestId("rev-row-0")).not.toHaveTextContent(/joining/i);
+      fireEvent.click(screen.getByTestId("rev-free-0"));
+      fireEvent.click(screen.getByTestId("rev-foe-0"));
+      fireEvent.click(screen.getByRole("button", { name: /roll the round/i }));
+      expect(dispatch).toHaveBeenCalledWith({ type: "engage", pairs: [{ party: 0, stranger: 0 }], moves: [] });
+    });
+
+    it("stands a caster behind a pairing", () => {
+      const dispatch = vi.fn();
+      render(<RevisedFightSurface state={attacking([OGRE], {}, [4, 6])} dispatch={dispatch} cards={cards} />);   // a Priest and a Woman
+      fireEvent.click(screen.getByTestId("rev-free-1"));
+      fireEvent.click(screen.getByTestId("rev-foe-0"));
+      fireEvent.click(screen.getByTestId("rev-free-0"));
+      fireEvent.click(screen.getByTestId("rev-bslot-0"));
+      fireEvent.click(screen.getByRole("button", { name: /roll the round/i }));
+      expect(dispatch).toHaveBeenCalledWith({ type: "engage", pairs: [{ party: 1, stranger: 0 }], moves: [{ creature: 0, match: 0, back: true }] });
+    });
+
+    it("numbers a pairing's match by the order the pairs are sent, so the engine puts the spare where the player did", () => {
+      const dispatch = vi.fn();
+      const s = attacking([OGRE, TROLL]);                                       // three fighters, two foes: one spare
+      render(<RevisedFightSurface state={s} dispatch={dispatch} cards={cards} />);
+      fireEvent.click(screen.getByTestId("rev-free-0")); fireEvent.click(screen.getByTestId("rev-foe-1"));   // first pairing: against the Troll
+      fireEvent.click(screen.getByTestId("rev-free-1")); fireEvent.click(screen.getByTestId("rev-foe-0"));   // second: against the Ogre
+      fireEvent.click(screen.getByTestId("rev-free-2")); fireEvent.click(screen.getByTestId("rev-slot-0"));   // the spare joins the Ogre's pairing
+      fireEvent.click(screen.getByRole("button", { name: /roll the round/i }));
+      const sent = dispatch.mock.calls[0]![0] as GameAction;
+      const r = reduce(s, sent);
+      expect(r.events[0]).not.toMatchObject({ type: "planRejected" });
+      const rev = r.state.fight!.rev!;
+      const withOgre = rev.matches.find((m) => m.sf.includes(0))!;
+      expect(withOgre.pf.slice().sort()).toEqual([1, 2]);
+    });
+
+    it("refuses a placement the rules do not allow: a non-caster cannot stand behind", () => {
+      const dispatch = vi.fn();
+      render(<RevisedFightSurface state={attacking([OGRE])} dispatch={dispatch} cards={cards} />);
+      fireEvent.click(screen.getByTestId("rev-free-0"));
+      fireEvent.click(screen.getByTestId("rev-foe-0"));
+      fireEvent.click(screen.getByTestId("rev-free-1"));
+      fireEvent.click(screen.getByTestId("rev-bslot-0"));
+      fireEvent.click(screen.getByRole("button", { name: /roll the round/i }));
+      expect(dispatch).toHaveBeenCalledWith({ type: "engage", pairs: [{ party: 0, stranger: 0 }], moves: [] });
+    });
   });
 
   it("deploy: creatures can be dragged into the front line, and dragged-in ones are sent", () => {
@@ -341,7 +430,7 @@ describe("RevisedFightSurface", () => {
     s.fight!.pending = { by: "strangers", kind: "engage" };
     render(<RevisedFightSurface state={s} dispatch={vi.fn()} cards={cards} />);
     expect(screen.getByRole("status")).toHaveTextContent(/the strangers are deciding/i);
-    expect(screen.queryByRole("button", { name: /confirm initial pairings/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /roll the round/i })).toBeNull();
   });
 
   it("a lost front line asks which creature falls", () => {
@@ -380,7 +469,7 @@ describe("RevisedFightSurface", () => {
     fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
     expect(screen.queryByTestId("rev-retreat")).toBeNull();
     expect(screen.getByTestId("rev-tray")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /confirm initial pairings/i })).not.toBeDisabled();   // the pairing survived
+    expect(screen.getByRole("button", { name: /roll the round/i })).not.toBeDisabled();   // the pairing survived
     expect(dispatch).not.toHaveBeenCalled();
   });
 

@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
 import { newGame } from "./setup";
 import { driveStrangers } from "./strangerDriver";
-import { legalMoves, legalPairs } from "./revisedRound";
+import { legalMoves, legalPairs, engageMovesViolation } from "./revisedRound";
 import type { GameState } from "./state";
 import type { GameAction } from "./actions";
 
@@ -100,5 +100,12 @@ describe("engage with moves (R1.8)", () => {
         return;
       }
     }
+  });
+
+  it("can judge a half-built arrangement: `partial` waives only the must-pair-everyone rule", () => {
+    const s = atEngage(1, [6, 7, 5], [5, 5])!;
+    expect(engageMovesViolation(s, [], [])).not.toBeNull();            // nothing paired yet: not a legal arrangement to roll
+    expect(engageMovesViolation(s, [], [], true)).toBeNull();          // but a fair thing to be part-way through
+    expect(engageMovesViolation(s, [{ party: 0, stranger: 99 }], [], true)).not.toBeNull();   // a wrong pair is wrong however early
   });
 });

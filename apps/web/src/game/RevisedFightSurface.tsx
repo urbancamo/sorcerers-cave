@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
 // ALL_CREATURES/ALL_TREASURES (SC-EXT-29): a kit id or a Ghoul can stand in any fight.
 import {
-  ALL_CREATURES, ALL_TREASURES, legalActions, fightView, freeOf, matchStrength, matchModifiers, legalMoves, legalPairs, deployViolation, engageViolation, redeployViolation,
+  ALL_CREATURES, ALL_TREASURES, legalActions, fightView, freeOf, matchStrength, matchModifiers, legalMoves, legalPairs, deployViolation, engageViolation, engageMovesViolation, redeployViolation,
   type GameState, type GameAction, type UnitView,
 } from "@sorcerers-cave/engine";
 import type { CardArt } from "../data/manifest";
@@ -21,6 +21,9 @@ const DIR_NAME: Record<number, string> = { 1: "North", 2: "East", 3: "South", 4:
 
 type Move = { creature: number; match: number; back: boolean };
 type Pair = { party: number; stranger: number };
+// Where a spare creature has been put: into a match that stands (`mi`), or beside the pairing on this foe (`foe`; that pairing's match does not exist
+// until the round is rolled, so it is named by its foe and numbered when the action is sent).
+type Placement = { creature: number; back: boolean; mi?: number; foe?: number };
 type Retreat = Extract<GameAction, { type: "retreat" }>;
 type UseArtifact = Extract<GameAction, { type: "useArtifact" }>;
 
@@ -29,7 +32,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
   const [picked, setPicked] = useState<number | null>(null);   // a party creature tapped, waiting for its foe
   const [chosen, setChosen] = useState<number[]>([]);          // deploy: the creatures to stand in front
   const [pairs, setPairs] = useState<Pair[]>([]);              // engage: the pairings so far
-  const [moves, setMoves] = useState<Move[]>([]);              // redeploy: the placements so far
+  const [placed, setPlaced] = useState<Placement[]>([]);         // the spares placed so far (tentative until the round is rolled)
   const [retreatOpen, setRetreatOpen] = useState(false);
   const [restored, setRestored] = useState(false);          // the battle view popping back in after a cancelled retreat
 
@@ -37,7 +40,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
   const key = fight ? `${fight.round}|${fight.pending?.kind ?? ""}|${fight.pending?.by ?? ""}|${state.party.map((m) => m.status).join("")}|${state.strangers.join(",")}` : "";
   const lastKey = useRef(key);
   useEffect(() => {
-    if (lastKey.current !== key) { setPicked(null); setChosen([]); setPairs([]); setMoves([]); setRetreatOpen(false); setRestored(false); lastKey.current = key; }
+    if (lastKey.current !== key) { setPicked(null); setChosen([]); setPairs([]); setPlaced([]); setRetreatOpen(false); setRestored(false); lastKey.current = key; }
   }, [key]);
   const stale = lastKey.current !== key;   // render this pass from a clean slate, before the effect has run
 
@@ -139,7 +142,12 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
   const deployedFoes = rev.deployed.strangers.filter((s) => !rev.matches.some((m) => m.sf.includes(s)));
   const inPairs = (list: Pair[]) => new Set(list.map((p) => p.party));
   // The Ghouls' pairing is made for the party: show it as soon as the Ghouls have been faced (and so while the round is rolled).
-  const usedPairs = stale ? [] : autoPairs && !introDue ? autoPairs : forcedPairs && pairs.length === 0 ? forcedPairs : pairs, usedChosen = stale ? [] : chosen, usedMoves = stale ? [] : moves;
+  const usedPairs = stale ? [] : autoPairs && !introDue ? autoPairs : forcedPairs && pairs.length === 0 ? forcedPairs : pairs, usedChosen = stale ? [] : chosen;
+  // Placements aimed at a pairing that has since been taken back fall away with it.
+  const usedPlaced = stale ? [] : placed.filter((x) => x.foe === undefined || usedPairs.some((p) => p.stranger === x.foe));
+  // A pairing's match is numbered after the matches that already stand, in the order the pairs are sent.
+  const toMoves = (list: Placement[]): Move[] => list.map((x) => ({ creature: x.creature, back: x.back, match: x.mi ?? rev.matches.length + usedPairs.findIndex((p) => p.stranger === x.foe) }));
+  const usedMoves = toMoves(usedPlaced);
 
   // --- the decisions ------------------------------------------------------------------------------------------------------------
   const tapFree = (i: number): void => {
@@ -152,42 +160,45 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
     if (raw === "" || Number.isNaN(i) || !free.includes(i) || usedChosen.includes(i)) return;
     setChosen([...usedChosen, i]);
   };
-  const tapFoe = (s: number): void => {
-    if (mine?.kind !== "engage" || picked === null || !legalPairs(state, "party").some((p) => p.party === picked && p.stranger === s)) return;
-    setPairs([...usedPairs.filter((p) => p.stranger !== s), { party: picked, stranger: s }]);
+  // Pair a creature (picked, or dragged) with a foe; on a foe that already has its pairing, the creature joins it as a spare instead.
+  const tapFoe = (s: number, dragged?: string): void => {
+    if (mine?.kind !== "engage") return;
+    const raw = dragged ?? "", c = raw !== "" && !Number.isNaN(Number(raw)) ? Number(raw) : picked;
+    if (c === null || inPairs(usedPairs).has(c)) return;
+    if (usedPairs.some((p) => p.stranger === s)) { placeAt({ foe: s }, false, String(c)); return; }
+    if (!legalPairs(state, "party").some((p) => p.party === c && p.stranger === s)) return;
+    setPairs([...usedPairs.filter((p) => p.stranger !== s), { party: c, stranger: s }]);
+    setPlaced(usedPlaced.filter((x) => x.creature !== c));
     setPicked(null);
   };
-  // With every creature on both sides in a pairing (and no stranger held back), nothing is left to place in step (e): confirming the pairings is rolling the round.
-  const rollsNow = mine?.kind === "engage" && usedPairs.length > 0 && free.length === usedPairs.length && deployedFoes.length === usedPairs.length && freeOf(state, "strangers").length === 0;
-  const engageBad = mine?.kind === "engage" ? engageViolation(state, "party", usedPairs) : "";
+  // Pairing and placing are one session (Peter, 25-OCT-2026): nothing is sent until the round is rolled, and then it is judged as a whole.
+  const engageBad = mine?.kind === "engage" ? engageMovesViolation(state, usedPairs, usedMoves) : "";
   const deployBad = mine?.kind === "deploy" ? deployViolation(state, "party", usedChosen) : "";
   const allMoves = mine?.kind === "redeploy" ? legalMoves(state, "party") : [];
   const redeployBad = mine?.kind === "redeploy" ? redeployViolation(state, "party", usedMoves) : "";
-  const toggleMove = (m: Move): void => {
-    const same = (x: Move) => x.creature === m.creature && x.match === m.match && x.back === m.back;
-    if (usedMoves.some(same)) { setMoves(usedMoves.filter((x) => !same(x))); return; }
-    const next = [...usedMoves.filter((x) => x.creature !== m.creature), m];   // one placement per creature
-    if (redeployViolation(state, "party", next) === null) setMoves(next);
-  };
-  // Redeploy by drag-and-drop (or tap a spare creature, then a slot): the move is legal only if the engine lists it.
-  const moveOk = (c: number, mi: number, back: boolean): boolean => allMoves.some((m) => m.creature === c && m.match === mi && m.back === back);
-  const placeMove = (mi: number, back: boolean, dragged?: string): void => {
+  // Placing a spare (by tapping a slot after picking it, or by dragging it there): kept only if the engine would allow the whole arrangement
+  // so far. While pairing, "so far" may still be short of pairing everyone, which the roll button checks.
+  const placementBad = (next: Placement[]): string | null =>
+    mine?.kind === "engage" ? engageMovesViolation(state, usedPairs, toMoves(next), true) : redeployViolation(state, "party", toMoves(next));
+  const placeAt = (to: { mi?: number; foe?: number }, back: boolean, dragged?: string): void => {
     const raw = dragged ?? "";
     const c = raw !== "" && !Number.isNaN(Number(raw)) ? Number(raw) : picked;
     setPicked(null);
-    if (c === null || !moveOk(c, mi, back)) return;
-    const next = [...usedMoves.filter((x) => x.creature !== c), { creature: c, match: mi, back }];
-    if (redeployViolation(state, "party", next) === null) setMoves(next);
+    if (c === null || inPairs(usedPairs).has(c)) return;
+    const next = [...usedPlaced.filter((x) => x.creature !== c), { creature: c, back, ...to }];
+    if (placementBad(next) === null) setPlaced(next);
   };
-  const slotProps = (mi: number, back: boolean, tid: string) => mine?.kind !== "redeploy" ? {} : {
+  const placing = mine?.kind === "redeploy" || mine?.kind === "engage";
+  const slotProps = (mi: number, back: boolean, tid: string) => !placing ? {} : {
     "data-testid": tid, role: "button", tabIndex: 0,
-    onClick: () => placeMove(mi, back),
-    onKeyDown: (e: KeyboardEvent) => { if (e.key === "Enter") placeMove(mi, back); },
+    onClick: () => placeAt({ mi }, back),
+    onKeyDown: (e: KeyboardEvent) => { if (e.key === "Enter") placeAt({ mi }, back); },
     onDragOver: (e: DragEvent) => e.preventDefault(),
-    onDrop: (e: DragEvent) => { e.preventDefault(); placeMove(mi, back, e.dataTransfer.getData("application/x-scv-member")); },
+    onDrop: (e: DragEvent) => { e.preventDefault(); placeAt({ mi }, back, e.dataTransfer.getData("application/x-scv-member")); },
   };
-  const addedTo = (mi: number, back: boolean) => usedMoves.filter((x) => x.match === mi && x.back === back).map((x) => x.creature);
-  const takeBack = (c: number) => setMoves(usedMoves.filter((x) => x.creature !== c));
+  const addedTo = (mi: number, back: boolean) => usedPlaced.filter((x) => x.mi === mi && x.back === back).map((x) => x.creature);
+  const addedToFoe = (s: number, back: boolean) => usedPlaced.filter((x) => x.foe === s && x.back === back).map((x) => x.creature);
+  const takeBack = (c: number) => setPlaced(usedPlaced.filter((x) => x.creature !== c));
 
   const retreats = legalActions(state).filter((a): a is Retreat => a.type === "retreat");
   const artifacts = legalActions(state).filter((a): a is UseArtifact => a.type === "useArtifact" && a.artifact !== 19);   // the Scroll is a round step here
@@ -229,7 +240,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
                   {m.pf.map((i) => partyCard(i))}
                   {addedTo(mi, false).map((i) => partyCard(i, { caption: "joining — tap to undo", onPick: () => takeBack(i) }))}
                   {/* The front holds two positions, as in the battle plan: empty ones only fill it out, so a second fighter never widens the row. */}
-                  {mine?.kind === "redeploy" && Array.from({ length: Math.max(0, 2 - m.pf.length - addedTo(mi, false).length) }, (_, k) => (
+                  {placing && Array.from({ length: Math.max(0, 2 - m.pf.length - addedTo(mi, false).length) }, (_, k) => (
                     <span key={`e${k}`} className="scv-slot-empty">drop a creature</span>
                   ))}
                 </div>
@@ -250,7 +261,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
           const paired = usedPairs.find((p) => p.stranger === s);
           const target = mine?.kind === "engage" && front && !autoPairs;
           // a pairing under way is a match of its own: the tally and the chips count the fighter and the foe it will face
-          const pm = { pf: paired ? [paired.party] : [], pb: [], sf: [s], sb: [] };
+          const pm = { pf: paired ? [paired.party, ...addedToFoe(s, false)] : [], pb: paired ? addedToFoe(s, true) : [], sf: [s], sb: [] };
           const total = matchStrength(state, pm);
           const chips = matchModifiers(state, pm).chips.filter((c) => paired || c.side !== "party");
           return (
@@ -279,14 +290,24 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
                 <div className="scv-match-line">
                   <div className="scv-match-front" data-testid={`rev-slot-${s}`} role={target ? "button" : undefined} tabIndex={target ? 0 : undefined}
                        onClick={target ? () => (paired && picked === null ? setPairs(usedPairs.filter((p) => p !== paired)) : tapFoe(s)) : undefined}
-                       onKeyDown={target ? (e) => { if (e.key === "Enter") tapFoe(s); } : undefined}>
-                    {paired
-                      ? partyCard(paired.party, { caption: "tap to take back" })
-                      : <span className="scv-slot-empty">{target ? "pick a creature, then tap here" : "—"}</span>}
+                       onKeyDown={target ? (e) => { if (e.key === "Enter") tapFoe(s); } : undefined}
+                       onDragOver={target ? (e) => e.preventDefault() : undefined}
+                       onDrop={target ? (e) => { e.preventDefault(); tapFoe(s, e.dataTransfer.getData("application/x-scv-member")); } : undefined}>
+                    {paired && partyCard(paired.party, { caption: "tap to take back" })}
+                    {paired && addedToFoe(s, false).map((i) => partyCard(i, { caption: "joining — tap to undo", onPick: () => takeBack(i) }))}
+                    {paired && target && addedToFoe(s, false).length === 0 && <span className="scv-slot-empty">drop a creature</span>}
+                    {!paired && <span className="scv-slot-empty">{target ? "pick a creature, then tap here" : "—"}</span>}
                   </div>
-                  <div className="scv-match-bg">
+                  <div className="scv-match-bg" data-testid={`rev-bslot-${s}`} {...(paired && target ? {
+                    role: "button", tabIndex: 0,
+                    onClick: () => placeAt({ foe: s }, true),
+                    onKeyDown: (e: KeyboardEvent) => { if (e.key === "Enter") placeAt({ foe: s }, true); },
+                    onDragOver: (e: DragEvent) => e.preventDefault(),
+                    onDrop: (e: DragEvent) => { e.preventDefault(); placeAt({ foe: s }, true, e.dataTransfer.getData("application/x-scv-member")); },
+                  } : {})}>
                     <span className="scv-match-slotlbl">✦ behind</span>
-                    <span className="scv-match-hint">magic user</span>
+                    {paired && addedToFoe(s, true).map((i) => partyCard(i, { caption: "joining — tap to undo", onPick: () => takeBack(i) }))}
+                    {(!paired || addedToFoe(s, true).length === 0) && <span className="scv-match-hint">magic user</span>}
                   </div>
                 </div>
                 <MatchChips chips={chips} side="party" testId={`rev-mods-party-${s}`} />
@@ -377,10 +398,10 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
             return partyCard(i, {
               testId: `rev-free-${i}`, dim: taken || usedMoves.some((x) => x.creature === i) || (rev.deployed.party.includes(i) && mine?.kind !== "deploy"),
               selected: picked === i || usedChosen.includes(i) || undefined,
-              caption: taken ? `vs ${strangerNames([usedPairs.find((p) => p.party === i)!.stranger])}` : rev.deployed.party.includes(i) ? "in front" : undefined,
+              caption: taken ? `vs ${strangerNames([usedPairs.find((p) => p.party === i)!.stranger])}` : usedMoves.some((x) => x.creature === i) ? "placed" : rev.deployed.party.includes(i) ? "in front" : undefined,
               onPick: mine?.kind === "deploy" || mine?.kind === "engage" ? () => tapFree(i)
                 : redeployable ? () => setPicked(picked === i ? null : i) : undefined,
-              draggable: redeployable || mine?.kind === "deploy" || undefined, dragId: i,
+              draggable: redeployable || mine?.kind === "deploy" || (mine?.kind === "engage" && !taken) || undefined, dragId: i,
             });
           })}
         </FightHand>
@@ -395,6 +416,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
           A stalemate: no match can be decided any more. Retreat{retreats.length ? "" : " — if a way is open"}.
         </p>
       )}
+      {mine?.kind === "engage" && !autoPairs && <p className="scv-fight-sub" data-testid="rev-engage-hint">Pair each of your fighters with a foe. Spare creatures can join a pairing, or stand behind it if they are casters. Nothing is final until you roll.</p>}
       {mine?.kind === "engage" && engageBad && usedPairs.length > 0 && <p className="scv-fight-reason">{engageBad}</p>}
       {mine?.kind === "deploy" && !forcedDeploy && usedChosen.length > 0 && deployBad && <p className="scv-fight-reason">{deployBad}</p>}
 
@@ -406,14 +428,15 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
         )}
         {mine?.kind === "engage" && (
           <>
-            <button className="scv-fight-btn primary" disabled={engageBad !== null} onClick={() => dispatch({ type: "engage", pairs: usedPairs })}>{rollsNow ? "Roll the Round ⚔" : "Confirm Initial Pairings"}</button>
-            {!forcedPairs && <button className="scv-fight-btn ghost" onClick={() => { setPairs([]); setPicked(null); }}>Undo pairings</button>}
+            <button className="scv-fight-btn primary" disabled={engageBad !== null} onClick={() => dispatch({ type: "engage", pairs: usedPairs, moves: usedMoves })}>Roll the Round ⚔</button>
+            {!forcedPairs && <button className="scv-fight-btn ghost" onClick={() => { setPairs([]); setPlaced([]); setPicked(null); }}>Undo pairings</button>}
+            {forcedPairs && usedMoves.length > 0 && <button className="scv-fight-btn ghost" onClick={() => { setPlaced([]); setPicked(null); }}>Undo placements</button>}
           </>
         )}
         {mine?.kind === "redeploy" && (
           <>
             <button className="scv-fight-btn primary" disabled={redeployBad !== null} onClick={() => dispatch({ type: "redeploy", moves: usedMoves })}>Roll the Round ⚔</button>
-            {usedMoves.length > 0 && <button className="scv-fight-btn ghost" onClick={() => { setMoves([]); setPicked(null); }}>Undo moves</button>}
+            {usedMoves.length > 0 && <button className="scv-fight-btn ghost" onClick={() => { setPlaced([]); setPicked(null); }}>Undo moves</button>}
           </>
         )}
         {!deciding && retreats.length > 0 && <button className="scv-fight-btn" onClick={() => setRetreatOpen(true)}>Retreat…</button>}

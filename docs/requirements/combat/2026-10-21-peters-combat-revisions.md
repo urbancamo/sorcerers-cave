@@ -141,4 +141,5 @@ Source: Mark's report after trying the build: "the vs figures aren't showing eit
 5. ~~R1.6 (engine change)~~: dropped, see R1.6.
 6. R4.7 (engine: `matchModifiers`, with its spec row and tests), then R4.1–R4.6 and R4.8 (UI chips). Two commits: the engine function first, then the UI. Before building, confirm the two unconfirmed gaps in R4 with Mark.
 7. **(Peter's responses, 2026-10-25)** R2.2 retune: shrink before overlap, so up to about 8 cards sit flat (`handFit.ts`, its tests, the manual line). Small, UI only.
-8. **(Peter's responses, 2026-10-25)** R1.8 engine: `engage` with optional `moves` (reduce, spec row, tests). Then R1.8 UI: the combined placement session, retiring the separate redeploy prompt for the attacking party and the "Confirm Initial Pairings" label; the manual's Fights section.
+8. **(Peter's responses, 2026-10-25) — built.** R1.8 engine (`engage` with `moves`, spec row `SC-9.7-21`) and UI (one session for the attacking party; "Roll the Round" replaces "Confirm Initial Pairings" for the attacker). Original scope:
+   R1.8 engine: `engage` with optional `moves` (reduce, spec row, tests). Then R1.8 UI: the combined placement session, retiring the separate redeploy prompt for the attacking party and the "Confirm Initial Pairings" label; the manual's Fights section.

@@ -44,5 +44,5 @@ export * from "./multi-union";
 export * from "./multi-zombies";
 export { playRevisedFight, partyAction, type PlayedFight } from "./headless";
 export type { MatchChip, MatchBreakdown } from "./revisedRound";
-export { fightView, freeOf, legalMoves, legalPairs, canPair, isRevised, matchStrength, matchModifiers, deployViolation, engageViolation, redeployViolation } from "./revisedRound";
+export { fightView, freeOf, legalMoves, legalPairs, canPair, isRevised, matchStrength, matchModifiers, deployViolation, engageViolation, engageMovesViolation, redeployViolation } from "./revisedRound";
 export type { FightView, UnitView, MatchView, DeployContext, DeployDecision, EngageContext, EngageDecision, RedeployContext, RedeployDecision, CasualtyContext, CasualtyDecision } from "./strategy";

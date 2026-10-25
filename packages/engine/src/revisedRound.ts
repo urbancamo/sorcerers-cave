@@ -133,7 +133,8 @@ export function deployViolation(state: GameState, side: Side, creatures: unknown
   return null;
 }
 
-export function engageViolation(state: GameState, attacker: Side, pairs: unknown): string | null {
+/** `partial` skips the "every pairable attacker must be paired" rule, to judge a pairing set that is still being built. */
+export function engageViolation(state: GameState, attacker: Side, pairs: unknown, partial = false): string | null {
   if (!Array.isArray(pairs)) return "pairs is not a list";
   const rev = revOf(state), def = other(attacker);
   const own = freeOf(state, attacker), foes = rev.deployed[def].filter((i) => !inMatch(rev, def).has(i));
@@ -147,13 +148,13 @@ export function engageViolation(state: GameState, attacker: Side, pairs: unknown
     if (!canPair(state, p.party, p.stranger)) return "that pairing is not allowed";
     usedP.add(p.party); usedS.add(p.stranger);
   }
-  const rest = legalPairs(state, attacker).some((p) => !usedP.has(p.party) && !usedS.has(p.stranger));
+  const rest = !partial && legalPairs(state, attacker).some((p) => !usedP.has(p.party) && !usedS.has(p.stranger));
   return rest ? "every unengaged attacker that can be paired must be" : null;
 }
 
 /** `engage` with `moves` (the party attacking): the pairings must be legal, and the moves legal against the matches those pairings make. */
-export function engageMovesViolation(state: GameState, pairs: unknown, moves: unknown): string | null {
-  const bad = engageViolation(state, "party", pairs);
+export function engageMovesViolation(state: GameState, pairs: unknown, moves: unknown, partial = false): string | null {
+  const bad = engageViolation(state, "party", pairs, partial);
   if (bad !== null) return bad;
   if (revOf(state).attacker !== "party") return "only the attacking party may place its spares with its pairings";
   const tmp = structuredClone(state);
