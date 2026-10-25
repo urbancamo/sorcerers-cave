@@ -822,7 +822,7 @@ function areaPanel(area){
   if(focus) showCard(focus,area.name); else hideCard();
 }
 function selectCurrent(){ areaPanel(engine.current); }
-function inspectArea(a){ areaPanel(a); }
+function inspectArea(a){ areaPanel(engine.placed.get(akey(a))||a); }   // the tile mesh holds the area as it was laid: show what is there now
 function hexA(hex,a){const n=parseInt(hex.replace('#',''),16);return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';}
 
 /* ============================================================
@@ -1034,7 +1034,7 @@ let homeOnArrival=false; // snap the camera 'home' to the party's tile once the 
 function pickerHover(e){
   if(!picker) return;
   mouse.x=(e.clientX/innerWidth)*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;ray.setFromCamera(mouse,camera);
-  const hit=ray.intersectObjects(tileMeshes,false)[0];
+  const hit=visibleHit(ray.intersectObjects(tileMeshes,false));
   const a=hit&&hit.object.userData.area;
   const ok=!!a&&picker.byKey.has(akey(a));
   picker.hover.visible=ok;
@@ -1113,6 +1113,9 @@ function pickAt(){ // ray already aimed; returns true when the click was consume
   return true;
 }
 
+// The nearest hit that is actually on screen. A raycast also reports meshes hidden by level isolation, so a click on a tile would
+// otherwise land on a hidden tile (or its cards) from another level at the same column and row.
+function visibleHit(hits){ return hits.find(h=>{ for(let o=h.object;o;o=o.parent) if(!o.visible) return false; return true; }); }
 let needle;
 function onPointerDown(e){ downXY=[e.clientX,e.clientY]; }
 function onPointerUp(e){
@@ -1120,11 +1123,11 @@ function onPointerUp(e){
   if(Reveal.active())return;
   mouse.x=(e.clientX/innerWidth)*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;ray.setFromCamera(mouse,camera);
   if(pickAt())return;
-  const hitE=ray.intersectObjects(exitGroup.children,true)[0];
+  const hitE=visibleHit(ray.intersectObjects(exitGroup.children,true));
   if(hitE){let g=hitE.object;while(g&&!g.userData.move)g=g.parent;if(g){doMove(g.userData.move);return;}}
-  const hitC=ray.intersectObjects(contentMeshes,false)[0];
+  const hitC=visibleHit(ray.intersectObjects(contentMeshes,false));
   if(hitC){const f=hitC.object;showCard(f.userData.card, f.userData.area?f.userData.area.name:engine.current.name);return;}
-  const hitT=ray.intersectObjects(tileMeshes,false)[0];
+  const hitT=visibleHit(ray.intersectObjects(tileMeshes,false));
   if(hitT){const a=hitT.object.userData.area; if(a===engine.current){viewSnapTile();selectCurrent();} else inspectArea(a);}
 }
 function onKeyDown(e){
