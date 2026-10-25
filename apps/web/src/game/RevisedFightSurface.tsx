@@ -7,6 +7,7 @@ import {
 import type { CardArt } from "../data/manifest";
 import { FightCard } from "./FightCard";
 import { ConfirmButton } from "./ConfirmButton";
+import { FightHand } from "./FightHand";
 import { memberLabels } from "./memberLabels";
 import { holyWaterTargetName } from "./holyWaterLabel";
 
@@ -315,7 +316,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
       )}
 
       {free.length > 0 && !(mine?.kind === "scroll") && (
-        <div className="scv-fight-tray" data-testid="rev-tray">
+        <FightHand testId="rev-tray">
           {free.filter((i) => mine?.kind !== "deploy" || !usedChosen.includes(i)).map((i) => {
             const taken = inPairs(usedPairs).has(i);
             const redeployable = mine?.kind === "redeploy" && allMoves.some((m) => m.creature === i) && !usedMoves.some((x) => x.creature === i);
@@ -328,7 +329,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
               draggable: redeployable || mine?.kind === "deploy" || undefined, dragId: i,
             });
           })}
-        </div>
+        </FightHand>
       )}
       {free.length === 0 && inMatch.size === 0 && <span className="scv-fight-hint">no creature is free</span>}
 

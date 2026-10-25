@@ -2069,6 +2069,24 @@
 .scv-fc-cap { text-align: center; margin-top: 8px; font-family: var(--ui); font-size: 11.5px; color: var(--stone); }
 .scv-fc-cap b { display: block; font-family: var(--black); font-weight: 500; font-size: 13.5px; color: var(--parchment); }
 
+/* The fight hand (FightHand): one flat row, each card overlapped by the next, shrunk to fit (sizes from handFit). The splash fan is the model
+   (.scv-fan-slot), minus the curve. The effective-strength badge rides above the card, where an overlap cannot cover it or the printed
+   numbers at the card's top-left; the name caption shows only for the raised card; a dot marks a card that has a caption to show. */
+.scv-hand { flex-wrap: nowrap; gap: 0; align-items: flex-end; padding: 32px 14px 12px; overflow: visible; }
+.scv-hand-slot { flex: none; position: relative; min-width: 0; }
+.scv-hand .scv-fc, .scv-hand .scv-fc-frame, .scv-hand .scv-fc-art { width: var(--hand-cw, 116px); }
+.scv-hand .scv-fc { position: relative; transform-origin: bottom center; transition: transform .18s cubic-bezier(.2,.7,.2,1); }
+.scv-hand-slot:first-child .scv-fc { transform-origin: bottom left; }
+.scv-hand-slot:last-child .scv-fc { transform-origin: bottom right; }
+.scv-hand .scv-fc-badge { top: -26px; left: 3px; right: auto; }
+.scv-hand .scv-fc-cap { position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px; display: none; white-space: nowrap; }
+.scv-hand .scv-fc.has-caption .scv-fc-frame::before { content: ""; position: absolute; z-index: 2; left: 5px; bottom: 5px; width: 9px; height: 9px; border-radius: 50%; background: var(--brass-bright); box-shadow: 0 0 0 1px rgba(0,0,0,.7); }
+.scv-hand-slot:hover, .scv-hand-slot:focus-within, .scv-hand-slot:has(.is-sel) { z-index: 100 !important; }
+.scv-hand-slot:hover .scv-fc, .scv-hand-slot:focus-within .scv-fc, .scv-hand .scv-fc.is-sel { transform: translateY(-12px) scale(var(--hand-scale, 1.12)); }
+.scv-hand-slot:hover .scv-fc-cap, .scv-hand-slot:focus-within .scv-fc-cap, .scv-hand .scv-fc.is-sel .scv-fc-cap { display: block; }
+.scv-hand .scv-fc.is-sel .scv-fc-art { outline-offset: 0; }
+@media (prefers-reduced-motion: reduce) { .scv-hand .scv-fc { transition: none; } }
+
 /* ===== Mobile: dock action panels to the bottom as full-width sheets ===== */
 @media (max-width: 720px) {
   /* encounter + fight: full-width bottom sheets that scroll instead of clipping */

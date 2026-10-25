@@ -34,7 +34,7 @@ export function FightCard({
     .map((t) => ({ id: t, art: resolveCard("treasure", t, cards), name: ALL_TREASURES[t]?.name ?? "artefact" }));
 
   return (
-    <div className={`scv-fc scv-fc-${kind}${dim ? " is-dim" : ""}${selected ? " is-sel" : ""}`}>
+    <div className={`scv-fc scv-fc-${kind}${dim ? " is-dim" : ""}${selected ? " is-sel" : ""}${caption ? " has-caption" : ""}`}>
       <div
         className="scv-fc-frame"
         data-testid={testId}
