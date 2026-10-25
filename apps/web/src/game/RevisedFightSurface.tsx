@@ -1,13 +1,14 @@
 import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent } from "react";
 // ALL_CREATURES/ALL_TREASURES (SC-EXT-29): a kit id or a Ghoul can stand in any fight.
 import {
-  ALL_CREATURES, ALL_TREASURES, legalActions, fightView, freeOf, matchStrength, legalMoves, legalPairs, deployViolation, engageViolation, redeployViolation,
+  ALL_CREATURES, ALL_TREASURES, legalActions, fightView, freeOf, matchStrength, matchModifiers, legalMoves, legalPairs, deployViolation, engageViolation, redeployViolation,
   type GameState, type GameAction, type UnitView,
 } from "@sorcerers-cave/engine";
 import type { CardArt } from "../data/manifest";
 import { FightCard } from "./FightCard";
 import { ConfirmButton } from "./ConfirmButton";
 import { FightHand } from "./FightHand";
+import { MatchChips } from "./MatchChips";
 import { memberLabels } from "./memberLabels";
 import { holyWaterTargetName } from "./holyWaterLabel";
 
@@ -202,7 +203,11 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
   const leadRank = (ss: readonly number[]): number => Math.max(...ss.map((x) => ALL_CREATURES[state.strangers[x]!]?.leaderPri ?? 0));
   const leaderFirst = (ss: readonly number[]): number[] => [...ss].sort((a, b) =>
     (ALL_CREATURES[state.strangers[b]!]?.leaderPri ?? 0) - (ALL_CREATURES[state.strangers[a]!]?.leaderPri ?? 0) || a - b);
-  const renderMatch = (m: typeof rev.matches[number], mi: number) => (
+  const renderMatch = (m: typeof rev.matches[number], mi: number) => {
+    // the match as it will stand once the placements being made are confirmed: the tally and the chips both count them
+    const aug = { ...m, pf: [...m.pf, ...addedTo(mi, false)], pb: [...m.pb, ...addedTo(mi, true)] };
+    const total = matchStrength(state, aug), bd = matchModifiers(state, aug);
+    return (
 
           <div key={`m${mi}`} className="scv-match">
             <div className="scv-match-foes">
@@ -213,9 +218,10 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
                 </div>
                 <div className="scv-match-front">{leaderFirst(m.sf).reverse().map((s) => strangerCard(s))}</div>
               </div>
+              <MatchChips chips={bd.chips} side="strangers" testId={`rev-mods-foe-${mi}`} />
             </div>
             <div className="scv-match-vs">
-              <span className="them">{view.matches[mi]?.strangerStrength}</span><span className="x">vs</span><span className="me">{matchStrength(state, { ...m, pf: [...m.pf, ...addedTo(mi, false)], pb: [...m.pb, ...addedTo(mi, true)] }).party}</span>
+              <span className="them">{total.strangers}</span><span className="x">vs</span><span className="me">{total.party}</span>
             </div>
             <div className="scv-match-party">
               <div className="scv-match-line">
@@ -233,15 +239,20 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
                   {m.pb.length + addedTo(mi, true).length === 0 && <span className="scv-match-hint">magic user</span>}
                 </div>
               </div>
+              <MatchChips chips={bd.chips} side="party" testId={`rev-mods-party-${mi}`} />
             </div>
           </div>
-          );
+    );
+  };
   const renderIdle = (s: number) => {
 
           const front = deployedFoes.includes(s);
           const paired = usedPairs.find((p) => p.stranger === s);
           const target = mine?.kind === "engage" && front && !autoPairs;
-          const struck = strangerUnits.get(s)?.strength ?? 0;
+          // a pairing under way is a match of its own: the tally and the chips count the fighter and the foe it will face
+          const pm = { pf: paired ? [paired.party] : [], pb: [], sf: [s], sb: [] };
+          const total = matchStrength(state, pm);
+          const chips = matchModifiers(state, pm).chips.filter((c) => paired || c.side !== "party");
           return (
             <div key={`i${s}`} className={`scv-match${paired ? "" : " scv-match-idle"}`} data-testid={`rev-row-${s}`}>
               <div className="scv-match-foes">
@@ -258,10 +269,11 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
                     })}
                   </div>
                 </div>
+                <MatchChips chips={chips} side="strangers" testId={`rev-mods-foe-${s}`} />
               </div>
               <div className="scv-match-vs">
-                <span className="them">{struck}</span><span className="x">vs</span>
-                <span className="me">{paired ? partyUnits.get(paired.party)?.strength ?? 0 : 0}</span>
+                <span className="them">{total.strangers}</span><span className="x">vs</span>
+                <span className="me">{total.party}</span>
               </div>
               <div className="scv-match-party">
                 <div className="scv-match-line">
@@ -277,6 +289,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
                     <span className="scv-match-hint">magic user</span>
                   </div>
                 </div>
+                <MatchChips chips={chips} side="party" testId={`rev-mods-party-${s}`} />
               </div>
             </div>
           );

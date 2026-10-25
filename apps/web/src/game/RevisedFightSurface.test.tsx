@@ -384,6 +384,32 @@ describe("RevisedFightSurface", () => {
     expect(dispatch).not.toHaveBeenCalled();
   });
 
+  it("explains each total: the sword, the caster behind the line and its staff are chips under the party, and the tally adds up", () => {
+    const s = attacking([OGRE], { party: [
+      { creatureId: 5, status: 0, dragonKills: 0, treasure: [3] },     // a Man with the Magic Sword
+      { creatureId: 4, status: 0, dragonKills: 0, treasure: [9] },     // a Priest with the Magic Staff
+      { creatureId: 6, status: 0, dragonKills: 0, treasure: [] },
+    ] });
+    s.fight!.pending = { by: "party", kind: "redeploy" }; s.fight!.rev!.step = "surplus";
+    s.fight!.rev!.matches = [{ pf: [0], pb: [1], sf: [0], sb: [] }];
+    s.fight!.rev!.deployed = { party: [], strangers: [] };
+    render(<RevisedFightSurface state={s} dispatch={vi.fn()} cards={cards} />);
+    const mods = screen.getByTestId("rev-mods-party-0");
+    expect(mods).toHaveTextContent("Magic Sword · Man +1");
+    expect(mods).toHaveTextContent("Behind · Priest +2");
+    expect(mods).toHaveTextContent("Magic Staff · Priest +1");
+    expect(screen.getByTestId("rev-fight").querySelector(".scv-match-vs .me")).toHaveTextContent("7");   // 3 + 1 for the Man, 2 + 1 behind
+  });
+
+  it("a pairing under way shows its chips and tally before it is confirmed", () => {
+    const s = attacking([OGRE], { party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [3] }, { creatureId: 6, status: 0, dragonKills: 0, treasure: [] }] });
+    render(<RevisedFightSurface state={s} dispatch={vi.fn()} cards={cards} />);
+    expect(screen.queryByTestId("rev-mods-party-0")).toBeNull();            // nobody paired yet: nothing to explain on the party's side
+    fireEvent.click(screen.getByTestId("rev-free-0"));
+    fireEvent.click(screen.getByTestId("rev-foe-0"));
+    expect(screen.getByTestId("rev-mods-party-0")).toHaveTextContent("Magic Sword · Man +1");
+  });
+
   it("shows the round, the surprise banner and the die bonus", () => {
     const s = attacking([OGRE], { surpriseReady: true });
     render(<RevisedFightSurface state={s} dispatch={vi.fn()} cards={cards} />);

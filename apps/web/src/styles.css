@@ -1929,7 +1929,7 @@
    row's top regardless of which is taller (the party column grows when a modifier chip sits beneath
    it) — the "vs" tally is the only thing that should stay vertically centered, via the row's default
    align-items: center. */
-.scv-match-foes { display: flex; align-items: flex-start; align-self: flex-start; }
+.scv-match-foes { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; align-self: flex-start; }
 .scv-match-idle { opacity: .82; border-style: solid; }
 .scv-match-vs { display: flex; flex-direction: column; align-items: center; min-width: 44px; font-family: var(--display); font-weight: 700; font-size: 16px; line-height: 1.1; }
 .scv-match-vs .them { color: #e7a59c; } .scv-match-vs .me { color: #7fae6f; }
@@ -1957,7 +1957,8 @@
 .scv-mod { font-family: var(--ui); font-size: 11px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--parchment); background: rgba(201,161,78,.07); }
 .scv-mod-party { border-color: rgba(201,161,78,.4); color: var(--brass-bright); }
 .scv-mod-enemy { border-color: rgba(168,68,58,.5); color: #e7a59c; background: rgba(46,18,16,.4); }
-.scv-mod.is-roll { font-style: italic; } /* added to the die roll, not the strength total */
+.scv-mod.is-roll { font-style: italic; }
+button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: transparent; } button.scv-mod-more:hover { border-color: var(--brass); color: var(--cream); } /* added to the die roll, not the strength total */
 /* per-matchup artefact zoom (click a wielded artefact to enlarge it within its own battle) */
 .scv-match-zoom { position: absolute; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 10px; background: rgba(7,7,9,.86); border-radius: 12px; cursor: pointer; }
 .scv-match-zoom img { width: auto; max-height: 78%; aspect-ratio: 63/88; object-fit: contain; border-radius: 10px; box-shadow: 0 22px 60px -16px rgba(0,0,0,.9); }
