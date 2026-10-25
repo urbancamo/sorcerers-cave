@@ -80,6 +80,22 @@ Principle (B): the game asks for player input only when the player has a real ch
 - **R3.5** Only the retreats that `legalActions` lists are shown. If none, the Retreat button is not shown, as today.
 - **R3.6** Nothing is shown while the strangers are deciding (`deciding`), as today.
 
+### R4 — The "vs" figures explain themselves (added 2026-10-25, from Mark's play-testing of steps 1–4)
+
+Source: Mark's report after trying the build: "the vs figures aren't showing either magical 'behind the line' additions or artifacts/weapons". This is **not from Peter's two documents**, so it is recorded as its own requirement.
+
+**Finding.** Investigated 2026-10-25: in a formed match the totals are right. A Man with a Magic Sword (3 + 1 = 4) in front and a Priest with a Magic Staff (3) behind the line, against an Ogre, read **5 vs 7**; the sword, the staff and the caster behind the line are all counted (`matchStrength`, `revisedRound.ts:188`). The gap is that the revised surface shows **only the two totals**. The old battle-plan screen shows a chip row under each matchup ("Magic Sword · Man +1", "Magic Staff · Priest +1", the Ring, curses, surprise, the Magic Shield). Nothing in the revised view says why a total is what it is, so a bonus looks as if it is missing. Two further gaps are **unconfirmed** and to be checked first: a pairing under way shows only the paired creature's own strength, and a stranger's "behind" slot reads "magic user" on a row where no caster stands.
+
+- **R4.1 Chips on every row.** Each match row, and each pairing-under-way row, shows a chip row under its party side and under its foe side, in the old screen's style (`.scv-mod`, `.scv-match-mods`): the source, then the signed value. Chips that change the strength total show "included in the strength" as their tooltip. Chips that change the die (the Ring, curses, surprise) are marked `is-roll`, with "applied to the die roll" as their tooltip, and are not part of the total.
+- **R4.2 Party chips.** Front line: Magic Sword, Magic Axe, Strength Potion, Dragon-slayer (kills), Elixir. Magic: **a caster fighting in front shows its magical power as a chip** ("Magic · Wizard +4"), and **each caster behind the line shows "Behind · Priest +3"** with a separate "Magic Staff · Priest +1" chip when it carries one. A Magic Shield the strangers bear shows the magic it turns aside as a negative chip.
+- **R4.3 Stranger chips.** The same chips on the strangers' side: the Sword, Axe and Staff they bear (from their loadout), their casters' magic (front or behind), the Ring, and the Shield's ward ("weaken" or "nullify", with the real change in value).
+- **R4.4 Match-wide chips.** The Eye of God ("magic and artefacts nullified"), a Magic Shield standoff, curses, and the round-1 surprise bonus (to whichever side has it).
+- **R4.5 Chips reconcile with the totals.** For every match, the base card strengths plus all the strength chips equal the displayed total, on both sides. This is enforced by a test over a seeded sweep, so a chip can never drift from the number it explains.
+- **R4.6 Pending placements count.** A creature chosen but not yet confirmed (a pairing under way, a redeploy placement) appears in the totals (it already does for matches) **and in the chips**, with the same caption as its card ("joining").
+- **R4.7 One source of truth.** The chips are built by a new engine function beside `matchStrength` (for example `matchModifiers(state, match)`, taking the same match and pending placements), reusing the same helpers (`frontStrength`, `casterMP`, `strangerFS`, `strangerMP`, `shieldedMP`, the bonus tables), so the chips and the totals cannot disagree. The old battle-plan chip code is left alone. **This is an engine change, so `engine-spec.md` is updated** (a new `SC-<§>-<n>` row, the Part II prose, the code reference and the test reference).
+- **R4.8 Compact.** Chips wrap within the row's width. Past four chips on a side the rest fold into a "+N more" chip that expands on tap or click, so a heavily armed party does not push the battlefield rows out of view on a phone.
+- **R4.9 Unchanged.** The numbers themselves; the legacy battle-plan screen; the Fight Plan; the dice.
+
 ## Out of scope
 
 - Strangers' tactics, pairing strength, Fight Plans, and any rules or dice behaviour.
@@ -89,7 +105,7 @@ Principle (B): the game asks for player input only when the player has a real ch
 
 ## Documents to update in the same change (project rules)
 
-- `docs/specs/engine-spec.md`: no change, because no engine code changes (R1.6 revised).
+- `docs/specs/engine-spec.md`: **R4.7 only** (R1.6 needed no engine change): add the `matchModifiers` row, the Part II prose, the code reference and the test reference; update the Appendix C gap list.
 - `apps/web/public/manual.html`: the Fights section (pairing and front-line wording near line 1028; the Retreat text near line 499) must describe the automatic deployment, the "Roll the Round" pause and the new hand. Bump the footer `Updated` date.
 - The Appendix C gap list if test coverage changes.
 
@@ -98,6 +114,7 @@ Principle (B): the game asks for player input only when the player has a real ch
 - Engine (`packages/engine`): the review pause is raised after strangers' pairings with no surplus (R1.6); not raised twice in one round; not raised when the party acted after the strangers; a seeded sweep over party and stranger counts (1–4 each), for both attacker roles, asserting that the party never faces a forced-empty prompt and never reaches the dice without a pause.
 - Web (`RevisedFightSurface.test.tsx` and a hand test): the forced `deploy` is auto-dispatched once; the pop-up timer and its skip; a single legal pairing is auto-made; the button reads "Roll the Round" when step [e] is empty; the hand is one row, with no scroll container, for 2, 8 and 20 cards; the badge moves to the visible strip; the Retreat bar hides the battlefield and hand and Cancel restores them with state intact.
 - Visual check with the dev harness (Playwright) at desktop and phone widths: the screenshot scenario (strangers attack, party 2 v 2) end to end; a 4+ match battle with a 20-card hand (no scroll of the hand, header not clipped); the retreat bar with the map visible.
+- R4 (engine): `matchModifiers` reconciles with `matchStrength` for every match, on both sides, over a seeded sweep that includes Sword, Axe, Staff, Shield, Ring, Eye, curse, surprise, Dragon-slayer and Elixir; a front caster and a caster behind the line each give their chip; a pending placement is reflected in both chips and totals. R4 (web): chips render under both sides of match rows and pairing rows; strength chips and die chips are told apart; more than four fold into "+N more" and expand.
 
 ## Suggested order (each its own commit)
 
@@ -105,4 +122,5 @@ Principle (B): the game asks for player input only when the player has a real ch
 2. R2.1–R2.5, R2.7–R2.9 (the fan hand).
 3. R3 (retreat bar).
 4. R1.1–R1.5 (UI auto-dispatch, passive sequence, relabel).
-5. ~~R1.6 (engine change)~~: dropped, see R1.6. Steps 1–4 complete the plan.
+5. ~~R1.6 (engine change)~~: dropped, see R1.6.
+6. R4.7 (engine: `matchModifiers`, with its spec row and tests), then R4.1–R4.6 and R4.8 (UI chips). Two commits: the engine function first, then the UI. Before building, confirm the two unconfirmed gaps in R4 with Mark.
