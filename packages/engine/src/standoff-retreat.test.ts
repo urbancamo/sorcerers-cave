@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
 import { newGame } from "./setup";
 import { legalActions } from "./selectors";
+import { driveStrangers } from "./strangerDriver";
 import { matchModifiers } from "./revisedRound";
 import type { GameState } from "./state";
 import type { GameAction } from "./actions";
@@ -33,16 +34,24 @@ describe("a failed retreat in a standoff", () => {
     return s;
   };
 
-  it("leaves the other ways out open, instead of leaving the party with no action", () => {
+  it("fights another round, so another of the party falls, and then lets it try again", () => {
     const s = standoff();
     expect(s.fight?.rev?.standoff).toBe(true);
+    const living = (g: GameState) => g.party.filter((m) => m.status === 0).length;
     const before = legalActions(s).filter((a) => a.type === "retreat");
     expect(before.length).toBeGreaterThan(1);
     const dead = before.find((a) => reduce(s, a).events.some((e) => e.type === "deadEnd"));
     expect(dead, "this seed has a dead-end doorway to try").toBeDefined();
-    const after = reduce(s, dead!).state;
-    expect(legalActions(after).filter((a) => a.type === "retreat").length).toBeGreaterThan(0);
-    expect(after.fight?.retreatBlocked).toBeFalsy();
+    const r = reduce(s, dead!);
+    expect(r.state.fight?.pending).toMatchObject({ by: "strangers", kind: "deploy" });   // the round is under way: the strangers draw up their line
+    const done = driveStrangers(r.state);                                                   // (the driver answers for them, as the server does)
+    expect(r.events.map((e) => e.type)).toContain("deadEnd");
+    expect(done.applied.flatMap((a) => a.events).map((e) => e.type)).toContain("spectreSlew");
+    r.state = done.state;
+    expect(living(r.state)).toBe(living(s) - 1);
+    expect(r.state.phase).toBe("fight");                                                    // back on the combat screen
+    expect(legalActions(r.state).filter((a) => a.type === "retreat").length).toBeGreaterThan(0);
+    expect(r.state.fight?.retreatBlocked).toBeFalsy();
   });
 
   it("still locks retreat after a failed attempt in an ordinary fight (a round must be fought)", () => {

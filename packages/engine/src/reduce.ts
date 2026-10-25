@@ -34,7 +34,7 @@ import { TREASURES as BASE_TREASURES } from "./data/treasures";
 import { applyAllocations, equipStrangers, loadoutViolation } from "./strangerEquip";
 import { removeStranger, addStranger, dropAllGear } from "./strangerGear";
 import {
-  advance as advanceRevised, applyScroll, applyDeploy, applyEngage, applyNominate, applyRedeploy, deployViolation, dropPartyMember, engageMovesViolation, engageViolation, initRevised,
+  advance as advanceRevised, applyScroll, applyDeploy, applyEngage, applyNominate, applyRedeploy, deployViolation, dropPartyMember, resumeAfterStandoff, engageMovesViolation, engageViolation, initRevised,
   nominateViolation, redeployViolation, removeStrangerFromFight, resumeAfterCasualties,
 } from "./revisedRound";
 
@@ -1557,9 +1557,12 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         // tryMove clones the state for a dead end but returns the original for a no-tile way, so clone
         // before flagging the latter to avoid mutating the input state.
         const next = res.deadEnd ? res.state : structuredClone(state);
-        // (Not in a standoff: no round can be fought there to open retreat again, so locking it would leave the party with no action at all.)
-        if (next.fight && !next.fight.rev?.standoff) next.fight = { ...next.fight, retreatBlocked: true };
-        return { state: next, events: [{ type: "deadEnd", dir: action.dir, retreat: true }] };
+        if (next.fight) next.fight = { ...next.fight, retreatBlocked: true };
+        const events: GameEvent[] = [{ type: "deadEnd", dir: action.dir, retreat: true }];
+        // In a standoff there is no decision pending that would bring the round on, so the failed retreat itself sets the next round going
+        // (a Spectre that cannot be faced slays another of the party); once it is fought, retreat opens again (SC-9.7-22).
+        if (next.fight?.rev?.standoff) events.push(...resumeAfterStandoff(next), ...finalizeRound(next));
+        return { state: next, events };
       }
       // Retreat succeeds: the strangers and any dropped treasure are LEFT BEHIND in the chamber we fled.
       // What the strangers bore goes back on the floor with the rest, and is handed out afresh next fight.

@@ -480,6 +480,15 @@ export function applyNominate(state: GameState, nominated: number): GameEvent[] 
   return [...events, ...advance(state)];
 }
 
+/** A retreat failed (a dead end) in a standoff: the party must fight another round before it may try again, so open the next one. */
+export function resumeAfterStandoff(state: GameState): GameEvent[] {
+  const rev = revOf(state);
+  delete rev.standoff;
+  rev.step = "scroll"; rev.surplusTurn = 0; rev.progress = false; rev.cursor = 0;
+  delete rev.bonus; delete rev.partyActed; delete rev.strangersMoved; delete rev.reviewed; delete rev.review;
+  return advance(state);
+}
+
 /** A party casualty chosen (legacy `chooseCasualty` handler calls this once the queue is empty): carry on with the round. */
 export function resumeAfterCasualties(state: GameState): GameEvent[] {
   return advance(state);
