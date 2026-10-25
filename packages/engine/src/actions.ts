@@ -77,7 +77,8 @@ export type GameAction =
   // unengaged creatures in the front line as the attacker has), `engage` (attacker: pair its unengaged creatures one-to-one against
   // the deployed front line), `redeploy` (either side's surplus: join a match's front line or, for a caster, back it).
   | { type: "deploy"; creatures: number[] }
-  | { type: "engage"; pairs: { party: number; stranger: number }[] }
+  // `moves` (the party attacking only) places the attacker's spares in the same action: a `redeploy` made against the matches the pairings create.
+  | { type: "engage"; pairs: { party: number; stranger: number }[]; moves?: { creature: number; match: number; back: boolean }[] }
   | { type: "scroll"; use: "destroy" | "surprise" | "decline" }   // the attacker's Scroll option in a revised fight (`surprise` only in round 1)
   | { type: "redeploy"; moves: { creature: number; match: number; back: boolean }[] }
   // The strangers' counterparts, applied by the driver and never accepted from a client (like `strangersAssignArtefacts`).

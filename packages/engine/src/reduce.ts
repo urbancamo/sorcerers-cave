@@ -34,7 +34,7 @@ import { TREASURES as BASE_TREASURES } from "./data/treasures";
 import { applyAllocations, equipStrangers, loadoutViolation } from "./strangerEquip";
 import { removeStranger, addStranger, dropAllGear } from "./strangerGear";
 import {
-  advance as advanceRevised, applyScroll, applyDeploy, applyEngage, applyNominate, applyRedeploy, deployViolation, dropPartyMember, engageViolation, initRevised,
+  advance as advanceRevised, applyScroll, applyDeploy, applyEngage, applyNominate, applyRedeploy, deployViolation, dropPartyMember, engageMovesViolation, engageViolation, initRevised,
   nominateViolation, redeployViolation, removeStrangerFromFight, resumeAfterCasualties,
 } from "./revisedRound";
 
@@ -878,12 +878,12 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
   if (action.type === "deploy" || action.type === "engage" || action.type === "redeploy") {
     if (state.phase !== "fight" || !state.fight?.rev || pending?.by !== "party" || pending.kind !== (action.type === "redeploy" ? "redeploy" : action.type)) return revBlocked;
     const bad = action.type === "deploy" ? deployViolation(state, "party", action.creatures)
-      : action.type === "engage" ? engageViolation(state, "party", action.pairs)
+      : action.type === "engage" ? (action.moves ? engageMovesViolation(state, action.pairs, action.moves) : engageViolation(state, "party", action.pairs))
       : redeployViolation(state, "party", action.moves.map((m) => ({ ...m })));
     if (bad !== null) return { state, events: [{ type: "planRejected", reason: bad }] };
     const next = structuredClone(state);
     const events = action.type === "deploy" ? applyDeploy(next, "party", action.creatures)
-      : action.type === "engage" ? applyEngage(next, "party", action.pairs)
+      : action.type === "engage" ? applyEngage(next, "party", action.pairs, action.moves)
       : applyRedeploy(next, "party", action.moves);
     events.push(...finalizeRound(next));
     return { state: next, events };

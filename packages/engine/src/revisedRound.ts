@@ -151,6 +151,16 @@ export function engageViolation(state: GameState, attacker: Side, pairs: unknown
   return rest ? "every unengaged attacker that can be paired must be" : null;
 }
 
+/** `engage` with `moves` (the party attacking): the pairings must be legal, and the moves legal against the matches those pairings make. */
+export function engageMovesViolation(state: GameState, pairs: unknown, moves: unknown): string | null {
+  const bad = engageViolation(state, "party", pairs);
+  if (bad !== null) return bad;
+  if (revOf(state).attacker !== "party") return "only the attacking party may place its spares with its pairings";
+  const tmp = structuredClone(state);
+  makePairings(tmp, "party", pairs as Pair[]);
+  return redeployViolation(tmp, "party", moves);
+}
+
 export function redeployViolation(state: GameState, side: Side, moves: unknown): string | null {
   if (!Array.isArray(moves)) return "moves is not a list";
   const rev = revOf(state), cand = candidatesOf(state, side);
@@ -409,7 +419,8 @@ export function applyDeploy(state: GameState, side: Side, creatures: number[]): 
   return [{ type: "deployed", side, creatures: creatures.slice() }, ...advance(state)];
 }
 
-export function applyEngage(state: GameState, attacker: Side, pairs: Pair[]): GameEvent[] {
+/** The pairings alone: matches made, the engaged leave the deployed list. No `advance`, so a combined `engage` can place its spares first. */
+function makePairings(state: GameState, attacker: Side, pairs: Pair[]): void {
   const rev = revOf(state), def = other(attacker);
   if (attacker === "party") rev.partyActed = true; else if (pairs.length) rev.strangersMoved = true;
   for (const p of pairs) {
@@ -420,10 +431,19 @@ export function applyEngage(state: GameState, attacker: Side, pairs: Pair[]): Ga
   rev.deployed[def] = rev.deployed[def].filter((i) => !pairs.some((p) => (def === "party" ? p.party : p.stranger) === i));
   rev.step = "surplus";
   delete state.fight!.pending;
-  return [{ type: "engaged", pairs: pairs.map((p) => ({ ...p })) }, ...advance(state)];
 }
 
-export function applyRedeploy(state: GameState, side: Side, moves: Move[]): GameEvent[] {
+/** Step d, and with `moves` (the party attacking, R1.8) step e's first turn in the same action: the attacker's surplus is placed against
+ *  the matches the pairings just made, numbered after any that already stood. Without `moves` the attacker's surplus is its own prompt. */
+export function applyEngage(state: GameState, attacker: Side, pairs: Pair[], moves?: Move[]): GameEvent[] {
+  makePairings(state, attacker, pairs);
+  const events: GameEvent[] = [{ type: "engaged", pairs: pairs.map((p) => ({ ...p })) }];
+  if (moves) events.push(placeSurplus(state, attacker, moves));
+  return [...events, ...advance(state)];
+}
+
+/** One side's step-e turn: its surplus joins the matches' front lines or backs them. */
+function placeSurplus(state: GameState, side: Side, moves: Move[]): GameEvent {
   const rev = revOf(state);
   if (side === "party") { rev.partyActed = true; delete rev.review; if (rev.strangersMoved) rev.reviewed = true; }   // a party that decided after the strangers acted has seen how they stand
   else if (moves.length) rev.strangersMoved = true;
@@ -435,7 +455,11 @@ export function applyRedeploy(state: GameState, side: Side, moves: Move[]): Game
   }
   rev.surplusTurn++;
   delete state.fight!.pending;
-  return [{ type: "redeployed", side, moves: moves.map((m) => ({ ...m })) }, ...advance(state)];
+  return { type: "redeployed", side, moves: moves.map((m) => ({ ...m })) };
+}
+
+export function applyRedeploy(state: GameState, side: Side, moves: Move[]): GameEvent[] {
+  return [placeSurplus(state, side, moves), ...advance(state)];
 }
 
 /** The strangers' nomination for a lost two-creature front line, then the die: 4-6 (with the Ring's +1, a 7 counting as 6) and the
