@@ -8,6 +8,7 @@ import {
 } from "@sorcerers-cave/engine";
 import type { CardArt } from "../data/manifest";
 import { FightCard, type CardKind } from "./FightCard";
+import { FightHand } from "./FightHand";
 import { memberLabels } from "./memberLabels";
 import { emptyDraft, place, unplace, toMatches, freeMembers, type PlanDraft } from "./fightPlan";
 import { holyWaterTargetName } from "./holyWaterLabel";
@@ -295,14 +296,15 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
         {strangerRows.map((row) => row.render())}
       </div>
 
-      <div className="scv-fight-tray" data-testid="fight-tray">
-        <span className="scv-fight-cap">Your party — tap a fighter then a foe (or drag):</span>
-        {tray.length ? tray.map((i) => (
+      <span className="scv-fight-cap">Your party — tap a fighter then a foe (or drag):</span>
+      <FightHand testId="fight-tray">
+        {tray.map((i) => (
           <FightCard key={i} testId={`tray-${i}`} creatureId={state.party[i]!.creatureId} label={labels[i]} kind={kindOf(state, i)} strength={frontStrength(state.party[i]!, state)}
                      treasure={state.party[i]!.treasure} cards={cards} state={state} draggable dragId={i} selected={sel === i}
                      onPick={() => setSel(sel === i ? null : i)} variantIdx={partyCopyIdx.get(i)} />
-        )) : <span className="scv-fight-hint">all fighters assigned</span>}
-      </div>
+        ))}
+      </FightHand>
+      {tray.length === 0 && <span className="scv-fight-hint">all fighters assigned</span>}
 
       {deciding && <p className="scv-fight-reason scv-fight-deciding" role="status">The strangers are deciding…</p>}
       {!deciding && reason && <p className="scv-fight-reason">{reason}</p>}

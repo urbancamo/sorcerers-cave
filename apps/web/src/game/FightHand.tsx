@@ -1,9 +1,9 @@
 import { useLayoutEffect, useRef, useState, type CSSProperties, type ReactNode } from "react";
 import { handFit, HAND_CARD } from "./handFit";
 
-/** The party's hand in a fight (Peter's 2026-10-21 impressions): one flat row that never wraps or scrolls, each card overlapped by the
- *  side by side up to about 8 cards (shrinking a little to fit), then each overlapped by the one to its right so its top-left numbers show. The card under the pointer, focus or selection rises to
- *  full size. The splash screen's fan is the model, minus the curve. */
+/** The party's hand in a fight (Peter's 2026-10-21 impressions): one flat row that never wraps or scrolls. Up to about 8 cards sit side by side
+ *  (shrinking a little to fit); a larger hand overlaps, each card over the one to its right so its top-left numbers show. The card under the
+ *  pointer, focus or selection rises to full size. The splash screen's fan is the model, minus the curve. Used by every fight screen. */
 export function FightHand({ children, testId }: { children: ReactNode[]; testId?: string }) {
   const ref = useRef<HTMLDivElement>(null);
   const [avail, setAvail] = useState(0);

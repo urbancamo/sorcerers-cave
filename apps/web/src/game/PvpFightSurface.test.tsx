@@ -35,7 +35,8 @@ describe("PvpFightSurface (spec I-10)", () => {
     );
     expect(screen.getByText(/you are the defender/i)).toBeInTheDocument();
     // The Woman (a fighter) is locked into the line; only the ✦ Priest can be toggled out.
-    expect(screen.getByTestId("pvp-line-0:0")).toBeDisabled();
+    expect(screen.getByText(/must stand in the line/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByTestId("pvp-line-0:0"));   // tapping her changes nothing
 
     fireEvent.click(screen.getByTestId("pvp-submit"));
     expect(dispatch).toHaveBeenCalledWith({ type: "pvpLine", line: ["0:0", "0:1"] });

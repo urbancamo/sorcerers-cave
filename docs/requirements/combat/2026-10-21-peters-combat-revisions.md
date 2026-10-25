@@ -84,7 +84,7 @@ Principle (B): the game asks for player input only when the player has a real ch
 - **R2.7 Self-contained.** The hand has its own height and sits at the bottom of the fight panel and is independent of the battlefield above it, so a future face-to-face 3D battlefield (B) can sit above it with no change to the hand. The 3D battlefield itself is out of scope.
 - **R2.8 Reuse.** Share the overlap technique with the splash fan where practical (a common class or CSS variables), rather than copying it. Do not alter the splash fan's look.
 - **R2.9 Scope.** The legacy single-sided fight surface and the PvP surface share `.scv-fight` and `.scv-fight-tray`. Change them only if it is safe and trivial. Otherwise scope the change with `.scv-rev`.
-- **R2.10 A total replacement for the old tray (Peter, 2026-10-25).** In the revised fight the old wrapping tray is gone (built). Whether the legacy single-sided and PvP fight screens should also use the fan is **not stated**; they keep their trays unless Mark says otherwise.
+- **R2.10 A total replacement for the old tray (Peter, 2026-10-25; Mark, 2026-10-25).** The old wrapping tray is gone in the revised fight (built). Mark has ruled that the fan hand is used for **everything**: the legacy single-sided fight and all three PvP hands (the line of battle, the command tray and the casters' tray) now use it too (built).
 
 ### R3 — See the map when choosing a retreat (A, unchanged in intent)
 

@@ -5,6 +5,8 @@ import {
   type GameState, type PartyMember, type PvpSession, type PvpView,
 } from "@sorcerers-cave/engine";
 import { memberLabels } from "./memberLabels";
+import { FightCard } from "./FightCard";
+import { FightHand } from "./FightHand";
 import { PARTY_COLOR_HEX, type PartyColor } from "./partyColors";
 import { loadManifest, resolveCardVariant, type CardArt } from "../data/manifest";
 
@@ -167,6 +169,17 @@ export function PvpFightSurface({
     );
   };
 
+  // Your own hand (the fan, as in the other fights): a card per living fighter, drawn from the same member as `myChip`.
+  const myCard = (id: string, opts: { onPick?: () => void; selected?: boolean; dim?: boolean; caption?: string; tid?: string } = {}) => {
+    const m = memberOf(id)!;
+    const caster = isCaster(m);
+    return (
+      <FightCard key={id} testId={`pvp-${opts.tid ?? "mem"}-${id}`} creatureId={m.creatureId} label={labels[idxOf(id)]} kind={caster ? "caster" : "ally"}
+                 strength={caster ? casterMP(m, yourState) || frontStrength(m, yourState) : frontStrength(m, yourState)} treasure={m.treasure}
+                 cards={cardArt} state={yourState} variantIdx={cardOf(id)?.copy} onPick={opts.onPick} selected={opts.selected} dim={opts.dim} caption={opts.caption} />
+    );
+  };
+
   const rivalChip = (id: string, opts: { onPick?: () => void; picked?: boolean; disabled?: boolean; tid?: string } = {}) => (
     <button key={id} type="button" data-testid={`pvp-${opts.tid ?? "foe"}-${id}`}
       className={"scv-pvp-chip foe" + (opts.picked ? " picked" : "")}
@@ -187,17 +200,15 @@ export function PvpFightSurface({
   const renderLineStage = () => (
     <div className="scv-pvp-stage" data-testid="pvp-line-stage">
       <p className="scv-fight-sub">Lay out your line of battle — every fighter must stand in it. Tap a ✦ caster to hold it back.</p>
-      <div className="scv-fight-tray">
+      <FightHand>
         {myLiving.map(({ m, id }) =>
-          myChip(id, {
+          myCard(id, {
             tid: "line",
             onPick: isCaster(m) ? () => toggleHeld(id) : undefined,
-            disabled: !isCaster(m),
-            title: isCaster(m) ? undefined : "Every fighting creature must stand in the line of battle",
-            picked: !heldBack.has(id),
-            note: heldBack.has(id) ? "held back" : undefined,
+            dim: heldBack.has(id),
+            caption: heldBack.has(id) ? "held back" : isCaster(m) ? undefined : "must stand in the line",
           }))}
-      </div>
+      </FightHand>
       {heldBack.size > 0 && (
         <p className="scv-fight-reason">
           A Priest or Wizard may wait in the background only while your command outnumbers the
@@ -308,12 +319,11 @@ export function PvpFightSurface({
           </div>
         ))}
       </div>
-      <div className="scv-fight-tray" data-testid="pvp-tray">
-        <span className="scv-fight-cap">Your command — tap a fighter, then a foe:</span>
-        {tray.length
-          ? tray.map((id) => myChip(id, { tid: "tray", onPick: () => setSel(sel === id ? null : id), picked: sel === id }))
-          : <span className="scv-fight-hint">everyone is committed</span>}
-      </div>
+      <span className="scv-fight-cap">Your command — tap a fighter, then a foe:</span>
+      <FightHand testId="pvp-tray">
+        {tray.map((id) => myCard(id, { tid: "tray", onPick: () => setSel(sel === id ? null : id), selected: sel === id }))}
+      </FightHand>
+      {tray.length === 0 && <span className="scv-fight-hint">everyone is committed</span>}
       {!advantage && <p className="scv-fight-sub">Casters may back an engagement only when you outnumber the defenders — everyone fights.</p>}
       {engageReason && <p className="scv-fight-reason">{engageReason}</p>}
       <button className="scv-fight-btn primary" data-testid="pvp-submit" disabled={engageReason !== null} onClick={submitEngage}>
@@ -339,18 +349,20 @@ export function PvpFightSurface({
       )}
       {renderEngagements(assignCaster)}
       {myBackground.length > 0 && (
-        <div className="scv-fight-tray">
-          {myBackground.map((id) =>
-            myChip(id, {
-              tid: "cast",
-              onPick: () => setSel(sel === id ? null : id),
-              picked: sel === id,
-              note: casterAt[id] !== undefined ? `→ clash ${casterAt[id]! + 1}` : undefined,
-            }))}
+        <>
+          <FightHand>
+            {myBackground.map((id) =>
+              myCard(id, {
+                tid: "cast",
+                onPick: () => setSel(sel === id ? null : id),
+                selected: sel === id,
+                caption: casterAt[id] !== undefined ? `→ clash ${casterAt[id]! + 1}` : undefined,
+              }))}
+          </FightHand>
           {Object.keys(casterAt).length > 0 && (
             <button type="button" className="scv-fight-btn ghost" onClick={() => setCasterAt({})}>Reset</button>
           )}
-        </div>
+        </>
       )}
       <button className="scv-fight-btn primary" data-testid="pvp-submit"
         onClick={() => dispatch({ type: "pvpCasters", backers: Object.entries(casterAt).map(([caster, at]) => ({ caster, at })) })}>
