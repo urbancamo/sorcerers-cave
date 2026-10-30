@@ -1151,6 +1151,10 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         ...(next.statues ?? []).map((id) => 500 + id), // Gallery statues stay put (SC-EXT-10)
         ...(next.lulled ?? []).map((id) => 100 + id), // flute-lulled dragons park awake (re-lulled on re-entry if held)
       ];
+      // Remember backing out unseen (a party that already tested is "approached", via indiffCounts).
+      if (next.strangers.length > 0 && !next.indiffCounts?.[next.partyArea] && !next.withdrewAreas?.includes(next.partyArea)) {
+        next.withdrewAreas = [...(next.withdrewAreas ?? []), next.partyArea];
+      }
       next.strangers = []; next.treasures = []; next.hazards = []; next.sleeping = [];
       if (next.statues) next.statues = []; // guarded — see persistAndExplore's comment (SC-EXT-1)
       next.lulled = [];

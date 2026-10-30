@@ -40,3 +40,10 @@ describe('CardPanel', () => {
     expect(screen.queryByText(/Strength/)).toBeNull();
   });
 });
+
+describe('CardPanel — area card', () => {
+  it('shows the area name and the words it is given', () => {
+    render(<CardPanel selected={{ kind: 'area', index: 3, name: 'Chamber' }} areaText="A chamber, with exits north." onItem={() => {}} onMember={() => {}} />);
+    expect(screen.getByTestId('area-text')).toHaveTextContent('A chamber, with exits north.');
+  });
+});

@@ -24,3 +24,12 @@ describe('SettingsPanel', () => {
     expect(onSave).toHaveBeenCalledOnce();
   });
 });
+
+describe('SettingsPanel — verbose descriptions', () => {
+  it('toggles the option through onVerbose', () => {
+    const onVerbose = vi.fn();
+    render(<SettingsPanel state={state} kitActive={false} verbose={false} onVerbose={onVerbose} />);
+    fireEvent.click(screen.getByLabelText('Verbose descriptions'));
+    expect(onVerbose).toHaveBeenCalledWith(true);
+  });
+});

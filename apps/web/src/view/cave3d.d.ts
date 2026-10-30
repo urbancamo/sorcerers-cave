@@ -1,4 +1,4 @@
-import type { CaveEngine, Card } from "./ports";
+import type { CaveEngine, Card, Area } from "./ports";
 import type { TileArt } from "../data/manifest";
 import type { Award } from "../game/awards";
 
@@ -36,6 +36,7 @@ export interface BootOptions {
   // `explicit` is true when the player clicked (so it may take over a held Settings slot), false for the automatic card on arrival.
   onSelectCard?: (card: Card | null, where: string, explicit: boolean) => void;
   onSelectMember?: (member: ViewPartyMember) => void;
+  onSelectArea?: (area: Area) => void;
   onQuit?: () => void; // when set, the HUD "Quit" delegates here instead of the built-in confirm (multiplayer)
 }
 export function boot(opts: BootOptions): Promise<{

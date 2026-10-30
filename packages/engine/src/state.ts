@@ -307,6 +307,10 @@ export interface GameState {
   // Areas this party retreated from: those strangers stay hostile to it for the rest of the game
   // (§Retreat) and attack on sight if the party returns. Per-party; other parties are unaffected.
   hostileAreas?: number[];
+  // Chambers whose strangers the party backed away from unseen, without testing them (UI review, Peter
+  // 20261030: the area card says "you recall withdrawing"). "Approached" needs no record of its own: it
+  // is `indiffCounts[area] > 0`. Optional so saved games load and untouched games hash as before.
+  withdrewAreas?: number[];
   // Heavy treasure dropped to the floor by front-line fighters this fight (§387), with the member that
   // dropped each — lets the won-fight pickup offer "retake as distributed before" in one step.
   fightDrops?: { mi: number; tid: number }[];

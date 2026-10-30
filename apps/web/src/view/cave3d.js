@@ -804,6 +804,7 @@ function flashMarker(dir,bad){ const m=exitMarkers.find(x=>x.userData.move===dir
 let cardPanel, cardImg, emptyBox;
 let onSelectCard = null; // set by boot: the thin-shell card panel is React-owned, so selection is reported rather than drawn
 let onSelectMember = null;
+let onSelectArea = null; // a click on a tile the party is not scouting: React words the area card
 function showCard(card,where,explicit){
   onSelectCard?.(card,where,!!explicit);
   if(!cardPanel) return; // thin shell: no vanilla card panel
@@ -826,7 +827,12 @@ function areaPanel(area,explicit){
   if(focus) showCard(focus,area.name,explicit); else hideCard();
 }
 function selectCurrent(){ areaPanel(engine.current); }
-function inspectArea(a){ areaPanel(engine.placed.get(akey(a))||a,true); }   // the tile mesh holds the area as it was laid: show what is there now
+function inspectArea(a){
+  const placed=engine.placed.get(akey(a))||a;
+  if(!onSelectArea){ areaPanel(placed,true); return; }
+  selectRing.position.copy(worldPos(placed));selectRing.position.y+=0.02;selectRing.visible=true;
+  onSelectArea(placed);
+}   // the tile mesh holds the area as it was laid: show what is there now
 function hexA(hex,a){const n=parseInt(hex.replace('#',''),16);return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';}
 
 /* ============================================================
@@ -1152,8 +1158,8 @@ function onResize(){
   if(lastSnapArea && orbitBtn && !orbitBtn.classList.contains('active')) frameSnap(lastSnapArea);
 }
 
-export async function boot({ mount, engine: eng, tiles: tileMap, deadEnd, party: partyArr, tileAR, partyColor, onQuit, multiplayer, onSelectCard: selectCardCb, onSelectMember: selectMemberCb }){
-  onSelectCard=selectCardCb||null; onSelectMember=selectMemberCb||null;
+export async function boot({ mount, engine: eng, tiles: tileMap, deadEnd, party: partyArr, tileAR, partyColor, onQuit, multiplayer, onSelectCard: selectCardCb, onSelectMember: selectMemberCb, onSelectArea: selectAreaCb }){
+  onSelectCard=selectCardCb||null; onSelectMember=selectMemberCb||null; onSelectArea=selectAreaCb||null;
   engine=eng; startLevel=eng.startLevel; tiles=tileMap; deadEndArt=deadEnd||(()=>null); PARTY=partyArr; TILE_D=TILE_W/tileAR; partyColorHex=partyColor; isMultiplayer=!!multiplayer;
 
   /* ---- renderer / scene / camera ---- */

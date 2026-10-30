@@ -2221,6 +2221,8 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 .scv-cp-blank{aspect-ratio:7/10;display:grid;place-items:center;border:1px dashed var(--line-strong);color:var(--stone-dim);}
 .scv-cp-name{font-family:var(--black);font-size:20px;color:var(--cream);line-height:1.1;}
 .scv-cp-meta{font-size:11px;letter-spacing:.06em;color:var(--stone);}
+.scv-cp-area{aspect-ratio:3/2;display:flex;align-items:center;justify-content:center;border:1px solid var(--gold,#c9a14e);border-radius:6px;background:rgba(0,0,0,.35);font-family:var(--display,serif);color:var(--parchment);}
+.scv-settings-opt{display:flex;gap:8px;align-items:center;margin:12px 0;font-size:14px;}
 .scv-cp-text{font-family:var(--body);font-size:14px;line-height:1.4;color:var(--parchment);}
 .scv-cp-minis{display:flex;flex-wrap:wrap;gap:6px;}
 .scv-cp-mini{width:44px;border:1px solid var(--line);border-radius:5px;background:transparent;padding:0;cursor:pointer;color:var(--stone);font-size:9px;}

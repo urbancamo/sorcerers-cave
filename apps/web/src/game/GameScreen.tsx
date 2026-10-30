@@ -45,6 +45,7 @@ import { memberLabels } from "./memberLabels";
 import { inventoryRows } from "./inventory";
 import { viewParty } from "../view/viewParty";
 import { SettingsPanel } from "./shell/SettingsPanel";
+import { describeArea, readVerbose, writeVerbose } from "../data/areaText";
 import { toggleLeft, toggleRight, type LeftSlot, type RightSlot } from "./shell/shellState";
 
 export default function GameScreen() {
@@ -65,6 +66,7 @@ export default function GameScreen() {
   const [rightSlot, setRightSlot] = useState<RightSlot>(null);
   const [managing, setManaging] = useState(false); // the party panel, until the artifact card takes over moving and dropping treasure
   const [selected, setSelected] = useState<Selected | null>(null); // what the card panel shows
+  const [verbose, setVerbose] = useState(readVerbose); // story-voice area descriptions (a per-player setting)
   // Shows the save/restore code modal when set. `restored` distinguishes a plain save (dismiss ⇒
   // back to menu) from a just-forked Test Mode scenario (dismiss ⇒ keep playing the new game).
   const [savedCode, setSavedCode] = useState<{ code: string; restored: boolean } | null>(null);
@@ -316,6 +318,10 @@ export default function GameScreen() {
             setRightSlot((cur) => (card ? (explicit ? 'card' : (cur ?? 'card')) : (cur === 'card' ? null : cur)));
           },
           onSelectMember: (member) => { setSelected({ kind: 'member', member }); setRightSlot('card'); },
+          onSelectArea: (area) => {
+            const at = displayState.areas.findIndex((pa) => { const c = unpackCoord(pa.coord); return c.level === area.level && c.x === area.col && c.y === area.row; });
+            if (at >= 0) { setSelected({ kind: 'area', index: at, name: area.name }); setRightSlot('card'); }
+          },
         }} />
       <TitleBar left={fightVisible ? null : leftSlot} right={rightSlot} testMode={!!displayState.testMode} inFight={fightVisible}
                 onLeft={(p) => setLeftSlot((cur) => toggleLeft(cur, p))} onRight={(p) => setRightSlot((cur) => toggleRight(cur, p))} />
@@ -323,7 +329,7 @@ export default function GameScreen() {
         <ChamberPickup state={displayState} dispatch={dispatchWithRolls} cards={cards} />
       )}
       {rightSlot === 'card' && selected && displayState.phase !== 'pickup' && (
-        <CardPanel selected={selected} onMember={(member) => setSelected({ kind: 'member', member })}
+        <CardPanel selected={selected} areaText={selected.kind === 'area' ? describeArea(displayState, selected.index, verbose) : undefined} onMember={(member) => setSelected({ kind: 'member', member })}
                    onItem={(item, from) => setSelected({ kind: 'item', item, from })}
                    actions={selected.kind === 'item' && itemLive ? <ItemActions state={displayState} dispatch={dispatchWithRolls} mi={itemLive.mi} idx={itemLive.idx} />
                    // The Sibyl's free look is reachable only from her own card, and never prompted.
@@ -331,7 +337,7 @@ export default function GameScreen() {
                      ? <SibylLook state={displayState} actions={sibylLooks} dispatch={dispatchWithRolls} tools={{ pick: pickDestination, peek: (a) => caveApi.current?.peekTile(a) }} />
                      : undefined} />
       )}
-      {rightSlot === 'settings' && <SettingsPanel state={displayState} code={code ?? undefined} kitActive={!!displayState.variants?.extensionKit} onSave={handleSave} onLog={() => setShowLog(true)} />}
+      {rightSlot === 'settings' && <SettingsPanel verbose={verbose} onVerbose={(on) => { setVerbose(on); writeVerbose(on); }} state={displayState} code={code ?? undefined} kitActive={!!displayState.variants?.extensionKit} onSave={handleSave} onLog={() => setShowLog(true)} />}
       <EncounterPanel state={displayState} dispatch={dispatchWithRolls} />
       {fightVisible && cards && <FightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
       {fightVisible && cards && <RevisedFightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}

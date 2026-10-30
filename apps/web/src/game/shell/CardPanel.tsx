@@ -6,6 +6,7 @@ import { cardText } from '../../data/cardText';
 /** What the right-hand card panel is showing. */
 export type Selected =
   | { kind: 'card'; card: Card; where: string }
+  | { kind: 'area'; index: number; name: string }  // a map tile; its words are built live from the game state
   | { kind: 'member'; member: ViewPartyMember }
   | { kind: 'item'; item: ViewItem; from: ViewPartyMember; at?: { mi: number; idx: number } }; // `at` marks the row in the inventory
 
@@ -18,12 +19,23 @@ function Face({ file, name }: { file: string | null; name: string }) {
 }
 
 /** The universal card inspector: the card, its mini-cards when it carries any, and the manual's wording for it. */
-export function CardPanel({ selected, onItem, onMember, actions }: {
+export function CardPanel({ selected, onItem, onMember, actions, areaText }: {
   selected: Selected;
+  areaText?: string; // the words for an `area` selection
   actions?: ReactNode; // an item card's own actions (use, wield, give, drop)
   onItem: (item: ViewItem, from: ViewPartyMember) => void;
   onMember: (member: ViewPartyMember) => void;
 }) {
+  if (selected.kind === 'area') {
+    return (
+      <aside className="scv-slot scv-slot-right scv-cardpanel" aria-label="Card panel">
+        <h2 className="scv-slot-hd">Area</h2>
+        <div className="scv-cp-area" aria-hidden="true">{selected.name}</div>
+        <div className="scv-cp-name">{selected.name}</div>
+        <p className="scv-cp-text" data-testid="area-text">{areaText}</p>
+      </aside>
+    );
+  }
   if (selected.kind === 'member') {
     const m = selected.member;
     const text = m.sibyl ? 'Travels with the party. She cannot fight, carry or be harmed.' : cardText('creature', m.name);

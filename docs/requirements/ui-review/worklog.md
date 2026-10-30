@@ -194,3 +194,23 @@ Plan task 6. Requirements: the blocking-popup rule in ["Review Questions and Ans
 - **Outcome:** typecheck clean; web tests 917 pass; `manual.html` says where the Sibyl's look now is.
 - **Open:** whether dice and notices should become non-blocking is a separate change, since the game waits on them to present
   the result in order (`useDispatchWithRolls`); it needs Peter's view before it is touched.
+
+## Task 7 - Area memory and area card
+
+Plan task 7. Requirements: the "Card View for any card" section of [requirements.md](requirements.md), from Peter's 20261030 response.
+
+### 2026-10-30 - Engine memory, `describeArea`, area card
+
+- **Done (engine):** optional `withdrewAreas` on `GameState`, set by `withdraw` out of a chamber with strangers when no test was made
+  there (`engine-spec.md` SC-4-45). "Approached" needs no new field: it is `indiffCounts[area] > 0` or a pacified area, and a retreat
+  is `hostileAreas`. Saved games load because the field is optional.
+- **Done (web):** `data/areaText.ts` `describeArea(state, index, verbose)` covers Peter's seven states (fogged, tunnel, tunnel with
+  Demon, empty chamber, withdrew, approached, special chamber); special chambers always read in full. A click on a map tile the party
+  is not on now reports the area (`onSelectArea` in `cave3d.js`) and the card panel shows it. Settings has a *Verbose descriptions*
+  box, stored in `localStorage` per device.
+- **Thinking:** a first version also recorded "approached" at each test; that changed every tested state's hash for no new
+  information, so I derived it instead. The withdraw record still shifts the three solo golden hashes (narratives are identical), which
+  I re-pinned on purpose.
+- **Outcome:** engine 1379 and web 922 tests pass, typecheck clean; manual updated.
+- **Open:** the landscape "mini" is a labelled frame, not the tile art; no browser check of the real game yet. Per-player storage is
+  per device, not per account.
