@@ -1,0 +1,741 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UI Review Summary - The Sorcerer's Cave</title>
+<link rel="icon" href="data:,">
+<style>
+  :root {
+    color-scheme: dark;
+    --bg: #0c0b0a; --panel: #17140f; --panel2: #1f1b14; --line: #3a3224; --text: #e8e0cf; --dim: #a39a85;
+    --brass: #c9a24a; --brass-bright: #f0cf7a; --green: #5fbf6a; --yellow: #e0b93c; --gray: #6b665a;
+    --red: #c4574a; --violet: #a88ad8; --blue: #7da3d8;
+    --display: Georgia, 'Times New Roman', serif; --body: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); font-family: var(--body); line-height: 1.5; }
+  .page { max-width: 1280px; margin: 0 auto; padding: 32px 24px 80px; }
+  h1, h2, h3 { font-family: var(--display); color: var(--brass-bright); font-weight: 600; letter-spacing: .02em; }
+  h1 { font-size: 30px; margin: 0 0 4px; }
+  h2 { font-size: 22px; margin: 48px 0 12px; border-bottom: 1px solid var(--line); padding-bottom: 6px; }
+  h3 { font-size: 16px; margin: 20px 0 6px; }
+  p, li { color: var(--text); }
+  .lede { color: var(--dim); max-width: 78ch; }
+  .meta { color: var(--dim); font-size: 13px; }
+  a { color: var(--brass-bright); }
+  code { background: #221d14; padding: 1px 5px; border-radius: 3px; font-size: 12.5px; }
+  table { border-collapse: collapse; width: 100%; font-size: 13.5px; margin: 8px 0 16px; }
+  th, td { text-align: left; vertical-align: top; padding: 7px 10px; border-bottom: 1px solid var(--line); }
+  th { color: var(--brass); font-weight: 600; background: #14110c; position: sticky; top: 0; }
+  .tag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+  .t-ok { background: #1d3a22; color: #8fe29a; }
+  .t-gap { background: #402018; color: #f0a090; }
+  .t-dec { background: #3a3014; color: #f0d070; }
+  .t-fut { background: #26262c; color: #b4b4c0; }
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 16px; }
+  .box { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 12px 16px; }
+  .box h3 { margin-top: 0; }
+  .note { border: 1px solid var(--line); border-radius: 4px; background: #1a160e; padding: 8px 12px; margin: 12px 0; font-size: 13.5px; color: var(--dim); }
+
+  /* ---- interactive stage ---- */
+  .scenes { display: flex; flex-wrap: wrap; gap: 6px; margin: 12px 0; }
+  .scenes button, .ctl button, .ctl select {
+    background: var(--panel2); color: var(--text); border: 1px solid var(--line); border-radius: 4px;
+    padding: 6px 10px; font: 12.5px var(--body); cursor: pointer;
+  }
+  .scenes button:hover, .ctl button:hover { border-color: var(--brass); }
+  .scenes button.on { background: #3a2f14; border-color: var(--brass); color: var(--brass-bright); }
+  .ctl { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; font-size: 13px; color: var(--dim); margin-bottom: 8px; }
+  .frame { position: relative; width: 100%; aspect-ratio: 16 / 9; border: 1px solid var(--line); border-radius: 6px; overflow: hidden; background: #000; }
+  .stage { position: absolute; left: 0; top: 0; width: 1200px; height: 675px; transform-origin: 0 0; background: #050505; overflow: hidden; font-size: 12px; user-select: none; }
+  .caption { margin: 10px 0 0; font-size: 13.5px; color: var(--dim); min-height: 3em; }
+  .caption b { color: var(--text); }
+
+  .board { position: absolute; inset: 0; perspective: 900px; }
+  .floor { position: absolute; left: 150px; top: 150px; width: 900px; height: 520px; transform: rotateX(48deg) rotateZ(-14deg); transform-origin: 50% 50%;
+    background:
+      linear-gradient(#2a2822 1px, transparent 1px) 0 0 / 90px 90px,
+      linear-gradient(90deg, #2a2822 1px, transparent 1px) 0 0 / 90px 90px, #0f0e0c; }
+  .tile { position: absolute; background: #3b372e; border: 2px solid #1a1814; box-shadow: inset 0 0 30px #0008; }
+  .tile.hot { background: #4a4234; }
+  .fog { position: absolute; background: radial-gradient(#4a4a4a88, transparent 70%); }
+  .pawn { position: absolute; width: 14px; height: 36px; background: #c4574a; border-radius: 7px 7px 3px 3px; box-shadow: 0 4px 6px #000a; transform: rotateZ(14deg) rotateX(-48deg); }
+
+  .bar { position: absolute; left: 0; right: 0; top: 0; height: 34px; display: flex; align-items: center; justify-content: space-between; padding: 0 10px; z-index: 5;
+    background: linear-gradient(#000c, #0000); }
+  .bar .title { position: absolute; left: 0; right: 0; text-align: center; font: 600 13px var(--display); letter-spacing: .12em; color: #d8d0bc; pointer-events: none; }
+  .ig { display: flex; gap: 6px; z-index: 1; }
+  .ib { width: 26px; height: 26px; border-radius: 5px; border: 1px solid #3d3626; background: #14110dcc; display: flex; align-items: center; justify-content: center; cursor: pointer; color: #cdbf9a; }
+  .ib:hover { border-color: var(--brass); }
+  .ib.on { background: #3a2f14; border-color: var(--brass); color: var(--brass-bright); }
+  .ib.off { opacity: .3; cursor: not-allowed; }
+  .ib svg { width: 15px; height: 15px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; }
+
+  .slot { position: absolute; top: 44px; bottom: 56px; z-index: 4; background: #100e0be8; border: 1px solid #3a3224; border-radius: 6px; padding: 8px; overflow-y: auto; }
+  .slot.left { left: 10px; width: 196px; }
+  .slot.right { right: 10px; width: 236px; }
+  .slot h4 { margin: 0 0 8px; font: 600 11px var(--display); letter-spacing: .12em; color: var(--brass); display: flex; justify-content: space-between; }
+  .row { display: flex; gap: 8px; align-items: center; padding: 5px 4px; border-radius: 4px; cursor: pointer; border: 1px solid transparent; }
+  .row:hover { background: #1f1a12; }
+  .row.sel { border-color: var(--brass); background: #2a2210; }
+  .row.dead { opacity: .45; }
+  .lt { flex: none; width: 22px; height: 22px; border-radius: 4px; background: #c9a24a; color: #1a1306; font: 700 12px var(--display); display: flex; align-items: center; justify-content: center; position: relative; }
+  .row .n { font-weight: 600; font-size: 12px; }
+  .row .s { font-size: 10px; color: var(--dim); }
+  .st-gray .lt { background: #5a564c; color: #d0cabb; }
+  .st-yellow .lt { background: var(--yellow); }
+  .st-green .lt { background: var(--green); color: #07200b; }
+  .cue { margin-left: auto; font-size: 9.5px; font-weight: 700; padding: 1px 5px; border-radius: 8px; white-space: nowrap; }
+  .st-gray .cue { background: #2c2a25; color: #9a9486; }
+  .st-yellow .cue { background: #3a3014; color: #f0d070; }
+  .st-green .cue { background: #1d3a22; color: #8fe29a; }
+
+  .card { position: relative; width: 150px; height: 210px; border-radius: 6px; background: linear-gradient(160deg, hsl(var(--hue) 30% 62%), hsl(var(--hue) 28% 38%)); border: 2px solid #1b1409; color: #1b1409; flex: none; }
+  .card .cn { position: absolute; left: 5px; top: 5px; width: 24px; height: 24px; background: #f4ecd4; border: 1px solid #1b1409; border-radius: 3px; font: 700 14px var(--display); display: flex; align-items: center; justify-content: center; }
+  .card .art { position: absolute; left: 12%; right: 12%; top: 34px; bottom: 58px; display: flex; align-items: center; justify-content: center; font: 700 64px var(--display); color: #0006; }
+  .card .ct { position: absolute; left: 8px; right: 8px; bottom: 28px; text-align: center; background: #f4ecd4; border: 1px solid #1b1409; font: 700 11px var(--display); letter-spacing: .06em; padding: 2px 0; text-transform: uppercase; }
+  .card .cd { position: absolute; left: 8px; right: 8px; bottom: 5px; height: 20px; background: #f4ecd4cc; border: 1px solid #1b1409; }
+  .card.sm { width: 64px; height: 90px; border-width: 1px; }
+  .card.sm .cn { width: 14px; height: 14px; font-size: 9px; left: 3px; top: 3px; }
+  .card.sm .art { font-size: 26px; top: 16px; bottom: 28px; }
+  .card.sm .ct { font-size: 6.5px; bottom: 10px; padding: 1px 0; }
+  .card.sm .cd { display: none; }
+  .card.mini { width: 42px; height: 58px; border-width: 1px; cursor: pointer; }
+  .card.mini .cn { display: none; }
+  .card.mini .art { font-size: 18px; top: 6px; bottom: 16px; }
+  .card.mini .ct { font-size: 5.5px; bottom: 4px; left: 3px; right: 3px; padding: 0; }
+  .card.mini .cd { display: none; }
+  .card.click { cursor: pointer; }
+  .card.click:hover { outline: 2px solid var(--brass-bright); }
+  .land { position: relative; width: 100%; height: 96px; border: 2px solid #1b1409; border-radius: 4px; overflow: hidden; background: #2b2820; }
+  .land .lf { position: absolute; inset: 14px 30px; background: #4a4234; border: 1px solid #1a1814; box-shadow: inset 0 0 18px #000a; }
+  .land.fog .lf { background: repeating-linear-gradient(45deg, #1d1b17 0 6px, #25221c 6px 12px); }
+  .land i { position: absolute; font: 700 9px var(--display); color: var(--brass-bright); background: #0009; padding: 0 3px; border-radius: 2px; font-style: normal; }
+  .land .xn { left: 50%; top: 1px; transform: translateX(-50%); } .land .xs { left: 50%; bottom: 1px; transform: translateX(-50%); }
+  .land .xw { left: 2px; top: 50%; transform: translateY(-50%); } .land .xe { right: 2px; top: 50%; transform: translateY(-50%); }
+  .land .xu { right: 34px; top: 17px; }
+  .land .dot { position: absolute; width: 10px; height: 10px; border-radius: 50%; background: #c4574a; left: 50%; top: 50%; margin: -5px; box-shadow: 0 0 0 2px #0008; }
+  .tile[data-act], .fog[data-act] { cursor: pointer; }
+  /* fog overlaps the tunnel tile, so the tiles must sit above it to stay clickable */
+  .fog[data-act] { z-index: 0; } .tile { z-index: 1; }
+  .tile[data-act]:hover, .fog[data-act]:hover { outline: 2px solid var(--brass-bright); }
+  .cardwrap { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+  .minis { display: flex; gap: 6px; flex-wrap: wrap; }
+  .hint { font-size: 11px; color: #cfc6b0; line-height: 1.45; width: 100%; }
+  .hint small { color: var(--dim); display: block; margin-top: 6px; font-size: 10px; }
+  .acts { display: flex; flex-wrap: wrap; gap: 5px; width: 100%; }
+  .btn { background: #2a2210; color: var(--brass-bright); border: 1px solid var(--brass); border-radius: 4px; padding: 4px 9px; font: 600 11px var(--body); cursor: pointer; }
+  .btn:hover { background: #3a2f14; }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+  .btn.sec { background: #1b1813; border-color: #4a402c; color: #cdbf9a; }
+  .btn.pick.on { background: var(--brass); color: #1a1306; }
+  .reason { font-size: 10px; color: #e0a090; width: 100%; }
+  .backlink { font-size: 10.5px; color: var(--brass); cursor: pointer; align-self: flex-start; }
+  .kv { display: grid; grid-template-columns: 1fr auto; gap: 6px 8px; font-size: 11px; }
+  .kv span:nth-child(odd) { color: var(--dim); }
+  .setrow { display: flex; align-items: center; justify-content: space-between; padding: 7px 8px; border: 1px solid #2c2619; border-radius: 4px; margin-bottom: 6px; font-size: 11px; cursor: pointer; }
+  .setrow:hover { border-color: var(--brass); }
+
+  .bottom { position: absolute; left: 0; right: 0; bottom: 10px; display: flex; justify-content: center; z-index: 5; }
+  .bottom .grp { display: flex; gap: 6px; align-items: center; background: #14110dcc; border: 1px solid #3d3626; border-radius: 6px; padding: 4px 8px; color: #cdbf9a; font-size: 12px; }
+
+  /* combat */
+  .wd { display: flex; align-items: center; gap: 7px; padding: 6px 7px; margin-bottom: 6px; border: 1px solid #5a4818; background: #1c170d; border-radius: 5px; cursor: grab; }
+  .wd.sel { border-color: var(--brass-bright); background: #3a2f14; box-shadow: 0 0 0 1px var(--brass-bright) inset; }
+  .wd .wn { flex: 1; font-weight: 600; font-size: 12px; line-height: 1.15; }
+  .wd .wa { display: flex; gap: 3px; margin-top: 2px; }
+  .wd .ai { width: 14px; height: 14px; border-radius: 3px; background: #5a564c; color: #e8e0cf; font: 700 8px var(--display); display: flex; align-items: center; justify-content: center; }
+  .wd .ws { display: flex; gap: 3px; align-items: center; }
+  .wd b { display: inline-flex; align-items: center; justify-content: center; min-width: 20px; height: 20px; font: 700 11px var(--display); border-radius: 3px; }
+  .wd .mp { background: #3a2650; color: #d9c4f5; }
+  .wd .fs { background: #f4ecd4; color: #1b1409; }
+  .wd .tot { border-radius: 50%; border: 1px solid var(--brass); color: var(--brass-bright); background: #1a1306; }
+  .fight { position: absolute; left: 216px; right: 256px; top: 44px; bottom: 56px; z-index: 3; background: #100e0bd8; border: 1px solid #3a3224; border-radius: 6px; padding: 8px 10px; display: flex; flex-direction: column; gap: 8px; }
+  .fight.full { right: 10px; }
+  .fh { display: flex; gap: 10px; align-items: center; font: 600 11px var(--display); letter-spacing: .1em; color: var(--brass); flex-wrap: wrap; }
+  .pill { font: 10px var(--body); letter-spacing: 0; padding: 2px 8px; border-radius: 10px; }
+  .pill.ok { background: #1d3a22; color: #8fe29a; border: 1px solid #2f6a38; }
+  .pill.msg { background: #1a1306; color: #f0d070; border: 1px solid #5a4818; }
+  .rows { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 8px; position: relative; }
+  .pr { display: grid; grid-template-columns: 84px minmax(90px, 1fr) 44px 72px 84px; gap: 8px; align-items: center; background: #15120d; border: 1px solid #2c2619; border-radius: 6px; padding: 8px; min-height: 124px; }
+  .sl { min-height: 96px; border: 1px dashed #3d3626; border-radius: 5px; display: flex; gap: 4px; align-items: center; justify-content: center; flex-wrap: wrap; padding: 3px; font-size: 9.5px; color: #6f6652; text-align: center; cursor: default; }
+  .sl.open { border-color: #6a5a2c; color: #a8955a; cursor: pointer; }
+  .sl.open:hover, .sl.over { background: #2a2210; border-color: var(--brass-bright); }
+  .sl.foe { border-style: solid; border-color: #2c2619; }
+  .vs { text-align: center; font: 700 15px var(--display); line-height: 1.25; }
+  .vs small { display: block; font: 9px var(--body); color: var(--dim); }
+  .vs .me { color: var(--brass-bright); } .vs .them { color: #e7a59c; }
+  .fl { position: absolute; left: 0; top: 0; bottom: 0; width: 232px; background: #4a4640; border: 1px solid #7a7466; border-radius: 4px; z-index: 2; padding: 8px; display: flex; flex-direction: column; gap: 6px; align-items: center; justify-content: flex-start; }
+  .fl.over { background: #5a5448; border-color: var(--brass-bright); }
+  .fl .fln { font: 600 12px var(--display); color: var(--brass-bright); letter-spacing: .1em; }
+  .fl .cards { display: flex; gap: 6px; flex-wrap: wrap; justify-content: center; }
+  .fl .wd { width: 100%; margin: 0; cursor: pointer; }
+  .fl .empty { color: #cfc6b0; font-size: 11px; text-align: center; margin-top: 30px; }
+  .ff { display: flex; gap: 10px; align-items: center; min-height: 28px; }
+
+  /* popup */
+  .popup { position: absolute; inset: 0; z-index: 20; background: #000a; display: flex; align-items: center; justify-content: center; }
+  .popup .dlg { width: 440px; background: #17130c; border: 1px solid var(--brass); border-radius: 8px; padding: 18px 22px; }
+  .popup .dlg h5 { margin: 0 0 8px; font: 600 15px var(--display); color: var(--brass-bright); }
+  .popup .dlg p { margin: 0 0 8px; font-size: 12.5px; color: #d8d0bc; }
+  .toast { position: absolute; left: 50%; bottom: 52px; transform: translateX(-50%); z-index: 30; background: #1a1306; border: 1px solid var(--brass); color: var(--brass-bright); padding: 6px 14px; border-radius: 14px; font-size: 12px; opacity: 0; transition: opacity .25s; pointer-events: none; }
+  .toast.show { opacity: 1; }
+  .draft { position: absolute; right: 12px; bottom: 60px; z-index: 6; font-size: 10.5px; color: #f0d070; background: #3a3014cc; border: 1px dashed #8a7324; border-radius: 4px; padding: 3px 8px; }
+
+  @media (prefers-reduced-motion: reduce) { .toast { transition: none; } }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <h1>UI Review - Summary and Mockup</h1>
+  <p class="meta">Task 1 of the UI review work package &middot; 2026-10-30 &middot; source: <code>requirements.md</code> and Peter's
+    <code>Revised UI Presentation 20261029.pdf</code>. A review document: nothing here changes the game.</p>
+  <p class="lede">The proposed interface keeps the 3D play surface clear by default and moves everything else into three
+    on-demand panels: a left slot (party, inventory, or in a fight the combat list), a right slot (card panel, settings,
+    or the test panel) and a central combat dialog. The player is the party leader: every choice, from who fights to
+    who carries what, is made from a selected card. Try it below.</p>
+
+  <h2>1. The proposed interface (interactive)</h2>
+  <div class="ctl">
+    <span>Situation:</span>
+    <label><input type="checkbox" id="testmode"> Test mode</label>
+    <select id="ctx" aria-label="Situation">
+      <option value="explore">Exploring (no strangers)</option>
+      <option value="dragon">Dragon and Wolf in the chamber</option>
+    </select>
+    <span>Artifact colours follow the situation: watch the Charmed Flute and Lotus Dust in the inventory.</span>
+  </div>
+  <div class="scenes" id="scenes"></div>
+  <div class="frame" id="frame"><div class="stage" id="stage"></div></div>
+  <p class="caption" id="caption"></p>
+  <div class="note">Landscape only (portrait is a future review). The board is a stand-in for the unchanged 3D view; card
+    art is placeholder. Stats, strengths and which member can use which artifact are illustrative.</div>
+
+  <h2>2. Decisions this mockup carries</h2>
+  <div class="cols">
+    <div class="box"><h3>From the answers</h3><ul>
+      <li>The combat list on the left replaces the fan hand; revised fights, solitaire only. Party and inventory panels are not shown in combat: any member, stranger or artifact is selected from the combat list or dialog and shown in the card view.</li>
+      <li>Passive artifacts keep working automatically. Active ones are used from their own card; no "Use X on Y" suggestions anywhere.</li>
+      <li>Settings and Card Panel are mutually exclusive. Remaining system controls (save, log, scoreboard, exit) live in Settings. Chat is out of scope.</li>
+      <li>Blocking popups only where an action must be taken (the trap). Everything else goes through the card view.</li>
+    </ul></div>
+    <div class="box"><h3>Assumptions approved in review</h3><ul>
+      <li>Only <code>FightSurface.tsx</code> and its flag are removed. The PvP surface and <code>FightHand</code> stay until the multiplayer follow-up.</li>
+      <li>Treasure pickup and redistribution happen from the card view (replaces the pickup screen and the trade modal).</li>
+      <li>Trap, game over and rule-critical choices (the Sorcerer's terms) are blocking. Dice and outcome notices stay non-blocking.</li>
+    </ul></div>
+    <div class="box"><h3>Interpretations to confirm</h3><ul>
+      <li>The T icon opens the test panel (test mode only). We assume it shares the right-hand slot, exclusive with the card panel and Settings.</li>
+      <li>Colour states: <b>gray</b> carrier cannot use it (or it has no use); <b>yellow</b> carried by a member who can use it, but not usable now (this includes wielded passive items); <b>green</b> usable now.</li>
+      <li>The three bottom icons are shown as-is ("remain the same"). The Book icon displays the card panel (Peter: "force it to pop up, on top if necessary, or hide it away if it is hanging around unnecessarily"). Opened from the Book it floats on top of the combat dialog; opened by selecting a card it sits beside the dialog, which narrows to make room.</li>
+    </ul></div>
+  </div>
+
+  <h2>3. Comparison with industry practice</h2>
+  <p class="lede">The proposal follows patterns common to digital tabletop and strategy games. Findings are about how it
+    should be built, not whether to do it.</p>
+  <table>
+    <tr><th style="width:22%">Practice</th><th>In the proposal</th><th style="width:12%">Verdict</th><th style="width:30%">Recommendation</th></tr>
+    <tr><td>Minimal always-on HUD, panels on demand</td><td>Thin title bar, three icon groups, empty 3D view by default.</td><td><span class="tag t-ok">Aligned</span></td><td>Remember each panel's open state per scene so a fight does not reset the player's layout afterwards.</td></tr>
+    <tr><td>Select, then inspect (one inspector for everything)</td><td>One card view for members, strangers, artifacts, with the actions on it.</td><td><span class="tag t-ok">Aligned</span></td><td>Make selection visible on the source (list row, 3D object) so the card's subject is never ambiguous.</td></tr>
+    <tr><td>Contextual help instead of a manual</td><td>Manual text pulled under the card; structured data as source of truth.</td><td><span class="tag t-ok">Aligned</span></td><td>Key each hint to a card id and keep a generated HTML export so the manual stays reviewable.</td></tr>
+    <tr><td>Show availability, do not advise</td><td>Colour-coded inventory; no "Use X on Y" prompts.</td><td><span class="tag t-dec">Refine</span></td><td>Colour alone fails for colour-blind players (yellow and green especially). Add a second cue: a text tag and glyph, as in the mockup. Draw availability from the engine's <code>legalActions</code>, not a second rule table.</td></tr>
+    <tr><td>Direct manipulation, multi-select, undo</td><td>Multi-select widgets, drag or click to drop, Roll the Round commits.</td><td><span class="tag t-ok">Aligned</span></td><td>Every placement stays reversible until Roll the Round. Offer click-to-place as well as drag (drag is poor on touch and for accessibility). Keyboard: arrows to move, Space to select, Enter to place.</td></tr>
+    <tr><td>Progressive disclosure of density</td><td>Compact non-card widgets in the list; full cards once placed.</td><td><span class="tag t-ok">Aligned</span></td><td>Pick one fixed widget layout so numbers never move. Check the smallest text against contrast and size guidance (the PDF's captions are very small).</td></tr>
+    <tr><td>Blocking dialogs used sparingly</td><td>Only the trap and similar must-act choices block.</td><td><span class="tag t-ok">Aligned</span></td><td>Everything blocking needs a visible default or escape route where the rules allow one, and focus trapping while open.</td></tr>
+  </table>
+
+  <h2>4. How Peter's mockup reads</h2>
+  <div class="cols">
+    <div class="box"><h3>Frame</h3><p>A slim bar with party and inventory icons on the left, the title in the middle and Book (card panel), Settings and T (test panel, test mode only) icons on the right. Panels are dark, translucent and brass-edged, roughly 12-15% of the width each, leaving the board centred and unobstructed.</p></div>
+    <div class="box"><h3>Lists and cards</h3><p>List rows are three lines (name, weight, what is wielded) with a letter badge. Selecting a row opens the card panel on the right: the card, then mini-cards of what is carried, then a few lines of manual text, then action buttons.</p></div>
+    <div class="box"><h3>Combat</h3><p>The list becomes "NOT ENGAGED" with compact widgets (badge, name, magic chip, strength, total). A central dialog shows one row per pairing. Members are dragged to the Frontline box, then "Deploy Frontline"; the strangers' choices appear and "Roll the Round" finishes.</p></div>
+  </div>
+
+  <h2>5. Gap analysis: current UI to the new one</h2>
+  <p class="lede">Current behaviour was checked in <code>GameScreen.tsx</code> (components mounted at lines 288-325),
+    <code>ExplorePanel.tsx</code>, <code>EncounterPanel.tsx</code>, <code>PartyPanel.tsx</code> and the engine's
+    <code>legalActions</code>.</p>
+  <table>
+    <tr><th style="width:22%">Today</th><th style="width:26%">New home</th><th style="width:10%">Status</th><th>Notes and how to close any gap</th></tr>
+    <tr><td>Explore-phase "use artifact" menus and one-click buttons (<code>ExplorePanel</code>)</td><td>Artifact card (opened from the inventory or a member's mini-card)</td><td><span class="tag t-gap">Gap</span></td><td>Per-artifact target and direction pickers (Healing Balm target, Magic Carpet and Charmed Flute directions, Holy Water modes, Staff release) must be built into the card. Model each artifact's options once, from <code>legalActions</code>, and render them on the card.</td></tr>
+    <tr><td>Open the Treasure Chest; confirm popups for Chasm, Well, Crypt, Elixir</td><td>Chest and kit-item cards; confirmations stay blocking</td><td><span class="tag t-dec">Decide</span></td><td>The confirmations exist because the choice is irreversible. Keep them blocking and trigger them from the card button.</td></tr>
+    <tr><td>Encounter panel: Withdraw, Attack, reaction (<code>EncounterPanel</code>)</td><td>Stranger card actions</td><td><span class="tag t-ok">Covered</span></td><td>"Test reaction" shows only in test mode.</td></tr>
+    <tr><td>Party modal: wield or stow (<code>setBorne</code>), drop, move item</td><td>Left party list plus member and artifact cards</td><td><span class="tag t-gap">Gap</span></td><td>Wield/Stow needs a home on the artifact card. Drop and move become "Give to..." on the artifact card (leader assigns).</td></tr>
+    <tr><td>Trade modal; pickup session after a fight</td><td>Chamber artifact card: "Give to..." the leader chooses</td><td><span class="tag t-ok">Covered</span></td><td>The weight limit and who can carry what come from the engine; the card shows why a member is not offered.</td></tr>
+    <tr><td>Trap choice</td><td>Blocking popup</td><td><span class="tag t-ok">Covered</span></td><td>Unchanged in behaviour.</td></tr>
+    <tr><td>Sorcerer's terms</td><td>Blocking popup (rule-critical)</td><td><span class="tag t-dec">Decide</span></td><td>It is a multi-step flow with teleport and picker steps; plan it as its own task.</td></tr>
+    <tr><td>Sibyl's free look, destination picker</td><td>Her card (member once she travels with the party)</td><td><span class="tag t-ok">Covered</span></td><td>The look must be reachable only from her card, with no prompt elsewhere.</td></tr>
+    <tr><td>Revised fight surface and fan hand</td><td>Combat list plus central dialog</td><td><span class="tag t-ok">Covered</span></td><td>R1.8 session stays: tentative placements, undo, one "Roll the Round" action. The attacker flow is unchanged (open slots). Retreat and artifact buttons need a place in the dialog footer.</td></tr>
+    <tr><td>Legacy fight surface; PvP surface and fan hand</td><td>Legacy removed; PvP kept</td><td><span class="tag t-fut">Later</span></td><td>PvP moves to the new panel in the multiplayer follow-up.</td></tr>
+    <tr><td>Top-right card view; bottom-left help panel; manual page</td><td>Card panel; removed; structured data</td><td><span class="tag t-gap">Gap</span></td><td>The structured manual and tutorial do not exist yet. The project rule to keep <code>manual.html</code> in sync will need rewording once the data is the source.</td></tr>
+    <tr><td>Save, game log, scoreboard, game info, exit</td><td>Settings panel</td><td><span class="tag t-ok">Covered</span></td><td>Spectate and replay views are separate screens, not overlays; they are not changed.</td></tr>
+    <tr><td>Test controls panel</td><td>T icon in the right group (test mode only)</td><td><span class="tag t-dec">Decide</span></td><td>Proposed to be exclusive with card and settings.</td></tr>
+    <tr><td>Dice overlay and outcome notices</td><td>Non-blocking overlays</td><td><span class="tag t-ok">Covered</span></td><td>Must not hide the card panel's current action.</td></tr>
+    <tr><td>Chat (multiplayer)</td><td>Out of scope</td><td><span class="tag t-fut">Later</span></td><td></td></tr>
+  </table>
+
+  <h2>6. Artifact classification (draft, for the rules review)</h2>
+  <p class="lede">From the engine's <code>useArtifact</code> actions (<code>selectors.ts</code>) and the treasure table
+    (<code>data/treasures.ts</code>). "Active" artifacts need a player action and get a Use button on their card.</p>
+  <table>
+    <tr><th style="width:18%">Class</th><th>Artifacts</th><th style="width:34%">Card behaviour</th></tr>
+    <tr><td><span class="tag t-ok">Active</span></td><td>Strength Potion, Elixir, Holy Water, Scroll, Lotus Dust, Healing Balm, Magic Carpet, Charmed Flute, Magic Staff (frees a member from stone)</td><td>Use button, enabled only when the engine offers the action; target or direction picker on the card where needed.</td></tr>
+    <tr><td><span class="tag t-dec">Passive or wielded</span></td><td>Magic Sword, Magic Axe, Magic Shield, Talisman, The Ring, Eye of God</td><td>No Use button; Wield or Stow where the party modal offers it today; a note that its effect is automatic.</td></tr>
+    <tr><td><span class="tag t-fut">Treasure only</span></td><td>Silver, Gold, Gems, Lost Ruby, Treasure Chest, Idol, Crypt/Gems</td><td>Weight and score only; "Give to..." and drop.</td></tr>
+  </table>
+  <div class="note">The staff's wake-from-stone use and the Chest's opening sit between categories. They need a rules
+    review before the classification is final, as the answers anticipated. The colour states themselves will be
+    iterated while the inventory panel is built.</div>
+
+  <h2>7. Open items and future requirements</h2>
+  <ul>
+    <li><b>Colour states</b>: iterate on the exact meaning of gray, yellow and green with real play.</li>
+    <li><b>Test icon location</b>: not a concern to Peter; the mockup keeps it in the right-hand group.</li>
+    <li><b>Area descriptions</b>: needs the game to remember what the party did at each area (withdrew unseen, approached and found them indifferent); the narrative text is optional behind a verbose-descriptions setting.</li>
+    <li><b>Tutorial mode</b> and <b>portrait layout</b>: future reviews. This review is landscape only.</li>
+    <li><b>Multiplayer and PvP</b>: the combat list is built with the intent of replacing the multiplayer UI later; chat is excluded.</li>
+    <li><b>Structured manual</b>: data model, generator for the HTML export, and rewording the manual-sync rule in <code>CLAUDE.md</code>.</li>
+    <li><b>Sorcerer's terms</b>: its own task (blocking, multi-step).</li>
+    <li><b>Accessibility</b>: second cue for colour, keyboard paths for selecting and placing, and a minimum text size.</li>
+  </ul>
+  <p class="meta">Suggested next task: build the shell (title bar, left and right slots, panel state machine) behind a flag, then the card panel, then inventory and combat in that order.</p>
+
+</div>
+
+<script>
+(() => {
+  'use strict';
+
+  // ---------- data (illustrative) ----------
+  const M = {
+    hero:   { id: 'hero',   n: 'Hero',    l: 'H', hue: 40,  fs: 4, mp: 0, tot: 4, load: '0.75 kg · 75 free' },
+    wh:     { id: 'wh',     n: 'W-Hero',  l: 'W', hue: 20,  fs: 4, mp: 0, tot: 6, load: '0.90 kg · 52 free' },
+    ogre:   { id: 'ogre',   n: 'Ogre',    l: 'O', hue: 100, fs: 3, mp: 0, tot: 3, load: '1.10 kg · 40 free' },
+    priest: { id: 'priest', n: 'Priest',  l: 'P', hue: 270, fs: 1, mp: 2, tot: 4, load: '0.65 kg · 25 free' },
+    man:    { id: 'man',    n: 'Man',     l: 'M', hue: 210, fs: 2, mp: 0, tot: 2, load: '0.90 kg · 50 free' },
+    woman:  { id: 'woman',  n: 'Woman',   l: 'W', hue: 330, fs: 1, mp: 0, tot: 1, load: 'casualty', dead: true },
+    dwarf:  { id: 'dwarf',  n: 'Dwarf',   l: 'D', hue: 30,  fs: 1, mp: 0, tot: 4, load: '0.95 kg · 21 free' },
+    thief:  { id: 'thief',  n: 'Thief',   l: 'T', hue: 60,  fs: 2, mp: 0, tot: 2, load: '0.80 kg · 30 free' },
+  };
+  const PARTY = ['hero', 'wh', 'ogre', 'priest', 'man', 'woman', 'dwarf', 'thief'];
+  const COMBAT_PARTY = ['wh', 'priest', 'dwarf', 'thief'];
+  const FOES = [{ id: 'lion', n: 'Lion', g: 'L', hue: 35, str: 3 }, { id: 'wolf', n: 'Wolf', g: 'W', hue: 0, str: 2 }];
+
+  // kind: active | passive | treasure. need: 'dragon' = usable only with strangers present.
+  const A = {
+    sword:  { id: 'sword',  n: 'Magic Sword',    l: 'M', hue: 210, kind: 'passive',  by: 'hero',   kg: 0,  txt: 'Adds to the strength of whoever wields it. Its effect is automatic.' },
+    axe:    { id: 'axe',    n: 'Magic Axe',      l: 'A', hue: 15,  kind: 'passive',  by: 'dwarf',  kg: 0,  txt: 'Adds to the strength of whoever wields it. Its effect is automatic.' },
+    gems:   { id: 'gems',   n: 'Gems',           l: 'G', hue: 180, kind: 'treasure', by: 'hero',   kg: 25, txt: 'Worth points at the end of the game. Heavy: the carrier\'s weight limit applies.' },
+    balm:   { id: 'balm',   n: 'Healing Balm',   l: 'H', hue: 120, kind: 'active',   by: 'man',    kg: 0,  txt: 'Revives a fallen member of the party.', pick: 'targets' },
+    elixir: { id: 'elixir', n: 'Elixir',         l: 'E', hue: 150, kind: 'active',   by: 'ogre',   kg: 0,  txt: 'One draught: it may kill, do nothing, or add strength for ever.', cant: 'Ogre' },
+    carpet: { id: 'carpet', n: 'Magic Carpet',   l: 'C', hue: 300, kind: 'active',   by: 'priest', kg: 0,  txt: 'Carries the party across the cave to a chosen direction.', pick: 'dirs' },
+    flute:  { id: 'flute',  n: 'Charmed Flute',  l: 'F', hue: 60,  kind: 'active',   by: 'thief',  kg: 0,  txt: 'Lulls dragons while it is played.', need: 'dragon' },
+    lotus:  { id: 'lotus',  n: 'Lotus Dust',     l: 'L', hue: 90,  kind: 'active',   by: 'man',    kg: 0,  txt: 'May be used before approaching strangers, or before any round of fighting.', need: 'dragon' },
+  };
+  const INV = ['sword', 'axe', 'gems', 'balm', 'elixir', 'carpet', 'flute', 'lotus'];
+
+  const ICONS = {
+    party: '<svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg>',
+    inv: '<svg viewBox="0 0 24 24"><path d="M6 8h12l1 12H5z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/></svg>',
+    book: '<svg viewBox="0 0 24 24"><path d="M4 5c3-1 6-1 8 1 2-2 5-2 8-1v13c-3-1-6-1-8 1-2-2-5-2-8-1z"/><path d="M12 6v13"/></svg>',
+    gear: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3M5.6 5.6l2.1 2.1M16.3 16.3l2.1 2.1M18.4 5.6l-2.1 2.1M7.7 16.3l-2.1 2.1"/></svg>',
+    text: '<svg viewBox="0 0 24 24"><path d="M5 6h14M12 6v13M9 19h6"/></svg>',
+  };
+
+  // ---------- state ----------
+  const init = () => ({
+    left: null, right: null, card: null, backTo: null, mode: 'explore', popup: false, ctx: 'explore',
+    verbose: false, given: {}, wield: { sword: true, axe: true }, picked: {}, cmb: null,
+  });
+  let S = init();
+  let testMode = false;
+  const $ = (id) => document.getElementById(id);
+  const stage = $('stage');
+
+  // ---------- helpers ----------
+  const usableNow = (a) => {
+    if (a.kind !== 'active') return false;
+    if (a.cant) return false;
+    if (a.need === 'dragon') return S.ctx === 'dragon';
+    return true;
+  };
+  const artState = (a) => {
+    if (a.kind === 'treasure' || a.cant) return 'gray';
+    return usableNow(a) ? 'green' : 'yellow';
+  };
+  const CUE = { gray: 'can\'t use', yellow: 'carried', green: 'use now' };
+  const carrierOf = (a) => S.given[a.id] || a.by;
+  const carriedBy = (mid) => INV.filter((id) => carrierOf(A[id]) === mid);
+  const card = (c, cls = '', attrs = '') => `<div class="card ${cls}" style="--hue:${c.hue}" ${attrs}>
+    <span class="cn">${c.fs ?? c.str ?? ''}</span><div class="art">${c.l || c.g}</div><div class="ct">${c.n}</div><div class="cd"></div></div>`;
+  const toast = (t) => {
+    const el = $('toast');
+    el.textContent = t;
+    el.classList.add('show');
+    clearTimeout(toast.t);
+    toast.t = setTimeout(() => el.classList.remove('show'), 2200);
+  };
+
+  // ---------- panels ----------
+  const partyRows = () => PARTY.map((id) => {
+    const m = M[id];
+    const wield = carriedBy(id).filter((a) => S.wield[a] && A[a].kind === 'passive').map((a) => A[a].n);
+    return `<div class="row ${m.dead ? 'dead' : ''} ${S.card === 'm:' + id ? 'sel' : ''}" data-act="member" data-id="${id}">
+      <span class="lt">${m.l}</span><div><div class="n">${m.n}</div><div class="s">${m.load}${wield.length ? ' · ' + wield[0] : ''}</div></div></div>`;
+  }).join('');
+
+  const invRows = () => INV.map((id) => {
+    const a = A[id], st = artState(a), who = M[carrierOf(a)].n;
+    const wielded = a.kind === 'passive' && S.wield[id];
+    return `<div class="row st-${st} ${S.card === 'a:' + id ? 'sel' : ''}" data-act="art" data-id="${id}">
+      <span class="lt">${a.l}</span><div><div class="n">${a.n}</div><div class="s">${wielded ? 'wielded' : 'carried'}: ${who}${a.kg ? ' · ' + a.kg + ' kg' : ''}</div></div>
+      <span class="cue">${CUE[st]}</span></div>`;
+  }).join('');
+
+  const widget = (id, sel) => {
+    const m = M[id];
+    const arts = carriedBy(id).map((a) => `<span class="ai" title="${A[a].n}">${A[a].l}</span>`).join('');
+    return `<div class="wd ${sel ? 'sel' : ''}" draggable="true" data-act="wd" data-id="${id}">
+      <span class="lt">${m.l}</span>
+      <div class="wn">${m.n}<div class="wa">${arts}</div></div>
+      <div class="ws">${m.mp ? `<b class="mp" title="magic">✦${m.mp}</b>` : ''}<b class="fs" title="fighting strength">${m.fs}</b><b class="tot" title="total with artifacts">${m.tot}</b></div></div>`;
+  };
+
+  const leftHTML = () => {
+    if (S.mode === 'fight') {
+      const c = S.cmb;
+      const avail = c.avail.filter((id) => !c.front.includes(id) && !allPlaced().includes(id));
+      return `<h4>NOT ENGAGED</h4>${avail.map((id) => widget(id, c.sel.includes(id))).join('') || '<div class="s" style="color:#a39a85">Everyone is committed.</div>'}`;
+    }
+    if (S.left === 'party') return `<h4>PARTY <span>${PARTY.length - 1} living</span></h4>${partyRows()}`;
+    if (S.left === 'inv') return `<h4>INVENTORY <span>${INV.length} items</span></h4>${invRows()}`;
+    return '';
+  };
+
+  // ---------- card panel ----------
+  const miniCards = (mid) => carriedBy(mid).map((id) => card(A[id], 'mini click', `data-act="art" data-id="${id}" data-from="${mid}" title="${A[id].n}"`)).join('');
+
+  const memberCard = (id) => {
+    const m = M[id];
+    const wielding = carriedBy(id).filter((a) => A[a].kind === 'passive' && S.wield[a]).map((a) => A[a].n).join(', ') || 'Nothing';
+    const carrying = carriedBy(id).filter((a) => !(A[a].kind === 'passive' && S.wield[a])).map((a) => A[a].n).join(', ') || 'Nothing';
+    const hints = { dwarf: 'Guides the party safely past traps.', priest: 'Fights with magic from behind the front line.', thief: 'Can lift treasure unseen.' };
+    return `<h4>PARTY MEMBER</h4><div class="cardwrap">${card(m)}
+      <div class="minis">${miniCards(id)}</div>
+      <div class="hint">Party member: ${m.n}<br>Wielding: ${wielding}<br>Carrying: ${carrying}
+        <small>From the manual${hints[id] ? ': ' + hints[id] : ' (structured data)'}.</small></div></div>`;
+  };
+
+  const strangerCard = () => `<h4>ENCOUNTER</h4><div class="cardwrap">${card({ n: 'Dragon', g: 'D', hue: 270, str: 6 })}
+    <div class="minis">${card({ n: 'Wolf', g: 'W', hue: 0, str: 2 }, 'mini')}${card({ n: 'Silver', g: 'S', hue: 200 }, 'mini')}</div>
+    <div class="hint">Chamber: you return here.<br>Strangers: Dragon (leader), Wolf.<br>Guarding: Silver 25kg.</div>
+    <div class="acts"><button class="btn" data-act="toast" data-t="Withdraw (mock)">Withdraw</button>
+      <button class="btn" data-act="toast" data-t="Attack (mock)">Attack</button>
+      <button class="btn sec" data-act="toast" data-t="Test mode only">Test reaction</button></div></div>`;
+
+  const sibylCard = () => `<h4>SIBYL</h4><div class="cardwrap">${card({ n: 'Sibyl', g: 'S', hue: 280 })}
+    <div class="hint">Travels with the party once she has joined.<small>From the manual (structured data).</small></div>
+    <div class="acts"><button class="btn" data-act="toast" data-t="Pick a tile to look at (mock)">Look at a tile...</button></div></div>`;
+
+  const artCard = (id) => {
+    const a = A[id], st = artState(a), who = M[carrierOf(a)];
+    const back = S.backTo ? `<span class="backlink" data-act="member" data-id="${S.backTo}">← ${M[S.backTo].n}</span>` : '';
+    const reason = a.kind === 'treasure' ? 'Treasure: nothing to use.'
+      : a.cant ? `Carried by ${a.cant}, whose class cannot use it (illustrative).`
+      : a.kind === 'passive' ? 'Passive: works automatically while carried.'
+      : st === 'yellow' ? 'Not usable in this situation.' : '';
+    let extra = '';
+    if (a.pick === 'targets') extra = `<div class="acts"><span class="s" style="font-size:10px;color:#a39a85;width:100%">Revive:</span><button class="btn sec pick ${S.picked[id] === 'woman' ? 'on' : ''}" data-act="pick" data-id="${id}" data-v="woman">Woman (fallen)</button></div>`;
+    if (a.pick === 'dirs') extra = `<div class="acts">${['N', 'E', 'S', 'W', 'Down'].map((d) => `<button class="btn sec pick ${S.picked[id] === d ? 'on' : ''}" data-act="pick" data-id="${id}" data-v="${d}">${d}</button>`).join('')}</div>`;
+    const wield = a.kind === 'passive' ? `<button class="btn sec" data-act="wield" data-id="${id}">${S.wield[id] ? 'Stow (carry)' : 'Wield'}</button>` : '';
+    const use = a.kind === 'active' ? `<button class="btn" data-act="use" data-id="${id}" ${st === 'green' && (!a.pick || S.picked[id]) ? '' : 'disabled'}>Use ${a.n}</button>` : '';
+    const give = `<button class="btn sec" data-act="givemenu" data-id="${id}">Give to...</button>`;
+    const gmenu = S.givemenu === id ? `<div class="acts">${PARTY.filter((p) => !M[p].dead && p !== carrierOf(a)).map((p) => `<button class="btn sec" data-act="give" data-id="${id}" data-v="${p}">${M[p].n}</button>`).join('')}</div>` : '';
+    return `<h4>ARTIFACT ${back}</h4><div class="cardwrap">${card(a)}
+      <div class="hint">${a.n} &nbsp;${a.kg ? a.kg + ' kg' : '0 kg'}<br>Carried by ${who.n}.<br>${a.txt}<small>From the manual (structured data).</small></div>
+      ${extra}<div class="acts">${use}${wield}${give}</div>${gmenu}
+      ${reason ? `<div class="reason">${reason}</div>` : ''}</div>`;
+  };
+
+  const chamberCard = () => `<h4>IN THE CHAMBER</h4><div class="cardwrap">${card({ n: 'Magic Axe', l: 'A', hue: 15 })}
+    <div class="hint">Magic Axe &middot; 0 kg<br>Left behind by the fallen strangers.<br>Choose who carries it.<small>Party-leader decision.</small></div>
+    <div class="acts">${['hero', 'wh', 'ogre', 'dwarf', 'thief'].map((p) => `<button class="btn sec pick ${S.picked.chamber === p ? 'on' : ''}" data-act="assign" data-v="${p}">${M[p].n}</button>`).join('')}</div>
+    <div class="reason" style="color:#8fe29a">${S.picked.chamber ? 'Assigned to ' + M[S.picked.chamber].n + '. Nothing is final until the party moves on.' : ''}</div></div>`;
+
+  // Peter's 20261030 examples. 'special' areas always read in full; the rest are terse unless verbose descriptions is on.
+  const AREAS = {
+    fog: { n: 'Fogged', ex: [], fog: true, terse: 'Not yet explored.', full: 'You have not yet explored that area.' },
+    tunnel: { n: 'Revealed tunnel', ex: ['N', 'W', 'E'], terse: 'Tunnel. Exits N, W, E.', full: 'A tunnel, with exits North, West and East.' },
+    demon: { n: 'Tunnel with demon', ex: ['N', 'S'], terse: 'Tunnel. Exits N, S. Danger.', full: 'A tunnel, with exits North and South. Something evil lurks in the darkness...' },
+    empty: { n: 'Empty chamber (seen)', ex: ['W', 'E', 'S', 'Up'], terse: 'Empty chamber. Exits W, E, S. Stairs up.', full: 'A chamber with exits West, East and South, and a secret stairway leading upwards.' },
+    withdrew: { n: 'Non-empty chamber (withdrew)', ex: ['N', 'W', 'E'], terse: 'Wizard, Woman, silver. You withdrew unseen.', full: 'A chamber with exits North, West, East. There are strangers here - a Wizard and a Woman. They are guarding some silver. You recall withdrawing from the entrance - they did not see you.' },
+    visited: { n: 'Non-empty chamber (visited)', ex: ['N', 'W', 'E'], terse: 'Wizard, Woman, silver. They were indifferent.', full: 'A chamber with exits North, West, East. You recall approaching the strangers here - a Wizard and a Woman, guarding some silver. They were indifferent to you.' },
+    special: { n: 'Special chamber', ex: ['W', 'E'], special: true, full: 'Dark water churns here - there are reachable exits to the West and East - but crossing the shallows risks the pull of the whirlpool.' },
+  };
+
+  const areaCard = (id) => {
+    const a = AREAS[id];
+    const full = S.verbose || a.special;
+    const exits = a.ex.map((e) => `<i class="x${e[0].toLowerCase()}">${e}</i>`).join('');
+    const picks = Object.keys(AREAS).map((k) => `<button class="btn sec pick ${k === id ? 'on' : ''}" data-act="area" data-id="${k}">${AREAS[k].n}</button>`).join('');
+    return `<h4>AREA</h4><div class="cardwrap"><div class="land ${a.fog ? 'fog' : ''}"><div class="lf"></div>${exits}${a.fog ? '' : '<span class="dot"></span>'}</div>
+      <div class="hint">${full ? a.full : a.terse}<small>${a.special ? 'Special chambers always read in full.' : S.verbose ? 'Verbose descriptions: on.' : 'Terse. Turn on verbose descriptions in Settings for the story text.'}</small></div>
+      <div class="s" style="font-size:10px;color:#a39a85;width:100%">Review: show this card as</div><div class="acts">${picks}</div></div>`;
+  };
+
+  const settingsHTML = () => `<h4>SETTINGS</h4>
+    <div class="kv" style="margin-bottom:10px"><span>Game</span><span>SY2A</span><span>Type</span><span>EXT</span><span>Level</span><span>2</span><span>Turn</span><span>14</span><span>Party</span><span>7</span><span>Deck</span><span>88 / 90</span></div>
+    <div class="setrow" data-act="verbose"><span>Verbose descriptions</span><span>${S.verbose ? 'On' : 'Off'}</span></div>
+    ${['Save game', 'Game log', 'Scoreboard', 'Exit game'].map((t) => `<div class="setrow" data-act="toast" data-t="${t} (mock)"><span>${t}</span><span>›</span></div>`).join('')}`;
+
+  const testHTML = () => `<h4>TEST PANEL</h4><div class="hint">The existing test controls (force a die, queue an area or chamber, set a reaction) open here, from the T icon. Shown only in test mode.</div>
+    ${['Force die...', 'Queue area...', 'Force reaction...', 'Clear overrides'].map((t) => `<div class="setrow" data-act="toast" data-t="${t} (mock)"><span>${t}</span><span>›</span></div>`).join('')}`;
+
+  const rightHTML = () => {
+    if (S.right === 'settings') return settingsHTML();
+    if (S.right === 'test') return testHTML();
+    if (S.right !== 'card' || !S.card) return '';
+    const [k, id] = S.card.split(':');
+    if (k === 'm') return memberCard(id);
+    if (k === 'a') return artCard(id);
+    if (k === 'enc') return strangerCard();
+    if (k === 'sibyl') return sibylCard();
+    if (k === 'area') return areaCard(id);
+    if (k === 'chamber') return chamberCard();
+    return '';
+  };
+
+  // ---------- combat ----------
+  const allPlaced = () => (S.cmb ? S.cmb.rows.flatMap((r) => [...r.front, ...r.back]) : []);
+  const newCmb = (flow) => ({ flow, phase: flow === 'defend' ? 'choose' : 'pair', avail: COMBAT_PARTY.slice(), sel: [], front: [],
+    rows: FOES.map((f) => ({ foe: f, front: [], back: [] })), msg: '' });
+
+  const rowTotals = (r) => ({
+    me: r.front.reduce((s, id) => s + M[id].tot, 0) + r.back.reduce((s, id) => s + M[id].mp, 0),
+    them: r.foe.str,
+  });
+
+  const rowHTML = (r, ri) => {
+    const c = S.cmb, t = rowTotals(r);
+    const canPlace = c.flow === 'attack' && c.phase === 'pair';
+    const tk = (id) => card(M[id], 'sm' + (canPlace ? ' click' : ''), canPlace ? `data-act="take" data-id="${id}" title="Take back"` : '');
+    const frontOpen = canPlace && r.front.length < 2;
+    const backOpen = canPlace;
+    const frontHTML = r.front.length ? r.front.map(tk).join('') : (frontOpen ? 'pick a creature, then tap here' : '—');
+    return `<div class="pr">
+      <div class="sl ${backOpen ? 'open' : ''}" data-slot="${ri}:back" data-act="slot" data-row="${ri}" data-side="back">${r.back.length ? r.back.map(tk).join('') : '✦ behind<br>magic user'}</div>
+      <div class="sl ${frontOpen ? 'open' : ''}" data-slot="${ri}:front" data-act="slot" data-row="${ri}" data-side="front">${frontHTML}</div>
+      <div class="vs"><span class="them">${t.them}</span><small>vs</small><span class="me">${t.me}</span></div>
+      <div class="sl foe">${card({ ...r.foe, fs: r.foe.str }, 'sm click', `data-act="enc" title="${r.foe.n}"`)}</div>
+      <div class="sl foe" style="border-style:dashed">✦ behind</div></div>`;
+  };
+
+  const fightHTML = () => {
+    const c = S.cmb;
+    const showBox = c.flow === 'defend' && (c.phase === 'choose' || c.phase === 'placed');
+    const boxMembers = c.front.map((id) => widget(id, false)).join('');
+    const need = FOES.length;
+    let foot = '', msg = c.msg;
+    if (c.flow === 'defend') {
+      if (c.phase === 'choose') msg = 'The strangers attack: choose your front line.';
+      if (c.phase === 'placed') msg = 'Adjust the front line, then confirm.';
+      if (showBox) foot = `<button class="btn" data-act="deploy" ${c.front.length >= need ? '' : 'disabled'}>Confirm Frontline Deployment</button>
+        <span class="s" style="color:#e0a090">${c.front.length >= need ? '' : `Deploy at least ${need} (the attackers' number).`}</span>`;
+      if (c.phase === 'targets') { msg = 'Strangers have selected targets.'; foot = '<button class="btn" data-act="roll">Roll the Round</button>'; }
+    } else {
+      const unpaired = c.rows.filter((r) => !r.front.length).length;
+      if (c.phase === 'pair') {
+        msg = 'Choose your front line: pick creatures, then tap an open slot.';
+        foot = `<button class="btn" data-act="roll" ${unpaired ? 'disabled' : ''}>Roll the Round</button>
+          <span class="s" style="color:#e0a090">${unpaired ? `${unpaired} stranger${unpaired > 1 ? 's' : ''} still unmatched.` : ''}</span>
+          <button class="btn sec" data-act="undoall">Undo placements</button>`;
+      }
+    }
+    if (c.phase === 'rolled') { msg = 'The dice are rolled here (outside this mockup).'; foot = '<button class="btn sec" data-act="resetfight">Start the round again</button>'; }
+    const flBox = showBox ? `<div class="fl" data-act="fl" data-drop="fl"><div class="fln">FRONTLINE</div>${boxMembers || '<div class="empty">Select creatures on the left, then tap here or drag them in.</div>'}</div>` : '';
+    return `<div class="fh">FIGHT · ROUND 1 <span class="pill ok">You ${c.flow === 'attack' ? 'took them' : 'were taken'} by surprise — ${c.flow === 'attack' ? '+1 this round' : 'they attack first'}</span>
+        <span class="pill msg">${msg}</span></div>
+      <div class="rows" style="padding-left:${showBox ? 0 : 0}px">${flBox}<div style="${showBox ? 'margin-left:240px;' : ''}display:flex;flex-direction:column;gap:8px">${c.rows.map(rowHTML).join('')}</div></div>
+      <div class="ff">${foot}</div>`;
+  };
+
+  // ---------- render ----------
+  const render = () => {
+    const fight = S.mode === 'fight';
+    const bar = (id, key, label) => {
+      const off = fight && (key === 'party' || key === 'inv') ? 'off' : '';
+      const on = (key === 'book' && S.right === 'card') || (key === 'party' && S.left === 'party') || (key === 'inv' && S.left === 'inv')
+        || (key === 'settings' && S.right === 'settings') || (key === 'test' && S.right === 'test');
+      return `<div class="ib ${on && !fight ? 'on' : (on && key !== 'party' && key !== 'inv' ? 'on' : '')} ${off}" data-act="icon" data-id="${key}" title="${label}${off ? ' (not shown in combat)' : ''}">${ICONS[id]}</div>`;
+    };
+    const leftOpen = fight || S.left;
+    stage.innerHTML = `
+      <div class="board"><div class="floor">
+        <div class="tile hot" data-act="enc" title="Current chamber" style="left:300px;top:150px;width:180px;height:140px"></div>
+        <div class="tile" data-act="area" data-id="tunnel" style="left:480px;top:190px;width:200px;height:60px"></div>
+        <div class="tile" data-act="area" data-id="visited" style="left:350px;top:290px;width:160px;height:150px"></div>
+        <div class="tile" data-act="area" data-id="demon" style="left:180px;top:200px;width:120px;height:50px"></div>
+        <div class="fog" data-act="area" data-id="fog" style="left:560px;top:60px;width:300px;height:200px"></div>
+        <div class="fog" data-act="area" data-id="fog" style="left:20px;top:330px;width:260px;height:180px"></div>
+        <div class="pawn" style="left:380px;top:195px"></div>
+      </div></div>
+      <header class="bar">
+        <div class="ig">${bar('party', 'party', 'Party')}${bar('inv', 'inv', 'Inventory')}</div>
+        <div class="title">THE SORCERER'S CAVE</div>
+        <div class="ig">${bar('book', 'book', 'Card panel (show / hide)')}${bar('gear', 'settings', 'Settings')}${testMode ? bar('text', 'test', 'Test panel (test mode only)') : ''}</div>
+      </header>
+      ${leftOpen ? `<aside class="slot left" data-drop="left">${leftHTML()}</aside>` : ''}
+      ${S.right && rightHTML() ? `<aside class="slot right">${rightHTML()}</aside>` : ''}
+      ${fight ? `<section class="fight ${S.right && !S.forced ? '' : 'full'}">${fightHTML()}</section>` : ''}
+      <footer class="bottom"><div class="grp" title="Unchanged">${ICONS.inv}<span>·</span>${ICONS.gear}<span>1</span></div></footer>
+      ${S.mode === 'explore' && S.left === 'inv' ? '<div class="draft">Colour states: draft, to be hardened</div>' : ''}
+      <div class="toast" id="toast"></div>
+      ${S.popup ? `<div class="popup"><div class="dlg" role="dialog" aria-label="A trap"><h5>A trap lies in this chamber</h5>
+        <p>The Dwarf can guide the party safely past it, and the trap stays where it is.</p>
+        <p>Or the party can fall through it on purpose. The drop is one way - you cannot return up this way. If there are strangers below, they will not be expecting you, so you gain the advantage of surprise.</p>
+        <div class="acts"><button class="btn" data-act="closepop">Guided past the trap</button><button class="btn" style="border-color:#c4574a;color:#f0a090" data-act="closepop">Fall through the trap</button></div></div></div>` : ''}`;
+  };
+
+  // ---------- scenes ----------
+  const SCENES = [
+    ['Explore (clear view)', 'The default: only the thin bar and the bottom group. The 3D view is unobstructed.', () => ({})],
+    ['Party list', 'The party icon opens the party list on the left. Click a member to see their card.', () => ({ left: 'party' })],
+    ['Party member card', '<b>Card panel:</b> the card, mini-cards of what the member carries (click one to swap the view to that artifact), then manual text. Settings and the card panel are exclusive.', () => ({ left: 'party', right: 'card', card: 'm:dwarf' })],
+    ['Encounter card', '<b>Strangers are cards too.</b> Withdraw and Attack are actions on the card; "Test reaction" appears in test mode only.', () => ({ ctx: 'dragon', right: 'card', card: 'enc:dragon' })],
+    ['Inventory + artifact', '<b>Item perspective:</b> each row says who carries it. Colour <i>and</i> a text tag show availability (change the Situation above). Select the Charmed Flute with a dragon present: Use is on the card, not suggested anywhere else.', () => ({ ctx: 'dragon', left: 'inv', right: 'card', card: 'a:flute' })],
+    ['Artifact with picker', 'Artifacts that need a target or direction carry the picker on the card (Magic Carpet shown). Passive items offer Wield or Stow instead of Use.', () => ({ left: 'inv', right: 'card', card: 'a:carpet' })],
+    ['Chamber pickup', '<b>Party-leader philosophy:</b> after a fight the leader assigns each chamber artifact from its card. This replaces the pickup screen and trade modal.', () => ({ left: 'party', right: 'card', card: 'chamber:axe' })],
+    ['Area card', '<b>Any card can be inspected.</b> Click a revealed area on the board (not the one you stand in) to see a landscape mini and a description. Use the buttons on the card to see each state; the Settings row turns on verbose descriptions.', () => ({ right: 'card', card: 'area:withdrew' })],
+    ['Sibyl card', 'The Sibyl\'s free look is reachable only from her own card, with no prompting.', () => ({ right: 'card', card: 'sibyl:sibyl' })],
+    ['Settings', '<b>Settings</b> now holds the game information vertically (game code, type, level, turns, party, deck) and the control icons.', () => ({ right: 'settings' })],
+    ['Trap (blocking)', 'The only kind of popup: an action that must be taken. Everything else routes through the card view.', () => ({ popup: true })],
+    ['Combat: defend', '<b>Party under attack.</b> Select several widgets (click), drag or tap into Frontline, confirm, then see the strangers\' targets and Roll the Round. Party and inventory icons are off in combat. Press the Book icon to force the card panel on top of the dialog, and again to hide it.', () => ({ mode: 'fight', cmb: newCmb('defend') })],
+    ['Combat: attack', '<b>Party attacking</b> (flow unchanged): pick creatures, tap an open slot in a row. Tentative until Roll the Round; tap a placed card to take it back. Only magic users fit "behind".', () => ({ mode: 'fight', cmb: newCmb('attack') })],
+  ];
+  let sceneIx = 0;
+  const loadScene = (i) => {
+    sceneIx = i;
+    const ctx = S.ctx;
+    S = { ...init(), ctx, ...SCENES[i][2]() };
+    $('ctx').value = S.ctx;
+    $('caption').innerHTML = SCENES[i][1];
+    [...$('scenes').children].forEach((b, j) => b.classList.toggle('on', j === i));
+    render();
+  };
+
+  // ---------- actions ----------
+  const placeIn = (c, row, side, ids) => {
+    const r = c.rows[row];
+    const ok = [];
+    for (const id of ids) {
+      if (side === 'back' && !M[id].mp) { toast(M[id].n + ' is not a magic user.'); continue; }
+      if (side === 'front' && r.front.length + ok.length >= 2) { toast('The front holds two positions.'); break; }
+      ok.push(id);
+    }
+    (side === 'front' ? r.front : r.back).push(...ok);
+    c.sel = c.sel.filter((id) => !ok.includes(id));
+  };
+
+  const act = (a, d, e) => {
+    const c = S.cmb;
+    switch (a) {
+      case 'icon': {
+        if (S.mode === 'fight' && (d.id === 'party' || d.id === 'inv')) return;
+        if (d.id === 'book') { S.right = S.right === 'card' ? null : 'card'; S.forced = S.right === 'card'; if (!S.card) S.card = 'enc:dragon'; break; }
+        if (d.id === 'party' || d.id === 'inv') S.left = S.left === d.id ? null : d.id;
+        else { S.right = S.right === d.id ? null : d.id; S.forced = false; }
+        break;
+      }
+      case 'member': S.card = 'm:' + d.id; S.backTo = null; S.right = 'card'; S.forced = false; break;
+      case 'art': S.backTo = d.from || null; S.card = 'a:' + d.id; S.right = 'card'; S.forced = false; break;
+      case 'area': S.card = 'area:' + d.id; S.backTo = null; S.right = 'card'; S.forced = false; break;
+      case 'verbose': S.verbose = !S.verbose; break;
+      case 'enc': S.card = 'enc:dragon'; S.right = 'card'; S.forced = false; break;
+      case 'toast': return toast(d.t);
+      case 'pick': S.picked[d.id] = S.picked[d.id] === d.v ? null : d.v; break;
+      case 'wield': S.wield[d.id] = !S.wield[d.id]; break;
+      case 'use': toast(`${A[d.id].n} used (mock): the engine would be sent the action.`); break;
+      case 'givemenu': S.givemenu = S.givemenu === d.id ? null : d.id; break;
+      case 'give': S.given[d.id] = d.v; S.givemenu = null; toast(`${A[d.id].n} given to ${M[d.v].n}`); break;
+      case 'assign': S.picked.chamber = d.v; break;
+      case 'closepop': S.popup = false; break;
+      case 'wd': {
+        if (!c) break;
+        const i = c.sel.indexOf(d.id);
+        if (i >= 0) c.sel.splice(i, 1); else c.sel.push(d.id);
+        break;
+      }
+      case 'fl': {
+        if (e.target.closest('.wd')) { const id = e.target.closest('.wd').dataset.id; c.front = c.front.filter((x) => x !== id); c.phase = 'choose'; break; }
+        c.front.push(...c.sel); c.sel = []; c.phase = c.front.length ? 'placed' : 'choose'; break;
+      }
+      case 'deploy': {
+        // the strangers pick targets: one defender per foe in order, any extra joins a second front slot
+        c.front.forEach((id, i) => c.rows[i % c.rows.length].front.push(id));
+        c.front = []; c.phase = 'targets'; break;
+      }
+      case 'slot': {
+        if (!c || c.flow !== 'attack' || c.phase !== 'pair') break;
+        if (!c.sel.length) return toast('Pick a creature on the left first.');
+        placeIn(c, +d.row, d.side, c.sel.slice());
+        break;
+      }
+      case 'take': c.rows.forEach((r) => { r.front = r.front.filter((x) => x !== d.id); r.back = r.back.filter((x) => x !== d.id); }); break;
+      case 'undoall': c.rows.forEach((r) => { r.front = []; r.back = []; }); c.sel = []; break;
+      case 'roll': c.phase = 'rolled'; break;
+      case 'resetfight': S.cmb = newCmb(c.flow); break;
+      default: return;
+    }
+    render();
+  };
+
+  // ---------- events (delegated; the stage is re-rendered on every change) ----------
+  stage.addEventListener('click', (e) => {
+    const t = e.target.closest('[data-act]');
+    if (t) act(t.dataset.act, t.dataset, e);
+  });
+  let dragIds = [];
+  stage.addEventListener('dragstart', (e) => {
+    const w = e.target.closest('.wd');
+    if (!w || !S.cmb) return;
+    const id = w.dataset.id;
+    dragIds = S.cmb.sel.includes(id) ? S.cmb.sel.slice() : [id];
+    e.dataTransfer.setData('text/plain', dragIds.join(','));
+  });
+  stage.addEventListener('dragover', (e) => {
+    const t = e.target.closest('.fl, .sl.open');
+    if (t) { e.preventDefault(); t.classList.add('over'); }
+  });
+  stage.addEventListener('dragleave', (e) => { e.target.closest('.fl, .sl')?.classList.remove('over'); });
+  stage.addEventListener('drop', (e) => {
+    const c = S.cmb, fl = e.target.closest('.fl'), sl = e.target.closest('.sl.open');
+    if (!c || !dragIds.length) return;
+    e.preventDefault();
+    if (fl) { c.front.push(...dragIds.filter((x) => !c.front.includes(x))); c.phase = 'placed'; }
+    else if (sl) placeIn(c, +sl.dataset.row, sl.dataset.side, dragIds);
+    c.sel = c.sel.filter((x) => !dragIds.includes(x));
+    dragIds = [];
+    render();
+  });
+
+  // ---------- setup ----------
+  const sc = $('scenes');
+  SCENES.forEach((s, i) => {
+    const b = document.createElement('button');
+    b.textContent = s[0];
+    b.addEventListener('click', () => loadScene(i));
+    sc.appendChild(b);
+  });
+  $('ctx').addEventListener('change', (e) => { S.ctx = e.target.value; render(); });
+  $('testmode').addEventListener('change', (e) => { testMode = e.target.checked; if (!testMode && S.right === 'test') S.right = null; render(); });
+  const fit = () => { stage.style.transform = `scale(${$('frame').clientWidth / 1200})`; };
+  window.addEventListener('resize', fit);
+  fit();
+  loadScene(0);
+})();
+</script>
+</body>
+</html>
