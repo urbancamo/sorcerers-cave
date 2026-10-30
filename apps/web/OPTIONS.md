@@ -70,12 +70,36 @@ npx convex env remove SORCERER_TELEPORT_ENABLED [--prod]
 
 Any value other than the literal string `1` (including unset) is treated as off.
 
+## `REVISED_COMBAT_ENABLED`
+
+Turns on **the revised combat** (`variants.combatRevision`; Peter's reformulated fighting rules, `docs/rules/fighting-rules-reformulated-20261014.md`,
+engine spec SC-9.7-1 to SC-9.7-17, SC-7.2-21, SC-EXT-42). A fight is no longer one battle plan: it is played round by round on a
+formation screen. The defender deploys, the attacker pairs its free creatures against that front line, either side may then send
+extra creatures into a match, and the matches are fought; a tied or unwinnable match persists into the next round, and the fight ends
+when no match can be decided. It also changes the Scroll (a choice at the start of each round, not a one-off artefact use), the chest
+Spectre (one round only), the Ghouls (a stranger party of their own) and the Apprentice (she turns only if you stay after the
+Sorcerer's death). Solo games only. Without it (or with it switched off) fights are played exactly as before.
+
+Like `FORCED_REDRAW_ENABLED` it is **never player-selectable and never sent by the client**; it is folded into a new game's
+`variants` in `convex/game.ts`. A game keeps the value it was created with. These rules are still provisional, so **a game played
+with it cannot be recorded on the leaderboard** (`highScores.save` refuses it). The strangers' side is played by the level named by
+`STRANGER_STRATEGY` (`standard` when unset).
+
+```bash
+cd apps/web
+npx convex env set REVISED_COMBAT_ENABLED 1        # local dev
+npx convex env set REVISED_COMBAT_ENABLED 1 --prod # production
+npx convex env remove REVISED_COMBAT_ENABLED [--prod]
+```
+
+Any value other than the literal string `1` (including unset) is treated as off.
+
 ## `TRAP_RULES_ENABLED`
 
 Turns on **standing traps and the Dwarf's deliberate fall** (spec
 `.agent-os/specs/2026-10-11-dwarf-deliberate-trap-fall/`): a trap "continues in effect" — it stays in its
-chamber after it fires or is avoided, so a later re-entry meets it again — and two traps in one chamber cannot
-be avoided by a Dwarf. Without it (or with it switched off) a trap is one-shot and a Dwarf always avoids it, as
+chamber after it fires or is avoided, so a later re-entry meets it again — and each Dwarf can guide the party
+past one trap, so a party with n Dwarves can pass n traps in a chamber. Without it (or with it switched off) a trap is one-shot and a Dwarf always avoids it, as
 before. Later tasks in the same spec add the Dwarf's choice popup, surprise for a deliberate fall, and the fall
 when a Dwarf-guided party loses its Dwarf. Solo games only for now.
 
@@ -91,6 +115,60 @@ npx convex env remove TRAP_RULES_ENABLED [--prod]
 ```
 
 Any value other than the literal string `1` (including unset) is treated as off.
+
+## `STRANGER_STRATEGY`
+
+Selects the **strangers' strategy** for new solo games (pluggable stranger combat spec, stages 1 and 2:
+`docs/requirements/combat/2026-10-11-pluggable-stranger-combat.md`). Today the only decision the strangers make is who
+bears which fight artefact, so the registered strategies are `standard` (Peter's default loadout) and `smart` (an exact-evaluation loadout
+that the lab found no better than `standard`); setting `standard` changes nothing a player can see; it exists so the plumbing (a pending decision, a checked and logged `strangersAssignArtefacts`
+action, a fallback to `standard`) is exercised in a real deployment before there is a second strategy to choose.
+
+The value is a strategy id. Unset, or an id nothing is registered under, ⇒ not stamped ⇒ the loadout is applied exactly as
+before. It is folded into a new game's `variants.strangerLevel` in `convex/game.ts`; it is **never client-settable**, and a
+client can never send a stranger decision (`applyAction` and the multiplayer `act` reject any action type starting
+`strangers`). A game keeps the value it was created with. Solo games only.
+
+```bash
+cd apps/web
+npx convex env set STRANGER_STRATEGY standard        # local dev
+npx convex env set STRANGER_STRATEGY standard --prod # production
+npx convex env remove STRANGER_STRATEGY [--prod]
+```
+
+### External levels: `ext-easy`, `ext-hard`, `EXTERNAL_STRATEGY_URL`, `EXTERNAL_STRATEGY_SECRET`
+
+`STRANGER_STRATEGY` may also name an **external level** (`ext-easy`, `ext-hard`): the strangers' decision is then made by an
+endpoint you run, outside the game server (stage 6 of the same spec; plan in
+`docs/requirements/combat/2026-10-13-stage-6-external-strategy-plan.md`). The fight waits on it. Each level has its own
+thinking time (`ext-easy` 1.5 s, `ext-hard` 6 s); if the endpoint is slow, fails, or answers illegally, `standard` decides instead
+and the substitution is logged with its reason.
+
+| Variable | Meaning |
+|---|---|
+| `EXTERNAL_STRATEGY_URL` | The endpoint. Unset ⇒ every external decision falls back to `standard` at once ("endpoint not configured"). |
+| `EXTERNAL_STRATEGY_SECRET` | Sent as `Authorization: Bearer <secret>`. Never logged and never sent to the client. |
+
+The endpoint is sent `POST` JSON `{ version: 1, requestId, strategyId, strategyVersion, kind, context }` (`kind` is `loadout`, `deploy`,
+`engage`, `redeploy` or `casualty`; `context` is only what a human opponent could see) and must answer `{ version: 1, decision }`.
+
+Games against any level other than `standard` are **not eligible for the leaderboard** (`highScores.save` refuses them).
+
+```bash
+cd apps/web
+npx convex env set STRANGER_STRATEGY ext-easy
+npx convex env set EXTERNAL_STRATEGY_URL https://your-endpoint.example/decide
+npx convex env set EXTERNAL_STRATEGY_SECRET <secret>
+```
+
+**How a level is doing.** Each decision asked of an endpoint is logged with the level asked (`strategyId`) and how long it took
+(`latencyMs`, including the wait before a timeout fallback). To see a level's fallback rate, the reasons and p50/p95 latency over its
+newest 5000 decisions:
+
+```bash
+cd apps/web
+npx convex run strangerDecision:report '{"strategyId":"ext-easy"}'
+```
 
 ## `TEST_MODE_SECRET`
 

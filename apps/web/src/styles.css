@@ -1907,6 +1907,14 @@
   border: 1px solid var(--line-strong); border-radius: 16px; backdrop-filter: blur(8px);
   box-shadow: 0 30px 70px -28px rgba(0,0,0,.9); color: var(--parchment); font-family: var(--ui); }
 .scv-fight-top { display: flex; align-items: center; gap: 12px; }
+/* The revised fight: header, hand, prompts and action row stay put and only the battlefield scrolls (Peter's 2026-10-20/21 impressions,
+   R2.6). The battlefield keeps a minimum height, so when the fixed parts alone outgrow a very short window the panel as a whole scrolls
+   (the .scv-fight overflow) rather than a control becoming unreachable. */
+/* Border-box, so the padding is inside the height cap: as content-box it ran 30px past it and the header off the top of the screen. */
+.scv-rev, .scv-rev-retreat { box-sizing: border-box; }
+.scv-rev { overflow-y: auto; }
+.scv-rev > * { flex: none; }
+.scv-rev > .scv-fight-strangers { flex: 1 1 auto; min-height: 160px; overflow-y: auto; overscroll-behavior: contain; }
 .scv-fight-hd { font-family: var(--display); font-weight: 700; font-size: 14px; letter-spacing: .14em; text-transform: uppercase; color: var(--cream); }
 .scv-fight-sub, .scv-fight-cap, .scv-fight-hint { font-family: var(--body); font-style: italic; font-size: 13px; color: var(--stone-dim); }
 .scv-fight-banner { font-family: var(--body); font-style: italic; font-size: 13px; padding: 3px 11px; border-radius: 999px; }
@@ -1921,7 +1929,7 @@
    row's top regardless of which is taller (the party column grows when a modifier chip sits beneath
    it) — the "vs" tally is the only thing that should stay vertically centered, via the row's default
    align-items: center. */
-.scv-match-foes { display: flex; align-items: flex-start; align-self: flex-start; }
+.scv-match-foes { display: flex; flex-direction: column; gap: 8px; align-items: flex-start; align-self: flex-start; }
 .scv-match-idle { opacity: .82; border-style: solid; }
 .scv-match-vs { display: flex; flex-direction: column; align-items: center; min-width: 44px; font-family: var(--display); font-weight: 700; font-size: 16px; line-height: 1.1; }
 .scv-match-vs .them { color: #e7a59c; } .scv-match-vs .me { color: #7fae6f; }
@@ -1949,7 +1957,8 @@
 .scv-mod { font-family: var(--ui); font-size: 11px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--parchment); background: rgba(201,161,78,.07); }
 .scv-mod-party { border-color: rgba(201,161,78,.4); color: var(--brass-bright); }
 .scv-mod-enemy { border-color: rgba(168,68,58,.5); color: #e7a59c; background: rgba(46,18,16,.4); }
-.scv-mod.is-roll { font-style: italic; } /* added to the die roll, not the strength total */
+.scv-mod.is-roll { font-style: italic; }
+button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: transparent; } button.scv-mod-more:hover { border-color: var(--brass); color: var(--cream); } /* added to the die roll, not the strength total */
 /* per-matchup artefact zoom (click a wielded artefact to enlarge it within its own battle) */
 .scv-match-zoom { position: absolute; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 10px; background: rgba(7,7,9,.86); border-radius: 12px; cursor: pointer; }
 .scv-match-zoom img { width: auto; max-height: 78%; aspect-ratio: 63/88; object-fit: contain; border-radius: 10px; box-shadow: 0 22px 60px -16px rgba(0,0,0,.9); }
@@ -1957,13 +1966,50 @@
 .scv-fight-tray { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; border: 1px dashed var(--line); border-radius: 12px; padding: 10px; background: rgba(0,0,0,.18); }
 .scv-fight-reason { font-family: var(--body); font-style: italic; font-size: 13px; color: #e7c07a; }
 .scv-fight-doom { color: #e7a59c; font-weight: 600; }
+.scv-fight-deciding { animation: scv-deciding-pulse 1.6s ease-in-out infinite; }
+@keyframes scv-deciding-pulse { 50% { opacity: .55; } }
+@media (prefers-reduced-motion: reduce) { .scv-fight-deciding { animation: none; } }
 .scv-fight-actions { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
 .scv-fight-row { display: flex; gap: 12px; }
+/* The revised combat's formation screen (RevisedFightSurface): matches in play, then the decision being asked. */
+.scv-rev-matches { display: flex; flex-direction: column; gap: 10px; }
+.scv-rev-match { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+.scv-rev-side { display: flex; gap: 10px; align-items: flex-start; }
+.scv-rev-frontline { align-self: flex-start; min-width: 254px; }
+/* The Ghouls' announcement (RevisedFightSurface): a cold, green-lit gloom with drifting mist and a guttering title. Decoration only. */
+.scv-ghouls { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; padding: 16px; overflow: hidden;
+  background: radial-gradient(ellipse at 50% 40%, rgba(24,44,30,.92), rgba(4,8,6,.97) 70%); animation: scv-ghouls-in .9s ease-out both; }
+.scv-ghouls-mist { position: absolute; inset: -20%; pointer-events: none; opacity: .5;
+  background: radial-gradient(40% 30% at 20% 70%, rgba(120,190,140,.35), transparent 70%), radial-gradient(35% 28% at 80% 30%, rgba(140,200,160,.28), transparent 70%),
+              radial-gradient(45% 30% at 55% 85%, rgba(100,170,125,.3), transparent 70%);
+  filter: blur(14px); animation: scv-ghouls-drift 14s ease-in-out infinite alternate; }
+.scv-ghouls-card { position: relative; max-width: 460px; display: flex; flex-direction: column; align-items: center; gap: 12px; text-align: center; padding: 26px 24px;
+  border: 1px solid rgba(140,200,160,.35); border-radius: 14px; background: rgba(6,12,9,.72); box-shadow: 0 0 60px -10px rgba(110,190,135,.5), inset 0 0 40px rgba(0,0,0,.6); }
+.scv-ghouls-skull { font-size: 54px; line-height: 1; color: #c9e8d0; text-shadow: 0 0 18px rgba(130,220,160,.9), 0 0 42px rgba(90,180,120,.6); animation: scv-ghouls-rise 3.2s ease-in-out infinite; }
+.scv-ghouls-title { margin: 0; font-family: var(--display); font-size: 30px; letter-spacing: .06em; color: #d6f0dc; text-shadow: 0 0 14px rgba(120,210,150,.8); animation: scv-ghouls-gutter 4.5s linear infinite; }
+.scv-ghouls-lede { margin: 0; font-family: var(--body); font-style: italic; font-size: 15px; color: var(--parchment); }
+.scv-ghouls-facts { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 7px; font-family: var(--body); font-size: 13.5px; color: var(--stone); text-align: left; }
+.scv-ghouls-facts li::before { content: "✦ "; color: #7fae8f; }
+.scv-ghouls-facts b { color: var(--cream); font-weight: 600; }
+@keyframes scv-ghouls-in { from { opacity: 0; filter: brightness(2.2); } to { opacity: 1; filter: none; } }
+@keyframes scv-ghouls-drift { from { transform: translate3d(-4%, 2%, 0) scale(1); } to { transform: translate3d(4%, -3%, 0) scale(1.12); } }
+@keyframes scv-ghouls-rise { 0%, 100% { transform: translateY(3px); opacity: .85; } 50% { transform: translateY(-5px); opacity: 1; } }
+@keyframes scv-ghouls-gutter { 0%, 100% { opacity: 1; } 8% { opacity: .55; } 10% { opacity: 1; } 46% { opacity: 1; } 48% { opacity: .35; } 50% { opacity: .9; } 52% { opacity: .5; } 54% { opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .scv-ghouls, .scv-ghouls-mist, .scv-ghouls-skull, .scv-ghouls-title { animation: none; } }
+.scv-rev-decision { display: flex; flex-direction: column; gap: 8px; }
+.scv-rev-moves { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
 .scv-fight-btn { font-family: var(--ui); font-size: 13.5px; padding: 9px 14px; border-radius: 9px; border: 1px solid var(--line-strong); color: var(--parchment); background: rgba(201,161,78,.06); cursor: pointer; }
 .scv-fight-btn.primary { border-color: var(--brass); color: var(--cream); background: rgba(201,161,78,.16); font-weight: 600; }
 .scv-fight-btn.ghost { background: transparent; } .scv-fight-btn:disabled { opacity: .4; cursor: default; }
 .scv-fight-btn:hover:not(:disabled) { border-color: var(--brass); color: var(--cream); }
 .scv-retreat { position: relative; } .scv-retreat-menu { position: absolute; bottom: 110%; left: 0; display: flex; flex-direction: column; gap: 6px; padding: 8px; background: rgba(15,15,20,.96); border: 1px solid var(--line-strong); border-radius: 10px; }
+
+/* Retreat (RevisedFightSurface): the battle view shrinks to a slim bar of ways out so the map shows, and pops back if the retreat is cancelled. */
+.scv-rev-retreat { width: min(560px, 96vw); }
+.scv-retreat-bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.scv-rev-retreat, .scv-rev-restore { animation: scv-rev-pop .2s ease-out both; }
+@keyframes scv-rev-pop { from { opacity: 0; scale: .92; } to { opacity: 1; scale: 1; } }
+@media (prefers-reduced-motion: reduce) { .scv-rev-retreat, .scv-rev-restore { animation: none; } }
 
 /* ---- two-sided PvP fight surface (spec §I-10) — same shell as the solo fight ---- */
 .scv-pvp { z-index: 60; } /* over the canvas and any other panel, like the trade modal */
@@ -2033,6 +2079,26 @@
 .scv-fc-cap { text-align: center; margin-top: 8px; font-family: var(--ui); font-size: 11.5px; color: var(--stone); }
 .scv-fc-cap b { display: block; font-family: var(--black); font-weight: 500; font-size: 13.5px; color: var(--parchment); }
 
+/* The fight hand (FightHand): one flat row, each card overlapped by the next, shrunk to fit (sizes from handFit). The splash fan is the model
+   (.scv-fan-slot), minus the curve. The effective-strength badge rides above the card, where an overlap cannot cover it or the printed
+   numbers at the card's top-left; the name caption shows only for the raised card; a dot marks a card that has a caption to show. */
+.scv-hand { flex-wrap: nowrap; gap: 0; align-items: flex-end; padding: 32px 14px 12px; overflow: visible; }
+.scv-hand-slot { flex: none; position: relative; min-width: 0; }
+.scv-hand .scv-fc, .scv-hand .scv-fc-frame, .scv-hand .scv-fc-art { width: var(--hand-cw, 116px); }
+.scv-hand .scv-fc { position: relative; transform-origin: bottom center; transition: transform .18s cubic-bezier(.2,.7,.2,1); }
+.scv-hand-slot:first-child .scv-fc { transform-origin: bottom left; }
+.scv-hand-slot:last-child .scv-fc { transform-origin: bottom right; }
+.scv-hand .scv-fc-badge { top: -26px; left: 3px; right: auto; }
+.scv-hand .scv-fc-cap { position: absolute; left: 0; right: 0; top: 100%; margin-top: 4px; display: none; white-space: nowrap; }
+.scv-hand .scv-fc.has-caption .scv-fc-frame::before { content: ""; position: absolute; z-index: 2; left: 5px; bottom: 5px; width: 9px; height: 9px; border-radius: 50%; background: var(--brass-bright); box-shadow: 0 0 0 1px rgba(0,0,0,.7); }
+.scv-hand-slot:hover, .scv-hand-slot:focus-within, .scv-hand-slot:has(.is-sel) { z-index: 100 !important; }
+.scv-hand-slot:hover .scv-fc, .scv-hand-slot:focus-within .scv-fc, .scv-hand .scv-fc.is-sel { transform: translateY(-12px) scale(var(--hand-scale, 1.12)); }
+.scv-hand-slot:hover .scv-fc-cap, .scv-hand-slot:focus-within .scv-fc-cap, .scv-hand .scv-fc.is-sel .scv-fc-cap { display: block; }
+.scv-hand-slot.no-pop:hover .scv-fc:not(.is-sel), .scv-hand-slot.no-pop:focus-within .scv-fc:not(.is-sel) { transform: none; }
+.scv-hand-slot.no-pop:hover .scv-fc:not(.is-sel) .scv-fc-cap { display: none; }
+.scv-hand .scv-fc.is-sel .scv-fc-art { outline-offset: 0; }
+@media (prefers-reduced-motion: reduce) { .scv-hand .scv-fc { transition: none; } }
+
 /* ===== Mobile: dock action panels to the bottom as full-width sheets ===== */
 @media (max-width: 720px) {
   /* encounter + fight: full-width bottom sheets that scroll instead of clipping */
@@ -2075,6 +2141,8 @@
     background: rgba(12, 12, 16, 0.97);
     border-top: 1px solid var(--line);
   }
+  /* ...but in the revised fight only the battlefield scrolls, so its actions are already pinned. */
+  .scv-rev .scv-fight-actions { position: static; margin: 0; padding: 0; background: none; border-top: 0; }
   /* Dice overlay: never wider than the phone; a many-lane roll wraps instead of clipping. */
   .scv-dice-card { max-width: 94vw; }
   .scv-dice-lane { flex-wrap: wrap; }

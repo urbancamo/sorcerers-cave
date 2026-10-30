@@ -1,0 +1,111 @@
+# Stage 6 — External Strategy: Implementation Plan
+
+`DATE: 13-OCT-2026`
+`STATUS: BUILT 13-OCT-2026 (6.1 to 6.7), committed on combat-review. Exit criterion met against the lab stub; not yet run against a real model (see §8).`
+`RELATED: [pluggable stranger combat](2026-10-11-pluggable-stranger-combat.md) §4 (P1–P15), §5.3–§5.7, §6 stage 6, §9 (D2, D4–D6) · [stranger levels calibration](2026-10-12-stranger-levels-calibration.md)`
+
+## 1. Where things stand
+
+- **The driver is synchronous.** `driveStrangers` (`packages/engine/src/strangerDriver.ts`) loops on `fight.pending.by === "strangers"`. A hook that returns a promise is rejected as `"late: the strategy answered asynchronously"` and replaced by `standard`'s decision.
+- **Pending state never survives a mutation yet.** `applyAction` in `apps/web/convex/game.ts` calls `driveStrangers` in the same call and logs each applied action.
+- **Forgery is already blocked on the solo path.** Any `strangers*` action from a client is rejected.
+- **`strategyId` and `strategyVersion` are already on every logged decision**, so replay never builds a strategy (P6).
+- **The strategy is selected by `STRANGER_STRATEGY`**, stamped server-side into `variants.strangerLevel` (D6, already in place).
+
+## 2. Goal and exit criterion
+
+An external strategy, such as a model endpoint, answers a stranger decision outside the mutation. The fight holds a pending decision until the answer arrives or a timeout falls back to `standard`.
+
+**Exit:** decisions are logged and replayable offline (P6, P11), and the fallback rate is measured.
+
+## 3. Defaults (approved)
+
+| # | Default | Source |
+|---|---|---|
+| 1 | Run it in a **Convex action**, with no separate service. | D5 |
+| 2 | **Thinking time is set by the level.** Each external level (for example `ext-easy`, `ext-hard`) declares its own time budget, so the budget is not one global constant. Ruled by MSW, 13-OCT-2026; this settles D4. | D4 |
+| 3 | **Solo only.** Multiplayer-vs-strangers is not wired to the driver yet. | §5.5; stage 4 status |
+| 4 | **Server-stamped env selection only**, such as `STRANGER_STRATEGY=ext-…`. No player-facing choice. | D6 |
+| 5 | **Only `standard` is ranked.** Games on an external strategy record the id and are not listed on the leaderboard. | D2 |
+| 6 | **Timeout falls back to `standard`**, logged as `strategyFallback { reason: "timeout" }`. Nothing is left hanging. | P5, P11 |
+| 7 | The endpoint sees only `fightView` plus `legal` (P4), never the pack or the seed. | P4 |
+
+## 4. Work packages
+
+### 6.1 Engine: split "ask" from "apply" (pure, no I/O) *(built 13-OCT-2026; engine-spec SC-9.7-12)*
+- Add `pendingContext(state)` to `strangerDriver.ts`. It returns the serialisable context for the current pending decision: kind, `fightView`, `legalPairs` or `legalMoves`, `min`, and `rngSeed`. The sync driver builds the same thing today.
+- Add `applyStrangerDecision(state, kind, rawDecision, meta)`. It runs the existing legality check, falls back to `standard` on violation, and calls `reduce`.
+- Refactor `driveStrangers` onto those two functions. It must stay byte-identical for built-ins (P1).
+- Add an `external` strategy kind. `driveStrangers` stops at a pending decision owned by an external strategy and returns `{ state, applied, awaiting }`, instead of falling back as "late".
+
+### 6.1b Level-defined thinking time *(built 13-OCT-2026; engine-spec SC-9.7-13)*
+- A level declares its budget as data on the strategy: `budget: { deadlineMs, maxNodes? }`. `pendingContext` passes it to the endpoint (the context already has a `budget` field), and the action uses `deadlineMs` as its fetch timeout.
+- External levels are separate ids, such as `ext-easy` (short deadline) and `ext-hard` (long deadline), defined in `externalLevels.ts`. **They are registered in 6.3, not 6.1b**: selecting one before the asynchronous path exists would leave the fight pending forever. Each is stamped through `STRANGER_STRATEGY` like any other level, so the budget is fixed per game with the level (P2).
+- `EXTERNAL_STRATEGY_TIMEOUT_MS` stays only as a server-side ceiling that no level's `deadlineMs` may exceed (Convex action limits).
+- The timeout watchdog and the fallback use the pending decision's own deadline, recorded when it was requested.
+- Levels may also differ in what they do with the time, such as search width. That is the strategy's business and not an engine concern.
+
+### 6.2 Pending state that persists *(built 13-OCT-2026; engine-spec SC-9.7-14)*
+- For external strategies, `fight.pending` survives the mutation. `reduce` already accepts only the matching stranger action while it is pending.
+- Record when the decision was requested (a server-supplied timestamp, passed in, since the engine stays pure) and a request id. Replay never needs these.
+- Test: while a decision is pending, player actions are refused. A forged `strangers*` action is rejected in every phase (P7).
+
+### 6.3 Convex: the asynchronous path (`apps/web/convex`) *(built 13-OCT-2026; engine-spec SC-9.7-15)*
+- Read `convex/_generated/ai/guidelines.md` first (project `CLAUDE.md`).
+- `applyAction` ends by scheduling an internal action, `resolveStrangerDecision(gameId, requestId)`, whenever `driveStrangers` returns `awaiting`.
+- That action reads the state, builds `pendingContext`, `fetch`es the endpoint under the level's own `deadlineMs`, and commits through an internal mutation. The mutation re-checks that the request id still matches, applies via `applyStrangerDecision`, then drives any further built-in or external decisions.
+- On an error, a non-OK response or a timeout, it commits `standard`'s decision with `fallback.reason`. A late arrival of the real answer is dropped because the request id no longer matches.
+- **Watchdog, as built:** not a periodic sweep but one job per request, scheduled with the decision at the level's deadline plus a 2 s grace (`WATCHDOG_GRACE_MS`), which commits the `timeout` fallback if nothing has settled the request. It covers a crashed action, and it fires nothing if the answer already arrived (the request id is gone, so the commit is stale).
+- **Endpoint contract, as built:** `POST` JSON `{ version: 1, requestId, strategyId, strategyVersion, kind, context }` with `Authorization: Bearer <EXTERNAL_STRATEGY_SECRET>` to `EXTERNAL_STRATEGY_URL`; the answer is `{ version: 1, decision }`. Documented in `apps/web/OPTIONS.md`.
+- **Leaderboard (D2), as built:** `highScores.save` refuses a game whose `strangerLevel` is not `standard`. The client does not yet hide the save control for such a game.
+- Endpoint URL and secret live in Convex env vars. The response is validated against a versioned schema, and the secret is never logged.
+
+### 6.4 Client *(built 13-OCT-2026; web only, no engine-spec change)*
+- Show "the strangers are deciding…" while `pending.by === "strangers"`, re-rendered from the existing reactive game query. No new input.
+- **As built:** `FightSurface` shows a `role="status"` line, "The strangers are deciding…", while `fight.pending.by === "strangers"`. It disables "Roll the round" and hides the retreat and artefact buttons, which `reduce` would refuse anyway. The line pulses unless the player prefers reduced motion. The leaderboard save control is still not hidden for an external-level game (see 6.3).
+
+### 6.5 Observability (P15) *(built 13-OCT-2026; web/Convex only, no engine-spec change)*
+- Log per-decision latency and the fallback reason on the logged action. Add a small query or script reporting the fallback rate per strategy.
+- **As built:** a `gameEvents` row for an asked decision carries `strategyId` (the level asked; the logged action names `standard` on a fallback) and `latencyMs` (request to commit; a timeout fallback records the time it took to give up). Built-in rows carry neither. The fallback reason was already on the action. `strangerDecision:report { strategyId }` (internal query, indexed by `by_strategyId`) returns decisions, fallbacks, fallback rate, reasons and p50/p95 latency over the newest 5000. Documented in `apps/web/OPTIONS.md`.
+
+### 6.6 Lab and measurement *(built 13-OCT-2026; lab and `endpointClient.ts` only, no engine-spec change)*
+- Add a stub external strategy: a local HTTP server wrapping the `expert` hooks.
+- Add a lab command that runs a fight through the full async path against the stub. It reports fallback rate, p50/p95 latency and the legality-sweep result. This is where "fallback rate measured" is met.
+- **As built:** `stubEndpoint.ts` is the stub, with injectable faults (delay, hang, 500, malformed body, illegal decision). `asyncBench.ts` (`playAsync`, `measureAsync`) plays fights through `driveStrangers`, `markAwaiting`, the **same HTTP client the Convex action uses** (extracted to `apps/web/convex/endpointClient.ts`, so the lab cannot drift from production) and `applyStrangerDecision`. A fight's logged actions replay offline to the identical final state (P6). Run `pnpm --filter @sorcerers-cave/pairing-lab async`.
+- **First measurement, healthy stub** (`ext-easy`, 4-12 strangers, 30 fights, 134 decisions): fallback rate 0.0%, 0 illegal answers, 0 stuck fights, latency p50 1.7 ms, p95 2.1 ms. With injected faults (10% 500, 5% illegal, 5-25 ms delay) every fight still finished; 22 of 134 decisions fell back, 15 for 500s and 7 caught as illegal.
+- **Limit:** a remote endpoint never gets `evaluate` (it cannot clone the game), so the stub wrapping `expert` answers its pairing decisions as `standard`'s first candidate. It proves the plumbing, not a strength. A real model has to bring its own search or evaluation.
+- A real model or neural net is separate work (the NN documents). Stage 6 only has to prove the plumbing.
+
+### 6.7 Docs (per `CLAUDE.md`) *(built 13-OCT-2026)*
+- `docs/specs/engine-spec.md`: new `SC-9.7-*` rows for `pendingContext`, `applyStrangerDecision`, the persisted pending state and the timeout fallback; amend Appendix C for any test gaps.
+- Update the stage 6 row and add a status note in the pluggable-combat spec.
+- The manual needs no change, since players cannot reach the feature. Say so in the PR.
+- **As built:** engine-spec rows SC-9.7-12 to SC-9.7-16 (16 is new: observability and the lab measurement), the stale "not registered" wording in SC-9.7-13 corrected, the Part II narrative and Appendix C updated. The manual was checked and needs no change: no player can select an external level (server-stamped env only) and the only visible effect is the "the strangers are deciding" line.
+
+## 5. Tests (TDD, written first)
+
+- **Replay (P6):** record an external game with the registry empty and replay it. The result is identical.
+- **Forgery (P7):** a forged `strangers*` action is rejected via `applyAction` and while pending.
+- **Determinism (P8):** the context carries a seed substream, and the game seed is untouched.
+- **Fallback paths:** timeout, 500, malformed JSON, an illegal move, a late arrival (stale request id), and a crashed action recovered by the watchdog.
+- **Parity (P1):** all existing goldens and the built-in sweep are unchanged.
+- **Async end-to-end:** a whole revised fight against the stub endpoint finishes with no stuck fights.
+
+## 6. Order and checkpoints
+
+6.1 → 6.2 → **checkpoint (engine and tests green, full suite)** → 6.3 → 6.4 → 6.5 → 6.6 → 6.7.
+
+Commit per package on `combat-review`, in the repo's `feat(engine,web): … (stage 6)` style.
+
+## 7. Out of scope and open
+
+- **Multiplayer wiring** and **PvP** are untouched.
+- **D4 is settled for stage 6:** thinking time is level-defined (§3 row 2, 6.1b). What remains for Peter is only whether a level's clock should *stretch* with the human's thinking time (attacker pairing only). That is a later enhancement and not needed here.
+- **Real model contract items** (cost ceiling, schema versioning policy) stay open until a real model exists.
+- **Revised combat is not reachable from `apps/web`**, because nothing sets `combatRevision`. A stage 6 strategy therefore runs in real games only through the loadout path for now. The pairing hooks run in the lab and in headless fights. To confirm: is that acceptable for stage 6?
+
+## 8. Outcome
+
+- **Exit criterion:** decisions are logged and replayable offline (P6, P11): met (`asyncBench.test.ts`, replay test). The fallback rate is measured: met against the lab stub (0.0% healthy; 16.4% with injected faults, every fight finished, none stuck).
+- **Not done, by design:** a real model endpoint, its cost ceiling and schema-versioning policy; multiplayer wiring; hiding the leaderboard save control for an external-level game (the server already refuses it); the open question in §7 about reaching revised combat from `apps/web`.
+- **Before a real model:** run the lab against it for fallback rate and p50/p95 under real latency, then tune `EXTERNAL_LEVELS` deadlines (still provisional).

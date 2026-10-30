@@ -3,7 +3,7 @@ import { useConvex, useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { api } from "../../convex/_generated/api";
-import { GS_PLAYING, unpackCoord, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
+import { GS_PLAYING, HAZARD_TRAP, unpackCoord, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
 import { useCaveGame } from "./useCaveGame";
 import { CaveCanvas, type CaveApi } from "../view/CaveCanvas";
 import { SplashScreen } from "./SplashScreen";
@@ -14,6 +14,7 @@ import { EncounterPanel } from "./EncounterPanel";
 import { TrapChoice } from "./TrapChoice";
 import { ExplorePanel } from "./ExplorePanel";
 import { FightSurface } from "./FightSurface";
+import { RevisedFightSurface } from "./RevisedFightSurface";
 import { useManifestCards, useManifestArt } from "../data/useManifestCards";
 import { DiceRoll } from "./DiceRoll";
 import { rollFromEvents, type RollView } from "./rollView";
@@ -92,7 +93,16 @@ export default function GameScreen() {
   const stateRef = useRef<GameState | null>(state);
   stateRef.current = state;
   const getSnapshot = useCallback(() => stateRef.current, []);
-  const { roll, notices, celebration, clearCelebration, holding, heldState, dispatchWithRolls, holdMove, clearRoll, clearNotices } = useDispatchWithRolls(dispatch, getSnapshot);
+  const { roll, notices, celebration, clearCelebration, holding, heldState, dispatchWithRolls, holdMove, clearRoll, clearNotices } = useDispatchWithRolls(
+    // A fall that happens outside a canvas move (the Trap, dealt with last, after the Ghouls fight) drops the party a level with no
+    // move animation: home the camera on the new tile when it lands, as the Home button would, so only the party's level is shown.
+    async (a: GameAction) => {
+      const res = await dispatch(a);
+      if ((res as { events?: GameEvent[] } | null)?.events?.some((e) => e.type === "trapSprung")) caveApi.current?.snapOnArrival();
+      return res;
+    },
+    getSnapshot,
+  );
   onHoldMoveRef.current = holdMove;
   presentingRef.current = holding || !!roll || !!notices;
   const cards = useManifestCards();
@@ -277,12 +287,13 @@ export default function GameScreen() {
       <CaveCanvas key={gameId} onReady={(api) => { caveApi.current = api; }} engine={engine} state={displayState} canAct={!presentingRef.current} color={color} code={code ?? undefined} onPartyClick={() => setShowParty(true)} onSave={handleSave} onLog={() => setShowLog(true)} />
       <EncounterPanel state={displayState} dispatch={dispatchWithRolls} />
       {fightVisible && cards && <FightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
-      <ExplorePanel state={displayState} dispatch={dispatchWithRolls} />
+      {fightVisible && cards && <RevisedFightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
+      <ExplorePanel state={displayState} dispatch={dispatchWithRolls} sibylTools={{ pick: pickDestination, peek: (a) => caveApi.current?.peekTile(a) }} />
       {displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} onSave={handleSave} />}
       {displayState.testMode && <DeadEndSwapBadge />}
       {showParty && <PartyPanel state={displayState} dispatch={dispatch} onClose={() => setShowParty(false)} />}
       {displayState.phase === "trap" && !holding && !overlay && !notices && (
-        <TrapChoice dispatch={(a) => {
+        <TrapChoice traps={displayState.areas[displayState.partyArea]?.contents.filter((c) => c === 300 + HAZARD_TRAP).length || 1} dispatch={(a) => {
           // A deliberate fall drops the party a level outside doMove's animation, so home the camera on the
           // new tile when it lands — the same hand-off the Sorcerer's teleport uses.
           if (a.type === "fallThroughTrap") caveApi.current?.snapOnArrival();
@@ -299,7 +310,7 @@ export default function GameScreen() {
         />
       )}
       {overlay}
-      {notices && <NoticeModal notices={notices} onClose={clearNotices} />}
+      {notices && !roll && <NoticeModal notices={notices} onClose={clearNotices} />}   {/* after the dice: the outcome they explain (e.g. a trap fall) is told once the player has continued */}
       {savedCode && (
         <SaveGameModal
           code={savedCode.code}

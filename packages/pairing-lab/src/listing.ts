@@ -7,7 +7,7 @@ import { fromPlain, type PlainUnit, type Run, type ScenarioRecord } from "./runl
 import { simulate } from "./sim";
 import type { TraceEvent } from "./types";
 
-const END3 = { strangersWin: "SWN", partyWin: "PWN", retreat: "RET", cap: "CAP" } as const;
+const END3 = { strangersWin: "SWN", partyWin: "PWN", retreat: "RET", stalemate: "STL", cap: "CAP" } as const;
 
 /** A creature as `CODE+ARTEFACT...`, then `!` Strength Potion, `^` Elixir, `*n` dragons slain. */
 const unitCode = (u: PlainUnit): string =>
@@ -21,7 +21,8 @@ const COLS: Col[] = [
   { name: "LVL", right: true, get: (r) => String(r.scenario.level) },
   { name: "CRS", right: true, get: (r) => String(r.scenario.curses) },
   { name: "EYE", right: false, get: (r) => (r.scenario.eye ? "Y" : "-") },
-  { name: "SUP", right: true, get: (r) => String(r.scenario.strangerSurprise) },
+  { name: "ATK", right: false, get: (r) => (r.scenario.attacker === "strangers" ? "S" : "P") },
+  { name: "SUP", right: true, get: (r) => String(r.scenario.surprise) },
   { name: "NP", right: true, get: (r) => String(r.scenario.party.length) },
   { name: "NS", right: true, get: (r) => String(r.scenario.strangers.length) },
   { name: "END", right: false, get: (r) => END3[r.outcome.end] },
@@ -61,7 +62,7 @@ export function formatListing(run: Run, o: { printed?: string } = {}): string {
 
   const rl = meta.rules;
   const meta1 = `RUN ${meta.id}   GEN ${meta.generator === "balanced" ? "BAL" : "RND"}   DECK ${dck}   BASE SEED ${meta.baseSeed}   SCENARIOS ${scenarios.length}   PARTY ${meta.partyStyle}   STRANGERS ${meta.strangerStyle}`;
-  const meta2 = `RULES ATK=${rl.strangersAttackFirst ? "S" : "P"} ALT=${rl.alternate ? 1 : 0} CAS=${rl.strangerCasualty === "nominate" ? "NOM" : "STR"} SHW=${rl.shieldWardsBackers ? 1 : 0} STF=${rl.staffPriest} RET=${rl.partyRetreatRatio.toFixed(2)} MAX=${rl.maxRounds}   PRINTED ${o.printed ?? "----------------"}`;
+  const meta2 = `RULES SHW=${rl.shieldWardsBackers ? 1 : 0} STF=${rl.staffPriest} RET=${rl.partyRetreatRatio.toFixed(2)} MAX=${rl.maxRounds}   PRINTED ${o.printed ?? "----------------"}`;
   const W = Math.max(header.length, meta1.length, meta2.length + 12);
   const RULE = "=".repeat(W), THIN = "-".repeat(W);
   const centre = (s: string) => (" ".repeat(Math.max(0, Math.floor((W - s.length) / 2))) + s).replace(/\s+$/, "");
@@ -77,7 +78,7 @@ export function formatListing(run: Run, o: { printed?: string } = {}): string {
     meta1, meta2 + `   WIDTH ${W}`, THIN, header, THIN,
     ...rows,
     THIN, centre(`* * *   E N D   O F   L I S T I N G   -   ${n}   S C E N A R I O S   * * *`), THIN,
-    `SUMMARY N=${n} SWN=${count("strangersWin")} PWN=${count("partyWin")} RET=${count("retreat")} CAP=${count("cap")}`,
+    `SUMMARY N=${n} SWN=${count("strangersWin")} PWN=${count("partyWin")} RET=${count("retreat")} STL=${count("stalemate")} CAP=${count("cap")}`,
     `MEAN   RDS=${mean(scenarios.map((r) => r.outcome.rounds)).toFixed(2)} PVL=${mean(scenarios.map((r) => r.outcome.partyValueLost)).toFixed(2)} SVL=${mean(scenarios.map((r) => r.outcome.strangerValueLost)).toFixed(2)} R1=${f3(mean(scenarios.map((r) => r.outcome.r1)))} R2=${f3(mean(scenarios.map((r) => r.outcome.r2)))} R3=${f3(mean(scenarios.map((r) => r.outcome.r3)))}`,
     THIN,
     ...keyRows("CREATURE", creatureNames),
@@ -85,11 +86,11 @@ export function formatListing(run: Run, o: { printed?: string } = {}): string {
     ...keyRows("UNIT", ["CODE+ART=CREATURE BEARING ARTEFACT", "!=STRENGTH POTION ACTIVE", "^=ELIXIR (+2 STRENGTH)", "*N=N DRAGONS SLAIN"]),
     ...keyRows("DECK", ["BAS=BASE DECK", "KIT=EXTENSION KIT"]),
     ...keyRows("STYLE", ["GRD=GREEDY (STRONGEST FIRST, THE HEU BASELINE)", "CAU=CAUTIOUS (CHEAPEST FIRST, NEVER JOINS)", "MAG=MAGIC-HEAVY (CASTERS BACK)", "RLG=RANDOM LEGAL"]),
-    ...keyRows("END", ["SWN=STRANGERS WON (PARTY WIPED OUT)", "PWN=PARTY WON (STRANGERS WIPED OUT)", "RET=PARTY RETREATED", "CAP=ROUND CAP REACHED"]),
+    ...keyRows("END", ["SWN=STRANGERS WON (PARTY WIPED OUT)", "PWN=PARTY WON (STRANGERS WIPED OUT)", "RET=PARTY RETREATED", "STL=STALEMATE (NEITHER SIDE CAN BEAT THE OTHER; THE STRANGERS HOLD THE AREA)", "CAP=ROUND CAP REACHED"]),
     ...keyRows("COLUMN", [
-      "SCN#=SCENARIO (JSON id)", "DCK=DECK", "LVL=DUNGEON LEVEL", "CRS=CURSES ON THE PARTY", "EYE=EYE OF GOD PRESENT", "SUP=STRANGERS' ROUND 1 SURPRISE",
+      "SCN#=SCENARIO (JSON id)", "DCK=DECK", "LVL=DUNGEON LEVEL", "CRS=CURSES ON THE PARTY", "EYE=EYE OF GOD PRESENT", "ATK=WHO ATTACKS (S STRANGERS, P PARTY)", "SUP=THE ATTACKER'S ROUND 1 SURPRISE (0 TO 2)",
       "NP=PARTY SIZE", "NS=NUMBER OF STRANGERS", "END=HOW THE FIGHT ENDED", "RDS=ROUNDS", "PAL=PARTY SURVIVORS", "SAL=STRANGER SURVIVORS",
-      "PVL=PARTY VALUE LOST (VP)", "SVL=STRANGER VALUE LOST (VP)", "R1=SHARE OF ROUND 1 MATCHES THE STRANGERS WON", "R2=1 IF STRANGERS WIN OR PARTY RETREATS",
+      "PVL=PARTY VALUE LOST (VP)", "SVL=STRANGER VALUE LOST (VP)", "R1=SHARE OF ROUND 1 MATCHES THE STRANGERS WON", "R2=1 IF STRANGERS WIN, PARTY RETREATS OR STALEMATE",
       "R3=VALUE DESTROYED MINUS LOST, 0 TO 1", "SEED=SCENARIO AND DICE SEED",
     ]),
     RULE,
@@ -131,8 +132,8 @@ export function formatMatchListing(run: Run, o: { printed?: string; scenarios?: 
     meta1, THIN, header, THIN,
     ...rows.map((r) => r.cells.map((c, i) => pad(c, i)).join(" ")),
     THIN, centre(`* * *   E N D   O F   L I S T I N G   -   ${rows.length}   M A T C H E S   * * *`), THIN,
-    ...keyRows("COLUMN", ["SCN#=SCENARIO", "RD=ROUND", "MN=MATCH NUMBER IN THE ROUND", "PST=PARTY TOTAL STRENGTH", "SST=STRANGERS' TOTAL STRENGTH", "PB=PARTY DIE BONUS (RING MINUS CURSES)",
-      "SB=STRANGERS' DIE BONUS (RING PLUS SURPRISE)", "PD=PARTY DIE", "SD=STRANGERS' DIE", "RES=S STRANGERS WON, P PARTY WON, T TIE (MATCH CONTINUES)"]),
+    ...keyRows("COLUMN", ["SCN#=SCENARIO", "RD=ROUND", "MN=MATCH NUMBER IN THE ROUND", "PST=PARTY TOTAL STRENGTH", "SST=STRANGERS' TOTAL STRENGTH", "PB=PARTY DIE BONUS (RING MINUS CURSES, PLUS SURPRISE IF ATTACKING)",
+      "SB=STRANGERS' DIE BONUS (RING PLUS SURPRISE IF ATTACKING)", "PD=PARTY DIE", "SD=STRANGERS' DIE", "RES=S STRANGERS WON, P PARTY WON, T TIE (MATCH CONTINUES)"]),
     ...keyRows("SIDES", ["FRONT+FRONT~BACKER+BACKER (~ SEPARATES THE BACKGROUND CASTERS)", "CODES AS IN THE SCENARIO LISTING"]),
     RULE,
   ].join("\n") + "\n";

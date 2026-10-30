@@ -217,6 +217,13 @@ export function annihilateWithEye(state: GameState): GameEvent[] {
  *  `variants.sorcererTeleport`, once the fight is over and the player has declined to spare him. */
 export function slaySorcerer(state: GameState): GameEvent[] {
   state.sorcererKilled = true;
+  if (state.variants?.combatRevision) {
+    // Peter, 14-OCT-2026: she turns only if the party stays in the area in its next turn (`stay`); until then she is still an ally.
+    const waiting = state.party.filter((m) => m.status === 1 && m.creatureId === C_APPRENTICE).length;
+    if (waiting === 0) return [{ type: "sorcererSlain" }];
+    state.apprenticeWatch = state.partyArea;
+    return [{ type: "sorcererSlain" }, { type: "apprenticeWaits", count: waiting }];
+  }
   return [{ type: "sorcererSlain" }, ...revertApprenticesOnSorcererDeath(state)];
 }
 

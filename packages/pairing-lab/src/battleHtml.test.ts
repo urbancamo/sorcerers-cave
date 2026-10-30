@@ -6,7 +6,7 @@ import { buildBattle, type Battle } from "./battle";
 import { renderBattleHtml } from "./battleHtml";
 import type { CardArt } from "./cards";
 
-const run = simulateRun({ id: "viewer", deck: "kit", generator: "balanced", seed: 900, count: 40, partyStyle: "GRD", strangerStyle: "GRD" });
+const run = simulateRun({ id: "viewer", deck: "kit", generator: "balanced", seed: 900, count: 120, partyStyle: "GRD", strangerStyle: "GRD" });
 const multi = run.scenarios.find((r) => r.outcome.rounds >= 3 && r.scenario.party.length + r.scenario.strangers.length >= 12)!;
 const battle: Battle = buildBattle(run, multi.id);
 const noArt: CardArt = { creature: {}, treasure: {} };
@@ -151,7 +151,7 @@ describe("the interactive viewer", () => {
     const d = open(battle, art);
     const chips = [...d.window.document.querySelectorAll(".chips li")].map((x) => x.textContent!);
     expect(chips.some((c) => c.startsWith("Level "))).toBe(true);
-    if (battle.meta.strangerSurprise) expect(chips.some((c) => c.includes("surprise"))).toBe(true);
+    if (battle.meta.surprise) expect(chips.some((c) => c.includes("surprise"))).toBe(true);
     if (battle.meta.partyRing) expect(chips.some((c) => c.includes("Ring"))).toBe(true);
   });
   it("groups repeated creatures in the story ('three Wizards') instead of repeating them", () => {

@@ -1,0 +1,34 @@
+# Bug Report: 20261022-Lotus Dust Bug
+
+### Game Code: *HOOD*
+
+### DateTimeStamp: *20261022T1800*
+
+### Scenario Description
+
+Testing the general UI -prompted by slight concern over the
+Sybil options taking up too much screen space.
+
+Collect all the optional use artefacts and see how cluttered the
+UI becomes.
+I loaded up most of the optional use artefacts in the first chamber.
+Then picked up Magic Carpet 'cause I forgot that.
+Then picked a fight with some strangers, to see what the UI
+would look like.
+
+### Expected Outcome
+
+It should handle everything....
+
+### Pass/Fail: *FAIL*
+
+### Test Outcome
+
+The UI copes OK, it takes up more and more of the screen, but then what do I
+expect for this (admittedly faintly ridiculous!) scenario...
+But then I tried to Lotus Dust one of the strangers
+and it crashed to a black screen....
+
+### Tester Comments
+
+

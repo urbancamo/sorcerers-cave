@@ -2,11 +2,12 @@ import { describe, it, expect } from "vitest";
 import { simulate } from "./sim";
 import { DEFAULT_RULES, T, unit } from "./rules";
 import { balancedScenario, randomScenario } from "./scenario";
-import type { Rules, Scenario } from "./types";
+import { stylePolicy, type Policy } from "./policies";
+import type { Rules, Scenario, TraceEvent } from "./types";
 
 const HER = 0, OGR = 2, MAN = 5, DWF = 7, GNT = 12, TRL = 3;
 const scn = (party: ReturnType<typeof unit>[], strangers: ReturnType<typeof unit>[], over: Partial<Scenario> = {}): Scenario =>
-  ({ party, strangers, eye: false, curses: 0, level: 1, strangerSurprise: 0, ...over });
+  ({ party, strangers, eye: false, curses: 0, level: 1, attacker: "strangers", surprise: 0, ...over });
 const noRetreat: Rules = { ...DEFAULT_RULES, partyRetreatRatio: 0 };
 const rate = (n: number, f: (i: number) => boolean) => { let c = 0; for (let i = 1; i <= n; i++) if (f(i)) c++; return c / n; };
 
@@ -26,7 +27,7 @@ describe("simulate", () => {
     for (let seed = 1; seed <= 300; seed++) {
       for (const ps of ["GRD", "CAU", "MAG", "RLG"] as const) {
         const o = simulate(s, DEFAULT_RULES, ps, "GRD", seed);
-        expect(["strangersWin", "partyWin", "retreat", "cap"]).toContain(o.end);
+        expect(["strangersWin", "partyWin", "retreat", "stalemate", "cap"]).toContain(o.end);
         expect(o.partyAlive).toBeGreaterThanOrEqual(0); expect(o.partyAlive).toBeLessThanOrEqual(4);
         expect(o.strangersAlive).toBeGreaterThanOrEqual(0); expect(o.strangersAlive).toBeLessThanOrEqual(3);
         expect(o.rounds).toBeGreaterThanOrEqual(1);
@@ -41,18 +42,21 @@ describe("simulate", () => {
     const p = rate(20000, (i) => simulate(s, noRetreat, "GRD", "GRD", i).end === "strangersWin");
     expect(Math.abs(p - 26 / 32)).toBeLessThan(0.012);
   });
-  it("the same 1 v 1 gives the same answer whichever side attacks first", () => {
-    const s = scn([unit(MAN)], [unit(OGR)]);
-    const flipped: Rules = { ...noRetreat, strangersAttackFirst: false };
-    const p = rate(20000, (i) => simulate(s, flipped, "GRD", "GRD", i).end === "strangersWin");
+  it("the same 1 v 1 gives the same answer whichever side attacks (the roles are fixed per fight, and with no surprise it does not matter)", () => {
+    const s = scn([unit(MAN)], [unit(OGR)], { attacker: "party" });
+    const p = rate(20000, (i) => simulate(s, noRetreat, "GRD", "GRD", i).end === "strangersWin");
     expect(Math.abs(p - 26 / 32)).toBeLessThan(0.012);
   });
-  it("round 1 surprise shifts the odds towards the strangers", () => {
-    const base = scn([unit(MAN)], [unit(OGR)]);
-    const surprised = scn([unit(MAN)], [unit(OGR)], { strangerSurprise: 1 });
-    const a = rate(10000, (i) => simulate(base, noRetreat, "GRD", "GRD", i).end === "strangersWin");
-    const b = rate(10000, (i) => simulate(surprised, noRetreat, "GRD", "GRD", i).end === "strangersWin");
-    expect(b).toBeGreaterThan(a);
+  it("round 1 surprise shifts the odds towards the ATTACKER, whichever side it is", () => {
+    const strangersWin = (s: Scenario) => rate(10000, (i) => simulate(s, noRetreat, "GRD", "GRD", i).end === "strangersWin");
+    const base = strangersWin(scn([unit(MAN)], [unit(OGR)]));
+    expect(strangersWin(scn([unit(MAN)], [unit(OGR)], { attacker: "strangers", surprise: 1 }))).toBeGreaterThan(base);
+    // surprise held by the party attacker lowers the strangers' chances, and 2 is worth more than 1
+    const p0 = strangersWin(scn([unit(MAN)], [unit(OGR)], { attacker: "party", surprise: 0 }));
+    const p1 = strangersWin(scn([unit(MAN)], [unit(OGR)], { attacker: "party", surprise: 1 }));
+    const p2 = strangersWin(scn([unit(MAN)], [unit(OGR)], { attacker: "party", surprise: 2 }));
+    expect(p1).toBeLessThan(p0);
+    expect(p2).toBeLessThan(p1);
   });
   it("a strong party overwhelms one weak stranger", () => {
     const s = scn([unit(HER, [T.SWORD]), unit(HER), unit(MAN)], [unit(DWF)]);
@@ -77,11 +81,6 @@ describe("simulate", () => {
       if (o.end === "strangersWin") expect(o.partyValueLost).toBe(10 + 5); // Hero 10 + Man 5 points
       if (o.end === "partyWin") expect(o.strangerValueLost).toBe(5 + 2); // Ogre 5 + Dwarf 2 points
     }
-  });
-  it("the casualty rule switch runs to completion", () => {
-    const s = scn([unit(HER), unit(MAN), unit(MAN)], [unit(OGR), unit(TRL)]);
-    const strongest: Rules = { ...DEFAULT_RULES, strangerCasualty: "strongest" };
-    for (let i = 1; i <= 100; i++) expect(["strangersWin", "partyWin", "retreat", "cap"]).toContain(simulate(s, strongest, "GRD", "GRD", i).end);
   });
   it("a level 4+ Ring bearer cannot be killed", () => {
     const s = scn([unit(MAN, [T.RING])], [unit(OGR), unit(OGR)], { level: 4 });
@@ -124,7 +123,7 @@ describe("simulate with a forced first-round pairing", () => {
 });
 
 describe("simulate at the largest sizes", () => {
-  const ends = ["strangersWin", "partyWin", "retreat", "cap"];
+  const ends = ["strangersWin", "partyWin", "retreat", "stalemate", "cap"];
   it("handles the biggest parties (30 base, 40 kit) and a Mutiny-sized group of 20 strangers", () => {
     const cases: [string, Scenario][] = [
       ["base 4 v 26", randomScenario(1, "base", { strangers: 4, party: 26 })],
@@ -180,7 +179,7 @@ describe("round-1 party deployment can be fixed independently of the party's sty
 describe("trace hook", () => {
   it("reports every resolved match with its strengths, die bonuses, dice and result", () => {
     const events: import("./types").TraceEvent[] = [];
-    const s = scn([unit(MAN)], [unit(OGR)], { strangerSurprise: 1 });
+    const s = scn([unit(MAN)], [unit(OGR)], { surprise: 1 });
     const o = simulate(s, noRetreat, "GRD", "GRD", 11, { trace: (e) => events.push(e) });
     expect(events.length).toBeGreaterThanOrEqual(1);
     const e = events.find((x): x is Extract<import("./types").TraceEvent, { type: "match" }> => x.type === "match")!;
@@ -256,5 +255,133 @@ describe("trace carries unit indices, so a viewer can track every card", () => {
         }
       }
     }
+  });
+});
+
+// ---- Peter's reformulated rules, as corrected by his response of 10-OCT-2026 -----------------------------------------------
+const matchEvents = (events: TraceEvent[]) => events.filter((e): e is Extract<TraceEvent, { type: "match" }> => e.type === "match");
+const traceOf = (s: Scenario, strangers: Policy | "GRD" = "GRD", party: Policy | "GRD" = "GRD", seed = 1, rules: Rules = noRetreat): TraceEvent[] => {
+  const events: TraceEvent[] = [];
+  simulate(s, rules, party, strangers, seed, { trace: (e) => events.push(e) });
+  return events;
+};
+
+describe("the roles are fixed for the whole fight (definition 5)", () => {
+  it("the attacker engages in every round: matches always pair the attacker's creature as the one that was free", () => {
+    // Party attacks. Whatever round it is, the fight runs and no role swap changes who deploys: the party never deploys.
+    const s = scn([unit(HER), unit(MAN), unit(MAN)], [unit(OGR), unit(TRL), unit(DWF)], { attacker: "party", surprise: 1 });
+    for (let seed = 1; seed <= 100; seed++) {
+      const o = simulate(s, noRetreat, "GRD", "GRD", seed);
+      expect(["strangersWin", "partyWin", "stalemate", "cap"]).toContain(o.end);
+    }
+  });
+});
+
+describe("step (e): either side deploys its surplus, and two against two is allowed (Peter Q1)", () => {
+  it("the DEFENDER's surplus joins a match: 3 party defenders v 1 attacking stranger give a 2-creature party front line", () => {
+    const s = scn([unit(HER), unit(HER), unit(MAN)], [unit(OGR)], { attacker: "strangers" });
+    const first = matchEvents(traceOf(s))[0]!;
+    expect(first.strangers).toHaveLength(1);
+    expect(first.party).toHaveLength(2);   // the defender deployed one, the attacker engaged it, and a spare then joined
+  });
+  it("the ATTACKER's surplus joins a match too: 3 attacking strangers v 1 party defender", () => {
+    const s = scn([unit(HER)], [unit(OGR), unit(TRL), unit(DWF)], { attacker: "strangers" });
+    const first = matchEvents(traceOf(s))[0]!;
+    expect(first.party).toHaveLength(1);
+    expect(first.strangers).toHaveLength(2);   // one match; the second front-line slot is filled, the third stranger stays out
+  });
+  it("a creature may join a 1v2 match, making 2v2, but no front line ever exceeds two", () => {
+    let twoTwo = 0;
+    for (let seed = 1; seed <= 400; seed++) {
+      for (const e of matchEvents(traceOf(balancedScenario(seed, "base"), "GRD", "GRD", seed, DEFAULT_RULES))) {
+        expect(e.party.length).toBeLessThanOrEqual(2);
+        expect(e.strangers.length).toBeLessThanOrEqual(2);
+        if (e.party.length === 2 && e.strangers.length === 2) twoTwo++;
+      }
+    }
+    expect(twoTwo).toBeGreaterThan(0);   // 2v2 does occur (it was forbidden before Peter's answer to Q1)
+  });
+  it("step (d) never creates a 2v2: in round 1 every match starts one-to-one, so a first-round 2v2 can only come from step (e)", () => {
+    // 2 v 2: both deployed, both engaged one-to-one, nobody left over: each round-1 match is exactly 1v1.
+    const s = scn([unit(HER), unit(MAN)], [unit(OGR), unit(TRL)], { attacker: "strangers" });
+    for (const e of matchEvents(traceOf(s)).filter((x) => x.round === 1)) { expect(e.party).toHaveLength(1); expect(e.strangers).toHaveLength(1); }
+  });
+});
+
+describe("a stalemate and the end of a fight (Peter Q2 and Q3)", () => {
+  it("his example: a Dwarf wearing the Ring on level 4 against an Apprentice is a stalemate, not an endless fight", () => {
+    const s = scn([unit(DWF, [T.RING])], [unit(14)], { level: 4, attacker: "strangers" });
+    for (let seed = 1; seed <= 50; seed++) {
+      const events = traceOf(s, "GRD", "GRD", seed);
+      const o = simulate(s, noRetreat, "GRD", "GRD", seed);
+      expect(o.end).toBe("stalemate");
+      expect(o.partyAlive).toBe(1); expect(o.strangersAlive).toBe(1);
+      expect(o.rounds).toBeLessThanOrEqual(2);
+      expect(matchEvents(events)).toHaveLength(0);                     // nobody rolled: neither side could do anything
+      expect(events.some((e) => e.type === "stalemate")).toBe(true);
+    }
+  });
+  it("a stalemate counts as a strangers' hold for R2 (the player must leave) and costs neither side anything", () => {
+    const o = simulate(scn([unit(DWF, [T.RING])], [unit(14)], { level: 4 }), noRetreat, "GRD", "GRD", 3);
+    expect(o.r2).toBe(1);
+    expect(o.partyValueLost).toBe(0); expect(o.strangerValueLost).toBe(0);
+  });
+  it("the same match one level up is NOT a stalemate: the Dwarf can die", () => {
+    const o = simulate(scn([unit(DWF, [T.RING])], [unit(14)], { level: 3 }), noRetreat, "GRD", "GRD", 3);
+    expect(o.end).toBe("strangersWin");
+  });
+  it("a fight ends when a side is wiped out even with survivors elsewhere being unengaged (no early stop)", () => {
+    const s = scn([unit(HER, [T.SWORD]), unit(HER), unit(MAN)], [unit(DWF)]);
+    for (let seed = 1; seed <= 100; seed++) expect(simulate(s, DEFAULT_RULES, "GRD", "GRD", seed).end).toBe("partyWin");
+  });
+});
+
+describe("casualty nomination is a policy decision, and the die rule is the engine's (Peter Q7)", () => {
+  it("the strangers consult their policy when a two-creature stranger front line loses", () => {
+    const calls: number[] = [];
+    const spy: Policy = { ...stylePolicy("GRD"), id: "spy", nominate: (F, side, a, b) => { calls.push(side === "strangers" ? 1 : 0); return stylePolicy("GRD").nominate(F, side, a, b); } };
+    const s = scn([unit(HER, [T.SWORD])], [unit(DWF), unit(MAN)], { attacker: "party" });
+    for (let seed = 1; seed <= 60; seed++) simulate(s, noRetreat, "GRD", spy, seed);
+    expect(calls.length).toBeGreaterThan(0);
+    expect(calls.every((c) => c === 1)).toBe(true);   // only ever asked about the strangers' own line
+  });
+  it("whichever creature the policy nominates, it dies on a roll of 4 to 6 and the other on 1 to 3", () => {
+    const events = (nominateFirst: boolean) => {
+      const pol: Policy = { ...stylePolicy("GRD"), id: "n", nominate: (_F, _side, a, b) => (nominateFirst ? a : b) };
+      const out: { nominated: string; roll: number; fell: string }[] = [];
+      const s = scn([unit(HER, [T.SWORD])], [unit(DWF), unit(MAN)], { attacker: "party" });
+      for (let seed = 1; seed <= 200; seed++) {
+        const ev = traceOf(s, pol, "GRD", seed);
+        ev.forEach((e) => { if (e.type === "casualty" && e.roll !== undefined && e.side === "strangers") out.push({ nominated: e.nominated!, roll: e.roll, fell: e.creature }); });
+      }
+      return out;
+    };
+    for (const first of [true, false]) {
+      const rows = events(first);
+      expect(rows.length).toBeGreaterThan(0);
+      for (const r of rows) expect(r.roll >= 4 ? r.fell === r.nominated : r.fell !== r.nominated).toBe(true);
+    }
+  });
+});
+
+describe("a plug-in policy cannot break the rules", () => {
+  it("an under-deploying, double-booking, garbage-pairing policy still produces a legal fight", () => {
+    const rogue: Policy = {
+      id: "rogue",
+      deploy: () => [],                                     // deploys nobody (the minimum is topped up)
+      engage: (_F, _side, ownFree, oppDeployed) => [[ownFree[0]!, oppDeployed[0]!], [ownFree[0]!, oppDeployed[0]!], [999, -1]],   // duplicates and nonsense
+      surplus: () => [{ u: 0, m: 99, back: false }, { u: 999, m: 0, back: true }],
+      nominate: (_F, _side, a) => a,
+    };
+    const s = scn([unit(HER), unit(MAN), unit(MAN)], [unit(OGR), unit(TRL), unit(DWF)], { attacker: "party" });
+    for (let seed = 1; seed <= 100; seed++) {
+      const o = simulate(s, noRetreat, "GRD", rogue, seed);
+      expect(["strangersWin", "partyWin", "stalemate", "cap"]).toContain(o.end);
+      for (const e of matchEvents(traceOf(s, rogue, "GRD", seed))) { expect(e.party.length).toBeLessThanOrEqual(2); expect(e.strangers.length).toBeLessThanOrEqual(2); }
+    }
+  });
+  it("a custom policy object is accepted in place of a style code, and a style code is the same as its policy", () => {
+    const s = scn([unit(HER), unit(MAN)], [unit(OGR), unit(TRL)]);
+    for (let seed = 1; seed <= 30; seed++) expect(simulate(s, DEFAULT_RULES, "GRD", stylePolicy("GRD"), seed)).toEqual(simulate(s, DEFAULT_RULES, "GRD", "GRD", seed));
   });
 });

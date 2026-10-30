@@ -7,6 +7,17 @@ describe("rollFromEvents", () => {
     expect(rollFromEvents([{ type: "moved", area: 1, level: 1 }])).toBeNull();
   });
 
+  it("reports a Ghouls round as who fell and who fought them off, never as a victory", () => {
+    const roll = (result: "partyWon" | "enemyWon" | "tie", party: string): GameEvent =>
+      ({ type: "combatRoll", party, enemy: "Ghoul", partyRoll: 3, enemyRoll: 3, partyTotal: 6, enemyTotal: 5, result }) as GameEvent;
+    const v = rollFromEvents([roll("partyWon", "Hero"), roll("partyWon", "Dwarf"), roll("enemyWon", "Man"), { type: "memberDied", creatureId: 5 } as GameEvent, { type: "fightWon" } as GameEvent]);
+    expect(v?.title).toBe("The Ghouls");
+    expect(v?.message).toBe("1 member of the party fell, 2 fought off their Ghouls.");
+    expect(v?.message).not.toMatch(/victory/i);
+    expect(v?.tone).toBe("bad");
+    expect(rollFromEvents([roll("partyWon", "Hero")])?.message).toBe("no members of the party fell, 1 fought off a Ghoul.");
+  });
+
   it("builds a single-die reaction view, with a join message on a friendly recruit", () => {
     const events: GameEvent[] = [
       { type: "reaction", outcome: "friendly", roll: 6 },

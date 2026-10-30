@@ -80,7 +80,7 @@ function artifactActions(state: GameState): GameAction[] {
   }
   // Extension kit (SC-EXT-25, design US-21/Resolved-10): the Scroll needs a living human present
   // and strangers to burn, in encounter or fight — no target/picker (any human reads it).
-  if ((state.phase === "encounter" || state.phase === "fight") && has(19, () => true) &&
+  if ((state.phase === "encounter" || state.phase === "fight") && !state.variants?.combatRevision && has(19, () => true) &&
       state.strangers.length > 0 && hasLivingHuman(state)) {
     actions.push({ type: "useArtifact", artifact: 19 });
   }
@@ -112,6 +112,9 @@ function artifactActions(state: GameState): GameAction[] {
     state.party.forEach((m, idx) => { if (m.status === 2 && m.stoneArea === state.partyArea) actions.push({ type: "useArtifact", artifact: 9, target: idx }); });
   }
   if (state.phase === "explore") {
+    // The turncoat Apprentice (revised combat): the party may linger where the Sorcerer was slain, and so meet her (any other action
+    // that leaves the area parts company with her instead).
+    if (state.apprenticeWatch === state.partyArea && !state.fight && state.party.some((m) => m.status === 1 && m.creatureId === 14)) actions.push({ type: "stay" });
     if (has(4, (id) => usesArtifactsAs(id, 4) || usesArtifactsAs(id, 8))) { // Magic Carpet -> teleport in each available direction
       for (const dir of [DIR_N, DIR_E, DIR_S, DIR_W, DIR_DOWN]) actions.push({ type: "useArtifact", artifact: 4, dir });
       if (state.level > 1) actions.push({ type: "useArtifact", artifact: 4, dir: DIR_UP });
@@ -211,8 +214,8 @@ export function legalActions(state: GameState): GameAction[] {
     const actions: GameAction[] = [];
     // The round itself is resolved from the player's pairing via the `resolveRound` action (built by the
     // fight UI), not from a menu item. Retreat is allowed only after at least one round has been fought,
-    // and never back up a trap (§Retreat). A party may flee by ANY of the tile's doorways/stairs.
-    if (!state.fellThroughTrap && state.fight && state.fight.round > 1 && !state.fight.retreatBlocked) {
+    // and never back up a trap (§Retreat), nor from the Ghouls (a hazard, not a stranger party: no retreat). A party may flee by ANY of the tile's doorways/stairs.
+    if (!state.fellThroughTrap && !state.fight?.ghouls && state.fight && state.fight.round > 1 && !state.fight.retreatBlocked) {
       const dec = decodeOpen(state.areas[state.partyArea]!);
       if (dec.n) actions.push({ type: "retreat", dir: DIR_N });
       if (dec.e) actions.push({ type: "retreat", dir: DIR_E });

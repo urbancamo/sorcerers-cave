@@ -60,10 +60,10 @@ describe("buildBattle", () => {
       for (const g of u.gear) { expect(g.name.length).toBeGreaterThan(0); expect(g.code).toMatch(/^[A-Z]{3}$/); }
     }
   });
-  it("records who attacked each round (the roles alternate, the strangers first by default)", () => {
+  it("records who attacked each round (the roles are fixed for the whole fight)", () => {
     const rec = run.scenarios.find((r) => r.outcome.rounds >= 3)!;
     const b = buildBattle(run, rec.id);
-    expect(b.rounds.map((r) => r.attacker)).toEqual(b.rounds.map((_, i) => (i % 2 === 0 ? "strangers" : "party")));
+    expect(b.rounds.map((r) => r.attacker)).toEqual(b.rounds.map(() => b.meta.attacker));
   });
   it("copes with a JSON round trip", () => {
     const b1 = buildBattle(run, 7), b2 = buildBattle(parseRun(toJson(run)), 7);

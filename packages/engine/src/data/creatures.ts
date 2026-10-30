@@ -65,10 +65,18 @@ export const SIBYL_CREATURES: readonly Creature[] = [
   { id: 21, name: "Sibyl", fs: 0, mp: 0, carry: 0, cost: null, points: 0, flags: 0, hostileMax: 0, indiffMax: 4, leaderPri: 0 },
 ];
 
-/** Combined creature lookup, indexed by absolute id (base 0-13, kit 14-20, Sibyl 21). Base game code
+// The Ghouls of the revised combat (Peter, 14-OCT-2026, "Ghouls Fight"), id 22: the hazard fights as a party of strength-2
+// creatures, one per creature in the player party. They are never drawn as strangers, parked or scored — they exist only for the
+// length of that fight — so a SEPARATE table again keeps `CREATURES` pinned.
+export const C_GHOUL = 22;
+export const GHOUL_CREATURES: readonly Creature[] = [
+  { id: 22, name: "Ghoul", fs: 2, mp: 0, carry: 0, cost: null, points: 0, flags: FLAG_INHUMAN, hostileMax: 6, indiffMax: 6, leaderPri: 0 },
+];
+
+/** Combined creature lookup, indexed by absolute id (base 0-13, kit 14-20, Sibyl 21, Ghoul 22). Base game code
  *  paths keep indexing `CREATURES` directly; this exists for the variant-aware helpers below and for
  *  code that needs to resolve any creature id (SC-EXT-2, SC-SIB-1). */
-export const ALL_CREATURES: readonly Creature[] = [...CREATURES, ...KIT_CREATURES, ...SIBYL_CREATURES];
+export const ALL_CREATURES: readonly Creature[] = [...CREATURES, ...KIT_CREATURES, ...SIBYL_CREATURES, ...GHOUL_CREATURES];
 
 // Kit-on-only party-selection additions (official SELECTION TABLE). Stock: Witch 3, Scholar 1,
 // Thief 1, Lion 1, Wolf 1; the kit's duplicate Woman/Dwarf copies raise base stock 3 → 4. Base

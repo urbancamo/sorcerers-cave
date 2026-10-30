@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import type { AssetManifest } from "@sorcerers-cave/assets";
 import { newGame, packCoord, type GameState, type PlacedArea } from "@sorcerers-cave/engine";
 import { parseManifest, type TileArt, type CardArt } from "../data/manifest";
-import { projectArea, encodeWorkingSet, areaKey, tileForCard, type ArtTables } from "./projection";
+import { projectArea, encodeWorkingSet, areaKey, tileForCard, laneCards, type ArtTables } from "./projection";
 
 let art: ArtTables;
 beforeAll(() => {
@@ -216,5 +216,58 @@ describe("tileForCard (the Sibyl's look shows the tile a card is)", () => {
   it("finds a special's art, and returns null for a card with no art", () => {
     expect(tileForCard((3 << 7) | 31, art.tiles)?.special).toBe("viper-pit"); // Viper Pit, NESW chamber
     expect(tileForCard(0, art.tiles)).toBeNull(); // no exits at all
+  });
+});
+
+// The fog card laid on a dead end shows its doorway on the side that faces the party that tried it.
+describe("projectArea fogStubs", () => {
+  const N = 1, E = 2, S = 4, W = 8; // doorway bits on a card
+  const at = (x: number, y: number) => packCoord(1, x, y);
+  const stubsBeyond = (tried: number, dx: number, dy: number): string | undefined => {
+    const state = newGame(1, [0]);
+    const party = area({ coord: at(50, 50), visited: true, deadDoors: tried });
+    const dead = area({ card: 3, coord: at(50 + dx, 50 + dy), faceUp: false });
+    state.areas = [party, dead]; state.partyArea = 0;
+    return projectArea(dead, 1, state, art).fogStubs;
+  };
+
+  it("sits on the south side of a dead end tried by going north, and likewise for each way", () => {
+    expect(stubsBeyond(N, 0, -1)).toBe("S");
+    expect(stubsBeyond(E, 1, 0)).toBe("W");
+    expect(stubsBeyond(S, 0, 1)).toBe("N");
+    expect(stubsBeyond(W, -1, 0)).toBe("E");
+  });
+
+  it("ignores the dead end's own printed doorways", () => {
+    const state = newGame(1, [0]);
+    const party = area({ coord: at(50, 50), visited: true, deadDoors: N });
+    const dead = area({ card: 15, coord: at(50, 49), faceUp: false }); // printed with all four doorways
+    state.areas = [party, dead]; state.partyArea = 0;
+    expect(projectArea(dead, 1, state, art).fogStubs).toBe("S");
+  });
+
+  it("has one stub for each party side whose doorway into it was tried, and none for a tile nobody tried", () => {
+    const state = newGame(1, [0]);
+    const dead = area({ card: 3, coord: at(50, 49), faceUp: false });
+    const south = area({ coord: at(50, 50), visited: true, deadDoors: N });
+    const west = area({ coord: at(49, 49), visited: true, deadDoors: E });
+    state.areas = [south, west, dead]; state.partyArea = 0;
+    expect(projectArea(dead, 2, state, art).fogStubs).toBe("SW");
+    state.areas = [dead]; state.partyArea = 0;
+    expect(projectArea(dead, 0, state, art).fogStubs).toBe("");
+  });
+});
+
+describe("laneCards: the leader comes first", () => {
+  it("puts the group's leader (the engine's findLeader) at the head of the strangers, whatever the draw order", () => {
+    const DWARF = 7, OGRE = 2, WIZARD = 8;   // leadership: Wizard › Ogre › Dwarf
+    const { strangers } = laneCards([100 + DWARF, 100 + OGRE, 100 + WIZARD, 100 + DWARF], art.cards);
+    expect(strangers.map((c) => c.entityId)).toEqual([String(WIZARD), String(OGRE), String(DWARF), String(DWARF)]);
+  });
+
+  it("keeps the draw order between equals and leaves the treasure lane alone", () => {
+    const { strangers, treasure } = laneCards([100, 101, 200, 201], art.cards);   // Hero and W-Hero rank equally
+    expect(strangers.map((c) => c.entityId)).toEqual(["0", "1"]);
+    expect(treasure.map((c) => c.entityId)).toEqual(["0", "1"]);
   });
 });

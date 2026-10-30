@@ -15,7 +15,7 @@ const TILE_W=4.3, LEVEL_GAP=5.2; let TILE_D;
 const DESTROYED_TINT=0x4a4036; // earthquake-collapsed tile: darkened rubble tone
 const DIRV={N:[0,-1],S:[0,1],E:[1,0],W:[-1,0]};
 
-let engine, startLevel, tiles, PARTY=[], partyColorHex, isMultiplayer=false;
+let engine, startLevel, tiles, deadEndArt=()=>null, PARTY=[], partyColorHex, isMultiplayer=false;
 const lvlIndex=l=>l-startLevel;
 function worldPos(a){ return new THREE.Vector3(a.col*TILE_W, -lvlIndex(a.level)*LEVEL_GAP, a.row*TILE_D); }
 // Precise Locations (engine SC-10.5): offset toward the doorway a sub-location names, reusing the
@@ -57,6 +57,22 @@ function loadAlphaTexture(src,maxW=1024){
     img.onerror=()=>res(null); img.src=src;
   });
   texCache.set(src,p); return p;
+}
+/* The fog dead-end cards, loaded before they are shown: unlike a tile, nothing is cut away — the dark vignette is part of the card. */
+const fogCache=new Map();
+function loadFogTexture(src,maxW=1024){
+  if(fogCache.has(src))return fogCache.get(src);
+  const p=new Promise(res=>{
+    const img=new Image(); img.crossOrigin='anonymous';
+    img.onload=()=>{
+      const sc=Math.min(1,maxW/img.width),w=Math.round(img.width*sc),h=Math.round(img.height*sc);
+      const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+      cv.getContext('2d').drawImage(img,0,0,w,h);
+      const tex=new THREE.CanvasTexture(cv);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=maxAniso;res(tex);
+    };
+    img.onerror=()=>res(null); img.src=src;
+  });
+  fogCache.set(src,p); return p;
 }
 function makeGridTexture(){
   const s=128,cv=document.createElement('canvas');cv.width=cv.height=s;
@@ -115,21 +131,78 @@ const contentMeshes=[]; const cardAnims=[];
 let partyToken=null, selectRing=null, tokenMove=null;
 
 /* ---- build a single area's tile ---- */
-async function buildAreaMesh(area, spawn){
+/** The back of an area card: what a dead-end (or Spell-unresolved) tile shows once it is face down. Drawn, not an asset. */
+let cardBackTex=null;
+function cardBackTexture(){
+  if(cardBackTex) return cardBackTex;
+  const w=640,h=Math.round(w*TILE_D/TILE_W),cv=document.createElement('canvas');cv.width=w;cv.height=h;
+  const c=cv.getContext('2d'),r=h*0.07,m=h*0.03;
+  const rr=(x,y,ww,hh,rad)=>{c.beginPath();c.moveTo(x+rad,y);c.arcTo(x+ww,y,x+ww,y+hh,rad);c.arcTo(x+ww,y+hh,x,y+hh,rad);c.arcTo(x,y+hh,x,y,rad);c.arcTo(x,y,x+ww,y,rad);c.closePath();};
+  rr(m,m,w-2*m,h-2*m,r);c.fillStyle='#1d1812';c.fill();
+  c.lineWidth=h*0.02;c.strokeStyle='#8a6d3b';c.stroke();
+  rr(m*3.2,m*3.2,w-6.4*m,h-6.4*m,r*0.6);c.lineWidth=h*0.008;c.strokeStyle='rgba(201,161,78,.55)';c.stroke();
+  c.fillStyle='rgba(201,161,78,.6)';c.font=Math.round(h*0.42)+'px serif';c.textAlign='center';c.textBaseline='middle';c.fillText('\u2726',w/2,h/2+h*0.02);
+  cardBackTex=new THREE.CanvasTexture(cv);cardBackTex.colorSpace=THREE.SRGBColorSpace;cardBackTex.anisotropy=maxAniso;
+  return cardBackTex;
+}
+/** What a face-down area shows: the fog dead-end card with a stub on each side the party tried it from (the drawn card back if the manifest has none). */
+async function faceDownTexture(area){
+  const file=deadEndArt(area.fogStubs||'');
+  return (file && await loadFogTexture(file)) || cardBackTexture();
+}
+/** Lay an area's mesh. A face-down area is drawn as its fog card; `revealFirst` (a dead end just tried) shows its real face for a
+ *  few seconds so the player can read it, then fades it to the fog card — as at the table, they must remember it from then on. */
+async function buildAreaMesh(area, spawn, revealFirst){
   const k=akey(area); // never lay two meshes for the same coord (optimistic + reconcile can race)
   if(pendingTiles.has(k) || tileMeshes.some(m=>m.userData.area&&akey(m.userData.area)===k)) return;
   pendingTiles.add(k);
-  const tex=await loadAlphaTexture(area.tileId? (tiles.get(area.tileId)?.file ?? ''):'');
+  const down=!!area.faceDown && !revealFirst;
+  const tex=down? await faceDownTexture(area) : await loadAlphaTexture(area.tileId? (tiles.get(area.tileId)?.file ?? ''):'');
   const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,alphaTest:0.03,side:THREE.DoubleSide,depthWrite:true});
   if(area.destroyed) mat.color.setHex(DESTROYED_TINT); // earthquake rubble — darkened so it reads as collapsed
   const mesh=new THREE.Mesh(new THREE.PlaneGeometry(TILE_W,TILE_D),mat);
   mesh.rotation.x=-Math.PI/2;
   if(area.rot) mesh.rotation.z=THREE.MathUtils.degToRad(-area.rot);
   const p=worldPos(area); mesh.position.copy(p); mesh.renderOrder=2;
-  mesh.userData.area=area; mesh.userData.lvl=area.level; regMat(mat); area._mesh=mesh; tileGroup.add(mesh); tileMeshes.push(mesh);
+  mesh.userData.area=area; mesh.userData.lvl=area.level; mesh.userData.down=down; mesh.userData.fogStubs=down?(area.fogStubs||''):null; mesh.userData.basePos=p.clone();
+  regMat(mat); area._mesh=mesh; tileGroup.add(mesh); tileMeshes.push(mesh);
   pendingTiles.delete(k);
   if(spawn){ mat.opacity=0; mesh.position.y=p.y+1.4; spawnAnims.push({mesh,p,t0:clock.elapsedTime}); }
   if(area.cardId){ addCardGlow(area); }
+  if(revealFirst && area.faceDown) setTimeout(()=>{ if(tileMeshes.includes(mesh)) fadeToFog(mesh, engine.areas.find(x=>akey(x)===k)||area); }, 3600); // (by then another doorway into it may have been tried)
+}
+/* Flip a tile over: it rises, turns edge-on (the texture swaps at the half-way point), and settles. */
+const flipAnims=[];
+/* Fades between a tile's faces: the new face is laid over the tile and fades in, then takes the tile's place. A dead end, once read,
+   fades to its fog card; run again for a tile already face down when another doorway into it is tried (a new stub), the fresh card
+   fades in over the old one; and a face-down tile the party enters fades to the real tile. */
+const fogFades=[];
+const settleFogFade=f=>{ f.mesh.material.map=f.tex; f.mesh.material.needsUpdate=true; f.mesh.remove(f.over); f.over.material.dispose(); };
+function startFade(mesh, tex, dur=0.9){
+  const busy=fogFades.findIndex(f=>f.mesh===mesh); if(busy>=0){ settleFogFade(fogFades[busy]); fogFades.splice(busy,1); } // an earlier fade is cut short
+  const over=new THREE.Mesh(mesh.geometry,new THREE.MeshBasicMaterial({map:tex,transparent:true,opacity:0,side:THREE.DoubleSide,depthWrite:false}));
+  over.position.z=0.02; over.renderOrder=3; mesh.add(over); // z is the tile's own up: a hair above its face
+  fogFades.push({mesh,over,tex,dur,t0:clock.elapsedTime});
+}
+async function fadeToFog(mesh, area, dur){
+  const stubs=area.fogStubs||'';
+  if(mesh.userData.down && mesh.userData.fogStubs===stubs) return;
+  mesh.userData.down=true; mesh.userData.fogStubs=stubs;
+  const tex=await faceDownTexture(area);
+  if(tileMeshes.includes(mesh)) startFade(mesh,tex,dur);
+}
+async function fadeToFace(mesh, area, dur){
+  if(!mesh.userData.down) return;
+  mesh.userData.down=false; mesh.userData.fogStubs=null;
+  const tex=await loadAlphaTexture(area.tileId? (tiles.get(area.tileId)?.file ?? ''):'');
+  if(tileMeshes.includes(mesh)) startFade(mesh,tex,dur);
+}
+async function flipTile(mesh, toDown, area){
+  if(!!mesh.userData.down===toDown) return;
+  mesh.userData.down=toDown; mesh.userData.fogStubs=toDown?(area.fogStubs||''):null;
+  const tex=toDown? await faceDownTexture(area) : await loadAlphaTexture(area.tileId? (tiles.get(area.tileId)?.file ?? ''):'');
+  if(!tileMeshes.includes(mesh)) return;
+  flipAnims.push({mesh,tex,t0:clock.elapsedTime,swapped:false});
 }
 function addCardGlow(area){
   const c=engine; const card=area.cardId;
@@ -337,6 +410,9 @@ function disposeTileMesh(mesh){
   if(mesh.material){ mesh.material.map?.dispose?.(); mesh.material.dispose(); }
   let i=tileMeshes.indexOf(mesh); if(i>=0) tileMeshes.splice(i,1);
   i=spawnAnims.findIndex(s=>s.mesh===mesh); if(i>=0) spawnAnims.splice(i,1);
+  i=flipAnims.findIndex(f=>f.mesh===mesh); if(i>=0) flipAnims.splice(i,1);
+  i=fogFades.findIndex(f=>f.mesh===mesh); if(i>=0){ fogFades[i].over.material.dispose(); fogFades.splice(i,1); }
+  i=peekGlows.findIndex(p=>p.mesh===mesh); if(i>=0){ peekGlows[i].g.material.dispose(); peekGlows[i].g.geometry.dispose(); peekGlows.splice(i,1); }
 }
 // Like disposeTileMesh, but the mesh fades/sinks out over time (animate()'s despawnAnims tick)
 // instead of vanishing on the spot — the visible half of a remap swap. Freed from `tileMeshes`
@@ -369,6 +445,12 @@ function reconcileTiles(canAct){
     const ua=m.userData.area; if(!ua) continue;
     const a=want.get(akey(ua)); if(!a) continue;
     if(a.faceDown && (a.tileId!==ua.tileId||a.rot!==ua.rot) && !pendingRemaps.has(akey(a))) pendingRemaps.set(akey(a),a);
+  }
+  // A face-down tile the party has now entered (or a Spell tile resolved) fades to its real face.
+  for(const m of tileMeshes){
+    const ua=m.userData.area; if(!ua) continue;
+    const a=want.get(akey(ua)); if(a && m.userData.down && !a.faceDown) fadeToFace(m,a);
+    else if(a && m.userData.down && a.faceDown) fadeToFog(m,a); // another doorway into it was tried: its fog card gains a stub
   }
   if(pendingRemaps.size && canAct!==false){
     for(const [k,a] of [...pendingRemaps]){
@@ -504,7 +586,7 @@ function layContents(area, animated){
       const o=makeCardObject(card,yaw);
       faces.push(o.userData.face);
       o.userData.face.userData.area=area;
-      const ty=0.07 + dealIdx*0.016;                    // later cards stack on top
+      const ty=0.07 + dealIdx*0.016 + (lane.list===area.strangers ? (n-1-2*i)*0.016 : 0);   // later cards stack on top — but the leader (first) tops the creatures
       o.position.set(x,ty,z);
       if(animated){ o.position.y=ty+1.5; o.userData.fade=[o.children[0].material,o.children[1].material,o.userData.face.material];
         o.userData.fade.forEach(m=>m.opacity=0);
@@ -644,10 +726,11 @@ function doMove(dir){
   }
   const ev=engine.tryMove(dir);
   if(!ev.moved){
-    if(ev.placed){ // a tile was drawn onto a dead-end frontier — lay it down even though we can't enter
-      buildAreaMesh(ev.placed,true).then(()=>{rebuildPlatforms();rebuildStairs();rebuildSecretDoors();rebuildLevelButtons();});
+    if(ev.placed){ // a tile was drawn onto a dead-end frontier — show it face up for a few seconds, then flip it face down
+      buildAreaMesh(ev.placed,true,true).then(()=>{rebuildPlatforms();rebuildStairs();rebuildSecretDoors();rebuildLevelButtons();});
       refreshExitMarkers(); // the attempted exit was pruned
     }
+    else if(ev.deadEnd) reconcileTiles(); // a tile already laid: if it is face down, its fog card gains the stub for this doorway
     setPrompt(ev.deadEnd?'That way is a dead end.':'No exit that way.','danger'); flashMarker(dir,true); return;
   }
   busy=true;
@@ -739,7 +822,7 @@ function areaPanel(area){
   if(focus) showCard(focus,area.name); else hideCard();
 }
 function selectCurrent(){ areaPanel(engine.current); }
-function inspectArea(a){ areaPanel(a); }
+function inspectArea(a){ areaPanel(engine.placed.get(akey(a))||a); }   // the tile mesh holds the area as it was laid: show what is there now
 function hexA(hex,a){const n=parseInt(hex.replace('#',''),16);return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';}
 
 /* ============================================================
@@ -802,11 +885,12 @@ function renderRoster(){const b=document.getElementById('rosterBody');b.innerHTM
   PARTY.forEach(m=>{const row=document.createElement('div');row.className='mbr'+(m.lead?' lead':'')+(m.petrified?' petrified':'');
     const carry=m.carry||0, load=m.load||0, free=Math.max(0,carry-load);
     const pct=carry>0?Math.min(100,Math.round((load/carry)*100)):0;
-    const cap=carry>0
+    const cap=m.sibyl ? '<div class="cap"><span class="cap-tx none">cannot fight or be harmed</span></div>' : carry>0
       ? '<div class="cap"><div class="cap-bar"><i style="width:'+pct+'%"></i></div><span class="cap-tx">'+load+'/'+carry+' kg · '+free+' free</span></div>'
       : '<div class="cap"><span class="cap-tx none">no carry capacity</span></div>';
     const carryRow=carryRowHtml({items:Array.isArray(m.items)?m.items:[],awards:Array.isArray(m.awards)?m.awards:[],dragonCard:m.dragonCard||null});
     const badge=m.petrified?'<span class="badge stone" title="Turned to stone — cure with a Magic Staff">stone</span>'
+      :m.sibyl?'<span class="badge ally" title="Travels with the party — she cannot fight or be harmed">guide</span>'
       :m.ally?'<span class="badge ally" title="Befriended ally">ally</span>':'';
     row.innerHTML='<div class="sig">'+escAttr(m.sig)+'</div><div class="who"><div class="nm-line"><span class="nm">'+escAttr(m.label||m.name)+'</span>'+badge+'</div>'+cap+carryRow+'</div>';
     b.appendChild(row);});}
@@ -886,6 +970,20 @@ function animate(){
   // spawn anims
   for(let i=spawnAnims.length-1;i>=0;i--){const s=spawnAnims[i],k=Math.min(1,(tt-s.t0)/0.5);
     s.mesh.material.opacity=k;s.mesh.position.y=s.p.y+(1-k)*1.4;if(k>=1)spawnAnims.splice(i,1);}
+  // flip anims — a dead end turned face down (or a face-down tile turned up): rise, edge-on, swap the face, settle
+  for(let i=flipAnims.length-1;i>=0;i--){const f=flipAnims[i],k=Math.min(1,(tt-f.t0)/0.7),m=f.mesh,b=m.userData.basePos;
+    m.scale.x=Math.max(0.03,Math.abs(Math.cos(Math.PI*k)));
+    if(b) m.position.y=b.y+0.7*Math.sin(Math.PI*k);
+    if(!f.swapped&&k>=0.5){f.swapped=true;if(f.tex){m.material.map=f.tex;m.material.needsUpdate=true;}}
+    if(k>=1){m.scale.x=1;if(b)m.position.y=b.y;flipAnims.splice(i,1);}}
+  // the Sibyl's glow — the card's own envelope: in, hold, out
+  for(let i=peekGlows.length-1;i>=0;i--){const p=peekGlows[i],u=(tt-p.t0)/PEEK_S;
+    if(u>=1||!tileMeshes.includes(p.mesh)){p.mesh.remove(p.g);p.g.material.dispose();p.g.geometry.dispose();peekGlows.splice(i,1);continue;}
+    p.g.material.opacity=0.8*(u<0.2?u/0.2:u<0.7?1:(1-u)/0.3);}
+  // fog fades — a dead end read, then crossfaded to its fog card (laid over it), which finally replaces the face
+  for(let i=fogFades.length-1;i>=0;i--){const f=fogFades[i],k=Math.min(1,(tt-f.t0)/f.dur);
+    f.over.material.opacity=k;
+    if(k>=1){settleFogFade(f);fogFades.splice(i,1);}}
   // despawn anims — the outgoing half of a tile swap (e.g. Spell's tunnel remap): mirrors spawn's
   // fade-in-and-drop with a fade-out-and-sink, then frees the mesh for good.
   for(let i=despawnAnims.length-1;i>=0;i--){const s=despawnAnims[i],k=Math.min(1,(tt-s.t0)/0.5);
@@ -936,7 +1034,7 @@ let homeOnArrival=false; // snap the camera 'home' to the party's tile once the 
 function pickerHover(e){
   if(!picker) return;
   mouse.x=(e.clientX/innerWidth)*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;ray.setFromCamera(mouse,camera);
-  const hit=ray.intersectObjects(tileMeshes,false)[0];
+  const hit=visibleHit(ray.intersectObjects(tileMeshes,false));
   const a=hit&&hit.object.userData.area;
   const ok=!!a&&picker.byKey.has(akey(a));
   picker.hover.visible=ok;
@@ -970,7 +1068,39 @@ function setPicker(opts){
   renderer.domElement.addEventListener('pointermove',pickerHover);
   selectRing.visible=false; selectRing.material.color.setHex(0xc79bff);
   viewFreeOrbit();
-  setPrompt('Choose where the Sorcerer will send you — click a <b>ringed area</b>.','event');
+  setPrompt(opts.prompt||'Choose where the Sorcerer will send you — click a <b>ringed area</b>.','event');
+}
+/* The Sibyl's glow: the soft violet frame the top-of-the-pack card wears (styles.css .scv-sibyl-peek), laid round a tile she is showing. */
+let peekGlowTex=null;
+function peekGlowTexture(){
+  if(peekGlowTex) return peekGlowTex;
+  const w=640,h=Math.round(w*TILE_D/TILE_W),pad=0.12,cv=document.createElement('canvas');cv.width=w;cv.height=h;
+  const c=cv.getContext('2d'),x=w*pad/(1+2*pad),y=h*pad/(1+2*pad),rw=w-2*x,rh=h-2*y;
+  c.shadowColor='rgba(186,156,255,0.9)';c.shadowBlur=w*0.05;c.fillStyle='#bc9cff';c.fillRect(x,y,rw,rh);
+  c.shadowColor='transparent';c.globalCompositeOperation='destination-out';c.fillRect(x,y,rw,rh); // the tile itself stays clear: only the frame shows
+  peekGlowTex=new THREE.CanvasTexture(cv);peekGlowTex.colorSpace=THREE.SRGBColorSpace;
+  return peekGlowTex;
+}
+const peekGlows=[];
+const PEEK_S=3.4;   // the same breath as the card: in over the first fifth, held to 70%, out by the end
+function addPeekGlow(mesh){
+  const g=new THREE.Mesh(new THREE.PlaneGeometry(TILE_W*1.24,TILE_D*1.24),new THREE.MeshBasicMaterial({map:peekGlowTexture(),transparent:true,opacity:0,depthWrite:false,side:THREE.DoubleSide}));
+  g.position.z=0.03; g.renderOrder=3; mesh.add(g);
+  peekGlows.push({mesh,g,t0:clock.elapsedTime});
+}
+/** The Sibyl's look at a face-down tile: its fog card fades to the real card and back, in the violet frame of her top-of-the-pack
+ *  card — the player must remember what they saw. */
+function peekTile(d){
+  const k=akey(d), m=tileMeshes.find(x=>x.userData.area&&akey(x.userData.area)===k);
+  if(!m||!m.userData.down) return;
+  const a=m.userData.area;
+  addPeekGlow(m);
+  fadeToFace(m,a,PEEK_S*0.2);
+  setTimeout(()=>{
+    const cur=engine.areas.find(x=>akey(x)===k);
+    if(tileMeshes.includes(m) && cur && cur.faceDown) fadeToFog(m,cur,PEEK_S*0.3);   // unless a party has entered it meanwhile
+    setTimeout(viewSnapTile,PEEK_S*0.3*1000+800);   // once it has faded back, go 'home': back to the party's own tile
+  },PEEK_S*0.7*1000);
 }
 function pickAt(){ // ray already aimed; returns true when the click was consumed by the picker
   if(!picker) return false;
@@ -983,6 +1113,9 @@ function pickAt(){ // ray already aimed; returns true when the click was consume
   return true;
 }
 
+// The nearest hit that is actually on screen. A raycast also reports meshes hidden by level isolation, so a click on a tile would
+// otherwise land on a hidden tile (or its cards) from another level at the same column and row.
+function visibleHit(hits){ return hits.find(h=>{ for(let o=h.object;o;o=o.parent) if(!o.visible) return false; return true; }); }
 let needle;
 function onPointerDown(e){ downXY=[e.clientX,e.clientY]; }
 function onPointerUp(e){
@@ -990,11 +1123,11 @@ function onPointerUp(e){
   if(Reveal.active())return;
   mouse.x=(e.clientX/innerWidth)*2-1;mouse.y=-(e.clientY/innerHeight)*2+1;ray.setFromCamera(mouse,camera);
   if(pickAt())return;
-  const hitE=ray.intersectObjects(exitGroup.children,true)[0];
+  const hitE=visibleHit(ray.intersectObjects(exitGroup.children,true));
   if(hitE){let g=hitE.object;while(g&&!g.userData.move)g=g.parent;if(g){doMove(g.userData.move);return;}}
-  const hitC=ray.intersectObjects(contentMeshes,false)[0];
+  const hitC=visibleHit(ray.intersectObjects(contentMeshes,false));
   if(hitC){const f=hitC.object;showCard(f.userData.card, f.userData.area?f.userData.area.name:engine.current.name);return;}
-  const hitT=ray.intersectObjects(tileMeshes,false)[0];
+  const hitT=visibleHit(ray.intersectObjects(tileMeshes,false));
   if(hitT){const a=hitT.object.userData.area; if(a===engine.current){viewSnapTile();selectCurrent();} else inspectArea(a);}
 }
 function onKeyDown(e){
@@ -1013,8 +1146,8 @@ function onResize(){
   if(lastSnapArea && orbitBtn && !orbitBtn.classList.contains('active')) frameSnap(lastSnapArea);
 }
 
-export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr, tileAR, partyColor, onQuit, multiplayer }){
-  engine=eng; startLevel=eng.startLevel; tiles=tileMap; PARTY=partyArr; TILE_D=TILE_W/tileAR; partyColorHex=partyColor; isMultiplayer=!!multiplayer;
+export async function boot({ mount, engine: eng, tiles: tileMap, deadEnd, party: partyArr, tileAR, partyColor, onQuit, multiplayer }){
+  engine=eng; startLevel=eng.startLevel; tiles=tileMap; deadEndArt=deadEnd||(()=>null); PARTY=partyArr; TILE_D=TILE_W/tileAR; partyColorHex=partyColor; isMultiplayer=!!multiplayer;
 
   /* ---- renderer / scene / camera ---- */
   renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
@@ -1068,7 +1201,7 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
 
   buildSelectRing();buildPartyToken();
 
-  const revealParty=PARTY.map(p=>({name:p.name,fs:p.fs,mp:p.mp,charisma:!!p.charisma}));
+  const revealParty=PARTY.filter(p=>!p.sibyl).map(p=>({name:p.name,fs:p.fs,mp:p.mp,charisma:!!p.charisma}));
   Reveal.init({
     party:revealParty,
     focusCard:(card)=>showCard(card, engine.current.name),
@@ -1099,5 +1232,5 @@ export async function boot({ mount, engine: eng, tiles: tileMap, party: partyArr
     renderer.dispose();
     renderer.domElement.remove();
   }
-  return { dispose, refresh, setParty, setOtherParties, focusArea, frameArea, setPicker, snapOnArrival:()=>{homeOnArrival=true;} };
+  return { dispose, refresh, setParty, setOtherParties, focusArea, frameArea, setPicker, peekTile, snapOnArrival:()=>{homeOnArrival=true;} };
 }

@@ -1,6 +1,6 @@
 // ALL_CREATURES/ALL_TREASURES (not the base-only tables, SC-EXT-29): every fight-surface card —
 // party member or foe — can be a kit id (14-21) in a kit-on game.
-import { ALL_CREATURES, ALL_TREASURES, type GameState } from "@sorcerers-cave/engine";
+import { ALL_CREATURES, ALL_TREASURES, C_GHOUL, HAZARD_GHOULS, type GameState } from "@sorcerers-cave/engine";
 import { resolveCardVariant, resolveCard, type CardArt } from "../data/manifest";
 
 export type CardKind = "ally" | "caster" | "foe";
@@ -25,19 +25,29 @@ export function FightCard({
   // copy it is) — inconsistent with whatever the chamber/party panel had already shown for that member.
   variantIdx?: number;
 }) {
-  const art = resolveCardVariant("creature", creatureId, variantIdx ?? 0, cards) ?? resolveCard("creature", creatureId, cards);
+  // A Ghoul has no creature card of its own yet, so it wears the Ghouls hazard card.
+  const art = resolveCardVariant("creature", creatureId, variantIdx ?? 0, cards) ?? resolveCard("creature", creatureId, cards)
+    ?? (creatureId === C_GHOUL ? resolveCard("hazard", HAZARD_GHOULS, cards) : null);
   const name = ALL_CREATURES[creatureId]?.name ?? "?";
   const relics = treasure
     .filter((t) => !artifactsOnly || ALL_TREASURES[t]?.kind === "artifact")
     .map((t) => ({ id: t, art: resolveCard("treasure", t, cards), name: ALL_TREASURES[t]?.name ?? "artefact" }));
 
   return (
-    <div className={`scv-fc scv-fc-${kind}${dim ? " is-dim" : ""}${selected ? " is-sel" : ""}`}>
+    <div className={`scv-fc scv-fc-${kind}${dim ? " is-dim" : ""}${selected ? " is-sel" : ""}${caption ? " has-caption" : ""}`}>
       <div
         className="scv-fc-frame"
         data-testid={testId}
         draggable={draggable}
         onDragStart={(e) => { e.dataTransfer.effectAllowed = "move"; if (dragId !== undefined) e.dataTransfer.setData("application/x-scv-member", String(dragId)); }}
+        onDragEnd={(e) => {
+          // A drag leaves the source card stuck in :hover/:focus, so it stays raised in the hand; let it settle until the pointer next moves.
+          const frame = e.currentTarget, slot = frame.closest(".scv-hand-slot");
+          frame.blur();
+          if (!slot) return;
+          slot.classList.add("no-pop");
+          window.addEventListener("pointermove", () => slot.classList.remove("no-pop"), { once: true });
+        }}
         onClick={onPick}
         role={onPick ? "button" : undefined}
         tabIndex={onPick ? 0 : undefined}

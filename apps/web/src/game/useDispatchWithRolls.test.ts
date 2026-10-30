@@ -55,6 +55,21 @@ describe("useDispatchWithRolls", () => {
     expect(result.current.notices).not.toBeNull();
   });
 
+  it("keeps a post-fight trap fall's notice behind the dice that explain it", async () => {
+    const d = deferred();
+    const { result } = renderHook(() => useDispatchWithRolls(() => d.promise));
+    act(() => { void result.current.dispatchWithRolls({ type: "proceed" } as GameAction); });
+    await act(async () => {
+      d.resolve({ state: {}, events: [
+        { type: "combatRoll", party: "Hero", enemy: "Ghouls", partyRoll: 6, enemyRoll: 1, partyTotal: 9, enemyTotal: 3, result: "partyWon" } as GameEvent,
+        { type: "fightWon" } as GameEvent,
+        { type: "trapSprung", level: 2 } as GameEvent,
+      ] });
+    });
+    expect(result.current.roll).not.toBeNull();
+    expect(result.current.notices?.some((n) => /floor gives way/i.test(n.text))).toBe(true);
+  });
+
   it("holds the pre-action snapshot until the roll is dismissed (background must not jump)", async () => {
     const d = deferred();
     const snapshot = { marker: "pre-action" };

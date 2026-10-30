@@ -36,7 +36,7 @@ function hazardNotice(hz: number): Notice | null {
   switch (hz) {
     case HAZARD_EARTHQUAKE: return { text: "An earthquake! The area behind you collapses.", tone: "bad" };
     case HAZARD_MEDUSA: return { text: "Medusa's gaze sweeps the party — the unlucky are turned to stone.", tone: "bad" };
-    case HAZARD_GHOULS: return { text: "Ghouls fall upon the party!", tone: "bad" };
+    case HAZARD_GHOULS: return null; // announced by the fight surface (revised combat) or shown as the per-member dice (legacy)
     case HAZARD_MUTINY: return null; // see the `mutinied` event
     case HAZARD_TRAP: return null;   // see trapSprung / trapAvoided (confirm modal)
     case HAZARD_DESERTION: return null; // see the per-ally `desertionRoll` / `wolfUnmoved` events
@@ -240,11 +240,14 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "ghoulsWarded":
         out.push({ text: "The party's Talisman wards off the Ghouls — they slink away unfought.", tone: "good" });
         break;
+      case "ghoulsAttack":
+        break;   // announced by the fight surface itself (RevisedFightSurface), before the first roll
       case "medusaAverted":
         out.push({ text: "Medusa's gaze sweeps the party — but the Wizard's Magic Staff turns it aside; no one is stoned.", tone: "good" });
         break;
       case "trapSprung": // the move-result trap indicator / confirm modal narrates an ordinary fall; these two add the WHY
-        if (e.guideLost) out.push({ text: "Without the Dwarf to guide it, the party is taken by the trap as it tries to leave.", tone: "bad" });
+        if (events.some((x) => x.type === "fightWon") && !e.guideLost && !e.deliberate) out.push({ text: "With the Ghouls gone, the floor gives way — the party plunges a level deeper!", tone: "bad" });   // the Trap is dealt with last, after a fight: no move indicator narrates this fall
+        else if (e.guideLost) out.push({ text: "Without the Dwarf to guide it, the party is taken by the trap as it tries to leave.", tone: "bad" });
         else if (e.deliberate) out.push({ text: "The party drops through the trap on purpose — any strangers below are not expecting you, so you have the advantage of surprise.", tone: "good" });
         break;
       case "medusaLooms":
@@ -377,6 +380,12 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "apprenticeStaysBehind":
         out.push({ text: "The Apprentice melts back into the dark.", tone: "neutral" });
         break;
+      case "apprenticeWaits":
+        out.push({ text: "The Sorcerer is dead, and the Apprentice watches you. Leave this area now, or she will turn on you.", tone: "bad" });
+        break;
+      case "apprenticeParts":
+        out.push({ text: "The Apprentice does not follow. She stays behind in the chamber.", tone: "neutral" });
+        break;
       case "sibylJoins":
         out.push({ text: "The Sibyl takes your side. She will not leave the cave.", tone: "good" });
         break;
@@ -458,6 +467,10 @@ export function eventNotices(events: GameEvent[]): Notice[] {
           tone: "neutral",
         });
         break;
+      case "strategyFallback":
+        break; // an operator's concern (the game log), not the player's
+      case "deployed": case "engaged": case "redeployed": case "strangerCasualty": case "fightStandoff": case "spectreDeparts": case "ghoulsDepart": case "scrollSurprise":
+        break; // the revised round engine (`variants.combatRevision`) has no player surface yet
       default:
         assertNever(e);
         break;

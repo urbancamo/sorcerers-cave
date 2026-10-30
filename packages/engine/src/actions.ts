@@ -69,8 +69,26 @@ export type GameAction =
   // straight after the fight in which he was defeated. Spare him on condition that he transports the party
   // and the treasure in the chamber to any discovered area (`area` indexes `state.areas`) — or slay him
   // as the fight would have (+30, every curse lifted, every Apprentice turns hostile).
+  // A stranger strategy's decision (`variants.strangerLevel`): legal only while the fight is waiting on the strangers
+  // (`fight.pending`). Applied by the driver, never accepted from a client (apps/web/convex). `fallback` records that the
+  // named strategy's own answer was replaced by `standard`'s.
+  | { type: "strangersAssignArtefacts"; strategyId: string; strategyVersion: number; allocations: { artifact: number; stranger: number }[]; fallback?: { from: string; reason: string } }
+  // The revised round engine (`variants.combatRevision`): the party's formation decisions. `deploy` (defender: put at least as many
+  // unengaged creatures in the front line as the attacker has), `engage` (attacker: pair its unengaged creatures one-to-one against
+  // the deployed front line), `redeploy` (either side's surplus: join a match's front line or, for a caster, back it).
+  | { type: "deploy"; creatures: number[] }
+  // `moves` (the party attacking only) places the attacker's spares in the same action: a `redeploy` made against the matches the pairings create.
+  | { type: "engage"; pairs: { party: number; stranger: number }[]; moves?: { creature: number; match: number; back: boolean }[] }
+  | { type: "scroll"; use: "destroy" | "surprise" | "decline" }   // the attacker's Scroll option in a revised fight (`surprise` only in round 1)
+  | { type: "redeploy"; moves: { creature: number; match: number; back: boolean }[] }
+  // The strangers' counterparts, applied by the driver and never accepted from a client (like `strangersAssignArtefacts`).
+  | { type: "strangersDeploy"; strategyId: string; strategyVersion: number; creatures: number[]; fallback?: { from: string; reason: string } }
+  | { type: "strangersEngage"; strategyId: string; strategyVersion: number; pairs: { party: number; stranger: number }[]; fallback?: { from: string; reason: string } }
+  | { type: "strangersRedeploy"; strategyId: string; strategyVersion: number; moves: { creature: number; match: number; back: boolean }[]; fallback?: { from: string; reason: string } }
+  | { type: "strangersNominate"; strategyId: string; strategyVersion: number; nominated: number; fallback?: { from: string; reason: string } }
   | { type: "spareSorcerer"; area: number }
   | { type: "slaySorcerer" }
+  | { type: "stay" }   // the revised combat: remain in the area after the Sorcerer's death instead of leaving, and so meet the turncoat Apprentice
   | { type: "testPlaceArea"; dir: number; special: number }
   | { type: "testSetChamber"; strangers: number[]; treasures: number[]; hazards: number[] }
   | { type: "testForceReaction"; outcome: "friendly" | "indifferent" | "hostile" }
@@ -132,6 +150,7 @@ export type GameEvent =
   | { type: "fightStarted"; surprise: number }
   // Stranger loadout: a stranger picked up a fight artefact lying in the chamber (Peter's default heuristic).
   | { type: "strangerEquipped"; creatureId: number; artifact: number }
+  | { type: "strategyFallback"; from: string; reason: string } // a stranger strategy's decision was replaced by `standard`'s
   // An invulnerable Ring bearer (level 4+) was defeated: it disappears with the Ring, leaving its other gear behind.
   | { type: "strangerVanished"; creatureId: number; artifact: number }
   // One resolved pairing in a fight round: the party side and the enemy side, each with its
@@ -146,6 +165,15 @@ export type GameEvent =
       enemyTotal: number;
       result: "partyWon" | "enemyWon" | "tie";
     }
+  // Revised round engine: what each side put where. Indices are `state.party` / `state.strangers` positions at the time.
+  | { type: "deployed"; side: "party" | "strangers"; creatures: number[] }
+  | { type: "engaged"; pairs: { party: number; stranger: number }[] }
+  | { type: "redeployed"; side: "party" | "strangers"; moves: { creature: number; match: number; back: boolean }[] }
+  | { type: "strangerCasualty"; nominated: number; victim: number; roll: number } // a stranger pair lost: `nominated` falls on 4-6, else the other (creature ids)
+  | { type: "scrollSurprise" } // the Scroll used in round 1 for +1 to the surprise bonus (revised combat)
+  | { type: "ghoulsDepart" } // the Ghouls' one round is over: any left withdraw to their lair and the combat ends (revised combat, Peter 20-OCT-2026)
+  | { type: "spectreDeparts" } // the chest Spectre's one round is over and it vanishes (revised combat, Peter 14-OCT-2026)
+  | { type: "fightStandoff" } // no side can continue a match, make one or break a stalemate: the fight is over and the party must withdraw
   | { type: "fightWon" }
   // A losing pair's casualty was decided: `roll` is the d6, `gotPreference` whether 4-6 honoured the choice.
   | { type: "casualtyChosen"; creatureId: number; roll: number; gotPreference: boolean }
@@ -157,6 +185,7 @@ export type GameEvent =
   | { type: "rubyTaken" }
   | { type: "statueAroused" } // the Lost-Ruby statue slew the member who tried to wrest it (labels the dice overlay)
   | { type: "wardedOff"; creatureId: number }
+  | { type: "ghoulsAttack"; count: number } // the revised combat: the Ghouls fall on the party as a party of their own, one per creature
   | { type: "ghoulsWarded" } // a party member's Talisman turned the Ghouls away (card)
   | { type: "medusaAverted" } // a Wizard's Magic Staff turned Medusa's gaze aside — no one stoned (card)
   // The Medusa pause (§Lotus Dust "Works on MEDUSA"): the party entered her lair holding Lotus Dust,
@@ -276,6 +305,10 @@ export type GameEvent =
   // successful `exitCave` drops her from the scored party (`count`, normally one) rather than
   // let her escape with the rest.
   | { type: "apprenticeStaysBehind"; count: number }
+  // The revised combat (Peter, 14-OCT-2026): the Sorcerer is dead but she has not turned yet — the party may leave (`apprenticeParts`:
+  // she is left behind, her goods on the floor) or stay (`apprenticeTurned`: she joins the strangers there and they attack).
+  | { type: "apprenticeWaits"; count: number }
+  | { type: "apprenticeParts"; count: number }
   // The Sibyl (variants.sibyl, SC-SIB-5): her one-time test. `sibylJoins` — she is friendly and now
   // travels with the party (`state.hasSibyl`); `sibylDeclines` — she is indifferent and stays in the
   // chamber, never to be tested again by this party.

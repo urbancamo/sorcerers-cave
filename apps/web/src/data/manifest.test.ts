@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import type { AssetManifest } from "@sorcerers-cave/assets";
-import { normExits, parseManifest, resolveTile, resolveCard, type Topology, type Category } from "./manifest";
+import { normExits, parseManifest, resolveTile, resolveCard, resolveDeadEnd, type Topology, type Category } from "./manifest";
 
 const FIXTURE: AssetManifest = {
   generated: "test",
@@ -24,6 +24,14 @@ const FIXTURE: AssetManifest = {
       items: [
         { file: "small-card-s01-1.png", w: 1, h: 1, name: "Dragon", category: "creature", entityId: 10 },
         { file: "small-card-s02-1.png", w: 1, h: 1, name: "Magic Sword", category: "treasure", entityId: 3 },
+      ],
+    },
+    deadEnds: {
+      dir: "dead-ends", source: "fog", description: "", count: 3,
+      items: [
+        { file: "dead-end-ne.jpg", w: 1728, h: 1210, exits: "NE" },
+        { file: "dead-end-s.jpg", w: 1728, h: 1210, exits: "S" },
+        { file: "dead-end-nesw.jpg", w: 1728, h: 1210, exits: "NESW" },
       ],
     },
     cardsExtension: {
@@ -172,5 +180,36 @@ describe("real asset manifest", () => {
     const real = JSON.parse(readFileSync(resolve(process.cwd(), "../../docs/assets/manifest.json"), "utf8")) as AssetManifest;
     const { cards } = parseManifest(real);
     expect(resolveCard("creature", 21, cards)?.file).toBe("/assets/cards/small-card-s07-7.png");
+  });
+});
+
+describe("fog dead-end cards", () => {
+  const { deadEnds } = parseManifest(FIXTURE);
+
+  it("are served under /assets with their exits in N,E,S,W order", () => {
+    expect(deadEnds.map((d) => [d.exits, d.file])).toEqual([
+      ["NE", "/assets/dead-ends/dead-end-ne.jpg"], ["S", "/assets/dead-ends/dead-end-s.jpg"], ["NESW", "/assets/dead-ends/dead-end-nesw.jpg"],
+    ]);
+  });
+
+  it("resolve by the dead-end card's doorways, however they are written", () => {
+    expect(resolveDeadEnd("EN", deadEnds)?.file).toBe("/assets/dead-ends/dead-end-ne.jpg");
+    expect(resolveDeadEnd("S", deadEnds)?.file).toBe("/assets/dead-ends/dead-end-s.jpg");
+  });
+
+  it("fall back to the plain fog card when none shows those doorways", () => {
+    expect(resolveDeadEnd("NES", deadEnds)?.exits).toBe("NESW");
+    expect(resolveDeadEnd("", deadEnds)?.exits).toBe("NESW");
+  });
+
+  it("resolve to nothing when the manifest has no fog cards", () => {
+    expect(resolveDeadEnd("N", [])).toBeNull();
+  });
+
+  it("the real manifest has one for every one- and two-doorway card, each a file on disk", () => {
+    const real = JSON.parse(readFileSync(resolve(process.cwd(), "../../docs/assets/manifest.json"), "utf8")) as AssetManifest;
+    const { deadEnds: all } = parseManifest(real);
+    for (const e of ["N", "E", "S", "W", "NE", "ES", "SW", "NW", "NS", "EW"]) expect(resolveDeadEnd(e, all)?.exits, e).toBe(normExits(e));
+    for (const d of all) expect(() => readFileSync(resolve(process.cwd(), "../../docs/assets", d.file.replace(/^\/assets\//, ""))), d.file).not.toThrow();
   });
 });

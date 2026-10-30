@@ -8,6 +8,7 @@ import {
 } from "@sorcerers-cave/engine";
 import type { CardArt } from "../data/manifest";
 import { FightCard, type CardKind } from "./FightCard";
+import { FightHand } from "./FightHand";
 import { memberLabels } from "./memberLabels";
 import { emptyDraft, place, unplace, toMatches, freeMembers, type PlanDraft } from "./fightPlan";
 import { holyWaterTargetName } from "./holyWaterLabel";
@@ -60,7 +61,7 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
     prevComposition.current = composition;
   }, [composition]);
   const draftNow = stale ? emptyDraft() : draft;
-  if (state.phase !== "fight" || !state.fight) return null;
+  if (state.phase !== "fight" || !state.fight || state.fight.rev) return null;   // a revised fight has its own surface (RevisedFightSurface)
 
   // Party-wide "#N" labels so duplicate classes are told apart on every card and in the casualty prompt.
   const labels = memberLabels(state.party);
@@ -123,7 +124,10 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
   const doomFoeWord = hasSpectre && hasDemon ? "the Spectre and the Demon" : hasDemon ? "the Demon" : "the Spectre";
   // The round can be rolled when the plan is legal, or when it's a forced-Spectre round (fought empty,
   // ignoring any illegal placement). Suppress the pairing error in the forced case — the doom note explains.
-  const canResolve = valid.ok || forcedSpectre;
+  // The strangers' strategy owns the next decision (an external level answers outside the mutation): the engine refuses every
+  // other action until it lands, so the controls wait too. The reactive game query re-renders this when the answer is committed.
+  const deciding = state.fight?.pending?.by === "strangers";
+  const canResolve = !deciding && (valid.ok || forcedSpectre);
   const resolveMatches = forcedSpectre ? [] : matches;
   const reason = valid.ok || forcedSpectre ? null : (REASON[valid.reason] ?? "That pairing isn't legal yet.");
   // The strongest member is automatically slain in a forced-Spectre round — name who falls so it isn't a mystery.
@@ -292,16 +296,18 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
         {strangerRows.map((row) => row.render())}
       </div>
 
-      <div className="scv-fight-tray" data-testid="fight-tray">
-        <span className="scv-fight-cap">Your party — tap a fighter then a foe (or drag):</span>
-        {tray.length ? tray.map((i) => (
+      <span className="scv-fight-cap">Your party — tap a fighter then a foe (or drag):</span>
+      <FightHand testId="fight-tray">
+        {tray.map((i) => (
           <FightCard key={i} testId={`tray-${i}`} creatureId={state.party[i]!.creatureId} label={labels[i]} kind={kindOf(state, i)} strength={frontStrength(state.party[i]!, state)}
                      treasure={state.party[i]!.treasure} cards={cards} state={state} draggable dragId={i} selected={sel === i}
                      onPick={() => setSel(sel === i ? null : i)} variantIdx={partyCopyIdx.get(i)} />
-        )) : <span className="scv-fight-hint">all fighters assigned</span>}
-      </div>
+        ))}
+      </FightHand>
+      {tray.length === 0 && <span className="scv-fight-hint">all fighters assigned</span>}
 
-      {reason && <p className="scv-fight-reason">{reason}</p>}
+      {deciding && <p className="scv-fight-reason scv-fight-deciding" role="status">The strangers are deciding…</p>}
+      {!deciding && reason && <p className="scv-fight-reason">{reason}</p>}
       {forcedSpectre && doomedIdx !== null && (
         <p className="scv-fight-reason scv-fight-doom" data-testid="forced-spectre">
           No one can fight {doomFoeWord} and no magic remains — {labels[doomedIdx] ?? ALL_CREATURES[state.party[doomedIdx]!.creatureId]!.name},
@@ -313,7 +319,7 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
         <button className="scv-fight-btn primary" disabled={!canResolve} onClick={() => dispatch({ type: "resolveRound", matches: resolveMatches })}>
           {forcedSpectre ? `Face ${doomFoeWord} — lose your strongest ☠` : "Roll the round ⚔"}
         </button>
-        {retreats.length > 0 && (
+        {!deciding && retreats.length > 0 && (
           <div className="scv-retreat">
             <button className="scv-fight-btn" onClick={() => setRetreatOpen((o) => !o)}>Retreat ▾</button>
             {retreatOpen && (
@@ -326,7 +332,7 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
           </div>
         )}
         <button className="scv-fight-btn ghost" onClick={() => { setDraft(emptyDraft()); setSel(null); }}>Reset</button>
-        {artifacts.map((a, i) => {
+        {!deciding && artifacts.map((a, i) => {
           // The Scroll (19, SC-EXT-25/design US-21) is a blocking-confirm action — same verbatim
           // popup as EncounterPanel's own row — never a one-click dispatch (review fix, Task 16:
           // selectors.ts legally offers it in the fight phase too, but this loop used to render it

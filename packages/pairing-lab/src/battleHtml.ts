@@ -259,10 +259,11 @@ const JS = String.raw`
     if (side === "party") {
       if (B.meta.partyRing) parts.push({ n: 1, why: "the Ring" });
       if (B.meta.curses) parts.push({ n: -B.meta.curses, why: B.meta.curses > 1 ? "the curses" : "the curse" });
+      if (round === 1 && B.meta.attacker === "party" && B.meta.surprise) parts.push({ n: B.meta.surprise, why: "surprise" });
       return { parts: parts, total: m.partyBonus };
     }
     if (B.meta.strangerRing) parts.push({ n: 1, why: "the Ring" });
-    if (round === 1 && B.meta.strangerSurprise) parts.push({ n: 1, why: "surprise" });
+    if (round === 1 && B.meta.attacker === "strangers" && B.meta.surprise) parts.push({ n: B.meta.surprise, why: "surprise" });
     return { parts: parts, total: m.strangerBonus };
   }
   function bonusText(side, m, round) {
@@ -318,7 +319,7 @@ const JS = String.raw`
     var prevS = r === 1 ? B.strangers.length : B.rounds[r - 2].strangersAlive.length;
     var two = rd.matches.filter(function (m) { return m.partyIdx.length + m.strangersIdx.length > 2; }).length;
     var backed = rd.matches.filter(function (m) { return m.partyBackIdx.length + m.strangersBackIdx.length > 0; }).length;
-    var surprise = rd.attacker === "strangers" && r === 1 && B.meta.strangerSurprise ? ", with the advantage of surprise: +1 to each of their rolls this round." : ".";
+    var surprise = r === 1 && B.meta.surprise ? ", with the advantage of surprise: +" + B.meta.surprise + " to each of their rolls this round." : ".";
     var counts = plural(prevP, "party creature", "party creatures") + " face " + plural(prevS, "stranger", "strangers") + ". There are " + plural(rd.matches.length, "match", "matches") +
       (two ? ": " + plural(two, "match has", "matches have") + " a second fighter on one side" : "") +
       (backed ? (two ? ", and " : ": ") + plural(backed, "has", "have") + " casters behind the line adding their magic" : "") + ".";
@@ -330,7 +331,7 @@ const JS = String.raw`
     if (B.meta.eye) cond.push("the Eye of God in the area (it switches off magic and artefacts)");
     var bits = [];
     if (B.meta.partyRing) bits.push("The party carries the Ring: +1 to each of its rolls.");
-    if (B.meta.strangerSurprise) bits.push("The strangers have surprise: +1 to each of their rolls in round 1 only.");
+    if (B.meta.surprise) bits.push("The " + B.meta.attacker + " attack with surprise: +" + B.meta.surprise + " to each of their rolls in round 1 only.");
     return [
       [{ b: "The set-up." }, " " + plural(B.party.length, "party creature", "party creatures") + " meet " + plural(B.strangers.length, "stranger", "strangers") + " on " + join(cond) + "."],
       [bits.join(" ") || "Neither side has a bonus to its rolls."],
@@ -598,22 +599,22 @@ const JS = String.raw`
 
 const RULES = [
   "Each side adds up its strength, rolls one die, and adds its bonus. The higher total wins.",
-  "A lone loser dies. If two creatures lost together, one of them falls: the loser's nominated creature on a roll of 4 to 6 (for the strangers, as Peter's text is written, the nominated one is spared on 4 to 6).",
-  "A tie changes nothing: the match carries on next round.",
-  "The side with more creatures can send its spares in as second fighters (never two against two), or stand casters behind the line to add their magic.",
-  "The roles alternate: the strangers attack in round 1 and the party in round 2.",
+  "A lone loser dies. If two creatures lost together, the loser nominates one and rolls a die (the Ring adds 1, a 7 counts as 6): on 4 to 6 the nominated creature dies, otherwise the other does. The same rule applies to both sides.",
+  "A tie changes nothing: the match carries on next round. A stalemate (neither side can beat the other on any roll) carries on too, unfought.",
+  "Either side's spare creatures can be sent in as second fighters (two against two is allowed), or casters can stand behind the line to add their magic.",
+  "The roles never change: whoever started the fight attacks in every round, and only that side can have surprise, in round 1.",
 ];
 
 const json = (v: unknown): string => JSON.stringify(v).replace(/</g, "\\u003c").replace(new RegExp(String.fromCharCode(0x2028), "g"), "\\u2028").replace(new RegExp(String.fromCharCode(0x2029), "g"), "\\u2029");
 
 export function renderBattleHtml(battle: Battle, art: CardArt): string {
   const m = battle.meta;
-  const who = m.end === "partyWin" ? "party" : m.end === "strangersWin" ? "strangers" : m.end === "retreat" ? "retreat" : "cap";
-  const verdict = m.end === "partyWin" ? "The party wins" : m.end === "strangersWin" ? "The strangers win" : m.end === "retreat" ? "The party retreats" : "Round limit reached";
+  const who = m.end === "partyWin" ? "party" : m.end === "strangersWin" ? "strangers" : m.end === "retreat" ? "retreat" : m.end === "stalemate" ? "stalemate" : "cap";
+  const verdict = m.end === "partyWin" ? "The party wins" : m.end === "strangersWin" ? "The strangers win" : m.end === "retreat" ? "The party retreats" : m.end === "stalemate" ? "A stalemate: neither side can beat the other" : "Round limit reached";
   const chips: [string, boolean][] = [
     [`Level ${m.level}`, false],
     [`${battle.party.length} party against ${battle.strangers.length} strangers`, false],
-    ...(m.strangerSurprise ? [["Strangers have surprise (+1, round 1)", true] as [string, boolean]] : []),
+    ...(m.surprise ? [[`The ${m.attacker} attack with surprise (+${m.surprise}, round 1)`, true] as [string, boolean]] : []),
     ...(m.partyRing ? [["Party wears the Ring (+1)", true] as [string, boolean]] : []),
     ...(m.strangerRing ? [["Strangers wear the Ring (+1)", true] as [string, boolean]] : []),
     ...(m.curses ? [[`${m.curses} curse${m.curses > 1 ? "s" : ""} on the party`, true] as [string, boolean]] : []),

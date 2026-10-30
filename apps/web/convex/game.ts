@@ -1,10 +1,14 @@
 import { mutation, query, type MutationCtx } from "./_generated/server";
 import { v } from "convex/values";
+import { nextSeq, park } from "./strangerDecision";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import {
   newGame as createGameState,
   validatePicks,
   reduce,
+  driveStrangers,
+  awaitingRequest,
+  hasStrategy,
   GS_PLAYING,
   type GameState,
   type GameAction,
@@ -30,6 +34,13 @@ const actionValidator = v.object({
     backers: v.array(v.number()),
     strangers: v.array(v.number()),
   }))),
+
+  // The revised combat's party decisions (`variants.combatRevision`): deploy's creatures, engage's pairs, redeploy's moves, and the
+  // Scroll's choice. reduce() enforces the semantics (and that a fight is waiting for them).
+  creatures: v.optional(v.array(v.number())),
+  pairs: v.optional(v.array(v.object({ party: v.number(), stranger: v.number() }))),
+  moves: v.optional(v.array(v.object({ creature: v.number(), match: v.number(), back: v.boolean() }))),
+  use: v.optional(v.union(v.literal("destroy"), v.literal("surprise"), v.literal("decline"))),
 
   // Test Mode (§Test Mode): testPlaceArea's special id, testSetChamber's three id lists,
   // testForceReaction's outcome, and testForceDie/testForceAllDice's raw die value (SC-Test-10).
@@ -82,12 +93,22 @@ const variantsValidator = v.object({ extensionKit: v.optional(v.boolean()), siby
 // Standing traps and the Dwarf's deliberate fall (`variants.trapRules`, solo only) come from
 // `TRAP_RULES_ENABLED`, off by default for the same reason (a trap is one-shot and a Dwarf always
 // avoids it).
-type ServerVariants = { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean; sibyl?: boolean };
+//
+// The revised combat (`variants.combatRevision`, solo only; Peter's reformulated fighting rules) comes from
+// `REVISED_COMBAT_ENABLED`, off by default: a fight is then played round by round with a formation screen instead of the battle plan.
+//
+// The strangers' strategy (`variants.strangerLevel`, solo only; pluggable stranger combat spec) comes from
+// `STRANGER_STRATEGY`, a registered strategy id. Unset, or an id no strategy is registered under, ⇒ not stamped ⇒ the
+// loadout is derived exactly as before. Never accepted from a client.
+type ServerVariants = { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean; sibyl?: boolean; strangerLevel?: string; combatRevision?: boolean };
 function withForcedRedraw(variants: { extensionKit?: boolean; sibyl?: boolean } | undefined): ServerVariants | undefined {
   let out: ServerVariants | undefined = variants;
   if (process.env.FORCED_REDRAW_ENABLED === "1") out = { ...out, forcedRedraw: true };
   if (process.env.SORCERER_TELEPORT_ENABLED === "1") out = { ...out, sorcererTeleport: true };
   if (process.env.TRAP_RULES_ENABLED === "1") out = { ...out, trapRules: true };
+  if (process.env.REVISED_COMBAT_ENABLED === "1") out = { ...out, combatRevision: true };
+  const strategy = process.env.STRANGER_STRATEGY;
+  if (strategy && hasStrategy(strategy)) out = { ...out, strangerLevel: strategy };
   return out;
 }
 
@@ -230,22 +251,29 @@ export const applyAction = mutation({
     if (game.ownerId !== callerId) throw new Error("Forbidden"); // IDOR guard
     if (game.status !== "active") return { state: game.state as GameState, events: [] };
 
-    const { state, events, midState } = reduce(game.state as GameState, action as GameAction);
+    // The strangers' decisions are the server's alone (P7): never accepted from a client, whatever the game's state.
+    if (action.type.startsWith("strangers")) throw new Error("A stranger action cannot be sent by a client");
+
+    const reduced = reduce(game.state as GameState, action as GameAction);
+    const { events, midState } = reduced;
+    // A fight that now waits on the strangers' strategy is decided in this same call; every decision is logged like a player action.
+    // An external level cannot be: its decision is parked (strangerDecision.ts) and committed when the endpoint answers.
+    const driven = driveStrangers(reduced.state);
+    let state = driven.state;
+    const blockedNoop = events.length === 1 && events[0]!.type === "blocked";
+    const rows = blockedNoop ? [] : [{ action: action as GameAction, events }, ...driven.applied];
+    let seq = await nextSeq(ctx, id);
+    // Only a decision not yet handed over: a refused player action while one waits must not ask the endpoint a second time.
+    if (driven.awaiting && !awaitingRequest(state)) state = await park(ctx, id, state, seq + rows.length);
     const status = state.gs === GS_PLAYING ? "active" : "finished";
     await ctx.db.patch(id, { state, status, updatedAt: Date.now() });
 
-    const blockedNoop = events.length === 1 && events[0]!.type === "blocked";
-    if (!blockedNoop) {
-      const last = await ctx.db
-        .query("gameEvents")
-        .withIndex("by_game", (q) => q.eq("gameId", id))
-        .order("desc")
-        .first();
-      await ctx.db.insert("gameEvents", { gameId: id, seq: (last?.seq ?? -1) + 1, action, events });
-    }
+    for (const r of rows) await ctx.db.insert("gameEvents", { gameId: id, seq: seq++, action: r.action, events: r.events });
     // midState (SC-4-43): the pre-relocation presentation snapshot — never persisted,
     // returned only so the client can hold the interrupted room as the backdrop.
-    return { state, events, midState };
+    // The events the client presents (dice, notices) include the strangers' automatic follow-ups: in a revised fight the
+    // round's rolls (and a game-ending one) often fall in the call the server drove after the player's own action.
+    return { state, events: [...events, ...driven.applied.flatMap((a) => a.events)], midState };
   },
 });
 

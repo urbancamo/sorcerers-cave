@@ -5,7 +5,7 @@ import { decodeArea, decodeOpen } from "./decode";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WHIRLPOOL, SPECIAL_WELL, SPECIAL_BELL_ROPE, SPECIAL_GREAT_HALL, TILE_MIN, TILE_MAX, TILE_TUNNEL_ES } from "./data/areaCards";
 import { viperCrossing, deepPoolCrossing, whirlpoolCrossing, giantCanRecover, sunkKey, tryReclaimSunk } from "./special";
 import { enterChamber, drawSmallCards } from "./chamber";
-import { applyHazards, hasStaffWizard, hasLivingDwarf } from "./hazards";
+import { applyHazards, hasStaffWizard, livingDwarfCount } from "./hazards";
 import { HAZARD_MEDUSA, HAZARD_TRAP, HAZARD_NAMES } from "./data/hazards";
 import { takeTreasure, canCarry } from "./pickup";
 import { unpackCoord, packCoord, targetCoord, DIR_UP, DIR_DOWN } from "./coords";
@@ -17,7 +17,7 @@ import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import {
   wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, markDied, healingBalmEligible, ringInvincible, usesArtifactsAs,
   hasLivingHuman, holyWaterTargets, HW_STATUE_BASE, HW_MEDUSA, HW_STRANGER_BASE, HW_PARKED_STATUE_BASE, isHumanOrPriestClass,
-  eyePresent, slaySorcerer,
+  eyePresent, slaySorcerer, revertApprenticesOnSorcererDeath,
 } from "./effects";
 import { canTeleportTo } from "./sorcerer";
 import { BORNEABLE, isBorne, sweepFallen, spillCarried } from "./loot";
@@ -29,10 +29,14 @@ import {
 // Extension kit (SC-EXT-17): aliases `ALL_CREATURES` — `strongestStranger`'s fight-focus pick and
 // the Lost-Ruby wrestler's combat-roll name both index by an actual creatureId that may already be
 // a kit id (14-20); byte-identical for ids 0-13.
-import { ALL_CREATURES as CREATURES, CREATURES as BASE_CREATURES } from "./data/creatures";
+import { ALL_CREATURES as CREATURES, CREATURES as BASE_CREATURES, C_GHOUL } from "./data/creatures";
 import { TREASURES as BASE_TREASURES } from "./data/treasures";
-import { equipStrangers } from "./strangerEquip";
+import { applyAllocations, equipStrangers, loadoutViolation } from "./strangerEquip";
 import { removeStranger, addStranger, dropAllGear } from "./strangerGear";
+import {
+  advance as advanceRevised, applyScroll, applyDeploy, applyEngage, applyNominate, applyRedeploy, deployViolation, dropPartyMember, resumeAfterStandoff, engageMovesViolation, engageViolation, initRevised,
+  nominateViolation, redeployViolation, removeStrangerFromFight, resumeAfterCasualties,
+} from "./revisedRound";
 
 const T_EYE_OF_GOD = 13; // treasure id — must stay with its bearer or the party is cursed (§Eye of God)
 const C_GIANT = 12; // only a Giant can recover treasure cast into a Deep Pool (§Deep Pool)
@@ -156,7 +160,15 @@ function startFight(state: GameState, surprise: number): GameEvent[] {
   state.surpriseReady = false; // the surprise (if any) is now baked into the fight
   state.fightDrops = []; // fresh fight — forget any earlier drop record
   // Stranger Fight Preparations: the strangers pick up any fight artefacts guarded in the chamber.
-  return [{ type: "fightStarted", surprise }, ...equipStrangers(state)];
+  const events: GameEvent[] = [{ type: "fightStarted", surprise }, ...equipStrangers(state)];
+  return [...events, ...beginRevised(state)];
+}
+
+/** With `variants.combatRevision` the fight is played by the revised round engine (revisedRound.ts): set it up and run it to the first decision. */
+function beginRevised(state: GameState): GameEvent[] {
+  if (!state.variants?.combatRevision || !state.fight) return [];
+  initRevised(state);
+  return state.fight.pending ? [] : advanceRevised(state);   // a pending loadout decision starts the rounds when it is answered
 }
 
 /** Extension kit (SC-EXT-21, design US-13): a Demon present in `state.strangers` forces an
@@ -217,10 +229,26 @@ function finalizeRound(state: GameState): GameEvent[] {
     // Eye-on-a-corpse becomes recoverable here). Borne items stay lost with the body (plan ④a).
     events.push(...sweepFallen(state, "working"));
     const felled = state.fight?.sorcererFelled === true;
+    const ghouls = state.fight?.ghouls;
     state.fight = null;
     state.party.forEach((m) => { m.potionActive = false; });
     events.push({ type: "fightWon" });
-    if (felled && !eyePresent(state)) state.phase = "sorcerer"; // the player decides his fate before anything else
+    if (ghouls) {   // the Ghouls are beaten (they lurk on, for the next party): the chamber's own strangers are met now
+      state.strangers = ghouls.aside;
+      const trap = ghouls.trap;
+      if (trap?.fell) {   // the Trap, dealt with last, now springs
+        persistAndExplore(state);
+        relocateDown(state);
+        if (trap.knownTrap) state.deliberateFall = true;
+        events.push(trap.knownTrap ? { type: "trapSprung", level: state.level, deliberate: true } : { type: "trapSprung", level: state.level });
+        events.push({ type: "moved", area: state.partyArea, level: state.level });
+        events.push(...resolveAreaLoop(state));
+      } else if (trap?.choice) {   // trapRules: the Dwarf's choice, held until the Ghouls are beaten
+        state.phase = "trap";
+        state.trapPause = { freshEntry: ghouls.freshEntry, announceLull: ghouls.announceLull };
+        events.push({ type: "trapLooms" });
+      } else settleChamber(state, ghouls.freshEntry, events, ghouls.announceLull);
+    } else if (felled && !eyePresent(state)) state.phase = "sorcerer"; // the player decides his fate before anything else
     else {
       if (felled) events.push(...slaySorcerer(state)); // the Eye forbids sparing him
       afterFight(state, events);
@@ -283,6 +311,19 @@ function meetSibyl(state: GameState): { state: GameState; events: GameEvent[] } 
   if (next.treasures.length > 0) next.phase = "pickup"; // nothing guards it — she guards nothing
   else persistAndExplore(next);
   return { state: next, events };
+}
+
+/** The revised combat: the party leaves the area where the Sorcerer was slain, so each Apprentice ally parts company with it — left
+ *  behind in the chamber, with what she carried on the floor, and no attack (Peter, 14-OCT-2026). Ends the watch. */
+function partCompany(state: GameState): GameEvent[] {
+  const at = state.apprenticeWatch!;
+  delete state.apprenticeWatch;
+  const gone = state.party.filter((m) => m.status === 1 && m.creatureId === C_APPRENTICE);
+  if (gone.length === 0) return [];
+  const area = state.areas[at]!;
+  for (const a of gone) area.contents.push(100 + a.creatureId, ...a.treasure.map((t) => 200 + t));
+  state.party = state.party.filter((m) => !gone.includes(m));
+  return [{ type: "apprenticeParts", count: gone.length }];
 }
 
 /** The party has won: loot if there is any, else on its way. A turncoat Apprentice (the Sorcerer's death breaks
@@ -357,7 +398,7 @@ function medusaLooms(state: GameState): boolean {
  *  fresh entry, yet a dragon it just drew is still genuinely new information the player hasn't seen
  *  (`resolveExtraDraw` passes `true` explicitly for that case). */
 function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[], announceLull = freshEntry): boolean {
-  const { events: hzEvents, fell, trapChoice, knownTrap } = applyHazards(state);
+  const { events: hzEvents, fell, trapChoice, knownTrap, ghouls } = applyHazards(state);
   events.push(...hzEvents);
   // A hazard may incapacitate the whole party (Medusa petrifies everyone, or Ghouls slay them) —
   // with no one left able to act, the expedition ends.
@@ -366,6 +407,14 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
     state.phase = "gameOver";
     if (state.party.every((m) => m.status === 2)) events.push({ type: "petrifiedOut" }); // all turned to stone
     events.push({ type: "gameOver", gs: GS_DEAD });
+    return false;
+  }
+  // The Trap is dealt with last (Rules, "Hazard cards"): with the revised Ghouls in the chamber they are fought first, and the fall
+  // (or the Dwarf's choice) waits for the party to beat them. A retreat leaves the trap unsprung.
+  if (ghouls && (fell || trapChoice)) {
+    state.ghoulsPending = true;
+    state.ghoulsTrap = { fell: !!fell, knownTrap: !!knownTrap, choice: !!trapChoice };
+    settleChamber(state, freshEntry, events, announceLull);
     return false;
   }
   if (fell) {
@@ -378,6 +427,7 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
     events.push({ type: "moved", area: state.partyArea, level: state.level });
     return true;
   }
+  if (ghouls) state.ghoulsPending = true;   // fought as the entry's last hazard, once the trap (if any) is settled (see settleChamber)
   if (trapChoice) {
     // `trapRules`: a Dwarf-guided party meets a single trap. The earlier hazards have fired and the party
     // survived them — hold the entry here for the Dwarf's choice (`avoidTrap` / `fallThroughTrap`).
@@ -411,6 +461,22 @@ function settlePacifiedWithSibyl(state: GameState): void {
  *  ambush, a pacified area, then the phase the chamber's contents call for. Shared by the uninterrupted path
  *  (`finishChamber`) and the resume from the Dwarf's trap choice. */
 function settleChamber(state: GameState, freshEntry: boolean, events: GameEvent[], announceLull: boolean): void {
+  // The revised combat's Ghouls (Peter, 14-OCT-2026): a party of strength-2 creatures, one per creature of the party, fought by the round
+  // engine before anyone else in the chamber is met. The chamber's real strangers wait; the entry resumes when the Ghouls are beaten.
+  if (state.ghoulsPending) {
+    delete state.ghoulsPending;
+    const trap = state.ghoulsTrap;
+    delete state.ghoulsTrap;
+    const count = state.party.filter((m) => m.status === 0 || m.status === 1).length;
+    const aside = state.strangers;
+    state.strangers = Array<number>(count).fill(C_GHOUL);
+    state.fight = { surprise: 0, round: 1, focus: 0, ghouls: { aside, freshEntry, announceLull, ...(trap ? { trap } : {}) } };
+    state.phase = "fight";
+    state.surpriseReady = false;
+    state.fightDrops = [];
+    events.push({ type: "ghoulsAttack", count }, { type: "fightStarted", surprise: 0 }, ...beginRevised(state));
+    return;
+  }
   // The Charmed Flute lulls every Dragon for as long as the party holds it: they sleep in the
   // chamber, no longer leading or blocking, so a friendlier creature reacts and the area plays
   // out as if empty (§ Charmed Flute). Re-evaluated each entry, so they wake if the flute is gone.
@@ -500,13 +566,16 @@ function resumeFromTrapPause(state: GameState, fall: boolean): GameEvent[] {
 
 /** Guide lost (`variants.trapRules`): "If a party guided by a dwarf becomes involved in a fight in a chamber where
  *  there is a trap, and the dwarf is killed, the party falls down the trap as soon as it tries to leave the chamber."
- *  True when the party stands in a chamber that holds a standing trap, has no living Dwarf, and is trying to leave
+ *  True when the party stands in a chamber that holds standing traps, has fewer living Dwarves than traps (each Dwarf
+ *  guides one), and is trying to leave
  *  by `dir` — a doorway or stairway that exists. (A party without a Dwarf cannot otherwise be standing in such a
  *  chamber, since entering it would already have dropped it.) `move`, `withdraw` and `retreat` ask this. */
 function guideLostHere(state: GameState, dir: number | undefined): boolean {
-  if (state.variants?.trapRules !== true || hasLivingDwarf(state)) return false;
+  if (state.variants?.trapRules !== true) return false;
   const here = state.areas[state.partyArea]!;
-  if (!here.contents.includes(300 + HAZARD_TRAP)) return false;
+  // One Dwarf guides one trap (ruled 11-OCT-2026): the guide is lost once there are fewer living Dwarves than traps here.
+  const traps = here.contents.filter((c) => c === 300 + HAZARD_TRAP).length;
+  if (traps === 0 || livingDwarfCount(state) >= traps) return false;
   return dir === undefined || hasExit(decodeOpen(here), dir);
 }
 
@@ -753,7 +822,16 @@ export function reduce(
   action: GameAction,
 ): { state: GameState; events: GameEvent[]; midState?: GameState } {
   pendingMidState = null;
-  const result = reduceCore(state, action);
+  let result = reduceCore(state, action);
+  // The revised combat's turncoat Apprentice (Peter, 14-OCT-2026): an action that takes the party out of the area where the Sorcerer was
+  // slain parts company with her first, so she is never in the party for whatever it meets next. The action is replayed from the party
+  // without her (same dice), and her leaving is reported ahead of its events.
+  if (state.apprenticeWatch !== undefined && result.state.partyArea !== state.apprenticeWatch) {
+    const pre = structuredClone(state);
+    const parted = partCompany(pre);
+    const redo = reduceCore(pre, action);
+    result = { state: redo.state, events: [...parted, ...redo.events] };
+  }
   if (pendingMidState !== null) {
     const midState: GameState = pendingMidState;
     pendingMidState = null;
@@ -764,6 +842,60 @@ export function reduce(
 
 function reduceCore(state: GameState, action: GameAction): { state: GameState; events: GameEvent[] } {
   if (state.gs !== GS_PLAYING) return { state, events: [] };
+
+  // A fight waiting on the strangers' decision (`variants.strangerLevel`, or the revised round engine) accepts only that decision (or
+  // quitting); and the decision is accepted only then (pluggable stranger strategy spec §5.5), whatever the caller claims.
+  const pending = state.fight?.pending;
+  const waiting = pending?.by === "strangers";
+  const strangersTurn = (kind: string): boolean => pending?.by === "strangers" && pending.kind === kind;
+  const revBlocked = { state, events: [{ type: "blocked" }] as GameEvent[] };
+  if (action.type === "strangersAssignArtefacts") {
+    if (!strangersTurn("loadout") || loadoutViolation(state, action.allocations) !== null) return revBlocked;
+    const next = structuredClone(state);
+    const events: GameEvent[] = action.fallback ? [{ type: "strategyFallback", from: action.fallback.from, reason: action.fallback.reason }] : [];
+    events.push(...applyAllocations(next, action.allocations));
+    delete next.fight!.pending;
+    if (next.fight!.rev) events.push(...advanceRevised(next));   // the loadout is the last thing before round 1
+    return { state: next, events };
+  }
+  if (action.type === "strangersDeploy" || action.type === "strangersEngage" || action.type === "strangersRedeploy" || action.type === "strangersNominate") {
+    const kind = action.type === "strangersDeploy" ? "deploy" : action.type === "strangersEngage" ? "engage" : action.type === "strangersRedeploy" ? "redeploy" : "casualty";
+    if (!strangersTurn(kind) || !state.fight?.rev) return revBlocked;
+    const bad = action.type === "strangersDeploy" ? deployViolation(state, "strangers", action.creatures)
+      : action.type === "strangersEngage" ? engageViolation(state, "strangers", action.pairs)
+      : action.type === "strangersRedeploy" ? redeployViolation(state, "strangers", action.moves.map((m) => ({ ...m })))
+      : nominateViolation(state, action.nominated);
+    if (bad !== null) return revBlocked;
+    const next = structuredClone(state);
+    const events: GameEvent[] = action.fallback ? [{ type: "strategyFallback", from: action.fallback.from, reason: action.fallback.reason }] : [];
+    events.push(...(action.type === "strangersDeploy" ? applyDeploy(next, "strangers", action.creatures)
+      : action.type === "strangersEngage" ? applyEngage(next, "strangers", action.pairs)
+      : action.type === "strangersRedeploy" ? applyRedeploy(next, "strangers", action.moves)
+      : applyNominate(next, action.nominated)));
+    events.push(...finalizeRound(next));
+    return { state: next, events };
+  }
+  if (action.type === "deploy" || action.type === "engage" || action.type === "redeploy") {
+    if (state.phase !== "fight" || !state.fight?.rev || pending?.by !== "party" || pending.kind !== (action.type === "redeploy" ? "redeploy" : action.type)) return revBlocked;
+    const bad = action.type === "deploy" ? deployViolation(state, "party", action.creatures)
+      : action.type === "engage" ? (action.moves ? engageMovesViolation(state, action.pairs, action.moves) : engageViolation(state, "party", action.pairs))
+      : redeployViolation(state, "party", action.moves.map((m) => ({ ...m })));
+    if (bad !== null) return { state, events: [{ type: "planRejected", reason: bad }] };
+    const next = structuredClone(state);
+    const events = action.type === "deploy" ? applyDeploy(next, "party", action.creatures)
+      : action.type === "engage" ? applyEngage(next, "party", action.pairs, action.moves)
+      : applyRedeploy(next, "party", action.moves);
+    events.push(...finalizeRound(next));
+    return { state: next, events };
+  }
+  if (action.type === "scroll") {
+    if (state.phase !== "fight" || !state.fight?.rev || pending?.by !== "party" || pending.kind !== "scroll" || (action.use === "surprise" && !pending.surprise)) return revBlocked;
+    const next = structuredClone(state);
+    const events = applyScroll(next, action.use);
+    events.push(...finalizeRound(next));
+    return { state: next, events };
+  }
+  if (waiting && action.type !== "quit") return revBlocked;
 
   switch (action.type) {
     case "quit":
@@ -1365,7 +1497,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
     }
 
     case "resolveRound": {
-      if (state.phase !== "fight") return { state, events: [{ type: "blocked" }] };
+      if (state.phase !== "fight" || state.fight?.rev) return { state, events: [{ type: "blocked" }] };   // a revised fight is played by deploy / engage / redeploy
       if (state.fight?.casualtyQueue?.length) return { state, events: [{ type: "blocked" }] }; // finish the choice first
       const check = validatePlan(state, { matches: action.matches });
       if (!check.ok) return { state, events: [{ type: "planRejected", reason: check.reason }] };
@@ -1386,8 +1518,11 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       const preferred = action.idx;
       const other = pair.find((i) => i !== preferred)!;
       const roll = rollDieForState(next);
-      const victim = roll >= 4 ? preferred : other; // 4-6 grants the player's preference (§"A Round of Fighting")
+      // 4-6 grants the player's preference (§"A Round of Fighting"). The revised rules add the Ring's +1 (a 7 counting as 6), as for the strangers.
+      const ring = next.fight!.rev?.bonus?.partyRing ? 1 : 0;
+      const victim = Math.min(6, roll + ring) >= 4 ? preferred : other;
       markDied(next, next.party[victim]!);
+      dropPartyMember(next, victim);
       const events: GameEvent[] = [
         { type: "casualtyChosen", creatureId: next.party[victim]!.creatureId, roll, gotPreference: victim === preferred },
         { type: "memberDied", creatureId: next.party[victim]!.creatureId },
@@ -1396,6 +1531,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       queue.shift();
       if (queue.length === 0) {
         next.fight!.casualtyQueue = undefined;
+        if (next.fight!.rev) events.push(...resumeAfterCasualties(next));
         events.push(...finalizeRound(next));
       }
       return { state: next, events };
@@ -1404,6 +1540,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
     case "retreat": {
       if (state.phase !== "fight") return { state, events: [{ type: "blocked" }] };
       if (state.fellThroughTrap) return { state, events: [{ type: "blocked" }] }; // no way back up a trap
+      if (state.fight?.ghouls) return { state, events: [{ type: "blocked" }] };   // the Ghouls are a hazard: no retreat from them
       // A party may retreat only after at least one round has been fought (§Retreat).
       if (!state.fight || state.fight.round <= 1) return { state, events: [{ type: "blocked" }] };
       // A party may retreat by ANY doorway or stairway — even an unexplored one (§Retreat). Attempt
@@ -1421,11 +1558,19 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         // before flagging the latter to avoid mutating the input state.
         const next = res.deadEnd ? res.state : structuredClone(state);
         if (next.fight) next.fight = { ...next.fight, retreatBlocked: true };
-        return { state: next, events: [{ type: "deadEnd", dir: action.dir, retreat: true }] };
+        const events: GameEvent[] = [{ type: "deadEnd", dir: action.dir, retreat: true }];
+        // In a standoff there is no decision pending that would bring the round on, so the failed retreat itself sets the next round going
+        // (a Spectre that cannot be faced slays another of the party); once it is fought, retreat opens again (SC-9.7-22).
+        if (next.fight?.rev?.standoff) events.push(...resumeAfterStandoff(next), ...finalizeRound(next));
+        return { state: next, events };
       }
       // Retreat succeeds: the strangers and any dropped treasure are LEFT BEHIND in the chamber we fled.
       // What the strangers bore goes back on the floor with the rest, and is handed out afresh next fight.
       const sorcererEvents = settleFelledSorcerer(res.state); // a Sorcerer defeated earlier in the fight dies after all
+      if (res.state.apprenticeWatch !== undefined) {   // ...and the party has already left the area where he fell: she is left there too
+        res.state.apprenticeWatch = fromIdx;
+        sorcererEvents.push(...partCompany(res.state));
+      }
       dropAllGear(res.state);
       const fled = res.state.areas[fromIdx]!;
       fled.contents = [
@@ -1455,6 +1600,22 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       }
       const events = [...sorcererEvents, ...(guideLost ? springUnguidedTrap(res.state) : resolveArea(res.state))]; // resolve the area we retreated into (fresh tunnel/chamber)
       return { state: res.state, events };
+    }
+
+    case "stay": {
+      // The revised combat (Peter, 14-OCT-2026): the party lingers where the Sorcerer was slain, so the Apprentice joins the other
+      // strangers there and they attack it with surprise.
+      if (state.phase !== "explore" || state.fight || state.apprenticeWatch !== state.partyArea) return { state, events: [{ type: "blocked" }] };
+      if (!state.party.some((m) => m.status === 1 && m.creatureId === C_APPRENTICE)) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      delete next.apprenticeWatch;
+      const events = revertApprenticesOnSorcererDeath(next);
+      const area = next.areas[next.partyArea]!;
+      next.strangers.push(...area.contents.filter(isGuardCode).map((c) => c - 100));   // every guard of the chamber joins her
+      next.treasures.push(...area.contents.filter((c) => c >= 200 && c < 300).map((c) => c - 200));
+      area.contents = area.contents.filter((c) => !isGuardCode(c) && (c < 200 || c >= 300));
+      events.push(...startFight(next, -1));
+      return { state: next, events };
     }
 
     case "slaySorcerer": {
@@ -1569,7 +1730,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
             return ok;
           }
           (next.sleeping ??= []).push(sid); // the creature sleeps — inert, but stays in the chamber
-          removeStranger(next, action.target); // (what it bore drops onto the floor)
+          removeStrangerFromFight(next, action.target); // (what it bore drops onto the floor)
           consume();
           if (next.strangers.length === 0) { // no one left awake to face — the party may proceed past the sleepers
             next.fight = null;
@@ -1706,7 +1867,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
             }
             case "destroy": { // Spectre/Demon stranger or lurker — removed outright, no fight, no score
               const idx = found.target - HW_STRANGER_BASE;
-              removeStranger(next, idx);
+              removeStrangerFromFight(next, idx);
               events.push({ type: "holyWaterFoeDestroyed", creatureId: found.creatureId! });
               if (next.strangers.length === 0) { // mirrors Lotus Dust's own empty-strangers cleanup above
                 next.fight = null;
@@ -1728,6 +1889,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         }
         case 19: { // Scroll — destroys every mp===0 stranger in the area; curses the party (US-21, SC-EXT-25)
           if (next.phase !== "encounter" && next.phase !== "fight") return { state, events: [{ type: "blocked" }] };
+          if (next.variants?.combatRevision) return { state, events: [{ type: "blocked" }] };   // the revised combat has its own Scroll step (revisedRound.ts)
           if (!hasLivingHuman(next) || next.strangers.length === 0) return { state, events: [{ type: "blocked" }] };
           consume();
           const destroyed: number[] = [];
@@ -1771,9 +1933,12 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           events.push(...annihilateWithEye(next));
           events.push(...wardOffSpectres(next));
           if (next.strangers.includes(9)) {
-            next.fight = { surprise: -1, round: 1, focus: next.strangers.length - 1 };
+            // No surprise either way (Peter, 10-OCT-2026, Q6): the Consolidated Rules say the Spectre "attacks", not
+            // "surprise attacks".
+            next.fight = { surprise: 0, round: 1, focus: next.strangers.length - 1 };
+            if (next.variants?.combatRevision) next.fight.oneRound = true;   // Peter, 14-OCT-2026: the fight ends after one round
             next.phase = "fight";
-            events.push({ type: "fightStarted", surprise: -1 });
+            events.push({ type: "fightStarted", surprise: 0 }, ...beginRevised(next));
           }
           break;
         case 3: break; // Sand

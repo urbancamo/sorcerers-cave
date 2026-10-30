@@ -40,7 +40,7 @@ export default defineSchema({
     // `forcedRedraw` (§6.3.2, Dead End rule): solo-only, stamped server-side by `game.ts`'s
     // `withForcedRedraw` from a Convex-only env var — never accepted from a client argument, since
     // it affects scoring difficulty and must stay out of the leaderboard's normal comparison.
-    variants: v.optional(v.object({ zombies: v.optional(v.boolean()), fogLite: v.optional(v.boolean()), concurrent: v.optional(v.boolean()), extensionKit: v.optional(v.boolean()), forcedRedraw: v.optional(v.boolean()), sorcererTeleport: v.optional(v.boolean()), trapRules: v.optional(v.boolean()), sibyl: v.optional(v.boolean()) })),
+    variants: v.optional(v.object({ zombies: v.optional(v.boolean()), fogLite: v.optional(v.boolean()), concurrent: v.optional(v.boolean()), extensionKit: v.optional(v.boolean()), forcedRedraw: v.optional(v.boolean()), sorcererTeleport: v.optional(v.boolean()), trapRules: v.optional(v.boolean()), sibyl: v.optional(v.boolean()), strangerLevel: v.optional(v.string()), combatRevision: v.optional(v.boolean()) })),
     createdAt: v.number(),
     updatedAt: v.number(),
   })
@@ -75,7 +75,11 @@ export default defineSchema({
     seq: v.number(),
     action: v.any(),
     events: v.any(),
-  }).index("by_game", ["gameId", "seq"]),
+    // Only on a decision that was asked of an external stranger level (stage 6.5): the level asked, and how long its answer (or the
+    // fallback in its place) took. The logged action names `standard` when it fell back, so the level is kept here for the report.
+    strategyId: v.optional(v.string()),
+    latencyMs: v.optional(v.number()),
+  }).index("by_game", ["gameId", "seq"]).index("by_strategyId", ["strategyId"]),
   // Global, shared leaderboard. `party` and `state` keep the full final snapshot so the
   // attributes behind a score can be inspected later.
   highScores: defineTable({

@@ -50,16 +50,31 @@ describe("SibylLook", () => {
     expect(screen.getByTestId("sibyl-readout")).toHaveTextContent("Viper Pit — north, east, south, west");
   });
 
-  it("dispatches a tile look from the selector and shows that tile", () => {
-    const dispatch = vi.fn();
+  it("looks at a face-down tile by choosing it on the map: the cave view rings the tiles, the pick dispatches the look and turns the tile up", () => {
+    const dispatch = vi.fn(), pick = vi.fn(), peek = vi.fn();
     const s = stateWithSibyl();
-    render(<SibylLook state={s} actions={looks(s)} dispatch={dispatch} />);
-    const picker = screen.getByRole("combobox", { name: /face-down tile/i }) as HTMLSelectElement;
-    // Each option names where the tile is on the map (level and x,y), so it can be matched to what is on screen.
-    expect(Array.from(picker.options).map((o) => o.textContent)).toContain("Level 1 (50, 51)");
-    fireEvent.change(picker, { target: { value: "1" } });
+    render(<SibylLook state={s} actions={looks(s)} dispatch={dispatch} tools={{ pick, peek }} />);
+    expect(screen.queryByRole("combobox")).toBeNull();                                     // no coordinates list any more
+    fireEvent.click(screen.getByRole("button", { name: /face-down tile/i }));
+    const opts = pick.mock.calls.at(-1)![0];
+    expect(opts.destinations).toEqual([{ idx: 1, col: 50, row: 51, level: 1 }]);
+    opts.onPick(1);
     expect(dispatch).toHaveBeenCalledWith({ type: "examineArea", area: 1 });
-    expect(screen.getByTestId("sibyl-readout")).toHaveTextContent("Tunnel — north, south");
+    expect(peek).toHaveBeenCalledWith({ idx: 1, col: 50, row: 51, level: 1 });
+    expect(screen.queryByTestId("sibyl-readout")).toBeNull();                              // nothing is written down: remember it
+  });
+
+  it("the face-down tile button is disabled when there are none, and choosing can be cancelled", () => {
+    const s = stateWithSibyl();
+    s.areas[1]!.faceUp = true;                                                             // nothing face down now
+    const pick = vi.fn();
+    const { rerender } = render(<SibylLook state={s} actions={looks(s)} dispatch={() => {}} tools={{ pick, peek: vi.fn() }} />);
+    expect(screen.getByRole("button", { name: /face-down tile/i })).toBeDisabled();
+    const s2 = stateWithSibyl();
+    rerender(<SibylLook state={s2} actions={looks(s2)} dispatch={() => {}} tools={{ pick, peek: vi.fn() }} />);
+    fireEvent.click(screen.getByRole("button", { name: /face-down tile/i }));
+    fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
+    expect(pick).toHaveBeenLastCalledWith(null);
   });
 
   it("shows nothing before a look has been taken", () => {
@@ -91,20 +106,13 @@ describe("SibylLook — the fading card", () => {
     expect(peek.parentElement).toBe(document.body);
   });
 
-  it("shows a face-down tile's art too", () => {
-    const s = stateWithSibyl();
-    render(<SibylLook state={s} actions={looks(s)} dispatch={() => {}} />);
-    fireEvent.change(screen.getByRole("combobox", { name: /face-down tile/i }), { target: { value: "1" } });
-    expect(screen.getByTestId("sibyl-peek").querySelector("img")).toHaveAttribute("src", "/ns.png");
-  });
-
   it("a second look replaces the card (it restarts the fade rather than stacking)", () => {
     const s = stateWithSibyl();
     render(<SibylLook state={s} actions={looks(s)} dispatch={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: /top of the pack/i }));
-    fireEvent.change(screen.getByRole("combobox", { name: /face-down tile/i }), { target: { value: "1" } });
+    fireEvent.click(screen.getByRole("button", { name: /top of the pack/i }));
     expect(screen.getAllByTestId("sibyl-peek")).toHaveLength(1);
-    expect(screen.getByTestId("sibyl-peek").querySelector("img")).toHaveAttribute("src", "/ns.png");
+    expect(screen.getByTestId("sibyl-peek").querySelector("img")).toHaveAttribute("src", "/pit.png");
   });
 });
 

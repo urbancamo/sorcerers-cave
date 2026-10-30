@@ -47,7 +47,7 @@ describe("randomScenario", () => {
 
 describe("randomScenario with explicit sizes", () => {
   const caps = (deck: "base" | "kit") => (deck === "base" ? BASE_COPIES : KIT_COPIES);
-  for (const [deck, k, m] of [["base", 6, 24], ["base", 4, 26], ["kit", 6, 34], ["kit", 10, 28]] as const) {
+  for (const [deck, k, m] of [["base", 6, 23], ["base", 4, 25], ["kit", 6, 33], ["kit", 10, 28]] as const) {
     it(`${deck}: ${k} strangers and a party of ${m} stay within the deck`, () => {
       for (let seed = 1; seed <= 300; seed++) {
         const s = randomScenario(seed, deck, { strangers: k, party: m });
@@ -78,16 +78,16 @@ describe("size limits", () => {
     for (let seed = 1; seed <= 200; seed++) {
       const b = randomScenario(seed, "base", { strangers: 4, party: 99 });
       expect(b.party.length).toBeLessThanOrEqual(30);
-      expect(b.party.length).toBeGreaterThanOrEqual(26);   // 30 allies minus at most the 4 strangers who are allyable types
+      expect(b.party.length).toBeGreaterThanOrEqual(25);   // 29 allies (the Unicorn is out of the lab's pools) minus at most the 4 strangers who are allyable types
       const k = randomScenario(seed, "kit", { strangers: 4, party: 99 });
       expect(k.party.length).toBeLessThanOrEqual(40);
-      expect(k.party.length).toBeGreaterThanOrEqual(36);
+      expect(k.party.length).toBeGreaterThanOrEqual(35);
     }
   });
 });
 
 describe("balancedScenario (strength-matched fights of any size)", () => {
-  const ctxOf = (s: ReturnType<typeof balancedScenario>) => ({ eye: s.eye, curses: s.curses, level: s.level, surprise: s.strangerSurprise, rules: DEFAULT_RULES });
+  const ctxOf = (s: ReturnType<typeof balancedScenario>) => ({ eye: s.eye, curses: s.curses, level: s.level, attacker: s.attacker, surprise: s.surprise, rules: DEFAULT_RULES });
   const ratio = (s: ReturnType<typeof balancedScenario>) => {
     const c = ctxOf(s);
     return s.party.reduce((a, u) => a + totalOf(u, c), 0) / s.strangers.reduce((a, u) => a + totalOf(u, c), 0);

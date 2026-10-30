@@ -5,7 +5,7 @@ import { CR3, TR3 } from "./mnemonics";
 import { fromPlain, type Run } from "./runlog";
 import { fsOf, mpOf, POINTS } from "./rules";
 import { simulate } from "./sim";
-import type { Ctx, Outcome, Rules, TraceEvent, Unit } from "./types";
+import type { Ctx, Outcome, Rules, Side, TraceEvent, Unit } from "./types";
 
 export interface BattleUnit {
   idx: number; cid: number; code: string; name: string;
@@ -38,7 +38,7 @@ export interface BattleRound {
 export interface Battle {
   meta: {
     runId: string; scenarioId: number; seed: number; deck: "base" | "kit";
-    level: number; curses: number; eye: boolean; strangerSurprise: boolean;
+    level: number; curses: number; eye: boolean; attacker: Side; surprise: number;
     partyStyle: string; strangerStyle: string; rules: Rules;
     partyRing: boolean; strangerRing: boolean;
   } & Outcome;
@@ -52,7 +52,7 @@ export function buildBattle(run: Run, scenarioId: number): Battle {
   if (!rec) throw new Error(`scenario ${scenarioId} is not in run ${run.run.id}`);
   const { rules, partyStyle, strangerStyle } = run.run;
   const sc = fromPlain(rec.scenario);
-  const ctx: Ctx = { eye: sc.eye, curses: sc.curses, level: sc.level, surprise: sc.strangerSurprise, rules };
+  const ctx: Ctx = { eye: sc.eye, curses: sc.curses, level: sc.level, attacker: sc.attacker, surprise: sc.surprise, rules };
 
   const events: TraceEvent[] = [];
   const outcome = simulate(sc, rules, partyStyle, strangerStyle, rec.seed, { trace: (e) => events.push(e) });
@@ -75,8 +75,7 @@ export function buildBattle(run: Run, scenarioId: number): Battle {
     if (e.type === "match") {
       let r = rounds[rounds.length - 1];
       if (!r || r.n !== e.round) {
-        const strAtt = rules.alternate ? (e.round % 2 === 1) === rules.strangersAttackFirst : rules.strangersAttackFirst;
-        r = { n: e.round, attacker: strAtt ? "strangers" : "party", matches: [], partyAlive: [], strangersAlive: [] };
+        r = { n: e.round, attacker: sc.attacker, matches: [], partyAlive: [], strangersAlive: [] };   // the roles never change
         rounds.push(r);
       }
       current = {
@@ -102,7 +101,7 @@ export function buildBattle(run: Run, scenarioId: number): Battle {
   const partyRing = sc.party.some((u) => u.gear.includes(10)), strangerRing = sc.strangers.some((u) => u.gear.includes(10));
   return {
     meta: {
-      runId: run.run.id, scenarioId, seed: rec.seed, deck: run.run.deck, level: sc.level, curses: sc.curses, eye: sc.eye, strangerSurprise: sc.strangerSurprise === 1,
+      runId: run.run.id, scenarioId, seed: rec.seed, deck: run.run.deck, level: sc.level, curses: sc.curses, eye: sc.eye, attacker: sc.attacker, surprise: sc.surprise,
       partyStyle, strangerStyle, rules, partyRing: partyRing && !sc.eye, strangerRing: strangerRing && !sc.eye, ...outcome,
     },
     party, strangers, rounds,

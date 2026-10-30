@@ -33,6 +33,9 @@ export type GamePhase = "explore" | "medusa" | "trap" | "encounter" | "fight" | 
 // Member status: 0 original, 1 ally, 2 stone, 3 dead.
 export type MemberStatus = 0 | 1 | 2 | 3;
 
+/** The Trap held back until the Ghouls are beaten: it `fell` (the unguided party drops), or the Dwarf `choice` (trapRules) is still to be made. */
+export interface GhoulsTrap { fell: boolean; knownTrap: boolean; choice: boolean }
+
 export interface PartyMember {
   creatureId: number;
   status: MemberStatus;
@@ -111,6 +114,12 @@ export interface FightState {
   // Pending casualty choices from the round just fought: each entry is a pair of party indices
   // who lost a match together; the player picks which of the two falls (§"A Round of Fighting").
   casualtyQueue?: number[][];
+  // The revised combat only (Peter, 14-OCT-2026): the fight ends automatically after one round — the Spectre from the Treasure Chest.
+  oneRound?: true;
+  // The revised combat only (Peter, 14-OCT-2026, "Ghouls Fight"): this fight is against the hazard's Ghouls, a party of its own. The
+  // chamber's real strangers wait in `aside` and come back when the Ghouls are beaten; `freshEntry`/`announceLull` are the chamber
+  // entry's settings, handed on to the rest of that entry.
+  ghouls?: { aside: number[]; freshEntry: boolean; announceLull: boolean; trap?: GhoulsTrap };
   // A retreat this round hit a dead end (§Retreat): no further retreat may be tried — the party must
   // fight another round. Cleared when a round is actually fought.
   retreatBlocked?: boolean;
@@ -123,6 +132,50 @@ export interface FightState {
   // (the +30 bonus, the curse lift, every Apprentice's loyalty) waits until the fight is over, when the player
   // may spare him for a teleport instead (§The Sorcerer). Absent unless that has happened.
   sorcererFelled?: boolean;
+  // The fight is waiting on a decision by the strangers (`variants.strangerLevel`, pluggable stranger strategy spec §5.3): until
+  // the driver applies it, `reduce` accepts nothing else. Never set when no strategy is configured.
+  pending?: PendingDecision;
+  // The revised round engine (`variants.combatRevision`, revisedRound.ts): present only for a fight played by the revised rules.
+  rev?: RevFight;
+}
+
+/** What the fight is waiting for. The strangers' decisions are taken by the driver (strangerDriver.ts); the party's by the player. */
+export type PendingDecision = (
+  | { by: "strangers"; kind: "loadout" }
+  | { by: "party"; kind: "scroll"; surprise: boolean }   // the Scroll option (revised combat, attacker only); `surprise`: round 1, the bonus is also on offer
+  | { by: "strangers" | "party"; kind: "deploy"; min: number }
+  | { by: "strangers" | "party"; kind: "engage" }
+  | { by: "strangers" | "party"; kind: "redeploy" }
+  | { by: "strangers"; kind: "casualty"; pair: [number, number] }
+) & { request?: PendingRequest };
+
+/** A decision handed to an external strategy and not yet answered (stage 6.2): which request, when it was asked (the caller's clock, in
+ *  ms) and how long the level may think. Lives only in the stored state, never in the log, and goes with the pending decision. */
+export interface PendingRequest { id: string; at: number; deadlineMs: number }
+
+/** One engagement in the revised round engine: indices into `state.party` and `state.strangers`. `pf`/`sf` are the one or two
+ *  front-line creatures, `pb`/`sb` the casters lending magic from the background this round. Matches persist from round to round. */
+export interface RevMatch { pf: number[]; pb: number[]; sf: number[]; sb: number[] }
+
+/** The revised round engine's own bookkeeping (Peter's reformulated rules, as ruled 10-OCT-2026): the roles never change, a round
+ *  is deploy → engage → surplus → fight → wrap-up, and a fight ends by his single test. */
+export interface RevFight {
+  attacker: "party" | "strangers";           // who started the fight; fixed for the whole fight
+  matches: RevMatch[];
+  deployed: { party: number[]; strangers: number[] };   // unengaged creatures already in the front line this round
+  step: "scroll" | "deploy" | "engage" | "surplus" | "fight" | "wrap";
+  surplusTurn: number;                       // 0: the attacker's surplus decision is next, 1: the defender's
+  strangersMoved?: boolean;                  // the strangers sent a surplus creature into a match this round
+  review?: boolean;                          // the party is looking at the finished arrangement before the dice: it may only fight on (or retreat)
+  reviewed?: boolean;                        // that look has been had this round
+  partyActed?: boolean;                      // the party was asked something this round (else a round from the second on pauses for a retreat)
+  progress: boolean;                         // something happened this round (else the standoff ends the fight)
+  cursor: number;                            // the next match to fight
+  nominating?: number;                       // the match whose stranger pair lost and is waiting to nominate a casualty
+  bonus?: { party: number; strangers: number; partyRing: boolean; strangersRing: boolean };   // die bonuses fixed at the start of the fight step
+  scrollSurprise?: true;                     // the attacker used the Scroll for +1 surprise in round 1
+  killed: number[];                          // stranger indices slain this round, removed at wrap-up
+  standoff?: true;                           // the fight is over by the Q2 test; the party's only way out is to retreat
 }
 
 /** One pairing in a battle plan: party fighters (front), supporting casters (backers), and the
@@ -148,6 +201,8 @@ export interface GameState {
   sorcererKilled: boolean;
   areas: PlacedArea[];
   partyArea: number; // index into areas
+  // The revised combat's Scroll (Peter, 14-OCT-2026): the areas where it has been used — it cannot be used in one of them again.
+  scrollAreas?: number[];
   level: number;
   prev: number; // previous area index
   prev2: number; // area two moves back (earthquake)
@@ -209,6 +264,13 @@ export interface GameState {
   // `announceLull` are `finishChamber`'s own arguments, kept so the resumed tail settles the chamber exactly
   // as the uninterrupted path would; `extraDraw` is set when a Well/Bell draw opened the pause, and carries
   // the `surpriseReady` captured before the draw so the resume restores it (SC-4-16).
+  // The revised combat: the Ghouls struck on this chamber entry and are yet to be fought (see `settleChamber`).
+  ghoulsPending?: true;
+  /** A Trap drawn with the Ghouls waits for them (it is dealt with last): carried into `fight.ghouls.trap` when their fight starts. */
+  ghoulsTrap?: GhoulsTrap;
+  // The revised combat (Peter, 14-OCT-2026, Special Fights 6): the Sorcerer was slain with an Apprentice in the party. She stays an ally
+  // while the party may still leave this area (the value); `stay` turns her on it, leaving parts company with her.
+  apprenticeWatch?: number;
   trapPause?: { freshEntry: boolean; announceLull: boolean; extraDraw?: { hadSurprise?: boolean } };
   // Indifference (per party — NOT on the shared area, so it never affects other parties; §Encountering
   // Strangers, SC-4-18a, bug fix 2026-08-04). `indiffCounts` is the DURABLE count of indifferent
@@ -261,7 +323,7 @@ export interface GameState {
   // construction — deliberately NOT mirrored onto `MpGameState.variants` (multi.ts) or its own
   // separate Convex validator (apps/web/convex/multiplayer.ts), so a multiplayer-composed state can
   // never carry it.
-  variants?: { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean; sibyl?: boolean };
+  variants?: { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean; sibyl?: boolean; strangerLevel?: string; combatRevision?: boolean };
   // Per-entry scratch (`variants.trapRules` only): how many traps `enterChamber` RELOADED from the area (a
   // standing trap the party walked back into) rather than drew fresh. Set by `enterChamber`, read inside
   // `applyHazards`, and deleted there — it can survive a Medusa pause but never an action boundary.

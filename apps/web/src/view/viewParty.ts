@@ -14,7 +14,7 @@ export function viewParty(state: GameState, cards: CardArt[] = []): ViewPartyMem
   // Disambiguation numbers are assigned by the authoritative party order, then carried through the
   // roster's own filter/sort so a member's "#N" is stable (and matches the party panel + dropdowns).
   const labels = memberLabels(state.party);
-  return state.party
+  const members: ViewPartyMember[] = state.party
     .map((m, origIdx) => ({ m, origIdx }))
     .filter(({ m }) => m.status !== 3)
     .sort((a, b) => Number(isAlive(b.m.status)) - Number(isAlive(a.m.status))) // alive first; stable otherwise
@@ -48,4 +48,13 @@ export function viewParty(state: GameState, cards: CardArt[] = []): ViewPartyMem
       stoneArea: m.status === 2 ? (m.stoneArea ?? null) : null,
     };
   });
+  // The Sibyl is a party flag, not a PartyMember (SC-SIB-5), but while she travels with the party she is listed in the roster.
+  if (state.hasSibyl) {
+    members.push({
+      sig: "S", name: "Sibyl", label: "Sibyl", card: resolveCard("creature", 21, cards)?.file ?? null,
+      items: [], awards: [], dragonCard: null, carry: 0, load: 0, fs: 0, mp: 0, charisma: false,
+      ally: false, petrified: false, stoneArea: null, sibyl: true,
+    });
+  }
+  return members;
 }

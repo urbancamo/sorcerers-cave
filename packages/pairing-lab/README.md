@@ -26,6 +26,7 @@ const outcome = simulate(scenario, DEFAULT_RULES, "GRD", "GRD", 7); // party sty
 | `pnpm --filter @sorcerers-cave/pairing-lab test` | Run the tests |
 | `pnpm --filter @sorcerers-cave/pairing-lab typecheck` | Typecheck |
 | `pnpm --filter @sorcerers-cave/pairing-lab bench` | Speed table (fights per second, by fight size) |
+| `pnpm --filter @sorcerers-cave/pairing-lab async 30 ext-easy 4-12 error=0.1,delayMs=20` | Fights on an external level through the full asynchronous path against a local stub endpoint (`stubEndpoint.ts`); reports fallback rate, p50/p95 latency, the legality sweep and stuck fights. The last argument injects faults: `delayMs`, `jitterMs`, `hang`, `error`, `malformed`, `illegal` (rates 0-1), `seed`. |
 
 ## Storing results
 

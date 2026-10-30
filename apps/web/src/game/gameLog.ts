@@ -163,6 +163,15 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "memberDied": return `${creature(e.creatureId)} was slain`;
     case "strangerKilled": return `${creature(e.creatureId)} (stranger) was slain`;
     case "strangerEquipped": return `${creature(e.creatureId)} (stranger) took up the ${treasure(e.artifact)}`;
+    case "strategyFallback": return `The strangers' strategy ${e.from} was replaced by the standard one (${e.reason})`;
+    case "deployed": return `${e.side} deployed ${e.creatures.length}`;
+    case "engaged": return `${e.pairs.length} match${e.pairs.length === 1 ? "" : "es"} engaged`;
+    case "redeployed": return `${e.side} placed ${e.moves.length} surplus`;
+    case "strangerCasualty": return `strangers nominated ${creature(e.nominated)}; the die fell on ${creature(e.victim)} (rolled ${e.roll})`;
+    case "scrollSurprise": return "the Scroll is read for surprise — +1 to the attacker's first-round bonus";
+    case "ghoulsDepart": return "the Ghouls have had their one round and withdraw";
+    case "spectreDeparts": return "the Spectre has had its one round and vanishes";
+    case "fightStandoff": return "no side can continue — the fight is a standoff";
     case "strangerVanished": return `${creature(e.creatureId)} (stranger) vanished with ${treasure(e.artifact)}`;
     case "dragonSlain": return `${creature(e.creatureId)} slew a dragon single-handed — Dragon-slayer ×${e.kills} (+${e.kills} fighting strength)`;
     case "sorcererSlain": return "the Sorcerer was slain (+30)";
@@ -188,6 +197,7 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "statueAroused": return "the guardian statue struck";
     case "wardedOff": return `the Talisman warded off ${creature(e.creatureId)}`;
     case "ghoulsWarded": return "the Talisman warded off the Ghouls";
+    case "ghoulsAttack": return `${e.count} Ghoul${e.count === 1 ? "" : "s"} fall on the party`;
     case "medusaAverted": return "the Magic Staff turned Medusa's gaze aside";
     case "medusaLooms": return "Medusa looms — throw the Lotus Dust, or proceed";
     case "medusaSlept": return "the Lotus Dust put Medusa to sleep (two turns)";
@@ -228,6 +238,8 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "thiefPalmed": return `the Thief palmed ${treasure(e.tid)}`;
     case "apprenticeTurned": return `${e.count} Apprentice(s) turned when the Sorcerer fell` + (e.items.length ? `, dropping ${e.items.map(treasure).join(", ")}` : "");
     case "apprenticeStaysBehind": return `${e.count} Apprentice(s) stayed behind in the cave`;
+    case "apprenticeWaits": return `${e.count} Apprentice(s) have lost their master — leave this area, or they will turn on the party`;
+    case "apprenticeParts": return `${e.count} Apprentice(s) left behind as the party moved on`;
     case "sibylJoins": return "the Sibyl joined the party";
     case "sibylDeclines": return "the Sibyl was indifferent and stayed in the cave";
     case "sibylExamined": return "the Sibyl was consulted";
@@ -478,6 +490,15 @@ export function eventCode(e: GameEvent): string | null {
     case "memberDied": return `DIE ${cr3(e.creatureId)}`;
     case "strangerKilled": return `KIL ${cr3(e.creatureId)}`;
     case "strangerEquipped": return `EQP ${cr3(e.creatureId)} ${tr3(e.artifact)}`;
+    case "strategyFallback": return `FBK ${e.from}`;
+    case "deployed": return `DEP ${e.side === "party" ? "P" : "S"} ${e.creatures.length}`;
+    case "engaged": return `ENG ${e.pairs.length}`;
+    case "redeployed": return `RDP ${e.side === "party" ? "P" : "S"} ${e.moves.length}`;
+    case "strangerCasualty": return `SCS ${cr3(e.nominated)} ${cr3(e.victim)} R${e.roll}`;
+    case "scrollSurprise": return "SCS+";
+    case "ghoulsDepart": return "GHD";
+    case "spectreDeparts": return "SPD";
+    case "fightStandoff": return "STANDOFF";
     case "strangerVanished": return `VAN ${cr3(e.creatureId)} ${tr3(e.artifact)}`;
     case "spectreSlew": return `SLW ${cr3(e.creatureId)}`;
     case "memberRevived": return `RVV ${cr3(e.creatureId)}`;
@@ -509,6 +530,7 @@ export function eventCode(e: GameEvent): string | null {
     case "deathPrevented": return `SAV ${cr3(e.creatureId)}`;
     case "wardedOff": return `WRD ${cr3(e.creatureId)}`;
     case "ghoulsWarded": return "WRD GHL";
+    case "ghoulsAttack": return `GHL ${e.count}`;
     case "medusaAverted": return "MED AVD";
     case "medusaLooms": return "MED LOM";
     case "medusaSlept": return "MED SLP";
@@ -550,6 +572,8 @@ export function eventCode(e: GameEvent): string | null {
     case "thiefPalmed": return `PLM ${tr3(e.tid)}`;
     case "apprenticeTurned": return `APR TRN ${e.count}`;
     case "apprenticeStaysBehind": return `APR STY ${e.count}`;
+    case "apprenticeWaits": return `APR WAIT ${e.count}`;
+    case "apprenticeParts": return `APR PART ${e.count}`;
     case "sibylJoins": return "SIB JIN";
     case "sibylDeclines": return "SIB DEC";
     case "sibylExamined": return "SIB EXM";

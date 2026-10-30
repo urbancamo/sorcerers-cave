@@ -4,6 +4,7 @@ import { scoreGame } from "./score";
 import { makeState } from "./testkit";
 import { packCoord } from "./coords";
 import { GS_ESCAPED } from "./state";
+import { playRevisedFight } from "./headless";
 
 const member = (creatureId: number, treasure: number[] = []) => ({ creatureId, status: 0 as 0 | 1 | 2 | 3, dragonKills: 0, treasure });
 const area = { card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [] as number[], flags: 0, indiffCount: 0 };
@@ -92,5 +93,58 @@ describe("a Spectre from the chest meets the Eye and the Talisman like any other
     }
     const shallow = spectreRolls([member(5, [14, T_TALISMAN])], 3);
     for (const { state } of shallow) expect(state.phase).toBe("fight");
+  });
+});
+
+// Peter, 10-OCT-2026 (Q6): the chest Spectre gets NO surprise attack — the Consolidated Rules say it "attacks", not
+// "surprise attacks". The engine used to start that fight with the strangers holding surprise (-1).
+describe("the chest Spectre fights without surprise (Peter, Q6)", () => {
+  it("starts the fight with surprise 0 on either side", () => {
+    let seen = 0;
+    for (let seed = 1; seed <= 60; seed++) {
+      const s = makeState({ phase: "explore", areas: [area], party: [member(5, [14])], seed });
+      const { state, events } = reduce(s, { type: "openChest" });
+      if ((events.find((e) => e.type === "chestOpened") as { result: number }).result !== 2) continue;
+      seen++;
+      expect(state.phase).toBe("fight");
+      expect(state.fight?.surprise).toBe(0);
+      expect(events).toContainEqual({ type: "fightStarted", surprise: 0 });
+    }
+    expect(seen).toBeGreaterThan(0);
+  });
+});
+
+// Peter, 14-OCT-2026: the chest Spectre fight follows the standard rules "with one exception - the fight ends automatically
+// after one round". Revised combat only; the Spectre that survives that round vanishes.
+describe("the chest Spectre fight lasts one round in the revised combat (Peter, 14-OCT-2026)", () => {
+  const PRIEST = 4;
+  const opened = (seed: number) => reduce(
+    makeState({ phase: "explore", areas: [area], party: [member(PRIEST, [14])], seed, variants: { combatRevision: true } }),
+    { type: "openChest" },
+  );
+
+  it("plays one round, then the Spectre is gone and the party carries on", () => {
+    let seen = 0, won = 0;
+    for (let seed = 1; seed <= 200; seed++) {
+      const first = opened(seed);
+      if ((first.events.find((e) => e.type === "chestOpened") as { result: number }).result !== 2) continue;
+      if (first.state.phase !== "fight") continue;   // met by the Eye or Talisman
+      seen++;
+      const played = playRevisedFight(first.state);
+      const rolls = played.events.filter((e) => e.type === "combatRoll").length;
+      expect(rolls).toBeLessThanOrEqual(1);
+      expect(["won", "lost"]).toContain(played.end);   // never a standoff or a second round
+      if (played.end === "won") { won++; expect(played.state.fight).toBeNull(); expect(played.state.strangers).not.toContain(9); }
+    }
+    expect(seen).toBeGreaterThan(0);
+    expect(won).toBeGreaterThan(0);
+  });
+
+  it("the legacy combat is untouched: the chest Spectre fight carries no one-round marker", () => {
+    for (let seed = 1; seed <= 60; seed++) {
+      const s = makeState({ phase: "explore", areas: [area], party: [member(PRIEST, [14])], seed });
+      const { state, events } = reduce(s, { type: "openChest" });
+      if ((events.find((e) => e.type === "chestOpened") as { result: number }).result === 2) expect(state.fight?.oneRound).toBeUndefined();
+    }
   });
 });

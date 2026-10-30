@@ -28,9 +28,15 @@ function living(state: GameState): PartyMember[] {
   return state.party.filter((m) => m.status === 0 || m.status === 1);
 }
 
+/** How many living Dwarves the party has — each can guide the party past one trap (`FLAG_GUIDES_PAST_TRAP`).
+ *  "Living" is alive or ally, so a petrified or fallen Dwarf does not count. */
+export function livingDwarfCount(state: GameState): number {
+  return living(state).filter((m) => (CREATURES[m.creatureId]!.flags & FLAG_GUIDES_PAST_TRAP) !== 0).length;
+}
+
 /** A living Dwarf — the party's guide past a trap (`FLAG_GUIDES_PAST_TRAP`). */
 export function hasLivingDwarf(state: GameState): boolean {
-  return living(state).some((m) => (CREATURES[m.creatureId]!.flags & FLAG_GUIDES_PAST_TRAP) !== 0);
+  return livingDwarfCount(state) > 0;
 }
 
 function livingHolds(state: GameState, treasureId: number): boolean {
@@ -51,26 +57,28 @@ export function hasStaffWizard(state: GameState): boolean {
 }
 
 /** Resolve every hazard in the working set, in priority order (spec §7.2). */
-export function applyHazards(state: GameState): { events: GameEvent[]; fell: boolean; trapChoice: boolean; knownTrap: boolean } {
+export function applyHazards(state: GameState): { events: GameEvent[]; fell: boolean; trapChoice: boolean; knownTrap: boolean; ghouls: boolean } {
   const events: GameEvent[] = [];
   let fell = false;
   // `trapRules`: a Dwarf-guided party meeting exactly one trap does not auto-avoid it — the caller pauses for
-  // the Dwarf's choice (`trap` phase). The hazards after Trap still resolve in this same pass.
+  // the Dwarf's choice (`trap` phase), once this pass has resolved every other hazard.
   let trapChoice = false;
-  // Extension kit (SC-EXT-14/15/16/28): Desertion, Harpies, Quarrel and Spell are appended strictly
-  // AFTER Trap, in that numeric order — a kit-off game's `hazards` working set can never contain ids
-  // 5-8 (the base small pack has no such codes), so this extension is a no-op for the base game
-  // (SC-EXT-1 byte-identity); when the kit is on and several fire together, they all resolve in this
-  // same pass, before the trap's fall is handled by the caller.
+  // Rules, "Hazard cards": Earthquake, Spell, Harpies, Medusa, Ghouls, Quarrel, Desertion, Mutiny, Trap. The Trap is always last, so the
+  // caller acts on its fall (or the Dwarf's choice) only once every other hazard has fired. Extension-kit hazards (Desertion, Harpies,
+  // Quarrel, Spell: SC-EXT-14/15/16/28) are no-ops for the base game — a kit-off `hazards` working set can never contain ids 5-8
+  // (the base small pack has no such codes), so SC-EXT-1 byte-identity holds.
   const order = [
-    HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_MUTINY, HAZARD_TRAP,
-    HAZARD_DESERTION, HAZARD_HARPIES, HAZARD_QUARREL, HAZARD_SPELL,
+    HAZARD_EARTHQUAKE, HAZARD_SPELL, HAZARD_HARPIES, HAZARD_MEDUSA, HAZARD_GHOULS,
+    HAZARD_QUARREL, HAZARD_DESERTION, HAZARD_MUTINY, HAZARD_TRAP,
   ];
   // Harpies (SC-EXT-15) actually stole this pass — as opposed to parking — so it must NOT re-park
   // below (design US-10 "After firing, the card leaves the game (no re-park)"), unlike Medusa/Ghouls
   // which always lurk again whatever happened this visit. Set only inside the HAZARD_HARPIES switch
   // case (never on the park-and-`continue` branch below), so it exactly tracks that distinction.
   let harpiesFired = false;
+  // The revised combat (Peter, 14-OCT-2026): the Ghouls are fought as a party of their own, by the round engine, once the rest of the
+  // entry is settled — not here by one roll per member. The caller starts that fight; this pass only says they struck.
+  let ghouls = false;
 
   for (const hz of order) {
     if (!state.hazards.includes(hz)) continue;
@@ -140,6 +148,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         break;
       }
       case HAZARD_GHOULS: {
+        if (state.variants?.combatRevision) { ghouls = true; break; }
         // The attack forces everyone to drop heavy treasure to fight; it lands on the chamber floor,
         // visible and reclaimable at the end of the turn (§Ghouls). `ALL_TREASURES` (base + kit,
         // SC-EXT-2) — a kit heavy treasure (Crypt/Gems 21, Idol 18) would otherwise crash this
@@ -206,14 +215,15 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         break;
       }
       case HAZARD_TRAP: {
-        const hasDwarf = hasLivingDwarf(state);
+        const dwarves = livingDwarfCount(state);
         // Standing traps (`variants.trapRules`): "a party which includes a dwarf may ignore a trap, but not
-        // two traps drawn in the same chamber". The count includes a trap already parked here, so a Well or
-        // Bell draw that adds one to a chamber already holding one makes two.
+        // two traps drawn in the same chamber" — read (ruled 11-OCT-2026) as one trap per Dwarf: a party with n
+        // Dwarves can guide past n traps. The count includes a trap already parked here, so a Well or Bell draw
+        // that adds one to a chamber already holding one makes two. With the flag off a Dwarf avoids any trap.
         const here = state.areas[state.partyArea];
         const traps = state.hazards.filter((h) => h === HAZARD_TRAP).length + (here?.contents.filter((c) => c === 300 + HAZARD_TRAP).length ?? 0);
-        const tooMany = state.variants?.trapRules === true && traps >= 2;
-        if (hasDwarf && !tooMany) {
+        const guided = state.variants?.trapRules === true ? dwarves >= traps : dwarves > 0;
+        if (guided) {
           if (state.variants?.trapRules === true) trapChoice = true;   // the player chooses: guided past, or fall
           else events.push({ type: "trapAvoided" });                   // the dwarf guides the party past it
         } else fell = true;                                            // otherwise the party drops a level
@@ -388,5 +398,5 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
   // A trap that was reloaded (not drawn) on this entry was KNOWN to the party: falling to it is deliberate.
   const knownTrap = (state.knownTraps ?? 0) > 0;
   delete state.knownTraps; // per-entry scratch from `enterChamber`; never outlives the hazard pass
-  return { events, fell, trapChoice, knownTrap };
+  return { events, fell, trapChoice, knownTrap, ghouls };
 }

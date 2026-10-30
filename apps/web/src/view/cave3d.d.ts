@@ -21,11 +21,13 @@ export interface ViewPartyMember {
   ally: boolean;      // befriended stranger (status 1), not an original recruit
   petrified: boolean; // turned to stone (status 2) — incapacitated until cured
   stoneArea: number | null; // when petrified, the area index it was left in (for the in-chamber display)
+  sibyl?: boolean;    // the optional Sibyl travelling with the party: listed in the roster, but no fighter (a party flag, not a member)
 }
 export interface BootOptions {
   mount: HTMLElement;
   engine: CaveEngine;
   tiles: Map<string, TileArt>;
+  deadEnd?: (exits: string) => string | null; // the fog dead-end card's image URL for a face-down area with stubs on these sides
   party: ViewPartyMember[];
   tileAR: number;
   partyColor?: string; // marker colour (hex)
@@ -40,5 +42,6 @@ export function boot(opts: BootOptions): Promise<{
   focusArea(a: { col: number; row: number; level: number }): void;
   frameArea(a: { col: number; row: number; level: number }, instant?: boolean): void; // overhead view of that chamber; instant = cut, no flight
   snapOnArrival(): void; // the next time the party moves, frame its new tile as the Home button does
-  setPicker(opts: { destinations: { idx: number; col: number; row: number; level: number }[]; onPick: (idx: number) => void } | null): void;
+  setPicker(opts: { destinations: { idx: number; col: number; row: number; level: number }[]; onPick: (idx: number) => void; prompt?: string } | null): void;
+  peekTile(a: { col: number; row: number; level: number }): void;
 }>;

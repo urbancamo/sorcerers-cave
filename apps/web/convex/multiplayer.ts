@@ -683,6 +683,8 @@ export const act = mutation({
     if (!userId) throw new Error("Unauthenticated");
     const me = await mySeat(ctx, gameId, userId);
     if (!me) throw new Error("Not in this game");
+    // The strangers' decisions are the server's alone (P7): never accepted from a client.
+    if (action.type.startsWith("strangers")) throw new Error("A stranger action cannot be sent by a client");
     const game = await ctx.db.get(gameId);
     let mp = game?.state as MpGameState | null;
     if (!game || game.mode !== "multi" || !mp) return { events: [{ type: "blocked" }] };

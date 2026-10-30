@@ -1,12 +1,12 @@
 import { describe, it, expect } from "vitest";
 import {
-  DEFAULT_RULES, T, unit, matchStrength, outcomeCounts, partyDieBonus, strangerDieBonus, casualtyVictim, invincible,
+  DEFAULT_RULES, T, unit, matchStrength, outcomeCounts, partyDieBonus, strangerDieBonus, casualtyVictim, invincible, isStalemate,
 } from "./rules";
 import type { Ctx } from "./types";
 
 // creature ids (data/creatures.ts): 0 Hero 1 Woman-Hero 2 Ogre 3 Troll 4 Priest 5 Man 6 Woman 7 Dwarf 8 Wizard 11 Sorcerer 14 Apprentice
 const HER = 0, OGR = 2, PRI = 4, MAN = 5, DWF = 7, WIZ = 8, SOR = 11;
-const ctx = (over: Partial<Ctx> = {}): Ctx => ({ eye: false, curses: 0, level: 1, surprise: 0, rules: DEFAULT_RULES, ...over });
+const ctx = (over: Partial<Ctx> = {}): Ctx => ({ eye: false, curses: 0, level: 1, attacker: "strangers", surprise: 0, rules: DEFAULT_RULES, ...over });
 const view = (pf: ReturnType<typeof unit>[], sf: ReturnType<typeof unit>[], pb: ReturnType<typeof unit>[] = [], sb: ReturnType<typeof unit>[] = []) => ({ pf, pb, sf, sb });
 
 describe("matchStrength", () => {
@@ -55,18 +55,26 @@ describe("matchStrength", () => {
 describe("die bonuses", () => {
   it("the party's Ring gives +1, each curse -1, and the Eye cancels the Ring", () => {
     const ring = [unit(MAN, [T.RING]), unit(HER)];
-    expect(partyDieBonus(ring, ctx())).toBe(1);
-    expect(partyDieBonus(ring, ctx({ curses: 2 }))).toBe(-1);
-    expect(partyDieBonus(ring, ctx({ eye: true }))).toBe(0);
+    expect(partyDieBonus(ring, ctx(), 2)).toBe(1);
+    expect(partyDieBonus(ring, ctx({ curses: 2 }), 2)).toBe(-1);
+    expect(partyDieBonus(ring, ctx({ eye: true }), 2)).toBe(0);
   });
   it("a dead bearer no longer gives the party the Ring bonus", () => {
     const bearer = unit(MAN, [T.RING]); bearer.alive = false;
-    expect(partyDieBonus([bearer, unit(HER)], ctx())).toBe(0);
+    expect(partyDieBonus([bearer, unit(HER)], ctx(), 2)).toBe(0);
   });
-  it("the strangers get +1 for a Ring and +1 for surprise, in round 1 only", () => {
+  it("the strangers get +1 for a Ring, and the surprise bonus only when they attack, in round 1 only", () => {
     const s = [unit(OGR, [T.RING]), unit(DWF)];
-    expect(strangerDieBonus(s, ctx({ surprise: 1 }), 1)).toBe(2);
-    expect(strangerDieBonus(s, ctx({ surprise: 1 }), 2)).toBe(1);
+    expect(strangerDieBonus(s, ctx({ attacker: "strangers", surprise: 1 }), 1)).toBe(2);
+    expect(strangerDieBonus(s, ctx({ attacker: "strangers", surprise: 1 }), 2)).toBe(1);
+    expect(strangerDieBonus(s, ctx({ attacker: "party", surprise: 2 }), 1)).toBe(1);   // the party attacked: the strangers get none
+  });
+  it("the party gets the surprise bonus (0, 1 or 2) only when it attacks, in round 1 only (reformulated rules, Determining Surprise Attack)", () => {
+    const p = [unit(MAN), unit(HER)];
+    expect(partyDieBonus(p, ctx({ attacker: "party", surprise: 2 }), 1)).toBe(2);
+    expect(partyDieBonus(p, ctx({ attacker: "party", surprise: 2 }), 2)).toBe(0);
+    expect(partyDieBonus(p, ctx({ attacker: "strangers", surprise: 1 }), 1)).toBe(0);   // the strangers attacked: the party gets none
+    expect(partyDieBonus(p, ctx({ attacker: "party", surprise: 1, curses: 1 }), 1)).toBe(0);   // surprise +1, one curse -1
   });
 });
 
@@ -87,18 +95,39 @@ describe("outcomeCounts (the 36 dice outcomes)", () => {
   });
 });
 
-describe("casualtyVictim (a two-creature front line loses)", () => {
-  it("the party's nominated creature dies on 4-6, the other on 1-3", () => {
-    expect(casualtyVictim("party", 0, 1, 4, 0)).toBe(0);
-    expect(casualtyVictim("party", 0, 1, 3, 0)).toBe(1);
+describe("casualtyVictim (a two-creature front line loses; one rule for both sides, Peter Q7)", () => {
+  it("the nominated creature dies on 4-6, the other on 1-3 (high roll = success)", () => {
+    expect(casualtyVictim(0, 1, 4, 0)).toBe(0);
+    expect(casualtyVictim(0, 1, 6, 0)).toBe(0);
+    expect(casualtyVictim(0, 1, 3, 0)).toBe(1);
   });
   it("a Ring adds 1 to the roll, and 7 counts as 6", () => {
-    expect(casualtyVictim("party", 0, 1, 3, 1)).toBe(0);
-    expect(casualtyVictim("party", 0, 1, 6, 1)).toBe(0);
+    expect(casualtyVictim(0, 1, 3, 1)).toBe(0);
+    expect(casualtyVictim(0, 1, 6, 1)).toBe(0);
   });
-  it("for strangers, as written: the OTHER creature dies on 4-6, the nominated on 1-3", () => {
-    expect(casualtyVictim("strangers", 0, 1, 4, 0)).toBe(1);
-    expect(casualtyVictim("strangers", 0, 1, 3, 0)).toBe(0);
+});
+
+describe("isStalemate (Peter Q3: neither side can beat the other on any roll)", () => {
+  const front = (...us: ReturnType<typeof unit>[]) => ({ pf: us, pb: [], sf: [], sb: [] });
+  it("his example: a Dwarf wearing the Ring on level 4 cannot die and cannot out-roll the Apprentice", () => {
+    const dwarf = unit(DWF, [T.RING]);
+    const m = front(dwarf);
+    // Dwarf 1 + die + Ring 1 reaches at most 8; the Apprentice (2 + 7) is at least 10. The Apprentice can win but cannot kill.
+    expect(isStalemate({ party: 1, strangers: 9 }, 1, 0, m, ctx({ level: 4 }))).toBe(true);
+  });
+  it("the same match on level 3 is not a stalemate: the Dwarf can die", () => {
+    expect(isStalemate({ party: 1, strangers: 9 }, 1, 0, front(unit(DWF, [T.RING])), ctx({ level: 3 }))).toBe(false);
+  });
+  it("an ordinary mismatch is not a stalemate: the stronger side can win and kill", () => {
+    expect(isStalemate({ party: 1, strangers: 9 }, 0, 0, front(unit(DWF)), ctx({ level: 4 }))).toBe(false);
+  });
+  it("level matches, and gaps of 5 or less, are never stalemates", () => {
+    expect(isStalemate({ party: 5, strangers: 5 }, 0, 0, front(unit(MAN)), ctx())).toBe(false);
+    expect(isStalemate({ party: 5, strangers: 10 }, 0, 0, front(unit(MAN)), ctx())).toBe(false);
+  });
+  it("a Ring bearer is only safe if EVERY creature in the front line is invulnerable", () => {
+    const m = front(unit(DWF, [T.RING]), unit(MAN));
+    expect(isStalemate({ party: 4, strangers: 20 }, 1, 0, m, ctx({ level: 4 }))).toBe(false);
   });
 });
 

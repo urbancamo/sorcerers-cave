@@ -4,8 +4,8 @@
 // wrong bucket wherever a consumer branches on `card.category === "artifact"`) — found live via the
 // Task 16 manual smoke test (a drawn Magic Axe showed category "treasure").
 import {
-  decodeArea, openCard, unpackCoord, ALL_TREASURES, AF_DESTROYED, AF_UNRESOLVED, fluteLulls, getSubLocation,
-  DIR_N, DIR_E, DIR_S, DIR_W, type GameState, type PlacedArea,
+  decodeArea, openCard, unpackCoord, ALL_CREATURES, ALL_TREASURES, AF_DESTROYED, AF_UNRESOLVED, fluteLulls, getSubLocation,
+  targetCoord, doorBit, DIR_N, DIR_E, DIR_S, DIR_W, type GameState, type PlacedArea,
 } from "@sorcerers-cave/engine";
 import { resolveTile, resolveCardVariant, normExits, type TileArt, type CardArt, type Rot } from "../data/manifest";
 import type { Area, Card } from "./ports";
@@ -89,6 +89,10 @@ export function laneCards(
     else if (kind === "hazard") hazards.push(card);
     else treasure.push(card);
   }
+  // The leader (the stranger whose reaction the group follows, as the engine's findLeader picks) comes first: it is the card shown on
+  // top of the pile and magnified. Stable, so equals keep their draw order; statues are scenery and never lead.
+  const rank = (c: Card): number => (c.stone ? -1 : ALL_CREATURES[Number(c.entityId)]?.leaderPri ?? 0);
+  strangers.sort((a, b) => rank(b) - rank(a));
   return { strangers, treasure, hazards };
 }
 
@@ -108,6 +112,17 @@ function displayName(special: string | null, isChamber: boolean): string {
     case "well": return "The Well";
     default: return isChamber ? "Chamber" : "Tunnel";
   }
+}
+
+const OPPOSITE: Record<number, number> = { [DIR_N]: DIR_S, [DIR_E]: DIR_W, [DIR_S]: DIR_N, [DIR_W]: DIR_E };
+
+/** The sides of the area at `coord` that face a tile whose doorway into it was tried and closed (a dead end): where the fog card's
+ *  stubs go. Read from the neighbours' closed doorways, not from the dead end's own printed card. */
+function fogStubsAt(coord: number, state: GameState): string {
+  const { level, x, y } = unpackCoord(coord);
+  return ([DIR_N, DIR_E, DIR_S, DIR_W] as const)
+    .filter((d) => state.areas.some((a) => a.coord === targetCoord(d, level, x, y) && ((a.deadDoors ?? 0) & doorBit(OPPOSITE[d]!)) !== 0))
+    .map((d) => DIR_NUM_TO_LETTER[d]!).join("");
 }
 
 /**
@@ -173,6 +188,7 @@ export function projectArea(
   const subLocation = idx === state.partyArea
     ? (({ at, dir }) => (dir !== undefined ? { at, dir: DIR_NUM_TO_LETTER[dir] } : { at }))(getSubLocation(state))
     : undefined;
+  const faceDown = !pa.faceUp || (pa.flags & AF_UNRESOLVED) !== 0;
   return {
     tileId: resolved?.tileId ?? art.tiles[0]!.tileId,
     rot: (resolved?.rot ?? 0) as Area["rot"],
@@ -196,7 +212,8 @@ export function projectArea(
     // tile for a face-down card back." A `withdraw` landing on this tile does NOT clear the flag
     // (disclosed engine gap, reduce.ts:353) — the tile stays face-down under the party until a later
     // forward entry resolves it; documented, not fixed here (no engine change in this pass).
-    faceDown: !pa.faceUp || (pa.flags & AF_UNRESOLVED) !== 0,
+    faceDown,
+    fogStubs: faceDown ? fogStubsAt(pa.coord, state) : "",
     destroyed: (pa.flags & AF_DESTROYED) !== 0,
     secretDoor: pa.secretDoor ?? null,
     strangers: lanes.strangers,

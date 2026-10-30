@@ -193,4 +193,19 @@ describe("ExplorePanel — the Sibyl's look (SC-SIB-8)", () => {
     rerender(<ExplorePanel state={{ ...s, hasSibyl: true }} dispatch={() => {}} />);
     expect(screen.getByRole("button", { name: /top of the pack/i })).toBeInTheDocument();
   });
+
+  it("offers a confirmed 'Stay' while the Apprentice is on watch after the Sorcerer's death (revised combat), and dispatches stay", () => {
+    const dispatch = vi.fn();
+    const base = newGame(1, [5]);
+    const s: GameState = {
+      ...base, phase: "explore", variants: { combatRevision: true, extensionKit: true }, apprenticeWatch: base.partyArea,
+      party: [...base.party, { creatureId: 14, status: 1, dragonKills: 0, treasure: [] }],
+    };
+    render(<ExplorePanel state={s} dispatch={dispatch} />);
+    expect(screen.getByText(/apprentice is watching/i)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: /stay/i }));
+    expect(dispatch).not.toHaveBeenCalled();              // a second tap confirms: staying turns her on the party
+    fireEvent.click(screen.getByRole("button", { name: /confirm/i }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "stay" });
+  });
 });
