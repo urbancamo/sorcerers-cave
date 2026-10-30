@@ -16,28 +16,29 @@ const GLYPHS = {
   test: <span className="scv-ic scv-ic-t" aria-hidden="true">T</span>,
 };
 
-function IconButton({ id, label, active, onClick }: { id: keyof typeof GLYPHS; label: string; active: boolean; onClick: () => void }) {
+function IconButton({ id, label, active, onClick, disabled }: { id: keyof typeof GLYPHS; label: string; active: boolean; onClick: () => void; disabled?: boolean }) {
   return (
     <button type="button" className={'scv-tb-btn' + (active ? ' on' : '')} aria-label={label} aria-pressed={active}
-            title={label} onClick={onClick}>
+            title={disabled ? `${label} (not available in a fight)` : label} disabled={disabled} onClick={onClick}>
       {GLYPHS[id]}
     </button>
   );
 }
 
 /** The thin title bar: left icons open the party list or the inventory, right icons the card panel, Settings and (test mode only) the test panel. */
-export function TitleBar({ left, right, testMode, onLeft, onRight }: {
+export function TitleBar({ left, right, testMode, inFight, onLeft, onRight }: {
   left: LeftSlot;
   right: RightSlot;
   testMode: boolean;
+  inFight?: boolean; // the left slot is the combat list, so the party and inventory icons are off
   onLeft: (pressed: Exclude<LeftSlot, null>) => void;
   onRight: (pressed: Exclude<RightSlot, null>) => void;
 }) {
   return (
     <header className="scv-titlebar">
       <div className="scv-tb-group">
-        <IconButton id="party" label="Party" active={left === 'party'} onClick={() => onLeft('party')} />
-        <IconButton id="inventory" label="Inventory" active={left === 'inventory'} onClick={() => onLeft('inventory')} />
+        <IconButton id="party" label="Party" active={left === 'party'} disabled={inFight} onClick={() => onLeft('party')} />
+        <IconButton id="inventory" label="Inventory" active={left === 'inventory'} disabled={inFight} onClick={() => onLeft('inventory')} />
       </div>
       <div className="scv-tb-title">SORCERER'S CAVE</div>
       <div className="scv-tb-group">

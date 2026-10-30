@@ -7,7 +7,7 @@ import {
 import type { CardArt } from "../data/manifest";
 import { FightCard } from "./FightCard";
 import { ConfirmButton } from "./ConfirmButton";
-import { FightHand } from "./FightHand";
+import { CombatList } from "./shell/CombatList";
 import { MatchChips } from "./MatchChips";
 import { memberLabels } from "./memberLabels";
 import { holyWaterTargetName } from "./holyWaterLabel";
@@ -31,6 +31,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
   const fight = state.fight, rev = fight?.rev;
   const [picked, setPicked] = useState<number | null>(null);   // a party creature tapped, waiting for its foe
   const [chosen, setChosen] = useState<number[]>([]);          // deploy: the creatures to stand in front
+  const [sel, setSel] = useState<number[]>([]);                // deploy: creatures selected in the list, waiting to be moved to the front line as one
   const [pairs, setPairs] = useState<Pair[]>([]);              // engage: the pairings so far
   const [placed, setPlaced] = useState<Placement[] | null>(null);   // the spares placed so far (tentative until the round is rolled); null = untouched, so the obvious placement stands
   const [retreatOpen, setRetreatOpen] = useState(false);
@@ -40,7 +41,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
   const key = fight ? `${fight.round}|${fight.pending?.kind ?? ""}|${fight.pending?.by ?? ""}|${state.party.map((m) => m.status).join("")}|${state.strangers.join(",")}` : "";
   const lastKey = useRef(key);
   useEffect(() => {
-    if (lastKey.current !== key) { setPicked(null); setChosen([]); setPairs([]); setPlaced(null); setRetreatOpen(false); setRestored(false); lastKey.current = key; }
+    if (lastKey.current !== key) { setPicked(null); setChosen([]); setSel([]); setPairs([]); setPlaced(null); setRetreatOpen(false); setRestored(false); lastKey.current = key; }
   }, [key]);
   const stale = lastKey.current !== key;   // render this pass from a clean slate, before the effect has run
 
@@ -142,7 +143,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
   const deployedFoes = rev.deployed.strangers.filter((s) => !rev.matches.some((m) => m.sf.includes(s)));
   const inPairs = (list: Pair[]) => new Set(list.map((p) => p.party));
   // The Ghouls' pairing is made for the party: show it as soon as the Ghouls have been faced (and so while the round is rolled).
-  const usedPairs = stale ? [] : autoPairs && !introDue ? autoPairs : forcedPairs && pairs.length === 0 ? forcedPairs : pairs, usedChosen = stale ? [] : chosen;
+  const usedPairs = stale ? [] : autoPairs && !introDue ? autoPairs : forcedPairs && pairs.length === 0 ? forcedPairs : pairs, usedChosen = stale ? [] : chosen, usedSel = stale ? [] : sel;
   // Placements aimed at a pairing that has since been taken back fall away with it.
   // A creature the player stood in the front line that the attacker did not pair (the strangers engage one-to-one) is a spare, and it has only
   // one place worth going: when the rules leave it exactly one, it is already put there, so choosing it for the front line means it fights.
@@ -165,14 +166,24 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
 
   // --- the decisions ------------------------------------------------------------------------------------------------------------
   const tapFree = (i: number): void => {
-    if (mine?.kind === "deploy") setChosen((c) => (c.includes(i) ? c.filter((x) => x !== i) : [...c, i]));
+    if (mine?.kind === "deploy") {
+      // A creature already standing in front is taken back; one in the list is selected (or unselected), to be moved with the rest.
+      if (usedChosen.includes(i)) setChosen(usedChosen.filter((x) => x !== i));
+      else setSel((s) => (s.includes(i) ? s.filter((x) => x !== i) : [...s, i]));
+    }
     else if (mine?.kind === "engage" && !inPairs(usedPairs).has(i)) setPicked(picked === i ? null : i);
   };
   // Drop on the front line: only a free creature, and only once.
+  // The payload may name several creatures ("0,2"): dragging one of a selection carries the whole selection.
   const dropFront = (raw: string): void => {
-    const i = Number(raw);
-    if (raw === "" || Number.isNaN(i) || !free.includes(i) || usedChosen.includes(i)) return;
-    setChosen([...usedChosen, i]);
+    const ids = raw.split(",").filter((x) => x !== "").map(Number).filter((i) => !Number.isNaN(i) && free.includes(i) && !usedChosen.includes(i));
+    if (ids.length) { setChosen([...usedChosen, ...ids]); setSel([]); }
+  };
+  // Clicking the front line moves everything selected in the list there in one action.
+  const frontSelected = (): void => { if (sel.length) dropFront(sel.join(",")); };
+  const listDrag = (i: number, e: DragEvent): void => {
+    e.dataTransfer.effectAllowed = "move";
+    e.dataTransfer.setData("application/x-scv-member", mine?.kind === "deploy" && sel.includes(i) ? sel.join(",") : String(i));
   };
   // Pair a creature (picked, or dragged) with a foe; on a foe that already has its pairing, the creature joins it as a spare instead.
   const tapFoe = (s: number, dragged?: string): void => {
@@ -348,7 +359,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
   }
 
   return (
-    <div key="fight" className={`scv-fight scv-rev${restored ? " scv-rev-restore" : ""}`} data-testid="rev-fight">
+    <div key="fight" className={`scv-fight scv-rev${free.length > 0 && !forcedDeploy && mine?.kind !== "scroll" ? " with-list" : ""}${restored ? " scv-rev-restore" : ""}`} data-testid="rev-fight">
       {introDue && (
         <div className="scv-ghouls" role="dialog" aria-label="Ghouls attack" data-testid="ghouls-intro">
           <div className="scv-ghouls-mist" aria-hidden="true" />
@@ -395,29 +406,29 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
       )}
 
       {mine?.kind === "deploy" && !forcedDeploy && (
-        <div className="scv-match-front scv-rev-frontline" data-testid="rev-frontline"
+        <div className="scv-match-front scv-rev-frontline" data-testid="rev-frontline" onClick={frontSelected}
              onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); dropFront(e.dataTransfer.getData("application/x-scv-member")); }}>
           <span className="scv-match-slotlbl">⚔ your front line (at least {mine.min})</span>
           {usedChosen.map((i) => partyCard(i, { testId: `rev-front-${i}`, caption: "tap to take back", onPick: () => tapFree(i) }))}
-          {usedChosen.length < mine.min && <span className="scv-slot-empty">drag creatures here</span>}
+          {usedChosen.length < mine.min && <span className="scv-slot-empty">{sel.length > 0 ? `tap here to move the ${sel.length} selected` : "select creatures, then drag or tap here"}</span>}
         </div>
       )}
 
       {free.length > 0 && !(mine?.kind === "scroll") && !forcedDeploy && (
-        <FightHand testId="rev-tray">
-          {free.filter((i) => mine?.kind !== "deploy" || !usedChosen.includes(i)).map((i) => {
-            const taken = inPairs(usedPairs).has(i);
-            const redeployable = mine?.kind === "redeploy" && allMoves.some((m) => m.creature === i) && !usedMoves.some((x) => x.creature === i);
-            return partyCard(i, {
-              testId: `rev-free-${i}`, dim: taken || usedMoves.some((x) => x.creature === i) || (rev.deployed.party.includes(i) && mine?.kind !== "deploy"),
-              selected: picked === i || usedChosen.includes(i) || undefined,
-              caption: taken ? `vs ${strangerNames([usedPairs.find((p) => p.party === i)!.stranger])}` : usedMoves.some((x) => x.creature === i) ? "placed" : rev.deployed.party.includes(i) ? "in front" : undefined,
-              onPick: mine?.kind === "deploy" || mine?.kind === "engage" ? () => tapFree(i)
-                : redeployable ? () => setPicked(picked === i ? null : i) : undefined,
-              draggable: redeployable || mine?.kind === "deploy" || (mine?.kind === "engage" && !taken) || undefined, dragId: i,
-            });
-          })}
-        </FightHand>
+        <CombatList testId="rev-tray" onDragStart={listDrag} widgets={free.filter((i) => mine?.kind !== "deploy" || !usedChosen.includes(i)).map((i) => {
+          const taken = inPairs(usedPairs).has(i);
+          const redeployable = mine?.kind === "redeploy" && allMoves.some((m) => m.creature === i) && !usedMoves.some((x) => x.creature === i);
+          return {
+            i, label: labels[i] ?? ALL_CREATURES[state.party[i]!.creatureId]!.name, strength: partyUnits.get(i)?.strength ?? 0,
+            caster: !!partyUnits.get(i)?.caster, treasure: state.party[i]!.treasure,
+            dim: taken || usedMoves.some((x) => x.creature === i) || (rev.deployed.party.includes(i) && mine?.kind !== "deploy"),
+            selected: picked === i || usedSel.includes(i),
+            caption: taken ? `vs ${strangerNames([usedPairs.find((p) => p.party === i)!.stranger])}` : usedMoves.some((x) => x.creature === i) ? "placed" : rev.deployed.party.includes(i) ? "in front" : undefined,
+            onPick: mine?.kind === "deploy" || mine?.kind === "engage" ? () => tapFree(i)
+              : redeployable ? () => setPicked(picked === i ? null : i) : undefined,
+            draggable: redeployable || mine?.kind === "deploy" || (mine?.kind === "engage" && !taken) || undefined,
+          };
+        })} />
       )}
       {free.length === 0 && inMatch.size === 0 && <span className="scv-fight-hint">no creature is free</span>}
 

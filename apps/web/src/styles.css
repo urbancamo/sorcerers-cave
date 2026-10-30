@@ -2250,3 +2250,18 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 .scv-pickup{display:flex;flex-direction:column;gap:12px;}
 .scv-pickup-item{display:flex;flex-direction:column;gap:6px;}
 .scv-pickup-who{display:flex;flex-direction:column;gap:5px;}
+
+/* ---- combat: the party list on the left, the dialog taking the rest of the height ---- */
+.scv-cw-list{list-style:none;display:flex;flex-direction:column;gap:5px;}
+.scv-cw{display:grid;grid-template-columns:1fr auto auto;gap:2px 8px;align-items:center;padding:6px 9px;border-radius:6px;border:1px solid var(--line);
+  color:var(--parchment);cursor:pointer;user-select:none;}
+.scv-cw:hover,.scv-cw:focus-visible{border-color:var(--brass);outline:none;}
+.scv-cw.sel{background:rgba(201,161,78,.18);border-color:var(--brass-bright);}
+.scv-cw.dim{opacity:.55;}
+.scv-cw-name{font-size:13px;}
+.scv-cw-fs{font:700 14px var(--display);color:var(--cream);}
+.scv-cw-mp{color:var(--arcane,#5f8f8a);}
+.scv-cw-gear,.scv-cw-cap{grid-column:1 / -1;font-size:10.5px;color:var(--stone-dim);}
+.scv-fight.scv-rev{left:14px;right:14px;top:48px;bottom:14px;transform:none;width:auto;max-width:none;max-height:none;}
+.scv-slot{z-index:58;}
+.scv-fight.scv-rev.with-list{left:262px;}

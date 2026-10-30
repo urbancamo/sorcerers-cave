@@ -38,3 +38,13 @@ describe('TitleBar', () => {
     expect(onRight).toHaveBeenCalledWith('card');
   });
 });
+
+describe('TitleBar in a fight', () => {
+  it('turns the party and inventory icons off, leaving the right-hand icons', () => {
+    bar({ inFight: true });
+    expect(screen.getByRole('button', { name: 'Party' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Inventory' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Card panel' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Settings' })).toBeEnabled();
+  });
+});

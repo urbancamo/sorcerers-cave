@@ -154,3 +154,28 @@ party-leader philosophy.
   fight surface; they move with task 5, because the party and inventory icons are off in combat in the mockup and a fight needs
   its own route to an item's card. The old party panel still exists behind "Move or drop treasure...", and `TradeModal` stays for
   multiplayer. No browser check of the real game; the chamber card may overlap the encounter panel on small screens.
+
+## Task 5 - Combat left list and dialog
+
+Plan task 5. Requirements: ["Replace combat interface"](requirements.md#replace-combat-interface).
+
+### 2026-10-30 - Compact party list, multi-select front line, full-height dialog
+
+- **Done:** `shell/CombatList.tsx` replaces the fan hand in the revised fight with a left-hand list of compact widgets (name,
+  strength, magic mark, artifacts; no card art), keeping the `rev-tray` and `rev-free-N` test ids. Deploy is now select several
+  then move them as one: tapping the front-line box moves the selection, and dragging one of several selected carries all of
+  them (`application/x-scv-member` now holds "0,2"). Engage and redeploy keep pick-then-slot. The dialog takes the screen's
+  height (top to bottom, left of the list when it is open) and scrolls; the card panel and Settings now sit above it, so the
+  Book icon floats the panel over the dialog. The Party and Inventory icons are disabled in a fight and the roster and
+  inventory are hidden. Placed creatures still show as cards in the one-row-per-pairing rows.
+- **Thinking:** I kept every decision rule in `RevisedFightSurface` as it was and changed only where choices are made and how
+  they are laid out, so the engine's checks (`deployViolation`, `engageMovesViolation`, ...) still judge the result.
+- **Outcome:** typecheck clean; web tests 917 pass (new tests for multi-select, drag payload, compact list, disabled icons);
+  `manual.html` fights section updated.
+- **Decisions and open items:**
+  - Artifact use during a fight stays as buttons in the dialog's action row (Strength Potion, Lotus Dust, Holy Water), because
+    the inventory icon is off in combat and the mockup gives no other route. The Scroll stays a round step.
+  - **Legacy `FightSurface.tsx` is not removed.** `MultiplayerPlay.tsx` still renders it, and solo games started without the
+    `combatRevision` variant (server env `REVISED_COMBAT_ENABLED`, and older saves) use it. Removing it needs a decision to make
+    revised combat the only solo mode.
+  - `FightHand` stays for the PvP and legacy surfaces. No browser check yet.

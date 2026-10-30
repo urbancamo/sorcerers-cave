@@ -308,14 +308,14 @@ export default function GameScreen() {
         // A card on the floor opens the card panel unless Settings or the test panel holds the slot; a click on a card or
         // party member always takes the slot. No card on the floor closes it again.
         shell={{
-          left: leftSlot, right: rightSlot,
+          left: fightVisible ? null : leftSlot, right: rightSlot,
           onSelectCard: (card, where, explicit) => {
             setSelected(card ? { kind: 'card', card, where } : null);
             setRightSlot((cur) => (card ? (explicit ? 'card' : (cur ?? 'card')) : (cur === 'card' ? null : cur)));
           },
           onSelectMember: (member) => { setSelected({ kind: 'member', member }); setRightSlot('card'); },
         }} />
-      <TitleBar left={leftSlot} right={rightSlot} testMode={!!displayState.testMode}
+      <TitleBar left={fightVisible ? null : leftSlot} right={rightSlot} testMode={!!displayState.testMode} inFight={fightVisible}
                 onLeft={(p) => setLeftSlot((cur) => toggleLeft(cur, p))} onRight={(p) => setRightSlot((cur) => toggleRight(cur, p))} />
       {displayState.phase === 'pickup' && !holding && rightSlot !== 'settings' && rightSlot !== 'test' && cards && (
         <ChamberPickup state={displayState} dispatch={dispatchWithRolls} cards={cards} />
@@ -332,7 +332,7 @@ export default function GameScreen() {
       <ExplorePanel state={displayState} dispatch={dispatchWithRolls} sibylTools={{ pick: pickDestination, peek: (a) => caveApi.current?.peekTile(a) }} />
       {displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} onSave={handleSave} open={rightSlot === 'test'} />}
       {displayState.testMode && <DeadEndSwapBadge />}
-      {leftSlot === 'inventory' && (
+      {!fightVisible && leftSlot === 'inventory' && (
         <InventoryPanel rows={inventoryRows(displayState)} onManage={() => setManaging(true)}
           selected={selected?.kind === 'item' ? selected.at : null}
           onSelect={(row) => {

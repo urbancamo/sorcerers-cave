@@ -183,12 +183,43 @@ describe("RevisedFightSurface", () => {
     render(<RevisedFightSurface state={defending} dispatch={dispatch} cards={cards} />);
     const go = screen.getByRole("button", { name: /stand|deploy/i });
     expect(go).toBeDisabled();
-    fireEvent.click(screen.getByTestId("rev-free-0"));
+    fireEvent.click(screen.getByTestId("rev-free-0"));   // selecting is not yet standing in front
     expect(go).toBeDisabled();
     fireEvent.click(screen.getByTestId("rev-free-1"));
+    expect(go).toBeDisabled();
+    fireEvent.click(screen.getByTestId("rev-frontline")); // one tap on the front line moves everything selected
     expect(go).not.toBeDisabled();
     fireEvent.click(go);
     expect(dispatch).toHaveBeenCalledWith({ type: "deploy", creatures: [0, 1] });
+  });
+
+  it("deploy: dragging one of several selected creatures carries the whole selection to the front line", () => {
+    const dispatch = vi.fn();
+    const base: GameState = { ...newGame(1, [5, 6, 7]), variants: { combatRevision: true }, phase: "encounter", strangers: [OGRE, TROLL], treasures: [] };
+    const defending = structuredClone(driveStrangers(reduce({ ...base, fight: null }, { type: "attack" }).state).state);
+    defending.fight!.rev!.attacker = "strangers";
+    defending.fight!.pending = { by: "party", kind: "deploy", min: 2 };
+    defending.fight!.rev!.step = "deploy";
+    render(<RevisedFightSurface state={defending} dispatch={dispatch} cards={cards} />);
+    fireEvent.click(screen.getByTestId("rev-free-0"));
+    fireEvent.click(screen.getByTestId("rev-free-2"));
+    const data: Record<string, string> = {};
+    fireEvent.dragStart(screen.getByTestId("rev-free-2"), { dataTransfer: { effectAllowed: "", setData: (k: string, v: string) => { data[k] = v; } } });
+    expect(data["application/x-scv-member"]).toBe("0,2");
+    fireEvent.drop(screen.getByTestId("rev-frontline"), { dataTransfer: { getData: () => data["application/x-scv-member"] } });
+    fireEvent.click(screen.getByRole("button", { name: /stand|deploy/i }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "deploy", creatures: [0, 2] });
+  });
+
+  it("the party list is compact: no card art, strength and artifacts in a line", () => {
+    const base: GameState = { ...newGame(1, [5, 6]), variants: { combatRevision: true }, phase: "encounter", strangers: [OGRE], treasures: [] };
+    const s = driveStrangers(reduce({ ...base, fight: null }, { type: "attack" }).state).state;
+    s.party[0]!.treasure.push(3); // Magic Sword
+    const { container } = render(<RevisedFightSurface state={s} dispatch={vi.fn()} cards={cards} />);
+    const list = screen.getByTestId("rev-tray");
+    expect(list.querySelector("img")).toBeNull();
+    expect(list.textContent).toMatch(/Magic Sword/);
+    expect(container.querySelector(".scv-rev.with-list")).not.toBeNull();
   });
 
   /** The strangers attack a party that must stand every one of its creatures in front (min = all it has free). */
