@@ -468,15 +468,8 @@ function settleChamber(state: GameState, freshEntry: boolean, events: GameEvent[
     events.push({ type: "ghoulsAttack", count }, { type: "fightStarted", surprise: 0 }, ...beginRevised(state));
     return;
   }
-  // The Charmed Flute lulls every Dragon for as long as the party holds it: they sleep in the
-  // chamber, no longer leading or blocking, so a friendlier creature reacts and the area plays
-  // out as if empty (§ Charmed Flute). Re-evaluated each entry, so they wake if the flute is gone.
-  if (fluteLulls(state) && state.strangers.includes(10)) {
-    const dragons = state.strangers.filter((id) => id === 10);
-    state.lulled = [...(state.lulled ?? []), ...dragons];
-    state.strangers = state.strangers.filter((id) => id !== 10);
-    if (announceLull) events.push({ type: "dragonsLulled", count: dragons.length });
-  }
+  // The Charmed Flute no longer lulls Dragons by itself on entry (UI review 2026-10-30, "no auto-use of artifacts"):
+  // the player plays it from the encounter (`useArtifact` 12, see `lullDragons`). Dragons parked awake stay awake.
   // Extension kit (SC-EXT-21): a Demon is always hostile — including one parked into an area the
   // party had already permanently pacified (by an earlier draw made elsewhere while they were away,
   // same as the `withdraw` case below, reduce.ts:642). This check must run BEFORE the pacifiedAreas
@@ -513,6 +506,20 @@ function settleChamber(state: GameState, freshEntry: boolean, events: GameEvent[
   } else {
     persistAndExplore(state);
   }
+}
+
+/** The player plays the Charmed Flute at an encounter: every Dragon falls asleep in the chamber, no longer leading or blocking, so a
+ *  friendlier creature reacts and the area plays out as if empty (§ Charmed Flute). They wake again on the next entry. */
+function lullDragons(state: GameState): GameEvent[] {
+  const dragons = state.strangers.filter((id) => id === 10);
+  state.lulled = [...(state.lulled ?? []), ...dragons];
+  state.strangers = state.strangers.filter((id) => id !== 10);
+  state.surpriseReady = state.strangers.length > 0 ? state.surpriseReady : false;
+  const events: GameEvent[] = [{ type: "artifactUsed", artifact: 12 }, { type: "dragonsLulled", count: dragons.length }];
+  if (state.strangers.length === 0 && !sibylWaiting(state)) {
+    if (state.treasures.length > 0) state.phase = "pickup"; else persistAndExplore(state);
+  }
+  return events;
 }
 
 /** Resume the entry held at the Medusa pause — the dust thrown or the gaze braved — firing the
@@ -1776,10 +1783,10 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
             }
             return { state: next, events: [{ type: "artifactUsed", artifact: 12 }, { type: "secretDoorRevealed", dir: action.dir }] };
           }
-          // Lulling Dragons is passive: the Flute lulls them automatically on chamber entry for as
-          // long as the party holds it (see resolveArea) — and lulls Vipers on the pit crossing (see
-          // special.ts). So there is no explicit "lull" action; without a `dir`, the Flute does nothing.
-          return { state, events: [{ type: "blocked" }] };
+          // Without a `dir` the Flute lulls the Dragons in an encounter (the player's choice, not automatic). It still lulls
+          // Vipers passively on the pit crossing (see special.ts).
+          if (next.phase !== "encounter" || !next.strangers.includes(10)) return { state, events: [{ type: "blocked" }] };
+          return { state: next, events: lullDragons(next) };
         }
         case 15: { // Elixir — usable ANY time the party is not mid-fight; ANY living member may drink (design US-19, SC-EXT-22)
           if (next.phase === "fight" || action.target === undefined) return { state, events: [{ type: "blocked" }] };

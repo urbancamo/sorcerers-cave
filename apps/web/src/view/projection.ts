@@ -4,7 +4,7 @@
 // wrong bucket wherever a consumer branches on `card.category === "artifact"`) — found live via the
 // Task 16 manual smoke test (a drawn Magic Axe showed category "treasure").
 import {
-  decodeArea, openCard, unpackCoord, ALL_CREATURES, ALL_TREASURES, AF_DESTROYED, AF_UNRESOLVED, fluteLulls, getSubLocation,
+  decodeArea, openCard, unpackCoord, ALL_CREATURES, ALL_TREASURES, AF_DESTROYED, AF_UNRESOLVED, getSubLocation,
   targetCoord, doorBit, DIR_N, DIR_E, DIR_S, DIR_W, type GameState, type PlacedArea,
 } from "@sorcerers-cave/engine";
 import { resolveTile, resolveCardVariant, normExits, type TileArt, type CardArt, type Rot } from "../data/manifest";
@@ -55,17 +55,21 @@ export function tileForCard(card: number, tiles: TileArt[]): TileArt | null {
 }
 
 export function laneCards(
-  codes: readonly number[], cards: CardArt[], dragonsAsleep = false,
+  codes: readonly number[], cards: CardArt[], sleepingDragons: number | boolean = 0,
 ): { strangers: Card[]; treasure: Card[]; hazards: Card[] } {
   const strangers: Card[] = [], treasure: Card[] = [], hazards: Card[] = [];
   const seen = new Map<string, number>();
+  // The last N Dragon codes sleep (`true` = all): a lulled Dragon is listed after the awake ones in the working set.
+  let awakeLeft = typeof sleepingDragons === "boolean" ? (sleepingDragons ? 0 : Infinity) : codes.filter((c) => c === 110).length - sleepingDragons;
   for (const code of codes) {
     const stone = code >= 500; // 500+cid = a Gallery statue (SC-EXT-10) — inert, stone scenery
     const lotusAsleep = !stone && code >= 400; // 400+cid = a creature put to sleep by Lotus Dust (permanent)
     const kind = stone || lotusAsleep ? "creature" : code >= 300 ? "hazard" : code >= 200 ? "treasure" : "creature";
     const entityId = stone ? code - 500 : lotusAsleep ? code - 400 : code >= 300 ? code - 300 : code >= 200 ? code - 200 : code - 100;
-    // A Dragon (id 10) sleeps while the party holds the Charmed Flute (dynamic; see fluteLulls).
-    const asleep = lotusAsleep || (kind === "creature" && entityId === 10 && dragonsAsleep);
+    // A Dragon (id 10) sleeps only once the player has played the Charmed Flute on it (see `lulled`).
+    const isDragon = code === 110;
+    const dragonAsleep = isDragon && awakeLeft-- <= 0;
+    const asleep = lotusAsleep || dragonAsleep;
     // The nth copy of an entity in this lane gets the nth physical card's art, so duplicates (e.g.
     // two Men, several Dragons) each show their own illustration instead of all sharing the first.
     const occKey = `${kind}-${entityId}`;
@@ -146,9 +150,6 @@ export function projectArea(
     { exits: shown.exits, stairUp: shown.d.stairUp && (mirrored & 32) === 0, stairDown: shown.d.stairDown && (mirrored & 64) === 0, special: shown.special, isChamber: shown.d.chamber },
     art.tiles,
   );
-  // Dragons in the party's CURRENT area sleep while it holds the Charmed Flute (§ Charmed Flute);
-  // leaving the area wakes them, so the flag is scoped to the party's tile.
-  const dragonsAsleep = idx === state.partyArea && fluteLulls(state);
   // Heavy treasure left in a Deep Pool lives on `dropped` (reclaimable on return); display-only
   // hazard scars (e.g. an Earthquake) live on `markers`. Show both on the floor alongside contents.
   // Extension kit (SC-EXT-13, design US-08): a parked Crypt has no content code of its own (unlike
@@ -174,7 +175,14 @@ export function projectArea(
     ...markers,
     ...cryptLurk,
   ];
-  const lanes = laneCards(floor, art.cards, dragonsAsleep);
+  // Dragons sleep on the party's own tile only after the player played the Flute: in an encounter or fight those are the `lulled`
+  // working set; once the chamber has played out (the lulled Dragons parked awake) every Dragon still on the floor was lulled, unless
+  // the area is merely pacified. Leaving wakes them.
+  const here = idx === state.partyArea;
+  const lulledNow = (state.lulled ?? []).filter((id) => id === 10).length;
+  const inContest = state.phase === "encounter" || state.phase === "fight";
+  const sleepingDragons = !here ? 0 : inContest ? lulledNow : state.pacifiedAreas?.includes(idx) ? 0 : floor.filter((c) => c === 110).length;
+  const lanes = laneCards(floor, art.cards, sleepingDragons);
   // Precise Locations (SC-10.5-9): treasure sunk at a specific sub-location, kept apart from the
   // generic `treasure` lane above so it can be rendered precisely (a doorway or the island), not
   // lumped into the tile-wide floor.

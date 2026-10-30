@@ -26,13 +26,15 @@ function IconButton({ id, label, active, onClick, disabled }: { id: keyof typeof
 }
 
 /** The thin title bar: left icons open the party list or the inventory, right icons the card panel, Settings and (test mode only) the test panel. */
-export function TitleBar({ left, right, testMode, inFight, onLeft, onRight }: {
+export function TitleBar({ left, right, testMode, testOpen, inFight, onLeft, onRight, onTest }: {
   left: LeftSlot;
   right: RightSlot;
   testMode: boolean;
+  testOpen?: boolean; // the floating test panel is showing; it is independent of the slots
   inFight?: boolean; // the left slot is the combat list, so the party and inventory icons are off
   onLeft: (pressed: Exclude<LeftSlot, null>) => void;
   onRight: (pressed: Exclude<RightSlot, null>) => void;
+  onTest?: () => void;
 }) {
   return (
     <header className="scv-titlebar">
@@ -44,7 +46,7 @@ export function TitleBar({ left, right, testMode, inFight, onLeft, onRight }: {
       <div className="scv-tb-group">
         <IconButton id="card" label="Card panel" active={right === 'card'} onClick={() => onRight('card')} />
         <IconButton id="settings" label="Settings" active={right === 'settings'} onClick={() => onRight('settings')} />
-        {testMode && <IconButton id="test" label="Test panel" active={right === 'test'} onClick={() => onRight('test')} />}
+        {testMode && <IconButton id="test" label="Test panel" active={!!testOpen} onClick={() => onTest?.()} />}
       </div>
     </header>
   );

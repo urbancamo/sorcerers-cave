@@ -35,4 +35,11 @@ describe('ChamberPickup', () => {
     rerender(<ChamberPickup state={pickup([5, 6], [14])} dispatch={() => {}} cards={[]} />);
     expect(container).toBeEmptyDOMElement();
   });
+
+  it('lists artifacts first, then treasure by points, highest first (artifacts too)', () => {
+    // floor order: Silver 5, Magic Carpet (artifact), Gems 20, Magic Sword (artifact, 15), Gold 10
+    render(<ChamberPickup state={pickup([5, 6], [0, 4, 2, 3, 1])} dispatch={() => {}} cards={[]} />);
+    const names = screen.getAllByRole('region').map((r) => r.getAttribute('aria-label'));
+    expect(names).toEqual(['Magic Sword', 'Magic Carpet', 'Gems', 'Gold', 'Silver']);
+  });
 });

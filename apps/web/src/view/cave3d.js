@@ -831,7 +831,9 @@ function inspectArea(a){
   const placed=engine.placed.get(akey(a))||a;
   if(!onSelectArea){ areaPanel(placed,true); return; }
   selectRing.position.copy(worldPos(placed));selectRing.position.y+=0.02;selectRing.visible=true;
-  onSelectArea(placed);
+  // A face-down tile shows its fog card, never the face it hides; a revealed one shows its art turned as laid.
+  const file=placed.faceDown? deadEndArt(placed.fogStubs||'') : (placed.tileId? tiles.get(placed.tileId)?.file : null);
+  onSelectArea(placed,file||null,placed.faceDown?0:(placed.rot||0));
 }   // the tile mesh holds the area as it was laid: show what is there now
 function hexA(hex,a){const n=parseInt(hex.replace('#',''),16);return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';}
 
@@ -884,6 +886,7 @@ function updateHUD(){
   if(!document.getElementById('hud')) return;
   const s=engine.state();
   const depth=document.getElementById('st-depth'); if(depth) depth.textContent='Level '+s.level;
+  markCurrentLevel(s.level);
   const turn=document.getElementById('st-turn'); if(turn) turn.textContent=s.turn;
   const party=document.getElementById('st-party'); if(party) party.textContent=PARTY.length;
   const tilesEl=document.getElementById('st-tiles');
@@ -958,9 +961,12 @@ function setOtherParties(list){
   });
   otherGroup.children.forEach(applyFadeObj);
 }
+/** Ring the level button for the level the party stands on, apart from the one being viewed (`active`). */
+function markCurrentLevel(level){[...document.querySelectorAll('.lvlbtn')].forEach(b=>b.classList.toggle('current',+b.dataset.lvl===level));}
 function rebuildLevelButtons(){const grp=document.getElementById('levelGrp');const levels=[...new Set(engine.areas.map(a=>a.level))].sort((a,b)=>a-b);
   grp.innerHTML='';levels.forEach(lvl=>{const btn=document.createElement('button');btn.className='btn lvlbtn';btn.dataset.lvl=lvl;btn.textContent=lvl;btn.title='Focus level '+lvl;
-    btn.addEventListener('click',()=>viewLevel(lvl));grp.appendChild(btn);});}
+    btn.addEventListener('click',()=>viewLevel(lvl));grp.appendChild(btn);});
+  markCurrentLevel(engine.state().level);}
 
 /* ============================================================
    input

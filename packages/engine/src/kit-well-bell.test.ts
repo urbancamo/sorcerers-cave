@@ -363,19 +363,16 @@ describe("Extra draws never corrupt surprise, and still announce a freshly-drawn
     expect(state.surpriseReady).toBe(true);
   });
 
-  it("announces dragonsLulled for a dragon drawn via the Well while the Charmed Flute is held", () => {
+  it("a dragon drawn via the Well is met, not lulled, while the Charmed Flute is held (the player plays it)", () => {
     const CHARMED_FLUTE = 12;
     const DRAGON = 10;
     const s = wellState({ party: [member(HERO, [CHARMED_FLUTE])], smallPack: [100 + DRAGON] });
     const { state, events } = reduce(s, { type: "drawFromWell" });
 
-    expect(events).toContainEqual({ type: "dragonsLulled", count: 1 }); // NOT suppressed for new information
-    expect(state.strangers).toEqual([]); // lulled — no longer a live stranger to fight
-    // Nothing else to encounter, so the party simply moves on; the lulled dragon parks AWAKE on the
-    // tile for a future visit (persistAndExplore clears the WORKING `lulled` set once it's parked —
-    // pre-existing §Charmed Flute behaviour, not special to the Well).
-    expect(state.phase).toBe("explore");
-    expect(state.areas[0]!.contents).toContain(100 + DRAGON);
+    expect(events.some((e) => e.type === "dragonsLulled")).toBe(false);
+    expect(state.strangers).toEqual([DRAGON]);
+    expect(state.phase).toBe("encounter");
+    expect(legalActions(state)).toContainEqual({ type: "useArtifact", artifact: CHARMED_FLUTE });
   });
 });
 
@@ -459,12 +456,11 @@ describe("A Medusa pause opened by an extra draw resumes without re-breaking SC-
     expect(resumed.state.phase).toBe("encounter");
   });
 
-  it("announces dragonsLulled for a dragon drawn alongside a paused Medusa (Bell Rope 'stir' band)", () => {
+  it("a dragon drawn alongside a paused Medusa is met, not lulled, once the pause resumes (Bell Rope 'stir' band)", () => {
     const CHARMED_FLUTE = 12;
     const DRAGON = 10;
     // Sweep for a seed whose FIRST roll selects the "stir" band (>=4) and whose SECOND roll (the
-    // resumed Medusa gaze, drawn from the same advancing seed) is safe — so the sole, item-holding
-    // member survives and the Flute keeps working, isolating the assertion to the lull mechanism.
+    // resumed Medusa gaze, drawn from the same advancing seed) is safe, so the sole member survives.
     let seed = 1;
     for (; seed < 100000; seed++) {
       const r1 = rollDie(seed);
@@ -477,11 +473,9 @@ describe("A Medusa pause opened by an extra draw resumes without re-breaking SC-
       smallPack: [300 + HAZARD_MEDUSA, 100 + DRAGON],
     });
     const pulled = reduce(s, { type: "pullBellRope", mi: 0 });
-    expect(pulled.state.phase).toBe("medusa"); // Medusa opened the pause before the lull could resolve
-    expect(pulled.state.strangers).toEqual([DRAGON]); // drawn, but not yet lulled — that's on resume
-
+    expect(pulled.state.phase).toBe("medusa");
     const resumed = reduce(pulled.state, { type: "proceed" });
-    expect(resumed.events).toContainEqual({ type: "dragonsLulled", count: 1 }); // NOT suppressed by the pause
-    expect(resumed.state.strangers).toEqual([]); // lulled away on resume
+    expect(resumed.events.some((e) => e.type === "dragonsLulled")).toBe(false);
+    expect(resumed.state.strangers).toEqual([DRAGON]);
   });
 });

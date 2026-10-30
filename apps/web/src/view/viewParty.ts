@@ -34,6 +34,7 @@ export function viewParty(state: GameState, cards: CardArt[] = []): ViewPartyMem
       name: c.name,               // plain creature name — kept stable for the desertion-diff (by name)
       label: labels[origIdx]!,    // display name with a party-wide "#N" when the class is duplicated
       lead: i === 0,
+      partyIndex: origIdx,
       card: resolveCard("creature", m.creatureId, cards)?.file ?? null,
       items,
       awards: awardsOf(m),         // permanent marks, drawn after the items in the roster (rosterCarry.ts)

@@ -233,3 +233,56 @@ Plan task 8.
   because the manual is still hand-written.
 - **Still open:** Peter's confirmation of the yellow state; blocking dice and notices; removing the legacy fight surface once revised
   combat is the only solo mode; no browser check of the real game.
+
+## Fix - combat reuses the party panel
+
+### 2026-10-30 - "Not engaged" list removed
+
+- **Done:** the separate "Not engaged" list (`CombatList`) is gone. `shell/PartyList.tsx` is now the party panel for both uses: the
+  Party icon shows it, and a fight (`RevisedFightSurface`) shows the same component with per-row fight state (strength, selected,
+  dimmed, caption, tap and drag). It replaces the old DOM roster in the solo shell, so `cave3d.js`'s roster is no longer shown there.
+  `ViewPartyMember` gained `partyIndex` because the roster drops the fallen and reorders.
+- **Outcome:** `tsc -b` clean, web tests 924 pass; the party panel was checked in the real game (rows, tap opens the card). A fight
+  was not reached in the browser, so the fight rows are covered by tests only.
+- **Lost:** the roster's animation when a member leaves the party (e.g. a mutiny) does not apply to the new panel.
+- **Process note:** my earlier "typecheck clean" reports used `tsc --noEmit`, which checks nothing here; the real check is `tsc -b`.
+
+### 2026-10-30 - Party panel no longer overlaps the fight dialog
+
+- **Cause:** `RevisedFightSurface` rendered the party panel inside `.scv-fight`, whose `backdrop-filter` makes it the containing block for
+  `position: fixed` children. The panel's `left: 14px` was therefore measured from the dialog's edge, so it sat inside the dialog.
+- **Fix:** the panel is now a sibling of the dialog (a fragment), so it is fixed to the screen. The dialog still moves right by 309px
+  when the panel shows. Checked by `tsc -b` and tests only; a fight was not reached in the browser.
+
+## Fix - the Charmed Flute no longer lulls Dragons by itself
+
+### 2026-10-30 - Dragon lull becomes the player's action
+
+- **Why:** requirements.md (Inventory View) says there is no auto-use of artifacts, with the Flute lulling dragons as the example. My
+  earlier tasks changed the UI only; the engine still lulled Dragons on entry, as the player found in play.
+- **Done (engine):** entry no longer lulls. In an encounter with a Dragon, `useArtifact{artifact:12}` (no `dir`) lulls them
+  (`lullDragons` in `reduce.ts`; offered by `legalActions`). Spec rows SC-8.5-6, SC-11-30, SC-11-33 and SC-7.1-7 updated; flute,
+  kit and Well/Bell tests rewritten to meet-then-play; the two conformance vectors regenerated.
+- **Done (web):** the Flute's card offers "lull the Dragons" at such an encounter; the inventory shows it green then. Manual updated.
+- **Open:** the Viper Pit lull (SC-11-31) and the Flute gate on Deep Pool/Viper Pit treasure reclaim (SC-10.5-10) are still automatic
+  while the Flute is held. They need their own design (play the Flute before crossing?).
+- **Note:** `docs/specs/conformance/` feeds the VAX port; its two vectors changed, so the port needs the same rule change.
+
+## Change - the test panel floats independently
+
+### 2026-10-30 - Test panel leaves the right slot
+
+- **Done:** the T icon now toggles the test panel by itself (`testOpen` in `GameScreen`); it no longer shares the right slot with the
+  card panel and Settings. The panel sits above the slots, the fight dialog and the dice overlay (z-index 62), starts clear of the right
+  panel, and is dragged by its header as before. Opening it no longer narrows the fight dialog.
+- **Outcome:** `tsc -b` clean, web tests 928 pass; not looked at in the browser (needs the Test Mode secret).
+
+## Change - fight panel: no artefact buttons, Party/Inventory switch
+
+### 2026-10-30 - Artefacts leave the fight dialog; the combat list can show the inventory
+
+- **Done:** the "Strength Potion → X" style buttons at the foot of `RevisedFightSurface` are gone (the Scroll's round step is unchanged).
+  Artefacts are used from the item's card, as everywhere else. The Party and Inventory icons stay live in a fight: Inventory swaps the
+  combat list for `InventoryPanel` (same slot and width, passed in as `inventory`), Party brings the list back. Items opened from the
+  inventory show on the card panel as usual.
+- **Outcome:** `tsc -b` clean, web tests 930 pass; not looked at in the browser. The legacy `FightSurface` has no list, so the icons do nothing visible there.

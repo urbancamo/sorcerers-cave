@@ -111,6 +111,8 @@ function artifactActions(state: GameState): GameAction[] {
   if (atRestOrLooting && has(9, (id) => canUseArtifact(id, 9))) { // Magic Staff (Wizard) -> each stoned member left in THIS area
     state.party.forEach((m, idx) => { if (m.status === 2 && m.stoneArea === state.partyArea) actions.push({ type: "useArtifact", artifact: 9, target: idx }); });
   }
+  // The Charmed Flute, played at an encounter, lulls its Dragons (the player's choice; it is never automatic).
+  if (state.phase === "encounter" && state.strangers.includes(10) && has(12, (id) => canUseArtifact(id, 12))) actions.push({ type: "useArtifact", artifact: 12 });
   if (state.phase === "explore") {
     // The turncoat Apprentice (revised combat): the party may linger where the Sorcerer was slain, and so meet her (any other action
     // that leaves the area parts company with her instead).

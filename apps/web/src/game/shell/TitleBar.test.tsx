@@ -28,6 +28,16 @@ describe('TitleBar', () => {
     expect(screen.getByRole('button', { name: 'Test panel' })).toBeInTheDocument();
   });
 
+  it('toggles the test panel on its own, whatever the slots hold', () => {
+    const onTest = vi.fn();
+    bar({ testMode: true, testOpen: true, right: 'card', onTest });
+    const t = screen.getByRole('button', { name: 'Test panel' });
+    expect(t).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: 'Card panel' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(t);
+    expect(onTest).toHaveBeenCalledOnce();
+  });
+
   it('reports presses and marks the active icon', () => {
     const { onLeft, onRight } = bar({ left: 'party', right: 'settings' });
     expect(screen.getByRole('button', { name: 'Party' })).toHaveAttribute('aria-pressed', 'true');

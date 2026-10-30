@@ -42,6 +42,13 @@ describe('ItemActions — use', () => {
     expect(d).toHaveBeenCalledWith({ type: 'useArtifact', artifact: 6, target: 1 });
   });
 
+  it('offers the Charmed Flute as "lull the Dragons" at an encounter with a Dragon', () => {
+    const s = carrying([0], 12, { phase: 'encounter', strangers: [10] });
+    const d = show(s, 12);
+    fireEvent.click(screen.getByRole('button', { name: /lull the dragons/i }));
+    expect(d).toHaveBeenCalledWith({ type: 'useArtifact', artifact: 12 });
+  });
+
   it("labels the Sorcerer's Lotus Dust option as weakening, not sleeping (SC-11-12)", () => {
     const s = carrying([0], T.lotus, { phase: 'encounter', strangers: [11] });
     show(s, T.lotus);

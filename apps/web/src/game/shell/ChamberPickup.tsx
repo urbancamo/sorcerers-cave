@@ -10,6 +10,12 @@ export function ChamberPickup({ state, dispatch, cards }: { state: GameState; di
     if (a.type === 'takeTreasure') (takers.get(a.ti) ?? takers.set(a.ti, []).get(a.ti)!).push(a.mi);
   }
   if (takers.size === 0) return null;
+  // Artifacts first, then treasure by points, highest first; equal items keep their floor order (sort is stable).
+  const ordered = [...takers].sort(([a], [b]) => {
+    const ta = ALL_TREASURES[state.treasures[a]!], tb = ALL_TREASURES[state.treasures[b]!];
+    const art = Number(tb?.kind === 'artifact') - Number(ta?.kind === 'artifact');
+    return art || (tb?.points ?? 0) - (ta?.points ?? 0);
+  });
   const who = (mi: number) => {
     const m = state.party[mi]!, c = ALL_CREATURES[m.creatureId]!;
     const base = memberLabel(state.party, mi);
@@ -18,7 +24,7 @@ export function ChamberPickup({ state, dispatch, cards }: { state: GameState; di
   return (
     <aside className="scv-slot scv-slot-right scv-pickup" aria-label="Chamber treasure">
       <h2 className="scv-slot-hd">In the chamber</h2>
-      {[...takers].map(([ti, mis]) => {
+      {ordered.map(([ti, mis]) => {
         const tid = state.treasures[ti]!;
         const name = ALL_TREASURES[tid]?.name ?? 'treasure';
         const face = resolveCard('treasure', tid, cards)?.file ?? null;

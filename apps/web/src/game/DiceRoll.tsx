@@ -13,12 +13,15 @@ export function DiceRoll({
   lanes,
   message,
   tone,
+  partyLeft,
   onContinue,
 }: {
   title: string;
   lanes: Lane[];
   message?: string;
   tone: "good" | "bad" | "neutral";
+  /** Revised fights show the party on the left; the older fight surface puts the foe there. */
+  partyLeft?: boolean;
   onContinue: () => void;
 }) {
   const [tick, setTick] = useState(0);
@@ -72,11 +75,11 @@ export function DiceRoll({
         <div className={"scv-dice-lanes" + (versus ? " versus" : "")}>
           {lanes.map((lane, i) =>
             lane.party ? (
-              // Foe on the left, party on the right — matching the fight matchup panel's "them vs me".
+              // Matches the fight dialog: the revised one has the party on the left, the older one "them vs me".
               <div className="scv-dice-lane" key={i}>
-                {die(lane.enemy, false)}
+                {partyLeft ? die(lane.party, false) : die(lane.enemy, false)}
                 <span className="scv-dice-vs">vs</span>
-                {die(lane.party, false)}
+                {partyLeft ? die(lane.enemy, false) : die(lane.party, false)}
               </div>
             ) : (
               <div className="scv-dice-lane" key={i}>

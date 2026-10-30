@@ -8,10 +8,9 @@ describe('shell slots', () => {
     expect(toggleLeft('inventory', 'inventory')).toBeNull();
   });
 
-  it('keeps card, settings and test exclusive in the right slot', () => {
+  it('keeps card and settings exclusive in the right slot', () => {
     expect(toggleRight('card', 'settings')).toBe('settings');
-    expect(toggleRight('settings', 'test')).toBe('test');
-    expect(toggleRight('test', 'card')).toBe('card');
+    expect(toggleRight('settings', 'card')).toBe('card');
     expect(toggleRight('card', 'card')).toBeNull();
   });
 });

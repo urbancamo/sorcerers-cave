@@ -43,7 +43,29 @@ describe('CardPanel', () => {
 
 describe('CardPanel — area card', () => {
   it('shows the area name and the words it is given', () => {
-    render(<CardPanel selected={{ kind: 'area', index: 3, name: 'Chamber' }} areaText="A chamber, with exits north." onItem={() => {}} onMember={() => {}} />);
+    render(<CardPanel selected={{ kind: 'area', index: 3, name: 'Chamber', file: '/t.png', rot: 90 }} areaText="A chamber, with exits north." onItem={() => {}} onMember={() => {}} />);
     expect(screen.getByTestId('area-text')).toHaveTextContent('A chamber, with exits north.');
+    expect(screen.getByAltText('Chamber card')).toHaveStyle({ transform: 'rotate(90deg)' });
+  });
+});
+
+describe('CardPanel — awards', () => {
+  const slayer = { ...member, dragonCard: '/dragon.png', awards: [{ kind: 'dragon-slayer', count: 2, title: 'Dragon-slayer — +1 fighting strength' }] } as unknown as ViewPartyMember;
+
+  it('lists an earned Dragon-slayer mark among the mini-cards and opens it', () => {
+    const onAward = vi.fn();
+    render(<CardPanel selected={{ kind: 'member', member: slayer }} onItem={() => {}} onMember={() => {}} onAward={onAward} />);
+    fireEvent.click(screen.getByTitle('Dragon-slayer — +1 fighting strength'));
+    expect(onAward).toHaveBeenCalledWith(expect.objectContaining({ kind: 'dragon-slayer', count: 2 }), slayer);
+  });
+
+  it('shows the award card with what it does and a way back to the member', () => {
+    const onMember = vi.fn();
+    render(<CardPanel selected={{ kind: 'award', award: slayer.awards[0]!, from: slayer }} onItem={() => {}} onMember={onMember} />);
+    expect(screen.getByAltText('Dragon slain')).toBeInTheDocument();
+    expect(screen.getByText(/2 slain by Wizard/)).toBeInTheDocument();
+    expect(screen.getByText(/doubled at scoring/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /wizard/i }));
+    expect(onMember).toHaveBeenCalledWith(slayer);
   });
 });

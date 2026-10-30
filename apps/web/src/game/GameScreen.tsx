@@ -44,6 +44,7 @@ import { SibylLook } from "./SibylLook";
 import { memberLabels } from "./memberLabels";
 import { inventoryRows } from "./inventory";
 import { viewParty } from "../view/viewParty";
+import { PartyList } from "./shell/PartyList";
 import { SettingsPanel } from "./shell/SettingsPanel";
 import { describeArea, readVerbose, writeVerbose } from "../data/areaText";
 import { toggleLeft, toggleRight, type LeftSlot, type RightSlot } from "./shell/shellState";
@@ -64,6 +65,7 @@ export default function GameScreen() {
   // Thin shell slots (title bar icons). Inventory shows the party-and-treasure panel until the inventory list replaces it.
   const [leftSlot, setLeftSlot] = useState<LeftSlot>(null);
   const [rightSlot, setRightSlot] = useState<RightSlot>(null);
+  const [testOpen, setTestOpen] = useState(false); // the floating test panel, independent of the slots
   const [managing, setManaging] = useState(false); // the party panel, until the artifact card takes over moving and dropping treasure
   const [selected, setSelected] = useState<Selected | null>(null); // what the card panel shows
   const [verbose, setVerbose] = useState(readVerbose); // story-voice area descriptions (a per-player setting)
@@ -145,7 +147,8 @@ export default function GameScreen() {
 
   // Return to the splash screen, clearing all in-game overlays and the current game binding.
   const goHome = useCallback(() => {
-    clearRoll(); clearNotices(); setSavedCode(null); setShowParty(false); setGameId(null); setStarted(false); setWantTestGame(false);
+    clearRoll(); clearNotices(); setSavedCode(null); setManaging(false); setLeftSlot(null); setRightSlot(null); setSelected(null); setTestOpen(false);
+    setGameId(null); setStarted(false); setWantTestGame(false);
   }, [clearRoll, clearNotices]);
 
   // Save from the HUD (or the Test Mode panel): the state is already authoritative in Convex, so
@@ -277,7 +280,7 @@ export default function GameScreen() {
   // A notable feat (dragon kill, the Sorcerer, the Ruby, the Elixir) gets its own celebration AFTER the
   // result it follows (the hook only offers it once the roll and notices are dismissed).
   const overlay = roll ? (
-    <DiceRoll title={roll.title} lanes={roll.lanes} message={roll.message} tone={roll.tone} onContinue={clearRoll} />
+    <DiceRoll title={roll.title} lanes={roll.lanes} message={roll.message} tone={roll.tone} partyLeft={!!displayState.variants?.combatRevision} onContinue={clearRoll} />
   ) : celebration ? (
     <FeatCelebration view={celebration} cards={cards ?? []} onContinue={clearCelebration} />
   ) : null;
@@ -306,6 +309,16 @@ export default function GameScreen() {
   const sibylLooks = legalActions(displayState).filter((a): a is Extract<GameAction, { type: "examineArea" }> => a.type === "examineArea");
   const itemLive = itemAt && itemAt.mi >= 0 && itemAt.idx >= 0 ? itemAt : null;
 
+  const inventoryPanel = (
+    <InventoryPanel rows={inventoryRows(displayState)} onManage={() => setManaging(true)}
+          selected={selected?.kind === 'item' ? (selected.at ?? null) : null}
+          onSelect={(row) => {
+            const from = viewParty(displayState, cards ?? []).find((v) => v.label === row.carrier);
+            const item = from?.items[row.idx];
+            if (from && item) { setSelected({ kind: 'item', item, from, at: { mi: row.mi, idx: row.idx } }); setRightSlot('card'); }
+          }} />
+  );
+
   return (
     <div className="relative h-screen w-screen">
       <CaveCanvas key={gameId} onReady={(api) => { caveApi.current = api; }} engine={engine} state={displayState} canAct={!presentingRef.current} color={color} code={code ?? undefined} onSave={handleSave} onLog={() => setShowLog(true)}
@@ -318,18 +331,19 @@ export default function GameScreen() {
             setRightSlot((cur) => (card ? (explicit ? 'card' : (cur ?? 'card')) : (cur === 'card' ? null : cur)));
           },
           onSelectMember: (member) => { setSelected({ kind: 'member', member }); setRightSlot('card'); },
-          onSelectArea: (area) => {
+          onSelectArea: (area, file, rot) => {
             const at = displayState.areas.findIndex((pa) => { const c = unpackCoord(pa.coord); return c.level === area.level && c.x === area.col && c.y === area.row; });
-            if (at >= 0) { setSelected({ kind: 'area', index: at, name: area.name }); setRightSlot('card'); }
+            if (at >= 0) { setSelected({ kind: 'area', index: at, name: area.name, file, rot }); setRightSlot('card'); }
           },
         }} />
-      <TitleBar left={fightVisible ? null : leftSlot} right={rightSlot} testMode={!!displayState.testMode} inFight={fightVisible}
-                onLeft={(p) => setLeftSlot((cur) => toggleLeft(cur, p))} onRight={(p) => setRightSlot((cur) => toggleRight(cur, p))} />
-      {displayState.phase === 'pickup' && !holding && rightSlot !== 'settings' && rightSlot !== 'test' && cards && (
+      <TitleBar left={fightVisible ? (leftSlot === 'inventory' ? 'inventory' : 'party') : leftSlot} right={rightSlot} testMode={!!displayState.testMode} testOpen={testOpen} onTest={() => setTestOpen((o) => !o)}
+                // In a fight the list is always showing: Party returns to it, Inventory swaps it out and back.
+                onLeft={(p) => setLeftSlot((cur) => (fightVisible && p === 'party' ? 'party' : toggleLeft(cur, p)))} onRight={(p) => setRightSlot((cur) => toggleRight(cur, p))} />
+      {displayState.phase === 'pickup' && !holding && rightSlot !== 'settings' && cards && (
         <ChamberPickup state={displayState} dispatch={dispatchWithRolls} cards={cards} />
       )}
       {rightSlot === 'card' && selected && displayState.phase !== 'pickup' && (
-        <CardPanel selected={selected} areaText={selected.kind === 'area' ? describeArea(displayState, selected.index, verbose) : undefined} onMember={(member) => setSelected({ kind: 'member', member })}
+        <CardPanel selected={selected} onAward={(award, from) => setSelected({ kind: 'award', award, from })} areaText={selected.kind === 'area' ? describeArea(displayState, selected.index, verbose) : undefined} onMember={(member) => setSelected({ kind: 'member', member })}
                    onItem={(item, from) => setSelected({ kind: 'item', item, from })}
                    actions={selected.kind === 'item' && itemLive ? <ItemActions state={displayState} dispatch={dispatchWithRolls} mi={itemLive.mi} idx={itemLive.idx} />
                    // The Sibyl's free look is reachable only from her own card, and never prompted.
@@ -340,19 +354,16 @@ export default function GameScreen() {
       {rightSlot === 'settings' && <SettingsPanel verbose={verbose} onVerbose={(on) => { setVerbose(on); writeVerbose(on); }} state={displayState} code={code ?? undefined} kitActive={!!displayState.variants?.extensionKit} onSave={handleSave} onLog={() => setShowLog(true)} />}
       <EncounterPanel state={displayState} dispatch={dispatchWithRolls} />
       {fightVisible && cards && <FightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
-      {fightVisible && cards && <RevisedFightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
+      {fightVisible && cards && <RevisedFightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} inventory={leftSlot === 'inventory' ? inventoryPanel : undefined}
+                                                  onMember={(member) => { setSelected({ kind: 'member', member }); setRightSlot('card'); }} />}
       <ExplorePanel state={displayState} dispatch={dispatchWithRolls} />
-      {displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} onSave={handleSave} open={rightSlot === 'test'} />}
+      {displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} onSave={handleSave} open={testOpen} />}
       {displayState.testMode && <DeadEndSwapBadge />}
-      {!fightVisible && leftSlot === 'inventory' && (
-        <InventoryPanel rows={inventoryRows(displayState)} onManage={() => setManaging(true)}
-          selected={selected?.kind === 'item' ? selected.at : null}
-          onSelect={(row) => {
-            const from = viewParty(displayState, cards ?? []).find((v) => v.label === row.carrier);
-            const item = from?.items[row.idx];
-            if (from && item) { setSelected({ kind: 'item', item, from, at: { mi: row.mi, idx: row.idx } }); setRightSlot('card'); }
-          }} />
+      {!fightVisible && leftSlot === 'party' && (
+        <PartyList members={viewParty(displayState, cards ?? [])}
+                   onSelect={(member) => { setSelected({ kind: 'member', member }); setRightSlot('card'); }} />
       )}
+      {!fightVisible && leftSlot === 'inventory' && inventoryPanel}
       {managing && <PartyPanel state={displayState} dispatch={dispatch} onClose={() => setManaging(false)} />}
       {displayState.phase === "trap" && !holding && !overlay && !notices && (
         <TrapChoice traps={displayState.areas[displayState.partyArea]?.contents.filter((c) => c === 300 + HAZARD_TRAP).length || 1} dispatch={(a) => {

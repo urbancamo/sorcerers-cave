@@ -35,7 +35,7 @@ function targetLabel(a: UseArtifact, state: GameState): string {
     case 6: return `revive ${who(a.target!)}`;
     case 9: return `free ${who(a.target!)} from stone`;
     case 4: return `fly ${DIR_NAME[a.dir ?? -1] ?? '?'}`;
-    case 12: return `reveal the secret stair ${a.dir === DIR_DOWN ? 'below' : 'above'}`;
+    case 12: return a.dir === undefined ? 'lull the Dragons' : `reveal the secret stair ${a.dir === DIR_DOWN ? 'below' : 'above'}`;
     case 15: return who(a.target!);
     case 16: return a.target !== undefined ? holyWaterTargetName(state, a.target, who) : 'use';
     // The Sorcerer is only weakened by Lotus Dust (SC-11-12), so his option says what actually happens.

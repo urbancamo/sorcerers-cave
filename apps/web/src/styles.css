@@ -412,8 +412,8 @@
 .scv-tc {
   position: fixed;
   top: 96px;
-  right: 14px;
-  z-index: 50;
+  right: 311px; /* clear of the right-hand panel; drag the header to move it */
+  z-index: 62; /* above the slots (58), the fight dialog (55) and the dice overlay (60) */
   width: min(320px, 90vw);
   max-height: calc(100vh - 116px);
   overflow-y: auto;
@@ -1914,7 +1914,8 @@
 .scv-rev, .scv-rev-retreat { box-sizing: border-box; }
 .scv-rev { overflow-y: auto; }
 .scv-rev > * { flex: none; }
-.scv-rev > .scv-fight-strangers { flex: 1 1 auto; min-height: 160px; overflow-y: auto; overscroll-behavior: contain; }
+.scv-rev > .scv-rev-board { flex: 1 1 auto; min-height: 160px; display: flex; gap: 14px; align-items: stretch; overflow: hidden; }
+.scv-rev-board > .scv-fight-strangers { flex: 1 1 auto; min-width: 0; overflow-y: auto; overscroll-behavior: contain; }
 .scv-fight-hd { font-family: var(--display); font-weight: 700; font-size: 14px; letter-spacing: .14em; text-transform: uppercase; color: var(--cream); }
 .scv-fight-sub, .scv-fight-cap, .scv-fight-hint { font-family: var(--body); font-style: italic; font-size: 13px; color: var(--stone-dim); }
 .scv-fight-banner { font-family: var(--body); font-style: italic; font-size: 13px; padding: 3px 11px; border-radius: 999px; }
@@ -1975,7 +1976,7 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 .scv-rev-matches { display: flex; flex-direction: column; gap: 10px; }
 .scv-rev-match { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .scv-rev-side { display: flex; gap: 10px; align-items: flex-start; }
-.scv-rev-frontline { align-self: flex-start; min-width: 254px; }
+.scv-rev-frontline { align-self: flex-start; flex: none; min-width: 254px; }
 /* The Ghouls' announcement (RevisedFightSurface): a cold, green-lit gloom with drifting mist and a guttering title. Decoration only. */
 .scv-ghouls { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; padding: 16px; overflow: hidden;
   background: radial-gradient(ellipse at 50% 40%, rgba(24,44,30,.92), rgba(4,8,6,.97) 70%); animation: scv-ghouls-in .9s ease-out both; }
@@ -2192,8 +2193,8 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 
 /* ---- thin shell: title bar and right-hand slots (solo game) ---- */
 .scv-titlebar{position:fixed;top:0;left:0;right:0;height:36px;z-index:6;display:flex;align-items:center;
-  justify-content:space-between;padding:0 10px;background:rgba(10,10,14,.82);border-bottom:1px solid var(--line-strong);
-  backdrop-filter:blur(8px);}
+  justify-content:space-between;padding:0 10px;background:rgba(10,10,14,.4);border-bottom:1px solid var(--line-strong);
+  backdrop-filter:blur(3px);}
 .scv-tb-group{display:flex;gap:6px;min-width:92px;}
 .scv-tb-group:last-child{justify-content:flex-end;}
 .scv-tb-title{font-family:var(--display);font-size:13px;letter-spacing:.2em;color:var(--brass-bright);}
@@ -2221,7 +2222,9 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 .scv-cp-blank{aspect-ratio:7/10;display:grid;place-items:center;border:1px dashed var(--line-strong);color:var(--stone-dim);}
 .scv-cp-name{font-family:var(--black);font-size:20px;color:var(--cream);line-height:1.1;}
 .scv-cp-meta{font-size:11px;letter-spacing:.06em;color:var(--stone);}
+.scv-cp-slain{transform:rotate(180deg);} /* the boxed game's upside-down Dragon card */
 .scv-cp-area{aspect-ratio:3/2;display:flex;align-items:center;justify-content:center;border:1px solid var(--gold,#c9a14e);border-radius:6px;background:rgba(0,0,0,.35);font-family:var(--display,serif);color:var(--parchment);}
+.scv-cp-area-img{display:block;width:60%;max-height:260px;object-fit:contain;margin:0 auto 6px;border-radius:6px;box-shadow:0 2px 10px rgba(0,0,0,.5);}
 .scv-settings-opt{display:flex;gap:8px;align-items:center;margin:12px 0;font-size:14px;}
 .scv-cp-text{font-family:var(--body);font-size:14px;line-height:1.4;color:var(--parchment);}
 .scv-cp-minis{display:flex;flex-wrap:wrap;gap:6px;}
@@ -2254,16 +2257,25 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 .scv-pickup-who{display:flex;flex-direction:column;gap:5px;}
 
 /* ---- combat: the party list on the left, the dialog taking the rest of the height ---- */
-.scv-cw-list{list-style:none;display:flex;flex-direction:column;gap:5px;}
-.scv-cw{display:grid;grid-template-columns:1fr auto auto;gap:2px 8px;align-items:center;padding:6px 9px;border-radius:6px;border:1px solid var(--line);
-  color:var(--parchment);cursor:pointer;user-select:none;}
-.scv-cw:hover,.scv-cw:focus-visible{border-color:var(--brass);outline:none;}
-.scv-cw.sel{background:rgba(201,161,78,.18);border-color:var(--brass-bright);}
-.scv-cw.dim{opacity:.55;}
-.scv-cw-name{font-size:13px;}
-.scv-cw-fs{font:700 14px var(--display);color:var(--cream);}
-.scv-cw-mp{color:var(--arcane,#5f8f8a);}
-.scv-cw-gear,.scv-cw-cap{grid-column:1 / -1;font-size:10.5px;color:var(--stone-dim);}
+.scv-partylist .mbr.pick{cursor:pointer;}
+.scv-partylist .mbr.pick:hover,.scv-partylist .mbr.pick:focus-visible{background:rgba(201,161,78,.08);outline:none;}
+.scv-partylist .mbr.sel{background:rgba(201,161,78,.18);box-shadow:inset 3px 0 0 var(--brass-bright);}
+.scv-partylist .mbr.dim{opacity:.55;}
+.scv-pl-fs{margin-left:auto;font:700 13px var(--display);color:var(--cream);white-space:nowrap;}
+.scv-pl-cap{font-size:10.5px;color:var(--stone-dim);margin-top:2px;}
 .scv-fight.scv-rev{left:14px;right:14px;top:48px;bottom:14px;transform:none;width:auto;max-width:none;max-height:none;}
 .scv-slot{z-index:58;}
-.scv-fight.scv-rev.with-list{left:262px;}
+.scv-fight.scv-rev.with-list{left:309px;} /* the party panel is 283px wide from 14px, plus a gap */
+/* An open right-hand panel (card, settings, test) is 283px wide from 14px; the dialog ends left of it. */
+body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
+/* Revised fights put the party on the left, beside the party panel, and the strangers on the right; the fronts stay next to the "vs". */
+.scv-rev .scv-match,.scv-rev .scv-match-line{flex-direction:row-reverse;}
+/* The panels either side narrow the dialog, so a match stays on one row (party | vs | strangers) and the board scrolls sideways
+   rather than the party's side dropping underneath. Slots shrink to fit one card and grow with more. */
+.scv-rev .scv-match,.scv-rev .scv-match-line{flex-wrap:nowrap;}
+.scv-rev .scv-match{gap:10px;}
+.scv-rev .scv-match-line{gap:8px;}
+.scv-rev .scv-match-front{min-width:150px;}
+.scv-rev .scv-match-bg{min-width:90px;}
+.scv-rev .scv-rev-frontline{min-width:200px;}
+.scv-rev-board > .scv-fight-strangers{overflow-x:auto;}
