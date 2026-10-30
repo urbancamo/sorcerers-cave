@@ -2189,3 +2189,30 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
     100% { opacity: 0; }
   }
 }
+
+/* ---- thin shell: title bar and right-hand slots (solo game) ---- */
+.scv-titlebar{position:fixed;top:0;left:0;right:0;height:36px;z-index:6;display:flex;align-items:center;
+  justify-content:space-between;padding:0 10px;background:rgba(10,10,14,.82);border-bottom:1px solid var(--line-strong);
+  backdrop-filter:blur(8px);}
+.scv-tb-group{display:flex;gap:6px;min-width:92px;}
+.scv-tb-group:last-child{justify-content:flex-end;}
+.scv-tb-title{font-family:var(--display);font-size:13px;letter-spacing:.2em;color:var(--brass-bright);}
+.scv-tb-btn{width:28px;height:28px;display:grid;place-items:center;border-radius:6px;border:1px solid var(--line);
+  background:transparent;color:var(--stone);cursor:pointer;}
+.scv-tb-btn:hover{border-color:var(--brass);color:var(--parchment);}
+.scv-tb-btn.on{background:rgba(201,161,78,.16);border-color:var(--brass);color:var(--brass-bright);}
+.scv-tb-btn:focus-visible{outline:2px solid var(--brass-bright);outline-offset:1px;}
+.scv-ic{width:17px;height:17px;}
+.scv-ic-t{font:700 14px var(--display);line-height:17px;text-align:center;}
+.scv-slot{position:fixed;top:48px;z-index:6;width:283px;max-height:calc(100dvh - 130px);overflow-y:auto;
+  background:linear-gradient(180deg,rgba(21,21,27,.9),rgba(13,13,17,.9));border:1px solid var(--line-strong);
+  border-radius:11px;padding:12px 14px;backdrop-filter:blur(8px);box-shadow:0 18px 40px -22px rgba(0,0,0,.85);}
+.scv-slot-right{right:14px;}
+.scv-slot-hd{font:700 11px var(--display);letter-spacing:.16em;text-transform:uppercase;color:var(--brass);margin-bottom:10px;}
+.scv-kv{display:flex;flex-direction:column;gap:6px;margin-bottom:12px;}
+.scv-kv > div{display:flex;justify-content:space-between;font-size:12px;color:var(--stone);}
+.scv-kv dd{color:var(--parchment);font-weight:600;}
+.scv-settings-actions{display:flex;flex-direction:column;gap:6px;}
+.scv-settings-actions button{text-align:left;padding:7px 10px;border-radius:6px;border:1px solid var(--line);
+  background:transparent;color:var(--parchment);font-size:12px;cursor:pointer;}
+.scv-settings-actions button:hover{border-color:var(--brass);}

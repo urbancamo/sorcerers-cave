@@ -35,6 +35,9 @@ import { MultiplayerLobby } from "./MultiplayerLobby";
 import { ReplayView, type ReplayBundle } from "./ReplayView";
 import { getTestSecret } from "./testMode";
 import { TestControlsPanel } from "./TestControlsPanel";
+import { TitleBar } from "./shell/TitleBar";
+import { SettingsPanel } from "./shell/SettingsPanel";
+import { toggleLeft, toggleRight, type LeftSlot, type RightSlot } from "./shell/shellState";
 
 export default function GameScreen() {
   const { isAuthenticated, isLoading } = useConvexAuth();
@@ -49,7 +52,9 @@ export default function GameScreen() {
   const [wantTestGame, setWantTestGame] = useState(false); // Test Mode: PartySelect confirms into startTestGame instead
   const testSecret = getTestSecret();
   const [started, setStarted] = useState(false); // dismissed the splash
-  const [showParty, setShowParty] = useState(false); // expanded party panel
+  // Thin shell slots (title bar icons). Inventory shows the party-and-treasure panel until the inventory list replaces it.
+  const [leftSlot, setLeftSlot] = useState<LeftSlot>(null);
+  const [rightSlot, setRightSlot] = useState<RightSlot>(null);
   // Shows the save/restore code modal when set. `restored` distinguishes a plain save (dismiss ⇒
   // back to menu) from a just-forked Test Mode scenario (dismiss ⇒ keep playing the new game).
   const [savedCode, setSavedCode] = useState<{ code: string; restored: boolean } | null>(null);
@@ -284,14 +289,19 @@ export default function GameScreen() {
 
   return (
     <div className="relative h-screen w-screen">
-      <CaveCanvas key={gameId} onReady={(api) => { caveApi.current = api; }} engine={engine} state={displayState} canAct={!presentingRef.current} color={color} code={code ?? undefined} onPartyClick={() => setShowParty(true)} onSave={handleSave} onLog={() => setShowLog(true)} />
+      <CaveCanvas key={gameId} onReady={(api) => { caveApi.current = api; }} engine={engine} state={displayState} canAct={!presentingRef.current} color={color} code={code ?? undefined} onSave={handleSave} onLog={() => setShowLog(true)}
+        // A card on the floor opens the card panel unless Settings or the test panel holds the slot; no card closes it again.
+        shell={{ left: leftSlot, right: rightSlot, onCardShown: (shown) => setRightSlot((cur) => (shown ? (cur ?? 'card') : (cur === 'card' ? null : cur))) }} />
+      <TitleBar left={leftSlot} right={rightSlot} testMode={!!displayState.testMode}
+                onLeft={(p) => setLeftSlot((cur) => toggleLeft(cur, p))} onRight={(p) => setRightSlot((cur) => toggleRight(cur, p))} />
+      {rightSlot === 'settings' && <SettingsPanel state={displayState} code={code ?? undefined} kitActive={!!displayState.variants?.extensionKit} onSave={handleSave} onLog={() => setShowLog(true)} />}
       <EncounterPanel state={displayState} dispatch={dispatchWithRolls} />
       {fightVisible && cards && <FightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
       {fightVisible && cards && <RevisedFightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
       <ExplorePanel state={displayState} dispatch={dispatchWithRolls} sibylTools={{ pick: pickDestination, peek: (a) => caveApi.current?.peekTile(a) }} />
-      {displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} onSave={handleSave} />}
+      {displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} onSave={handleSave} open={rightSlot === 'test'} />}
       {displayState.testMode && <DeadEndSwapBadge />}
-      {showParty && <PartyPanel state={displayState} dispatch={dispatch} onClose={() => setShowParty(false)} />}
+      {leftSlot === 'inventory' && <PartyPanel state={displayState} dispatch={dispatch} onClose={() => setLeftSlot(null)} />}
       {displayState.phase === "trap" && !holding && !overlay && !notices && (
         <TrapChoice traps={displayState.areas[displayState.partyArea]?.contents.filter((c) => c === 300 + HAZARD_TRAP).length || 1} dispatch={(a) => {
           // A deliberate fall drops the party a level outside doMove's animation, so home the camera on the

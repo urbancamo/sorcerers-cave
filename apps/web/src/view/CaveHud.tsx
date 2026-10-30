@@ -11,23 +11,24 @@ import "./cave.css";
 /** The curses actually in force: slaying the Sorcerer lifts them all (engine `activeCurses`), so the chip must not show the raw counter. */
 export const cursesInForce = (state: GameState): number => activeCurses(state);
 
-export function CaveHud({ mountRef, onPartyClick, onSave, onLog, code, turnLabel, turnColor, curses, kitActive, testMode }: { mountRef: RefObject<HTMLDivElement | null>; onPartyClick?: () => void; onSave?: () => void; onLog?: () => void; code?: string; turnLabel?: string; turnColor?: string; curses?: number; kitActive?: boolean; testMode?: boolean }) {
+export function CaveHud({ mountRef, onPartyClick, onSave, onLog, code, turnLabel, turnColor, curses, kitActive, testMode, shell, leftSlot, rightSlot }: { mountRef: RefObject<HTMLDivElement | null>; onPartyClick?: () => void; onSave?: () => void; onLog?: () => void; code?: string; turnLabel?: string; turnColor?: string; curses?: number; kitActive?: boolean; testMode?: boolean; shell?: boolean; leftSlot?: string | null; rightSlot?: string | null }) {
   return (
     <>
       <div id="bg"></div>
       <div id="app">
         <div id="scene" ref={mountRef}></div>
 
-        <div id="hud">
-          <div className="brand">
+        <div id="hud" className={shell ? "shell" : undefined} data-left={leftSlot ?? undefined} data-right={rightSlot ?? undefined}>
+          {!shell && <div className="brand">
             <div className="title">The Sorcerer's Cave</div>
             <div className="mode">
               <span className="pulse"></span>
               <span id="modelabel">Free orbit</span>
             </div>
-          </div>
+          </div>}
 
           <div className="stats">
+            {!shell && <>
             {code && (
               <div className="chip scv-codechip" title="Your game code — note it down to resume this game at any time">
                 <span className="k">Code</span>
@@ -81,6 +82,8 @@ export function CaveHud({ mountRef, onPartyClick, onSave, onLog, code, turnLabel
               </span>
             </div>
 
+            </>}
+
             <div className="compass hidden" title="Camera orientation">
               <div className="rose" id="rose">
                 <span className="n">N</span>
@@ -92,7 +95,7 @@ export function CaveHud({ mountRef, onPartyClick, onSave, onLog, code, turnLabel
             </div>
           </div>
 
-          <div className="hint">
+          {!shell && <div className="hint">
             <div className="row">
               <span className="mk">Doorway</span> Click to explore
             </div>
@@ -105,7 +108,7 @@ export function CaveHud({ mountRef, onPartyClick, onSave, onLog, code, turnLabel
             <div className="row">
               <span className="mk">Drag · Scroll</span> Orbit · zoom
             </div>
-          </div>
+          </div>}
 
           <div
             className={"roster" + (onPartyClick ? " clickable" : "")}

@@ -802,6 +802,7 @@ function flashMarker(dir,bad){ const m=exitMarkers.find(x=>x.userData.move===dir
    selection / inspect + card panel
    ============================================================ */
 let cardPanel, cardImg, emptyBox;
+let onCardShown = null; // set by boot: tells the React shell when a card appears or clears
 function showCard(card,where){
   cardPanel.classList.remove('empty');cardImg.style.display='block';emptyBox.style.display='none';
   cardImg.src=card.file;
@@ -813,8 +814,9 @@ function showCard(card,where){
     '<span class="d" style="background:'+col+';box-shadow:0 0 7px '+col+'"></span>'+
     '<span id="cardtaglabel">'+card.category+'</span></span>';
   cardPanel.classList.add('show');
+  onCardShown?.(true);
 }
-function hideCard(){ cardPanel.classList.remove('show'); } // nothing on the floor → no card at all
+function hideCard(){ cardPanel.classList.remove('show'); onCardShown?.(false); } // nothing on the floor → no card at all
 function areaPanel(area){
   // Highlight the selected tile and show the focused card; the text readout panel was removed as clutter.
   selectRing.position.copy(worldPos(area));selectRing.position.y+=0.02;selectRing.visible=true;
@@ -828,7 +830,8 @@ function hexA(hex,a){const n=parseInt(hex.replace('#',''),16);return 'rgba('+((n
 /* ============================================================
    HUD
    ============================================================ */
-function setMode(mode,label){document.getElementById('modelabel').textContent=label;
+function setMode(mode,label){const ml=document.getElementById('modelabel'); if(ml) ml.textContent=label; // absent in the thin-shell HUD
+ 
   document.getElementById('orbitBtn').classList.toggle('active',mode==='orbit');
   document.querySelector('.compass')?.classList.toggle('hidden',mode!=='orbit'); // compass: free-orbit only
   [...document.querySelectorAll('.lvlbtn')].forEach(b=>b.classList.toggle('active',mode==='level'&&+b.dataset.lvl===activeLevel));}
@@ -869,19 +872,19 @@ function updateHUD(){
   // delayed timer (e.g. the roster animation) fires after this renderer's DOM is gone. Bail out
   // rather than throw — a thrown error here used to abort doMove's chain and strand `busy=true`,
   // which then blocked all movement in the next game.
-  const depth=document.getElementById('st-depth');
-  if(!depth) return;
+  // The stat chips are absent in the thin-shell HUD (Settings shows them from React), so key off the HUD itself.
+  if(!document.getElementById('hud')) return;
   const s=engine.state();
-  depth.textContent='Level '+s.level;
+  const depth=document.getElementById('st-depth'); if(depth) depth.textContent='Level '+s.level;
   const turn=document.getElementById('st-turn'); if(turn) turn.textContent=s.turn;
   const party=document.getElementById('st-party'); if(party) party.textContent=PARTY.length;
-  const tilesEl=document.getElementById('st-tiles'); if(!tilesEl) return;
-  tilesEl.textContent=s.deckLeft+' / '+s.deckTotal;
+  const tilesEl=document.getElementById('st-tiles');
+  if(tilesEl) tilesEl.textContent=s.deckLeft+' / '+s.deckTotal;
   const low=s.deckLeft<10; // running out of area cards to explore
-  tilesEl.classList.toggle('danger',low);
+  if(tilesEl) tilesEl.classList.toggle('danger',low);
   if(low){ if(!deckWarned){ showToast('Only <b>'+s.deckLeft+'</b> tile cards left!'); deckWarned=true; } }
   else deckWarned=false;}
-function renderRoster(){const b=document.getElementById('rosterBody');b.innerHTML='';
+function renderRoster(){const b=document.getElementById('rosterBody'); if(!b) return; b.innerHTML='';
   PARTY.forEach(m=>{const row=document.createElement('div');row.className='mbr'+(m.lead?' lead':'')+(m.petrified?' petrified':'');
     const carry=m.carry||0, load=m.load||0, free=Math.max(0,carry-load);
     const pct=carry>0?Math.min(100,Math.round((load/carry)*100)):0;
@@ -1146,7 +1149,8 @@ function onResize(){
   if(lastSnapArea && orbitBtn && !orbitBtn.classList.contains('active')) frameSnap(lastSnapArea);
 }
 
-export async function boot({ mount, engine: eng, tiles: tileMap, deadEnd, party: partyArr, tileAR, partyColor, onQuit, multiplayer }){
+export async function boot({ mount, engine: eng, tiles: tileMap, deadEnd, party: partyArr, tileAR, partyColor, onQuit, multiplayer, onCardShown: cardShownCb }){
+  onCardShown=cardShownCb||null;
   engine=eng; startLevel=eng.startLevel; tiles=tileMap; deadEndArt=deadEnd||(()=>null); PARTY=partyArr; TILE_D=TILE_W/tileAR; partyColorHex=partyColor; isMultiplayer=!!multiplayer;
 
   /* ---- renderer / scene / camera ---- */

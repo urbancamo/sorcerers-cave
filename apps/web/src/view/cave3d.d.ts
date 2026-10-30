@@ -32,6 +32,7 @@ export interface BootOptions {
   tileAR: number;
   partyColor?: string; // marker colour (hex)
   multiplayer?: boolean; // tints per-party markers (e.g. secret doors) with partyColor when true
+  onCardShown?: (shown: boolean) => void; // the thin-shell card panel opens when a card is shown and clears when none is
   onQuit?: () => void; // when set, the HUD "Quit" delegates here instead of the built-in confirm (multiplayer)
 }
 export function boot(opts: BootOptions): Promise<{

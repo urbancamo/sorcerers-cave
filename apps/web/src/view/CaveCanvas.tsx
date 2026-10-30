@@ -30,7 +30,7 @@ export interface OtherPartyToken {
   subLocation?: { at: 'doorway' | 'centre' | 'island'; dir?: 'N' | 'E' | 'S' | 'W' };
 }
 
-export function CaveCanvas({ engine, state, canAct, color, onPartyClick, onSave, onLog, onQuit, code, otherParties, onReady, multiplayer, turnLabel, turnColor }: { engine: CaveEngine; state: GameState; canAct?: boolean; color: PartyColor; onPartyClick?: () => void; onSave?: () => void; onLog?: () => void; onQuit?: () => void; code?: string; otherParties?: OtherPartyToken[]; onReady?: (api: CaveApi) => void; multiplayer?: boolean; turnLabel?: string; turnColor?: string }) {
+export function CaveCanvas({ engine, state, canAct, color, onPartyClick, onSave, onLog, onQuit, code, otherParties, onReady, multiplayer, turnLabel, turnColor, shell }: { engine: CaveEngine; state: GameState; canAct?: boolean; color: PartyColor; onPartyClick?: () => void; onSave?: () => void; onLog?: () => void; onQuit?: () => void; code?: string; otherParties?: OtherPartyToken[]; onReady?: (api: CaveApi) => void; multiplayer?: boolean; turnLabel?: string; turnColor?: string; shell?: { left: string | null; right: string | null; onCardShown: (shown: boolean) => void } }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const ctrl = useRef<{ dispose(): void; refresh(canAct?: boolean): void; setParty(p: ReturnType<typeof viewParty>): void; setPicker?: CaveApi["setPicker"]; snapOnArrival?: CaveApi["snapOnArrival"]; peekTile?: CaveApi["peekTile"]; setOtherParties?: (list: OtherPartyToken[]) => void; focusArea?: (a: { col: number; row: number; level: number }) => void; frameArea?: (a: { col: number; row: number; level: number }, instant?: boolean) => void } | null>(null);
   const cardsRef = useRef<CardArt[]>([]); // small-card art for resolving carried items in the roster
@@ -40,6 +40,8 @@ export function CaveCanvas({ engine, state, canAct, color, onPartyClick, onSave,
   otherRef.current = otherParties ?? [];
   const onQuitRef = useRef(onQuit);
   onQuitRef.current = onQuit;
+  const cardShownRef = useRef(shell?.onCardShown);
+  cardShownRef.current = shell?.onCardShown;
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -58,6 +60,7 @@ export function CaveCanvas({ engine, state, canAct, color, onPartyClick, onSave,
         tileAR: TILE_AR,
         partyColor: partyColorHex(colorRef.current),
         multiplayer,
+        onCardShown: (shown) => cardShownRef.current?.(shown),
         onQuit: onQuitRef.current ? () => onQuitRef.current?.() : undefined,
       });
       ctrl.current?.setOtherParties?.(otherRef.current); // apply any pins known at boot
@@ -89,5 +92,5 @@ export function CaveCanvas({ engine, state, canAct, color, onPartyClick, onSave,
     ctrl.current?.setOtherParties?.(otherParties ?? []);
   }, [otherParties]);
 
-  return <CaveHud mountRef={mountRef} onPartyClick={onPartyClick} onSave={onSave} onLog={onLog} code={code} turnLabel={turnLabel} turnColor={turnColor} curses={cursesInForce(state)} kitActive={!!state.variants?.extensionKit} testMode={!!state.testMode} />;
+  return <CaveHud mountRef={mountRef} onPartyClick={onPartyClick} onSave={onSave} onLog={onLog} code={code} turnLabel={turnLabel} turnColor={turnColor} curses={cursesInForce(state)} kitActive={!!state.variants?.extensionKit} testMode={!!state.testMode} shell={!!shell} leftSlot={shell?.left} rightSlot={shell?.right} />;
 }

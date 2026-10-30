@@ -77,3 +77,21 @@ Task definition: [requirements.md, "Task 1 - Requirements Review"](requirements.
 - **Open:** Peter's "Agree." after the gray/yellow/green reading may answer the whole item rather than that question, so the
   yellow meaning is still worth one more confirmation. The area text needs the game to remember withdrawn and visited
   chambers, which has not been checked.
+
+## Task 1 (implementation) - Shell and panel state
+
+Plan: `/Users/msw/.claude/plans/snug-booping-taco.md`, task 1. Requirements: ["Minimise interface clutter"](requirements.md#minimise-interface-clutter).
+
+### 2026-10-30 - Title bar, slots and Settings
+
+- **Done:** new `apps/web/src/game/shell/` (`shellState.ts` slot rules, `TitleBar.tsx`, `SettingsPanel.tsx`) with tests. `CaveHud`
+  gets a `shell` mode that drops the brand, stat chips and bottom-left help panel; the dock is unchanged and the compass stays.
+  `GameScreen` owns the left and right slots. `TestControlsPanel` takes an `open` prop driven by the T icon.
+  `cave3d.js` tolerates the missing chips and title, and reports card show/hide through a new `onCardShown` callback.
+- **Thinking:** `CaveCanvas` is shared with the multiplayer, spectate and replay views, which keep the legacy HUD, so the shell is a
+  prop used by the solo game only. Two things are deliberate stop-gaps for later tasks: the Party icon shows the existing roster
+  and the Inventory icon opens the existing party panel (task 3 replaces both); the Card icon shows the existing card (task 2
+  replaces it). A card on the floor opens the card panel by itself, unless Settings or the test panel holds the slot.
+- **Outcome:** typecheck clean; web tests 886 pass. `manual.html` updated (HUD section, controls, footer date).
+- **Not yet done:** no browser check of the real game (needs the Convex backend and login); the deck chip's red low-deck highlight is gone
+  (the low-deck toast still fires); Quit is only on the dock.

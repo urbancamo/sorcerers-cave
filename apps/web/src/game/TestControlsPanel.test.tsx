@@ -358,3 +358,15 @@ describe("TestControlsPanel — the Sibyl (SC-SIB-1)", () => {
     expect(creatureNames(kitOnState())).not.toContain("Sibyl"); // the kit alone does not bring her
   });
 });
+
+describe("TestControlsPanel — open prop (title-bar T icon)", () => {
+  it("renders nothing while the T icon has it closed", () => {
+    render(<TestControlsPanel state={testState()} dispatch={vi.fn()} open={false} />);
+    expect(screen.queryByTestId("test-controls")).toBeNull();
+  });
+
+  it("renders when open", () => {
+    render(<TestControlsPanel state={testState()} dispatch={vi.fn()} open />);
+    expect(screen.getByTestId("test-controls")).toBeInTheDocument();
+  });
+});
