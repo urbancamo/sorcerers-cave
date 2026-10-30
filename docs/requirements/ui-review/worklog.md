@@ -214,3 +214,22 @@ Plan task 7. Requirements: the "Card View for any card" section of [requirements
 - **Outcome:** engine 1379 and web 922 tests pass, typecheck clean; manual updated.
 - **Open:** the landscape "mini" is a labelled frame, not the tile art; no browser check of the real game yet. Per-player storage is
   per device, not per account.
+
+## Task 8 - Clean-up and docs
+
+Plan task 8.
+
+### 2026-10-30 - What was removed, what stays and why
+
+- **Checked for dead code:** every component under `game/` and `game/shell/` is imported somewhere except `MoveList.tsx`, which has been
+  unused since it was added (`66a1da0`, before this work). I left it alone; delete it separately if you want it gone.
+- **Kept on purpose:**
+  - The legacy HUD pieces (`.brand`, `.stats`, `.cardpanel`, `.roster`, `.hint` and the `st-*` ids) still serve multiplayer, spectate and
+    replay through `CaveCanvas` without `shell`, so their CSS is live.
+  - `FightSurface`, `FightHand` and `fightPlan.ts` serve multiplayer and solo games without the revised-combat variant.
+  - `PartyPanel` is still opened by *Move or drop treasure...* on an item card. Replacing it means a give/drop picker on the card for
+    several items at once, which no mockup scene shows.
+- **Docs:** `manual.html` was updated in every task and its footer reads 2026-10-30. The manual-sync rule in `CLAUDE.md` is unchanged,
+  because the manual is still hand-written.
+- **Still open:** Peter's confirmation of the yellow state; blocking dice and notices; removing the legacy fight surface once revised
+  combat is the only solo mode; no browser check of the real game.
