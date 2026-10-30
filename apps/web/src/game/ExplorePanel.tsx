@@ -2,7 +2,6 @@ import { legalActions, decodeArea, SPECIAL_VIPER_PIT, type GameState, type GameA
 import { memberLabel } from "./memberLabels";
 import { ConfirmButton, ConfirmPicker } from "./ConfirmButton";
 import { uncarryableNotes } from "./uncarryableNotes";
-import { SibylLook } from "./SibylLook";
 
 // Extension kit blocking-confirm popups (design Part 2 — Trap-fall pattern), verbatim per story.
 const CHASM_CONFIRM = "Descend? You cannot return this way.";
@@ -16,7 +15,7 @@ const JUMP_ISLAND_CONFIRM_POOL = "Swim for the island? Anyone but a Giant leaves
 
 /** The explore-phase action menu: the tile's own actions (the extension kit's escape-hatches, guardians, the Sibyl, the Apprentice).
  *  Using an artifact (and opening the Chest) is not here: it lives on that item's card, so nothing suggests when to use one. */
-export function ExplorePanel({ state, dispatch, sibylTools }: { state: GameState; dispatch: (a: GameAction) => void; sibylTools?: React.ComponentProps<typeof SibylLook>["tools"] }) {
+export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: (a: GameAction) => void }) {
   if (state.phase !== "explore") return null;
   const all = legalActions(state);
   // A permanently-indifferent chamber is traversed in explore, but the party may still attack its guards.
@@ -35,11 +34,10 @@ export function ExplorePanel({ state, dispatch, sibylTools }: { state: GameState
   // sitting at the party's current sub-location — no risk, so a plain button like `attack` rather
   // than a `jumpToIsland`-style blocking confirm.
   const reclaimTreasure = all.find((a): a is Extract<GameAction, { type: "reclaimTreasure" }> => a.type === "reclaimTreasure") ?? null;
-  // The Sibyl's free look (SC-SIB-8): the pack top and every face-down tile, offered while she travels with us.
+  // (The Sibyl's free look is on her own card, not here.)
   // The turncoat Apprentice (revised combat, Peter's Special Fights 6): the Sorcerer is dead and she is still an ally. Leaving parts company
   // with her; staying turns her, and every stranger here, on the party.
   const stay = all.find((a) => a.type === "stay") ?? null;
-  const sibylLooks = all.filter((a): a is Extract<GameAction, { type: "examineArea" }> => a.type === "examineArea");
   const hasKitActions = !!descendChasm || !!drawFromWell || !!enterCrypt || pullBellRope.length > 0 || !!jumpToIsland;
   // Uncarryable treasure parked on this tile (design 2026-07-28): pickup auto-skips when nothing
   // can be taken, so the standing explanation lives here while the party remains in the chamber.
@@ -48,7 +46,7 @@ export function ExplorePanel({ state, dispatch, sibylTools }: { state: GameState
     state,
     state.areas[state.partyArea]!.contents.filter((c) => c >= 200 && c < 300).map((c) => c - 200),
   );
-  if (!attack && !hasKitActions && !reclaimTreasure && notes.length === 0 && sibylLooks.length === 0 && !stay) return null;
+  if (!attack && !hasKitActions && !reclaimTreasure && notes.length === 0 && !stay) return null;
 
   return (
     <div className="scv-enc" data-testid="explore-panel">
@@ -76,8 +74,6 @@ export function ExplorePanel({ state, dispatch, sibylTools }: { state: GameState
           <button className="scv-enc-btn" onClick={() => dispatch(reclaimTreasure)}>Reclaim the sunk treasure</button>
         </div>
       )}
-
-      {sibylLooks.length > 0 && <SibylLook state={state} actions={sibylLooks} dispatch={dispatch} tools={sibylTools} />}
 
       {/* Extension kit: the Bell Rope's member picker + confirm (design US-03). */}
       {pullBellRope.length > 0 && (

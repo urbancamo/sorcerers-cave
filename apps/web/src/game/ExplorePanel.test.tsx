@@ -131,13 +131,12 @@ describe("ExplorePanel", () => {
 });
 
 describe("ExplorePanel — the Sibyl's look (SC-SIB-8)", () => {
-  it("shows the look when she travels with the party, and nothing when she does not", () => {
+  it("no longer offers the look here: it is on her card", () => {
     const s = newGame(1, [0], { sibyl: true });
     s.largePack = [31]; s.largeIdx = 0;
-    const { rerender } = render(<ExplorePanel state={s} dispatch={() => {}} />);
-    expect(screen.queryByTestId("explore-panel")).toBeNull(); // no Sibyl yet
-    rerender(<ExplorePanel state={{ ...s, hasSibyl: true }} dispatch={() => {}} />);
-    expect(screen.getByRole("button", { name: /top of the pack/i })).toBeInTheDocument();
+    render(<ExplorePanel state={{ ...s, hasSibyl: true }} dispatch={() => {}} />);
+    expect(screen.queryByRole("button", { name: /top of the pack/i })).toBeNull();
+    expect(screen.queryByTestId("explore-panel")).toBeNull();
   });
 
   it("offers a confirmed 'Stay' while the Apprentice is on watch after the Sorcerer's death (revised combat), and dispatches stay", () => {

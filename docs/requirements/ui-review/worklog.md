@@ -179,3 +179,18 @@ Plan task 5. Requirements: ["Replace combat interface"](requirements.md#replace-
     `combatRevision` variant (server env `REVISED_COMBAT_ENABLED`, and older saves) use it. Removing it needs a decision to make
     revised combat the only solo mode.
   - `FightHand` stays for the PvP and legacy surfaces. No browser check yet.
+
+## Task 6 - Blocking popups and overlays
+
+Plan task 6. Requirements: the blocking-popup rule in ["Review Questions and Answers", topic 6](requirements.md).
+
+### 2026-10-30 - Sibyl's look moves to her card; popups checked
+
+- **Done:** the Sibyl's free look (top of the pack, a face-down tile) is no longer in the explore panel. It appears under her own
+  card, reached from the Party list, and is never prompted (`GameScreen` passes `SibylLook` to the card panel as that card's
+  actions). `ExplorePanel` lost its `sibylTools` prop.
+- **Checked, unchanged:** the trap choice, game over and the Sorcerer's terms are blocking, as the rule says. The dice roll and the
+  outcome notice are still modal overlays with a Continue button, not the non-blocking ones the review assumed (topic 6).
+- **Outcome:** typecheck clean; web tests 917 pass; `manual.html` says where the Sibyl's look now is.
+- **Open:** whether dice and notices should become non-blocking is a separate change, since the game waits on them to present
+  the result in order (`useDispatchWithRolls`); it needs Peter's view before it is touched.

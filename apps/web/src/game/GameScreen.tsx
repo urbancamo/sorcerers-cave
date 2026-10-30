@@ -3,7 +3,7 @@ import { useConvex, useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { api } from "../../convex/_generated/api";
-import { GS_PLAYING, HAZARD_TRAP, unpackCoord, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
+import { GS_PLAYING, HAZARD_TRAP, legalActions, unpackCoord, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
 import { useCaveGame } from "./useCaveGame";
 import { CaveCanvas, type CaveApi } from "../view/CaveCanvas";
 import { SplashScreen } from "./SplashScreen";
@@ -40,6 +40,7 @@ import { CardPanel, type Selected } from "./shell/CardPanel";
 import { InventoryPanel } from "./shell/InventoryPanel";
 import { ItemActions } from "./shell/ItemActions";
 import { ChamberPickup } from "./shell/ChamberPickup";
+import { SibylLook } from "./SibylLook";
 import { memberLabels } from "./memberLabels";
 import { inventoryRows } from "./inventory";
 import { viewParty } from "../view/viewParty";
@@ -300,6 +301,7 @@ export default function GameScreen() {
   const itemAt = selected?.kind === 'item'
     ? (selected.at ?? { mi: memberLabels(displayState.party).indexOf(selected.from.label), idx: selected.from.items.indexOf(selected.item) })
     : null;
+  const sibylLooks = legalActions(displayState).filter((a): a is Extract<GameAction, { type: "examineArea" }> => a.type === "examineArea");
   const itemLive = itemAt && itemAt.mi >= 0 && itemAt.idx >= 0 ? itemAt : null;
 
   return (
@@ -323,13 +325,17 @@ export default function GameScreen() {
       {rightSlot === 'card' && selected && displayState.phase !== 'pickup' && (
         <CardPanel selected={selected} onMember={(member) => setSelected({ kind: 'member', member })}
                    onItem={(item, from) => setSelected({ kind: 'item', item, from })}
-                   actions={selected.kind === 'item' && itemLive ? <ItemActions state={displayState} dispatch={dispatchWithRolls} mi={itemLive.mi} idx={itemLive.idx} /> : undefined} />
+                   actions={selected.kind === 'item' && itemLive ? <ItemActions state={displayState} dispatch={dispatchWithRolls} mi={itemLive.mi} idx={itemLive.idx} />
+                   // The Sibyl's free look is reachable only from her own card, and never prompted.
+                   : selected.kind === 'member' && selected.member.sibyl && sibylLooks.length > 0
+                     ? <SibylLook state={displayState} actions={sibylLooks} dispatch={dispatchWithRolls} tools={{ pick: pickDestination, peek: (a) => caveApi.current?.peekTile(a) }} />
+                     : undefined} />
       )}
       {rightSlot === 'settings' && <SettingsPanel state={displayState} code={code ?? undefined} kitActive={!!displayState.variants?.extensionKit} onSave={handleSave} onLog={() => setShowLog(true)} />}
       <EncounterPanel state={displayState} dispatch={dispatchWithRolls} />
       {fightVisible && cards && <FightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
       {fightVisible && cards && <RevisedFightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
-      <ExplorePanel state={displayState} dispatch={dispatchWithRolls} sibylTools={{ pick: pickDestination, peek: (a) => caveApi.current?.peekTile(a) }} />
+      <ExplorePanel state={displayState} dispatch={dispatchWithRolls} />
       {displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} onSave={handleSave} open={rightSlot === 'test'} />}
       {displayState.testMode && <DeadEndSwapBadge />}
       {!fightVisible && leftSlot === 'inventory' && (
