@@ -239,7 +239,7 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
               <div className="scv-match-line">
                 <div className="scv-match-bg">
                   <span className="scv-match-slotlbl">✦ behind</span>
-                  {m.sb.length ? m.sb.map((s) => strangerCard(s)) : <span className="scv-match-hint">magic user</span>}
+                  {m.sb.map((s) => strangerCard(s))}
                 </div>
                 <div className="scv-match-front">{leaderFirst(m.sf).reverse().map((s) => strangerCard(s))}</div>
               </div>
@@ -284,7 +284,6 @@ export function RevisedFightSurface({ state, dispatch, cards }: { state: GameSta
                 <div className="scv-match-line">
                   <div className="scv-match-bg">
                     <span className="scv-match-slotlbl">✦ behind</span>
-                    <span className="scv-match-hint">magic user</span>
                   </div>
                   <div className="scv-match-front">
                     {strangerCard(s, {
