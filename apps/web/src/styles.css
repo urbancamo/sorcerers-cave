@@ -2216,3 +2216,16 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 .scv-settings-actions button{text-align:left;padding:7px 10px;border-radius:6px;border:1px solid var(--line);
   background:transparent;color:var(--parchment);font-size:12px;cursor:pointer;}
 .scv-settings-actions button:hover{border-color:var(--brass);}
+.scv-cardpanel{display:flex;flex-direction:column;gap:8px;}
+.scv-cp-face{width:100%;display:block;border-radius:7px;box-shadow:0 4px 14px rgba(0,0,0,.4);}
+.scv-cp-blank{aspect-ratio:7/10;display:grid;place-items:center;border:1px dashed var(--line-strong);color:var(--stone-dim);}
+.scv-cp-name{font-family:var(--black);font-size:20px;color:var(--cream);line-height:1.1;}
+.scv-cp-meta{font-size:11px;letter-spacing:.06em;color:var(--stone);}
+.scv-cp-text{font-family:var(--body);font-size:14px;line-height:1.4;color:var(--parchment);}
+.scv-cp-minis{display:flex;flex-wrap:wrap;gap:6px;}
+.scv-cp-mini{width:44px;border:1px solid var(--line);border-radius:5px;background:transparent;padding:0;cursor:pointer;color:var(--stone);font-size:9px;}
+.scv-cp-mini img{width:100%;display:block;border-radius:4px;}
+.scv-cp-mini:hover,.scv-cp-mini:focus-visible{border-color:var(--brass-bright);outline:none;}
+.scv-cp-back{float:right;background:none;border:0;color:var(--stone);font:inherit;letter-spacing:0;text-transform:none;cursor:pointer;}
+.scv-cp-back:hover{color:var(--brass-bright);}
+#hud.shell .roster .mbr.pick{cursor:pointer;}

@@ -63,6 +63,7 @@ describe('CaveHud — thin shell', () => {
     const { container } = render(<CaveHud mountRef={ref()} shell code="ABCD" onLog={() => {}} />);
     expect(container.querySelector('.brand')).toBeNull();
     expect(container.querySelector('.hint')).toBeNull();
+    expect(container.querySelector('#cardpanel')).toBeNull(); // the React card panel replaces it
     expect(screen.queryByText('ABCD')).toBeNull();
     expect(container.querySelector('#snapBtn')).not.toBeNull();
     expect(screen.getByRole('button', { name: /game log/i })).toBeInTheDocument();

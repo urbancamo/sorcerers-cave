@@ -387,6 +387,4 @@ canvas{display:block;touch-action:none;}
 /* ---------- thin-shell HUD (solo game): the title bar, party list and card panel are shown on demand ---------- */
 #hud.shell .roster{display:none;top:48px;max-height:calc(100dvh - 130px);}
 #hud.shell[data-left="party"] .roster{display:flex;}
-#hud.shell .cardpanel{top:48px;}
-#hud.shell:not([data-right="card"]) .cardpanel{display:none;}
 #hud.shell .stats{top:46px;}

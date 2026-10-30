@@ -1,4 +1,4 @@
-import type { CaveEngine } from "./ports";
+import type { CaveEngine, Card } from "./ports";
 import type { TileArt } from "../data/manifest";
 import type { Award } from "../game/awards";
 
@@ -32,7 +32,10 @@ export interface BootOptions {
   tileAR: number;
   partyColor?: string; // marker colour (hex)
   multiplayer?: boolean; // tints per-party markers (e.g. secret doors) with partyColor when true
-  onCardShown?: (shown: boolean) => void; // the thin-shell card panel opens when a card is shown and clears when none is
+  // Thin shell: card selection and roster clicks are reported to React instead of drawn into the vanilla card panel.
+  // `explicit` is true when the player clicked (so it may take over a held Settings slot), false for the automatic card on arrival.
+  onSelectCard?: (card: Card | null, where: string, explicit: boolean) => void;
+  onSelectMember?: (member: ViewPartyMember) => void;
   onQuit?: () => void; // when set, the HUD "Quit" delegates here instead of the built-in confirm (multiplayer)
 }
 export function boot(opts: BootOptions): Promise<{

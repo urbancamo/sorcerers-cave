@@ -203,7 +203,7 @@ export function CaveHud({ mountRef, onPartyClick, onSave, onLog, code, turnLabel
             </button>
           </div>
 
-          <div className="cardpanel" id="cardpanel">
+          {!shell && <div className="cardpanel" id="cardpanel">
             <div className="frame">
               <img id="cardimg" alt="" />
               <div className="emptybox" style={{ display: "none" }}>
@@ -226,7 +226,7 @@ export function CaveHud({ mountRef, onPartyClick, onSave, onLog, code, turnLabel
                 </div>
               </div>
             </div>
-          </div>
+          </div>}
         </div>
       </div>
 

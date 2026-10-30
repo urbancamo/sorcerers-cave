@@ -95,3 +95,21 @@ Plan: `/Users/msw/.claude/plans/snug-booping-taco.md`, task 1. Requirements: ["M
 - **Outcome:** typecheck clean; web tests 886 pass. `manual.html` updated (HUD section, controls, footer date).
 - **Not yet done:** no browser check of the real game (needs the Convex backend and login); the deck chip's red low-deck highlight is gone
   (the low-deck toast still fires); Quit is only on the dock.
+
+## Task 2 - Card selection and card panel
+
+Plan task 2. Requirements: ["Card View"](requirements.md#card-view).
+
+### 2026-10-30 - Universal card panel (React)
+
+- **Done:** `shell/CardPanel.tsx` shows a floor card (stranger, treasure, artifact, hazard), a party member (card, strength,
+  load, mini-cards of what they carry) or one carried artifact (with a way back to the member). `cave3d.js` now reports
+  selection through `onSelectCard(card, where, explicit)` and roster clicks through `onSelectMember`; the vanilla card panel is
+  gone from the shell HUD. `data/cardText.ts` holds the wording (artifacts written in the manual's terms, creatures built from
+  the engine's numbers, heavy treasure from weight and points).
+- **Thinking:** `explicit` separates a player click (always takes the right slot, even from Settings) from the automatic card on
+  arrival (does not displace Settings or the test panel). Card wording is a hand-written table for now; the manual stays the
+  player document until it is generated from structured data.
+- **Outcome:** typecheck clean; web tests 894 pass; `manual.html` updated (card panel line).
+- **Not yet done:** area cards (clicking a revealed area not being scouted) wait for task 7's area memory; the Withdraw / Attack
+  buttons are still in `EncounterPanel`, not on the card (task 4); hazards have no wording; no browser check of the real game.

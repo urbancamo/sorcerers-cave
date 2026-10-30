@@ -2,7 +2,8 @@ import { useEffect, useRef } from "react";
 import type { CaveEngine } from "./ports";
 import type { GameState } from "@sorcerers-cave/engine";
 import { loadManifest, indexTilesById, resolveDeadEnd, type CardArt } from "../data/manifest";
-import { boot } from "./cave3d";
+import { boot, type ViewPartyMember } from "./cave3d";
+import type { Card } from "./ports";
 import { viewParty } from "./viewParty";
 import { CaveHud, cursesInForce } from "./CaveHud";
 import { partyColorHex, type PartyColor } from "../game/partyColors";
@@ -30,7 +31,7 @@ export interface OtherPartyToken {
   subLocation?: { at: 'doorway' | 'centre' | 'island'; dir?: 'N' | 'E' | 'S' | 'W' };
 }
 
-export function CaveCanvas({ engine, state, canAct, color, onPartyClick, onSave, onLog, onQuit, code, otherParties, onReady, multiplayer, turnLabel, turnColor, shell }: { engine: CaveEngine; state: GameState; canAct?: boolean; color: PartyColor; onPartyClick?: () => void; onSave?: () => void; onLog?: () => void; onQuit?: () => void; code?: string; otherParties?: OtherPartyToken[]; onReady?: (api: CaveApi) => void; multiplayer?: boolean; turnLabel?: string; turnColor?: string; shell?: { left: string | null; right: string | null; onCardShown: (shown: boolean) => void } }) {
+export function CaveCanvas({ engine, state, canAct, color, onPartyClick, onSave, onLog, onQuit, code, otherParties, onReady, multiplayer, turnLabel, turnColor, shell }: { engine: CaveEngine; state: GameState; canAct?: boolean; color: PartyColor; onPartyClick?: () => void; onSave?: () => void; onLog?: () => void; onQuit?: () => void; code?: string; otherParties?: OtherPartyToken[]; onReady?: (api: CaveApi) => void; multiplayer?: boolean; turnLabel?: string; turnColor?: string; shell?: { left: string | null; right: string | null; onSelectCard: (card: Card | null, where: string, explicit: boolean) => void; onSelectMember: (member: ViewPartyMember) => void } }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const ctrl = useRef<{ dispose(): void; refresh(canAct?: boolean): void; setParty(p: ReturnType<typeof viewParty>): void; setPicker?: CaveApi["setPicker"]; snapOnArrival?: CaveApi["snapOnArrival"]; peekTile?: CaveApi["peekTile"]; setOtherParties?: (list: OtherPartyToken[]) => void; focusArea?: (a: { col: number; row: number; level: number }) => void; frameArea?: (a: { col: number; row: number; level: number }, instant?: boolean) => void } | null>(null);
   const cardsRef = useRef<CardArt[]>([]); // small-card art for resolving carried items in the roster
@@ -40,8 +41,8 @@ export function CaveCanvas({ engine, state, canAct, color, onPartyClick, onSave,
   otherRef.current = otherParties ?? [];
   const onQuitRef = useRef(onQuit);
   onQuitRef.current = onQuit;
-  const cardShownRef = useRef(shell?.onCardShown);
-  cardShownRef.current = shell?.onCardShown;
+  const shellRef = useRef(shell);
+  shellRef.current = shell;
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -60,7 +61,8 @@ export function CaveCanvas({ engine, state, canAct, color, onPartyClick, onSave,
         tileAR: TILE_AR,
         partyColor: partyColorHex(colorRef.current),
         multiplayer,
-        onCardShown: (shown) => cardShownRef.current?.(shown),
+        onSelectCard: (card, where, explicit) => shellRef.current?.onSelectCard(card, where, explicit),
+        onSelectMember: (m) => shellRef.current?.onSelectMember(m),
         onQuit: onQuitRef.current ? () => onQuitRef.current?.() : undefined,
       });
       ctrl.current?.setOtherParties?.(otherRef.current); // apply any pins known at boot

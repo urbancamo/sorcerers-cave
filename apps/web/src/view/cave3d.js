@@ -802,8 +802,11 @@ function flashMarker(dir,bad){ const m=exitMarkers.find(x=>x.userData.move===dir
    selection / inspect + card panel
    ============================================================ */
 let cardPanel, cardImg, emptyBox;
-let onCardShown = null; // set by boot: tells the React shell when a card appears or clears
-function showCard(card,where){
+let onSelectCard = null; // set by boot: the thin-shell card panel is React-owned, so selection is reported rather than drawn
+let onSelectMember = null;
+function showCard(card,where,explicit){
+  onSelectCard?.(card,where,!!explicit);
+  if(!cardPanel) return; // thin shell: no vanilla card panel
   cardPanel.classList.remove('empty');cardImg.style.display='block';emptyBox.style.display='none';
   cardImg.src=card.file;
   document.getElementById('cardwhere').textContent=where;
@@ -814,17 +817,16 @@ function showCard(card,where){
     '<span class="d" style="background:'+col+';box-shadow:0 0 7px '+col+'"></span>'+
     '<span id="cardtaglabel">'+card.category+'</span></span>';
   cardPanel.classList.add('show');
-  onCardShown?.(true);
 }
-function hideCard(){ cardPanel.classList.remove('show'); onCardShown?.(false); } // nothing on the floor → no card at all
-function areaPanel(area){
+function hideCard(){ onSelectCard?.(null,'',false); if(cardPanel) cardPanel.classList.remove('show'); } // nothing on the floor → no card at all
+function areaPanel(area,explicit){
   // Highlight the selected tile and show the focused card; the text readout panel was removed as clutter.
   selectRing.position.copy(worldPos(area));selectRing.position.y+=0.02;selectRing.visible=true;
   const focus=area.strangers[0]||area.treasure[0];
-  if(focus) showCard(focus,area.name); else hideCard();
+  if(focus) showCard(focus,area.name,explicit); else hideCard();
 }
 function selectCurrent(){ areaPanel(engine.current); }
-function inspectArea(a){ areaPanel(engine.placed.get(akey(a))||a); }   // the tile mesh holds the area as it was laid: show what is there now
+function inspectArea(a){ areaPanel(engine.placed.get(akey(a))||a,true); }   // the tile mesh holds the area as it was laid: show what is there now
 function hexA(hex,a){const n=parseInt(hex.replace('#',''),16);return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';}
 
 /* ============================================================
@@ -896,6 +898,7 @@ function renderRoster(){const b=document.getElementById('rosterBody'); if(!b) re
       :m.sibyl?'<span class="badge ally" title="Travels with the party — she cannot fight or be harmed">guide</span>'
       :m.ally?'<span class="badge ally" title="Befriended ally">ally</span>':'';
     row.innerHTML='<div class="sig">'+escAttr(m.sig)+'</div><div class="who"><div class="nm-line"><span class="nm">'+escAttr(m.label||m.name)+'</span>'+badge+'</div>'+cap+carryRow+'</div>';
+    if(onSelectMember){ row.classList.add('pick'); row.addEventListener('click',()=>onSelectMember(m)); }
     b.appendChild(row);});}
 let rosterAnimTimer=null;
 /** Indices in `oldP` whose members are gone from `newP` (matched greedily by name). */
@@ -1129,9 +1132,9 @@ function onPointerUp(e){
   const hitE=visibleHit(ray.intersectObjects(exitGroup.children,true));
   if(hitE){let g=hitE.object;while(g&&!g.userData.move)g=g.parent;if(g){doMove(g.userData.move);return;}}
   const hitC=visibleHit(ray.intersectObjects(contentMeshes,false));
-  if(hitC){const f=hitC.object;showCard(f.userData.card, f.userData.area?f.userData.area.name:engine.current.name);return;}
+  if(hitC){const f=hitC.object;showCard(f.userData.card, f.userData.area?f.userData.area.name:engine.current.name, true);return;}
   const hitT=visibleHit(ray.intersectObjects(tileMeshes,false));
-  if(hitT){const a=hitT.object.userData.area; if(a===engine.current){viewSnapTile();selectCurrent();} else inspectArea(a);}
+  if(hitT){const a=hitT.object.userData.area; if(a===engine.current){viewSnapTile();areaPanel(engine.current,true);} else inspectArea(a);}
 }
 function onKeyDown(e){
   // Don't treat typing in a text field (e.g. the chat box) as movement commands.
@@ -1149,8 +1152,8 @@ function onResize(){
   if(lastSnapArea && orbitBtn && !orbitBtn.classList.contains('active')) frameSnap(lastSnapArea);
 }
 
-export async function boot({ mount, engine: eng, tiles: tileMap, deadEnd, party: partyArr, tileAR, partyColor, onQuit, multiplayer, onCardShown: cardShownCb }){
-  onCardShown=cardShownCb||null;
+export async function boot({ mount, engine: eng, tiles: tileMap, deadEnd, party: partyArr, tileAR, partyColor, onQuit, multiplayer, onSelectCard: selectCardCb, onSelectMember: selectMemberCb }){
+  onSelectCard=selectCardCb||null; onSelectMember=selectMemberCb||null;
   engine=eng; startLevel=eng.startLevel; tiles=tileMap; deadEndArt=deadEnd||(()=>null); PARTY=partyArr; TILE_D=TILE_W/tileAR; partyColorHex=partyColor; isMultiplayer=!!multiplayer;
 
   /* ---- renderer / scene / camera ---- */
@@ -1184,7 +1187,7 @@ export async function boot({ mount, engine: eng, tiles: tileMap, deadEnd, party:
   if(rosterAnimTimer){clearTimeout(rosterAnimTimer);rosterAnimTimer=null;}
 
   /* card-panel refs (the HUD exists by now) */
-  cardPanel=document.getElementById('cardpanel');cardImg=document.getElementById('cardimg');emptyBox=cardPanel.querySelector('.emptybox');
+  cardPanel=document.getElementById('cardpanel');cardImg=document.getElementById('cardimg');emptyBox=cardPanel?.querySelector('.emptybox');
   window.__cardCat={};
 
   /* input + dock listeners */
