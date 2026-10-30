@@ -132,3 +132,25 @@ Plan task 3. Requirements: ["Inventory View"](requirements.md#inventory-view).
 - **Outcome:** typecheck clean; web tests 905 pass; `manual.html` updated.
 - **Open:** green means the engine offers the action at all; with two carriers of the same artifact the engine uses the first
   eligible bearer, so the colour shows both as usable. The colour meanings are still Peter's to confirm.
+
+## Task 4 - Contextual artifact actions on the card
+
+Plan task 4. Requirements: ["Card View"](requirements.md#card-view), ["Inventory View"](requirements.md#inventory-view), the
+party-leader philosophy.
+
+### 2026-10-30 - Use, wield, give and drop from the item card; pickup from the chamber card
+
+- **Done:** `game/artifactUse.ts` (`useOptions`: the engine's own offer for one artifact with each target or direction named,
+  Sorcerer's Lotus Dust worded as weakening) and `shell/ItemActions.tsx` (use with its picker, Elixir and Scroll behind their
+  verbatim confirms, open the Treasure Chest, wield or stow via `setBorne`, give via `moveTreasure`, drop via `dropTreasure`)
+  shown under an item in the card panel, whether it was opened from the inventory or a member's mini-card. `ExplorePanel` and
+  `EncounterPanel` no longer offer any artifact use or chest opening; `shell/ChamberPickup.tsx` replaces the encounter panel's
+  per-treasure dropdowns with the chamber's treasure as cards and a button per member who can carry it.
+- **Thinking:** this is the "no auto-use" philosophy: the UI shows what can be done with an item, never when. The Medusa pause
+  keeps its own two buttons because it is a must-act choice. Leaving the treasure stays in the encounter panel.
+- **Outcome:** typecheck clean; web tests 911 pass (ten tests that pinned the removed panel controls moved to `ItemActions` and
+  `ChamberPickup` tests); `manual.html` updated.
+- **Not done / open:** artifacts used in a fight (Strength Potion, Lotus Dust, the Scroll step) are still offered by the
+  fight surface; they move with task 5, because the party and inventory icons are off in combat in the mockup and a fight needs
+  its own route to an item's card. The old party panel still exists behind "Move or drop treasure...", and `TradeModal` stays for
+  multiplayer. No browser check of the real game; the chamber card may overlap the encounter panel on small screens.

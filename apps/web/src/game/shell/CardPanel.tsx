@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import type { Card } from '../../view/ports';
 import type { ViewItem, ViewPartyMember } from '../../view/cave3d';
 import { cardText } from '../../data/cardText';
@@ -17,8 +18,9 @@ function Face({ file, name }: { file: string | null; name: string }) {
 }
 
 /** The universal card inspector: the card, its mini-cards when it carries any, and the manual's wording for it. */
-export function CardPanel({ selected, onItem, onMember }: {
+export function CardPanel({ selected, onItem, onMember, actions }: {
   selected: Selected;
+  actions?: ReactNode; // an item card's own actions (use, wield, give, drop)
   onItem: (item: ViewItem, from: ViewPartyMember) => void;
   onMember: (member: ViewPartyMember) => void;
 }) {
@@ -56,6 +58,7 @@ export function CardPanel({ selected, onItem, onMember }: {
         <div className="scv-cp-name">{item.name}</div>
         <div className="scv-cp-meta">{item.weight > 0 ? `${item.weight} kg` : '0 kg'} · carried by {from.label}</div>
         {text && <p className="scv-cp-text">{text}</p>}
+        {actions}
       </aside>
     );
   }

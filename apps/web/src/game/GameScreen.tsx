@@ -38,6 +38,9 @@ import { TestControlsPanel } from "./TestControlsPanel";
 import { TitleBar } from "./shell/TitleBar";
 import { CardPanel, type Selected } from "./shell/CardPanel";
 import { InventoryPanel } from "./shell/InventoryPanel";
+import { ItemActions } from "./shell/ItemActions";
+import { ChamberPickup } from "./shell/ChamberPickup";
+import { memberLabels } from "./memberLabels";
 import { inventoryRows } from "./inventory";
 import { viewParty } from "../view/viewParty";
 import { SettingsPanel } from "./shell/SettingsPanel";
@@ -293,6 +296,12 @@ export default function GameScreen() {
     );
   }
 
+  // Where the card panel's item sits in the party (a mini-card click knows only the member and the item).
+  const itemAt = selected?.kind === 'item'
+    ? (selected.at ?? { mi: memberLabels(displayState.party).indexOf(selected.from.label), idx: selected.from.items.indexOf(selected.item) })
+    : null;
+  const itemLive = itemAt && itemAt.mi >= 0 && itemAt.idx >= 0 ? itemAt : null;
+
   return (
     <div className="relative h-screen w-screen">
       <CaveCanvas key={gameId} onReady={(api) => { caveApi.current = api; }} engine={engine} state={displayState} canAct={!presentingRef.current} color={color} code={code ?? undefined} onSave={handleSave} onLog={() => setShowLog(true)}
@@ -308,9 +317,13 @@ export default function GameScreen() {
         }} />
       <TitleBar left={leftSlot} right={rightSlot} testMode={!!displayState.testMode}
                 onLeft={(p) => setLeftSlot((cur) => toggleLeft(cur, p))} onRight={(p) => setRightSlot((cur) => toggleRight(cur, p))} />
-      {rightSlot === 'card' && selected && (
+      {displayState.phase === 'pickup' && !holding && rightSlot !== 'settings' && rightSlot !== 'test' && cards && (
+        <ChamberPickup state={displayState} dispatch={dispatchWithRolls} cards={cards} />
+      )}
+      {rightSlot === 'card' && selected && displayState.phase !== 'pickup' && (
         <CardPanel selected={selected} onMember={(member) => setSelected({ kind: 'member', member })}
-                   onItem={(item, from) => setSelected({ kind: 'item', item, from })} />
+                   onItem={(item, from) => setSelected({ kind: 'item', item, from })}
+                   actions={selected.kind === 'item' && itemLive ? <ItemActions state={displayState} dispatch={dispatchWithRolls} mi={itemLive.mi} idx={itemLive.idx} /> : undefined} />
       )}
       {rightSlot === 'settings' && <SettingsPanel state={displayState} code={code ?? undefined} kitActive={!!displayState.variants?.extensionKit} onSave={handleSave} onLog={() => setShowLog(true)} />}
       <EncounterPanel state={displayState} dispatch={dispatchWithRolls} />

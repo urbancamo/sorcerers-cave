@@ -7,7 +7,6 @@ import { ALL_CREATURES, ALL_TREASURES, carriedWeight, legalActions, sibylWaiting
 import { memberLabel } from "./memberLabels";
 import { uncarryableNotes } from "./uncarryableNotes";
 import { ConfirmButton, ConfirmPicker } from "./ConfirmButton";
-import { holyWaterTargetName } from "./holyWaterLabel";
 
 // The `fight` phase is owned by the FightSurface (drag-card pairing); this panel keeps
 // encounter + pickup + the Medusa pause (throw the Lotus Dust at her, or proceed).
@@ -15,14 +14,10 @@ const ACTIVE = new Set<GameState["phase"]>(["encounter", "pickup", "medusa"]);
 
 const RETREAT_DIR: Record<number, string> = { 1: "north", 2: "east", 3: "south", 4: "west", 5: "up the stair", 6: "down the stair" };
 
-// Verb shown in an artefact's "use on…" prompt, by treasure id.
-const ART_VERB: Record<number, string> = { 5: "put to sleep", 6: "revive", 8: "strengthen", 9: "free from stone", 16: "use on" };
 
 // Extension kit blocking-confirm popups (design Part 2 — Trap-fall pattern), verbatim per story.
 const CHASM_CONFIRM = "Descend? You cannot return this way.";
 const WELL_CONFIRM = "Draw 1 card — you cannot withdraw this turn.";
-const ELIXIR_CONFIRM = "One draught. 1: death. 2–3: nothing. 4–6: +2 strength, forever.";
-const SCROLL_CONFIRM = "Destroys every enemy here save the magical — and curses the party.";
 
 /** Disambiguate identical option labels (e.g. two Men) by appending “ #2”, “ #3” to the repeats. */
 function dedupeLabels(labels: string[]): string[] {
@@ -116,7 +111,6 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
   // falling into the generic buckets below. (enterCrypt is explore-only per selectors.ts — never
   // legal here — so this panel doesn't handle it at all; see ExplorePanel.tsx.)
   const takeByTi = new Map<number, number[]>();        // treasure index -> member indices that can carry it
-  const artByArtifact = new Map<number, GameAction[]>(); // artefact id -> its target actions
   const simple: GameAction[] = [];
   // "Retake dropped treasure (as before)" is the one-tap shortcut after a won fight — surface it FIRST,
   // ahead of the per-item assignment dropdowns.
@@ -124,8 +118,6 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
   let descendChasm: Extract<GameAction, { type: "descendChasm" }> | null = null;
   let drawFromWell: Extract<GameAction, { type: "drawFromWell" }> | null = null;
   const pullBellRope: Extract<GameAction, { type: "pullBellRope" }>[] = [];
-  const useElixir: Extract<GameAction, { type: "useArtifact" }>[] = [];
-  let readScroll: Extract<GameAction, { type: "useArtifact" }> | null = null;
   // The Medusa pause offers exactly two choices (throw the dust / proceed) — both plain buttons,
   // not a target dropdown: the target (Medusa) is implicit.
   const medusaPause = state.phase === "medusa";
@@ -134,9 +126,8 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
     else if (a.type === "descendChasm") descendChasm = a;
     else if (a.type === "drawFromWell") drawFromWell = a;
     else if (a.type === "pullBellRope") pullBellRope.push(a);
-    else if (a.type === "useArtifact" && a.artifact === 15 && !medusaPause) useElixir.push(a);
-    else if (a.type === "useArtifact" && a.artifact === 19 && !medusaPause) readScroll = a;
-    else if (a.type === "useArtifact" && !medusaPause) (artByArtifact.get(a.artifact) ?? artByArtifact.set(a.artifact, []).get(a.artifact)!).push(a);
+    // Using an artifact is offered on that item's card (the Medusa pause's throw stays here: it is a must-act choice).
+    else if (a.type === "useArtifact" && !medusaPause) continue;
     else if (a.type === "retakeDropped") retake = a;
     // Leaving an indifferent encounter by any doorway (SC-4-18a) is movement, same as explore's own
     // moves — driven by the 3D exit markers/keys (engineAdapter.ts's openMoves), never a panel button.
@@ -156,18 +147,6 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
     const base = memberLabel(state.party, mi); // party-wide "#N" for duplicate classes
     return c.carry > 0 ? `${base} (${carriedWeight(m)}/${c.carry}kg)` : base;
   };
-  // An artefact action's target, named: Lotus Dust (5) targets a stranger; Holy Water (16) spans its
-  // own four-pool offset encoding (SC-EXT-24 — see holyWaterLabel.ts); everything else a party member.
-  // The Sorcerer under Lotus Dust is the one target the dropdown's "put to sleep" verb would lie
-  // about — he is only weakened (−2 magic, SC-11-12) — so his option says what actually happens.
-  const artTargetName = (a: Extract<GameAction, { type: "useArtifact" }>) =>
-    a.target === undefined ? "the party"
-      : a.artifact === 5 ? (state.strangers[a.target] === 11
-        ? "Sorcerer — weakens him by 2, he cannot be slept"
-        : ALL_CREATURES[state.strangers[a.target]!]!.name)
-      : a.artifact === 16 ? holyWaterTargetName(state, a.target, (mi) => memberLabel(state.party, mi))
-      : memberLabel(state.party, a.target);
-
   return (
     <div className="scv-enc" data-testid="encounter-panel">
       <h3 className="scv-enc-hd">{state.phase}</h3>
@@ -198,63 +177,12 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
         </div>
       )}
 
-      {/* Treasure: one row per item; pick a member to give it to, or leave it. */}
-      {takeByTi.size > 0 && (
-        <div className="scv-enc-assign">
-          {[...takeByTi].map(([ti, mis]) => {
-            const labels = dedupeLabels(mis.map(memberName));
-            const tname = ALL_TREASURES[state.treasures[ti]!]!.name;
-            // The Lost Ruby (id 11) is set in a strength-8 statue that must be beaten — taking it is a
-            // fight, not a free pickup, so word the options as wresting it from the guardian (§16) —
-            // unless it's already been freed once (SC-11-47), after which it's ordinary treasure.
-            const guarded = state.treasures[ti] === 11 && !state.rubyFreed;
-            const optText = (lbl: string) => (guarded ? `${lbl} wrests it from the statue` : `Give to ${lbl}`);
-            return (
-              <label key={`t${ti}`} className="scv-enc-row">
-                <span className="scv-enc-row-nm">{tname}{guarded && <span className="scv-enc-guard"> · guarded by a statue</span>}</span>
-                <select
-                  className="scv-enc-select"
-                  aria-label={`${guarded ? "Wrest" : "Assign"} ${tname}`}
-                  value=""
-                  onChange={(e) => { if (e.target.value !== "") dispatch({ type: "takeTreasure", ti, mi: mis[Number(e.target.value)]! }); }}
-                >
-                  <option value="">Leave in chamber</option>
-                  {labels.map((lbl, k) => <option key={mis[k]} value={k}>{optText(lbl)}</option>)}
-                </select>
-              </label>
-            );
-          })}
-        </div>
-      )}
+      {/* Taking treasure is the party leader's choice on the chamber card (shell/ChamberPickup); leaving it stays here. */}
 
       {/* Treasure nobody can take: an info line in place of the assignment row it can't have. */}
       {uncarryable.map((msg) => (
         <p key={msg} className="scv-enc-line scv-muted">{msg}</p>
       ))}
-
-      {/* Artefacts: one row per artefact; pick the target to use it on. */}
-      {artByArtifact.size > 0 && (
-        <div className="scv-enc-assign">
-          {[...artByArtifact].map(([artifact, acts]) => {
-            const aname = ALL_TREASURES[artifact]?.name ?? `artifact ${artifact}`;
-            const labels = dedupeLabels(acts.map((a) => artTargetName(a as Extract<GameAction, { type: "useArtifact" }>)));
-            return (
-              <label key={`a${artifact}`} className="scv-enc-row">
-                <span className="scv-enc-row-nm">{aname}</span>
-                <select
-                  className="scv-enc-select"
-                  aria-label={`Use ${aname}`}
-                  value=""
-                  onChange={(e) => { if (e.target.value !== "") dispatch(acts[Number(e.target.value)]!); }}
-                >
-                  <option value="">{`${aname} — ${ART_VERB[artifact] ?? "use"}…`}</option>
-                  {labels.map((lbl, k) => <option key={k} value={k}>{lbl}</option>)}
-                </select>
-              </label>
-            );
-          })}
-        </div>
-      )}
 
       {/* Extension kit: the Bell Rope's member picker + confirm (design US-03). */}
       {pullBellRope.length > 0 && (
@@ -269,25 +197,11 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
         </div>
       )}
 
-      {/* Extension kit: the Elixir's drinker picker + verbatim confirm (design US-19). */}
-      {useElixir.length > 0 && (
-        <div className="scv-enc-assign">
-          <ConfirmPicker
-            rowLabel="Elixir"
-            placeholder="Elixir — choose a drinker…"
-            options={dedupeLabels(useElixir.map((a) => memberLabel(state.party, a.target!))).map((lbl, k) => ({ label: lbl, value: useElixir[k]! }))}
-            confirmText={() => ELIXIR_CONFIRM}
-            onConfirm={(a) => dispatch(a)}
-          />
-        </div>
-      )}
-
       {/* Extension kit: single-confirm actions (design's blocking-confirm/Trap-fall pattern). */}
-      {(descendChasm || drawFromWell || readScroll) && (
+      {(descendChasm || drawFromWell) && (
         <div className="scv-enc-actions">
           {descendChasm && <ConfirmButton label="Descend the chasm" confirmText={CHASM_CONFIRM} onConfirm={() => dispatch(descendChasm!)} />}
           {drawFromWell && <ConfirmButton label="Draw from the well" confirmText={WELL_CONFIRM} onConfirm={() => dispatch(drawFromWell!)} />}
-          {readScroll && <ConfirmButton label="Read the Scroll" confirmText={SCROLL_CONFIRM} onConfirm={() => dispatch(readScroll!)} />}
         </div>
       )}
 
