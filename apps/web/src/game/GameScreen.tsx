@@ -37,6 +37,9 @@ import { getTestSecret } from "./testMode";
 import { TestControlsPanel } from "./TestControlsPanel";
 import { TitleBar } from "./shell/TitleBar";
 import { CardPanel, type Selected } from "./shell/CardPanel";
+import { InventoryPanel } from "./shell/InventoryPanel";
+import { inventoryRows } from "./inventory";
+import { viewParty } from "../view/viewParty";
 import { SettingsPanel } from "./shell/SettingsPanel";
 import { toggleLeft, toggleRight, type LeftSlot, type RightSlot } from "./shell/shellState";
 
@@ -56,6 +59,7 @@ export default function GameScreen() {
   // Thin shell slots (title bar icons). Inventory shows the party-and-treasure panel until the inventory list replaces it.
   const [leftSlot, setLeftSlot] = useState<LeftSlot>(null);
   const [rightSlot, setRightSlot] = useState<RightSlot>(null);
+  const [managing, setManaging] = useState(false); // the party panel, until the artifact card takes over moving and dropping treasure
   const [selected, setSelected] = useState<Selected | null>(null); // what the card panel shows
   // Shows the save/restore code modal when set. `restored` distinguishes a plain save (dismiss ⇒
   // back to menu) from a just-forked Test Mode scenario (dismiss ⇒ keep playing the new game).
@@ -315,7 +319,16 @@ export default function GameScreen() {
       <ExplorePanel state={displayState} dispatch={dispatchWithRolls} sibylTools={{ pick: pickDestination, peek: (a) => caveApi.current?.peekTile(a) }} />
       {displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} onSave={handleSave} open={rightSlot === 'test'} />}
       {displayState.testMode && <DeadEndSwapBadge />}
-      {leftSlot === 'inventory' && <PartyPanel state={displayState} dispatch={dispatch} onClose={() => setLeftSlot(null)} />}
+      {leftSlot === 'inventory' && (
+        <InventoryPanel rows={inventoryRows(displayState)} onManage={() => setManaging(true)}
+          selected={selected?.kind === 'item' ? selected.at : null}
+          onSelect={(row) => {
+            const from = viewParty(displayState, cards ?? []).find((v) => v.label === row.carrier);
+            const item = from?.items[row.idx];
+            if (from && item) { setSelected({ kind: 'item', item, from, at: { mi: row.mi, idx: row.idx } }); setRightSlot('card'); }
+          }} />
+      )}
+      {managing && <PartyPanel state={displayState} dispatch={dispatch} onClose={() => setManaging(false)} />}
       {displayState.phase === "trap" && !holding && !overlay && !notices && (
         <TrapChoice traps={displayState.areas[displayState.partyArea]?.contents.filter((c) => c === 300 + HAZARD_TRAP).length || 1} dispatch={(a) => {
           // A deliberate fall drops the party a level outside doMove's animation, so home the camera on the

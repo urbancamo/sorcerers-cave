@@ -64,6 +64,23 @@ export function isHumanOrPriestClass(creatureId: number): boolean {
   return (CREATURES[creatureId]!.flags & FLAG_HUMAN) !== 0;
 }
 
+/**
+ * True when a member of this creature class may bear and use `artifact` (a base treasure id). One table for the
+ * class gates that `findBearer` (reduce.ts) and `artifactActions` (selectors.ts) used to spell out separately, so the
+ * inventory UI can ask "can this carrier use it?" without a third copy. Artifacts with no class gate (Strength Potion,
+ * Elixir, Scroll, anything passive) are true for everyone: the Potion's boostable TARGETS are a separate list.
+ */
+export function canUseArtifact(creatureId: number, artifact: number): boolean {
+  switch (artifact) {
+    case 4: return usesArtifactsAs(creatureId, 4) || usesArtifactsAs(creatureId, 8); // Magic Carpet: Priest/Wizard
+    case 5: case 16: return isHumanOrPriestClass(creatureId); // Lotus Dust, Holy Water: Human/Priest
+    case 6: return creatureId === 6 || creatureId === 1 || usesArtifactsAs(creatureId, 4) || usesArtifactsAs(creatureId, 8); // Healing Balm: Woman/W-Hero/Priest/Wizard
+    case 9: return usesArtifactsAs(creatureId, 8); // Magic Staff reanimation: Wizard
+    case 12: return creatureId === 0 || creatureId === 1 || usesArtifactsAs(creatureId, 4) || usesArtifactsAs(creatureId, 5) || creatureId === 6 || usesArtifactsAs(creatureId, 8); // Charmed Flute: Hero/W-Hero/Priest/Man/Woman/Wizard
+    default: return true;
+  }
+}
+
 function living(m: PartyMember): boolean {
   return m.status === 0 || m.status === 1;
 }

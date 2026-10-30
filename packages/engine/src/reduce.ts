@@ -15,7 +15,7 @@ import { C_SIBYL, SIBYL_CODE, examinableAreas, isGuardCode, sibylHere, sibylWait
 import { frontStrength } from "./combat";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import {
-  wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, markDied, healingBalmEligible, ringInvincible, usesArtifactsAs,
+  wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, markDied, healingBalmEligible, ringInvincible, usesArtifactsAs, canUseArtifact,
   hasLivingHuman, holyWaterTargets, HW_STATUE_BASE, HW_MEDUSA, HW_STRANGER_BASE, HW_PARKED_STATUE_BASE, isHumanOrPriestClass,
   eyePresent, slaySorcerer, revertApprenticesOnSorcererDeath,
 } from "./effects";
@@ -56,16 +56,7 @@ const C_UNICORN = 13; // hostileMax 0 / indiffMax 0 — always friendly regardle
 function findBearer(state: GameState, artifact: number): number {
   return state.party.findIndex((m: PartyMember) => {
     if (!(m.status === 0 || m.status === 1) || !m.treasure.includes(artifact)) return false;
-    if (artifact === 6) return m.creatureId === 6 || m.creatureId === 1 || usesArtifactsAs(m.creatureId, 4) || usesArtifactsAs(m.creatureId, 8); // Balm: Woman/W-Hero/Priest/Wizard
-    if (artifact === 9) return usesArtifactsAs(m.creatureId, 8); // Staff reanimation: Wizard
-    if (artifact === 4) return usesArtifactsAs(m.creatureId, 4) || usesArtifactsAs(m.creatureId, 8); // Magic Carpet: Priest/Wizard
-    if (artifact === 12) return m.creatureId === 0 || m.creatureId === 1 || usesArtifactsAs(m.creatureId, 4) || usesArtifactsAs(m.creatureId, 5) || m.creatureId === 6 || usesArtifactsAs(m.creatureId, 8); // Charmed Flute: Hero/W-Hero/Priest/Man/Woman/Wizard
-    // Bug fix 2026-08-18 (inhuman-artifacts): Holy Water and Lotus Dust are Human/Priest only —
-    // neither names a bearer in its own card text, but both are blank in the Inhuman/Dwarf Ally
-    // columns of the ARTEFACTS – WHO CAN USE? table, and a Dwarf holder was able to destroy/sleep
-    // Medusa with either in playtesting.
-    if (artifact === 5 || artifact === 16) return isHumanOrPriestClass(m.creatureId);
-    return true;
+    return canUseArtifact(m.creatureId, artifact); // class gates live in effects.ts (Holy Water / Lotus Dust: bug fix 2026-08-18 inhuman-artifacts)
   });
 }
 

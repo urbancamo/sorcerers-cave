@@ -6,7 +6,7 @@ import { cardText } from '../../data/cardText';
 export type Selected =
   | { kind: 'card'; card: Card; where: string }
   | { kind: 'member'; member: ViewPartyMember }
-  | { kind: 'item'; item: ViewItem; from: ViewPartyMember };
+  | { kind: 'item'; item: ViewItem; from: ViewPartyMember; at?: { mi: number; idx: number } }; // `at` marks the row in the inventory
 
 const CATEGORY_LABEL: Record<string, string> = { creature: 'Stranger', treasure: 'Treasure', artifact: 'Artifact', hazard: 'Hazard' };
 

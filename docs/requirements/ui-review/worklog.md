@@ -113,3 +113,22 @@ Plan task 2. Requirements: ["Card View"](requirements.md#card-view).
 - **Outcome:** typecheck clean; web tests 894 pass; `manual.html` updated (card panel line).
 - **Not yet done:** area cards (clicking a revealed area not being scouted) wait for task 7's area memory; the Withdraw / Attack
   buttons are still in `EncounterPanel`, not on the card (task 4); hazards have no wording; no browser check of the real game.
+
+## Task 3 - Party and inventory left slot
+
+Plan task 3. Requirements: ["Inventory View"](requirements.md#inventory-view).
+
+### 2026-10-30 - Inventory list and shared class eligibility
+
+- **Done:** engine `canUseArtifact(creatureId, artifact)` (effects.ts) is now the one table of class gates; `findBearer` and
+  `artifactActions` call it (pure refactor, SC-11-49 added to the engine spec, 6 new tests, 1378 engine tests pass). Web
+  `game/inventory.ts` builds the item-perspective list (`inventoryRows`, `artifactState`): gray (carrier cannot use, or treasure
+  only), yellow (can use but not now, or passive / wielded), green (the action is offered now, from `legalActions`), each with
+  a text tag as the second cue. `shell/InventoryPanel.tsx` renders it in the left slot; clicking a row shows the item in the
+  card panel.
+- **Thinking:** the party list keeps the existing roster (the requirements say the default party view stays the same), so it is
+  not rebuilt. Moving and dropping treasure still lives in the old party panel until the artifact card takes it over (task 4),
+  so the inventory carries a "Move or drop treasure..." button as a stop-gap.
+- **Outcome:** typecheck clean; web tests 905 pass; `manual.html` updated.
+- **Open:** green means the engine offers the action at all; with two carriers of the same artifact the engine uses the first
+  eligible bearer, so the colour shows both as usable. The colour meanings are still Peter's to confirm.

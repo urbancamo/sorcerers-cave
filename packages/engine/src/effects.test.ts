@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { eyeActive, talismanWardsSpectres, ringInvincible, hasWoman, wardOffSpectres, annihilateWithEye, reconcileUnicorns } from "./effects";
+import { eyeActive, talismanWardsSpectres, ringInvincible, hasWoman, wardOffSpectres, annihilateWithEye, reconcileUnicorns, canUseArtifact } from "./effects";
 import { makeState } from "./testkit";
 import type { MemberStatus } from "./state";
 
@@ -64,5 +64,41 @@ describe("stranger-sweep helpers", () => {
     const withWoman = makeState({ party: [member(6), member(13, [], 1)] });
     expect(reconcileUnicorns(withWoman)).toEqual([]);
     expect(withWoman.party.map((m) => m.creatureId)).toEqual([6, 13]);
+  });
+});
+
+describe("canUseArtifact — class eligibility shared by findBearer, artifactActions and the inventory UI", () => {
+  const HERO = 0, W_HERO = 1, PRIEST = 4, MAN = 5, WOMAN = 6, WIZARD = 8, DWARF = 7;
+
+  it("Magic Carpet needs a Priest or Wizard", () => {
+    expect(canUseArtifact(PRIEST, 4)).toBe(true);
+    expect(canUseArtifact(WIZARD, 4)).toBe(true);
+    expect(canUseArtifact(HERO, 4)).toBe(false);
+  });
+
+  it("Healing Balm needs a Woman, Woman Hero, Priest or Wizard", () => {
+    for (const id of [WOMAN, W_HERO, PRIEST, WIZARD]) expect(canUseArtifact(id, 6)).toBe(true);
+    expect(canUseArtifact(MAN, 6)).toBe(false);
+  });
+
+  it("Charmed Flute is closed to inhumans", () => {
+    expect(canUseArtifact(HERO, 12)).toBe(true);
+    expect(canUseArtifact(DWARF, 12)).toBe(false);
+  });
+
+  it("Lotus Dust and Holy Water are Human/Priest only, so a Dwarf cannot use them", () => {
+    expect(canUseArtifact(DWARF, 5)).toBe(false);
+    expect(canUseArtifact(DWARF, 16)).toBe(false);
+    expect(canUseArtifact(MAN, 5)).toBe(true);
+  });
+
+  it("Magic Staff reanimation is the Wizard's", () => {
+    expect(canUseArtifact(WIZARD, 9)).toBe(true);
+    expect(canUseArtifact(PRIEST, 9)).toBe(false);
+  });
+
+  it("an artifact with no class gate is open to everyone", () => {
+    expect(canUseArtifact(DWARF, 8)).toBe(true); // Strength Potion: the target list gates it, not the bearer
+    expect(canUseArtifact(DWARF, 15)).toBe(true); // Elixir
   });
 });
