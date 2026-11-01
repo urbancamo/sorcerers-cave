@@ -13,6 +13,7 @@ import { memberLabels } from "./memberLabels";
 import { emptyDraft, place, unplace, toMatches, freeMembers, type PlanDraft } from "./fightPlan";
 import { holyWaterTargetName } from "./holyWaterLabel";
 import { ConfirmButton } from "./ConfirmButton";
+import { HelpButton } from "../manual/HelpButton";
 
 // Extension kit blocking-confirm text (design US-21), verbatim — mirrors EncounterPanel.tsx's own
 // copy of the same constant (selectors.ts offers useArtifact(19) as legal in BOTH the encounter
@@ -83,7 +84,7 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
   if (pair) {
     return (
       <div className="scv-fight" data-testid="fight-surface">
-        <h3 className="scv-fight-hd">Round {state.fight.round - 1} — who is lost?</h3>
+        <h3 className="scv-fight-hd">Round {state.fight.round - 1} — who is lost? <HelpButton topics={["fight-who-falls"]} label="Help with casualties" /></h3>
         <p className="scv-fight-sub">Your front line was overcome. Choose which creature falls — a die decides (4–6 grants your choice).</p>
         <div className="scv-fight-row">
           {pair.map((idx) => (
@@ -280,7 +281,7 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
   return (
     <div className="scv-fight" data-testid="fight-surface">
       <div className="scv-fight-top">
-        <h3 className="scv-fight-hd">⚔ Fight · Round {state.fight.round}</h3>
+        <h3 className="scv-fight-hd">⚔ Fight · Round {state.fight.round} <HelpButton topics={["fight-overview", "fight-surprise", "fight-pairing", "fight-armed", "fight-retreat", "tip-armed"]} label="Help with fighting" /></h3>
         {state.fight.round === 1 && state.fight.surprise !== 0 && (
           <span className={`scv-fight-banner ${state.fight.surprise === 1 ? "good" : "bad"}`}>
             {state.fight.surprise === 1 ? "You took them by surprise — +1 this round" : "The strangers surprised you — −1 this round"}

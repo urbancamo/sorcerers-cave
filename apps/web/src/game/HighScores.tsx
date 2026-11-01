@@ -8,6 +8,7 @@ import type { Id } from "../../convex/_generated/dataModel";
 import { ALL_CREATURES, ALL_TREASURES, GS_ESCAPED, GS_DEAD, GS_QUIT, type PartyMember } from "@sorcerers-cave/engine";
 import { loadManifest, resolveCard, resolveCardVariant, type CardArt } from "../data/manifest";
 import { downloadLog, type GameLog } from "./gameLog";
+import { HelpButton } from "../manual/HelpButton";
 
 export interface LeaderboardRow {
   _id: string;
@@ -265,6 +266,7 @@ export function LeaderboardPanel({ defaultKit = false, defaultSibyl = false, def
   const multi = mode === "multi";
   return (
     <div>
+      <p className="scv-hs-tablehelp scv-muted">Choose a table <HelpButton topics={["high-score-tables"]} label="Help with the score tables" /></p>
       <div className="scv-hs-tabs" role="tablist" aria-label="score table players">
         <button role="tab" aria-selected={!multi} className={"scv-hs-tab" + (!multi ? " scv-hs-tab-on" : "")} onClick={() => setMode("solo")}>
           Solitaire

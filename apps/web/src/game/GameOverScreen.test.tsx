@@ -179,3 +179,15 @@ describe("GameOverScreen", () => {
     expect(screen.queryByPlaceholderText(/your name/i)).toBeNull();
   });
 });
+
+describe("GameOverScreen help", () => {
+  it("explains the score, and explains why a wiped or abandoned party records nothing", () => {
+    const { unmount } = render(<GameOverScreen state={{ ...newGame(1, [0]), gs: GS_ESCAPED }} onNewGame={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: "Help with scoring" }));
+    expect(screen.getByTestId("help-popover")).toHaveTextContent(/walks out alive/);
+    unmount();
+    render(<GameOverScreen state={{ ...newGame(1, [0]), gs: GS_QUIT }} onSaveScore={async () => "id"} onNewGame={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: "Help with recording a score" }));
+    expect(screen.getByTestId("help-popover")).toHaveTextContent(/abandons your party/);
+  });
+});

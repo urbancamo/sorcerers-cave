@@ -4,6 +4,7 @@ import { api } from "../../convex/_generated/api";
 import { PARTY_COLORS, PARTY_COLOR_HEX, type PartyColor } from "./partyColors";
 import { ChatPanel } from "./ChatPanel";
 import { MultiplayerGame } from "./MultiplayerGame";
+import { HelpButton } from "../manual/HelpButton";
 
 /** Reactive multiplayer lobby: seats, colour/ready controls, host start-lock and chat (Phase 1). */
 export function MultiplayerLobby({ code, onExit }: { code: string; onExit: () => void }) {
@@ -43,7 +44,7 @@ export function MultiplayerLobby({ code, onExit }: { code: string; onExit: () =>
 
   return (
     <section className="scv-panel scv-mp scv-lobby">
-      <h2 className="scv-hd">Multiplayer lobby</h2>
+      <h2 className="scv-hd">Multiplayer lobby <HelpButton topics={["mp-create-join", "mp-options"]} label="Help with the lobby" /></h2>
       <p className="scv-lobby-code">Game code <b>{lob.code}</b> <span className="scv-muted">— share it to invite players</span></p>
 
       {/* Game variants (M7): the host chooses, everyone else reads the chips; locked at start. */}
@@ -62,6 +63,7 @@ export function MultiplayerLobby({ code, onExit }: { code: string; onExit: () =>
               />
               Fog of war <span className="scv-muted">(rivals' tiles face-down until you go there)</span>
             </label>
+            <HelpButton topics={["mp-opt-fog"]} label="Help with this option" />
             <label className="scv-lobby-variant">
               <input
                 type="checkbox"
@@ -70,6 +72,7 @@ export function MultiplayerLobby({ code, onExit }: { code: string; onExit: () =>
               />
               Concurrent exploration <span className="scv-muted">(explore freely — no waiting for turns; fights still pause their combatants)</span>
             </label>
+            <HelpButton topics={["mp-opt-concurrent"]} label="Help with this option" />
             <label className="scv-lobby-variant">
               <input
                 type="checkbox"
@@ -78,6 +81,7 @@ export function MultiplayerLobby({ code, onExit }: { code: string; onExit: () =>
               />
               Extension kit <span className="scv-muted">(adds 30 area tiles and 30 cards to the decks)</span>
             </label>
+            <HelpButton topics={["kit-overview"]} label="Help with this option" />
             <label className="scv-lobby-variant">
               <input
                 type="checkbox"
@@ -86,6 +90,7 @@ export function MultiplayerLobby({ code, onExit }: { code: string; onExit: () =>
               />
               Sibyl <span className="scv-muted">(adds the optional Sibyl card; scores go in their own table)</span>
             </label>
+            <HelpButton topics={["sibyl-overview"]} label="Help with this option" />
           </>
         ) : (
           <>
@@ -95,15 +100,19 @@ export function MultiplayerLobby({ code, onExit }: { code: string; onExit: () =>
             <span className={"scv-lobby-varchip" + (lob.variants?.fogLite ? " on" : "")}>
               Fog of war {lob.variants?.fogLite ? "✓" : "—"}
             </span>
+            <HelpButton topics={["mp-opt-fog"]} label="Help with this option" />
             <span className={"scv-lobby-varchip" + (lob.variants?.concurrent ? " on" : "")}>
               Concurrent {lob.variants?.concurrent ? "✓" : "—"}
             </span>
+            <HelpButton topics={["mp-opt-concurrent"]} label="Help with this option" />
             <span className={"scv-lobby-varchip" + (lob.variants?.extensionKit ? " on" : "")}>
               Extension kit {lob.variants?.extensionKit ? "✓" : "—"}
             </span>
+            <HelpButton topics={["kit-overview"]} label="Help with this option" />
             <span className={"scv-lobby-varchip" + (lob.variants?.sibyl ? " on" : "")}>
               Sibyl {lob.variants?.sibyl ? "✓" : "—"}
             </span>
+            <HelpButton topics={["sibyl-overview"]} label="Help with this option" />
           </>
         )}
       </div>

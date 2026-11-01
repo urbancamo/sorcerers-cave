@@ -171,7 +171,8 @@ describe("extension kit (SC-EXT-29): kit fighters render by name, not the base-o
     expect(screen.getAllByText("Witch").length).toBeGreaterThanOrEqual(1);
     // Your own kit member (Wolf) also names correctly in the "Your command" roster.
     expect(screen.getAllByText(/Wolf/).length).toBeGreaterThanOrEqual(1);
-    expect(screen.queryByText("?")).toBeNull(); // never the base-only-lookup placeholder
+    // never the base-only-lookup placeholder (the heading's own help button is also a "?", so look past it)
+    expect(screen.queryAllByText("?").filter((e) => !e.classList.contains("scv-hb-btn"))).toHaveLength(0);
   });
 });
 

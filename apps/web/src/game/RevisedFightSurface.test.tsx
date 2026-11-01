@@ -561,4 +561,10 @@ describe("RevisedFightSurface", () => {
     expect(screen.getByText(/round 1/i)).toBeInTheDocument();
     expect(screen.getByText(/took them by surprise|surprised you/i)).toBeInTheDocument();
   });
+
+  it("offers help for the step it is waiting on, opening upward beside the actions", () => {
+    render(<RevisedFightSurface state={attacking([OGRE])} dispatch={vi.fn()} cards={cards} />);
+    fireEvent.click(screen.getByRole("button", { name: "Help with this step" }));
+    expect(screen.getByTestId("help-popover")).toHaveClass("up");
+  });
 });

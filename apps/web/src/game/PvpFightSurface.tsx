@@ -9,6 +9,7 @@ import { FightCard } from "./FightCard";
 import { FightHand } from "./FightHand";
 import { PARTY_COLOR_HEX, type PartyColor } from "./partyColors";
 import { loadManifest, resolveCardVariant, type CardArt } from "../data/manifest";
+import { HelpButton } from "../manual/HelpButton";
 
 /**
  * Two-sided PvP fight surface (spec §I-10). Participants only — a non-participant never receives
@@ -470,7 +471,7 @@ export function PvpFightSurface({
   return (
     <div className="scv-fight scv-pvp" data-testid="pvp-surface">
       <div className="scv-fight-top">
-        <h3 className="scv-fight-hd">⚔ {attName} attacks {defName}</h3>
+        <h3 className="scv-fight-hd">⚔ {attName} attacks {defName} <HelpButton topics={["mp-pvp", "fight-surprise"]} label="Help with fighting another party" /></h3>
         <span className="scv-pvp-round">Round {session.round} · you are the {youSide}</span>
         {session.round === 1 && session.surprise !== 0 && (
           <span className={`scv-fight-banner ${youSide === "attacker" ? "good" : "bad"}`}>

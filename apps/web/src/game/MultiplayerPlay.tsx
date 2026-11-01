@@ -27,6 +27,10 @@ import { GameOverScreen } from "./GameOverScreen";
 import { ScoreboardPanel } from "./ScoreboardPanel";
 import { SpectateView } from "./SpectateView";
 import { DEFAULT_PARTY_COLOR, PARTY_COLOR_HEX, type PartyColor } from "./partyColors";
+import { HelpButton } from "../manual/HelpButton";
+import { HelpProvider } from "../manual/HelpContext";
+import { HelpModal } from "../manual/HelpModal";
+import type { HelpScreen } from "../manual";
 
 /**
  * Shared-cave play for the viewing seat: renders the existing 3D cave from this party's composed
@@ -39,6 +43,7 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   const actMut = useMutation(api.multiplayer.act);
   const [art, setArt] = useState<ArtTables | null>(null);
   const [roll, setRoll] = useState<RollView | null>(null);
+  const [showHelp, setShowHelp] = useState(false);
   const [notices, setNotices] = useState<Notice[] | null>(null);
   const [showParty, setShowParty] = useState(false);
   const [showChat, setShowChat] = useState(false);
@@ -274,12 +279,15 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   // Guarded loot (spec I-8/I-4): a rival rear-guard stands on your tile — its treasure is not free.
   const guards = view.detachmentsHere ?? [];
 
+  const helpScreens: HelpScreen[] = pvpSession ? ["mp-pvp", "mp-play"] : tradeSession ? ["mp-trade", "mp-play"] : unionProposal || yourUnion ? ["mp-union", "mp-play"] : fightVisible ? ["fight", "mp-play"] : ["mp-play", "explore"];
+
   return (
+    <HelpProvider variants={state.variants}>
     <div className="relative h-screen w-screen">
       <CaveCanvas key={gameId} engine={engine} state={state} color={myColor} onPartyClick={() => setShowParty(true)} onQuit={() => setShowQuit(true)} otherParties={otherParties} multiplayer turnLabel={turnLabel} turnColor={turnColor} />
       {here.length > 0 && !terminal && (
         <div className="scv-mp-here" data-testid="also-here">
-          <span className="scv-mp-here-cap">Also here:</span>
+          <span className="scv-mp-here-cap">Also here: <HelpButton topics={["mp-meeting"]} label="Help with meeting another party" /></span>
           {here.map((p) => (
             <span key={p.seat} className="scv-mp-here-chip" style={{ borderColor: PARTY_COLOR_HEX[p.color as PartyColor] }}>
               <i style={{ background: PARTY_COLOR_HEX[p.color as PartyColor] }} />{p.name}
@@ -383,7 +391,7 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
       {showQuit && (
         <div className="scv-mp-modal" role="dialog" aria-modal="true">
           <div className="scv-mp-modal-card">
-            <h3 className="scv-hd">Leave the game?</h3>
+            <h3 className="scv-hd">Leave the game? <HelpButton topics={["mp-leave-vs-abandon"]} label="Help with leaving" /></h3>
             <p className="scv-muted">
               Leaving to the menu keeps your party in the game — rejoin any time with the code.
               Abandoning forsakes your party to the Cave: they do not escape, your final score is tallied, and the others are told.
@@ -403,6 +411,8 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
           </div>
         </div>
       )}
+      <button className="scv-mp-helpbtn" aria-label="Help" title="Help for this screen, and the whole manual" onClick={() => setShowHelp(true)}>?</button>
+      {showHelp && <HelpModal title="Help" screens={helpScreens} flags={state.variants ?? {}} onClose={() => setShowHelp(false)} />}
       {/* Active players can peek at the standings; terminal/finished players land here by default. */}
       {!showScoreboard && !terminal && !gameOver && (
         <button className="scv-mp-standings" onClick={() => setPeeking(true)}>Standings ▣</button>
@@ -428,5 +438,6 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
         </div>
       )}
     </div>
+    </HelpProvider>
   );
 }

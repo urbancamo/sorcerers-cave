@@ -312,3 +312,12 @@ describe("LeaderboardPanel — Sibyl table (SC-SIB-9)", () => {
     expect(screen.getByText("Sibyl")).toBeInTheDocument();
   });
 });
+
+describe("score table help", () => {
+  it("explains the eight tables beside the table choosers", () => {
+    useQueryMock.mockReturnValue([]);
+    render(<LeaderboardPanel />);
+    fireEvent.click(screen.getByRole("button", { name: "Help with the score tables" }));
+    expect(screen.getByTestId("help-popover")).toHaveTextContent(/eight tables/);
+  });
+});

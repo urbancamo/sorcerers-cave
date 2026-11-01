@@ -36,7 +36,7 @@ describe('CardPanel', () => {
 
   it('describes the Sibyl without fighting numbers', () => {
     render(<CardPanel selected={{ kind: 'member', member: { ...member, name: 'Sibyl', label: 'Sibyl', sibyl: true, items: [] } }} onItem={noop} onMember={noop} />);
-    expect(screen.getByText(/cannot fight, carry or be harmed/)).toBeInTheDocument();
+    expect(screen.getByText(/Travels with the party\. She cannot fight, carry or be harmed/)).toBeInTheDocument();
     expect(screen.queryByText(/Strength/)).toBeNull();
   });
 });
@@ -67,5 +67,35 @@ describe('CardPanel — awards', () => {
     expect(screen.getByText(/doubled at scoring/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /wizard/i }));
     expect(onMember).toHaveBeenCalledWith(slayer);
+  });
+});
+
+describe('CardPanel help', () => {
+  it('folds the manual under a closed Help disclosure for a floor card', () => {
+    render(<CardPanel selected={{ kind: 'card', card: { id: 'm', name: 'Medusa', category: 'hazard', file: '/m.png' }, where: 'Hall' }} onItem={noop} onMember={noop} />);
+    const help = screen.getByTestId('card-help') as HTMLDetailsElement;
+    expect(help.open).toBe(false);
+    expect(screen.getByText('Help')).toBeInTheDocument();
+    expect(help).toHaveTextContent(/lurks for good/);
+  });
+
+  it('shows general reaction rules for a creature on the floor but not for a party member', () => {
+    const { unmount } = render(<CardPanel selected={{ kind: 'card', card: { id: 'd', name: 'Dragon', category: 'creature', file: '/d.png' }, where: 'Hall' }} onItem={noop} onMember={noop} />);
+    expect(screen.getByTestId('card-help')).toHaveTextContent(/Meeting strangers/);
+    unmount();
+    render(<CardPanel selected={{ kind: 'member', member: { ...member, name: 'Dwarf', label: 'Dwarf', items: [] } }} onItem={noop} onMember={noop} />);
+    expect(screen.getByTestId('card-help')).toHaveTextContent(/Guides the party safely past a trap/);
+    expect(screen.getByTestId('card-help')).not.toHaveTextContent(/Meeting strangers/);
+  });
+
+  it('offers help on an artifact and on an area, and none for a card the manual does not know', () => {
+    const { unmount } = render(<CardPanel selected={{ kind: 'item', item: flute, from: member }} onItem={noop} onMember={noop} />);
+    expect(screen.getByTestId('card-help')).toHaveTextContent(/lulls Dragons and Vipers/);
+    unmount();
+    const { unmount: u2 } = render(<CardPanel selected={{ kind: 'area', index: 0, name: 'Viper Pit', file: null, rot: 0 }} areaText="x" onItem={noop} onMember={noop} />);
+    expect(screen.getByTestId('card-help')).toHaveTextContent(/narrow ledge/);
+    u2();
+    render(<CardPanel selected={{ kind: 'member', member: { ...member, name: 'Nonesuch', label: 'Nonesuch', items: [] } }} onItem={noop} onMember={noop} />);
+    expect(screen.queryByTestId('card-help')).toBeNull();
   });
 });

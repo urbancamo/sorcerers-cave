@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { ALL_CREATURES, ALL_TREASURES, type TradeSession, type GameState } from "@sorcerers-cave/engine";
+import { HelpButton } from "../manual/HelpButton";
 
 /** Live countdown to a reaction-window deadline (spec §1.3) — re-renders once a second.
  *  Shared with UnionPanel (the union proposal runs on the same reaction-window plumbing). */
@@ -68,7 +69,7 @@ export function TradeModal({
   return (
     <div className="scv-mp-modal" role="dialog" aria-label="trade" data-testid="trade-modal">
       <div className="scv-mp-modal-card scv-trade">
-        <h3 className="scv-hd">Trade with {otherName}</h3>
+        <h3 className="scv-hd">Trade with {otherName} <HelpButton topics={["mp-trade"]} label="Help with trading" /></h3>
         {left !== null && <p className="scv-trade-clock">offer expires in {left}s</p>}
         <div className="scv-trade-cols">
           <div className="scv-trade-col" data-testid="trade-yours">

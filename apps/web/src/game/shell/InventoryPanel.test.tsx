@@ -32,3 +32,13 @@ describe('InventoryPanel', () => {
     expect(onManage).toHaveBeenCalledOnce();
   });
 });
+
+describe('InventoryPanel help', () => {
+  it('explains the status colours and what an item can do', () => {
+    render(<InventoryPanel rows={[row()]} selected={null} onSelect={() => {}} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Help with the inventory' }));
+    const pop = screen.getByTestId('help-popover');
+    expect(pop).toHaveTextContent(/usable now/);
+    expect(pop).toHaveTextContent(/give it to another member/);
+  });
+});

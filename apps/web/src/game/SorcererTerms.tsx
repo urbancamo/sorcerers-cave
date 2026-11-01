@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { legalActions, teleportDestinations, unpackCoord, type GameAction, type GameState } from "@sorcerers-cave/engine";
+import { HelpButton } from "../manual/HelpButton";
 import { projectArea, type ArtTables } from "../view/projection";
 
 /** What the 3D cave view needs to let the player pick a destination (view/cave3d.js `setPicker`). */
@@ -59,7 +60,7 @@ export function SorcererTerms({ state, art, dispatch, onTeleport, setPicker }: {
   return (
     <div className="scv-dice-overlay" role="dialog" aria-label="The Sorcerer's terms" data-testid="sorcerer-terms">
       <div className="scv-dice-card scv-tp-card">
-        <div className="scv-dice-title">The Sorcerer is defeated</div>
+        <div className="scv-dice-title">The Sorcerer is defeated <HelpButton topics={["house-sorcerer-terms"]} label="Help with the Sorcerer's terms" /></div>
         <p className="scv-tp-text">
           He lies at your mercy. Slay him, and the cave is yours: a 30-point bounty, and every curse upon your party lifted.
         </p>

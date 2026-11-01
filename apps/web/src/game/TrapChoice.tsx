@@ -1,4 +1,5 @@
 import type { GameAction } from "@sorcerers-cave/engine";
+import { HelpButton } from "../manual/HelpButton";
 
 /** A trap faces a party guided by a Dwarf (`variants.trapRules`, the engine's `trap` phase): be guided safely
  *  past it, or fall through it on purpose. A deliberate fall is one-way, like any trap, but it gains the
@@ -10,7 +11,7 @@ export function TrapChoice({ traps = 1, dispatch }: { traps?: number; dispatch: 
   return (
     <div className="scv-dice-overlay" role="dialog" aria-label="A trap" data-testid="trap-choice">
       <div className="scv-dice-card scv-tp-card">
-        <div className="scv-dice-title">{many ? `${traps} traps lie in this chamber` : "A trap lies in this chamber"}</div>
+        <div className="scv-dice-title">{many ? `${traps} traps lie in this chamber` : "A trap lies in this chamber"} <HelpButton topics={["house-standing-traps", "hazard-trap"]} label="Help with the trap" /></div>
         <p className="scv-tp-text">
           {many
             ? "Your Dwarves can guide the party safely past all of them, and the traps stay where they are."

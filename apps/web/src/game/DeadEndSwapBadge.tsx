@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { GameEvent } from "@sorcerers-cave/engine";
 import { describeTile } from "./gameLog";
+import { HelpButton } from "../manual/HelpButton";
 
 type Swap = { removed: number; drawn: number; reason: "deadEnd" | "sealed" };
 type Report = { swaps: Swap[]; noViableExits: boolean };
@@ -42,7 +43,7 @@ export function DeadEndSwapBadge() {
   return (
     <div className="scv-swapbadge" role="status" data-testid="dead-end-swap-badge">
       <button type="button" className="scv-swapbadge-close" aria-label="Dismiss" onClick={() => setReport(null)}>×</button>
-      <div className="scv-swapbadge-title">{title}</div>
+      <div className="scv-swapbadge-title">{title} <HelpButton topics={["house-dead-end"]} label="Help with the Dead End rule" /></div>
       {swaps.map((s, i) => (
         <div key={i} className="scv-swapbadge-row">
           {s.reason === "sealed" ? "Sealing card" : "Dead end"}: {describeTile(s.removed)} back in pack → drew {describeTile(s.drawn)}

@@ -47,6 +47,9 @@ import { viewParty } from "../view/viewParty";
 import { PartyList } from "./shell/PartyList";
 import { SettingsPanel } from "./shell/SettingsPanel";
 import { describeArea, readVerbose, writeVerbose } from "../data/areaText";
+import { HelpPanel } from "./shell/HelpPanel";
+import { HelpProvider } from "../manual/HelpContext";
+import type { HelpScreen } from "../manual";
 import { toggleLeft, toggleRight, type LeftSlot, type RightSlot } from "./shell/shellState";
 
 export default function GameScreen() {
@@ -319,7 +322,12 @@ export default function GameScreen() {
           }} />
   );
 
+  // What the player is doing now, so the Help panel can lead with the topics for it.
+  const helpScreens: HelpScreen[] = fightVisible ? [displayState.fight?.rev ? 'fight-revised' : 'fight']
+    : displayState.phase === 'encounter' ? ['encounter'] : displayState.phase === 'pickup' ? ['pickup'] : displayState.phase === 'trap' ? ['trap'] : displayState.phase === 'sorcerer' ? ['sorcerer'] : ['explore'];
+
   return (
+    <HelpProvider variants={displayState.variants}>
     <div className="relative h-screen w-screen">
       <CaveCanvas key={gameId} onReady={(api) => { caveApi.current = api; }} engine={engine} state={displayState} canAct={!presentingRef.current} color={color} code={code ?? undefined} onSave={handleSave} onLog={() => setShowLog(true)}
         // A card on the floor opens the card panel unless Settings or the test panel holds the slot; a click on a card or
@@ -339,7 +347,7 @@ export default function GameScreen() {
       <TitleBar left={fightVisible ? (leftSlot === 'inventory' ? 'inventory' : 'party') : leftSlot} right={rightSlot} testMode={!!displayState.testMode} testOpen={testOpen} onTest={() => setTestOpen((o) => !o)}
                 // In a fight the list is always showing: Party returns to it, Inventory swaps it out and back.
                 onLeft={(p) => setLeftSlot((cur) => (fightVisible && p === 'party' ? 'party' : toggleLeft(cur, p)))} onRight={(p) => setRightSlot((cur) => toggleRight(cur, p))} />
-      {displayState.phase === 'pickup' && !holding && rightSlot !== 'settings' && cards && (
+      {displayState.phase === 'pickup' && !holding && rightSlot !== 'settings' && rightSlot !== 'help' && cards && (
         <ChamberPickup state={displayState} dispatch={dispatchWithRolls} cards={cards} />
       )}
       {rightSlot === 'card' && selected && displayState.phase !== 'pickup' && (
@@ -351,6 +359,7 @@ export default function GameScreen() {
                      ? <SibylLook state={displayState} actions={sibylLooks} dispatch={dispatchWithRolls} tools={{ pick: pickDestination, peek: (a) => caveApi.current?.peekTile(a) }} />
                      : undefined} />
       )}
+      {rightSlot === 'help' && <HelpPanel screens={helpScreens} flags={displayState.variants} />}
       {rightSlot === 'settings' && <SettingsPanel verbose={verbose} onVerbose={(on) => { setVerbose(on); writeVerbose(on); }} state={displayState} code={code ?? undefined} kitActive={!!displayState.variants?.extensionKit} onSave={handleSave} onLog={() => setShowLog(true)} />}
       <EncounterPanel state={displayState} dispatch={dispatchWithRolls} />
       {fightVisible && cards && <FightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
@@ -397,5 +406,6 @@ export default function GameScreen() {
       )}
       {showLog && <GameLogModal gameId={gameId} onClose={() => setShowLog(false)} />}
     </div>
+    </HelpProvider>
   );
 }

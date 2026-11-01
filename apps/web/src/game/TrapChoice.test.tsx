@@ -6,7 +6,7 @@ describe("TrapChoice", () => {
   it("is a dialog offering exactly the two choices", () => {
     render(<TrapChoice dispatch={vi.fn()} />);
     expect(screen.getByRole("dialog", { name: /a trap/i })).toBeInTheDocument();
-    expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual(["Guided past the trap", "Fall through the trap"]);
+    expect(screen.getAllByRole("button").filter((b) => b.className.includes("scv-primary")).map((b) => b.textContent)).toEqual(["Guided past the trap", "Fall through the trap"]);
   });
 
   it("'Guided past the trap' dispatches avoidTrap", () => {
@@ -40,7 +40,7 @@ describe("TrapChoice — several traps, several Dwarves (n Dwarves guide past n 
     render(<TrapChoice traps={2} dispatch={dispatch} />);
     expect(screen.getByText(/2 traps lie in this chamber/i)).toBeInTheDocument();
     expect(screen.getByText(/dwarves can guide the party safely past all of them/i)).toBeInTheDocument();
-    expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual(["Guided past the traps", "Fall through the traps"]);
+    expect(screen.getAllByRole("button").filter((b) => b.className.includes("scv-primary")).map((b) => b.textContent)).toEqual(["Guided past the traps", "Fall through the traps"]);
     fireEvent.click(screen.getByRole("button", { name: /guided past the traps/i }));
     fireEvent.click(screen.getByRole("button", { name: /fall through the traps/i }));
     expect(dispatch.mock.calls).toEqual([[{ type: "avoidTrap" }], [{ type: "fallThroughTrap" }]]);
@@ -49,6 +49,6 @@ describe("TrapChoice — several traps, several Dwarves (n Dwarves guide past n 
   it("a single trap reads exactly as before", () => {
     render(<TrapChoice traps={1} dispatch={vi.fn()} />);
     expect(screen.getByText(/a trap lies in this chamber/i)).toBeInTheDocument();
-    expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual(["Guided past the trap", "Fall through the trap"]);
+    expect(screen.getAllByRole("button").filter((b) => b.className.includes("scv-primary")).map((b) => b.textContent)).toEqual(["Guided past the trap", "Fall through the trap"]);
   });
 });
