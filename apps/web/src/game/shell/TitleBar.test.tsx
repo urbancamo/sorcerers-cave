@@ -58,3 +58,20 @@ describe('TitleBar in a fight', () => {
     expect(screen.getByRole('button', { name: 'Settings' })).toBeEnabled();
   });
 });
+
+describe('TitleBar — full screen', () => {
+  const setSupport = (enabled: boolean) => Object.defineProperty(document, 'fullscreenEnabled', { value: enabled, configurable: true });
+
+  it('requests full screen from the page, and is absent where the browser has none', () => {
+    setSupport(true);
+    const request = vi.fn().mockResolvedValue(undefined);
+    document.documentElement.requestFullscreen = request;
+    bar();
+    fireEvent.click(screen.getByRole('button', { name: 'Full screen' }));
+    expect(request).toHaveBeenCalledOnce();
+    setSupport(false);
+    document.body.innerHTML = '';
+    bar();
+    expect(screen.queryByRole('button', { name: /full screen/i })).toBeNull();
+  });
+});

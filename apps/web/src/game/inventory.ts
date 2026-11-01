@@ -39,6 +39,8 @@ export function artifactState(state: GameState, mi: number, tid: number, usable:
 export function inventoryRows(state: GameState): InventoryRow[] {
   const labels = memberLabels(state.party);
   const usable = new Set(legalActions(state).flatMap((a) => (a.type === 'useArtifact' ? [a.artifact] : [])));
+  // Revised combat: the Scroll is read in a window at the start of the attack, not as a useArtifact action.
+  if (state.fight?.pending?.kind === 'scroll') usable.add(19);
   return state.party.flatMap((m, mi) =>
     m.status === 3 ? [] : m.treasure.map((tid, idx) => {
       const t = ALL_TREASURES[tid]!;

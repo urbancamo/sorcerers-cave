@@ -17,7 +17,6 @@ import { memberLabels } from "./memberLabels";
 // the Scroll (attacker), the defender's front line, the attacker's pairings, then either side's extra creatures — and the matches are
 // fought at the end. This surface asks the party for whichever of them the engine is waiting on.
 
-const SCROLL_CONFIRM = "Destroys every enemy here save the magical — and curses the party.";
 const DIR_NAME: Record<number, string> = { 1: "North", 2: "East", 3: "South", 4: "West", 5: "Up the stair", 6: "Down the stair" };
 
 type Move = { creature: number; match: number; back: boolean };
@@ -359,16 +358,18 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
 
   // Outside the dialog: its backdrop-filter would make it the containing block for this fixed panel, pushing the panel over the dialog.
   // The title bar can swap the list for the inventory (same slot, same width); the party list is the default.
-  const partyPanel = free.length > 0 && !(mine?.kind === "scroll") && !forcedDeploy && (inventory ?? (
+  // Every living member is listed: those already committed to the fight (in the front line or a match) stay, grayed out.
+  const partyPanel = (inventory ?? (
       <PartyList testId="rev-tray" onDragStart={listDrag} onSelect={onMember} members={viewParty(state, cards)}
-        fight={new Map<number, PartyRowFight>(free.filter((i) => mine?.kind !== "deploy" || !usedChosen.includes(i)).map((i) => {
+        fight={new Map<number, PartyRowFight>(view.party.map((u) => u.index).map((i) => {
           const taken = inPairs(usedPairs).has(i);
+          const committed = !free.includes(i);
           const redeployable = mine?.kind === "redeploy" && allMoves.some((m) => m.creature === i) && !usedMoves.some((x) => x.creature === i);
           return [i, {
             strength: partyUnits.get(i)?.strength ?? 0, caster: !!partyUnits.get(i)?.caster,
-            dim: taken || usedMoves.some((x) => x.creature === i) || (rev.deployed.party.includes(i) && mine?.kind !== "deploy"),
+            dim: committed || taken || usedChosen.includes(i) || usedMoves.some((x) => x.creature === i) || (rev.deployed.party.includes(i) && mine?.kind !== "deploy"),
             selected: picked === i || usedSel.includes(i),
-            caption: taken ? `vs ${strangerNames([usedPairs.find((p) => p.party === i)!.stranger])}` : usedMoves.some((x) => x.creature === i) ? "placed" : rev.deployed.party.includes(i) ? "in front" : undefined,
+            caption: committed ? (inMatch.has(i) ? "in combat" : "in front line") : usedChosen.includes(i) ? "in front line" : taken ? `vs ${strangerNames([usedPairs.find((p) => p.party === i)!.stranger])}` : usedMoves.some((x) => x.creature === i) ? "placed" : rev.deployed.party.includes(i) ? "in front" : undefined,
             onPick: mine?.kind === "deploy" || mine?.kind === "engage" ? () => tapFree(i)
               : redeployable ? () => setPicked(picked === i ? null : i) : undefined,
             draggable: redeployable || mine?.kind === "deploy" || (mine?.kind === "engage" && !taken) || undefined,
@@ -379,7 +380,7 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
   return (
     <>
     {partyPanel}
-    <div key="fight" className={`scv-fight scv-rev${free.length > 0 && !forcedDeploy && mine?.kind !== "scroll" ? " with-list" : ""}${restored ? " scv-rev-restore" : ""}`} data-testid="rev-fight">
+    <div key="fight" className={`scv-fight scv-rev with-list${restored ? " scv-rev-restore" : ""}`} data-testid="rev-fight">
       {introDue && (
         <div className="scv-ghouls" role="dialog" aria-label="Ghouls attack" data-testid="ghouls-intro">
           <div className="scv-ghouls-mist" aria-hidden="true" />
@@ -424,13 +425,11 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
         </div>
       </div>
 
+      {/* The Scroll is read from its own card (Book icon / Inventory) during this window; the dialog only waits, and never suggests it. */}
       {mine?.kind === "scroll" && (
         <div className="scv-rev-decision" data-testid="rev-scroll">
-          <p className="scv-fight-sub">Read the Scroll before the round? Either use curses the party, and it cannot be read again in this area.</p>
           <div className="scv-fight-actions">
-            <ConfirmButton className="scv-fight-btn primary" label="Destroy the unmagical" confirmText={SCROLL_CONFIRM} onConfirm={() => dispatch({ type: "scroll", use: "destroy" })} />
-            {mine.surprise && <button className="scv-fight-btn" onClick={() => dispatch({ type: "scroll", use: "surprise" })}>Take the surprise bonus (+1)</button>}
-            <button className="scv-fight-btn ghost" onClick={() => dispatch({ type: "scroll", use: "decline" })}>Don't read it</button>
+            <button className="scv-fight-btn primary" onClick={() => dispatch({ type: "scroll", use: "decline" })}>Begin the fight</button>
           </div>
         </div>
       )}

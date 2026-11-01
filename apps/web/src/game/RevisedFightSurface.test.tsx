@@ -39,26 +39,14 @@ describe("RevisedFightSurface", () => {
     expect(old.container).toBeEmptyDOMElement();
   });
 
-  it("offers the Scroll's three choices to the attacking party, the surprise only in round 1", () => {
+  it("only waits at the Scroll's window: one neutral button, no Scroll prompt", () => {
     const dispatch = vi.fn();
     const s = attacking([OGRE], { party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [SCROLL] }] });
     expect(s.fight!.pending).toMatchObject({ by: "party", kind: "scroll", surprise: true });
     render(<RevisedFightSurface state={s} dispatch={dispatch} cards={cards} />);
-    fireEvent.click(screen.getByRole("button", { name: /surprise/i }));
-    expect(dispatch).toHaveBeenLastCalledWith({ type: "scroll", use: "surprise" });
-    fireEvent.click(screen.getByRole("button", { name: /not read|decline|don't read/i }));
+    expect(screen.queryByRole("button", { name: /surprise|destroy/i })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /begin the fight/i }));
     expect(dispatch).toHaveBeenLastCalledWith({ type: "scroll", use: "decline" });
-    fireEvent.click(screen.getByRole("button", { name: /destroy/i }));          // asks to confirm: it curses the party
-    expect(dispatch).toHaveBeenCalledTimes(2);
-    fireEvent.click(screen.getByRole("button", { name: /confirm/i }));
-    expect(dispatch).toHaveBeenLastCalledWith({ type: "scroll", use: "destroy" });
-  });
-
-  it("hides the surprise option after round 1", () => {
-    const s = attacking([OGRE, TROLL], { party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [SCROLL] }] });
-    s.fight!.round = 2; s.fight!.pending = { by: "party", kind: "scroll", surprise: false };
-    render(<RevisedFightSurface state={s} dispatch={vi.fn()} cards={cards} />);
-    expect(screen.queryByRole("button", { name: /surprise/i })).toBeNull();
   });
 
   it("engage: pairs a free fighter with a deployed foe, and fights only when the pairing is complete", () => {
@@ -487,7 +475,7 @@ describe("RevisedFightSurface", () => {
     s.party.forEach((m, i) => { if (i > 0) m.status = 3; });
     s.areas[s.partyArea]!.card = 15 | 16;
     render(<RevisedFightSurface state={s} dispatch={dispatch} cards={cards} />);
-    expect(screen.queryByTestId("rev-tray")).toBeNull();
+    expect(screen.getByTestId("rev-free-0")).toHaveClass("dim");   // committed to a match: listed, grayed out
     expect(screen.getByRole("button", { name: /retreat/i })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /roll the round/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "redeploy", moves: [] });

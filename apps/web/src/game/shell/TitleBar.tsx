@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import type { LeftSlot, RightSlot } from './shellState';
 
 const Icon = ({ children }: { children: ReactNode }) => (
@@ -13,6 +13,7 @@ const GLYPHS = {
   inventory: <Icon><path d="M6 8h12l1 13H5L6 8z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></Icon>,
   card: <Icon><path d="M4 5a2 2 0 0 1 2-2h5v18H6a2 2 0 0 1-2-2V5z" /><path d="M20 5a2 2 0 0 0-2-2h-5v18h5a2 2 0 0 0 2-2V5z" /></Icon>,
   settings: <Icon><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" /></Icon>,
+  fullscreen: <Icon><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></Icon>,
   test: <span className="scv-ic scv-ic-t" aria-hidden="true">T</span>,
 };
 
@@ -22,6 +23,21 @@ function IconButton({ id, label, active, onClick, disabled }: { id: keyof typeof
             title={disabled ? `${label} (not available in a fight)` : label} disabled={disabled} onClick={onClick}>
       {GLYPHS[id]}
     </button>
+  );
+}
+
+/** Toggles browser full screen. Hidden where the browser offers none (iPhone Safari); the state follows Esc and F11 too. */
+function FullscreenButton() {
+  const [on, setOn] = useState(() => !!document.fullscreenElement);
+  useEffect(() => {
+    const sync = () => setOn(!!document.fullscreenElement);
+    document.addEventListener('fullscreenchange', sync);
+    return () => document.removeEventListener('fullscreenchange', sync);
+  }, []);
+  if (!document.fullscreenEnabled) return null;
+  return (
+    <IconButton id="fullscreen" label={on ? 'Exit full screen' : 'Full screen'} active={on}
+                onClick={() => { void (on ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => {}); }} />
   );
 }
 
@@ -46,6 +62,7 @@ export function TitleBar({ left, right, testMode, testOpen, inFight, onLeft, onR
       <div className="scv-tb-group">
         <IconButton id="card" label="Card panel" active={right === 'card'} onClick={() => onRight('card')} />
         <IconButton id="settings" label="Settings" active={right === 'settings'} onClick={() => onRight('settings')} />
+        <FullscreenButton />
         {testMode && <IconButton id="test" label="Test panel" active={!!testOpen} onClick={() => onTest?.()} />}
       </div>
     </header>

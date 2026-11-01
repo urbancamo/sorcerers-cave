@@ -122,3 +122,17 @@ describe('ItemActions — wield, give, drop', () => {
     expect(screen.queryByRole('button', { name: 'Drop here' })).toBeNull();
   });
 });
+
+describe('ItemActions — the Scroll in revised combat', () => {
+  it('offers both readings on its own card during the attacker\'s window, the surprise only in round 1', () => {
+    const s = carrying([5], T.scroll);
+    s.phase = 'fight';
+    s.fight = { round: 1, pending: { by: 'party', kind: 'scroll', surprise: true } } as unknown as GameState['fight'];
+    const dispatch = show(s, T.scroll);
+    fireEvent.click(screen.getByRole('button', { name: /surprise/i }));
+    expect(dispatch).toHaveBeenLastCalledWith({ type: 'scroll', use: 'surprise' });
+    fireEvent.click(screen.getByRole('button', { name: /destroy/i }));
+    fireEvent.click(screen.getByRole('button', { name: /confirm/i }));
+    expect(dispatch).toHaveBeenLastCalledWith({ type: 'scroll', use: 'destroy' });
+  });
+});

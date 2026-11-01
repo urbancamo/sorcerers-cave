@@ -2279,3 +2279,6 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
 .scv-rev .scv-match-bg{min-width:90px;}
 .scv-rev .scv-rev-frontline{min-width:200px;}
 .scv-rev-board > .scv-fight-strangers{overflow-x:auto;}
+
+/* A big front line wraps onto further rows inside its box instead of running off to the right; the stranger rows keep the rest. */
+.scv-rev .scv-rev-frontline { flex: 0 1 auto; max-width: 46%; flex-wrap: wrap; justify-content: flex-start; align-content: flex-start; overflow-y: auto; max-height: 100%; overscroll-behavior: contain; }

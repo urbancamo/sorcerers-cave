@@ -15,6 +15,8 @@ export function ItemActions({ state, dispatch, mi, idx }: { state: GameState; di
   const alive = m.status === 0 || m.status === 1;
   const manage = alive && state.phase !== 'fight' && state.phase !== 'gameOver';
   const uses = useOptions(state, tid);
+  const pending = state.fight?.pending;
+  const scrollWindow = pending?.by === 'party' && pending.kind === 'scroll' ? pending : null;
   const openChest = tid === T_CHEST ? legalActions(state).find((a) => a.type === 'openChest') : undefined;
   const heirs = state.party.flatMap((o, oi) => (oi !== mi && (o.status === 0 || o.status === 1) && canCarry(o, tid) ? [oi] : []));
 
@@ -23,6 +25,13 @@ export function ItemActions({ state, dispatch, mi, idx }: { state: GameState; di
       {tid === T_ELIXIR && uses.length > 0 && (
         <ConfirmPicker rowLabel="Elixir" placeholder="Choose a drinker…" options={uses.map((u) => ({ label: u.label, value: u.action }))}
                        confirmText={() => ELIXIR_CONFIRM} onConfirm={(a) => dispatch(a)} />
+      )}
+      {/* Revised combat: the attacker's window to read the Scroll is the start of the fight (the dialog just waits). */}
+      {tid === T_SCROLL && scrollWindow && (
+        <>
+          <ConfirmButton label="Read: destroy the unmagical" confirmText={SCROLL_CONFIRM} onConfirm={() => dispatch({ type: 'scroll', use: 'destroy' })} />
+          {scrollWindow.surprise && <button type="button" className="scv-enc-btn" onClick={() => dispatch({ type: 'scroll', use: 'surprise' })}>Read: take the surprise bonus (+1)</button>}
+        </>
       )}
       {tid === T_SCROLL && uses[0] && (
         <ConfirmButton label="Read the Scroll" confirmText={SCROLL_CONFIRM} onConfirm={() => dispatch(uses[0]!.action)} />

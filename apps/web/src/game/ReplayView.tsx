@@ -1,9 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { replay, type GameState } from "@sorcerers-cave/engine";
+import { replay, unpackCoord, type GameState } from "@sorcerers-cave/engine";
 import { createCaveAdapter, type CaveAdapter } from "../view/engineAdapter";
 import { loadManifest } from "../data/manifest";
 import type { ArtTables } from "../view/projection";
-import { CaveCanvas } from "../view/CaveCanvas";
+import { CaveCanvas, type CaveApi } from "../view/CaveCanvas";
 import { DEFAULT_PARTY_COLOR, type PartyColor } from "./partyColors";
 import { actionLabel, describeEvent, type GameLog } from "./gameLog";
 
@@ -73,6 +73,15 @@ export function ReplayView({ bundle, onExit }: { bundle: ReplayBundle; onExit: (
     syncedRef.current = frame.state;
   }
 
+  // When the party changes level, 'home' the camera on its new tile (as the Home button does) so only that level shows.
+  // Flagged during render, before the canvas syncs, because the token move that consumes the flag starts on that sync.
+  const caveApi = useRef<CaveApi | null>(null);
+  const levelRef = useRef<number | null>(null);
+  const here = frame.state.areas[frame.state.partyArea];
+  const level = here ? unpackCoord(here.coord).level : null;
+  if (levelRef.current !== null && level !== null && level !== levelRef.current) caveApi.current?.snapOnArrival();
+  levelRef.current = level;
+
   if (!art || !adapterRef.current) return <p className="scv-mp-loading">Loading replay…</p>;
 
   // The transition that PRODUCED this frame: its action named against the PRE-state (so treasure/
@@ -82,7 +91,7 @@ export function ReplayView({ bundle, onExit }: { bundle: ReplayBundle; onExit: (
 
   return (
     <div className="relative h-screen w-screen">
-      <CaveCanvas key={`replay:${bundle.game.code}`} engine={adapterRef.current} state={frame.state} color={color} multiplayer />
+      <CaveCanvas key={`replay:${bundle.game.code}`} onReady={(api) => { caveApi.current = api; }} engine={adapterRef.current} state={frame.state} color={color} multiplayer />
       <div className="scv-spectate-banner">Replay <b>{bundle.game.code ?? ""}</b> — viewing only</div>
       <button className="scv-mp-standings" onClick={onExit}>← Exit Replay</button>
 

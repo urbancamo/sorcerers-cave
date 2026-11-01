@@ -286,3 +286,44 @@ Plan task 8.
   combat list for `InventoryPanel` (same slot and width, passed in as `inventory`), Party brings the list back. Items opened from the
   inventory show on the card panel as usual.
 - **Outcome:** `tsc -b` clean, web tests 930 pass; not looked at in the browser. The legacy `FightSurface` has no list, so the icons do nothing visible there.
+
+## Change - the Scroll is read from its card
+
+### 2026-10-30 - No Scroll prompt in the fight dialog
+
+- **Done:** at the attacker's Scroll window the fight dialog no longer asks; it shows one neutral "Begin the fight" button (declines). The
+  Scroll's own card offers "Read: destroy the unmagical" (confirm) and, in round 1, "Read: take the surprise bonus (+1)"; the inventory shows
+  it green during the window. The combat list stays visible during the window so the Scroll's card can be reached. Engine unchanged.
+- **Outcome:** `tsc -b` clean, web tests pass; not looked at in the browser.
+
+## Change - full screen button
+
+### 2026-10-31 - Full screen icon in the title bar
+
+- **Done:** a right-hand title-bar icon toggles browser full screen (`FullscreenButton` in `TitleBar.tsx`); it follows Esc/F11 via `fullscreenchange`
+  and is hidden where `document.fullscreenEnabled` is false. Manual's Quick Reference updated.
+- **Outcome:** `tsc -b` clean, TitleBar tests pass; not looked at in the browser.
+
+## Change - replay homes the camera on a level change
+
+### 2026-11-01 - Replay: 'home' when the party changes level
+
+- **Done:** `ReplayView` notes the party's level on each frame; when it changes (stepping, jumping or auto-play) it calls `snapOnArrival()`,
+  so the camera does what the Home button does on the new tile and only that level is shown. The flag is set before the canvas syncs,
+  because the token move that consumes it starts on that sync. The manual does not cover replay, so it is unchanged.
+- **Outcome:** `tsc -b` clean, web tests pass; no automated test (the canvas is not mounted in jsdom); not looked at in the browser.
+
+## Change - front-line members stay in the roster, grayed
+
+### 2026-11-01 - Chosen front-line members are dimmed, not hidden
+
+- **Done:** while the defender chooses the front line, members already dropped into it stay in the party roster, dimmed and captioned
+  "in front line" like those placed later (they were being filtered out). Tapping a dimmed row takes the member back out.
+- **Outcome:** `tsc -b` clean, web tests pass; not looked at in the browser.
+
+### 2026-11-01 - Committed members stay in the roster, grayed, after the front line is confirmed
+
+- **Cause:** the fight rows were built from `freeOf`, which drops anyone deployed or engaged, so after "stand in the front line" those members
+  lost their row state and showed normally (and the list vanished when nobody was free).
+- **Done:** the roster now lists every living member in a revised fight; those committed to the front line or a match are dimmed and captioned
+  "in front line" / "in combat". The list no longer disappears when nobody is free.
