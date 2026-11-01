@@ -47,4 +47,20 @@ describe("DiceRoll", () => {
     expect(screen.getByText("Goblin")).toBeInTheDocument();
     expect(screen.getByText("vs")).toBeInTheDocument();
   });
+
+  it("puts the party on the left when asked (the revised fight dialog)", () => {
+    render(
+      <DiceRoll
+        title="Combat round"
+        lanes={[{ party: { name: "Man", value: 5 }, enemy: { name: "Goblin", value: 2 } }]}
+        tone="good"
+        partyLeft
+        onContinue={() => {}}
+      />,
+    );
+    act(() => vi.advanceTimersByTime(11 * 80));
+    const dice = screen.getAllByTestId("die");
+    expect(dice[0]).toHaveTextContent("5");
+    expect(dice[1]).toHaveTextContent("2");
+  });
 });

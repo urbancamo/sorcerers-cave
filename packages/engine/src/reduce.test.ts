@@ -134,6 +134,16 @@ describe("reduce — chamber resolution (C-1)", () => {
     expect(state.areas[1]!.contents).toContain(110);
   });
 
+  it("withdraw records the chamber in withdrewAreas, once, only if the strangers were not tested", () => {
+    const s = makeState({ largePack: [31], largeIdx: 0, smallPack: [110], smallIdx: 0 });
+    const afterMove = reduce(s, { type: "move", dir: DIR_S }).state;
+    expect(afterMove.withdrewAreas).toBeUndefined();
+    const { state } = reduce(afterMove, { type: "withdraw" });
+    expect(state.withdrewAreas).toEqual([1]);
+    const tested = { ...afterMove, indiffCounts: { 1: 1 } };
+    expect(reduce(tested, { type: "withdraw" }).state.withdrewAreas).toBeUndefined();
+  });
+
   // Gap A (bug fix 2026-08-04, SC-4-18a): `withdraw` used to be the one landing path that skipped
   // the shared arrival resolution every other move uses — silently setting phase="explore" no
   // matter what was sitting at the destination. It now routes through `resolveArea`, so all three

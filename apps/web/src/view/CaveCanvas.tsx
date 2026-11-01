@@ -2,7 +2,8 @@ import { useEffect, useRef } from "react";
 import type { CaveEngine } from "./ports";
 import type { GameState } from "@sorcerers-cave/engine";
 import { loadManifest, indexTilesById, resolveDeadEnd, type CardArt } from "../data/manifest";
-import { boot } from "./cave3d";
+import { boot, type ViewPartyMember } from "./cave3d";
+import type { Card, Area } from "./ports";
 import { viewParty } from "./viewParty";
 import { CaveHud, cursesInForce } from "./CaveHud";
 import { partyColorHex, type PartyColor } from "../game/partyColors";
@@ -30,7 +31,7 @@ export interface OtherPartyToken {
   subLocation?: { at: 'doorway' | 'centre' | 'island'; dir?: 'N' | 'E' | 'S' | 'W' };
 }
 
-export function CaveCanvas({ engine, state, canAct, color, onPartyClick, onSave, onLog, onQuit, code, otherParties, onReady, multiplayer, turnLabel, turnColor }: { engine: CaveEngine; state: GameState; canAct?: boolean; color: PartyColor; onPartyClick?: () => void; onSave?: () => void; onLog?: () => void; onQuit?: () => void; code?: string; otherParties?: OtherPartyToken[]; onReady?: (api: CaveApi) => void; multiplayer?: boolean; turnLabel?: string; turnColor?: string }) {
+export function CaveCanvas({ engine, state, canAct, color, onPartyClick, onSave, onLog, onQuit, code, otherParties, onReady, multiplayer, turnLabel, turnColor, shell }: { engine: CaveEngine; state: GameState; canAct?: boolean; color: PartyColor; onPartyClick?: () => void; onSave?: () => void; onLog?: () => void; onQuit?: () => void; code?: string; otherParties?: OtherPartyToken[]; onReady?: (api: CaveApi) => void; multiplayer?: boolean; turnLabel?: string; turnColor?: string; shell?: { left: string | null; right: string | null; onSelectCard: (card: Card | null, where: string, explicit: boolean) => void; onSelectMember: (member: ViewPartyMember) => void; onSelectArea?: (area: Area, file: string | null, rot: number) => void } }) {
   const mountRef = useRef<HTMLDivElement>(null);
   const ctrl = useRef<{ dispose(): void; refresh(canAct?: boolean): void; setParty(p: ReturnType<typeof viewParty>): void; setPicker?: CaveApi["setPicker"]; snapOnArrival?: CaveApi["snapOnArrival"]; peekTile?: CaveApi["peekTile"]; setOtherParties?: (list: OtherPartyToken[]) => void; focusArea?: (a: { col: number; row: number; level: number }) => void; frameArea?: (a: { col: number; row: number; level: number }, instant?: boolean) => void } | null>(null);
   const cardsRef = useRef<CardArt[]>([]); // small-card art for resolving carried items in the roster
@@ -40,6 +41,8 @@ export function CaveCanvas({ engine, state, canAct, color, onPartyClick, onSave,
   otherRef.current = otherParties ?? [];
   const onQuitRef = useRef(onQuit);
   onQuitRef.current = onQuit;
+  const shellRef = useRef(shell);
+  shellRef.current = shell;
 
   useEffect(() => {
     const mount = mountRef.current;
@@ -58,6 +61,9 @@ export function CaveCanvas({ engine, state, canAct, color, onPartyClick, onSave,
         tileAR: TILE_AR,
         partyColor: partyColorHex(colorRef.current),
         multiplayer,
+        onSelectCard: (card, where, explicit) => shellRef.current?.onSelectCard(card, where, explicit),
+        onSelectMember: (m) => shellRef.current?.onSelectMember(m),
+        ...(shellRef.current?.onSelectArea ? { onSelectArea: (a, file, rot) => shellRef.current?.onSelectArea?.(a, file, rot) } : {}),
         onQuit: onQuitRef.current ? () => onQuitRef.current?.() : undefined,
       });
       ctrl.current?.setOtherParties?.(otherRef.current); // apply any pins known at boot
@@ -89,5 +95,5 @@ export function CaveCanvas({ engine, state, canAct, color, onPartyClick, onSave,
     ctrl.current?.setOtherParties?.(otherParties ?? []);
   }, [otherParties]);
 
-  return <CaveHud mountRef={mountRef} onPartyClick={onPartyClick} onSave={onSave} onLog={onLog} code={code} turnLabel={turnLabel} turnColor={turnColor} curses={cursesInForce(state)} kitActive={!!state.variants?.extensionKit} testMode={!!state.testMode} />;
+  return <CaveHud mountRef={mountRef} onPartyClick={onPartyClick} onSave={onSave} onLog={onLog} code={code} turnLabel={turnLabel} turnColor={turnColor} curses={cursesInForce(state)} kitActive={!!state.variants?.extensionKit} testMode={!!state.testMode} shell={!!shell} leftSlot={shell?.left} rightSlot={shell?.right} />;
 }

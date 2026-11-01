@@ -16,15 +16,6 @@ describe("ExplorePanel", () => {
     expect(screen.queryByTestId("explore-panel")).toBeNull();
   });
 
-  it("offers to open a carried Treasure Chest and dispatches openChest", () => {
-    const dispatch = vi.fn();
-    const s = newGame(1, [0]); // Hero
-    s.party[0]!.treasure.push(14); // carries the Treasure Chest
-    render(<ExplorePanel state={s} dispatch={dispatch} />);
-    fireEvent.click(screen.getByRole("button", { name: /open the treasure chest/i }));
-    expect(dispatch).toHaveBeenCalledWith({ type: "openChest" });
-  });
-
   it("offers 'Attack the guardians' when traversing a pacified chamber, and dispatches attack", () => {
     const dispatch = vi.fn();
     const base = newGame(1, [0]); // Hero
@@ -53,16 +44,6 @@ describe("ExplorePanel", () => {
     render(<ExplorePanel state={s} dispatch={dispatch} />);
     fireEvent.click(screen.getByRole("button", { name: /reclaim the sunk treasure/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "reclaimTreasure" });
-  });
-
-  it("condenses the Magic Carpet's directions into a single dropdown", () => {
-    const dispatch = vi.fn();
-    const s = newGame(1, [4]); // a Priest can command the carpet
-    s.party[0]!.treasure.push(4); // Magic Carpet (many directions on level 1)
-    render(<ExplorePanel state={s} dispatch={dispatch} />);
-    const select = screen.getByLabelText(/use magic carpet/i);
-    fireEvent.change(select, { target: { value: "0" } });
-    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "useArtifact", artifact: 4 }));
   });
 
   it("offers the Chasm's descend button with a blocking confirm before dispatching (US-02)", () => {
@@ -109,41 +90,6 @@ describe("ExplorePanel", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "pullBellRope", mi: 1 });
   });
 
-  it("offers the Elixir as a drinker-picker dropdown, then the verbatim confirm (US-19)", () => {
-    const dispatch = vi.fn();
-    const s = newGame(1, [0]); // Hero
-    s.party[0]!.treasure.push(15); // carries the Elixir
-    render(<ExplorePanel state={s} dispatch={dispatch} />);
-    fireEvent.change(screen.getByLabelText("Elixir"), { target: { value: "0" } });
-    expect(screen.getByTestId("confirm-prompt")).toHaveTextContent(/1: death\. 2–3: nothing\. 4–6: \+2 strength, forever\./);
-    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
-    expect(dispatch).toHaveBeenCalledWith({ type: "useArtifact", artifact: 15, target: 0 });
-  });
-
-  it("names Holy Water's four-pool targets correctly in the explore phase (US-20)", () => {
-    const dispatch = vi.fn();
-    const base = newGame(1, [0], { extensionKit: true });
-    // A single legal target (the Witch statue) collapses to a one-click button (§"one option → a
-    // one-click button") — its label must still decode the WAKE offset (HW_STATUE_BASE+i) to the
-    // statue's own name, not a raw party-index lookup.
-    const s: GameState = { ...base, party: [{ ...base.party[0]!, treasure: [16] }], statues: [18] }; // Witch statue
-    render(<ExplorePanel state={s} dispatch={dispatch} />);
-    fireEvent.click(screen.getByRole("button", { name: /holy water.*witch/i }));
-    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "useArtifact", artifact: 16, target: 1000 }));
-  });
-
-  it("offers a named artifact use and dispatches it with its target", () => {
-    const dispatch = vi.fn();
-    const s = newGame(1, [6, 5]); // Woman + Man
-    s.party[0]!.treasure.push(6); // Woman carries Healing Balm
-    s.party[1]!.status = 3; // Man has fallen
-    s.party[1]!.diedTurn = s.turn; // this same turn/area — within the Balm's house-rule window (SC-11-15a)
-    s.party[1]!.diedArea = s.partyArea;
-    render(<ExplorePanel state={s} dispatch={dispatch} />);
-    fireEvent.click(screen.getByRole("button", { name: /healing balm — revive man/i }));
-    expect(dispatch).toHaveBeenCalledWith({ type: "useArtifact", artifact: 6, target: 1 });
-  });
-
   // Uncarryable-treasure chamber notes (design 2026-07-28): pickup auto-skips when nothing can be
   // taken, so the standing explanation lives here while the party remains in the chamber.
   it("notes a parked treasure that is too heavy for anyone, even with no other actions", () => {
@@ -185,13 +131,12 @@ describe("ExplorePanel", () => {
 });
 
 describe("ExplorePanel — the Sibyl's look (SC-SIB-8)", () => {
-  it("shows the look when she travels with the party, and nothing when she does not", () => {
+  it("no longer offers the look here: it is on her card", () => {
     const s = newGame(1, [0], { sibyl: true });
     s.largePack = [31]; s.largeIdx = 0;
-    const { rerender } = render(<ExplorePanel state={s} dispatch={() => {}} />);
-    expect(screen.queryByTestId("explore-panel")).toBeNull(); // no Sibyl yet
-    rerender(<ExplorePanel state={{ ...s, hasSibyl: true }} dispatch={() => {}} />);
-    expect(screen.getByRole("button", { name: /top of the pack/i })).toBeInTheDocument();
+    render(<ExplorePanel state={{ ...s, hasSibyl: true }} dispatch={() => {}} />);
+    expect(screen.queryByRole("button", { name: /top of the pack/i })).toBeNull();
+    expect(screen.queryByTestId("explore-panel")).toBeNull();
   });
 
   it("offers a confirmed 'Stay' while the Apprentice is on watch after the Sorcerer's death (revised combat), and dispatches stay", () => {
@@ -207,5 +152,15 @@ describe("ExplorePanel — the Sibyl's look (SC-SIB-8)", () => {
     expect(dispatch).not.toHaveBeenCalled();              // a second tap confirms: staying turns her on the party
     fireEvent.click(screen.getByRole("button", { name: /confirm/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "stay" });
+  });
+});
+
+describe("ExplorePanel — artifact use lives on the item's card", () => {
+  it("offers no artifact use or chest opening of its own", () => {
+    const s = newGame(1, [4]); // a Priest can command the carpet
+    s.party[0]!.treasure.push(4, 14); // Magic Carpet and Treasure Chest
+    render(<ExplorePanel state={s} dispatch={() => {}} />);
+    expect(screen.queryByLabelText(/use magic carpet/i)).toBeNull();
+    expect(screen.queryByRole("button", { name: /open the treasure chest/i })).toBeNull();
   });
 });

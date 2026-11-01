@@ -5,7 +5,7 @@ import { GS_PLAYING, AF_DESTROYED, AF_BELL_SPENT, type GameState } from "./state
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
 import type { GameAction } from "./actions";
 import { canCarry } from "./pickup";
-import { usesArtifactsAs, holyWaterTargets, hasLivingHuman, fluteLulls, healingBalmEligible, isHumanOrPriestClass } from "./effects";
+import { canUseArtifact, holyWaterTargets, hasLivingHuman, fluteLulls, healingBalmEligible, isHumanOrPriestClass } from "./effects";
 import { getSubLocation, chasmMoveAllowed, oppositeDir, RING_ADJACENCY_SPECIALS, ISLAND_JUMP_SPECIALS, type SubLocation } from "./subLocation";
 import { giantCanRecover, sunkKey } from "./special";
 import { teleportDestinations } from "./sorcerer";
@@ -75,7 +75,7 @@ function artifactActions(state: GameState): GameAction[] {
   // additional phase check is needed here.
   // Bug fix 2026-08-18 (inhuman-artifacts): Holy Water is Human/Priest only — a Dwarf (or other
   // inhuman) holder gets no useArtifact actions offered at all, matching findBearer's own gate.
-  if (has(16, isHumanOrPriestClass)) {
+  if (has(16, (id) => canUseArtifact(id, 16))) {
     holyWaterTargets(state).forEach((t) => actions.push({ type: "useArtifact", artifact: 16, target: t.target }));
   }
   // Extension kit (SC-EXT-25, design US-21/Resolved-10): the Scroll needs a living human present
@@ -87,7 +87,7 @@ function artifactActions(state: GameState): GameAction[] {
   if (state.phase === "fight" || state.phase === "encounter") {
     // Bug fix 2026-08-18 (inhuman-artifacts): Lotus Dust is Human/Priest only (a Dwarf holder was
     // able to sleep Medusa with it in playtesting).
-    if (has(5, isHumanOrPriestClass)) { // Lotus Dust -> each stranger (but not a Spectre — no effect, per card)
+    if (has(5, (id) => canUseArtifact(id, 5))) { // Lotus Dust -> each stranger (but not a Spectre — no effect, per card)
       for (let i = 0; i < state.strangers.length; i++) {
         if (state.strangers[i] !== 9) actions.push({ type: "useArtifact", artifact: 5, target: i });
       }
@@ -105,21 +105,23 @@ function artifactActions(state: GameState): GameAction[] {
   // USERS, so it is deliberately excluded from this treatment.
   // House rule (SC-11-15a): only offered for a member who fell THIS turn, in THIS area — the
   // same "before the party's next move" window `healingBalmEligible` enforces in the reducer.
-  if (atRestOrLooting && has(6, (id) => id === 6 || id === 1 || usesArtifactsAs(id, 4) || usesArtifactsAs(id, 8))) { // Healing Balm -> Woman/W-Hero/Priest/Wizard, per dead member
+  if (atRestOrLooting && has(6, (id) => canUseArtifact(id, 6))) { // Healing Balm -> Woman/W-Hero/Priest/Wizard, per dead member
     state.party.forEach((_, idx) => { if (healingBalmEligible(state, idx)) actions.push({ type: "useArtifact", artifact: 6, target: idx }); });
   }
-  if (atRestOrLooting && has(9, (id) => usesArtifactsAs(id, 8))) { // Magic Staff (Wizard) -> each stoned member left in THIS area
+  if (atRestOrLooting && has(9, (id) => canUseArtifact(id, 9))) { // Magic Staff (Wizard) -> each stoned member left in THIS area
     state.party.forEach((m, idx) => { if (m.status === 2 && m.stoneArea === state.partyArea) actions.push({ type: "useArtifact", artifact: 9, target: idx }); });
   }
+  // The Charmed Flute, played at an encounter, lulls its Dragons (the player's choice; it is never automatic).
+  if (state.phase === "encounter" && state.strangers.includes(10) && has(12, (id) => canUseArtifact(id, 12))) actions.push({ type: "useArtifact", artifact: 12 });
   if (state.phase === "explore") {
     // The turncoat Apprentice (revised combat): the party may linger where the Sorcerer was slain, and so meet her (any other action
     // that leaves the area parts company with her instead).
     if (state.apprenticeWatch === state.partyArea && !state.fight && state.party.some((m) => m.status === 1 && m.creatureId === 14)) actions.push({ type: "stay" });
-    if (has(4, (id) => usesArtifactsAs(id, 4) || usesArtifactsAs(id, 8))) { // Magic Carpet -> teleport in each available direction
+    if (has(4, (id) => canUseArtifact(id, 4))) { // Magic Carpet -> teleport in each available direction
       for (const dir of [DIR_N, DIR_E, DIR_S, DIR_W, DIR_DOWN]) actions.push({ type: "useArtifact", artifact: 4, dir });
       if (state.level > 1) actions.push({ type: "useArtifact", artifact: 4, dir: DIR_UP });
     }
-    if (has(12, (id) => id === 0 || id === 1 || usesArtifactsAs(id, 4) || usesArtifactsAs(id, 5) || id === 6 || usesArtifactsAs(id, 8))) { // Charmed Flute -> Hero/W-Hero/Priest/Man/Woman/Wizard
+    if (has(12, (id) => canUseArtifact(id, 12))) { // Charmed Flute -> Hero/W-Hero/Priest/Man/Woman/Wizard
       const cur = state.areas[state.partyArea]!;
       const { level, x, y } = unpackCoord(cur.coord);
       const dec = decodeOpen(cur);

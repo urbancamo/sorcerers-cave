@@ -175,6 +175,7 @@ canvas{display:block;touch-action:none;}
    tooltip). Square the buttons and enlarge the glyph so they read as icons, not label-less pills. */
 .dock .btn{padding:9px;gap:0;}
 .dock .btn .ic{width:18px;height:18px;}
+.lvlbtn.current{border-color:var(--brass-bright,#e2bd6a);color:var(--brass-bright,#e2bd6a);box-shadow:0 0 0 1px var(--brass-bright,#e2bd6a),0 0 10px rgba(226,189,106,.45);}
 .lvlbtn{width:38px;height:34px;justify-content:center;padding:0;font-family:var(--display);font-size:13px;font-weight:600;}
 
 /* card reveal panel right */
@@ -383,3 +384,7 @@ canvas{display:block;touch-action:none;}
 .roster.clickable { cursor: pointer; transition: border-color .15s, box-shadow .15s; }
 .roster.clickable:hover { border-color: var(--brass); box-shadow: 0 18px 40px -22px rgba(0,0,0,.85), 0 0 0 1px rgba(201,161,78,.3); }
 .roster-hd .roster-expand { float: right; opacity: .55; font-size: 12px; }
+
+/* ---------- thin-shell HUD (solo game): the title bar, party list and card panel are shown on demand ---------- */
+#hud.shell .roster{display:none;top:48px;max-height:calc(100dvh - 130px);}
+#hud.shell .stats{top:46px;}

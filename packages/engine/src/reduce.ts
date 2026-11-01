@@ -15,7 +15,7 @@ import { C_SIBYL, SIBYL_CODE, examinableAreas, isGuardCode, sibylHere, sibylWait
 import { frontStrength } from "./combat";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import {
-  wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, markDied, healingBalmEligible, ringInvincible, usesArtifactsAs,
+  wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, markDied, healingBalmEligible, ringInvincible, usesArtifactsAs, canUseArtifact,
   hasLivingHuman, holyWaterTargets, HW_STATUE_BASE, HW_MEDUSA, HW_STRANGER_BASE, HW_PARKED_STATUE_BASE, isHumanOrPriestClass,
   eyePresent, slaySorcerer, revertApprenticesOnSorcererDeath,
 } from "./effects";
@@ -56,16 +56,7 @@ const C_UNICORN = 13; // hostileMax 0 / indiffMax 0 — always friendly regardle
 function findBearer(state: GameState, artifact: number): number {
   return state.party.findIndex((m: PartyMember) => {
     if (!(m.status === 0 || m.status === 1) || !m.treasure.includes(artifact)) return false;
-    if (artifact === 6) return m.creatureId === 6 || m.creatureId === 1 || usesArtifactsAs(m.creatureId, 4) || usesArtifactsAs(m.creatureId, 8); // Balm: Woman/W-Hero/Priest/Wizard
-    if (artifact === 9) return usesArtifactsAs(m.creatureId, 8); // Staff reanimation: Wizard
-    if (artifact === 4) return usesArtifactsAs(m.creatureId, 4) || usesArtifactsAs(m.creatureId, 8); // Magic Carpet: Priest/Wizard
-    if (artifact === 12) return m.creatureId === 0 || m.creatureId === 1 || usesArtifactsAs(m.creatureId, 4) || usesArtifactsAs(m.creatureId, 5) || m.creatureId === 6 || usesArtifactsAs(m.creatureId, 8); // Charmed Flute: Hero/W-Hero/Priest/Man/Woman/Wizard
-    // Bug fix 2026-08-18 (inhuman-artifacts): Holy Water and Lotus Dust are Human/Priest only —
-    // neither names a bearer in its own card text, but both are blank in the Inhuman/Dwarf Ally
-    // columns of the ARTEFACTS – WHO CAN USE? table, and a Dwarf holder was able to destroy/sleep
-    // Medusa with either in playtesting.
-    if (artifact === 5 || artifact === 16) return isHumanOrPriestClass(m.creatureId);
-    return true;
+    return canUseArtifact(m.creatureId, artifact); // class gates live in effects.ts (Holy Water / Lotus Dust: bug fix 2026-08-18 inhuman-artifacts)
   });
 }
 
@@ -477,15 +468,8 @@ function settleChamber(state: GameState, freshEntry: boolean, events: GameEvent[
     events.push({ type: "ghoulsAttack", count }, { type: "fightStarted", surprise: 0 }, ...beginRevised(state));
     return;
   }
-  // The Charmed Flute lulls every Dragon for as long as the party holds it: they sleep in the
-  // chamber, no longer leading or blocking, so a friendlier creature reacts and the area plays
-  // out as if empty (§ Charmed Flute). Re-evaluated each entry, so they wake if the flute is gone.
-  if (fluteLulls(state) && state.strangers.includes(10)) {
-    const dragons = state.strangers.filter((id) => id === 10);
-    state.lulled = [...(state.lulled ?? []), ...dragons];
-    state.strangers = state.strangers.filter((id) => id !== 10);
-    if (announceLull) events.push({ type: "dragonsLulled", count: dragons.length });
-  }
+  // The Charmed Flute no longer lulls Dragons by itself on entry (UI review 2026-10-30, "no auto-use of artifacts"):
+  // the player plays it from the encounter (`useArtifact` 12, see `lullDragons`). Dragons parked awake stay awake.
   // Extension kit (SC-EXT-21): a Demon is always hostile — including one parked into an area the
   // party had already permanently pacified (by an earlier draw made elsewhere while they were away,
   // same as the `withdraw` case below, reduce.ts:642). This check must run BEFORE the pacifiedAreas
@@ -522,6 +506,20 @@ function settleChamber(state: GameState, freshEntry: boolean, events: GameEvent[
   } else {
     persistAndExplore(state);
   }
+}
+
+/** The player plays the Charmed Flute at an encounter: every Dragon falls asleep in the chamber, no longer leading or blocking, so a
+ *  friendlier creature reacts and the area plays out as if empty (§ Charmed Flute). They wake again on the next entry. */
+function lullDragons(state: GameState): GameEvent[] {
+  const dragons = state.strangers.filter((id) => id === 10);
+  state.lulled = [...(state.lulled ?? []), ...dragons];
+  state.strangers = state.strangers.filter((id) => id !== 10);
+  state.surpriseReady = state.strangers.length > 0 ? state.surpriseReady : false;
+  const events: GameEvent[] = [{ type: "artifactUsed", artifact: 12 }, { type: "dragonsLulled", count: dragons.length }];
+  if (state.strangers.length === 0 && !sibylWaiting(state)) {
+    if (state.treasures.length > 0) state.phase = "pickup"; else persistAndExplore(state);
+  }
+  return events;
 }
 
 /** Resume the entry held at the Medusa pause — the dust thrown or the gaze braved — firing the
@@ -1160,6 +1158,10 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         ...(next.statues ?? []).map((id) => 500 + id), // Gallery statues stay put (SC-EXT-10)
         ...(next.lulled ?? []).map((id) => 100 + id), // flute-lulled dragons park awake (re-lulled on re-entry if held)
       ];
+      // Remember backing out unseen (a party that already tested is "approached", via indiffCounts).
+      if (next.strangers.length > 0 && !next.indiffCounts?.[next.partyArea] && !next.withdrewAreas?.includes(next.partyArea)) {
+        next.withdrewAreas = [...(next.withdrewAreas ?? []), next.partyArea];
+      }
       next.strangers = []; next.treasures = []; next.hazards = []; next.sleeping = [];
       if (next.statues) next.statues = []; // guarded — see persistAndExplore's comment (SC-EXT-1)
       next.lulled = [];
@@ -1781,10 +1783,10 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
             }
             return { state: next, events: [{ type: "artifactUsed", artifact: 12 }, { type: "secretDoorRevealed", dir: action.dir }] };
           }
-          // Lulling Dragons is passive: the Flute lulls them automatically on chamber entry for as
-          // long as the party holds it (see resolveArea) — and lulls Vipers on the pit crossing (see
-          // special.ts). So there is no explicit "lull" action; without a `dir`, the Flute does nothing.
-          return { state, events: [{ type: "blocked" }] };
+          // Without a `dir` the Flute lulls the Dragons in an encounter (the player's choice, not automatic). It still lulls
+          // Vipers passively on the pit crossing (see special.ts).
+          if (next.phase !== "encounter" || !next.strangers.includes(10)) return { state, events: [{ type: "blocked" }] };
+          return { state: next, events: lullDragons(next) };
         }
         case 15: { // Elixir — usable ANY time the party is not mid-fight; ANY living member may drink (design US-19, SC-EXT-22)
           if (next.phase === "fight" || action.target === undefined) return { state, events: [{ type: "blocked" }] };

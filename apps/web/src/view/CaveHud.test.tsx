@@ -57,3 +57,29 @@ describe("cursesInForce — the curse chip follows the rules, not the raw counte
     expect(cursesInForce({ curses: 3, sorcererKilled: true } as GameState)).toBe(0);
   });
 });
+
+describe('CaveHud — thin shell', () => {
+  it('drops the title, stat chips and help panel, and keeps the dock', () => {
+    const { container } = render(<CaveHud mountRef={ref()} shell code="ABCD" onLog={() => {}} />);
+    expect(container.querySelector('.brand')).toBeNull();
+    expect(container.querySelector('.hint')).toBeNull();
+    expect(container.querySelector('#cardpanel')).toBeNull(); // the React card panel replaces it
+    expect(screen.queryByText('ABCD')).toBeNull();
+    expect(container.querySelector('#snapBtn')).not.toBeNull();
+    expect(screen.getByRole('button', { name: /game log/i })).toBeInTheDocument();
+  });
+
+  it('exposes the open slots to the stylesheet', () => {
+    const { container } = render(<CaveHud mountRef={ref()} shell leftSlot="party" rightSlot="card" />);
+    const hud = container.querySelector('#hud') as HTMLElement;
+    expect(hud).toHaveClass('shell');
+    expect(hud.dataset.left).toBe('party');
+    expect(hud.dataset.right).toBe('card');
+  });
+
+  it('keeps the legacy HUD for the other views', () => {
+    const { container } = render(<CaveHud mountRef={ref()} />);
+    expect(container.querySelector('.brand')).not.toBeNull();
+    expect(container.querySelector('.hint')).not.toBeNull();
+  });
+});

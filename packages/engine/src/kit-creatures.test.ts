@@ -114,7 +114,7 @@ describe("Class-based artifact eligibility — Apprentice uses artifacts as a Wi
     expect(events).toContainEqual({ type: "secretDoorRevealed", dir: DIR_DOWN });
   });
 
-  it("lulls a Dragon on chamber entry while holding the Flute (FLUTE_PLAYERS, effects.ts)", () => {
+  it("lulls a Dragon when the Flute is played (FLUTE_PLAYERS, effects.ts)", () => {
     const s = makeState({
       phase: "explore", level: 2,
       party: [member(APPRENTICE, [CHARMED_FLUTE])],
@@ -123,7 +123,9 @@ describe("Class-based artifact eligibility — Apprentice uses artifacts as a Wi
       smallPack: [110], smallIdx: 0, // Dragon
       seed: 1,
     });
-    const { state, events } = reduce(s, { type: "move", dir: 3 }); // south — the fresh chamber draw
+    const met = reduce(s, { type: "move", dir: 3 }).state; // south — the fresh chamber draw: the Dragon is met, not lulled
+    expect(met.phase).toBe("encounter");
+    const { state, events } = reduce(met, { type: "useArtifact", artifact: CHARMED_FLUTE }); // the player plays the Flute
     expect(state.phase).toBe("explore"); // acts empty — the Dragon is lulled
     expect(events).toContainEqual({ type: "dragonsLulled", count: 1 });
   });
@@ -178,7 +180,7 @@ describe("Class-based artifact eligibility — Scholar & Witch use artifacts as 
       expect(state.party[1]!.status).toBe(0);
     });
 
-    it(`${name} plays the Charmed Flute to lull a Dragon on entry`, () => {
+    it(`${name} plays the Charmed Flute to lull a Dragon`, () => {
       const s = makeState({
         phase: "explore", level: 2,
         party: [member(id, [CHARMED_FLUTE])],
@@ -187,7 +189,8 @@ describe("Class-based artifact eligibility — Scholar & Witch use artifacts as 
         smallPack: [110], smallIdx: 0,
         seed: 1,
       });
-      const { state, events } = reduce(s, { type: "move", dir: 3 });
+      const met = reduce(s, { type: "move", dir: 3 }).state;
+      const { state, events } = reduce(met, { type: "useArtifact", artifact: CHARMED_FLUTE });
       expect(state.phase).toBe("explore");
       expect(events).toContainEqual({ type: "dragonsLulled", count: 1 });
     });
@@ -209,7 +212,7 @@ describe("Class-based artifact eligibility — Scholar & Witch use artifacts as 
 });
 
 describe("Class-based artifact eligibility — Thief uses artifacts as a Man (SC-EXT-17)", () => {
-  it("plays the Charmed Flute to lull a Dragon on entry (Man is a Flute player)", () => {
+  it("plays the Charmed Flute to lull a Dragon (Man is a Flute player)", () => {
     const s = makeState({
       phase: "explore", level: 2,
       party: [member(THIEF, [CHARMED_FLUTE])],
@@ -218,7 +221,8 @@ describe("Class-based artifact eligibility — Thief uses artifacts as a Man (SC
       smallPack: [110], smallIdx: 0,
       seed: 1,
     });
-    const { state, events } = reduce(s, { type: "move", dir: 3 });
+    const met = reduce(s, { type: "move", dir: 3 }).state;
+    const { state, events } = reduce(met, { type: "useArtifact", artifact: CHARMED_FLUTE });
     expect(state.phase).toBe("explore");
     expect(events).toContainEqual({ type: "dragonsLulled", count: 1 });
   });

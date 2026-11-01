@@ -114,15 +114,21 @@ describe("projectArea", () => {
     expect(new Set(dup.strangers.map((c) => c.file)).size).toBe(2);
   });
 
-  it("renders a Dragon asleep on the party's tile while the Charmed Flute is held", () => {
-    const state = newGame(1, [0]); // Hero (eligible flute player), partyArea 0
-    const dragon = (idx: number) =>
-      projectArea(area({ card: 16, contents: [100 + 10] }), idx, state, art).strangers[0]!;
-    state.party[0]!.treasure = [12]; // Charmed Flute
-    expect(dragon(0).asleep).toBe(true); // party's tile + Flute held → asleep (Zzz)
-    expect(dragon(1).asleep).toBe(false); // a different tile → awake (the charm is local to the party)
-    state.party[0]!.treasure = []; // drop the Flute
-    expect(dragon(0).asleep).toBe(false); // no Flute → awake again
+  it("holding the Charmed Flute does not put a Dragon to sleep: only playing it does", () => {
+    const state = newGame(1, [0]); // partyArea 0
+    state.party[0]!.treasure = [12]; // Charmed Flute held
+    state.phase = "encounter";
+    state.strangers = [10];
+    const here = projectArea(area({ card: 16, contents: [] }), 0, state, art, [100 + 10]).strangers[0]!;
+    expect(here.asleep).toBe(false); // met, awake, Flute in the bag
+    state.strangers = []; state.lulled = [10]; // the player played the Flute
+    const lulled = projectArea(area({ card: 16, contents: [] }), 0, state, art, [100 + 10]).strangers[0]!;
+    expect(lulled.asleep).toBe(true);
+    state.phase = "explore"; state.lulled = []; // chamber played out: the Dragon is parked on the tile, still lulled for this visit
+    const parked = projectArea(area({ card: 16, contents: [100 + 10] }), 0, state, art).strangers[0]!;
+    expect(parked.asleep).toBe(true);
+    const elsewhere = projectArea(area({ card: 16, contents: [100 + 10] }), 1, state, art).strangers[0]!;
+    expect(elsewhere.asleep).toBe(false); // another tile: awake
   });
 });
 

@@ -1,5 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
+import { legalActions } from "./selectors";
 import { makeState } from "./testkit";
 import { decodeArea } from "./decode";
 import { packCoord, DIR_DOWN } from "./coords";
@@ -24,34 +25,45 @@ const entering = (partyTreasure: number[], smallPack: number[]) =>
   });
 
 describe("Charmed Flute — lull Dragons (§ Charmed Flute)", () => {
-  it("enters a Dragon-only chamber as if empty while the party holds the Flute", () => {
+  it("does not lull a Dragon by itself on entry: the party meets it and may play the Flute", () => {
     const { state, events } = reduce(entering([12], [110]), { type: "move", dir: 3 });
-    expect(state.phase).toBe("explore"); // chamber acts empty — the party proceeds past the sleeper
-    expect(events).toContainEqual({ type: "dragonsLulled", count: 1 });
-    const contents = state.areas[state.partyArea]!.contents;
-    expect(contents).toContain(110); // parked AWAKE (110), not permanently asleep (410)…
-    expect(contents).not.toContain(410); // …so it is re-evaluated against the Flute on re-entry
-    expect(state.lulled ?? []).toEqual([]); // cleared once parked
-  });
-
-  it("fights the Dragon normally without the Flute", () => {
-    const { state, events } = reduce(entering([], [110]), { type: "move", dir: 3 });
     expect(state.phase).toBe("encounter");
     expect(state.strangers).toEqual([10]);
     expect(events).not.toContainEqual({ type: "dragonsLulled", count: 1 });
+    expect(legalActions(state)).toContainEqual({ type: "useArtifact", artifact: 12 });
+  });
+
+  it("playing the Flute at a Dragon-only chamber lulls it and plays the chamber out as if empty", () => {
+    const met = reduce(entering([12], [110]), { type: "move", dir: 3 }).state;
+    const { state, events } = reduce(met, { type: "useArtifact", artifact: 12 });
+    expect(state.phase).toBe("explore");
+    expect(events).toContainEqual({ type: "dragonsLulled", count: 1 });
+    const contents = state.areas[state.partyArea]!.contents;
+    expect(contents).toContain(110); // parked AWAKE (110), not permanently asleep (410): it must be lulled again next time
+    expect(contents).not.toContain(410);
+    expect(state.lulled ?? []).toEqual([]); // cleared once parked
+  });
+
+  it("offers no Flute play without the Flute or without a Dragon", () => {
+    const noFlute = reduce(entering([], [110]), { type: "move", dir: 3 }).state;
+    expect(legalActions(noFlute)).not.toContainEqual({ type: "useArtifact", artifact: 12 });
+    const noDragon = reduce(entering([12], [105]), { type: "move", dir: 3 }).state;
+    expect(legalActions(noDragon)).not.toContainEqual({ type: "useArtifact", artifact: 12 });
   });
 
   it("lulls only the Dragon — other strangers still lead and fight", () => {
-    // Dragon (110) + Man (105): the Flute lulls the Dragon so the Man leads the encounter.
-    const { state, events } = reduce(entering([12], [110, 105]), { type: "move", dir: 3 });
+    // Dragon (110) + Man (105): once the Flute is played the Man leads the encounter.
+    const met = reduce(entering([12], [110, 105]), { type: "move", dir: 3 }).state;
+    expect(met.strangers).toContain(10);
+    const { state, events } = reduce(met, { type: "useArtifact", artifact: 12 });
     expect(state.phase).toBe("encounter");
     expect(state.strangers).toEqual([5]); // Man stays awake
     expect(state.lulled).toEqual([10]); // Dragon asleep, out of the fight, still in the chamber
     expect(events).toContainEqual({ type: "dragonsLulled", count: 1 });
   });
 
-  it("is blocked without a direction — lulling is passive, not an explicit action", () => {
-    const s = makeState({ phase: "encounter", party: [member(0, [12])], strangers: [10] });
+  it("is blocked when there is no Dragon to lull", () => {
+    const s = makeState({ phase: "encounter", party: [member(0, [12])], strangers: [5] });
     const { events } = reduce(s, { type: "useArtifact", artifact: 12 });
     expect(events).toEqual([{ type: "blocked" }]);
   });

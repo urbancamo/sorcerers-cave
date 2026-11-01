@@ -39,26 +39,14 @@ describe("RevisedFightSurface", () => {
     expect(old.container).toBeEmptyDOMElement();
   });
 
-  it("offers the Scroll's three choices to the attacking party, the surprise only in round 1", () => {
+  it("only waits at the Scroll's window: one neutral button, no Scroll prompt", () => {
     const dispatch = vi.fn();
     const s = attacking([OGRE], { party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [SCROLL] }] });
     expect(s.fight!.pending).toMatchObject({ by: "party", kind: "scroll", surprise: true });
     render(<RevisedFightSurface state={s} dispatch={dispatch} cards={cards} />);
-    fireEvent.click(screen.getByRole("button", { name: /surprise/i }));
-    expect(dispatch).toHaveBeenLastCalledWith({ type: "scroll", use: "surprise" });
-    fireEvent.click(screen.getByRole("button", { name: /not read|decline|don't read/i }));
+    expect(screen.queryByRole("button", { name: /surprise|destroy/i })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /begin the fight/i }));
     expect(dispatch).toHaveBeenLastCalledWith({ type: "scroll", use: "decline" });
-    fireEvent.click(screen.getByRole("button", { name: /destroy/i }));          // asks to confirm: it curses the party
-    expect(dispatch).toHaveBeenCalledTimes(2);
-    fireEvent.click(screen.getByRole("button", { name: /confirm/i }));
-    expect(dispatch).toHaveBeenLastCalledWith({ type: "scroll", use: "destroy" });
-  });
-
-  it("hides the surprise option after round 1", () => {
-    const s = attacking([OGRE, TROLL], { party: [{ creatureId: 5, status: 0, dragonKills: 0, treasure: [SCROLL] }] });
-    s.fight!.round = 2; s.fight!.pending = { by: "party", kind: "scroll", surprise: false };
-    render(<RevisedFightSurface state={s} dispatch={vi.fn()} cards={cards} />);
-    expect(screen.queryByRole("button", { name: /surprise/i })).toBeNull();
   });
 
   it("engage: pairs a free fighter with a deployed foe, and fights only when the pairing is complete", () => {
@@ -183,12 +171,44 @@ describe("RevisedFightSurface", () => {
     render(<RevisedFightSurface state={defending} dispatch={dispatch} cards={cards} />);
     const go = screen.getByRole("button", { name: /stand|deploy/i });
     expect(go).toBeDisabled();
-    fireEvent.click(screen.getByTestId("rev-free-0"));
+    fireEvent.click(screen.getByTestId("rev-free-0"));   // selecting is not yet standing in front
     expect(go).toBeDisabled();
     fireEvent.click(screen.getByTestId("rev-free-1"));
+    expect(go).toBeDisabled();
+    fireEvent.click(screen.getByTestId("rev-frontline")); // one tap on the front line moves everything selected
     expect(go).not.toBeDisabled();
     fireEvent.click(go);
     expect(dispatch).toHaveBeenCalledWith({ type: "deploy", creatures: [0, 1] });
+  });
+
+  it("deploy: dragging one of several selected creatures carries the whole selection to the front line", () => {
+    const dispatch = vi.fn();
+    const base: GameState = { ...newGame(1, [5, 6, 7]), variants: { combatRevision: true }, phase: "encounter", strangers: [OGRE, TROLL], treasures: [] };
+    const defending = structuredClone(driveStrangers(reduce({ ...base, fight: null }, { type: "attack" }).state).state);
+    defending.fight!.rev!.attacker = "strangers";
+    defending.fight!.pending = { by: "party", kind: "deploy", min: 2 };
+    defending.fight!.rev!.step = "deploy";
+    render(<RevisedFightSurface state={defending} dispatch={dispatch} cards={cards} />);
+    fireEvent.click(screen.getByTestId("rev-free-0"));
+    fireEvent.click(screen.getByTestId("rev-free-2"));
+    const data: Record<string, string> = {};
+    fireEvent.dragStart(screen.getByTestId("rev-free-2"), { dataTransfer: { effectAllowed: "", setData: (k: string, v: string) => { data[k] = v; } } });
+    expect(data["application/x-scv-member"]).toBe("0,2");
+    fireEvent.drop(screen.getByTestId("rev-frontline"), { dataTransfer: { getData: () => data["application/x-scv-member"] } });
+    fireEvent.click(screen.getByRole("button", { name: /stand|deploy/i }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "deploy", creatures: [0, 2] });
+  });
+
+  it("the party panel is reused: one row per member with strength, and what each carries", () => {
+    const base: GameState = { ...newGame(1, [5, 6]), variants: { combatRevision: true }, phase: "encounter", strangers: [OGRE], treasures: [] };
+    const s = driveStrangers(reduce({ ...base, fight: null }, { type: "attack" }).state).state;
+    s.party[0]!.treasure.push(3); // Magic Sword
+    const { container } = render(<RevisedFightSurface state={s} dispatch={vi.fn()} cards={cards} />);
+    const list = screen.getByTestId("rev-tray");
+    expect(list.querySelectorAll(".mbr")).toHaveLength(2);
+    expect(screen.getByTestId("rev-free-0")).toHaveTextContent(/\d/);
+    expect(list.querySelector('[title^="Magic Sword"]')).not.toBeNull();
+    expect(container.querySelector(".scv-rev.with-list")).not.toBeNull();
   });
 
   /** The strangers attack a party that must stand every one of its creatures in front (min = all it has free). */
@@ -455,7 +475,7 @@ describe("RevisedFightSurface", () => {
     s.party.forEach((m, i) => { if (i > 0) m.status = 3; });
     s.areas[s.partyArea]!.card = 15 | 16;
     render(<RevisedFightSurface state={s} dispatch={dispatch} cards={cards} />);
-    expect(screen.queryByTestId("rev-tray")).toBeNull();
+    expect(screen.getByTestId("rev-free-0")).toHaveClass("dim");   // committed to a match: listed, grayed out
     expect(screen.getByRole("button", { name: /retreat/i })).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: /roll the round/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "redeploy", moves: [] });

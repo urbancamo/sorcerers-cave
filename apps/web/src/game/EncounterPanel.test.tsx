@@ -30,44 +30,6 @@ describe("EncounterPanel", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "leaveTreasure" });
   });
 
-  it("lists a treasure once with a member dropdown (Leave in chamber default)", () => {
-    const dispatch = vi.fn();
-    const pickup: GameState = { ...newGame(1, [5, 6]), phase: "pickup", treasures: [1] }; // Gold
-    render(<EncounterPanel state={pickup} dispatch={dispatch} />);
-    const select = screen.getByLabelText(/assign gold/i) as HTMLSelectElement;
-    expect(select.options[0]!.textContent).toBe("Leave in chamber"); // first option leaves it
-    fireEvent.change(select, { target: { value: "0" } });            // give to the first eligible member
-    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "takeTreasure", ti: 0 }));
-  });
-
-  it("words the Lost Ruby as wresting it from the guardian statue, not a free pickup", () => {
-    const pickup: GameState = { ...newGame(1, [0]), phase: "pickup", treasures: [11] }; // Lost Ruby (guarded)
-    render(<EncounterPanel state={pickup} dispatch={() => {}} />);
-    const select = screen.getByLabelText(/wrest lost ruby/i) as HTMLSelectElement;
-    const opts = [...select.options].map((o) => o.textContent ?? "");
-    expect(opts.some((t) => /wrests it from the statue/i.test(t))).toBe(true);
-    expect(opts.some((t) => /^give to/i.test(t))).toBe(false); // never the plain "Give to" wording
-  });
-
-  it("bug fix (SC-11-47): a freed Lost Ruby is worded as an ordinary pickup, not a statue wrestle", () => {
-    const pickup: GameState = { ...newGame(1, [0]), phase: "pickup", treasures: [11], rubyFreed: true };
-    render(<EncounterPanel state={pickup} dispatch={() => {}} />);
-    const select = screen.getByLabelText(/assign lost ruby/i) as HTMLSelectElement;
-    const opts = [...select.options].map((o) => o.textContent ?? "");
-    expect(opts.some((t) => /wrests it from the statue/i.test(t))).toBe(false);
-    expect(opts.some((t) => /^give to/i.test(t))).toBe(true);
-  });
-
-  it("lists an artefact once with a target dropdown", () => {
-    const dispatch = vi.fn();
-    const s: GameState = { ...newGame(1, [5, 6]), phase: "encounter", strangers: [3] }; // vs a Troll
-    s.party[0]!.treasure.push(5); // the Man carries Lotus Dust
-    render(<EncounterPanel state={s} dispatch={dispatch} />);
-    const select = screen.getByLabelText(/use lotus dust/i);
-    fireEvent.change(select, { target: { value: "0" } }); // apply to the only stranger
-    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "useArtifact", artifact: 5 }));
-  });
-
   it("SC-4-18a: never renders a 'move' button — leaving an indifferent encounter is driven by the 3D exit markers, not this panel", () => {
     const s: GameState = { ...newGame(1, [5, 6]), phase: "encounter", strangers: [6], indiffStreak: 1 };
     s.areas[s.partyArea] = { ...s.areas[s.partyArea]!, card: 31 }; // N+E+S+W+chamber — legalActions now offers 4 moves
@@ -105,15 +67,6 @@ describe("EncounterPanel", () => {
     expect(screen.getByText(/elixir/i)).toBeInTheDocument();
   });
 
-  it("labels the Sorcerer's Lotus Dust option as weakening — he cannot be slept (SC-11-12)", () => {
-    const s: GameState = { ...newGame(1, [0]), phase: "encounter", strangers: [11] }; // the Sorcerer
-    s.party[0]!.treasure.push(5); // Hero carries Lotus Dust
-    render(<EncounterPanel state={s} dispatch={() => {}} />);
-    const select = screen.getByLabelText(/use lotus dust/i) as HTMLSelectElement;
-    const sorcerer = [...select.options].map((o) => o.textContent ?? "").find((t) => /sorcerer/i.test(t));
-    expect(sorcerer).toMatch(/weakens him.*cannot be slept/i); // never the bare sleep promise
-  });
-
   it("offers the Chasm's descend button with a blocking confirm before dispatching (US-02)", () => {
     const dispatch = vi.fn();
     const base = newGame(1, [0]);
@@ -147,44 +100,6 @@ describe("EncounterPanel", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "pullBellRope", mi: 0 });
   });
 
-  it("offers the Elixir as a drinker-picker dropdown, then the verbatim confirm (US-19)", () => {
-    const dispatch = vi.fn();
-    const s: GameState = { ...newGame(1, [0]), phase: "encounter", strangers: [3] };
-    s.party[0]!.treasure.push(15); // Hero carries the Elixir
-    render(<EncounterPanel state={s} dispatch={dispatch} />);
-    fireEvent.change(screen.getByLabelText("Elixir"), { target: { value: "0" } });
-    expect(screen.getByTestId("confirm-prompt")).toHaveTextContent(/1: death\. 2–3: nothing\. 4–6: \+2 strength, forever\./);
-    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
-    expect(dispatch).toHaveBeenCalledWith({ type: "useArtifact", artifact: 15, target: 0 });
-  });
-
-  it("offers the Scroll as a single confirm button, verbatim text (US-21)", () => {
-    const dispatch = vi.fn();
-    const s: GameState = { ...newGame(1, [0]), phase: "encounter", strangers: [3] }; // Hero (HUMAN) vs Troll
-    s.party[0]!.treasure.push(19); // carries the Scroll
-    render(<EncounterPanel state={s} dispatch={dispatch} />);
-    fireEvent.click(screen.getByRole("button", { name: "Read the Scroll" }));
-    expect(screen.getByTestId("confirm-prompt")).toHaveTextContent(/curses the party/i);
-    fireEvent.click(screen.getByRole("button", { name: "Confirm" }));
-    expect(dispatch).toHaveBeenCalledWith({ type: "useArtifact", artifact: 19 });
-  });
-
-  it("offers Holy Water's target picker, naming a stone statue distinctly from a stranger (US-20)", () => {
-    const dispatch = vi.fn();
-    const s: GameState = {
-      ...newGame(1, [0], { extensionKit: true }),
-      phase: "encounter",
-      strangers: [15], // Demon (DESTROY target)
-    };
-    s.party[0]!.treasure.push(16); // Hero carries Holy Water
-    render(<EncounterPanel state={s} dispatch={dispatch} />);
-    const select = screen.getByLabelText(/use holy water/i);
-    const opts = [...(select as HTMLSelectElement).options].map((o) => o.textContent ?? "");
-    expect(opts.some((t) => /demon/i.test(t))).toBe(true);
-    fireEvent.change(select, { target: { value: "0" } });
-    expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({ type: "useArtifact", artifact: 16 }));
-  });
-
   it("explains an uncarryable treasure beside the rows for what CAN be taken", () => {
     // Man (50 kg) + Woman (25 kg), Gold takeable but the 100 kg Treasure Chest is not: the window
     // opens for the Gold, and the chest gets an info line instead of a silent, row-less listing.
@@ -192,8 +107,6 @@ describe("EncounterPanel", () => {
     const pickup: GameState = { ...newGame(1, [5, 6]), phase: "pickup", treasures: [14, 1] };
     render(<EncounterPanel state={pickup} dispatch={dispatch} />);
     expect(screen.getByText("The Treasure Chest is too heavy for anyone to carry.")).toBeInTheDocument();
-    expect(screen.queryByLabelText(/assign treasure chest/i)).not.toBeInTheDocument();
-    expect(screen.getByLabelText(/assign gold/i)).toBeInTheDocument();
     expect(dispatch).not.toHaveBeenCalled(); // something is takeable — no auto-skip
   });
 
@@ -201,7 +114,6 @@ describe("EncounterPanel", () => {
     const pickup: GameState = { ...newGame(1, [5, 6]), phase: "pickup", treasures: [1] }; // Gold, 25 kg
     render(<EncounterPanel state={pickup} dispatch={() => {}} />);
     expect(screen.queryByText(/too heavy for anyone to carry/i)).not.toBeInTheDocument();
-    expect(screen.getByLabelText(/assign gold/i)).toBeInTheDocument();
   });
 
   it("auto-skips a pickup where leaving is the only option (design 2026-07-28)", () => {
@@ -285,5 +197,17 @@ describe("EncounterPanel — the Sibyl (SC-SIB-4)", () => {
   it("does not name her once she has been met", () => {
     render(<EncounterPanel state={sibylEncounter({ sibylMet: true, strangers: [5] })} dispatch={() => {}} />);
     expect(screen.queryByTestId("sibyl-waits")).toBeNull();
+  });
+});
+
+describe("EncounterPanel — artifact use lives on the item's card", () => {
+  it("offers no artifact use of its own (Lotus Dust, Elixir, Scroll, Holy Water are used from their cards)", () => {
+    const s: GameState = { ...newGame(1, [0], { extensionKit: true }), phase: "encounter", strangers: [3] };
+    s.party[0]!.treasure.push(5, 15, 19, 16);
+    render(<EncounterPanel state={s} dispatch={() => {}} />);
+    expect(screen.queryByLabelText(/use lotus dust/i)).toBeNull();
+    expect(screen.queryByLabelText("Elixir")).toBeNull();
+    expect(screen.queryByRole("button", { name: "Read the Scroll" })).toBeNull();
+    expect(screen.queryByLabelText(/use holy water/i)).toBeNull();
   });
 });
