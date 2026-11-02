@@ -19,6 +19,18 @@ const SPECIAL_TEXT: Record<number, string> = {
   11: 'A well stands here. Exits: {exits}.',
 };
 
+// The special chambers' names (the same ones the map labels them with); the Gateway is not one that asks anything of the party.
+const CHAMBER_NAME: Record<number, string> = {
+  2: 'Deep Pool', 3: 'Viper Pit', 4: 'Tomb of Kings', 5: 'Great Hall', 6: 'The Chasm', 7: 'The Bell Rope',
+  8: 'The Lair', 9: 'The Whirlpool', 10: 'The Gallery', 11: 'The Well',
+};
+
+/** The name of a special chamber (the heading of its action bar), or null for the Gateway, an ordinary chamber or a tunnel. */
+export function chamberName(state: GameState, idx: number): string | null {
+  const a = state.areas[idx];
+  return a ? CHAMBER_NAME[decodeOpen(a).special] ?? null : null;
+}
+
 const list = (words: string[]) =>
   words.length < 2 ? words.join('') : `${words.slice(0, -1).join(', ')} and ${words[words.length - 1]}`;
 

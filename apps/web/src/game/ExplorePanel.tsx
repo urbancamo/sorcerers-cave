@@ -1,6 +1,7 @@
 import { legalActions, decodeArea, SPECIAL_VIPER_PIT, type GameState, type GameAction } from "@sorcerers-cave/engine";
 import { memberLabel } from "./memberLabels";
 import { ConfirmButton, ConfirmPicker } from "./ConfirmButton";
+import { chamberName } from "../data/areaText";
 
 // Extension kit blocking-confirm popups (design Part 2 — Trap-fall pattern), verbatim per story.
 const CHASM_CONFIRM = "Descend? You cannot return this way.";
@@ -43,7 +44,7 @@ export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: 
 
   return (
     <div className="scv-enc" data-testid="explore-panel">
-      <h3 className="scv-enc-hd">Actions</h3>
+      <h3 className="scv-enc-hd">{chamberName(state, state.partyArea) ?? "Actions"}</h3>
 
       {attack && (
         <div className="scv-enc-actions">

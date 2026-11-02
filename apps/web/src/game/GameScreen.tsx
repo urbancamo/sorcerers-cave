@@ -40,6 +40,7 @@ import { InventoryPanel } from "./shell/InventoryPanel";
 import { ItemActions } from "./shell/ItemActions";
 import { FloorTreasureActions } from "./shell/FloorTreasureActions";
 import { useOfferOnPickup } from "./shell/useOfferOnPickup";
+import { arrivalSelection } from "./shell/areaSelection";
 import { SibylLook } from "./SibylLook";
 import { memberLabels } from "./memberLabels";
 import { inventoryRows } from "./inventory";
@@ -155,6 +156,16 @@ export default function GameScreen() {
     setTimeout(() => caveApi.current?.frameArea(to, true), 300);
   };
   const art = useManifestArt(); // tile + card art, for the Sorcerer's teleport map
+  // Arriving at a special chamber with nothing on its floor: show the chamber on the card panel. This runs after the scene (a child) has
+  // reported its own selection for the arrival, so it is the last word; a chamber with cards keeps the scene's own first card.
+  useEffect(() => {
+    if (!engine || !onShow || holding) return;
+    const here = engine.current;
+    if (here.strangers.length > 0 || here.treasure.length > 0) return;
+    const arrival = arrivalSelection(onShow, here, art?.tiles ?? []);
+    if (arrival) { setSelected(arrival); setRightSlot((cur) => cur ?? 'card'); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- offered once per arrival (the area), not on every state change
+  }, [onShow?.partyArea, holding]);
   const gameOver = !!state && state.gs !== GS_PLAYING;
   // The finished game's move log, for the post-game .txt / .log downloads (fetched only at game over).
   const gameLog = useQuery(api.game.log, gameOver && gameId ? { id: gameId } : "skip") as GameLog | null | undefined;
@@ -348,8 +359,10 @@ export default function GameScreen() {
         shell={{
           left: fightVisible ? null : leftSlot, right: rightSlot,
           onSelectCard: (card, where, explicit) => {
-            setSelected(card ? { kind: 'card', card, where } : null);
-            setRightSlot((cur) => (card ? (explicit ? 'card' : (cur ?? 'card')) : (cur === 'card' ? null : cur)));
+            // Nothing on the floor of a special chamber: show the chamber itself (see arrivalSelection) instead of closing the panel.
+            const arrival = !card && engine ? arrivalSelection(displayState, engine.current, art?.tiles ?? []) : null;
+            setSelected(card ? { kind: 'card', card, where } : arrival);
+            setRightSlot((cur) => (card ? (explicit ? 'card' : (cur ?? 'card')) : arrival ? (cur ?? 'card') : (cur === 'card' ? null : cur)));
           },
           onSelectMember: (member) => { setSelected({ kind: 'member', member }); setRightSlot('card'); },
           onSelectArea: (area, file, rot) => {

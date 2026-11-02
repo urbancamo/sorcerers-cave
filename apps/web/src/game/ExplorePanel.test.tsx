@@ -58,6 +58,18 @@ describe("ExplorePanel", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "descendChasm" });
   });
 
+  it("is headed with the chamber's name, and with Actions elsewhere", () => {
+    const base = newGame(1, [0]);
+    const chasm: GameState = { ...base, areas: base.areas.map((a, i) => (i === 0 ? { ...a, card: 16 | (6 << 7) } : a)) };
+    const { unmount } = render(<ExplorePanel state={chasm} dispatch={() => {}} />);
+    expect(screen.getByRole("heading", { level: 3 })).toHaveTextContent("The Chasm");
+    unmount();
+    const guarded: GameState = { ...base, pacifiedAreas: [base.partyArea] };
+    guarded.areas[base.partyArea]!.contents = [100 + 6, 200 + 1];
+    render(<ExplorePanel state={guarded} dispatch={() => {}} />);
+    expect(screen.getByRole("heading", { level: 3 })).toHaveTextContent("Actions");
+  });
+
   it("offers the Well's draw button with a blocking confirm before dispatching (US-07)", () => {
     const dispatch = vi.fn();
     const base = newGame(1, [0]);
