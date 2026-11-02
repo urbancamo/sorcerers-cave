@@ -1,9 +1,19 @@
 import type { GameAction, GameState } from '@sorcerers-cave/engine';
-import { ALL_CREATURES } from '@sorcerers-cave/engine';
+import { ALL_CREATURES, ALL_TREASURES } from '@sorcerers-cave/engine';
 import { describeArea } from '../../data/areaText';
 import { resolveCard, type CardArt } from '../../data/manifest';
 import { EncounterPanel, needsDecision } from '../EncounterPanel';
 import { ChamberPickup } from './ChamberPickup';
+
+/** The heading that tells the player what this pane is: an Encounter, Treasure or Artifact to take, or the Medusa pause. */
+function decisionLabel(state: GameState): string {
+  if (state.phase === 'medusa') return 'Medusa';
+  if (state.phase === 'pickup') {
+    const onlyArtifacts = state.treasures.length > 0 && state.treasures.every((id) => ALL_TREASURES[id]?.kind === 'artifact');
+    return onlyArtifacts ? 'Artifact' : 'Treasure';
+  }
+  return 'Encounter';
+}
 
 /**
  * Where the party must decide something (meet strangers, take or leave treasure, face the Medusa pause), the whole decision
@@ -23,6 +33,7 @@ export function DecisionPane({ state, dispatch, cards, verbose }: {
   if (!needsDecision(state)) return <EncounterPanel state={state} dispatch={dispatch} placement="panel" />;
   return (
     <aside className="scv-slot scv-slot-right scv-decision" data-testid="decision-pane" aria-label="Decision">
+      <h2 className="scv-slot-hd">{decisionLabel(state)}</h2>
       <p className="scv-cp-text" data-testid="decision-where">{describeArea(state, state.partyArea, verbose)}</p>
       {state.strangers.length > 0 && (
         <div className="scv-decision-faces">

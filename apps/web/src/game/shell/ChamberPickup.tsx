@@ -26,7 +26,10 @@ export function ChamberPickup({ state, dispatch, cards, embedded }: { state: Gam
   return (
     // `embedded`: part of the decision pane, which is already the fixed right-hand slot.
     <Root className={embedded ? "scv-pickup scv-pickup-embedded" : "scv-slot scv-slot-right scv-pickup"} aria-label="Chamber treasure">
-      <h2 className="scv-slot-hd">In the chamber <HelpButton topics={['pickup-capacity']} label="Help with picking up treasure" /></h2>
+      {/* In the decision pane the pane's own heading says what this is, so only the help button is kept. */}
+      {embedded
+        ? <div><HelpButton topics={['pickup-capacity']} label="Help with picking up treasure" /></div>
+        : <h2 className="scv-slot-hd">In the chamber <HelpButton topics={['pickup-capacity']} label="Help with picking up treasure" /></h2>}
       {ordered.map(([ti, mis]) => {
         const tid = state.treasures[ti]!;
         const name = ALL_TREASURES[tid]?.name ?? 'treasure';
