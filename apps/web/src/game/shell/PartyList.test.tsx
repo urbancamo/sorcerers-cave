@@ -16,6 +16,15 @@ describe('PartyList', () => {
     expect(screen.getByText('ally')).toBeInTheDocument();
   });
 
+  it('offers the expanded party view from its heading only when wired (not in a fight)', () => {
+    const onExpand = vi.fn();
+    const { rerender } = render(<PartyList members={[member()]} />);
+    expect(screen.queryByRole('button', { name: 'Expand the party view' })).toBeNull();
+    rerender(<PartyList members={[member()]} onExpand={onExpand} />);
+    fireEvent.click(screen.getByRole('button', { name: 'Expand the party view' }));
+    expect(onExpand).toHaveBeenCalledOnce();
+  });
+
   it('reports a tapped member when browsing', () => {
     const onSelect = vi.fn();
     render(<PartyList members={[member()]} onSelect={onSelect} />);

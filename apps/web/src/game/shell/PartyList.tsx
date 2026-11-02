@@ -15,16 +15,22 @@ export interface PartyRowFight {
 
 /** The party panel. The same list serves browsing the party and choosing creatures in a fight, where `fight` rows (keyed by
  *  index in the engine's party) turn on selecting, dragging and a status caption. */
-export function PartyList({ members, onSelect, fight, onDragStart, testId }: {
+export function PartyList({ members, onSelect, fight, onDragStart, onExpand, testId }: {
   members: ViewPartyMember[];
   onSelect?: (m: ViewPartyMember) => void;
   fight?: ReadonlyMap<number, PartyRowFight>;
   onDragStart?: (i: number, e: DragEvent) => void;
+  onExpand?: () => void; // opens the full party view; not offered in a fight, where this list is the working tray
   testId?: string;
 }) {
   return (
     <aside className="scv-slot scv-slot-left scv-partylist" data-testid={testId} aria-label="Party">
-      <h2 className="scv-slot-hd">Party</h2>
+      <h2 className="scv-slot-hd">
+        Party
+        {onExpand && (
+          <button type="button" className="scv-pl-expand" aria-label="Expand the party view" title="Expand — every member's strength, magic and load" onClick={onExpand}>⤢</button>
+        )}
+      </h2>
       <div className="roster-body">
         {members.map((m, k) => {
           const f = m.partyIndex === undefined ? undefined : fight?.get(m.partyIndex);

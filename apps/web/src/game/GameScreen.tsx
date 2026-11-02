@@ -71,7 +71,7 @@ export default function GameScreen() {
   const [rightSlot, setRightSlot] = useState<RightSlot>(null);
   useOpenPartyOnce(gameId, setLeftSlot); // the chosen party is on screen from the first step into the Gateway
   const [testOpen, setTestOpen] = useState(false); // the floating test panel, independent of the slots
-  const [managing, setManaging] = useState(false); // the party panel, until the artifact card takes over moving and dropping treasure
+  const [partyExpanded, setPartyExpanded] = useState(false); // the expanded party view, for sizing up the party
   const [selected, setSelected] = useState<Selected | null>(null); // what the card panel shows
   const [verbose, setVerbose] = useState(readVerbose); // story-voice area descriptions (a per-player setting)
   // Shows the save/restore code modal when set. `restored` distinguishes a plain save (dismiss ⇒
@@ -152,7 +152,7 @@ export default function GameScreen() {
 
   // Return to the splash screen, clearing all in-game overlays and the current game binding.
   const goHome = useCallback(() => {
-    clearRoll(); clearNotices(); setSavedCode(null); setManaging(false); setLeftSlot(null); setRightSlot(null); setSelected(null); setTestOpen(false);
+    clearRoll(); clearNotices(); setSavedCode(null); setPartyExpanded(false); setLeftSlot(null); setRightSlot(null); setSelected(null); setTestOpen(false);
     setGameId(null); setStarted(false); setWantTestGame(false);
   }, [clearRoll, clearNotices]);
 
@@ -315,7 +315,7 @@ export default function GameScreen() {
   const itemLive = itemAt && itemAt.mi >= 0 && itemAt.idx >= 0 ? itemAt : null;
 
   const inventoryPanel = (
-    <InventoryPanel rows={inventoryRows(displayState)} onManage={() => setManaging(true)}
+    <InventoryPanel rows={inventoryRows(displayState)}
           selected={selected?.kind === 'item' ? (selected.at ?? null) : null}
           onSelect={(row) => {
             const from = viewParty(displayState, cards ?? []).find((v) => v.label === row.carrier);
@@ -371,11 +371,11 @@ export default function GameScreen() {
       {displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} onSave={handleSave} open={testOpen} />}
       {displayState.testMode && <DeadEndSwapBadge />}
       {!fightVisible && leftSlot === 'party' && (
-        <PartyList members={viewParty(displayState, cards ?? [])}
+        <PartyList members={viewParty(displayState, cards ?? [])} onExpand={() => setPartyExpanded(true)}
                    onSelect={(member) => { setSelected({ kind: 'member', member }); setRightSlot('card'); }} />
       )}
       {!fightVisible && leftSlot === 'inventory' && inventoryPanel}
-      {managing && <PartyPanel state={displayState} dispatch={dispatch} onClose={() => setManaging(false)} />}
+      {partyExpanded && <PartyPanel state={displayState} onClose={() => setPartyExpanded(false)} />}
       {displayState.phase === "trap" && !holding && !overlay && !notices && (
         <TrapChoice traps={displayState.areas[displayState.partyArea]?.contents.filter((c) => c === 300 + HAZARD_TRAP).length || 1} dispatch={(a) => {
           // A deliberate fall drops the party a level outside doMove's animation, so home the camera on the

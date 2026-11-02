@@ -4,11 +4,10 @@ import { HelpButton } from '../../manual/HelpButton';
 const GLYPH = { green: '●', yellow: '◐', gray: '○' } as const;
 
 /** The party's items from the item's point of view: what it is, who carries it, and whether it can be used now (colour plus a text tag). */
-export function InventoryPanel({ rows, selected, onSelect, onManage }: {
+export function InventoryPanel({ rows, selected, onSelect }: {
   rows: InventoryRow[];
   selected: { mi: number; idx: number } | null;
   onSelect: (row: InventoryRow) => void;
-  onManage?: () => void;
 }) {
   return (
     <aside className="scv-slot scv-slot-left scv-inventory" aria-label="Inventory">
@@ -29,7 +28,6 @@ export function InventoryPanel({ rows, selected, onSelect, onManage }: {
           </li>
         ))}
       </ul>
-      {onManage && rows.length > 0 && <button type="button" className="scv-inv-manage" onClick={onManage}>Move or drop treasure…</button>}
     </aside>
   );
 }

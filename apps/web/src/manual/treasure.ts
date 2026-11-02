@@ -36,7 +36,7 @@ export const TREASURE: Section = {
     ] },
     { id: 'item-actions', title: 'What you can do with an item', brief: 'Use it, wield or stow it, open the Chest, give it to another member, or drop it.', cards: [], screens: ['inventory'], blocks: [
       p('An item\'s card holds everything you can do with it: use it (choosing a target or direction), wield or stow it, open the Treasure Chest, give it to another member or drop it. Nothing suggests when to use an artefact; that is up to you.'),
-      note('good', 'Redistribute freely', 'Outside a fight, use *Give to* to hand an item to a stronger back, or *Drop here* to drop it where you stand. A wielded item goes with its holder; a carried one spills when the holder falls.'),
+      note('good', 'Redistribute freely', 'Outside a fight, use *Give to* to hand an item to a stronger back, or *Drop here* to drop it where you stand. *Give to…* is greyed out when no other member can carry the item; hover it for the reason. A wielded item goes with its holder; a carried one spills when the holder falls.'),
     ] },
     { id: 'artifact-general', title: 'About artefacts', cards: cards('artifact', '*'), blocks: [
       p('Artefacts weigh nothing and grant powers. Some are used up; others serve as long as you hold them. Nothing suggests when to use one; that is up to you.'),

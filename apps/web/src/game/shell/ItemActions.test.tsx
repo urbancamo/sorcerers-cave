@@ -108,6 +108,22 @@ describe('ItemActions — wield, give, drop', () => {
     expect(d).toHaveBeenCalledWith({ type: 'moveTreasure', from: 0, to: 1, idx: idxOf(s, T.sword) });
   });
 
+  it('shows Give to disabled, with the reason, when no member can carry the item', () => {
+    // Two Dwarves: each is at capacity once the other's silver is added, so nobody can take a second 25 kg load.
+    const s = carrying([7, 7], T.silver);
+    s.party[1]!.treasure.push(T.silver);
+    show(s, T.silver);
+    const give = screen.getByRole('button', { name: 'Give to…' });
+    expect(give).toBeDisabled();
+    expect(give).toHaveAttribute('title', 'Move item to a party member that can carry it.');
+    expect(screen.queryByLabelText('Give to')).toBeNull();
+  });
+
+  it('has nothing to give to in a one-member party, so shows no Give to at all', () => {
+    show(carrying([0], T.sword), T.sword);
+    expect(screen.queryByRole('button', { name: 'Give to…' })).toBeNull();
+  });
+
   it('drops an item where the party stands', () => {
     const s = carrying([0], T.sword);
     const d = show(s, T.sword);
@@ -119,6 +135,7 @@ describe('ItemActions — wield, give, drop', () => {
     show(carrying([5, 6], T.sword, { phase: 'fight' }), T.sword);
     expect(screen.queryByRole('button', { name: 'Wield' })).toBeNull();
     expect(screen.queryByLabelText('Give to')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Give to…' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Drop here' })).toBeNull();
   });
 });

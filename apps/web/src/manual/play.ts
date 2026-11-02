@@ -19,7 +19,7 @@ export const PLAY: Section = {
         '**U / D** — climb or descend a stairway.',
         '**Click a marker** — move that way.',
         '**Drag / scroll** — orbit and zoom the cave. *Snap* gives a clean overhead view, *Levels* focuses one floor, *Orbit* shows the whole cave.',
-        '**Party / Inventory icons** — the party list, or the items the party carries. The party list is open when the game begins, so you can see the party you chose; close it and it stays closed.',
+        '**Party / Inventory icons** — the party list, or the items the party carries. The ⤢ button on the Party heading opens the full party view, with every member's printed strength and magic, a total for those able to fight, and their loads. The party list is open when the game begins, so you can see the party you chose; close it and it stays closed.',
         '**Click a map tile** — describe that area in the card panel.',
         '**Card / Settings icons** — the card panel, or game information with Save, Game log and Abandon.',
         '**Full screen icon** — fills the browser window; press it again, or Esc, to leave. Not shown where the browser has no full screen (iPhone).',

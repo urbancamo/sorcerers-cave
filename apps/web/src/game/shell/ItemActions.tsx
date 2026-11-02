@@ -64,6 +64,10 @@ export function ItemActions({ state, dispatch, mi, idx }: { state: GameState; di
           </select>
         </label>
       )}
+      {/* Nobody can take it: show the control disabled, so the player can see why giving is not on offer rather than wonder where it went. */}
+      {manage && heirs.length === 0 && state.party.length > 1 && (
+        <button type="button" className="scv-enc-btn ghost" disabled title="Move item to a party member that can carry it.">Give to…</button>
+      )}
       {/* "Drop here" is right wherever the party stands: a tunnel, a Precise-Locations special, a chamber. */}
       {manage && <button type="button" className="scv-enc-btn ghost" onClick={() => dispatch({ type: 'dropTreasure', mi, idx })}>Drop here</button>}
     </div>
