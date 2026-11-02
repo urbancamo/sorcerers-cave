@@ -38,7 +38,8 @@ import { TitleBar } from "./shell/TitleBar";
 import { CardPanel, type Selected } from "./shell/CardPanel";
 import { InventoryPanel } from "./shell/InventoryPanel";
 import { ItemActions } from "./shell/ItemActions";
-import { ChamberPickup } from "./shell/ChamberPickup";
+import { FloorTreasureActions } from "./shell/FloorTreasureActions";
+import { useOfferOnPickup } from "./shell/useOfferOnPickup";
 import { SibylLook } from "./SibylLook";
 import { memberLabels } from "./memberLabels";
 import { inventoryRows } from "./inventory";
@@ -130,6 +131,15 @@ export default function GameScreen() {
   presentingRef.current = holding || !!roll || !!notices;
   const cards = useManifestCards();
   const caveApi = useRef<CaveApi | null>(null);
+  // Treasure on offer: put the first piece on the card panel, where its "Give to" choices are, and re-offer as pieces are taken.
+  // (Declared here, before the early returns, because it is a hook; `state` can still be null at this point.)
+  const onShow = holding && heldState ? heldState : state;
+  useOfferOnPickup(!!onShow && onShow.phase === 'pickup' && !holding && onShow.treasures.length > 0, `${onShow?.partyArea}:${onShow?.treasures.join(',')}`, () => {
+    const piece = engine?.current.treasure[0];
+    if (!piece) return;
+    setSelected({ kind: 'card', card: piece, where: engine!.current.name });
+    setRightSlot((cur) => cur ?? 'card');
+  });
   const pickDestination = useCallback<DestinationPicker>((o) => caveApi.current?.setPicker(o), []);
   // The Sorcerer's teleport. Once the destination is chosen the camera settles on the party's own chamber (the particles
   // rise there); at full black the party is moved and the camera cuts to the destination (after the view has taken the
@@ -348,14 +358,11 @@ export default function GameScreen() {
       <TitleBar left={fightVisible ? (leftSlot === 'inventory' ? 'inventory' : 'party') : leftSlot} right={rightSlot} testMode={!!displayState.testMode} testOpen={testOpen} onTest={() => setTestOpen((o) => !o)}
                 // In a fight the list is always showing: Party returns to it, Inventory swaps it out and back.
                 onLeft={(p) => setLeftSlot((cur) => (fightVisible && p === 'party' ? 'party' : toggleLeft(cur, p)))} onRight={(p) => setRightSlot((cur) => toggleRight(cur, p))} />
-      {/* The pickup pane takes the slot while treasure is on offer; the choices (attack, withdraw, leave...) are the bar at the bottom. */}
-      {displayState.phase === 'pickup' && !holding && rightSlot !== 'settings' && rightSlot !== 'help' && cards && (
-        <ChamberPickup state={displayState} dispatch={dispatchWithRolls} cards={cards} />
-      )}
-      {rightSlot === 'card' && selected && displayState.phase !== 'pickup' && (
+      {rightSlot === 'card' && selected && (
         <CardPanel selected={selected} onAward={(award, from) => setSelected({ kind: 'award', award, from })} areaText={selected.kind === 'area' ? describeArea(displayState, selected.index, verbose) : undefined} onMember={(member) => setSelected({ kind: 'member', member })}
                    onItem={(item, from) => setSelected({ kind: 'item', item, from })}
-                   actions={selected.kind === 'item' && itemLive ? <ItemActions state={displayState} dispatch={dispatchWithRolls} mi={itemLive.mi} idx={itemLive.idx} />
+                   actions={selected.kind === 'card' && !holding ? <FloorTreasureActions state={displayState} dispatch={dispatchWithRolls} card={selected.card} />
+                   : selected.kind === 'item' && itemLive ? <ItemActions state={displayState} dispatch={dispatchWithRolls} mi={itemLive.mi} idx={itemLive.idx} />
                    // The Sibyl's free look is reachable only from her own card, and never prompted.
                    : selected.kind === 'member' && selected.member.sibyl && sibylLooks.length > 0
                      ? <SibylLook state={displayState} actions={sibylLooks} dispatch={dispatchWithRolls} tools={{ pick: pickDestination, peek: (a) => caveApi.current?.peekTile(a) }} />

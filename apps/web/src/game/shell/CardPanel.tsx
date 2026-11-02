@@ -27,7 +27,7 @@ function Face({ file, name }: { file: string | null; name: string }) {
 export function CardPanel({ selected, onItem, onMember, onAward, onClose, actions, areaText }: {
   selected: Selected;
   areaText?: string; // the words for an `area` selection
-  actions?: ReactNode; // an item card's own actions (use, wield, give, drop)
+  actions?: ReactNode; // a card's own actions: an item's (use, wield, give, drop), or who carries a treasure on the floor
   onItem: (item: ViewItem, from: ViewPartyMember) => void;
   onMember: (member: ViewPartyMember) => void;
   onAward?: (award: Award, from: ViewPartyMember) => void;
@@ -136,6 +136,7 @@ export function CardPanel({ selected, onItem, onMember, onAward, onClose, action
       <div className="scv-cp-name">{card.name}</div>
       <div className="scv-cp-meta">{where}{card.asleep ? ' · asleep' : ''}{card.stone ? ' · stone' : ''}</div>
       {text && <p className="scv-cp-text">{text}</p>}
+      {actions}
       <CardHelp category={card.category} name={card.name} general />
     </aside>
   );

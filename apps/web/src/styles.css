@@ -2262,9 +2262,6 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 .scv-inv-manage{margin-top:10px;width:100%;padding:7px 10px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--stone);font-size:12px;cursor:pointer;}
 .scv-inv-manage:hover{border-color:var(--brass);color:var(--parchment);}
 .scv-ia{display:flex;flex-direction:column;gap:8px;margin-top:4px;}
-.scv-pickup{display:flex;flex-direction:column;gap:12px;}
-.scv-pickup-item{display:flex;flex-direction:column;gap:6px;}
-.scv-pickup-who{display:flex;flex-direction:column;gap:5px;}
 
 /* ---- combat: the party list on the left, the dialog taking the rest of the height ---- */
 .scv-partylist .mbr.pick{cursor:pointer;}

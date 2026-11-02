@@ -17,6 +17,12 @@ describe('CardPanel', () => {
     expect(screen.getByText(/Heavy treasure \(25 kg\)/)).toBeInTheDocument();
   });
 
+  it('shows the actions a floor card offers (such as who carries the treasure)', () => {
+    render(<CardPanel selected={{ kind: 'card', card: { id: 'x', name: 'Silver', category: 'treasure', file: '/s.png' }, where: 'Gold Hall' }} onItem={noop} onMember={noop}
+                      actions={<button type="button">Give to Dwarf</button>} />);
+    expect(screen.getByRole('button', { name: 'Give to Dwarf' })).toBeInTheDocument();
+  });
+
   it('shows a party member with mini-cards, and a mini-card opens that artifact', () => {
     const onItem = vi.fn();
     render(<CardPanel selected={{ kind: 'member', member }} onItem={onItem} onMember={noop} />);

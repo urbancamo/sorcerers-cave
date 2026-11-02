@@ -195,7 +195,7 @@ export function EncounterPanel({ state, dispatch, leaveOnMove = false }: { state
         </div>
       )}
 
-      {/* Taking treasure is the party leader's choice on the chamber card (shell/ChamberPickup); leaving it stays here. */}
+      {/* Taking treasure is the party leader's choice on the treasure's own card (shell/FloorTreasureActions); nothing needs leaving. */}
 
       {/* Treasure nobody can take: an info line in place of the assignment row it can't have. */}
       {uncarryable.map((msg) => (

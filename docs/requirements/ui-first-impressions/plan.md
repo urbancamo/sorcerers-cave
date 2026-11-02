@@ -157,3 +157,8 @@ Step one removed `DecisionPane` and restored the bottom `EncounterPanel` and the
 Also decided (Mark): there is no "Leave the treasure" action in solo. Ignoring the offered treasure is fine; walking through a
 doorway leaves it (`leavePickupOnMove` in the cave adapter, which sends the engine's own `leaveTreasure` first, so no engine change).
 A pickup with nothing else to choose shows no bar. Multiplayer keeps the button.
+
+Pickup (Mark: go ahead with gap 1): the right-hand pickup panel (`ChamberPickup`) is gone. A treasure on the floor is a card like any
+other: click it and its card offers *Give to* (`FloorTreasureActions`), greyed out with the reason when nobody can carry it. When
+treasure comes on offer the first piece is shown on the card panel (`useOfferOnPickup`), so the choices are in view, but the card
+view is never taken over: members, items, areas and strangers can be clicked meanwhile.
