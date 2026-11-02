@@ -8,7 +8,7 @@ export const CREATURES: Section = {
   id: 'strangers', numeral: 'VI', title: 'Creatures, Strangers & Fights',
   topics: [
     { id: 'encounter-choices', title: 'Meeting strangers', brief: 'Withdraw, attack, or test their reaction — and decide before touching any treasure.', cards: cards('creature', '*'), screens: ['encounter'], blocks: [
-      p('When a chamber holds creatures you must decide how to meet them before touching any treasure there. Your choices appear in a bar along the bottom of the screen, above the camera controls, while the card panel stays free: the bar names the strangers and compares their printed strength and magic with your party\'s (stone and the fallen add nothing; artefacts and the surprise bonus count only in the fight). Click any stranger to read its card before you decide. You have three choices, taken in the same turn:'),
+      p('When a chamber holds creatures you must decide how to meet them before touching any treasure there. Your choices appear in a bar along the bottom of the screen, above the camera controls, while the card panel stays free: the bar names the strangers and compares their printed strength and magic with your party\'s (stone and the fallen add nothing; artefacts and the surprise bonus count only in the fight). The card panel shows every card in the chamber as a row of small cards: click one to read it before you decide. You have three choices, taken in the same turn:'),
       list(
         '**Withdraw** — back out the way you came, leaving the strangers and any treasure behind.',
         '**Attack** — fight at once. Striking the instant you enter a fresh chamber gains you the advantage of surprise.',

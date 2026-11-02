@@ -23,6 +23,32 @@ describe('CardPanel', () => {
     expect(screen.getByRole('button', { name: 'Give to Dwarf' })).toBeInTheDocument();
   });
 
+  describe('the chamber floor strip', () => {
+    const dragon = { id: 'c1', name: 'Dragon', category: 'creature' as const, file: '/d.png' };
+    const gold = { id: 't1', name: 'Gold', category: 'treasure' as const, file: '/g.png' };
+    const sel = { kind: 'card' as const, card: dragon, where: 'Lair' };
+
+    it('shows every card on the floor as a mini-card, with the enlarged one marked', () => {
+      render(<CardPanel selected={sel} floor={[dragon, gold]} onFloor={() => {}} onItem={noop} onMember={noop} />);
+      expect(screen.getByRole('button', { name: 'Dragon' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('button', { name: 'Gold' })).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('enlarges the card that is clicked', () => {
+      const onFloor = vi.fn();
+      render(<CardPanel selected={sel} floor={[dragon, gold]} onFloor={onFloor} onItem={noop} onMember={noop} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Gold' }));
+      expect(onFloor).toHaveBeenCalledWith(gold);
+    });
+
+    it('shows no strip for a lone card, or for a card that is not on this chamber floor', () => {
+      const { rerender } = render(<CardPanel selected={sel} floor={[dragon]} onFloor={() => {}} onItem={noop} onMember={noop} />);
+      expect(screen.queryByLabelText('In this chamber')).toBeNull();
+      rerender(<CardPanel selected={sel} floor={[gold, { ...gold, id: 't2' }]} onFloor={() => {}} onItem={noop} onMember={noop} />);
+      expect(screen.queryByLabelText('In this chamber')).toBeNull();
+    });
+  });
+
   it('shows a party member with mini-cards, and a mini-card opens that artifact', () => {
     const onItem = vi.fn();
     render(<CardPanel selected={{ kind: 'member', member }} onItem={onItem} onMember={noop} />);

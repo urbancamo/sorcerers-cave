@@ -186,10 +186,10 @@ code, not by seeing it run. **Left** = party/inventory/combat selector; **Right*
 |---|---|---|---|---|---|---|
 | 1 | Exploring, nothing selected | Party (open at game start; the player's toggle sticks) | Empty | Dock only | — | Met |
 | 2 | Click any card, area or member (any time) | unchanged | Card view of it: stranger/treasure card with wording; a scouted-away area as a mini with words; a member with mini-cards; an item with "← member" | unchanged | — | Met |
-| 3 | Arrive at a chamber with strangers | Party | Card view shows the **whole group** as a strip of mini-cards with one enlarged (agreed; not built yet) | **Encounter** bar: stranger names, strength/magic them v you, Test, Attack, Withdraw (+ Retreat), help | — | Gap: today only the first stranger shows (J.1 d3) |
+| 3 | Arrive at a chamber with strangers | Party | Card view shows the **whole group** as a strip of mini-cards with one enlarged (agreed; not built yet) | **Encounter** bar: stranger names, strength/magic them v you, Test, Attack, Withdraw (+ Retreat), help | — | Met (d3), unseen in a browser |
 | 4 | After a reaction test | Party | as 3 | Friendly: the group joins, then pickup (row 6), the Sibyl (row 11) or on with the walk. Indifferent, first or second time: the bar stays (Test, Attack, Withdraw) and the doorways light for one action. Indifferent a third time: they are pacified and the party walks on (the guards can still be attacked). Hostile: the fight (row 5) | — | Partly: the dice say only "they pay you no heed", nothing says the doorways are now open for one action (J.1 d4) |
 | 5 | Fight (revised) | Combat selector (forced) | Card view of the clicked member, stranger or artifact | None; the fight dialog owns the middle | — | Met |
-| 6 | Pickup (treasure on the floor) | Party | The floor strip (d6) with the first piece enlarged, Give to… (greyed with the reason if no one can); any other card still clickable | None, except the one-tap Retake after a win (labelled Treasure/Artifact). Walking on leaves it | — | Gap: today only the first piece is shown (d6) |
+| 6 | Pickup (treasure on the floor) | Party | The floor strip (d6) with the first piece enlarged, Give to… (greyed with the reason if no one can); any other card still clickable | None, except the one-tap Retake after a win (labelled Treasure/Artifact). Walking on leaves it | — | Met (d6), unseen in a browser |
 | 7 | Medusa pause | Party | Card view auto-shows the Medusa card (d7) | **Medusa** bar: throw the dust, Holy Water, or proceed | — | Gap: not shown today, unchecked (d7) |
 | 8 | Special chamber (Chasm, Well, Bell Rope, Crypt, island) | Party | Card view auto-shows the Area card with the chamber's words (d8) | Bar headed with the chamber's name, with the choice behind a confirm | Confirm | Gap: no card view on arrival, and the bar is headed "Actions" (d8, G1) |
 | 9 | Trap | Party | — | — | Blocking trap choice | Met |
@@ -205,10 +205,10 @@ code, not by seeing it run. **Left** = party/inventory/combat selector; **Right*
 
 - **d1 (row 1):** the party list opens once per game; the player's toggle sticks, including across levels.
 - **d2 (row 2):** the card view stays until the player toggles it; it never closes by itself.
-- **d3 (row 3):** the card view shows the whole stranger group as a strip of mini-cards with one enlarged, like a member's carried items. *To build.*
+- **d3 (row 3):** the card view shows the whole stranger group as a strip of mini-cards with one enlarged, like a member's carried items. *Built.*
 - **d4 (row 4):** checked against `reduce.ts` (`test` case). After a first or second indifferent result the leave window lasts for **one action**; the dice message now says "You may leave by any doorway, or test them again." *Built.*
 - **d5 (row 5):** the slot table gains a **Centre** place, for the fight dialog only. *Done.*
-- **d6 (row 6):** the strip in d3 holds **every card on the chamber floor**, strangers and treasure together, with one enlarged, so one rule covers rows 3 and 6. *To build.*
+- **d6 (row 6):** the strip in d3 holds **every card on the chamber floor**, strangers and treasure together, with one enlarged, so one rule covers rows 3 and 6. *Built (hazards are not in the strip).*
 - **d7 (row 7):** the Medusa pause auto-shows the Medusa card in the card view. *To build; check first how she reaches the scene.*
 - **d8 (row 8):** on arrival at a special chamber the card view auto-shows the **Area card** (image and the chamber's words), and the bar is headed with the chamber's name (Chasm, Well, Bell Rope, Crypt…) instead of "Actions". Confirms stay. *To build.*
 - **d9 (row 9):** the trap popup stays a full blocking popup; no change.

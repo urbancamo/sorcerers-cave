@@ -2241,6 +2241,7 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 .scv-cp-mini{width:44px;border:1px solid var(--line);border-radius:5px;background:transparent;padding:0;cursor:pointer;color:var(--stone);font-size:9px;}
 .scv-cp-mini img{width:100%;display:block;border-radius:4px;}
 .scv-cp-mini:hover,.scv-cp-mini:focus-visible{border-color:var(--brass-bright);outline:none;}
+.scv-cp-mini.is-sel{border-color:var(--brass-bright);box-shadow:0 0 0 1px var(--brass-bright);}
 .scv-cp-back{float:right;background:none;border:0;color:var(--stone);font:inherit;letter-spacing:0;text-transform:none;cursor:pointer;}
 .scv-cp-back:hover{color:var(--brass-bright);}
 #hud.shell .roster .mbr.pick{cursor:pointer;}

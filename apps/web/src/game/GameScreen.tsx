@@ -321,6 +321,8 @@ export default function GameScreen() {
     ? (selected.at ?? { mi: memberLabels(displayState.party).indexOf(selected.from.label), idx: selected.from.items.indexOf(selected.item) })
     : null;
   const sibylLooks = legalActions(displayState).filter((a): a is Extract<GameAction, { type: "examineArea" }> => a.type === "examineArea");
+  // Every stranger and treasure card in the chamber the party stands in (the strip on a floor card).
+  const floorCards = engine ? [...engine.current.strangers, ...engine.current.treasure] : undefined;
   const itemLive = itemAt && itemAt.mi >= 0 && itemAt.idx >= 0 ? itemAt : null;
 
   const inventoryPanel = (
@@ -359,7 +361,7 @@ export default function GameScreen() {
                 // In a fight the list is always showing: Party returns to it, Inventory swaps it out and back.
                 onLeft={(p) => setLeftSlot((cur) => (fightVisible && p === 'party' ? 'party' : toggleLeft(cur, p)))} onRight={(p) => setRightSlot((cur) => toggleRight(cur, p))} />
       {rightSlot === 'card' && selected && (
-        <CardPanel selected={selected} onAward={(award, from) => setSelected({ kind: 'award', award, from })} areaText={selected.kind === 'area' ? describeArea(displayState, selected.index, verbose) : undefined} onMember={(member) => setSelected({ kind: 'member', member })}
+        <CardPanel selected={selected} floor={floorCards} onFloor={(card) => selected.kind === 'card' && setSelected({ kind: 'card', card, where: selected.where })} onAward={(award, from) => setSelected({ kind: 'award', award, from })} areaText={selected.kind === 'area' ? describeArea(displayState, selected.index, verbose) : undefined} onMember={(member) => setSelected({ kind: 'member', member })}
                    onItem={(item, from) => setSelected({ kind: 'item', item, from })}
                    actions={selected.kind === 'card' && !holding ? <FloorTreasureActions state={displayState} dispatch={dispatchWithRolls} card={selected.card} />
                    : selected.kind === 'item' && itemLive ? <ItemActions state={displayState} dispatch={dispatchWithRolls} mi={itemLive.mi} idx={itemLive.idx} />
