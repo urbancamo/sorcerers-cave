@@ -143,11 +143,11 @@ Portrait is a later review. Nothing is designed so that it *cannot* adapt (no fi
 ## G. Gaps between the UI and these principles (2026-11-02, after the bar rebuild)
 
 Closed since draft 1: the decision pane (P5, P8), "Leave the treasure" (P3), the pickup panel hiding the card view (P7, P8),
-the bar's missing mode label (P16), and the missing party-strength comparison (P13, note 7). Still open:
+the bar's missing mode label (P16), and the missing party-strength comparison (P13, note 7), and the information-only explore bar (P3). Still open:
 
 | # | Principle | Gap |
 |---|---|---|
-| 1 | P3, P16 | **The explore bar.** `ExplorePanel` uses the same bar with the heading "Actions". When it holds only an explanatory note (for example "the Chest is too heavy for anyone to carry") the bar appears with information and no choice. This is almost certainly Peter's 6b ("informational-only Actions pane, too heavy"), not `EncounterPanel` as the plan inferred. Fix: show no bar for notes alone; put the reason on the treasure's own card. |
+| 1 | P16 | **The explore bar** no longer opens for an explanatory note alone (that was Peter's 6b); the reason a treasure cannot be carried is on its own card. Its heading is still the generic "Actions" (see J row 8). |
 | 2 | P9 | Peter's 6a (stray Stranger card) and 8 (Bell Rope has no Encounter in the Book pane) are not reproduced. The card view auto-shows only the first stranger or treasure; for a special chamber it may show nothing relevant. |
 | 3 | P13 | The strength line sums every member able to fight, but the fight pairs people off. The Sorcerer and Sibyl are not modelled. "Printed" is only in a tooltip. |
 | 4 | P15 | Solo and multiplayer differ (dock, party panel, Leave button, no Settings or card view in multiplayer). Not yet written down as a deliberate list. |
@@ -189,7 +189,7 @@ code, not by seeing it run. **Left** = party/inventory/combat selector; **Right*
 | 5 | Fight (revised) | Combat selector (forced) | Card view of the clicked member, stranger or artifact | None; the fight dialog owns the middle | — | Met |
 | 6 | Pickup (treasure on the floor) | Party | Card view auto-shows the first piece, with Give to… (greyed with the reason if no one can); any other card still clickable | None, except the one-tap Retake after a win (labelled Treasure/Artifact). Walking on leaves it | — | Met |
 | 7 | Medusa pause | Party | Card view | **Medusa** bar: throw the dust, Holy Water, or proceed | — | Met |
-| 8 | Special chamber (Chasm, Well, Bell Rope, Crypt, island) | Party | Card view: the chamber's words | Bar with the choice, behind a confirm | Confirm | Partly: it is the "Actions" bar (G1) |
+| 8 | Special chamber (Chasm, Well, Bell Rope, Crypt, island) | Party | Card view: the chamber's words | Bar with the choice, behind a confirm | Confirm | Partly: the bar is headed "Actions", not the chamber's kind (G1) |
 | 9 | Trap | Party | — | — | Blocking trap choice | Met |
 | 10 | Sorcerer's terms | Party | — | — | Blocking terms | Met |
 | 11 | Sibyl | Party | Her own card, with her look action | — | — | Met |

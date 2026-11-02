@@ -49,3 +49,35 @@ describe('FloorTreasureActions — what the treasure card on the floor offers', 
     expect(container).toBeEmptyDOMElement();
   });
 });
+
+// Treasure left in the chamber (parked, 200+id): once the pickup is over, the card explains why nobody can carry it.
+describe('FloorTreasureActions — parked treasure outside a pickup', () => {
+  const parked = (picks: number[], tid: number, over: Partial<GameState> = {}): GameState => {
+    const s: GameState = { ...newGame(1, picks), ...over };
+    s.areas[s.partyArea]!.contents = [200 + tid];
+    return s;
+  };
+
+  it('says it is too heavy for anyone to carry', () => {
+    render(<FloorTreasureActions state={parked([5, 6], 14)} dispatch={() => {}} card={card(14)} />);
+    expect(screen.getByText('The Treasure Chest is too heavy for anyone to carry.')).toBeInTheDocument();
+  });
+
+  it("words a Giant-less Deep Pool's treasure as needing a Giant", () => {
+    const s = parked([5, 6], 1);
+    s.areas[s.partyArea]! = { ...s.areas[s.partyArea]!, card: 16 | (2 << 7), contents: [200 + 1] }; // Deep Pool
+    render(<FloorTreasureActions state={s} dispatch={() => {}} card={card(1)} />);
+    expect(screen.getByText('Only a Giant can lift the Gold from the pool.')).toBeInTheDocument();
+  });
+
+  it('says nothing for treasure someone could carry, a card not parked here, or a party that is down', () => {
+    const { container, rerender } = render(<FloorTreasureActions state={parked([5, 6], 1)} dispatch={() => {}} card={card(1)} />);
+    expect(container).toBeEmptyDOMElement();
+    rerender(<FloorTreasureActions state={parked([5, 6], 14)} dispatch={() => {}} card={card(2)} />);
+    expect(container).toBeEmptyDOMElement();
+    const down = parked([5], 14);
+    down.party = down.party.map((m) => ({ ...m, status: 3 }));
+    rerender(<FloorTreasureActions state={down} dispatch={() => {}} card={card(14)} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+});

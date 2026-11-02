@@ -166,3 +166,5 @@ view is never taken over: members, items, areas and strangers can be clicked mea
 Correction (2026-11-02): reading `ExplorePanel` while writing the screen-state table shows Peter's 6b (the heavy, informational-only
 "Actions" pane after recruiting the Troll with the Chest) is most likely the *explore* bar, which appears for an explanatory note alone
 (the Chest is too heavy for anyone), not `EncounterPanel` as inferred above. Still to fix; see design-principles.md section G, row 1.
+
+Fixed (Mark: fix the explore bar): `ExplorePanel` no longer shows for a note alone. Why parked treasure cannot be carried is told on that treasure's card (`FloorTreasureActions`).
