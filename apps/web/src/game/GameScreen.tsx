@@ -10,7 +10,7 @@ import { SplashScreen } from "./SplashScreen";
 import { PartySelect } from "./PartySelect";
 import { PartyPanel } from "./PartyPanel";
 import { GameOverScreen } from "./GameOverScreen";
-import { EncounterPanel } from "./EncounterPanel";
+import { needsDecision } from "./EncounterPanel";
 import { TrapChoice } from "./TrapChoice";
 import { ExplorePanel } from "./ExplorePanel";
 import { FightSurface } from "./FightSurface";
@@ -39,7 +39,7 @@ import { TitleBar } from "./shell/TitleBar";
 import { CardPanel, type Selected } from "./shell/CardPanel";
 import { InventoryPanel } from "./shell/InventoryPanel";
 import { ItemActions } from "./shell/ItemActions";
-import { ChamberPickup } from "./shell/ChamberPickup";
+import { DecisionPane } from "./shell/DecisionPane";
 import { SibylLook } from "./SibylLook";
 import { memberLabels } from "./memberLabels";
 import { inventoryRows } from "./inventory";
@@ -279,6 +279,8 @@ export default function GameScreen() {
   // or showing; once shown, mid-fight dispatches must not unmount it. Ref bookkeeping happens
   // during render, mirroring the present() sync above.
   const fightVisible = showFightSurface(displayState.phase === "fight", holding, fightShownRef.current);
+  // An encounter or pickup the party must decide takes the right-hand pane (see DecisionPane); other right-hand panels sit beside it.
+  const decision = !fightVisible && needsDecision(displayState);
   fightShownRef.current = fightVisible;
 
   // Rendered on top of whatever screen is showing, so it survives a game-over transition.
@@ -330,7 +332,7 @@ export default function GameScreen() {
 
   return (
     <HelpProvider variants={displayState.variants}>
-    <div className="relative h-screen w-screen">
+    <div className="relative h-screen w-screen" data-decision={decision ? "1" : undefined}>
       <CaveCanvas key={gameId} onReady={(api) => { caveApi.current = api; }} engine={engine} state={displayState} canAct={!presentingRef.current} color={color} code={code ?? undefined}
         // A card on the floor opens the card panel unless Settings or the test panel holds the slot; a click on a card or
         // party member always takes the slot. No card on the floor closes it again.
@@ -349,10 +351,8 @@ export default function GameScreen() {
       <TitleBar left={fightVisible ? (leftSlot === 'inventory' ? 'inventory' : 'party') : leftSlot} right={rightSlot} testMode={!!displayState.testMode} testOpen={testOpen} onTest={() => setTestOpen((o) => !o)}
                 // In a fight the list is always showing: Party returns to it, Inventory swaps it out and back.
                 onLeft={(p) => setLeftSlot((cur) => (fightVisible && p === 'party' ? 'party' : toggleLeft(cur, p)))} onRight={(p) => setRightSlot((cur) => toggleRight(cur, p))} />
-      {displayState.phase === 'pickup' && !holding && rightSlot !== 'settings' && rightSlot !== 'help' && cards && (
-        <ChamberPickup state={displayState} dispatch={dispatchWithRolls} cards={cards} />
-      )}
-      {rightSlot === 'card' && selected && displayState.phase !== 'pickup' && (
+      {/* The decision pane shows the floor's strangers and treasure itself, so a floor card is not also shown beside it. */}
+      {rightSlot === 'card' && selected && !(decision && selected.kind === 'card') && (
         <CardPanel selected={selected} onAward={(award, from) => setSelected({ kind: 'award', award, from })} areaText={selected.kind === 'area' ? describeArea(displayState, selected.index, verbose) : undefined} onMember={(member) => setSelected({ kind: 'member', member })}
                    onItem={(item, from) => setSelected({ kind: 'item', item, from })}
                    actions={selected.kind === 'item' && itemLive ? <ItemActions state={displayState} dispatch={dispatchWithRolls} mi={itemLive.mi} idx={itemLive.idx} />
@@ -363,7 +363,7 @@ export default function GameScreen() {
       )}
       {rightSlot === 'help' && <HelpPanel screens={helpScreens} flags={displayState.variants} />}
       {rightSlot === 'settings' && <SettingsPanel verbose={verbose} onVerbose={(on) => { setVerbose(on); writeVerbose(on); }} state={displayState} code={code ?? undefined} kitActive={!!displayState.variants?.extensionKit} onSave={handleSave} onLog={() => setShowLog(true)} onAbandon={() => engine.quit()} />}
-      <EncounterPanel state={displayState} dispatch={dispatchWithRolls} />
+      <DecisionPane state={displayState} dispatch={dispatchWithRolls} cards={cards ?? []} verbose={verbose} />
       {fightVisible && cards && <FightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
       {fightVisible && cards && <RevisedFightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} inventory={leftSlot === 'inventory' ? inventoryPanel : undefined}
                                                   onMember={(member) => { setSelected({ kind: 'member', member }); setRightSlot('card'); }} />}

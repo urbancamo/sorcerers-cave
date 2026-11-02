@@ -5,7 +5,7 @@ import { cardText } from '../../data/cardText';
 import { HelpButton } from '../../manual/HelpButton';
 
 /** The party leader's pickup: each treasure on the chamber floor as a card, with a button for every member who can carry it. Leaving it is the encounter panel's own "Leave the treasure". */
-export function ChamberPickup({ state, dispatch, cards }: { state: GameState; dispatch: (a: GameAction) => void; cards: CardArt[] }) {
+export function ChamberPickup({ state, dispatch, cards, embedded }: { state: GameState; dispatch: (a: GameAction) => void; cards: CardArt[]; embedded?: boolean }) {
   const takers = new Map<number, number[]>(); // treasure index -> members who can take it
   for (const a of legalActions(state)) {
     if (a.type === 'takeTreasure') (takers.get(a.ti) ?? takers.set(a.ti, []).get(a.ti)!).push(a.mi);
@@ -22,8 +22,10 @@ export function ChamberPickup({ state, dispatch, cards }: { state: GameState; di
     const base = memberLabel(state.party, mi);
     return c.carry > 0 ? `${base} (${carriedWeight(m)}/${c.carry}kg)` : base;
   };
+  const Root = embedded ? "section" : "aside";
   return (
-    <aside className="scv-slot scv-slot-right scv-pickup" aria-label="Chamber treasure">
+    // `embedded`: part of the decision pane, which is already the fixed right-hand slot.
+    <Root className={embedded ? "scv-pickup scv-pickup-embedded" : "scv-slot scv-slot-right scv-pickup"} aria-label="Chamber treasure">
       <h2 className="scv-slot-hd">In the chamber <HelpButton topics={['pickup-capacity']} label="Help with picking up treasure" /></h2>
       {ordered.map(([ti, mis]) => {
         const tid = state.treasures[ti]!;
@@ -47,6 +49,6 @@ export function ChamberPickup({ state, dispatch, cards }: { state: GameState; di
           </section>
         );
       })}
-    </aside>
+    </Root>
   );
 }

@@ -26,6 +26,7 @@ export const TREASURE: Section = {
       p('One d6 decides it for good: **1–2** is an inescapable trap — the whole party falls a level, even with a Dwarf. **3–6** turns the card into the gems themselves: 25 kg, 20 points. Either roll spends the crypt.'),
     ] },
     { id: 'pickup-capacity', title: 'Picking up treasure', brief: 'Only members with spare carrying capacity are offered a piece.', cards: [], screens: ['pickup'], blocks: [
+      p('The right-hand pane shows each piece of treasure on the floor as a card, with a *Give to* button for every member who can take it, and *Leave the treasure* below.'),
       p('Unguarded treasure is yours to pick up; guarded treasure waits until the strangers are befriended or beaten. When you pick a piece up, only the members who have the **spare capacity** to bear it are offered, with what they carry shown beside their name.'),
       p('Heavy treasure (Silver, Gold, Gems) weighs 25 kg each; the **Treasure Chest** is 100 kg, so only a strong back — a Giant, or an empty-handed Ogre — can carry it. Artefacts weigh nothing.'),
       p('The **Lost Ruby** sits in a statue of strength 8: win the wrestle, or still the statue with the Eye of God, to take it.'),

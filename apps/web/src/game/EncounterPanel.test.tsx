@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { newGame, type GameState } from "@sorcerers-cave/engine";
-import { EncounterPanel } from "./EncounterPanel";
+import { EncounterPanel, needsDecision } from "./EncounterPanel";
 
 function encounterState(): GameState {
   // Force an encounter: a Man+Woman party facing a lone Man stranger.
@@ -209,5 +209,25 @@ describe("EncounterPanel — artifact use lives on the item's card", () => {
     expect(screen.queryByLabelText("Elixir")).toBeNull();
     expect(screen.queryByRole("button", { name: "Read the Scroll" })).toBeNull();
     expect(screen.queryByLabelText(/use holy water/i)).toBeNull();
+  });
+});
+
+describe("needsDecision", () => {
+  it("is true while the party must choose, and false in explore", () => {
+    expect(needsDecision(encounterState())).toBe(true);
+    expect(needsDecision(newGame(1, [5, 6]))).toBe(false);
+  });
+
+  it("is false for a pickup whose only choice is to leave", () => {
+    const heavy: GameState = { ...newGame(1, [7]), phase: "pickup", treasures: [2] }; // Gems, and the lone Dwarf is already full
+    heavy.party[0]!.treasure = [0];
+    expect(needsDecision(heavy)).toBe(false);
+  });
+});
+
+describe("EncounterPanel — in the right-hand pane", () => {
+  it("drops the fixed bottom-centre placement when it sits in the decision pane", () => {
+    render(<EncounterPanel state={encounterState()} dispatch={() => {}} placement="panel" />);
+    expect(screen.getByTestId("encounter-panel")).toHaveClass("scv-enc-embedded");
   });
 });

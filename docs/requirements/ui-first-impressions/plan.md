@@ -128,3 +128,21 @@ on the pickup pane), `encounter-choices` (actions now in the card panel). Per `C
 ## Not covered
 Multiplayer's older HUD (no title bar, its own panels) and portrait layouts, as in the earlier review. No browser check
 has been done on any of this; the causes in 6a and 6b are inferred from the code until the replays confirm them.
+
+## Status (2026-11-02)
+
+Built and committed, test-first, with typecheck and the whole suite green:
+
+- **1** party list opens once per game (`useOpenPartyOnce`); **2** dock is camera-only in the shell, Abandon is in Settings behind a
+  confirmation; **3** superseded by 5, the button is gone.
+- **5** Give to is shown disabled, with the reason, when nobody can carry the item; the legacy prompt and "Move or drop treasure…" are gone.
+- **7** an expand button (⤢) on the Party heading opens the full party view, now browse-only and showing printed strength,
+  magic and a total for those able to fight.
+- **4 / 6a / 6b / 8** a `DecisionPane` holds the whole decision at the right: the chamber's words, the strangers' cards, the
+  treasure to give out and the existing choices (including *Leave the treasure*). The fixed bottom-centre panel is no longer used
+  in solo. Other right-hand panels open beside it, and a floor card is not also shown beside it, which removes the stray
+  "Stranger" card. These three steps (4a/4b/4c) were done as one change because the choices moved wholesale rather than being rebuilt.
+
+**Not verified:** the RMUP and GWBE replays were not run (they need the live backend), so the causes of 6a and 6b are still
+inferred from the code, and nothing has been checked in a browser. In particular check: the pane's height with several
+strangers and treasures (it scrolls), and that a clicked card sitting beside the pane does not collide with it on a narrow window.
