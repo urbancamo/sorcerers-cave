@@ -8,7 +8,6 @@ import { useCaveGame } from "./useCaveGame";
 import { CaveCanvas, type CaveApi } from "../view/CaveCanvas";
 import { SplashScreen } from "./SplashScreen";
 import { PartySelect } from "./PartySelect";
-import { PartyPanel } from "./PartyPanel";
 import { GameOverScreen } from "./GameOverScreen";
 import { needsDecision } from "./EncounterPanel";
 import { TrapChoice } from "./TrapChoice";
@@ -71,7 +70,7 @@ export default function GameScreen() {
   const [rightSlot, setRightSlot] = useState<RightSlot>(null);
   useOpenPartyOnce(gameId, setLeftSlot); // the chosen party is on screen from the first step into the Gateway
   const [testOpen, setTestOpen] = useState(false); // the floating test panel, independent of the slots
-  const [partyExpanded, setPartyExpanded] = useState(false); // the expanded party view, for sizing up the party
+  const [partyExpanded, setPartyExpanded] = useState(false); // the party list widened to show strength, magic and charisma
   const [selected, setSelected] = useState<Selected | null>(null); // what the card panel shows
   const [verbose, setVerbose] = useState(readVerbose); // story-voice area descriptions (a per-player setting)
   // Shows the save/restore code modal when set. `restored` distinguishes a plain save (dismiss ⇒
@@ -371,11 +370,10 @@ export default function GameScreen() {
       {displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} onSave={handleSave} open={testOpen} />}
       {displayState.testMode && <DeadEndSwapBadge />}
       {!fightVisible && leftSlot === 'party' && (
-        <PartyList members={viewParty(displayState, cards ?? [])} onExpand={() => setPartyExpanded(true)}
+        <PartyList members={viewParty(displayState, cards ?? [])} expanded={partyExpanded} onToggleExpand={() => setPartyExpanded((e) => !e)}
                    onSelect={(member) => { setSelected({ kind: 'member', member }); setRightSlot('card'); }} />
       )}
       {!fightVisible && leftSlot === 'inventory' && inventoryPanel}
-      {partyExpanded && <PartyPanel state={displayState} onClose={() => setPartyExpanded(false)} />}
       {displayState.phase === "trap" && !holding && !overlay && !notices && (
         <TrapChoice traps={displayState.areas[displayState.partyArea]?.contents.filter((c) => c === 300 + HAZARD_TRAP).length || 1} dispatch={(a) => {
           // A deliberate fall drops the party a level outside doMove's animation, so home the camera on the

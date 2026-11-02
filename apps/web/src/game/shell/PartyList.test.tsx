@@ -16,13 +16,39 @@ describe('PartyList', () => {
     expect(screen.getByText('ally')).toBeInTheDocument();
   });
 
-  it('offers the expanded party view from its heading only when wired (not in a fight)', () => {
-    const onExpand = vi.fn();
+  it('offers to expand from its heading only when wired (not in a fight), and says which way it will go', () => {
+    const onToggleExpand = vi.fn();
     const { rerender } = render(<PartyList members={[member()]} />);
-    expect(screen.queryByRole('button', { name: 'Expand the party view' })).toBeNull();
-    rerender(<PartyList members={[member()]} onExpand={onExpand} />);
+    expect(screen.queryByRole('button', { name: /party view/ })).toBeNull();
+    rerender(<PartyList members={[member()]} onToggleExpand={onToggleExpand} />);
     fireEvent.click(screen.getByRole('button', { name: 'Expand the party view' }));
-    expect(onExpand).toHaveBeenCalledOnce();
+    expect(onToggleExpand).toHaveBeenCalledOnce();
+    rerender(<PartyList members={[member()]} expanded onToggleExpand={onToggleExpand} />);
+    expect(screen.getByRole('button', { name: 'Collapse the party view' })).toBeInTheDocument();
+  });
+
+  it('expanded, the same panel widens and shows each member\'s strength, magic and charisma', () => {
+    render(<PartyList expanded onToggleExpand={() => {}}
+                      members={[member({ fs: 5, mp: 0, charisma: true }), member({ label: 'Priest', name: 'Priest', sig: 'P', partyIndex: 1, fs: 2, mp: 2 })]} />);
+    expect(screen.getByLabelText('Party')).toHaveClass('expanded');
+    expect(screen.getByText('Strength 5 · Charisma')).toBeInTheDocument();
+    expect(screen.getByText('Strength 2 · Magic 2')).toBeInTheDocument();
+  });
+
+  it('expanded, totals the printed strength and magic of those able to fight', () => {
+    render(<PartyList expanded onToggleExpand={() => {}}
+                      members={[member({ fs: 5 }), member({ label: 'Priest', partyIndex: 1, fs: 2, mp: 2 }),
+                                member({ label: 'Man', partyIndex: 2, fs: 3, petrified: true }),
+                                member({ label: 'The Sibyl', partyIndex: 3, fs: 0, sibyl: true })]} />);
+    // the petrified Man and the Sibyl add nothing
+    expect(screen.getByTestId('pl-total')).toHaveTextContent('2 able to fight · strength 7 · magic 2');
+  });
+
+  it('collapsed, shows neither the stats nor the total', () => {
+    render(<PartyList members={[member()]} onToggleExpand={() => {}} />);
+    expect(screen.getByLabelText('Party')).not.toHaveClass('expanded');
+    expect(screen.queryByText(/^Strength/)).toBeNull();
+    expect(screen.queryByTestId('pl-total')).toBeNull();
   });
 
   it('reports a tapped member when browsing', () => {

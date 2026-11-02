@@ -136,8 +136,9 @@ Built and committed, test-first, with typecheck and the whole suite green:
 - **1** party list opens once per game (`useOpenPartyOnce`); **2** dock is camera-only in the shell, Abandon is in Settings behind a
   confirmation; **3** superseded by 5, the button is gone.
 - **5** Give to is shown disabled, with the reason, when nobody can carry the item; the legacy prompt and "Move or drop treasure…" are gone.
-- **7** an expand button (⤢) on the Party heading opens the full party view, now browse-only and showing printed strength,
-  magic and a total for those able to fight.
+- **7** an expand button (⤢) on the Party heading widens the party list in place (revised after trying the first version, a separate
+  browse-only modal, which did not work): each member's card, printed strength, magic and charisma, and a total for those able to
+  fight. Multiplayer keeps the original `PartyPanel` with its move/drop controls, since it has no item cards.
 - **4 / 6a / 6b / 8** a `DecisionPane` holds the whole decision at the right: the chamber's words, the strangers' cards, the
   treasure to give out and the existing choices (including *Leave the treasure*). The fixed bottom-centre panel is no longer used
   in solo. Other right-hand panels open beside it, and a floor card is not also shown beside it, which removes the stray
