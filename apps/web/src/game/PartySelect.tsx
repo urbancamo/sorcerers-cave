@@ -3,6 +3,9 @@ import {
   CREATURES, KIT_CREATURES, PARTY_BUDGET, validatePicks, selectionCost, startingStock,
 } from "@sorcerers-cave/engine";
 import { loadManifest, resolveCard } from "../data/manifest";
+import { CardPanel } from "./shell/CardPanel";
+import { HelpButton } from "../manual/HelpButton";
+import { briefForCard } from "../manual";
 import { PARTY_COLORS, PARTY_COLOR_HEX, DEFAULT_PARTY_COLOR, type PartyColor } from "./partyColors";
 
 const BASE_SELECTABLE = CREATURES.filter((c) => c.cost !== null); // ids 0–7
@@ -55,8 +58,8 @@ export function PartySelect({
   const [kit, setKit] = useState(false);
   const [color, setColor] = useState<PartyColor>(lockedColor ?? DEFAULT_PARTY_COLOR);
   const [cardFile, setCardFile] = useState<Record<number, string>>({});
-  // Click a card to read its printed attributes full-size (a dismissable lightbox).
-  const [zoom, setZoom] = useState<{ file: string; name: string } | null>(null);
+  // Click a card to read about it in the card panel, as in the game, rather than enlarging the picture.
+  const [viewed, setViewed] = useState<number | null>(null);
 
   const [sibyl, setSibyl] = useState(false);
   const kitOn = fixedVariants ? fixedVariants.extensionKit : (kitToggle && kit);
@@ -67,14 +70,16 @@ export function PartySelect({
     : undefined;
   const SELECTABLE = kitOn ? [...BASE_SELECTABLE, ...KIT_SELECTABLE] : BASE_SELECTABLE;
   const effectiveStock = stock ?? startingStock(variants);
+  // A kit-only creature can't stay on show once the kit is switched off.
+  const viewedCreature = SELECTABLE.find((c) => c.id === viewed);
 
-  // Esc closes the zoom.
+  // Esc closes the card panel.
   useEffect(() => {
-    if (!zoom) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setZoom(null); };
+    if (viewed === null) return;
+    const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") setViewed(null); };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
-  }, [zoom]);
+  }, [viewed]);
 
   // Card art is a progressive enhancement: if the manifest can't be fetched
   // (e.g. under test), the cards fall back to a name placeholder. Re-runs when the kit toggle
@@ -111,27 +116,34 @@ export function PartySelect({
     setCounts((c) => ({ ...c, [id]: Math.max(0, Math.min(cap(id), (c[id] ?? 0) + delta)) }));
 
   return (
+    <div className="scv-party-row">
     <section className="scv-panel scv-party">
       {onBack && <button className="scv-hs-back" onClick={onBack}>← Back</button>}
-      <h2 className="scv-hd">{title}</h2>
+      <h2 className="scv-hd">{title} <HelpButton topics={lockedColor ? ["mp-draft", "party-budget"] : ["party-budget"]} label="Help with choosing a party" /></h2>
       {!testMode && (
         <p className={"scv-budget" + (total > PARTY_BUDGET ? " over" : "")}>
           Budget <b>{total}</b> / {PARTY_BUDGET}
         </p>
       )}
       {kitToggle && (
-        <label className="scv-kit-toggle">
-          <input type="checkbox" checked={kit} onChange={toggleKit} />
-          Extension kit
-          <span className="scv-muted">Adds 30 area tiles and 30 cards to the decks.</span>
-        </label>
+        <div className="scv-kit-row">
+          <label className="scv-kit-toggle">
+            <input type="checkbox" checked={kit} onChange={toggleKit} />
+            Extension kit
+            <span className="scv-muted">Adds 30 area tiles and 30 cards to the decks.</span>
+          </label>
+          <HelpButton topics={["kit-overview"]} label="Help with the Extension kit" />
+        </div>
       )}
       {sibylToggle && (
-        <label className="scv-kit-toggle">
-          <input type="checkbox" checked={sibyl} onChange={() => setSibyl((s) => !s)} />
-          Sibyl
-          <span className="scv-muted">Adds the optional Sibyl card. Scores go in their own table.</span>
-        </label>
+        <div className="scv-kit-row">
+          <label className="scv-kit-toggle">
+            <input type="checkbox" checked={sibyl} onChange={() => setSibyl((s) => !s)} />
+            Sibyl
+            <span className="scv-muted">Adds the optional Sibyl card. Scores go in their own table.</span>
+          </label>
+          <HelpButton topics={["sibyl-overview"]} label="Help with the Sibyl" />
+        </div>
       )}
       <div className="scv-cards">
         {SELECTABLE.map((c) => {
@@ -143,12 +155,13 @@ export function PartySelect({
             <div key={c.id} className={"scv-card" + (n > 0 ? " sel" : "") + (avail === 0 ? " gone" : "")}>
               <div
                 className="scv-card-art"
-                role={file ? "button" : undefined}
-                tabIndex={file ? 0 : undefined}
-                title={file ? `View the ${c.name} card` : undefined}
-                aria-label={file ? `Zoom the ${c.name} card` : undefined}
-                onClick={() => file && setZoom({ file, name: c.name })}
-                onKeyDown={(e) => { if (file && (e.key === "Enter" || e.key === " ")) { e.preventDefault(); setZoom({ file, name: c.name }); } }}
+                role="button"
+                tabIndex={0}
+                title={briefForCard("creature", c.name) ? `${c.name} — ${briefForCard("creature", c.name)}` : `Read about the ${c.name}`}
+                aria-label={`Show the ${c.name} card`}
+                aria-pressed={viewed === c.id}
+                onClick={() => setViewed(viewed === c.id ? null : c.id)}
+                onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setViewed(viewed === c.id ? null : c.id); } }}
               >
                 {file ? <img src={file} alt={c.name} /> : <span className="ph">{c.name}</span>}
               </div>
@@ -191,13 +204,12 @@ export function PartySelect({
         {confirmLabel(picks.length)}
       </button>
 
-      {zoom && (
-        <div className="scv-card-zoom" role="dialog" aria-label={zoom.name} data-testid="card-zoom"
-             onClick={() => setZoom(null)}>
-          <img src={zoom.file} alt={zoom.name} />
-          <span className="scv-card-zoom-cap">{zoom.name} — click anywhere or press Esc to close</span>
-        </div>
-      )}
     </section>
+    {viewedCreature && (
+      <CardPanel
+        selected={{ kind: 'recruit', id: viewedCreature.id, name: viewedCreature.name, file: cardFile[viewedCreature.id] ?? null, cost: selectionCost(viewedCreature.id, variants), points: viewedCreature.points }}
+        onItem={() => {}} onMember={() => {}} onClose={() => setViewed(null)} />
+    )}
+    </div>
   );
 }

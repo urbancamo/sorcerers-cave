@@ -13,12 +13,34 @@ vi.mock("../data/manifest", () => ({
 }));
 
 describe("PartySelect", () => {
-  it("zooms a card when its art is clicked, and closes again", async () => {
+  it("shows a clicked card in the card panel, with the manual's help, and closes again", () => {
     render(<PartySelect onConfirm={() => {}} />);
-    const art = await screen.findByRole("button", { name: /zoom the woman card/i });
-    fireEvent.click(art);
-    expect(screen.getByTestId("card-zoom")).toBeInTheDocument();
-    fireEvent.click(screen.getByTestId("card-zoom")); // click anywhere closes
+    expect(screen.queryByLabelText("Card panel")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /show the woman card/i }));
+    const panel = within(screen.getByLabelText("Card panel"));
+    expect(panel.getByText("Recruit")).toBeInTheDocument();
+    expect(panel.getByText(/Cost 2 · worth 5 pts/)).toBeInTheDocument();
+    expect(panel.getByText(/Fighting strength 2/)).toBeInTheDocument();
+    expect(panel.getByTestId("card-help")).toHaveTextContent(/Befriends the Unicorn/);
+    fireEvent.click(panel.getByRole("button", { name: "Close" }));
+    expect(screen.queryByLabelText("Card panel")).toBeNull();
+  });
+
+  it("switches the panel to another card, toggles off on the same card, and closes on Escape", () => {
+    render(<PartySelect onConfirm={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: /show the woman card/i }));
+    fireEvent.click(screen.getByRole("button", { name: /show the dwarf card/i }));
+    expect(screen.getByLabelText("Card panel").querySelector(".scv-cp-name")).toHaveTextContent("Dwarf");
+    fireEvent.click(screen.getByRole("button", { name: /show the dwarf card/i }));
+    expect(screen.queryByLabelText("Card panel")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /show the dwarf card/i }));
+    fireEvent.keyDown(window, { key: "Escape" });
+    expect(screen.queryByLabelText("Card panel")).toBeNull();
+  });
+
+  it("does not enlarge the card picture into a lightbox", () => {
+    render(<PartySelect onConfirm={() => {}} />);
+    fireEvent.click(screen.getByRole("button", { name: /show the woman card/i }));
     expect(screen.queryByTestId("card-zoom")).toBeNull();
   });
 
@@ -200,5 +222,34 @@ describe("PartySelect — Sibyl toggle (SC-SIB-1)", () => {
     render(<PartySelect onConfirm={() => {}} sibylToggle />);
     fireEvent.click(screen.getByRole("checkbox", { name: /sibyl/i }));
     expect(screen.queryByRole("button", { name: /add sibyl/i })).toBeNull();
+  });
+});
+
+describe("PartySelect help", () => {
+  it("explains the budget, and the kit and Sibyl switches beside their checkboxes", () => {
+    render(<PartySelect onConfirm={() => {}} kitToggle sibylToggle />);
+    fireEvent.click(screen.getByRole("button", { name: "Help with choosing a party" }));
+    expect(screen.getByTestId("help-popover")).toHaveTextContent(/6 selection points/);
+    fireEvent.click(screen.getByRole("button", { name: "Help with choosing a party" }));
+    fireEvent.click(screen.getByRole("button", { name: "Help with the Extension kit" }));
+    expect(screen.getByTestId("help-popover")).toHaveTextContent(/30 small cards/);
+    // The help button sits beside the checkbox, so using it must not tick the box.
+    expect(screen.getByRole("checkbox", { name: /Extension kit/ })).not.toBeChecked();
+    fireEvent.click(screen.getByRole("button", { name: "Help with the Extension kit" }));
+    fireEvent.click(screen.getByRole("button", { name: "Help with the Sibyl" }));
+    expect(screen.getByTestId("help-popover")).toHaveTextContent(/never fights|cannot fight/);
+  });
+
+  it("gives each card a tooltip from the manual", () => {
+    render(<PartySelect onConfirm={() => {}} />);
+    expect(screen.getByRole("button", { name: /show the dwarf card/i })).toHaveAttribute("title", expect.stringMatching(/Dwarf — Guides the party safely past a trap/));
+  });
+});
+
+describe("PartySelect help in the multiplayer draft", () => {
+  it("also explains the shared pack when the colour is locked by the draft", () => {
+    render(<PartySelect onConfirm={() => {}} lockedColor="blue" stock={{ 6: 1 }} />);
+    fireEvent.click(screen.getByRole("button", { name: "Help with choosing a party" }));
+    expect(screen.getByTestId("help-popover")).toHaveTextContent(/one shared pack/);
   });
 });

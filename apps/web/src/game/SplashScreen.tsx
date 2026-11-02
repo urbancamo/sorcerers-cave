@@ -2,6 +2,8 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { CREATURES } from "@sorcerers-cave/engine";
 import { loadManifest, resolveCard } from "../data/manifest";
 import { HighScoresModal } from "./HighScores";
+import { HelpModal } from "../manual/HelpModal";
+import { markNudgeSeen, nudgeSeen } from "../manual/nudge";
 
 // The eight recruitable creatures (ids 0–7) make the decorative fan.
 const FAN_IDS = CREATURES.filter((c) => c.cost !== null).map((c) => c.id);
@@ -36,6 +38,9 @@ export function SplashScreen({
 }) {
   const [files, setFiles] = useState<string[]>([]);
   const [showScores, setShowScores] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const [nudge, setNudge] = useState(() => !nudgeSeen()); // first visit on this device: offer the how-to-play help once
+  const openHelp = () => { markNudgeSeen(); setNudge(false); setShowHelp(true); };
   const [resumeCode, setResumeCode] = useState("");
   const [resumeErr, setResumeErr] = useState<string | null>(null);
   const [resuming, setResuming] = useState(false);
@@ -131,6 +136,13 @@ export function SplashScreen({
       </blockquote>
 
       <section className="scv-panel scv-start">
+        {nudge && (
+          <div className="scv-nudge" role="note" data-testid="howto-nudge">
+            <span>New to the cave? Read how to play.</span>
+            <button type="button" className="scv-primary" onClick={openHelp}>How to play</button>
+            <button type="button" className="scv-nudge-x" aria-label="Dismiss" onClick={() => { markNudgeSeen(); setNudge(false); }}>×</button>
+          </div>
+        )}
         <h2 className="scv-hd">Start new game</h2>
         <button className="scv-primary" onClick={onStartSolitaire}>Start Solitaire Game</button>
         {onStartTestGame && (
@@ -241,17 +253,10 @@ export function SplashScreen({
           {replayErr && <p className="scv-resume-err" role="alert">{replayErr}</p>}
         </div>
         <button className="scv-primary" onClick={() => setShowScores(true)}>High Scores</button>
-        <a
-          className="scv-primary"
-          href="/manual.html"
-          target="_blank"
-          rel="noreferrer"
-          style={{ display: "block", textAlign: "center", textDecoration: "none" }}
-        >
-          How to Play
-        </a>
+        <button className="scv-primary" onClick={openHelp}>How to Play</button>
       </section>
 
+      {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
       {showScores && <HighScoresModal onClose={() => setShowScores(false)} onReplay={onReplay} />}
 
       <footer className="scv-attrib">

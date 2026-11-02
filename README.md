@@ -2,9 +2,9 @@
 
 Online Re-Imagining of the classic Sorcerer's Cave board game.
 
-Available to play [here](https://sorcerers-cave.vercel.app). New to the game? Read the
-[**Player's Manual**](https://sorcerers-cave.vercel.app/manual.html) — a full guide to party building,
-exploring, hazards, fights, treasure, and scoring (source: [`apps/web/public/manual.html`](apps/web/public/manual.html)).
+Available to play [here](https://sorcerers-cave.vercel.app). New to the game? Press the **How to Play**
+button on the title screen, or the **?** icon in the title bar while playing — the manual is built into the game
+as contextual help (source: [`apps/web/src/manual/`](apps/web/src/manual)).
 
 ![Exploring the cave in 3D](apps/web/public/manual/shot-cave.png)
 *The cave is built one card at a time as you explore; glowing markers show where you may go.*

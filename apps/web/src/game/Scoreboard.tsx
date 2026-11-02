@@ -1,4 +1,5 @@
 import { PARTY_COLOR_HEX, type PartyColor } from "./partyColors";
+import { HelpButton } from "../manual/HelpButton";
 
 export interface ScoreboardParty {
   seat: number; name: string; color: string; status: string;
@@ -32,7 +33,7 @@ export function Scoreboard({
   const ranked = [...parties].sort((a, b) => b.score - a.score);
   return (
     <div className="scv-sb">
-      <h3 className="scv-sb-hd">{frozen ? "Final standings" : "Standings"}</h3>
+      <h3 className="scv-sb-hd">{frozen ? "Final standings" : "Standings"} <HelpButton topics={["mp-standings", "mp-finish", "mp-leave-vs-abandon"]} label="Help with the standings" /></h3>
       <table className="scv-sb-table">
         <thead>
           <tr>

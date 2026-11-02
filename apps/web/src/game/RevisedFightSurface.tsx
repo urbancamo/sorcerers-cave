@@ -12,6 +12,7 @@ import { viewParty } from "../view/viewParty";
 import type { ViewPartyMember } from "../view/cave3d";
 import { MatchChips } from "./MatchChips";
 import { memberLabels } from "./memberLabels";
+import { HelpButton } from "../manual/HelpButton";
 
 // Peter's revised fighting rules (variants.combatRevision, engine spec SC-9.7-*): a fight is a series of rounds, each a few decisions —
 // the Scroll (attacker), the defender's front line, the attacker's pairings, then either side's extra creatures — and the matches are
@@ -122,7 +123,7 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
   if (pair) {
     return (
       <div className="scv-fight" data-testid="rev-fight">
-        <h3 className="scv-fight-hd">Who is lost?</h3>
+        <h3 className="scv-fight-hd">Who is lost? <HelpButton topics={["fight-who-falls"]} label="Help with casualties" /></h3>
         <p className="scv-fight-sub">Your front line was overcome. Choose which creature falls — a die decides (4–6 grants your choice).</p>
         <div className="scv-fight-row">
           {pair.map((idx) => (
@@ -377,6 +378,15 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
         }))} />
     ));
 
+  // The rules for the decision the game is asking for now (the "?" beside the action buttons).
+  const stepTopics: string[] = rev.standoff ? ["rc-roll", "fight-retreat"]
+    : mine?.kind === "scroll" ? ["rc-scroll"]
+    : mine?.kind === "deploy" && !forcedDeploy ? ["rc-front-line"]
+    : mine?.kind === "engage" && !autoPairs ? ["rc-pairing", "rc-extras", "rc-tags"]
+    : mine?.kind === "redeploy" ? ["rc-extras", "rc-tags"]
+    : rev.review ? ["rc-look"]
+    : [];
+
   return (
     <>
     {partyPanel}
@@ -394,12 +404,13 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
               <li>Your <b>heavy treasure is dropped</b> for the fight, and taken back afterwards.</li>
               <li>The Ghouls stay here and <b>attack the next party</b> that comes in.</li>
             </ul>
+            <HelpButton topics={["hazard-ghouls"]} label="Help with the Ghouls" />
             <button className="scv-fight-btn primary" autoFocus onClick={() => setSeen(true)}>Face the Ghouls ☠</button>
           </div>
         </div>
       )}
       <div className="scv-fight-top">
-        <h3 className="scv-fight-hd">⚔ Fight · Round {fight.round}</h3>
+        <h3 className="scv-fight-hd">⚔ Fight · Round {fight.round} <HelpButton topics={["rc-overview", "rc-tags", "rc-roll", "fight-surprise", "fight-armed", "fight-retreat", "tip-armed"]} label="Help with the revised combat" /></h3>
         {fight.round === 1 && fight.surprise !== 0 && (
           <span className={`scv-fight-banner ${fight.surprise === 1 ? "good" : "bad"}`}>
             {fight.surprise === 1 ? "You took them by surprise — +1 this round" : "The strangers surprised you — −1 this round"}
@@ -450,6 +461,7 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
       {mine?.kind === "deploy" && !forcedDeploy && usedChosen.length > 0 && deployBad && <p className="scv-fight-reason">{deployBad}</p>}
 
       <div className="scv-fight-actions">
+        {stepTopics.length > 0 && <HelpButton topics={stepTopics} label="Help with this step" up />}
         {mine?.kind === "deploy" && !forcedDeploy && (
           <button className="scv-fight-btn primary" disabled={deployBad !== null} onClick={() => dispatch({ type: "deploy", creatures: usedChosen })}>
             Stand in the front line

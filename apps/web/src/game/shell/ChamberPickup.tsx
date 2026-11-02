@@ -2,6 +2,7 @@ import { ALL_CREATURES, ALL_TREASURES, carriedWeight, legalActions, type GameAct
 import { memberLabel } from '../memberLabels';
 import { resolveCard, type CardArt } from '../../data/manifest';
 import { cardText } from '../../data/cardText';
+import { HelpButton } from '../../manual/HelpButton';
 
 /** The party leader's pickup: each treasure on the chamber floor as a card, with a button for every member who can carry it. Leaving it is the encounter panel's own "Leave the treasure". */
 export function ChamberPickup({ state, dispatch, cards }: { state: GameState; dispatch: (a: GameAction) => void; cards: CardArt[] }) {
@@ -23,7 +24,7 @@ export function ChamberPickup({ state, dispatch, cards }: { state: GameState; di
   };
   return (
     <aside className="scv-slot scv-slot-right scv-pickup" aria-label="Chamber treasure">
-      <h2 className="scv-slot-hd">In the chamber</h2>
+      <h2 className="scv-slot-hd">In the chamber <HelpButton topics={['pickup-capacity']} label="Help with picking up treasure" /></h2>
       {ordered.map(([ti, mis]) => {
         const tid = state.treasures[ti]!;
         const name = ALL_TREASURES[tid]?.name ?? 'treasure';

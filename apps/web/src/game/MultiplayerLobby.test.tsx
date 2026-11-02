@@ -124,3 +124,18 @@ test("non-host sees the Sibyl as a read-only chip", () => {
   expect(screen.queryByLabelText(/Sibyl/)).toBeNull();
   expect(screen.getByText(/Sibyl ✓/)).toBeTruthy();
 });
+
+test("every lobby option has a help button beside it, for the host and for guests, and using it changes nothing", () => {
+  (useQuery as Mock).mockReturnValue(lobbyFixture());
+  const { unmount } = render(<MultiplayerLobby code="ABCD" onExit={() => {}} />);
+  const helps = screen.getAllByRole("button", { name: "Help with this option" });
+  expect(helps).toHaveLength(4);
+  fireEvent.click(helps[0]!);
+  expect(screen.getByTestId("help-popover")).toHaveTextContent(/face-down stubs/);
+  expect(mutationSpy).not.toHaveBeenCalled();
+  expect(screen.getAllByRole("checkbox")[0]).not.toBeChecked();
+  unmount();
+  (useQuery as Mock).mockReturnValue(lobbyFixture({ isHost: false }));
+  render(<MultiplayerLobby code="ABCD" onExit={() => {}} />);
+  expect(screen.getAllByRole("button", { name: "Help with this option" })).toHaveLength(4);
+});

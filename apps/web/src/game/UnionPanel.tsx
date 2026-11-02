@@ -1,6 +1,7 @@
 import type { UnionProposal } from "@sorcerers-cave/engine";
 import { useCountdown } from "./TradeModal";
 import { DEFAULT_PARTY_COLOR, PARTY_COLOR_HEX, type PartyColor } from "./partyColors";
+import { HelpButton } from "../manual/HelpButton";
 
 const hex = (c: string | undefined | null): string =>
   PARTY_COLOR_HEX[(c as PartyColor) ?? DEFAULT_PARTY_COLOR] ?? PARTY_COLOR_HEX[DEFAULT_PARTY_COLOR];
@@ -51,7 +52,7 @@ export function UnionPanel({
     return (
       <div className="scv-mp-modal" role="dialog" aria-label="union proposal" data-testid="union-proposal">
         <div className="scv-mp-modal-card">
-          <h3 className="scv-hd">A union is proposed</h3>
+          <h3 className="scv-hd">A union is proposed <HelpButton topics={["mp-union"]} label="Help with unions" /></h3>
           <p className="scv-muted">
             <b>{nameOf(proposer)}</b> proposes a union under <b>{nameOf(proposal.commander)}</b>&rsquo;s
             command. Joining forfeits your next turn; the commander then moves the combined force.
@@ -104,7 +105,7 @@ export function UnionPanel({
       {union && union.dissolved && union.recruits.length > 0 && (
         <div className="scv-mp-modal" role="dialog" aria-label="ally allocation" data-testid="union-alloc">
           <div className="scv-mp-modal-card">
-            <h3 className="scv-hd">Divide the allies won together</h3>
+            <h3 className="scv-hd">Divide the allies won together <HelpButton topics={["mp-union"]} label="Help with unions" /></h3>
             <p className="scv-muted">
               Every former member must agree the same home for each ally — a split vote turns the
               ally neutral, left behind where the union dissolved.

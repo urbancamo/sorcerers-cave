@@ -246,21 +246,10 @@
   object-fit: contain;
   display: block;
 }
-/* Click a card to read it full size. */
-.scv-card-art[role="button"] { cursor: zoom-in; transition: border-color 0.15s, box-shadow 0.15s; }
-.scv-card-art[role="button"]:hover { border-color: var(--brass); box-shadow: 0 0 0 1px var(--brass); }
+/* Click a card to read about it in the card panel. */
+.scv-card-art[role="button"] { cursor: pointer; transition: border-color 0.15s, box-shadow 0.15s; }
+.scv-card-art[role="button"]:hover, .scv-card-art[role="button"][aria-pressed="true"] { border-color: var(--brass); box-shadow: 0 0 0 1px var(--brass); }
 .scv-card-art[role="button"]:focus-visible { outline: 2px solid var(--brass-bright); outline-offset: 2px; }
-.scv-card-zoom {
-  position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; gap: 12px;
-  padding: 4vh 4vw; background: rgba(7, 7, 9, 0.92); backdrop-filter: blur(3px); cursor: zoom-out;
-}
-.scv-card-zoom img {
-  max-width: 92vw; max-height: 84vh; width: auto; height: auto;
-  border-radius: 12px; border: 1px solid var(--brass); box-shadow: 0 30px 90px -20px rgba(0, 0, 0, 0.95);
-}
-.scv-card-zoom-cap {
-  font-family: var(--ui); font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--stone-dim);
-}
 .scv-card-art .ph {
   font-family: var(--display);
   font-size: 13px;
@@ -2282,3 +2271,52 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
 
 /* A big front line wraps onto further rows inside its box instead of running off to the right; the stranger rows keep the rest. */
 .scv-rev .scv-rev-frontline { flex: 0 1 auto; max-width: 46%; flex-wrap: wrap; justify-content: flex-start; align-content: flex-start; overflow-y: auto; max-height: 100%; overscroll-behavior: contain; }
+
+/* Card help: the manual's wording for the card, folded away at the foot of the card panel */
+.scv-help{margin-top:10px;border-top:1px solid var(--line);padding-top:8px;font-family:var(--body);font-size:13px;line-height:1.45;color:var(--parchment);}
+.scv-help>summary{cursor:pointer;font-family:var(--display,serif);letter-spacing:.08em;text-transform:uppercase;font-size:11px;color:var(--gold,#c9a14e);}
+.scv-help-topic{margin-top:8px;}
+.scv-help-topic p,.scv-help-topic ul{margin:4px 0;}
+.scv-help-topic ul{padding-left:18px;}
+.scv-help-title{margin:8px 0 2px;font-family:var(--display,serif);font-size:12px;letter-spacing:.04em;color:var(--gold,#c9a14e);}
+.scv-help-pill{margin-left:6px;padding:1px 6px;border:1px solid var(--line);border-radius:999px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--stone);}
+.scv-help-note{padding:6px 8px;border-left:3px solid var(--line);background:rgba(0,0,0,.25);border-radius:3px;}
+.scv-help-note-good{border-left-color:#6aa46a;}
+.scv-help-note-danger{border-left-color:#b5524a;}
+
+/* Help: the "?" popover, the Help panel and browser, the title-screen modal and nudge */
+.scv-hb{position:relative;display:inline-block;margin-left:6px;vertical-align:middle;text-transform:none;letter-spacing:0;}
+.scv-hb-btn{width:20px;height:20px;border-radius:50%;border:1px solid var(--line);background:transparent;color:var(--gold,#c9a14e);font-size:12px;line-height:1;cursor:pointer;padding:0;}
+.scv-hb-btn:hover,.scv-hb-btn[aria-expanded="true"]{background:rgba(201,161,78,.18);}
+.scv-hb-pop{position:absolute;z-index:60;top:26px;left:0;width:min(340px,80vw);max-height:60vh;overflow:auto;padding:10px 12px;background:var(--panel,#1b1712);border:1px solid var(--gold,#c9a14e);border-radius:8px;box-shadow:0 8px 24px rgba(0,0,0,.6);font-family:var(--body);font-size:13px;line-height:1.45;font-weight:400;color:var(--parchment);text-align:left;}
+.scv-hb-close{position:absolute;top:2px;right:6px;border:0;background:transparent;color:var(--stone);font-size:18px;cursor:pointer;}
+@media (max-width:640px){.scv-hb-pop{position:fixed;left:8px;right:8px;top:auto;bottom:8px;width:auto;max-height:55vh;}}
+.scv-helppanel{overflow:auto;}
+.scv-hbr-search{width:100%;box-sizing:border-box;margin:4px 0 8px;padding:6px 8px;border:1px solid var(--line);border-radius:6px;background:rgba(0,0,0,.3);color:var(--parchment);font-size:13px;}
+.scv-help-sec{margin:12px 0 4px;font-family:var(--display,serif);font-size:11px;letter-spacing:.1em;text-transform:uppercase;color:var(--gold,#c9a14e);}
+.scv-help-fold,.scv-help-section{border-top:1px solid var(--line);padding:4px 0;font-family:var(--body);font-size:13px;color:var(--parchment);}
+.scv-help-fold>summary,.scv-help-section>summary{cursor:pointer;}
+.scv-help-section>summary{font-weight:600;}
+.scv-help-section>.scv-help-fold{margin-left:10px;}
+.scv-help-brief{color:var(--stone);font-size:12px;}
+.scv-help-modal{width:min(560px,92vw);max-height:86vh;overflow:auto;padding:14px 16px;background:var(--panel,#1b1712);border:1px solid var(--gold,#c9a14e);border-radius:10px;}
+.scv-help-modal-hd{display:flex;justify-content:space-between;align-items:center;}
+.scv-help-modal-hd h2{margin:0;font-family:var(--display,serif);color:var(--cream);font-size:16px;letter-spacing:.1em;text-transform:uppercase;}
+.scv-help-modal-hd .scv-hb-close{position:static;}
+.scv-nudge{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:10px;padding:8px 10px;border:1px solid var(--gold,#c9a14e);border-radius:8px;background:rgba(201,161,78,.1);font-size:14px;}
+.scv-nudge>span{flex:1 1 140px;}
+.scv-nudge-x{border:0;background:transparent;color:var(--stone);font-size:18px;cursor:pointer;}
+
+/* Party selection: the card panel sits beside the chooser (below it where the screen is too narrow), not over it */
+.scv-party-row{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start;justify-content:center;width:min(1040px,96vw);}
+.scv-cp-inline.scv-slot{position:sticky;top:12px;right:auto;z-index:1;flex:0 0 283px;max-width:92vw;}
+
+.scv-hb-pop.up{top:auto;bottom:26px;}
+
+.scv-kit-row{display:flex;align-items:center;gap:6px;}
+.scv-kit-row .scv-kit-toggle{flex:1;}
+.scv-hs-tablehelp{margin:0 0 6px;font-size:12px;}
+.scv-rc-totals .scv-hb,.scv-rc-tag .scv-hb{font-size:11px;}
+
+.scv-mp-helpbtn{position:fixed;top:12px;right:130px;z-index:60;width:30px;height:30px;border-radius:50%;border:1px solid var(--line-strong);background:rgba(15,15,20,.82);color:var(--brass-bright);font-size:15px;cursor:pointer;}
+@media (max-width:640px){.scv-mp-helpbtn{top:56px;right:14px;}}

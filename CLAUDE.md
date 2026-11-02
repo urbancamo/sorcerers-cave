@@ -27,25 +27,29 @@ A `PostToolUse` hook in `.claude/settings.json` prints a reminder after any edit
 
 ## Keep the player's manual in sync with the game
 
-`apps/web/public/manual.html` is the player-facing manual (served at `/manual.html`). It describes the
-rules **as the game actually plays them**, so it goes stale whenever a feature does.
+The player's manual is structured data in `apps/web/src/manual/` (plan: `docs/requirements/structured-manual/`).
+The UI shows it as contextual help: the card panel's Help section, "?" buttons on screens and options, the
+title-bar Help panel (browse and search), and the splash "How to Play". There is no standalone `manual.html`.
+It describes the rules **as the game actually plays them**, so it goes stale whenever a feature does.
 
 **Whenever you add or change anything a player can see or choose — a rule, a card or creature, a
 variant or party-screen switch, a server-side house rule, a fight/trap/chamber behaviour, a control, or
 how scores are recorded — check the manual in the same change and update it:**
 
-1. Find the section the change belongs to (Fights, Hazards, The Sorcerer, Treasure, Scoring, …) and
-   amend the existing text, including anything the change makes untrue (e.g. a "you never get X" claim).
-2. A new optional variant the player ticks (like the Extension Kit or the Sibyl) gets its own section and
-   a Contents entry. A rule switched on server-side with an env flag (see `apps/web/OPTIONS.md`) is
-   described under **House Rules** and flagged in place with the `House rule` pill.
-3. Keep the Quick Reference (controls and tips) accurate, and bump the `Updated` date in the footer.
+1. Find the topic it belongs to (content files `areas`, `hazards`, `creatures`, `treasure`, `play`, `party`,
+   `scoring`, `multiplayer`, `house`) and amend the wording, including anything the change makes untrue
+   (e.g. a "you never get X" claim). Cards are matched by the engine's names; a drift test fails if an engine
+   hazard, creature, treasure or special area has no topic.
+2. A new optional variant the player ticks (like the Extension Kit or the Sibyl) gets its own topics with
+   `variant` set. A rule switched on server-side with an env flag (see `apps/web/OPTIONS.md`) goes in `house.ts`,
+   gated by `requires: '<variant key>'` (also on any single block that only applies when it is on), so it is shown
+   only to games where it is in force.
+3. Give a new topic a one-line `brief`, and tag the `screens` it explains so the "?" for that screen finds it.
+   Add a `HelpButton` where the player meets the feature.
 4. Pure engine refactors, Test Mode and developer tooling need no manual change — say so in the PR
    description if you checked and found nothing to update.
 
 Treat a feature as unfinished until the manual reflects it, the same as the engine spec above.
-
-<!-- convex-ai-start -->
 
 This project uses [Convex](https://convex.dev) as its backend.
 

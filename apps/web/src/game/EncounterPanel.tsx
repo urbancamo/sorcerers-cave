@@ -7,6 +7,7 @@ import { ALL_CREATURES, ALL_TREASURES, carriedWeight, legalActions, sibylWaiting
 import { memberLabel } from "./memberLabels";
 import { uncarryableNotes } from "./uncarryableNotes";
 import { ConfirmButton, ConfirmPicker } from "./ConfirmButton";
+import { HelpButton } from "../manual/HelpButton";
 
 // The `fight` phase is owned by the FightSurface (drag-card pairing); this panel keeps
 // encounter + pickup + the Medusa pause (throw the Lotus Dust at her, or proceed).
@@ -149,7 +150,7 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
   };
   return (
     <div className="scv-enc" data-testid="encounter-panel">
-      <h3 className="scv-enc-hd">{state.phase}</h3>
+      <h3 className="scv-enc-hd">{state.phase}{state.phase === "encounter" && <HelpButton topics={["encounter-choices", "reaction-roll", "reaction-results", "tip-surprise", "tip-befriend"]} label="Help with meeting strangers" />}</h3>
       {strangers.length > 0 && (
         <p className="scv-enc-line scv-enc-strangers"><span className="k">Strangers: </span>{strangers.join(", ")}</p>
       )}

@@ -3,11 +3,14 @@ import type { Card } from '../../view/ports';
 import type { ViewItem, ViewPartyMember } from '../../view/cave3d';
 import { cardText } from '../../data/cardText';
 import type { Award } from '../awards';
+import { CardHelp } from './CardHelp';
+import { HelpButton } from '../../manual/HelpButton';
 
 /** What the right-hand card panel is showing. */
 export type Selected =
   | { kind: 'card'; card: Card; where: string }
   | { kind: 'area'; index: number; name: string; file: string | null; rot: number }  // a map tile; its words are built live from the game state
+  | { kind: 'recruit'; id: number; name: string; file: string | null; cost: number | null; points: number } // a creature on the party-selection screen
   | { kind: 'member'; member: ViewPartyMember }
   | { kind: 'award'; award: Award; from: ViewPartyMember } // a permanent mark a member has earned
   | { kind: 'item'; item: ViewItem; from: ViewPartyMember; at?: { mi: number; idx: number } }; // `at` marks the row in the inventory
@@ -21,13 +24,14 @@ function Face({ file, name }: { file: string | null; name: string }) {
 }
 
 /** The universal card inspector: the card, its mini-cards when it carries any, and the manual's wording for it. */
-export function CardPanel({ selected, onItem, onMember, onAward, actions, areaText }: {
+export function CardPanel({ selected, onItem, onMember, onAward, onClose, actions, areaText }: {
   selected: Selected;
   areaText?: string; // the words for an `area` selection
   actions?: ReactNode; // an item card's own actions (use, wield, give, drop)
   onItem: (item: ViewItem, from: ViewPartyMember) => void;
   onMember: (member: ViewPartyMember) => void;
   onAward?: (award: Award, from: ViewPartyMember) => void;
+  onClose?: () => void; // shown on a recruit card, which has no title-bar icon to dismiss it
 }) {
   if (selected.kind === 'area') {
     return (
@@ -38,6 +42,22 @@ export function CardPanel({ selected, onItem, onMember, onAward, actions, areaTe
           : <div className="scv-cp-area" aria-hidden="true">{selected.name}</div>}
         <div className="scv-cp-name">{selected.name}</div>
         <p className="scv-cp-text" data-testid="area-text">{areaText}</p>
+        <CardHelp category="area" name={selected.name} general />
+      </aside>
+    );
+  }
+  if (selected.kind === 'recruit') {
+    const text = cardText('creature', selected.name);
+    return (
+      <aside className="scv-slot scv-slot-right scv-cardpanel scv-cp-inline" aria-label="Card panel">
+        <h2 className="scv-slot-hd">Recruit
+          {onClose && <button type="button" className="scv-cp-back" onClick={onClose}>Close</button>}
+        </h2>
+        <Face file={selected.file} name={selected.name} />
+        <div className="scv-cp-name">{selected.name}</div>
+        <div className="scv-cp-meta">{selected.cost !== null ? `Cost ${selected.cost} · ` : ''}worth {selected.points} pts if it survives</div>
+        {text && <p className="scv-cp-text">{text}</p>}
+        <CardHelp category="creature" name={selected.name} />
       </aside>
     );
   }
@@ -86,6 +106,7 @@ export function CardPanel({ selected, onItem, onMember, onAward, actions, areaTe
           </div>
         )}
         {text && <p className="scv-cp-text">{text}</p>}
+        <CardHelp category="creature" name={m.name} />
       </aside>
     );
   }
@@ -94,7 +115,7 @@ export function CardPanel({ selected, onItem, onMember, onAward, actions, areaTe
     const text = cardText(item.artifact ? 'artifact' : 'treasure', item.name);
     return (
       <aside className="scv-slot scv-slot-right scv-cardpanel" aria-label="Card panel">
-        <h2 className="scv-slot-hd">{item.artifact ? 'Artifact' : 'Treasure'}
+        <h2 className="scv-slot-hd">{item.artifact ? 'Artifact' : 'Treasure'}{actions && <HelpButton topics={['item-actions']} label="Help with this item" />}
           <button type="button" className="scv-cp-back" onClick={() => onMember(from)}>← {from.label}</button>
         </h2>
         <Face file={item.file} name={item.name} />
@@ -102,6 +123,7 @@ export function CardPanel({ selected, onItem, onMember, onAward, actions, areaTe
         <div className="scv-cp-meta">{item.weight > 0 ? `${item.weight} kg` : '0 kg'} · carried by {from.label}</div>
         {text && <p className="scv-cp-text">{text}</p>}
         {actions}
+        <CardHelp category={item.artifact ? 'artifact' : 'treasure'} name={item.name} />
       </aside>
     );
   }
@@ -114,6 +136,7 @@ export function CardPanel({ selected, onItem, onMember, onAward, actions, areaTe
       <div className="scv-cp-name">{card.name}</div>
       <div className="scv-cp-meta">{where}{card.asleep ? ' · asleep' : ''}{card.stone ? ' · stone' : ''}</div>
       {text && <p className="scv-cp-text">{text}</p>}
+      <CardHelp category={card.category} name={card.name} general />
     </aside>
   );
 }

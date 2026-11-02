@@ -1,4 +1,5 @@
 import type { InventoryRow } from '../inventory';
+import { HelpButton } from '../../manual/HelpButton';
 
 const GLYPH = { green: '●', yellow: '◐', gray: '○' } as const;
 
@@ -11,7 +12,7 @@ export function InventoryPanel({ rows, selected, onSelect, onManage }: {
 }) {
   return (
     <aside className="scv-slot scv-slot-left scv-inventory" aria-label="Inventory">
-      <h2 className="scv-slot-hd">Inventory <span>{rows.length} items</span></h2>
+      <h2 className="scv-slot-hd">Inventory <HelpButton topics={['inventory-status', 'item-actions']} label="Help with the inventory" /><span>{rows.length} items</span></h2>
       {rows.length === 0 && <p className="scv-inv-empty">The party carries nothing.</p>}
       <ul className="scv-inv-list">
         {rows.map((r) => (

@@ -3,6 +3,7 @@ import { scoreBreakdown, GS_ESCAPED, GS_DEAD, GS_QUIT, type GameState } from "@s
 import { LeaderboardPanel } from "./HighScores";
 import { downloadLog, type GameLog } from "./gameLog";
 import { DiceRoll } from "./DiceRoll";
+import { HelpButton } from "../manual/HelpButton";
 
 const OUTCOME: Record<number, string> = {
   [GS_ESCAPED]: "Your party escaped the cave!",
@@ -91,7 +92,7 @@ export function GameOverScreen({
                 <div className="scv-rc-head">
                   <span className="scv-rc-name">
                     {m.name}
-                    {m.dragonDoubled && <span className="scv-rc-tag"> dragon-slayer ×2</span>}
+                    {m.dragonDoubled && <span className="scv-rc-tag"> dragon-slayer ×2 <HelpButton topics={["score-dragon-slayer"]} label="Help with dragon-slayers" /></span>}
                     {note && <span className="scv-rc-tag"> {note}</span>}
                   </span>
                   <span className="scv-rc-pts">{m.counts ? m.creaturePoints : 0}</span>
@@ -115,17 +116,17 @@ export function GameOverScreen({
             Sorcerer bounty and the Treasure Chest loot banked at scoring, less the curse penalty. */}
         <dl className="scv-rc-totals" data-testid="score-awards">
           {breakdown.sorcererBonus > 0 && (
-            <div><dt>Sorcerer slain</dt><dd className="scv-rc-pts">+{breakdown.sorcererBonus}</dd></div>
+            <div><dt>Sorcerer slain <HelpButton topics={["score-bounty"]} label="Help with the Sorcerer bounty" /></dt><dd className="scv-rc-pts">+{breakdown.sorcererBonus}</dd></div>
           )}
           {breakdown.bonusScore > 0 && (
-            <div><dt>Treasure Chest loot</dt><dd className="scv-rc-pts">+{breakdown.bonusScore}</dd></div>
+            <div><dt>Treasure Chest loot <HelpButton topics={["score-chest"]} label="Help with Chest loot" /></dt><dd className="scv-rc-pts">+{breakdown.bonusScore}</dd></div>
           )}
           {breakdown.cursePenalty > 0 && (
-            <div><dt>Curses</dt><dd className="scv-rc-pts">−{breakdown.cursePenalty}</dd></div>
+            <div><dt>Curses <HelpButton topics={["score-curse"]} label="Help with curses" /></dt><dd className="scv-rc-pts">−{breakdown.cursePenalty}</dd></div>
           )}
         </dl>
         <p className="scv-score">{breakdown.total}</p>
-        <p className="scv-points">total points</p>
+        <p className="scv-points">total points <HelpButton topics={["scoring", "all-or-nothing"]} label="Help with scoring" /></p>
 
         {/* Only an escaped party may record a score; others see why they can't. */}
         {onSaveScore && !canRecord && (
@@ -133,6 +134,7 @@ export function GameOverScreen({
             {state.gs === GS_QUIT
               ? "Abandoned in the cave — only a party that climbs back to the surface can record a score."
               : "The party never made it out — only a party that escapes the cave can record a score."}
+            <HelpButton topics={[state.gs === GS_QUIT ? "quit-abandon" : "all-or-nothing", "high-score-tables"]} label="Help with recording a score" />
           </p>
         )}
 

@@ -21,8 +21,8 @@ Impeccable design target in this monorepo: `apps/web` (the only user-facing UI).
 An online re-imagining of the classic Sorcerer's Cave board game, live at
 https://sorcerers-cave.vercel.app. The cave is built one area card at a time in a 3D
 view as the player explores; a 6-point budget recruits the expedition; a global
-leaderboard records scores. A full Player's Manual (`apps/web/public/manual.html`)
-teaches party building, exploring, hazards, fights, treasure, and scoring.
+leaderboard records scores. The player's manual is built into the game as
+contextual help (`apps/web/src/manual/`), covering party building, exploring, hazards, fights, treasure, and scoring.
 
 ## Positioning
 
@@ -72,7 +72,7 @@ extracted from the physical game (`packages/assets`).
 ## Evidence on Hand
 
 - Live deployment: https://sorcerers-cave.vercel.app (playable end-to-end).
-- Player's Manual with in-game screenshots: `apps/web/public/manual.html`,
+- Player's manual as structured contextual help: `apps/web/src/manual/`. README screenshots:
   `apps/web/public/manual/shot-*.png`.
 - Extracted original art assets: `packages/assets`.
 - Traceable engine spec with conformance vectors: `docs/specs/engine-spec.md`,

@@ -2,6 +2,7 @@ import { useState, type CSSProperties } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { PARTY_COLORS, PARTY_COLOR_HEX, type PartyColor } from "./partyColors";
+import { HelpButton } from "../manual/HelpButton";
 
 const REASON: Record<string, string> = {
   not_found: "No game found with that code.",
@@ -54,7 +55,7 @@ export function MultiplayerSetup({ mode, onEnterLobby, onCancel }: {
 
   return (
     <section className="scv-panel scv-mp">
-      <h2 className="scv-hd">{mode === "create" ? "Start a multiplayer game" : "Join a multiplayer game"}</h2>
+      <h2 className="scv-hd">{mode === "create" ? "Start a multiplayer game" : "Join a multiplayer game"} <HelpButton topics={["mp-create-join"]} label="Help with multiplayer games" /></h2>
 
       {mode === "join" && (
         <label className="scv-mp-field">

@@ -1,6 +1,6 @@
 import { ALL_CREATURES, ALL_TREASURES } from '@sorcerers-cave/engine';
 
-// Player-facing wording for the card panel, in the manual's own terms (apps/web/public/manual.html). Artifacts
+// Player-facing wording for the card panel, in the manual's own terms (apps/web/src/manual/). Artifacts
 // are written out here; creatures are built from the engine's own numbers so they cannot drift. Until the manual
 // itself becomes structured data this table is the one place the card text lives.
 const ARTIFACT_TEXT: Record<string, string> = {
