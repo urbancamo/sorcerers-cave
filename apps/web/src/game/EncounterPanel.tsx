@@ -83,6 +83,16 @@ function label(a: GameAction, state: GameState): string {
   }
 }
 
+/** What the player is deciding, in a word: an Encounter, Treasure or an Artifact on the floor, or the Medusa pause. */
+function barLabel(state: GameState): string {
+  if (state.phase === "medusa") return "Medusa";
+  if (state.phase === "pickup") {
+    const onlyArtifacts = state.treasures.length > 0 && state.treasures.every((id) => ALL_TREASURES[id]?.kind === "artifact");
+    return onlyArtifacts ? "Artifact" : "Treasure";
+  }
+  return "Encounter";
+}
+
 /** A pickup where "Leave the treasure" is the only legal action is pure interruption: the panel leaves for the player. */
 const onlyLeave = (state: GameState, actions: GameAction[]) =>
   state.phase === "pickup" && actions.length > 0 && actions.every((a) => a.type === "leaveTreasure");
@@ -160,7 +170,7 @@ export function EncounterPanel({ state, dispatch, leaveOnMove = false }: { state
   };
   return (
     <div className="scv-enc" data-testid="encounter-panel">
-      <h3 className="scv-enc-hd">{state.phase}{state.phase === "encounter" && <HelpButton topics={["encounter-choices", "reaction-roll", "reaction-results", "tip-surprise", "tip-befriend"]} label="Help with meeting strangers" />}</h3>
+      <h3 className="scv-enc-hd">{barLabel(state)}{state.phase === "encounter" && <HelpButton topics={["encounter-choices", "reaction-roll", "reaction-results", "tip-surprise", "tip-befriend"]} label="Help with meeting strangers" />}</h3>
       {strangers.length > 0 && (
         <p className="scv-enc-line scv-enc-strangers">{strangers.join(", ")}</p>
       )}

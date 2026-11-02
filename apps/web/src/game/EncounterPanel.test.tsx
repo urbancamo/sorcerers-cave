@@ -258,3 +258,27 @@ describe("EncounterPanel — the thin bar", () => {
     expect(screen.queryByTestId("enc-odds")).toBeNull();
   });
 });
+
+describe("EncounterPanel — the bar's label says what the player is deciding", () => {
+  const heading = () => screen.getByRole("heading", { level: 3 });
+
+  it("is Encounter while meeting strangers", () => {
+    render(<EncounterPanel state={encounterState()} dispatch={() => {}} />);
+    expect(heading()).toHaveTextContent(/^Encounter/);
+  });
+
+  it("is Medusa at the Medusa pause", () => {
+    const s: GameState = { ...newGame(1, [5, 6]), phase: "medusa", strangers: [] };
+    render(<EncounterPanel state={s} dispatch={() => {}} />);
+    expect(heading()).toHaveTextContent(/^Medusa/);
+  });
+
+  it("is Treasure or Artifact when the bar shows during a pickup (a retake after a fight)", () => {
+    const retake = (treasures: number[]): GameState => ({ ...newGame(1, [0]), phase: "pickup", treasures, fightDrops: [{ mi: 0, tid: treasures[0]! }] });
+    const { unmount } = render(<EncounterPanel state={retake([1])} dispatch={() => {}} leaveOnMove />); // Gold
+    expect(heading()).toHaveTextContent(/^Treasure/);
+    unmount();
+    render(<EncounterPanel state={{ ...retake([3]), fightDrops: [{ mi: 0, tid: 1 }] }} dispatch={() => {}} />); // Magic Sword, with the Leave button showing
+    expect(heading()).toHaveTextContent(/^Artifact/);
+  });
+});
