@@ -162,3 +162,7 @@ Pickup (Mark: go ahead with gap 1): the right-hand pickup panel (`ChamberPickup`
 other: click it and its card offers *Give to* (`FloorTreasureActions`), greyed out with the reason when nobody can carry it. When
 treasure comes on offer the first piece is shown on the card panel (`useOfferOnPickup`), so the choices are in view, but the card
 view is never taken over: members, items, areas and strangers can be clicked meanwhile.
+
+Correction (2026-11-02): reading `ExplorePanel` while writing the screen-state table shows Peter's 6b (the heavy, informational-only
+"Actions" pane after recruiting the Troll with the Chest) is most likely the *explore* bar, which appears for an explanatory note alone
+(the Chest is too heavy for anyone), not `EncounterPanel` as inferred above. Still to fix; see design-principles.md section G, row 1.

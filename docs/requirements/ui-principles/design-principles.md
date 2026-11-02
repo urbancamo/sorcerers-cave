@@ -1,6 +1,6 @@
 # UI Design Principles — draft for iteration
 
-Status: **draft 1, 2026-11-02. Nothing here is agreed until Mark says so.**
+Status: **draft 2, 2026-11-02 (after the decision bar, dock move, treasure-on-the-card and bar label were built). Nothing here is agreed until Mark says so.**
 Purpose: state the rules the interface follows, so that individual screens are *derived* from them
 instead of being redesigned one complaint at a time. Each principle gives the rule, why, where it came
 from, and a test you can apply to any proposed change.
@@ -40,7 +40,7 @@ The screen has a small fixed set of places, and each has one job:
 | Title bar | switches the panels on and off; shows game identity | — |
 | Left slot | **my side**: who I command and what we carry | Party, Inventory (Combat selector during a fight) |
 | Right slot | **the thing in focus**: whatever card, place or choice I am looking at | Card view, Settings, Help, Test |
-| Bottom edge | the camera controls, with the **decision bar** just above them while a choice is pending | Snap, Orbit, Levels; Decision bar (transient) |
+| Bottom edge | one row: the camera dock at the left, and the **decision bar** centred beside it while a choice is pending | Snap, Orbit, Levels (always); Decision bar (transient) |
 | Blocking popup | a must-act choice that cannot wait | Trap, game over, rule-critical choices |
 
 Anything new has to be placed in one of these. If it doesn't fit, that is a design question, not a
@@ -81,7 +81,8 @@ branch broke.**
 The Card view is for looking; the **decision bar** is for choosing. On arrival the Card view shows the
 strangers automatically, and the bar offers the choices, with one line saying what they are about. The bar holds
 no descriptions or card images, so it is never "heavy", and it exists only while a choice is pending.
-*Source:* Peter's notes 6 and 8: "an Encounter in the Book pane, with a description and Action buttons".
+*Source:* Peter's notes 6 and 8 asked for "an Encounter in the Book pane, with a description and Action buttons". **Mark decided
+otherwise (2026-11-02): the choices stay in the bar and the Card view stays free.** This departs from the review's literal text.
 *Resolved:* the tension between P8 and P9 is answered by the decision bar (Q1 below).
 
 ### P10. The player drives; the UI informs, it does not lead
@@ -139,29 +140,34 @@ Portrait is a later review. Nothing is designed so that it *cannot* adapt (no fi
 | 7 Can't see party strength | P8, P13: the decision needs the information |
 | 8 Bell Rope, no Encounter | P9: a special chamber behaves like any other encounter |
 
-## G. Where the current branch breaks these (honest list)
+## G. Gaps between the UI and these principles (2026-11-02, after the bar rebuild)
 
-- **P8** the decision pane hides the floor card, and its stranger images do nothing when clicked.
-- **P5** the decision pane and the card view are offset against each other with a hard-coded `right: 311px`.
-- **P5** the expanded party list widens the left panel and covers more of the stage, a second state for the same slot.
-- **P15** solo and multiplayer now have different encounter surfaces and different party panels.
-- **P2** the decision pane can be tall (several strangers plus treasure plus choices).
+Closed since draft 1: the decision pane (P5, P8), "Leave the treasure" (P3), the pickup panel hiding the card view (P7, P8),
+the bar's missing mode label (P16), and the missing party-strength comparison (P13, note 7). Still open:
 
-These are symptoms. The fix is not another layout; it is settling the open questions below first.
+| # | Principle | Gap |
+|---|---|---|
+| 1 | P3, P16 | **The explore bar.** `ExplorePanel` uses the same bar with the heading "Actions". When it holds only an explanatory note (for example "the Chest is too heavy for anyone to carry") the bar appears with information and no choice. This is almost certainly Peter's 6b ("informational-only Actions pane, too heavy"), not `EncounterPanel` as the plan inferred. Fix: show no bar for notes alone; put the reason on the treasure's own card. |
+| 2 | P9 | Peter's 6a (stray Stranger card) and 8 (Bell Rope has no Encounter in the Book pane) are not reproduced. The card view auto-shows only the first stranger or treasure; for a special chamber it may show nothing relevant. |
+| 3 | P13 | The strength line sums every member able to fight, but the fight pairs people off. The Sorcerer and Sibyl are not modelled. "Printed" is only in a tooltip. |
+| 4 | P15 | Solo and multiplayer differ (dock, party panel, Leave button, no Settings or card view in multiplayer). Not yet written down as a deliberate list. |
+| 5 | P17 | The bar's maximum width assumes the dock's width (`100vw - 680px`); its height is untested with many strangers. |
+| 6 | P5 | The expanded party list is a second *size* of the left occupant; whether that is acceptable is open (H2). |
+| 7 | P12, P14 | Not audited: inventory colour states carry a text tag? The Great feats topic has no help button; rear-guard detachments and Zombies in multiplayer have no topic. |
+| 8 | all | **Nothing has been seen in a browser.** Every "met" in section J is by reading the code. |
 
 ## H. Open questions for the next iteration
 
-1. **Q1 (leaning decided, 2026-11-02, Mark): a thin decision bar at the bottom.** One line of context, the choices,
+1. **Q1 (decided, 2026-11-02, Mark): a thin decision bar at the bottom.** One line of context, the choices,
    and a printed-strength comparison; it clears when the decision ends; the Card view stays free to inspect any card.
    Treasure assignment ("Give to…") lives on the item's card; pickers open as a popover above the bar.
-   To confirm: the bar sits above the camera controls. Earlier candidates, for the record:
+   Built: the bar shares the bottom row with the camera dock (dock at the left). Earlier candidates, for the record:
    - *a. The card view is the encounter.* Choices sit on the stranger's card in the right slot; clicking another
      card swaps it, with a standing "back to the encounter" row. (Fits P7, P9; breaks P8 while another card is shown.)
    - *b. Information in the right slot, choices as a compact strip.* Right slot is always the card view; the choices
      are a small fixed strip (not a panel) tied to the party-leader seat. (Fits P8, P7; strip needs a home in P4.)
    - *c. Choices in the right slot header, cards in the body.* The pane is the card view with a permanent
      "Decision" header carrying the choices. (Fits both; a single panel, so P5 holds.)
-   My lean is (c), which is (a) with the choices pinned so they never scroll away. Needs your view.
 2. **Is a party-strength summary part of the left slot always, or only during a decision?** (P13, note 7.)
    And is the "expand" state a separate occupant of the slot, or a size of the same one?
 3. **What counts as "must-act" (blocking)?** The review says trap, game over, rule-critical. Is an encounter ever
@@ -169,9 +175,39 @@ These are symptoms. The fix is not another layout; it is settling the open quest
 4. **Which controls are allowed in the title bar?** Today: Party, Inventory, Card, Settings, Help, Test.
 5. **Do we want a standing layout test?** A short checklist run on a screenshot of each state before merging UI work.
 
+## J. Screen states (derived from the principles)
+
+For each state: what each place holds, what the player can do, and whether today's build meets it. "Today" is by reading the
+code, not by seeing it run. **Left** = party/inventory/combat selector; **Right** = card view, Settings, Help or Test.
+
+| # | State | Left | Right | Bottom row (dock + bar) | Popup | Today |
+|---|---|---|---|---|---|---|
+| 1 | Exploring, nothing selected | Party (open at game start; the player's toggle sticks) | Empty | Dock only | — | Met |
+| 2 | Click any card, area or member (any time) | unchanged | Card view of it: stranger/treasure card with wording; a scouted-away area as a mini with words; a member with mini-cards; an item with "← member" | unchanged | — | Met |
+| 3 | Arrive at a chamber with strangers | Party | Card view auto-shows the first stranger; any other can be clicked | **Encounter** bar: stranger names, strength/magic them v you, Test, Attack, Withdraw (+ Retreat), help | — | Mostly (G2, G3) |
+| 4 | After a reaction test | Party | as 3 | Bar offers the next legal choice; if the party may leave, the doorways light up in the cave | — | Not checked |
+| 5 | Fight (revised) | Combat selector (forced) | Card view of the clicked member, stranger or artifact | None; the fight dialog owns the middle | — | Met |
+| 6 | Pickup (treasure on the floor) | Party | Card view auto-shows the first piece, with Give to… (greyed with the reason if no one can); any other card still clickable | None, except the one-tap Retake after a win (labelled Treasure/Artifact). Walking on leaves it | — | Met |
+| 7 | Medusa pause | Party | Card view | **Medusa** bar: throw the dust, Holy Water, or proceed | — | Met |
+| 8 | Special chamber (Chasm, Well, Bell Rope, Crypt, island) | Party | Card view: the chamber's words | Bar with the choice, behind a confirm | Confirm | Partly: it is the "Actions" bar (G1) |
+| 9 | Trap | Party | — | — | Blocking trap choice | Met |
+| 10 | Sorcerer's terms | Party | — | — | Blocking terms | Met |
+| 11 | Sibyl | Party | Her own card, with her look action | — | — | Met |
+| 12 | Inventory open; item selected | Inventory | Item card: use, wield/stow, Give to… (greyed with the reason), drop | unchanged | Confirm for Elixir, Scroll | Met |
+| 13 | Settings / Help / Test | as before | Settings (game info, Save, Game log, Abandon with confirm), Help, or Test, swapping with the card view | unchanged | Confirm for Abandon | Met |
+| 14 | Dice, outcome notice | as before | as before | as before | Dice are an overlay; the notice is a modal to dismiss | Per the review notices should not block (Q6); not changed |
+| 15 | Game over / save | — | — | — | Blocking | Met |
+| 16 | Party selection (before the game) | the chooser | Card view of the clicked recruit | — | — | Met |
+
+Reading across the rows, the rules the table enforces are:
+- the **right** place always holds exactly one of card view, Settings, Help or Test (P4, P5);
+- the **bar** appears only in rows 3, 4, 6 (retake), 7 and 8, and never holds descriptions (P3, P9);
+- anything that *informs* a choice is a card in the Card view; anything that *is* the choice is on the bar or on the card it acts on (P7, P8);
+- only rows 9, 10 and 15 block (P8).
+
 ## I. How we use this
 
-1. Iterate on this document until you are content with P1–P17 and answer H1–H3.
-2. Re-derive each screen state from the principles in a table (state → slot → content → actions), before any code.
+1. Iterate on this document until you are content with P1–P17 and answer H2–H5.
+2. Section J is the screen-state table; check each row, then correct the code where "Today" says otherwise.
 3. Only then compare with what the branch has, and keep, change or drop each piece.
 4. Until then, the branch's UI changes stay uncommitted-to-main and no more are layered on.
