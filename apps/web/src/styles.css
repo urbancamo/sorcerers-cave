@@ -944,8 +944,15 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 8px 30px 0;
+  /* the outer cards drop by up to 3.5 x 18px via transform, which takes no layout space; the bottom padding
+     reserves that drop so the cards never cover the Latin quote below */
+  padding: 8px 30px 64px;
   min-height: 150px;
+  margin-top: -11px; /* tucks the fan up under the fan-project line, as that line was tucked under the title */
+  /* relative + z-index keeps the fan painted above the quote's parchment; top lifts the cards alone */
+  position: relative;
+  z-index: 1;
+  top: -10px;
 }
 /* slot = stationary fan position + hit area (does not move on hover) */
 .scv-fan-slot {
@@ -1335,6 +1342,16 @@
 .scv-mp-rnm { flex: 1; font-family: var(--ui); font-size: 13px; }
 .scv-mp-rscore { font-family: var(--ui); font-weight: 700; color: var(--brass-bright); }
 .scv-card.gone { opacity: 0.4; }
+
+/* fan-project line under the title: states up front that this is unofficial and non-commercial */
+.scv-splash-fanline {
+  margin: -26px 0 0; /* cancels the splash column's 26px gap, so the line sits right under the title's own line box */
+  max-width: min(720px, 92vw);
+  text-align: center;
+  font-size: 13px;
+  font-style: italic;
+  color: var(--stone-dim);
+}
 
 /* attributions */
 .scv-attrib {
@@ -2280,9 +2297,9 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
 .scv-help-topic ul{padding-left:18px;}
 .scv-help-title{margin:8px 0 2px;font-family:var(--display,serif);font-size:12px;letter-spacing:.04em;color:var(--gold,#c9a14e);}
 .scv-help-pill{margin-left:6px;padding:1px 6px;border:1px solid var(--line);border-radius:999px;font-size:9px;letter-spacing:.08em;text-transform:uppercase;color:var(--stone);}
-.scv-help-note{padding:6px 8px;border-left:3px solid var(--line);background:rgba(0,0,0,.25);border-radius:3px;}
-.scv-help-note-good{border-left-color:#6aa46a;}
-.scv-help-note-danger{border-left-color:#b5524a;}
+.scv-help-note{padding:6px 8px;border:1px solid var(--line);background:rgba(0,0,0,.25);border-radius:3px;}
+.scv-help-note-good{border-color:#6aa46a;background:rgba(106,164,106,.08);}
+.scv-help-note-danger{border-color:#b5524a;background:rgba(181,82,74,.1);}
 
 /* Help: the "?" popover, the Help panel and browser, the title-screen modal and nudge */
 .scv-hb{position:relative;display:inline-block;margin-left:6px;vertical-align:middle;text-transform:none;letter-spacing:0;}

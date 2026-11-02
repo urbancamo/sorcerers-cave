@@ -102,6 +102,9 @@ export function SplashScreen({
   return (
     <div className="scv-splash" data-testid="splash">
       <h1 className="scv-splash-title">The Sorcerer&rsquo;s Cave</h1>
+      <p className="scv-splash-fanline">
+        An unofficial, non-commercial fan adaptation of <em>The Sorcerer&rsquo;s Cave</em>.
+      </p>
 
       {n > 0 && (
         <div className="scv-splash-fan" aria-hidden="true">
@@ -264,13 +267,28 @@ export function SplashScreen({
           Written by Mark Wickens using Claude Code,{" "}
           <a href={REPO_URL} target="_blank" rel="noreferrer">sorcerers-cave</a>
         </p>
+        <p className="scv-attrib-hd">Fan project</p>
+        <p>
+          This is an unofficial, free, non-commercial fan adaptation, made out of affection for the original
+          game. It is not affiliated with, authorised by or endorsed by the game&rsquo;s designer, his estate, or
+          its publishers. <em>The Sorcerer&rsquo;s Cave</em> and its original rules, artwork and trademarks remain
+          the property of their respective owners. No payment is taken and there is no advertising. If you are a
+          rights holder and have a concern, please contact{" "}
+          <a href="mailto:mark@wickensonline.co.uk">mark@wickensonline.co.uk</a> and it will be addressed
+          promptly, including by removal if requested.
+        </p>
         <p className="scv-attrib-hd">Acknowledgements</p>
         <p>Original game: © 1978 &amp; 1982 Terence Peter Donnelly, published by Ariel Productions Ltd / Gibsons / Philmar.</p>
+        <p className="scv-attrib-hd">Peter Vodden</p>
+        <p>
+          Creator of the Sorcerer&rsquo;s Cave Conversion Kit (Extension Kit) &middot; Artwork and card design
+          &middot; Rules designer, Revised Combat &middot; Playtester and design advisor
+        </p>
         <p className="scv-attrib-hd">Graphics</p>
         <p>
-          Concept and realisation by Peter Vodden. Area card artwork, small card template, tokens and
-          incidental small card artwork by Peter Vodden using Dungeon Painter Studio, Epic Character
-          Generator and Paint Shop. Creative Commons CC BY-NC-SA 4.0.{" "}
+          Area card artwork, small card template, tokens and incidental small card artwork by Peter Vodden
+          using Dungeon Painter Studio, Epic Character Generator and Paint Shop. Creative Commons
+          CC BY-NC-SA 4.0.{" "}
           <a href="https://sorcererscaveconversionkit.wordpress.com" target="_blank" rel="noreferrer">
             sorcererscaveconversionkit.wordpress.com
           </a>
