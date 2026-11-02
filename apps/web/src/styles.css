@@ -944,9 +944,15 @@
   display: flex;
   justify-content: center;
   align-items: flex-start;
-  padding: 8px 30px 0;
+  /* the outer cards drop by up to 3.5 x 18px via transform, which takes no layout space; the bottom padding
+     reserves that drop so the cards never cover the Latin quote below */
+  padding: 8px 30px 64px;
   min-height: 150px;
   margin-top: -11px; /* tucks the fan up under the fan-project line, as that line was tucked under the title */
+  /* relative + z-index keeps the fan painted above the quote's parchment; top lifts the cards alone */
+  position: relative;
+  z-index: 1;
+  top: -10px;
 }
 /* slot = stationary fan position + hit area (does not move on hover) */
 .scv-fan-slot {
