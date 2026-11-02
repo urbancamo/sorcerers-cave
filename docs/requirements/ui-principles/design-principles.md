@@ -39,8 +39,9 @@ The screen has a small fixed set of places, and each has one job:
 |---|---|---|
 | Title bar | switches the panels on and off; shows game identity | — |
 | Left slot | **my side**: who I command and what we carry | Party, Inventory (Combat selector during a fight) |
-| Right slot | **the thing in focus**: whatever card, place or choice I am looking at | Card view, Settings, Help, Test |
+| Right slot | **the thing in focus**: whatever card, place or choice I am looking at | Card view, Settings, Help |
 | Bottom edge | one row: the camera dock at the left, and the **decision bar** centred beside it while a choice is pending | Snap, Orbit, Levels (always); Decision bar (transient) |
+| Centre | the fight dialog, fights only | Fight dialog |
 | Blocking popup | a must-act choice that cannot wait | Trap, game over, rule-critical choices |
 
 Anything new has to be placed in one of these. If it doesn't fit, that is a design question, not a
@@ -72,6 +73,7 @@ When the player must choose (attack, withdraw, test, take, leave), everything th
 reachable *without leaving or answering the choice*: the strangers' cards and strengths, their own party's
 strength, what is on offer. A surface that asks for a decision must not hide or block what informs it.
 Blocking popups are for the few choices that are made on the spot (a trap), not for choices that need weighing.
+Outcome modals (the dice, the "Aftermath" notice) also block, briefly: they carry no choice, only an acknowledgement of what happened (decided 2026-11-02, Mark, overriding the review's Q6 assumption that they would not block).
 *Source:* Q6 (blocking only where "an action absolutely must be taken"); Peter's note 7 ("is my party strong enough?");
 and Mark's report that stranger cards cannot be inspected at the decision point. **This is the principle this
 branch broke.**
@@ -172,38 +174,55 @@ the bar's missing mode label (P16), and the missing party-strength comparison (P
    And is the "expand" state a separate occupant of the slot, or a size of the same one?
 3. **What counts as "must-act" (blocking)?** The review says trap, game over, rule-critical. Is an encounter ever
    blocking, or never?
-4. **Which controls are allowed in the title bar?** Today: Party, Inventory, Card, Settings, Help, Test.
+4. **Which controls are allowed in the title bar?** Today: Party, Inventory, Card, Settings, Help (and a T for the developer Test panel).
 5. **Do we want a standing layout test?** A short checklist run on a screenshot of each state before merging UI work.
 
 ## J. Screen states (derived from the principles)
 
 For each state: what each place holds, what the player can do, and whether today's build meets it. "Today" is by reading the
-code, not by seeing it run. **Left** = party/inventory/combat selector; **Right** = card view, Settings, Help or Test.
+code, not by seeing it run. **Left** = party/inventory/combat selector; **Right** = card view, Settings or Help.
 
 | # | State | Left | Right | Bottom row (dock + bar) | Popup | Today |
 |---|---|---|---|---|---|---|
 | 1 | Exploring, nothing selected | Party (open at game start; the player's toggle sticks) | Empty | Dock only | — | Met |
 | 2 | Click any card, area or member (any time) | unchanged | Card view of it: stranger/treasure card with wording; a scouted-away area as a mini with words; a member with mini-cards; an item with "← member" | unchanged | — | Met |
-| 3 | Arrive at a chamber with strangers | Party | Card view auto-shows the first stranger; any other can be clicked | **Encounter** bar: stranger names, strength/magic them v you, Test, Attack, Withdraw (+ Retreat), help | — | Mostly (G2, G3) |
-| 4 | After a reaction test | Party | as 3 | Bar offers the next legal choice; if the party may leave, the doorways light up in the cave | — | Not checked |
+| 3 | Arrive at a chamber with strangers | Party | Card view shows the **whole group** as a strip of mini-cards with one enlarged (agreed; not built yet) | **Encounter** bar: stranger names, strength/magic them v you, Test, Attack, Withdraw (+ Retreat), help | — | Gap: today only the first stranger shows (J.1 d3) |
+| 4 | After a reaction test | Party | as 3 | Friendly: the group joins, then pickup (row 6), the Sibyl (row 11) or on with the walk. Indifferent, first or second time: the bar stays (Test, Attack, Withdraw) and the doorways light for one action. Indifferent a third time: they are pacified and the party walks on (the guards can still be attacked). Hostile: the fight (row 5) | — | Partly: the dice say only "they pay you no heed", nothing says the doorways are now open for one action (J.1 d4) |
 | 5 | Fight (revised) | Combat selector (forced) | Card view of the clicked member, stranger or artifact | None; the fight dialog owns the middle | — | Met |
-| 6 | Pickup (treasure on the floor) | Party | Card view auto-shows the first piece, with Give to… (greyed with the reason if no one can); any other card still clickable | None, except the one-tap Retake after a win (labelled Treasure/Artifact). Walking on leaves it | — | Met |
-| 7 | Medusa pause | Party | Card view | **Medusa** bar: throw the dust, Holy Water, or proceed | — | Met |
-| 8 | Special chamber (Chasm, Well, Bell Rope, Crypt, island) | Party | Card view: the chamber's words | Bar with the choice, behind a confirm | Confirm | Partly: the bar is headed "Actions", not the chamber's kind (G1) |
+| 6 | Pickup (treasure on the floor) | Party | The floor strip (d6) with the first piece enlarged, Give to… (greyed with the reason if no one can); any other card still clickable | None, except the one-tap Retake after a win (labelled Treasure/Artifact). Walking on leaves it | — | Gap: today only the first piece is shown (d6) |
+| 7 | Medusa pause | Party | Card view auto-shows the Medusa card (d7) | **Medusa** bar: throw the dust, Holy Water, or proceed | — | Gap: not shown today, unchecked (d7) |
+| 8 | Special chamber (Chasm, Well, Bell Rope, Crypt, island) | Party | Card view auto-shows the Area card with the chamber's words (d8) | Bar headed with the chamber's name, with the choice behind a confirm | Confirm | Gap: no card view on arrival, and the bar is headed "Actions" (d8, G1) |
 | 9 | Trap | Party | — | — | Blocking trap choice | Met |
-| 10 | Sorcerer's terms | Party | — | — | Blocking terms | Met |
+| 10 | Sorcerer's terms | Party | — | — | Blocking terms | Gap: the destination step is its own bar (d10) |
 | 11 | Sibyl | Party | Her own card, with her look action | — | — | Met |
 | 12 | Inventory open; item selected | Inventory | Item card: use, wield/stow, Give to… (greyed with the reason), drop | unchanged | Confirm for Elixir, Scroll | Met |
-| 13 | Settings / Help / Test | as before | Settings (game info, Save, Game log, Abandon with confirm), Help, or Test, swapping with the card view | unchanged | Confirm for Abandon | Met |
-| 14 | Dice, outcome notice | as before | as before | as before | Dice are an overlay; the notice is a modal to dismiss | Per the review notices should not block (Q6); not changed |
+| 13 | Settings / Help | as before | Settings (game info, Save, Game log, Abandon with confirm) or Help, swapping with the card view | unchanged | Confirm for Abandon | Met. The Test panel is developer tooling, a floating panel outside these rules (d12) |
+| 14 | Dice, outcome notice | as before | as before | as before | Dice and the "Aftermath" notice are modals with Continue; they carry no choice | Met (decided to block, d13) |
 | 15 | Game over / save | — | — | — | Blocking | Met |
 | 16 | Party selection (before the game) | the chooser | Card view of the clicked recruit | — | — | Met |
 
+### J.1 Decisions from the walkthrough (Mark, 2026-11-02)
+
+- **d1 (row 1):** the party list opens once per game; the player's toggle sticks, including across levels.
+- **d2 (row 2):** the card view stays until the player toggles it; it never closes by itself.
+- **d3 (row 3):** the card view shows the whole stranger group as a strip of mini-cards with one enlarged, like a member's carried items. *To build.*
+- **d4 (row 4):** checked against `reduce.ts` (`test` case). After a first or second indifferent result the leave window lasts for **one action**; the dice message now says "You may leave by any doorway, or test them again." *Built.*
+- **d5 (row 5):** the slot table gains a **Centre** place, for the fight dialog only. *Done.*
+- **d6 (row 6):** the strip in d3 holds **every card on the chamber floor**, strangers and treasure together, with one enlarged, so one rule covers rows 3 and 6. *To build.*
+- **d7 (row 7):** the Medusa pause auto-shows the Medusa card in the card view. *To build; check first how she reaches the scene.*
+- **d8 (row 8):** on arrival at a special chamber the card view auto-shows the **Area card** (image and the chamber's words), and the bar is headed with the chamber's name (Chasm, Well, Bell Rope, Crypt…) instead of "Actions". Confirms stay. *To build.*
+- **d9 (row 9):** the trap popup stays a full blocking popup; no change.
+- **d10 (row 10):** the Sorcerer's destination step should use the same bar as everything else (P15) instead of its own `scv-tp-bar`. *To build, last.*
+- **d11 (rows 11, 12):** met. The Sibyl's look stays on her card, unprompted; the inventory states carry a glyph and a text tag, so P12 holds there.
+- **d12 (row 13):** the Test panel is developer tooling and exempt from the slot rules; it is not an occupant of the right slot. The "Test" occupant is struck from the slot table.
+- **d13 (row 14):** dice and the "Aftermath" notice stay blocking modals that only acknowledge a result. P8 now says so.
+- **d14 (rows 15, 16):** met. The Game log and save dialogs are user-opened or end-of-game modals; the party-selection screen has nothing pending.
+
 Reading across the rows, the rules the table enforces are:
-- the **right** place always holds exactly one of card view, Settings, Help or Test (P4, P5);
+- the **right** place always holds exactly one of card view, Settings or Help (P4, P5);
 - the **bar** appears only in rows 3, 4, 6 (retake), 7 and 8, and never holds descriptions (P3, P9);
 - anything that *informs* a choice is a card in the Card view; anything that *is* the choice is on the bar or on the card it acts on (P7, P8);
-- only rows 9, 10 and 15 block (P8).
+- only rows 9, 10 and 15 block a *choice* (P8); the dice and the Aftermath notice block only to acknowledge a result.
 
 ## I. How we use this
 

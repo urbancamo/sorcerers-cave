@@ -22,7 +22,7 @@ function reactionView(reaction: Extract<GameEvent, { type: "reaction" }>, joined
       : reaction.outcome === "indifferent"
         ? pacified
           ? "Indifferent again — they now ignore you for good. Go on your way."
-          : "Indifferent — they pay you no heed."
+          : "Indifferent — they pay you no heed. You may leave by any doorway, or test them again."
         : "Hostile — they're ready for a fight!";
   const tone: Tone =
     reaction.outcome === "friendly" ? "good" : reaction.outcome === "hostile" ? "bad" : "neutral";
