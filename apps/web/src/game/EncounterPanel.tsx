@@ -107,6 +107,8 @@ export function EncounterPanel({ state, dispatch, leaveOnMove = false }: { state
   }, [autoSkip, state, dispatch]);
   if (!activePhase || autoSkip) return null;
   const strangers = state.strangers.map((id) => ALL_CREATURES[id]!.name);
+  const fighters = state.party.filter((m) => m.status === 0 || m.status === 1); // stone and the fallen add nothing
+  const sum = (ns: number[]) => ns.reduce((n, v) => n + v, 0);
   const treasures = state.treasures.map((id) => ALL_TREASURES[id]!.name);
 
   // Collapse the action explosion into one control per treasure / per artefact:
@@ -160,7 +162,14 @@ export function EncounterPanel({ state, dispatch, leaveOnMove = false }: { state
     <div className="scv-enc" data-testid="encounter-panel">
       <h3 className="scv-enc-hd">{state.phase}{state.phase === "encounter" && <HelpButton topics={["encounter-choices", "reaction-roll", "reaction-results", "tip-surprise", "tip-befriend"]} label="Help with meeting strangers" />}</h3>
       {strangers.length > 0 && (
-        <p className="scv-enc-line scv-enc-strangers"><span className="k">Strangers: </span>{strangers.join(", ")}</p>
+        <p className="scv-enc-line scv-enc-strangers">{strangers.join(", ")}</p>
+      )}
+      {/* Printed numbers only, so the party can judge "can we take them?" without opening any card; bonuses apply in the fight. */}
+      {state.phase === "encounter" && state.strangers.length > 0 && (
+        <p className="scv-enc-line scv-enc-odds" data-testid="enc-odds" title="Printed values only. Artefacts, the surprise bonus and curses are applied in the fight itself.">
+          Strength: them {sum(state.strangers.map((id) => ALL_CREATURES[id]!.fs))} · you {sum(fighters.map((m) => ALL_CREATURES[m.creatureId]!.fs))}
+          {" · "}Magic: them {sum(state.strangers.map((id) => ALL_CREATURES[id]!.mp))} · you {sum(fighters.map((m) => ALL_CREATURES[m.creatureId]!.mp))}
+        </p>
       )}
       {/* The Sibyl is never among `state.strangers` (SC-SIB-2): name her when she is the one to be tested. */}
       {sibylWaiting(state) && (

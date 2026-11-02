@@ -293,8 +293,8 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 8px 14px;
-  padding: 12px 18px;
+  gap: 4px 12px;
+  padding: 7px 14px;
   background: rgba(15, 15, 20, 0.82);
   border: 1px solid var(--line-strong);
   border-radius: 14px;
@@ -324,6 +324,10 @@
 .scv-enc-treasure {
   color: var(--brass);
 }
+.scv-enc-odds {
+  color: var(--stone-dim);
+  white-space: nowrap;
+}
 .scv-enc-round {
   font-size: 10.5px;
   letter-spacing: 0.14em;
@@ -342,7 +346,7 @@
   font-family: var(--ui);
   font-size: 13px;
   text-align: left;
-  padding: 9px 12px;
+  padding: 6px 11px;
   border-radius: 9px;
   border: 1px solid var(--line-strong);
   color: var(--parchment);
@@ -2347,3 +2351,10 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
 .scv-partylist.expanded .carry .tre{width:34px;}
 .scv-pl-expand { margin-left: 8px; padding: 0 6px; background: none; border: 1px solid var(--line); border-radius: 6px; color: var(--stone); cursor: pointer; font-size: 14px; line-height: 1.4; }
 .scv-pl-expand:hover { border-color: var(--brass); color: var(--cream); }
+
+/* Solo shell, desktop: the camera dock sits bottom-left and the encounter bar shares its row, centred and kept clear of the dock
+   (multiplayer's older HUD keeps both centred). */
+@media (min-width: 721px) {
+  #hud.shell .dock { left: 14px; transform: none; }
+  .scv-shell-root .scv-enc { bottom: 24px; max-width: max(360px, calc(100vw - 680px)); }
+}

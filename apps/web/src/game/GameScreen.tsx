@@ -329,7 +329,7 @@ export default function GameScreen() {
 
   return (
     <HelpProvider variants={displayState.variants}>
-    <div className="relative h-screen w-screen">
+    <div className="relative h-screen w-screen scv-shell-root">
       <CaveCanvas key={gameId} onReady={(api) => { caveApi.current = api; }} engine={engine} state={displayState} canAct={!presentingRef.current} color={color} code={code ?? undefined}
         // A card on the floor opens the card panel unless Settings or the test panel holds the slot; a click on a card or
         // party member always takes the slot. No card on the floor closes it again.

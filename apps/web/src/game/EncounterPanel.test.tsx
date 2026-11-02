@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import { newGame, type GameState } from "@sorcerers-cave/engine";
+import { newGame, ALL_CREATURES, type GameState } from "@sorcerers-cave/engine";
 import { EncounterPanel } from "./EncounterPanel";
 
 function encounterState(): GameState {
@@ -230,5 +230,31 @@ describe("EncounterPanel — leaveOnMove (solo: the party simply walks away from
     const pickup: GameState = { ...newGame(1, [5, 6]), phase: "pickup", treasures: [1] };
     render(<EncounterPanel state={pickup} dispatch={() => {}} />);
     expect(screen.getByRole("button", { name: /leave the treasure/i })).toBeInTheDocument();
+  });
+});
+
+describe("EncounterPanel — the thin bar", () => {
+  it("names the strangers in one line and compares printed strength and magic", () => {
+    // Man + Woman (strength 5 and 3? the numbers come from the engine tables) against a lone Man.
+    const s = encounterState();
+    render(<EncounterPanel state={s} dispatch={() => {}} />);
+    const odds = screen.getByTestId("enc-odds");
+    expect(odds).toHaveTextContent(/strength.*them.*you/i);
+    expect(odds).toHaveTextContent(/magic.*them.*you/i);
+    expect(odds).toHaveAttribute("title", expect.stringMatching(/printed/i));
+  });
+
+  it("adds up the strangers and only the party members able to fight", () => {
+    const s: GameState = { ...newGame(1, [5, 6]), phase: "encounter", strangers: [5, 5] };
+    s.party[1]!.status = 2; // the Woman (the Man alone can still fight) is turned to stone: adds nothing
+    const { fs: manFs } = ALL_CREATURES[5]!;
+    render(<EncounterPanel state={s} dispatch={() => {}} />);
+    expect(screen.getByTestId("enc-odds")).toHaveTextContent(`Strength: them ${manFs * 2} · you ${manFs}`);
+  });
+
+  it("shows no comparison outside an encounter with strangers", () => {
+    const pickup: GameState = { ...newGame(1, [5, 6]), phase: "pickup", treasures: [1] };
+    render(<EncounterPanel state={pickup} dispatch={() => {}} />);
+    expect(screen.queryByTestId("enc-odds")).toBeNull();
   });
 });
