@@ -51,6 +51,7 @@ import { HelpPanel } from "./shell/HelpPanel";
 import { HelpProvider } from "../manual/HelpContext";
 import type { HelpScreen } from "../manual";
 import { toggleLeft, toggleRight, type LeftSlot, type RightSlot } from "./shell/shellState";
+import { useOpenPartyOnce } from "./shell/useOpenPartyOnce";
 
 export default function GameScreen() {
   const { isAuthenticated, isLoading } = useConvexAuth();
@@ -68,6 +69,7 @@ export default function GameScreen() {
   // Thin shell slots (title bar icons). Inventory shows the party-and-treasure panel until the inventory list replaces it.
   const [leftSlot, setLeftSlot] = useState<LeftSlot>(null);
   const [rightSlot, setRightSlot] = useState<RightSlot>(null);
+  useOpenPartyOnce(gameId, setLeftSlot); // the chosen party is on screen from the first step into the Gateway
   const [testOpen, setTestOpen] = useState(false); // the floating test panel, independent of the slots
   const [managing, setManaging] = useState(false); // the party panel, until the artifact card takes over moving and dropping treasure
   const [selected, setSelected] = useState<Selected | null>(null); // what the card panel shows
@@ -329,7 +331,7 @@ export default function GameScreen() {
   return (
     <HelpProvider variants={displayState.variants}>
     <div className="relative h-screen w-screen">
-      <CaveCanvas key={gameId} onReady={(api) => { caveApi.current = api; }} engine={engine} state={displayState} canAct={!presentingRef.current} color={color} code={code ?? undefined} onSave={handleSave} onLog={() => setShowLog(true)}
+      <CaveCanvas key={gameId} onReady={(api) => { caveApi.current = api; }} engine={engine} state={displayState} canAct={!presentingRef.current} color={color} code={code ?? undefined}
         // A card on the floor opens the card panel unless Settings or the test panel holds the slot; a click on a card or
         // party member always takes the slot. No card on the floor closes it again.
         shell={{
@@ -360,7 +362,7 @@ export default function GameScreen() {
                      : undefined} />
       )}
       {rightSlot === 'help' && <HelpPanel screens={helpScreens} flags={displayState.variants} />}
-      {rightSlot === 'settings' && <SettingsPanel verbose={verbose} onVerbose={(on) => { setVerbose(on); writeVerbose(on); }} state={displayState} code={code ?? undefined} kitActive={!!displayState.variants?.extensionKit} onSave={handleSave} onLog={() => setShowLog(true)} />}
+      {rightSlot === 'settings' && <SettingsPanel verbose={verbose} onVerbose={(on) => { setVerbose(on); writeVerbose(on); }} state={displayState} code={code ?? undefined} kitActive={!!displayState.variants?.extensionKit} onSave={handleSave} onLog={() => setShowLog(true)} onAbandon={() => engine.quit()} />}
       <EncounterPanel state={displayState} dispatch={dispatchWithRolls} />
       {fightVisible && cards && <FightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
       {fightVisible && cards && <RevisedFightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} inventory={leftSlot === 'inventory' ? inventoryPanel : undefined}

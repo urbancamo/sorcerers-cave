@@ -27,9 +27,17 @@ describe('InventoryPanel', () => {
     expect(screen.getByText('The party carries nothing.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Move or drop/ })).toBeNull();
     const onManage = vi.fn();
-    rerender(<InventoryPanel rows={[]} selected={null} onSelect={() => {}} onManage={onManage} />);
+    rerender(<InventoryPanel rows={[row()]} selected={null} onSelect={() => {}} onManage={onManage} />);
     fireEvent.click(screen.getByRole('button', { name: /Move or drop/ }));
     expect(onManage).toHaveBeenCalledOnce();
+  });
+});
+
+describe('InventoryPanel — nothing carried', () => {
+  it('offers no Move or drop button when there is nothing to move', () => {
+    render(<InventoryPanel rows={[]} selected={null} onSelect={() => {}} onManage={() => {}} />);
+    expect(screen.getByText('The party carries nothing.')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Move or drop/ })).toBeNull();
   });
 });
 

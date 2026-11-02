@@ -1,7 +1,8 @@
 import { activeCurses, type GameState } from '@sorcerers-cave/engine';
+import { ConfirmButton } from '../ConfirmButton';
 
 /** The game information the old title bar chips carried, in a vertical list, plus the game controls. */
-export function SettingsPanel({ state, code, kitActive, onSave, onLog, verbose, onVerbose }: {
+export function SettingsPanel({ state, code, kitActive, onSave, onLog, onAbandon, verbose, onVerbose }: {
   verbose?: boolean;
   onVerbose?: (on: boolean) => void;
   state: GameState;
@@ -9,6 +10,7 @@ export function SettingsPanel({ state, code, kitActive, onSave, onLog, verbose, 
   kitActive: boolean;
   onSave?: () => void;
   onLog?: () => void;
+  onAbandon?: () => void;
 }) {
   const curses = activeCurses(state);
   const rows: [string, string][] = [
@@ -36,6 +38,12 @@ export function SettingsPanel({ state, code, kitActive, onSave, onLog, verbose, 
         {onSave && <button type="button" onClick={onSave}>Save game</button>}
         {onLog && <button type="button" onClick={onLog}>Game log</button>}
       </div>
+      {/* Abandoning ends the game, so it asks first; it lives here rather than in the camera dock where a stray tap could hit it. */}
+      {onAbandon && (
+        <ConfirmButton label="Abandon the expedition" className="scv-enc-btn ghost"
+                       confirmText="You forsake your party to the Cave — they do not escape. Your final score is tallied."
+                       onConfirm={onAbandon} />
+      )}
     </aside>
   );
 }

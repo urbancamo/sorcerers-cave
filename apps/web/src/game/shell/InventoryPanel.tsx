@@ -29,7 +29,7 @@ export function InventoryPanel({ rows, selected, onSelect, onManage }: {
           </li>
         ))}
       </ul>
-      {onManage && <button type="button" className="scv-inv-manage" onClick={onManage}>Move or drop treasure…</button>}
+      {onManage && rows.length > 0 && <button type="button" className="scv-inv-manage" onClick={onManage}>Move or drop treasure…</button>}
     </aside>
   );
 }

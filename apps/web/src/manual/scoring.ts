@@ -32,7 +32,7 @@ export const SCORING: Section = {
       p('Only a party that climbs back out can record a score on the high-score board.'),
     ] },
     { id: 'quit-abandon', title: 'Quitting', brief: 'Quitting abandons the party to the cave; it does not climb out.', cards: [], screens: ['game-over'], blocks: [
-      p('You can end a run at any time with **Quit** — but quitting *abandons* your party to the cave: they do not climb out. The score they had gathered is still tallied (a wiped party, of course, scores nothing), but an abandoned party cannot record a score.'),
+      p('You can end a run at any time with **Abandon** (in Settings) — but quitting *abandons* your party to the cave: they do not climb out. The score they had gathered is still tallied (a wiped party, of course, scores nothing), but an abandoned party cannot record a score.'),
     ] },
     { id: 'high-score-tables', title: 'The high-score tables', brief: 'Eight tables, because solo, multiplayer, kit and Sibyl games cannot fairly be compared.', cards: [], screens: ['high-scores', 'game-over'], blocks: [
       p('Enter a name to record an escaped party on the shared **high-score board**. It keeps separate tables for solitaire and multiplayer games, for base-game and Extension Kit games, and for games with or without the Sibyl — **eight tables** in all, because those games cannot fairly be compared. Switch between them with the buttons above the table.'),

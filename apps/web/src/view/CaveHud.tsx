@@ -156,8 +156,8 @@ export function CaveHud({ mountRef, onPartyClick, onSave, onLog, code, turnLabel
             </button>
             <div className="sep"></div>
             <div className="grp" id="levelGrp"></div>
-            <div className="sep"></div>
-            {onSave && (
+            {!shell && <div className="sep"></div>}
+            {!shell && onSave && (
               <button className="btn" onClick={onSave} title="Save and return to the menu" aria-label="Save and return to the menu">
                 <svg
                   className="ic"
@@ -172,7 +172,7 @@ export function CaveHud({ mountRef, onPartyClick, onSave, onLog, code, turnLabel
                 </svg>
               </button>
             )}
-            {onLog && (
+            {!shell && onLog && (
               <button className="btn" onClick={onLog} title="Game log — download for debugging or replay" aria-label="Game log">
                 <svg
                   className="ic"
@@ -188,7 +188,7 @@ export function CaveHud({ mountRef, onPartyClick, onSave, onLog, code, turnLabel
                 </svg>
               </button>
             )}
-            <button className="btn" id="resetBtn" title="Quit" aria-label="Quit">
+            <button className="btn" id="resetBtn" title="Quit" aria-label="Quit" hidden={shell || undefined}>
               <svg
                 className="ic"
                 viewBox="0 0 24 24"

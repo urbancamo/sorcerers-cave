@@ -388,3 +388,4 @@ canvas{display:block;touch-action:none;}
 /* ---------- thin-shell HUD (solo game): the title bar, party list and card panel are shown on demand ---------- */
 #hud.shell .roster{display:none;top:48px;max-height:calc(100dvh - 130px);}
 #hud.shell .stats{top:46px;}
+.btn[hidden]{display:none;} /* the shell hides Quit (it is in Settings) but the 3D scene still binds to the element */
