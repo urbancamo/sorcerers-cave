@@ -63,6 +63,7 @@ export function useCaveGame(
           });
         },
         canAct: () => !canActRef.current || canActRef.current(),
+        leavePickupOnMove: true, // solo: walking away from treasure leaves it, no button
       });
       syncedRef.current = state;
     }

@@ -87,15 +87,9 @@ function label(a: GameAction, state: GameState): string {
 const onlyLeave = (state: GameState, actions: GameAction[]) =>
   state.phase === "pickup" && actions.length > 0 && actions.every((a) => a.type === "leaveTreasure");
 
-/** True while the party has a real choice to make (an encounter, a pickup it can act on, the Medusa pause). The solo shell
- *  uses it to give the decision the right-hand pane; a pickup that is skipped automatically needs no pane. */
-export function needsDecision(state: GameState): boolean {
-  if (!ACTIVE.has(state.phase)) return false;
-  return !onlyLeave(state, legalActions(state));
-}
-
-/** `placement` "dock" is the fixed bottom-centre panel (multiplayer's older HUD); "panel" sits inside the solo shell's decision pane. */
-export function EncounterPanel({ state, dispatch, placement = "dock" }: { state: GameState; dispatch: (a: GameAction) => void; placement?: "dock" | "panel" }) {
+/** `leaveOnMove` (solo): treasure is never "left" with a button; the party just walks on (see the cave adapter's `leavePickupOnMove`),
+ *  so the Leave action is dropped and a pickup with nothing else to choose shows no bar. Multiplayer keeps the button. */
+export function EncounterPanel({ state, dispatch, leaveOnMove = false }: { state: GameState; dispatch: (a: GameAction) => void; leaveOnMove?: boolean }) {
   const activePhase = ACTIVE.has(state.phase);
   const actions = activePhase ? legalActions(state) : [];
   // Auto-skip (design 2026-07-28): a pickup where "Leave the treasure" is the only legal action —
@@ -145,8 +139,10 @@ export function EncounterPanel({ state, dispatch, placement = "dock" }: { state:
     // Leaving an indifferent encounter by any doorway (SC-4-18a) is movement, same as explore's own
     // moves — driven by the 3D exit markers/keys (engineAdapter.ts's openMoves), never a panel button.
     else if (a.type === "move") continue;
+    else if (a.type === "leaveTreasure" && leaveOnMove) continue;
     else simple.push(a);
   }
+  if (leaveOnMove && state.phase === "pickup" && !retake && simple.length === 0 && pullBellRope.length === 0) return null;
 
   // Treasure nobody can take (design 2026-07-28): the engine already withholds `takeTreasure` when
   // no active member qualifies, so a row-less listing would be silent — explain it beside the rows
@@ -161,7 +157,7 @@ export function EncounterPanel({ state, dispatch, placement = "dock" }: { state:
     return c.carry > 0 ? `${base} (${carriedWeight(m)}/${c.carry}kg)` : base;
   };
   return (
-    <div className={"scv-enc" + (placement === "panel" ? " scv-enc-embedded" : "")} data-testid="encounter-panel">
+    <div className="scv-enc" data-testid="encounter-panel">
       <h3 className="scv-enc-hd">{state.phase}{state.phase === "encounter" && <HelpButton topics={["encounter-choices", "reaction-roll", "reaction-results", "tip-surprise", "tip-befriend"]} label="Help with meeting strangers" />}</h3>
       {strangers.length > 0 && (
         <p className="scv-enc-line scv-enc-strangers"><span className="k">Strangers: </span>{strangers.join(", ")}</p>

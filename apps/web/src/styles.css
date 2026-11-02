@@ -2347,14 +2347,3 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
 .scv-partylist.expanded .carry .tre{width:34px;}
 .scv-pl-expand { margin-left: 8px; padding: 0 6px; background: none; border: 1px solid var(--line); border-radius: 6px; color: var(--stone); cursor: pointer; font-size: 14px; line-height: 1.4; }
 .scv-pl-expand:hover { border-color: var(--brass); color: var(--cream); }
-
-/* the decision pane: one right-hand pane for an encounter or pickup (chamber words, strangers, treasure, choices) */
-.scv-decision { display: flex; flex-direction: column; gap: 10px; }
-.scv-decision-faces { display: flex; gap: 6px; flex-wrap: wrap; }
-.scv-decision-face { width: 84px; border-radius: 6px; box-shadow: 0 4px 14px rgba(0,0,0,.4); }
-.scv-decision-face.ph { display: grid; place-items: center; aspect-ratio: 7/10; border: 1px dashed var(--line-strong); color: var(--stone-dim); font-size: 11px; }
-/* inside the pane the encounter panel and pickup lose their own fixed placement and frame */
-.scv-enc.scv-enc-embedded { position: static; transform: none; width: auto; max-width: none; max-height: none; padding: 0; border: 0; background: none; box-shadow: none; backdrop-filter: none; }
-.scv-pickup-embedded { display: flex; flex-direction: column; gap: 8px; }
-/* anything else the player opens at the right (a clicked card, Settings, Help) sits beside the pane rather than hiding it */
-[data-decision="1"] .scv-slot-right:not(.scv-decision) { right: 311px; }

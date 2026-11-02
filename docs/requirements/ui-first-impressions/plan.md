@@ -147,3 +147,13 @@ Built and committed, test-first, with typecheck and the whole suite green:
 **Not verified:** the RMUP and GWBE replays were not run (they need the live backend), so the causes of 6a and 6b are still
 inferred from the code, and nothing has been checked in a browser. In particular check: the pane's height with several
 strangers and treasures (it scrolls), and that a clicked card sitting beside the pane does not collide with it on a narrow window.
+
+## Revision (2026-11-02, later): the decision pane is withdrawn
+The single right-hand decision pane did not work: it took the slot the card view needs, so the strangers could not be
+inspected at the moment of choosing. Decision (Mark): choices return to a thin **action bar** at the bottom, above the camera
+controls; the card view stays free. See [../ui-principles/design-principles.md](../ui-principles/design-principles.md) (P8, P9, Q1).
+Step one removed `DecisionPane` and restored the bottom `EncounterPanel` and the right-hand pickup panel. Making the bar thin
+(one context line, printed-strength comparison, treasure assignment on the item card) is still to do.
+Also decided (Mark): there is no "Leave the treasure" action in solo. Ignoring the offered treasure is fine; walking through a
+doorway leaves it (`leavePickupOnMove` in the cave adapter, which sends the engine's own `leaveTreasure` first, so no engine change).
+A pickup with nothing else to choose shows no bar. Multiplayer keeps the button.

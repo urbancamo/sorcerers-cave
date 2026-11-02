@@ -1,7 +1,7 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { newGame, type GameState } from "@sorcerers-cave/engine";
-import { EncounterPanel, needsDecision } from "./EncounterPanel";
+import { EncounterPanel } from "./EncounterPanel";
 
 function encounterState(): GameState {
   // Force an encounter: a Man+Woman party facing a lone Man stranger.
@@ -212,22 +212,23 @@ describe("EncounterPanel — artifact use lives on the item's card", () => {
   });
 });
 
-describe("needsDecision", () => {
-  it("is true while the party must choose, and false in explore", () => {
-    expect(needsDecision(encounterState())).toBe(true);
-    expect(needsDecision(newGame(1, [5, 6]))).toBe(false);
+describe("EncounterPanel — leaveOnMove (solo: the party simply walks away from treasure)", () => {
+  it("shows no bar for a pickup whose only choices are giving treasure out or leaving it", () => {
+    const pickup: GameState = { ...newGame(1, [5, 6]), phase: "pickup", treasures: [1] }; // Gold: the right-hand panel handles Give to
+    const { container } = render(<EncounterPanel state={pickup} dispatch={() => {}} leaveOnMove />);
+    expect(container).toBeEmptyDOMElement();
   });
 
-  it("is false for a pickup whose only choice is to leave", () => {
-    const heavy: GameState = { ...newGame(1, [7]), phase: "pickup", treasures: [2] }; // Gems, and the lone Dwarf is already full
-    heavy.party[0]!.treasure = [0];
-    expect(needsDecision(heavy)).toBe(false);
+  it("keeps the one-tap retake but drops the Leave button", () => {
+    const pickup: GameState = { ...newGame(1, [0]), phase: "pickup", treasures: [1], fightDrops: [{ mi: 0, tid: 1 }] };
+    render(<EncounterPanel state={pickup} dispatch={() => {}} leaveOnMove />);
+    expect(screen.getByRole("button", { name: /retake dropped treasure/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /leave the treasure/i })).toBeNull();
   });
-});
 
-describe("EncounterPanel — in the right-hand pane", () => {
-  it("drops the fixed bottom-centre placement when it sits in the decision pane", () => {
-    render(<EncounterPanel state={encounterState()} dispatch={() => {}} placement="panel" />);
-    expect(screen.getByTestId("encounter-panel")).toHaveClass("scv-enc-embedded");
+  it("still offers Leave without it (multiplayer)", () => {
+    const pickup: GameState = { ...newGame(1, [5, 6]), phase: "pickup", treasures: [1] };
+    render(<EncounterPanel state={pickup} dispatch={() => {}} />);
+    expect(screen.getByRole("button", { name: /leave the treasure/i })).toBeInTheDocument();
   });
 });
