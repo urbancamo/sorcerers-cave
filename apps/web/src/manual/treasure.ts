@@ -32,7 +32,7 @@ export const TREASURE: Section = {
       p('The **Lost Ruby** sits in a statue of strength 8: win the wrestle, or still the statue with the Eye of God, to take it.'),
     ] },
     { id: 'inventory-status', title: 'The Inventory', brief: 'Every item the party carries, who has it, and whether it can be used now.', cards: [], screens: ['inventory'], blocks: [
-      p('Each item shows a colour and a word: **usable now** (green), **not usable now**, **wielded** or **passive** (yellow), or gray when its carrier cannot use it or it is treasure only. Click an item to read it.'),
+      p('Each item shows a colour and a word: **usable now** (green), **not usable now**, **wielded** or **passive** (yellow), or gray when its carrier cannot use it or it is treasure only. The Magic Staff also shows the magic it adds to its carrier (+1 for a Priest, +2 for a Wizard). Click an item to read it.'),
       p('A hero\'s earned marks, such as the upside-down Dragon card for a Dragon slain single-handed, sit among the mini-cards on their card and open the same way.'),
     ] },
     { id: 'item-actions', title: 'What you can do with an item', brief: 'Use it, wield or stow it, open the Chest, give it to another member, or drop it.', cards: [], screens: ['inventory'], blocks: [
