@@ -50,6 +50,7 @@ import { viewParty } from "../view/viewParty";
 import { PartyList } from "./shell/PartyList";
 import { SettingsPanel } from "./shell/SettingsPanel";
 import { ExitPanel } from "./shell/ExitPanel";
+import { useDismissOutside } from "./shell/useDismissOutside";
 import { describeArea, readVerbose, writeVerbose } from "../data/areaText";
 import { HelpPanel } from "./shell/HelpPanel";
 import { HelpProvider } from "../manual/HelpContext";
@@ -73,6 +74,9 @@ export default function GameScreen() {
   // Thin shell slots (title bar icons). Inventory shows the party-and-treasure panel until the inventory list replaces it.
   const [leftSlot, setLeftSlot] = useState<LeftSlot>(null);
   const [rightSlot, setRightSlot] = useState<RightSlot>(null);
+  // The Exit menu goes as soon as the player presses anything else (its own panel and its title-bar icon aside).
+  const closeExit = useCallback(() => setRightSlot((cur) => (cur === 'exit' ? null : cur)), []);
+  useDismissOutside(rightSlot === 'exit', '[aria-label="Exit"]', closeExit);
   useOpenPartyOnce(gameId, setLeftSlot); // the chosen party is on screen from the first step into the Gateway
   const [testOpen, setTestOpen] = useState(false); // the floating test panel, independent of the slots
   const [partyExpanded, setPartyExpanded] = useState(false); // the party list widened to show strength, magic and charisma
