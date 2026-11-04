@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
 // ALL_CREATURES/ALL_TREASURES (SC-EXT-29): a kit id or a Ghoul can stand in any fight.
 import {
-  ALL_CREATURES, ALL_TREASURES, legalActions, fightView, freeOf, matchStrength, matchModifiers, legalMoves, legalPairs, deployViolation, engageViolation, engageMovesViolation, redeployViolation,
+  ALL_CREATURES, ALL_TREASURES, legalActions, fightView, freeOf, matchStrength, partyContribution, matchModifiers, legalMoves, legalPairs, deployViolation, engageViolation, engageMovesViolation, redeployViolation,
   type GameState, type GameAction, type UnitView,
 } from "@sorcerers-cave/engine";
 import type { CardArt } from "../data/manifest";
@@ -109,9 +109,9 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
     return out;
   };
   const partyCopy = copyIdx(state.party.map((m) => m.creatureId)), strangerCopy = copyIdx(state.strangers);
-  const partyCard = (i: number, extra: { onPick?: () => void; selected?: boolean; testId?: string; dim?: boolean; caption?: string; draggable?: boolean; dragId?: number } = {}) => (
+  const partyCard = (i: number, extra: { onPick?: () => void; selected?: boolean; testId?: string; dim?: boolean; caption?: string; draggable?: boolean; dragId?: number; strength?: number } = {}) => (
     <FightCard key={`p${i}`} creatureId={state.party[i]!.creatureId} label={labels[i]} kind={partyUnits.get(i)?.caster ? "caster" : "ally"}
-               strength={partyUnits.get(i)?.strength ?? 0} treasure={state.party[i]!.treasure} cards={cards} state={state} variantIdx={partyCopy.get(i)} {...extra} />
+               strength={extra.strength ?? partyUnits.get(i)?.strength ?? 0} treasure={state.party[i]!.treasure} cards={cards} state={state} variantIdx={partyCopy.get(i)} {...extra} />
   );
   const strangerCard = (s: number, extra: { onPick?: () => void; selected?: boolean; testId?: string; dim?: boolean; caption?: string } = {}) => (
     <FightCard key={`s${s}`} creatureId={state.strangers[s]!} kind="foe" strength={strangerUnits.get(s)?.strength ?? 0}
@@ -261,7 +261,7 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
             <div className="scv-match-party">
               <div className="scv-match-line">
                 <div className="scv-match-front" {...slotProps(mi, false, `rev-mfront-${mi}`)}>
-                  {m.pf.map((i) => partyCard(i))}
+                  {m.pf.map((i) => partyCard(i, { strength: partyContribution(state, m, i, false) }))}
                   {addedTo(mi, false).map((i) => partyCard(i, { testId: `rev-join-${i}`, caption: "joining — tap to undo", onPick: () => takeBack(i) }))}
                   {/* The front holds two positions, as in the battle plan: empty ones only fill it out, so a second fighter never widens the row. */}
                   {placing && Array.from({ length: Math.max(0, 2 - m.pf.length - addedTo(mi, false).length) }, (_, k) => (
@@ -270,7 +270,7 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
                 </div>
                 <div className="scv-match-bg" {...slotProps(mi, true, `rev-mback-${mi}`)}>
                   <span className="scv-match-slotlbl">✦ behind</span>
-                  {[...m.pb, ...addedTo(mi, true)].map((i) => partyCard(i, m.pb.includes(i) ? {} : { testId: `rev-join-${i}`, caption: "joining — tap to undo", onPick: () => takeBack(i) }))}
+                  {[...m.pb, ...addedTo(mi, true)].map((i) => partyCard(i, m.pb.includes(i) ? { strength: partyContribution(state, m, i, true) } : { testId: `rev-join-${i}`, caption: "joining — tap to undo", onPick: () => takeBack(i) }))}
                   {m.pb.length + addedTo(mi, true).length === 0 && <span className="scv-match-hint">magic user</span>}
                 </div>
               </div>

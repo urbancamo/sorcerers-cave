@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
 import { makeState } from "./testkit";
 import { driveStrangers } from "./strangerDriver";
-import { fightView, matchModifiers, matchStrength } from "./revisedRound";
+import { fightView, matchModifiers, matchStrength, partyContribution } from "./revisedRound";
 import type { GameState, PartyMember } from "./state";
 
 // Peter's 2026-10-21 impressions, R4 (and Mark's play-test): the revised fight screen shows chips for what is in each total. The chips must
@@ -56,6 +56,23 @@ describe("matchModifiers", () => {
     for (const kind of ["Magic Sword", "Magic Axe", "Magic Staff", "Magic Shield", "Magic", "Behind", "Dragon-slayer", "Elixir", "Strength Potion", "The Ring", "Surprise", "Eye of God — magic & artefacts nullified"]) {
       expect([...seen], kind).toContain(kind);
     }
+  });
+
+  it("partyContribution: each creature's current badge number, summing to the party total (Peter's 2026-11-04 item 3)", () => {
+    for (let seed = 1; seed <= 400; seed++) {
+      const s = lineup(seed), m = s.fight!.rev!.matches[0]!;
+      const sum = m.pf.reduce((a, i) => a + partyContribution(s, m, i, false), 0) + m.pb.reduce((a, i) => a + partyContribution(s, m, i, true), 0);
+      expect(sum, `seed ${seed}`).toBe(matchStrength(s, m).party);
+    }
+  });
+
+  it("a Priest in the background contributes only its magic (2), not its printed strength", () => {
+    const man: PartyMember = { creatureId: 5, status: 0, dragonKills: 0, treasure: [] };
+    const priest: PartyMember = { creatureId: 4, status: 0, dragonKills: 0, treasure: [] };
+    const s = driveStrangers(reduce(makeState({ phase: "encounter", strangers: [2], treasures: [], party: [man, priest], variants: { combatRevision: true } }), { type: "attack" }).state).state;
+    const m = { pf: [0], pb: [1], sf: [0], sb: [] };
+    expect(partyContribution(s, m, 1, true)).toBe(2);
+    expect(partyContribution(s, m, 1, false)).toBeGreaterThanOrEqual(2); // in front it fights with its full strength
   });
 
   it("names the sword, the staff and a caster behind the line (Mark's play-test)", () => {

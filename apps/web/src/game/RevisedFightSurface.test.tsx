@@ -30,6 +30,14 @@ const reaching = (kind: "redeploy" | "engage" | "deploy"): GameState => {
 };
 
 describe("RevisedFightSurface", () => {
+  it("a Priest standing behind the line wears a badge of just its magic (2), not its printed strength", () => {
+    const priestParty = [5, 4].map((creatureId) => ({ creatureId, status: 0 as const, dragonKills: 0, treasure: [] }));
+    const s: GameState = structuredClone(attacking([OGRE], { party: priestParty }));
+    s.fight!.rev!.matches = [{ pf: [0], pb: [1], sf: [0], sb: [] }];
+    render(<RevisedFightSurface state={s} dispatch={vi.fn()} cards={cards} />);
+    expect(screen.getByTestId("rev-mback-0").querySelector(".scv-fc-badge")).toHaveTextContent(/^2$/);
+  });
+
   it("renders nothing outside a revised fight, and the battle-plan surface steps aside for one", () => {
     const legacy: GameState = { ...newGame(1, [5]), phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, strangers: [OGRE] };
     const { container } = render(<RevisedFightSurface state={legacy} dispatch={vi.fn()} cards={cards} />);
