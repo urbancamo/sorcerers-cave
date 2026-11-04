@@ -127,6 +127,10 @@ describe("eventNotices", () => {
     expect(eventNotices(events)).toEqual([]);
   });
 
+  it("says nothing when fighters retake the treasure they set down: the button press is the confirmation", () => {
+    expect(eventNotices([{ type: "droppedRetaken", count: 2 }])).toEqual([]);
+  });
+
   it("reports Deep Pool treasure being dropped and reclaimed", () => {
     expect(eventNotices([{ type: "treasureDropped", count: 2 }])[0]!.text).toMatch(/2 heavy treasures sink/i);
     expect(eventNotices([{ type: "treasureReclaimed", count: 1 }])[0]!).toMatchObject({ tone: "good" });
