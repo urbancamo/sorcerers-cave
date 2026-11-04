@@ -304,7 +304,9 @@ describe("TestControlsPanel", () => {
     fireEvent.pointerDown(handle, { clientX: 100, clientY: 100, pointerId: 1 });
     fireEvent.pointerMove(handle, { clientX: 150, clientY: 130, pointerId: 1 });
     expect(panel.style.left).toBe("50px");
-    expect(panel.style.top).toBe("30px");
+    // Anchored by the bottom edge, so dragging down by 30px lowers it by 30px and it expands upwards.
+    expect(panel.style.bottom).toBe(`${window.innerHeight - 30}px`);
+    expect(panel.style.top).toBe("auto");
     expect(panel.style.right).toBe("auto");
     fireEvent.pointerUp(handle, { pointerId: 1 });
   });
