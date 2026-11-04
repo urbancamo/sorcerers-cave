@@ -6,7 +6,7 @@ import { rollDie } from "./rng";
 import { packCoord, DIR_E } from "./coords";
 import { SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
 import { HAZARD_TRAP, HAZARD_MEDUSA } from "./data/hazards";
-import { GS_PLAYING, GS_DEAD, AF_BELL_SPENT, type GameState, type PartyMember } from "./state";
+import { GS_PLAYING, GS_DEAD, AF_BELL_SPENT, AF_WELL_SPENT, type GameState, type PartyMember } from "./state";
 
 /**
  * Extension kit — the Well's repeatable draw (US-07, SC-EXT-7) and the Bell Rope's one-shot d6
@@ -104,16 +104,17 @@ describe("The Well — repeatable draw, no-withdraw turn (US-07, SC-EXT-7, SC-EX
     expect(reduce(nextTurn, { type: "withdraw" }).events).not.toEqual([{ type: "blocked" }]);
   });
 
-  it("is repeatable: successive draws each pull one more code into the area, even mid-encounter", () => {
+  it("is once per game: a second draw is neither offered nor allowed, whatever the pack holds (AF_WELL_SPENT)", () => {
     const s = wellState({ party: [member(HERO)], smallPack: [100 + MAN, 100 + MAN] });
+    expect(legalActions(s)).toContainEqual({ type: "drawFromWell" });
     const first = reduce(s, { type: "drawFromWell" });
     expect(first.state.strangers).toEqual([MAN]);
-    expect(legalActions(first.state)).toContainEqual({ type: "drawFromWell" }); // no spent flag
+    expect((first.state.areas[0]!.flags & AF_WELL_SPENT) !== 0).toBe(true);
+    expect(legalActions(first.state)).not.toContainEqual({ type: "drawFromWell" });
 
     const second = reduce(first.state, { type: "drawFromWell" });
-    expect(second.events).toContainEqual({ type: "wellDraw" });
-    expect(second.state.strangers).toEqual([MAN, MAN]);
-    expect(second.state.smallIdx).toBe(2);
+    expect(second.events).toEqual([{ type: "blocked" }]);
+    expect(second.state.smallIdx).toBe(1);
   });
 
   it("a FRESH arrival draws nothing — drawing is conditional on the player choosing drawFromWell (bug fix 2026-08-03)", () => {

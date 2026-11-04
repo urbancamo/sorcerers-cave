@@ -1,4 +1,4 @@
-import { GS_PLAYING, GS_QUIT, GS_ESCAPED, GS_DEAD, AF_DESTROYED, AF_BELL_SPENT, AF_UNRESOLVED, type GameState, type PartyMember, type PlacedArea } from "./state";
+import { GS_PLAYING, GS_QUIT, GS_ESCAPED, GS_DEAD, AF_DESTROYED, AF_BELL_SPENT, AF_WELL_SPENT, AF_UNRESOLVED, type GameState, type PartyMember, type PlacedArea } from "./state";
 import { tryMove, hasExit } from "./map";
 import { moveWithRedraw } from "./redraw";
 import { decodeArea, decodeOpen } from "./decode";
@@ -1996,12 +1996,14 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
 
     case "drawFromWell": {
       // Legal on a Well tile in explore OR encounter phase (design US-07, same "no test/fight
-      // required" latitude as the Chasm's escape hatch) — repeatable every turn, no spent flag
-      // (Resolved interpretation 4); gated only on the small pack having a card left.
+      // required" latitude as the Chasm's escape hatch) — ONCE per tile ever, like the Bell Rope
+      // (AF_WELL_SPENT, ruled 2026-11-04); gated also on the small pack having a card left.
       if (state.phase !== "explore" && state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
       if (decodeOpen(state.areas[state.partyArea]!).special !== SPECIAL_WELL) return { state, events: [{ type: "blocked" }] };
       if (state.smallIdx >= state.smallPack.length) return { state, events: [{ type: "blocked" }] };
+      if ((state.areas[state.partyArea]!.flags & AF_WELL_SPENT) !== 0) return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
+      next.areas[next.partyArea]!.flags |= AF_WELL_SPENT; // spent forever (once per game)
       const events: GameEvent[] = [{ type: "wellDraw" }];
       const hadCrypt = next.cryptCoord !== undefined; // SC-EXT-13: tell a freshly-parked Crypt apart
       drawSmallCards(next, 1, events); // exactly one code, appended onto whatever's already in the working set

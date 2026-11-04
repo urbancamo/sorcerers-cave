@@ -13,6 +13,9 @@ export const AF_DESTROYED = 4; // collapsed by an earthquake — removed from pl
 // Extension kit (SC-EXT-8): the Bell Rope on this area has been pulled — once per tile ever, so the
 // `pullBellRope` action is never offered again here, on this visit or any later one (design US-03).
 export const AF_BELL_SPENT = 8;
+// Extension kit (SC-EXT-7): the Well on this area has been drawn from — once per tile ever, like the
+// Bell Rope ("once only", ruled 2026-11-04), so `drawFromWell` is never offered again here.
+export const AF_WELL_SPENT = 32;
 // Extension kit (SC-EXT-28): this area holds a card the Spell hazard remapped in — a freshly-drawn
 // value swapped in for the tunnel the party just left, not yet stepped on (design US-22). Marks the
 // area for the renderer to show face-down until then; carries no engine meaning of its own (the
