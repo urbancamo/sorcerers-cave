@@ -722,7 +722,7 @@ function doMove(dir){
     setPrompt(ev.deadEnd?'That way is a dead end.':'No exit that way.','danger'); flashMarker(dir,true);
     if(ev.whirlpool){ // a stairway never leads onto the Whirlpool: say why the party stays where it is
       busy=true;
-      showNote('No way down','The Whirlpool churns below — no stairway can lead into it. The party stays on this level.').then(()=>{ busy=false; });
+      showNote('A dead end with a view','The stair ends at a high balcony in the rock. Far below, the Whirlpool churns and roars — you may watch it a moment, but there is no way down to it. The party can only retrace its steps to the area above.').then(()=>{ busy=false; });
     }
     return;
   }

@@ -28,7 +28,7 @@ export const AREAS: Section = {
     { id: 'area-whirlpool', title: 'The Whirlpool', variant: 'kit', cards: cards('area', 'The Whirlpool'), blocks: [
       p('Enters like an ordinary chamber. Leave by any doorway but the one you came in by and the shallows roll a d6: **1–2** drags the party down a level; **3–6** and the crossing is safe.'),
       p('You wade one ledge at a time: if the doorway you try turns out to be a dead end, you still make the crossing roll, and on a 3–6 you end up on that ledge (the dead end now revealed), from where you can wade on in a separate move.'),
-      p('No stairway can lead into a Whirlpool. If you try to climb or descend onto one, a message tells you so and the party stays on its level.'),
+      p('No stairway can lead into a Whirlpool. Take one that would, and the party finds only a high balcony in the rock — a dead end with a view of the Whirlpool below — and can only retrace its steps.'),
     ] },
     { id: 'area-chasm', title: 'The Chasm', variant: 'kit', cards: cards('area', 'The Chasm'), blocks: [
       p('A one-way plunge on demand — no roll needed. You cannot walk across it: from the way you came in you may only plunge down or step back out by that same way.'),
