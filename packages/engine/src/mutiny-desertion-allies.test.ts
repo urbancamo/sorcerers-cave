@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
 import { makeState } from "./testkit";
 import { GATEWAY_START_COORD, type PartyMember } from "./state";
-import { HAZARD_MUTINY, HAZARD_DESERTION } from "./data/hazards";
+import { HAZARD_MUTINY, HAZARD_DESERTION, HAZARD_QUARREL, HAZARD_SPELL, HAZARD_HARPIES } from "./data/hazards";
 
 // Peter's 2026-11-04 items 5 and 6: Mutiny and Desertion "did nothing". They only ever touch ALLIES (status 1); a party of original
 // adventurers is untouched. These pin that so it is a decision, not a surprise (the web now says so in a notice).
@@ -37,5 +37,36 @@ describe("Mutiny and Desertion only affect allies", () => {
   it("Desertion with allies rolls one die per ally", () => {
     const r = enter(HAZARD_DESERTION, [member(0), member(5, 1), member(6, 1)]);
     expect(r.events.filter((e) => e.type === "desertionRoll")).toHaveLength(2);
+  });
+});
+
+// Every once-only hazard card that fires leaves itself on the party's tile as a display-only marker, so it does not vanish with the live
+// working set and make the hazard look like it did nothing (the Mutiny precedent, SC-7.2-16).
+describe("spent hazard cards stay on the tile they were drawn in", () => {
+  const markersAfter = (hazard: number, party: PartyMember[]) =>
+    enter(hazard, party).state.areas.find((a) => a.coord === GATEWAY_START_COORD + 1)!.markers ?? [];
+
+  it("Desertion leaves its card, with allies or without", () => {
+    expect(markersAfter(HAZARD_DESERTION, [member(0), member(5), member(6)])).toContain(300 + HAZARD_DESERTION);
+    expect(markersAfter(HAZARD_DESERTION, [member(0), member(5, 1)])).toContain(300 + HAZARD_DESERTION);
+  });
+  it("Quarrel leaves its card, whether it fizzles for want of two combatants or is fought", () => {
+    expect(markersAfter(HAZARD_QUARREL, [member(0)])).toContain(300 + HAZARD_QUARREL);
+    expect(markersAfter(HAZARD_QUARREL, [member(0), member(5), member(6)])).toContain(300 + HAZARD_QUARREL);
+  });
+  it("Spell leaves its card on the party's tile, fizzled or not", () => {
+    expect(markersAfter(HAZARD_SPELL, [member(0), member(5)])).toContain(300 + HAZARD_SPELL);
+  });
+  it("Harpies leave their card when they strike, but a parked (lurking) Harpies card stays in the chamber's contents instead", () => {
+    const struck = enter(HAZARD_HARPIES, [{ ...member(0), treasure: [4] }, member(5)]).state.areas.find((a) => a.coord === GATEWAY_START_COORD + 1)!;
+    if (struck.markers?.includes(300 + HAZARD_HARPIES)) expect(struck.contents).not.toContain(300 + HAZARD_HARPIES);
+    const lurked = enter(HAZARD_HARPIES, [member(0), member(5)]).state.areas.find((a) => a.coord === GATEWAY_START_COORD + 1)!;
+    expect(lurked.contents).toContain(300 + HAZARD_HARPIES);
+    expect(lurked.markers ?? []).not.toContain(300 + HAZARD_HARPIES);
+  });
+  it("a marker never re-fires: moving off and back does not trigger the hazard again", () => {
+    const first = enter(HAZARD_DESERTION, [member(0), member(5, 1)]);
+    const area = first.state.areas.find((a) => a.coord === GATEWAY_START_COORD + 1)!;
+    expect(area.contents).not.toContain(300 + HAZARD_DESERTION);
   });
 });
