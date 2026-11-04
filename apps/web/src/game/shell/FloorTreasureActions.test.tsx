@@ -22,9 +22,14 @@ describe('FloorTreasureActions — what the treasure card on the floor offers', 
     expect(d).toHaveBeenCalledWith(expect.objectContaining({ type: 'takeTreasure', ti: 1 }));
   });
 
-  it('words the Lost Ruby as wresting it from the guardian statue, until it is freed (SC-11-47)', () => {
-    const { unmount } = render(<FloorTreasureActions state={pickup([0], [11])} dispatch={() => {}} card={card(11)} />);
-    expect(screen.getByRole('button', { name: /wrests it from the statue/i })).toBeInTheDocument();
+  it('offers the guarded Lost Ruby as one drop-down of who wrests it from the statue, until it is freed (SC-11-47)', () => {
+    const d = vi.fn();
+    const { unmount } = render(<FloorTreasureActions state={pickup([5, 6], [11])} dispatch={d} card={card(11)} />);
+    expect(screen.queryByRole('button', { name: /wrests it/i })).toBeNull();
+    const list = screen.getByRole('combobox', { name: /wrest the lost ruby/i });
+    expect(list.querySelectorAll('option').length).toBeGreaterThan(2); // the prompt, then each member who can try
+    fireEvent.change(list, { target: { value: '1' } });
+    expect(d).toHaveBeenCalledWith(expect.objectContaining({ type: 'takeTreasure', ti: 0, mi: 1 }));
     unmount();
     render(<FloorTreasureActions state={pickup([0], [11], { rubyFreed: true })} dispatch={() => {}} card={card(11)} />);
     expect(screen.getByRole('button', { name: /^give to/i })).toBeInTheDocument();

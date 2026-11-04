@@ -34,9 +34,16 @@ export function FloorTreasureActions({ state, dispatch, card }: { state: GameSta
   return (
     <div className="scv-ia" data-testid="floor-treasure-actions">
       <div><HelpButton topics={['pickup-capacity']} label="Help with picking up treasure" /></div>
-      {takers.map((mi) => (
+      {guarded && takers.length > 0 ? (
+        // One list instead of a button per member: each choice risks the member's life against the statue, so it is a deliberate pick.
+        <select className="scv-enc-select" aria-label="Who will wrest the Lost Ruby from the statue" value=""
+                onChange={(e) => { if (e.target.value !== '') dispatch({ type: 'takeTreasure', ti, mi: Number(e.target.value) }); }}>
+          <option value="">Who wrests it from the statue?</option>
+          {takers.map((mi) => <option key={mi} value={mi}>{who(mi)}</option>)}
+        </select>
+      ) : takers.map((mi) => (
         <button key={mi} type="button" className="scv-enc-btn" onClick={() => dispatch({ type: 'takeTreasure', ti, mi })}>
-          {guarded ? `${who(mi)} wrests it from the statue` : `Give to ${who(mi)}`}
+          {`Give to ${who(mi)}`}
         </button>
       ))}
       {reason && (
