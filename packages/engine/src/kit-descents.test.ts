@@ -363,7 +363,7 @@ describe("Whirlpool revision (2026-08-08): no stairway may lead here", () => {
       partyArea: 0, prev: 0, party: [member(HERO)],
     });
     const { state, events } = reduce(s, { type: "move", dir: DIR_DOWN });
-    expect(events).toContainEqual({ type: "deadEnd", dir: DIR_DOWN });
+    expect(events).toContainEqual({ type: "deadEnd", dir: DIR_DOWN, whirlpool: true });
     expect(state.partyArea).toBe(0); // never moved
     expect(decodeOpen(state.areas[0]!).stairDown).toBe(false); // pruned — no longer offered
   });
@@ -376,7 +376,7 @@ describe("Whirlpool revision (2026-08-08): no stairway may lead here", () => {
       largePack: [WHIRLPOOL_CARD], largeIdx: 0,
     });
     const { state, events } = reduce(s, { type: "move", dir: DIR_DOWN });
-    expect(events).toContainEqual({ type: "deadEnd", dir: DIR_DOWN });
+    expect(events).toContainEqual({ type: "deadEnd", dir: DIR_DOWN, whirlpool: true });
     expect(state.partyArea).toBe(0);
     expect(decodeOpen(state.areas[0]!).stairDown).toBe(false); // pruned
     expect(state.areas).toHaveLength(2); // the Whirlpool card WAS drawn and placed — just face-down
@@ -393,7 +393,7 @@ describe("Whirlpool revision (2026-08-08): no stairway may lead here", () => {
       partyArea: 0, prev: 0, party: [member(HERO)],
     });
     const { state, events } = reduce(s, { type: "move", dir: DIR_DOWN });
-    expect(events).toContainEqual({ type: "deadEnd", dir: DIR_DOWN }); // blocked exactly like the ordinary draw
+    expect(events).toContainEqual({ type: "deadEnd", dir: DIR_DOWN, whirlpool: true }); // blocked exactly like the ordinary draw
     expect(state.partyArea).toBe(0); // never moved
     expect(decodeOpen(state.areas[0]!).stairDown).toBe(false); // pruned
     expect(state.areas).toHaveLength(2); // the Whirlpool WAS placed — just face-down, same as an un-forced draw

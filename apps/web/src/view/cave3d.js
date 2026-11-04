@@ -719,7 +719,12 @@ function doMove(dir){
       refreshExitMarkers(); // the attempted exit was pruned
     }
     else if(ev.deadEnd) reconcileTiles(); // a tile already laid: if it is face down, its fog card gains the stub for this doorway
-    setPrompt(ev.deadEnd?'That way is a dead end.':'No exit that way.','danger'); flashMarker(dir,true); return;
+    setPrompt(ev.deadEnd?'That way is a dead end.':'No exit that way.','danger'); flashMarker(dir,true);
+    if(ev.whirlpool){ // a stairway never leads onto the Whirlpool: say why the party stays where it is
+      busy=true;
+      showNote('No way down','The Whirlpool churns below — no stairway can lead into it. The party stays on this level.').then(()=>{ busy=false; });
+    }
+    return;
   }
   busy=true;
   if(ev.placed){ buildAreaMesh(ev.area,true).then(()=>{rebuildPlatforms();rebuildStairs();rebuildSecretDoors();rebuildLevelButtons();}); }
@@ -865,6 +870,18 @@ function showChoice(title,body,okLabel,cancelLabel,tone){
     cancel.addEventListener('click',()=>{ ov.remove(); res(false); });
     ok.addEventListener('click',()=>{ ov.remove(); res(true); });
     row.appendChild(cancel); row.appendChild(ok); card.appendChild(row);
+    ov.appendChild(card); document.body.appendChild(ov); ok.focus();
+  });
+}
+function showNote(title,body){
+  return new Promise(res=>{
+    const ov=document.createElement('div'); ov.className='scv-dice-overlay';
+    const card=document.createElement('div'); card.className='scv-dice-card';
+    card.innerHTML='<div class="scv-dice-title">'+title+'</div><p class="scv-dice-msg">'+body+'</p>';
+    const row=document.createElement('div'); row.className='scv-dice-actions';
+    const ok=document.createElement('button'); ok.className='scv-primary'; ok.textContent='OK';
+    ok.addEventListener('click',()=>{ ov.remove(); res(); });
+    row.appendChild(ok); card.appendChild(row);
     ov.appendChild(card); document.body.appendChild(ov); ok.focus();
   });
 }

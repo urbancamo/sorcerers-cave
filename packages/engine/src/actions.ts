@@ -103,7 +103,7 @@ export type GameAction =
 // Encounter-resolution and fight events arrive with combat (Milestone C-2).
 export type GameEvent =
   | { type: "moved"; area: number; level: number }
-  | { type: "deadEnd"; dir: number; retreat?: true } // retreat: the fight bounce-back, not a plain blocked move
+  | { type: "deadEnd"; dir: number; retreat?: true; whirlpool?: true } // retreat: the fight bounce-back, not a plain blocked move; whirlpool: a stairway onto the Whirlpool, which never opens
   // Dead End rule (§6.3.2, "forced redraw", `variants.forcedRedraw`): one per completed
   // reject-and-redraw cycle during a `move`, emitted ahead of the move's own final event(s).
   | { type: "deadEndCardSwapped"; removed: number; drawn: number; reason?: "deadEnd" | "sealed" }

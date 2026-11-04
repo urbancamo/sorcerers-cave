@@ -1056,7 +1056,12 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           if (res.noViableExits) evs.push({ type: "deadEndNoViableExits" });
           return { state: wade, events: evs };
         }
-        return { state: res.state, events: [...swapEvents, res.deadEnd ? { type: "deadEnd", dir: action.dir } : { type: "blocked" }, ...(res.noViableExits ? [{ type: "deadEndNoViableExits" } as GameEvent] : [])] };
+        // A stairway onto the Whirlpool never opens (SC-EXT-6): flag it so the player is told why the party stays put.
+        const { level: fl, x: fx, y: fy } = unpackCoord(state.areas[fromIdx]!.coord);
+        const wpTarget = targetCoord(action.dir, fl, fx, fy);
+        const intoWhirlpool = (action.dir === DIR_UP || action.dir === DIR_DOWN)
+          && res.state.areas.some((a) => a.coord === wpTarget && decodeArea(a.card).special === SPECIAL_WHIRLPOOL);
+        return { state: res.state, events: [...swapEvents, res.deadEnd ? (intoWhirlpool ? { type: "deadEnd", dir: action.dir, whirlpool: true } : { type: "deadEnd", dir: action.dir }) : { type: "blocked" }, ...(res.noViableExits ? [{ type: "deadEndNoViableExits" } as GameEvent] : [])] };
       }
       const next = { ...res.state, turn: res.state.turn + 1 };
       next.fellThroughTrap = false; // a normal move reaches a reachable area (resolveArea re-sets it if a trap fires)

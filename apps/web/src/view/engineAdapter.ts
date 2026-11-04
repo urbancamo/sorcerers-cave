@@ -146,7 +146,7 @@ export function createCaveAdapter(initial: GameState, art: ArtTables, opts: Adap
         opts.onAction?.(action);
         const drew = next.areas.length > before.areas.length;
         const placed = drew ? projectArea(next.areas[next.areas.length - 1]!, next.areas.length - 1, next, art) : null;
-        return { moved: false, deadEnd: true, placed };
+        return { moved: false, deadEnd: true, placed, ...(events.some((e) => e.type === "deadEnd" && e.whirlpool) ? { whirlpool: true } : {}) };
       }
       state = next;
       opts.onAction?.(action);
