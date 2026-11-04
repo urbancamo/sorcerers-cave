@@ -61,7 +61,7 @@ Numbers in brackets are Peter's item numbers. Work through Group 1 first.
 
 ## Group 2: Enhancements (we'll deal with these after the issues)
 
-### E-1. [8] — IN PROGRESS (built: gated `DiceRoll` with a stakes line and a "Roll the dice" button; Settings option to roll automatically). Visible dice rolls with a "Roll the dice" button for chambers, hazards and artefacts
+### E-1. [8] — DONE (Mark signed off 2026-11-04; Ghouls stay as they are, the Viper Pit exit prompt is fine, and holding the outcome behind the dice in multiplayer is deferred to the major multiplayer review). Was: IN PROGRESS (built: gated `DiceRoll` with a stakes line and a "Roll the dice" button; Settings option to roll automatically). Visible dice rolls with a "Roll the dice" button for chambers, hazards and artefacts
 - Peter's principle: whenever a Special Chamber, Hazard or Artefact needs a roll (single, or one per party member), the player should see the dice and click to roll, to build tension as in the tabletop game.
 - Applies to: Bell Rope, Whirlpool, Viper Pit, Desertion, Medusa, Crypt, Elixir, Treasure Chest, and Quarrel (added by Mark). Ghouls already show dice in the fight interface.
 - Likely approach: reuse the existing dice overlay (`.scv-dice-overlay`, `wellDraw`/`bellRoll`-style events that already carry the roll). Add a "pending roll" step so the engine event is held until the player clicks.
