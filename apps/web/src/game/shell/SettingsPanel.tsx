@@ -1,6 +1,15 @@
-import { activeCurses, type GameState } from '@sorcerers-cave/engine';
+import { activeCurses, scoreGame, type GameState } from '@sorcerers-cave/engine';
+
+const T_IDOL = 18; // the Idol is worth a d6 rolled only at the end of the game, so it must not be revealed mid-game
 
 /** The game information the old title bar chips carried, in a vertical list, plus the game log. */
+/** The score if the expedition ended now. The Idol's deferred roll is left out (and flagged), so showing the score never peeks the die. */
+function scoreSoFar(state: GameState): { score: number; idol: boolean } {
+  const idol = state.party.some((m) => m.treasure.includes(T_IDOL));
+  const bare = idol ? { ...state, party: state.party.map((m) => ({ ...m, treasure: m.treasure.filter((t) => t !== T_IDOL) })) } : state;
+  return { score: scoreGame(bare), idol };
+}
+
 export function SettingsPanel({ state, code, kitActive, onLog, verbose, onVerbose }: {
   verbose?: boolean;
   onVerbose?: (on: boolean) => void;
@@ -10,12 +19,14 @@ export function SettingsPanel({ state, code, kitActive, onLog, verbose, onVerbos
   onLog?: () => void;
 }) {
   const curses = activeCurses(state);
+  const { score, idol } = scoreSoFar(state);
   const rows: [string, string][] = [
     ...(code ? [['Game code', code] as [string, string]] : []),
     ['Type', kitActive ? 'Extension kit' : 'Standard'],
     ['Level', String(state.level)],
     ['Turn', String(state.turn)],
     ['Party', String(state.party.length)],
+    ['Score so far', idol ? `${score} + Idol` : String(score)],
     ['Deck', `${state.largePack.length - state.largeIdx} / ${state.largePack.length}`],
     ...(curses > 0 ? [['Curses', String(curses)] as [string, string]] : []),
   ];
