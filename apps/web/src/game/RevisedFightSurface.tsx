@@ -424,7 +424,7 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
           Matches already in play come first, then every stranger not yet in one (a pairing under way shows in its row). */}
       <div className="scv-rev-board">
         {mine?.kind === "deploy" && !forcedDeploy && (
-          <div className="scv-match-front scv-rev-frontline" data-testid="rev-frontline" onClick={frontSelected}
+          <div className={"scv-match-front scv-rev-frontline" + (usedChosen.length < mine.min ? " is-target" : "")} data-testid="rev-frontline" onClick={frontSelected}
                onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); dropFront(e.dataTransfer.getData("application/x-scv-member")); }}>
             <span className="scv-match-slotlbl">⚔ your front line (at least {mine.min})</span>
             {usedChosen.map((i) => partyCard(i, { testId: `rev-front-${i}`, caption: "tap to take back", onPick: () => tapFree(i) }))}

@@ -175,8 +175,11 @@ describe("RevisedFightSurface", () => {
     expect(go).toBeDisabled();
     fireEvent.click(screen.getByTestId("rev-free-1"));
     expect(go).toBeDisabled();
+    // While the front line still needs creatures it is the drop target, and is highlighted as such.
+    expect(screen.getByTestId("rev-frontline")).toHaveClass("is-target");
     fireEvent.click(screen.getByTestId("rev-frontline")); // one tap on the front line moves everything selected
     expect(go).not.toBeDisabled();
+    expect(screen.getByTestId("rev-frontline")).not.toHaveClass("is-target");
     fireEvent.click(go);
     expect(dispatch).toHaveBeenCalledWith({ type: "deploy", creatures: [0, 1] });
   });
