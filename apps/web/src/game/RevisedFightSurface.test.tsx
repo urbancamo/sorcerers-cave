@@ -202,7 +202,7 @@ describe("RevisedFightSurface", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "deploy", creatures: [0, 2] });
   });
 
-  it("the party panel is reused: one row per member with strength, and what each carries", () => {
+  it("the party panel is reused: one row per member with strength, and not what each carries", () => {
     const base: GameState = { ...newGame(1, [5, 6]), variants: { combatRevision: true }, phase: "encounter", strangers: [OGRE], treasures: [] };
     const s = driveStrangers(reduce({ ...base, fight: null }, { type: "attack" }).state).state;
     s.party[0]!.treasure.push(3); // Magic Sword
@@ -210,7 +210,7 @@ describe("RevisedFightSurface", () => {
     const list = screen.getByTestId("rev-tray");
     expect(list.querySelectorAll(".mbr")).toHaveLength(2);
     expect(screen.getByTestId("rev-free-0")).toHaveTextContent(/\d/);
-    expect(list.querySelector('[title^="Magic Sword"]')).not.toBeNull();
+    expect(list.querySelector('[title^="Magic Sword"]')).toBeNull(); // carried items are no help choosing who fights
     expect(container.querySelector(".scv-rev.with-list")).not.toBeNull();
   });
 

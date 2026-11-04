@@ -58,6 +58,14 @@ describe('PartyList', () => {
     expect(onSelect).toHaveBeenCalledWith(expect.objectContaining({ label: 'Hero' }));
   });
 
+  it('in a fight leaves out what the members carry: the load and the thumbnails are no help choosing who fights', () => {
+    const flute = { name: 'Charmed Flute', file: '/flute.png', weight: 0, artifact: true };
+    render(<PartyList members={[member({ items: [flute] })]} fight={new Map([[0, fightRow()]])} />);
+    expect(screen.queryByText(/kg/)).toBeNull();
+    expect(screen.queryByAltText('Charmed Flute')).toBeNull();
+    expect(screen.queryByText('empty-handed')).toBeNull();
+  });
+
   it('in a fight shows strength, a caption and the selection, and a tap both picks and shows the card', () => {
     const onPick = vi.fn(); const onSelect = vi.fn();
     render(<PartyList members={[member()]} onSelect={onSelect}

@@ -67,11 +67,12 @@ export function PartyList({ members, onSelect, fight, onDragStart, expanded, onT
                   <div className="scv-pl-stats">Strength {m.fs}{m.mp > 0 && ` · Magic ${m.mp}`}{m.charisma && ' · Charisma'}</div>
                 )}
                 {f?.caption && <div className="scv-pl-cap">{f.caption}</div>}
-                {m.sibyl ? <div className="cap"><span className="cap-tx none">cannot fight or be harmed</span></div>
+                {/* In a fight what a member carries is not what is being chosen, so the load and the thumbnails are left out. */}
+                {!fight && (m.sibyl ? <div className="cap"><span className="cap-tx none">cannot fight or be harmed</span></div>
                   : carry > 0
                     ? <div className="cap"><div className="cap-bar"><i style={{ width: `${pct}%` }} /></div><span className="cap-tx">{m.load}/{carry} kg · {Math.max(0, carry - m.load)} free</span></div>
-                    : <div className="cap"><span className="cap-tx none">no carry capacity</span></div>}
-                <div dangerouslySetInnerHTML={{ __html: carryRowHtml(m) }} />
+                    : <div className="cap"><span className="cap-tx none">no carry capacity</span></div>)}
+                {!fight && <div dangerouslySetInnerHTML={{ __html: carryRowHtml(m) }} />}
               </div>
             </div>
           );
