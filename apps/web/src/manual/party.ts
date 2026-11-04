@@ -22,7 +22,7 @@ export const PARTY: Section = {
       list(
         'Five new creatures join the roster: the **Witch**, **Scholar**, **Thief**, **Lion** and **Wolf**.',
         'The **Ogre** drops to cost 4 and the **Troll** to cost 3, and the Woman and Dwarf stocks rise from 3 to 4.',
-        'Switching the kit resets any picks already made.',
+        'Switching the kit keeps the picks you have made; only kit-only creatures are dropped when it goes off, and costs and stock update.',
         'Scores for kit games go in their own high-score tables.',
       ),
     ] },
