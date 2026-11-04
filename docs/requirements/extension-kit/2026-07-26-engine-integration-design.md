@@ -282,8 +282,8 @@ US-19..25 artifacts · US-26 duplicates · US-27 plain tiles.
 - **Trigger:** Party in the Well chamber, any turn, small pack not empty.
 - **On screen:** The rope-and-bucket well art; action row offers "Draw from the well".
 - **Interaction:** One action button + confirm ("Draw 1 card — you cannot withdraw this turn").
-  Available every turn spent at the Well (not once-only — the card text sets no limit; accepted
-  interpretation).
+  **Once only per Well tile, like the Bell Rope** (ruled 2026-11-04, superseding the earlier
+  "every turn" interpretation; `AF_WELL_SPENT`).
 - **Dice:** none for the draw itself (subsequent strangers/hazards roll as usual).
 - **Feedback:** "The bucket rises from the dark…" then the drawn card's normal reveal beat.
 - **Aftermath:** One small card resolves into this area; withdraw is illegal this turn (same
@@ -671,7 +671,7 @@ US-19..25 artifacts · US-26 duplicates · US-27 plain tiles.
    Scholar = Priest, Witch = Woman, Thief = Man threshold mappings — accepted as proposed.
 2. Bell Rope 2–3 "Bell Rings" = narration only, in foreboding terms (US-03).
 3. Bell Rope puller & Desertion deserters are removed unrevivably (not "dead") — confirmed.
-4. Well draws are unlimited (one per turn at the tile) — accepted as proposed.
+4. ~~Well draws are unlimited~~ — SUPERSEDED 2026-11-04: the Well is once per tile ever, like the Bell Rope.
 5. Quarrel loser dies (tie harmless); Wolf/Lion exempt — confirmed.
 6. Unfightable Demon follows the Spectre auto-slay rule — confirmed. A Demon with no valid
    `prev` cannot occur (all games start at the Gateway); current-area materialization is a

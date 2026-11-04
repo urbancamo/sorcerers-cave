@@ -35,7 +35,7 @@ export const AREAS: Section = {
       p('Descend it any turn, in or out of an encounter; any strangers or treasure waiting there are left parked for later. It never dries up.'),
     ] },
     { id: 'area-well', title: 'The Well', variant: 'kit', cards: cards('area', 'The Well'), blocks: [
-      p('Draw **one extra small card** straight into the chamber — no move required. Legal any turn, as many times as the small pack allows.'),
+      p('Draw **one extra small card** straight into the chamber — no move required. Like the Bell Rope, it can be used **only once in the whole game**, and drawing means the party cannot withdraw that turn.'),
     ] },
     { id: 'area-bell-rope', title: 'The Bell Rope', variant: 'kit', cards: cards('area', 'The Bell Rope'), blocks: [
       p('It can be pulled only once in the whole game, by one member of your choice, and a d6 decides the toll: a **1** spirits the puller away for good, with everything they carried; **2–3** is nothing but an eerie sound; **4–6** draws two cards at once.'),
