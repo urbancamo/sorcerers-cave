@@ -5,15 +5,15 @@ export function ExitPanel({ onSave, onAbandon }: { onSave?: () => void; onAbando
   return (
     <aside className="scv-slot scv-slot-right scv-settings" aria-label="Exit">
       <h2 className="scv-slot-hd">Exit</h2>
+      {/* Both options share the Settings action-button look; Abandon ends the game, so it asks first. */}
       <div className="scv-settings-actions">
         {onSave && <button type="button" onClick={onSave}>Save game</button>}
+        {onAbandon && (
+          <ConfirmButton label="Abandon the expedition" className=""
+                         confirmText="You forsake your party to the Cave — they do not escape. Your final score is tallied."
+                         onConfirm={onAbandon} />
+        )}
       </div>
-      {/* Abandoning ends the game, so it asks first. */}
-      {onAbandon && (
-        <ConfirmButton label="Abandon the expedition" className="scv-enc-btn ghost"
-                       confirmText="You forsake your party to the Cave — they do not escape. Your final score is tallied."
-                       onConfirm={onAbandon} />
-      )}
     </aside>
   );
 }
