@@ -219,7 +219,7 @@ export function EncounterPanel({ state, dispatch, leaveOnMove = false }: { state
             rowLabel="Bell Rope"
             placeholder="Pull the bell rope…"
             options={dedupeLabels(pullBellRope.map((a) => memberLabel(state.party, a.mi))).map((lbl, k) => ({ label: lbl, value: pullBellRope[k]! }))}
-            confirmText={(a) => `Pull the bell rope with ${memberLabel(state.party, a.mi)}? Declining is always allowed.`}
+            confirmText={(a) => `Pull the bell rope with ${memberLabel(state.party, a.mi)}?`}
             onConfirm={(a) => dispatch(a)}
           />
         </div>

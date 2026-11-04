@@ -72,7 +72,7 @@ export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: 
             rowLabel="Bell Rope"
             placeholder="Pull the bell rope…"
             options={pullBellRope.map((a) => ({ label: memberLabel(state.party, a.mi), value: a }))}
-            confirmText={(a) => `Pull the bell rope with ${memberLabel(state.party, a.mi)}? Declining is always allowed.`}
+            confirmText={(a) => `Pull the bell rope with ${memberLabel(state.party, a.mi)}?`}
             onConfirm={(a) => dispatch(a)}
           />
         </div>
