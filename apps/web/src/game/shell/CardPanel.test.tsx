@@ -66,6 +66,11 @@ describe('CardPanel', () => {
     expect(onMember).toHaveBeenCalledWith(member);
   });
 
+  it('puts a member\'s own actions at the foot of the card (the Sibyl\'s look)', () => {
+    render(<CardPanel selected={{ kind: 'member', member: { ...member, sibyl: true, items: [] } }} onItem={noop} onMember={noop} actions={<button>Look at the top of the pack</button>} />);
+    expect(screen.getByRole('button', { name: 'Look at the top of the pack' })).toBeInTheDocument();
+  });
+
   it('describes the Sibyl without fighting numbers', () => {
     render(<CardPanel selected={{ kind: 'member', member: { ...member, name: 'Sibyl', label: 'Sibyl', sibyl: true, items: [] } }} onItem={noop} onMember={noop} />);
     expect(screen.getByText(/Travels with the party\. She cannot fight, carry or be harmed/)).toBeInTheDocument();

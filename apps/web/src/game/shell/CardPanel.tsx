@@ -108,6 +108,7 @@ export function CardPanel({ selected, onItem, onMember, onAward, onClose, action
           </div>
         )}
         {text && <p className="scv-cp-text">{text}</p>}
+        {actions}
         <CardHelp category="creature" name={m.name} />
       </aside>
     );
