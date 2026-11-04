@@ -41,6 +41,7 @@ import { ItemActions } from "./shell/ItemActions";
 import { FloorTreasureActions } from "./shell/FloorTreasureActions";
 import { useOfferOnPickup } from "./shell/useOfferOnPickup";
 import { arrivalSelection } from "./shell/areaSelection";
+import { medusaSelection } from "./shell/medusaSelection";
 import { SibylLook } from "./SibylLook";
 import { memberLabels } from "./memberLabels";
 import { inventoryRows } from "./inventory";
@@ -166,6 +167,13 @@ export default function GameScreen() {
     if (arrival) { setSelected(arrival); setRightSlot((cur) => cur ?? 'card'); }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- offered once per arrival (the area), not on every state change
   }, [onShow?.partyArea, holding]);
+  // The Medusa pause is a must-act choice, so show her card while it lasts (she is a marker, not a stranger, so the scene may not).
+  useEffect(() => {
+    if (!engine || !onShow || holding) return;
+    const medusa = medusaSelection(onShow, art?.cards ?? [], engine.current.name);
+    if (medusa) { setSelected(medusa); setRightSlot((cur) => cur ?? 'card'); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per pause, not on every state change
+  }, [onShow?.phase === 'medusa', onShow?.partyArea, holding]);
   const gameOver = !!state && state.gs !== GS_PLAYING;
   // The finished game's move log, for the post-game .txt / .log downloads (fetched only at game over).
   const gameLog = useQuery(api.game.log, gameOver && gameId ? { id: gameId } : "skip") as GameLog | null | undefined;
