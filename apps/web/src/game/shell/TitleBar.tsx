@@ -75,10 +75,10 @@ export function TitleBar({ left, right, testMode, testOpen, inFight, onLeft, onR
       <div className="scv-tb-group">
         <IconButton id="card" label="Card panel" active={right === 'card'} onClick={() => onRight('card')} />
         <IconButton id="settings" label="Settings" active={right === 'settings'} onClick={() => onRight('settings')} />
-        <IconButton id="exit" label="Exit" active={right === 'exit'} onClick={() => onRight('exit')} />
         <IconButton id="help" label="Help" active={right === 'help'} onClick={() => onRight('help')} />
         <FullscreenButton />
         {testMode && <IconButton id="test" label="Test panel" active={!!testOpen} onClick={() => onTest?.()} />}
+        <IconButton id="exit" label="Exit" active={right === 'exit'} onClick={() => onRight('exit')} />
       </div>
     </header>
   );
