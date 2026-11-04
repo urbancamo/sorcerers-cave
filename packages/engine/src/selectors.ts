@@ -92,8 +92,6 @@ function artifactActions(state: GameState): GameAction[] {
         if (state.strangers[i] !== 9) actions.push({ type: "useArtifact", artifact: 5, target: i });
       }
     }
-    // The Charmed Flute lulls Dragons passively (on chamber entry, while held) — see resolveArea —
-    // so there is no explicit lull action to offer here.
   }
   // Reviving the fallen is offered at rest (explore) AND while looting (pickup), so a party can
   // restore members straight after a fight that dropped treasure.
@@ -125,6 +123,8 @@ function artifactActions(state: GameState): GameAction[] {
       const cur = state.areas[state.partyArea]!;
       const { level, x, y } = unpackCoord(cur.coord);
       const dec = decodeOpen(cur);
+      // At a Viper Pit the Flute is played to lull the Vipers (once; they sleep until the party leaves).
+      if (dec.special === SPECIAL_VIPER_PIT && state.vipersLulledArea !== state.partyArea) actions.push({ type: "useArtifact", artifact: 12 });
       const below = state.areas.find((a) => a.coord === packCoord(level + 1, x, y));
       if (!dec.stairDown && below && decodeOpen(below).stairUp) actions.push({ type: "useArtifact", artifact: 12, dir: DIR_DOWN });
       const above = state.areas.find((a) => a.coord === packCoord(level - 1, x, y));

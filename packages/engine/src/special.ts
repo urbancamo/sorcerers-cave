@@ -77,11 +77,12 @@ export function tryReclaimSunk(
 
 /** Cross the Viper Pit (§10.1). Each living member risks a fatal fall (a roll of 1 or 2); the
  *  Charmed Flute lulls the vipers so the whole party crosses safely. Threads the seed. */
-export function viperCrossing(state: GameState): GameEvent[] {
+export function viperCrossing(state: GameState, pitIdx: number = state.partyArea): GameEvent[] {
   const events: GameEvent[] = [];
   const members = living(state);
-  // The Charmed Flute (played by an eligible member) lulls the vipers — the party crosses unharmed.
-  if (fluteLulls(state)) return [{ type: "vipersLulled" }];
+  // The Charmed Flute, PLAYED at this pit by an eligible member (`useArtifact` 12 → `vipersLulledArea`), lulls the vipers — the party
+  // crosses unharmed. Merely holding it no longer does: without the play, the crossing rolls as ever (Peter/Mark, 2026-11-04).
+  if (state.vipersLulledArea === pitIdx && fluteLulls(state)) return [{ type: "vipersLulled" }];
   // Roll a d6 per member so the UI can show the crossing (a 1 or 2 is a fatal fall into the pit).
   const rolls: { creatureId: number; roll: number; died: boolean }[] = [];
   for (const m of members) {

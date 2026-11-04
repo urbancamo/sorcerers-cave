@@ -179,6 +179,7 @@ describe("SC-11-31: Charmed Flute lulls the vipers (§10.1, viperCrossing)", () 
       party: [member(0, [12]), member(5, [])], // eligible Hero holds the Flute; a Man crosses too
       seed: 1,                                  // a seed a plain crossing would roll on — proves no roll fires
     });
+    s.vipersLulledArea = s.partyArea;           // the Flute has been played at this pit
     const events = viperCrossing(s);
     expect(events).toEqual([{ type: "vipersLulled" }]);          // the vipers are lulled — one event, nothing else
     expect(events.some((e) => e.type === "viperPit")).toBe(false); // no per-member fatal rolls at all

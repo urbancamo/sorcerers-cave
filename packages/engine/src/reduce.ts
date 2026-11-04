@@ -851,6 +851,11 @@ export function reduce(
     const redo = reduceCore(pre, action);
     result = { state: redo.state, events: [...parted, ...redo.events] };
   }
+  // The vipers sleep only while the party stays at that pit: the moment it moves on, they wake.
+  if (result?.state.vipersLulledArea !== undefined && result.state.partyArea !== result.state.vipersLulledArea) {
+    const { vipersLulledArea: _asleep, ...awake } = result.state;
+    result = { ...result, state: awake as GameState };
+  }
   const midState = takeMidState();
   if (midState !== null) return { ...result, midState };
   return result;
@@ -1074,7 +1079,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       if (crossing && fromSpecial === SPECIAL_VIPER_PIT) {
         events.push({ type: "crossedSpecial", special: SPECIAL_VIPER_PIT });
         setMidState(state); // show the crossing dice on the pit's ledge first, before the party is seen to walk on (SC-4-43)
-        events.push(...viperCrossing(next));
+        events.push(...viperCrossing(next, fromIdx));
         if (!next.party.some((m) => m.status === 0 || m.status === 1)) {
           next.gs = GS_DEAD;
           next.phase = "gameOver";
@@ -1809,8 +1814,12 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
             }
             return { state: next, events: [{ type: "artifactUsed", artifact: 12 }, { type: "secretDoorRevealed", dir: action.dir }] };
           }
-          // Without a `dir` the Flute lulls the Dragons in an encounter (the player's choice, not automatic). It still lulls
-          // Vipers passively on the pit crossing (see special.ts).
+          // Without a `dir` the Flute lulls the Dragons in an encounter, or — in explore, on a Viper Pit — the Vipers. Either way it is the
+          // player's choice, never automatic: an unplayed Flute lulls neither.
+          if (next.phase === "explore" && decodeOpen(next.areas[next.partyArea]!).special === SPECIAL_VIPER_PIT && next.vipersLulledArea !== next.partyArea) {
+            next.vipersLulledArea = next.partyArea;
+            return { state: next, events: [{ type: "artifactUsed", artifact: 12 }, { type: "vipersLulled" }] };
+          }
           if (next.phase !== "encounter" || !next.strangers.includes(10)) return { state, events: [{ type: "blocked" }] };
           return { state: next, events: lullDragons(next) };
         }

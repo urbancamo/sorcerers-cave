@@ -345,6 +345,9 @@ export interface GameState {
   // Bell Rope 4-6 roll (design US-03/US-07), alongside `fellThroughTrap` on the same legality check.
   // `turn` only advances on `move`, so this self-invalidates once the party moves on — no explicit
   // reset needed, and it re-arms cleanly if the SAME turn draws again.
+  // Index (in `areas`) of the Viper Pit whose vipers the party has lulled with the Charmed Flute — a deliberate play (`useArtifact` 12 on the
+  // pit), like lulling Dragons. They stay asleep until the party leaves the area (cleared by `reduce` the moment `partyArea` moves on).
+  vipersLulledArea?: number;
   noWithdrawTurn?: number;
   // Extension kit (SC-EXT-10): the Gallery's chamber working set of creatures drawn there as
   // statues — inert scenery (no reaction test) unless woken (Staff auto-wake, SC-EXT-11; Holy
