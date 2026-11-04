@@ -8,6 +8,7 @@ export const HAZARDS: Section = {
     { id: 'hazard-order', title: 'When hazards strike', cards: cards('hazard', '*'), blocks: [
       p('A hazard strikes immediately — before any treasure or strangers are dealt with. If several appear at once they resolve in this order: **Earthquake → Medusa → Ghouls → Mutiny → Trap**.'),
       p('With the Extension Kit the order lengthens to: Earthquake → Spell → Harpies → Medusa → Ghouls → Quarrel → Desertion → Mutiny → Trap (the Trap is always last).'),
+      p('Hazards that strike once and are spent — Mutiny, and with the Kit Desertion, Quarrel, Spell and the Harpies — leave their card lying on the tile where it was drawn, whether or not it changed anything, so you can see what happened there. Ghouls, Medusa and a lurking Harpies card instead stay in the chamber and strike again.'),
     ] },
     { id: 'hazard-earthquake', title: 'Earthquake', cards: cards('hazard', 'Earthquake'), blocks: [
       p('The area you just came from collapses. It is removed from play — drawn as rubble, impassable, and the doorway back to it is sealed. You cannot return the way you came.'),

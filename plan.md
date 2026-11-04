@@ -7,7 +7,7 @@ Numbers in brackets are Peter's item numbers. Work through Group 1 first.
 
 ## Group 1: Issues (things that look wrong or misleading today)
 
-### I-1. [5] Mutiny "does nothing" and the card persists — DONE: confirmed not an engine bug (it only affects allies); a notice now says so
+### I-1. [5] Mutiny "does nothing" and the card persists — STRUCK OFF (Mark tested it: works). Not an engine bug (it only affects allies); a notice now says so; the persistent card is deliberate (8ef8d10) and now covers every spent hazard card
 - **Observed:** queued Mutiny with a large party; nothing happened; the Mutiny card stays in the chamber.
 - **What the code does:** `hazards.ts` `HAZARD_MUTINY` only affects **allies** (status 1). A party of originals is untouched, and the card is deliberately left on the tile as a display marker (`300 + HAZARD_MUTINY`) so it doesn't vanish.
 - **Likely cause:** Peter's party was all originals, so there was nobody to desert. The card staying is intentional, but it reads as "stuck".
@@ -18,7 +18,7 @@ Numbers in brackets are Peter's item numbers. Work through Group 1 first.
   4. Decide whether the persistent marker needs a tooltip or Card View text saying why it stays.
 - **Docs:** player manual (`hazards.ts`) wording; engine spec only if engine behaviour changes.
 
-### I-2. [6] Desertion "does nothing" with dice forced to 1 — DONE: same cause (no allies, so no rolls); a notice now says so
+### I-2. [6] Desertion "does nothing" with dice forced to 1 — STRUCK OFF (Mark tested it: works; revisit if it is a Test Mode issue). Same cause (no allies, so no rolls); a notice now says so
 - **Observed:** queued Desertion with forced rolls of 1; nothing happened (the card doesn't persist, which is correct).
 - **What the code does:** `HAZARD_DESERTION` rolls a d6 **per ally only**; originals never roll, and a roll of 1–2 removes the ally. With no allies there are no rolls and no event.
 - **Likely cause:** same as I-1, no allies in the party. Also check that the forced die (`testForceDie` / `testForceAllDice`) is not consumed or ignored on this path (the dice cueing bug was fixed 2026-09-21, so verify it still holds).
