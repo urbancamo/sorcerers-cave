@@ -42,7 +42,7 @@ Numbers in brackets are Peter's item numbers. Work through Group 1 first.
 - **Fix:** `apps/web/src/manual/areas.ts:41` — change "Pull it once per visit" to the once-only wording. Check any other Bell Rope text (card panel, event notices, `house.ts`) for the same claim.
 - **Size:** one-line wording fix plus a grep. No engine change.
 
-### I-5. [4] Illegal deployment drag gives no explanation
+### I-5. [4] Illegal deployment drag gives no explanation — DONE (refusal note under the battle; an unpaired foe's behind slot now accepts the drop to explain)
 - **Observed:** an attacker dragging a magic user to the background with no fighters in the front line is refused silently.
 - **Fix:** surface a short message at the point of refusal, e.g. "There are no frontline fighters there to support them." Reuse the existing notice or toast mechanism used for other refused moves. Check whether the engine already returns a reason code or `planRejected` to hang the text on. Add a UI test for the message.
 - **Docs:** manual `play.ts` or the combat topic if the rule isn't already stated there.

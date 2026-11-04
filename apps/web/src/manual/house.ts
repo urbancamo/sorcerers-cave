@@ -70,7 +70,7 @@ export const HOUSE: Section = {
       p('When you must put *every* free creature in front there is nothing to choose, so the game does it for you.'),
     ] },
     { id: 'rc-pairing', title: 'Pairings and spares', brief: 'Tap a fighter, then the foe it will face; nothing is final until you roll.', requires: 'combatRevision', cards: [], screens: ['fight-revised'], blocks: [
-      p('The attacker matches each of its free creatures one-to-one against a creature in the front line, for as long as any can be paired. Tap one of your fighters and then the foe it will face (or drag it there), and do the same with your spare creatures, dropping each onto a pairing it will join or, for a Priest or Wizard, onto its “behind” slot. The strength totals follow as you go.'),
+      p('The attacker matches each of its free creatures one-to-one against a creature in the front line, for as long as any can be paired. Tap one of your fighters and then the foe it will face (or drag it there), and do the same with your spare creatures, dropping each onto a pairing it will join or, for a Priest or Wizard, onto its “behind” slot. The strength totals follow as you go. A magic user can only stand behind a pairing that already has a fighter in front, and if you drop a creature somewhere it cannot go, a short note under the battle says why.'),
       p('Nothing is final: tap a creature you have placed to take it back, or press *Undo pairings* to start again. Nothing is decided until you press **Roll the Round**, and the whole arrangement is checked then. When there is only one way to pair your fighters the pairing is already laid out.'),
       p('A Spectre or Demon cannot be paired with a fighter who has no magic.'),
     ] },
