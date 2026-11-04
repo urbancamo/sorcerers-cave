@@ -2,6 +2,7 @@ import {
   reduce, legalActions, unpackCoord, packCoord, targetCoord, AF_DESTROYED,
   type GameState, type GameAction, type GameEvent,
 } from "@sorcerers-cave/engine";
+import { whirlpoolMove } from "./whirlpoolMove";
 import type { CaveEngine, Area, StateSnapshot, Move, MoveEvent, Dir } from "./ports";
 import { projectArea, encodeWorkingSet, areaKey, laneCards, type ArtTables } from "./projection";
 import { eventNotices } from "../game/eventNotices";
@@ -158,6 +159,8 @@ export function createCaveAdapter(initial: GameState, art: ArtTables, opts: Adap
       if (dir === "U") ev.ascended = "U";
       if (events.some((e) => e.type === "trapSprung")) { ev.trap = "sprung"; ev.fell = true; }
       else if (events.some((e) => e.type === "trapAvoided")) ev.trap = "avoided";
+      const wp = whirlpoolMove(events);
+      if (wp) { ev.whirlpool = wp; if (wp.dragged) ev.fell = true; }
       const drew = events.find((e): e is Extract<GameEvent, { type: "drewChamber" }> => e.type === "drewChamber");
       if (drew) {
         // Build the draw display from the drewChamber event (the full draw, captured BEFORE

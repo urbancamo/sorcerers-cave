@@ -735,6 +735,10 @@ function doMove(dir){
   }
   busy=true;
   if(ev.placed){ buildAreaMesh(ev.area,true).then(()=>{rebuildPlatforms();rebuildStairs();rebuildSecretDoors();rebuildLevelButtons();}); }
+  // A Whirlpool crossing shows its die BEFORE the result: the React side holds the engine's pre-move snapshot (the party still on the
+  // Whirlpool's tile) while the dice are up, and refresh() walks the token once they are dismissed. So there is no walk to start here;
+  // a drag drops the party a level, and arrival then goes 'home' so only that level is shown.
+  if(ev.whirlpool){ if(ev.whirlpool.dragged) homeOnArrival=true; busy=false; return; }
   // move token (a sprung trap drops the party a level, animated like a descent)
   const drop = ev.descended||ev.ascended||ev.fell;
   const from=partyToken.position.clone(), to=partyTokenPos(ev.area);

@@ -1030,6 +1030,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
             relocateDown(wade);
             return { state: wade, events: [...evs.filter((e) => e.type !== "deadEndCardSwapped" && e.type !== "deadEnd"), ...resolveArea(wade)] };
           }
+          pendingMidState = structuredClone(state); // a safe wade too: its die is shown on the Whirlpool's tile, before the party moves on
           wade.subLocation = { area: fromIdx, at: "doorway", dir: action.dir };
           if (res.noViableExits) evs.push({ type: "deadEndNoViableExits" });
           return { state: wade, events: evs };
@@ -1084,6 +1085,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           kept.push(...resolveArea(next));
           return { state: next, events: kept };
         }
+        pendingMidState = structuredClone(state); // safe wade: show the die on the Whirlpool's tile first (SC-4-43)
       }
 
       events.push(...resolveArea(next));
