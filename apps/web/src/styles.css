@@ -11,6 +11,7 @@
   --brass: #c9a14e;
   --brass-bright: #e6c578;
   --crimson: #a8443a;
+  --party-green: #5bbf63; /* DESIGN.md Party Green: the go-here / yours colour */
   --line: rgba(232, 219, 187, 0.13);
   --line-strong: rgba(232, 219, 187, 0.26);
   --display: "Cinzel", serif;
@@ -1987,9 +1988,9 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 .scv-rev-match { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .scv-rev-side { display: flex; gap: 10px; align-items: flex-start; }
 .scv-rev-frontline { align-self: flex-start; flex: none; min-width: 254px; }
-/* While the front line still needs creatures it is where they go: a green wash and solid edge make the drop target obvious. */
-.scv-rev-frontline.is-target { background: rgba(70, 150, 90, 0.22); border: 1px solid rgba(110, 200, 130, 0.75); }
-.scv-rev-frontline.is-target .scv-slot-empty { color: var(--cream); border-color: rgba(110, 200, 130, 0.6); }
+/* Throughout the choosing of the front line it is where creatures go: a green wash and solid edge make the drop target obvious. */
+.scv-rev-frontline.is-target { background: color-mix(in srgb, var(--party-green) 22%, transparent); border: 1px solid color-mix(in srgb, var(--party-green) 75%, transparent); }
+.scv-rev-frontline.is-target .scv-slot-empty { color: var(--cream); border-color: color-mix(in srgb, var(--party-green) 60%, transparent); }
 /* The Ghouls' announcement (RevisedFightSurface): a cold, green-lit gloom with drifting mist and a guttering title. Decoration only. */
 .scv-ghouls { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; padding: 16px; overflow: hidden;
   background: radial-gradient(ellipse at 50% 40%, rgba(24,44,30,.92), rgba(4,8,6,.97) 70%); animation: scv-ghouls-in .9s ease-out both; }
