@@ -38,7 +38,7 @@ export const AREAS: Section = {
       p('Draw **one extra small card** straight into the chamber — no move required. Legal any turn, as many times as the small pack allows.'),
     ] },
     { id: 'area-bell-rope', title: 'The Bell Rope', variant: 'kit', cards: cards('area', 'The Bell Rope'), blocks: [
-      p('Pull it once per visit and a d6 decides the toll: a **1** spirits the puller away for good, with everything they carried; **2–3** is nothing but an eerie sound; **4–6** draws two cards at once.'),
+      p('It can be pulled only once in the whole game, by one member of your choice, and a d6 decides the toll: a **1** spirits the puller away for good, with everything they carried; **2–3** is nothing but an eerie sound; **4–6** draws two cards at once.'),
     ] },
     { id: 'area-gallery', title: 'The Gallery', variant: 'kit', cards: cards('area', 'The Gallery'), blocks: [
       p('Every creature drawn here on a fresh visit arrives as a **stone statue**, not a living stranger — free to loot around, no fight.'),
