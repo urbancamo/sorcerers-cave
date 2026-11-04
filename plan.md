@@ -28,7 +28,7 @@ Numbers in brackets are Peter's item numbers. Work through Group 1 first.
   3. Fix only if step 1 fails.
 - **Docs:** manual `hazards.ts`; spec SC-EXT-14 if behaviour changes.
 
-### I-3. [7] Charmed Flute never becomes "USABLE NOW" at the Viper Pit
+### I-3. [7] Charmed Flute never becomes "USABLE NOW" at the Viper Pit — DONE (shown as "in effect · Vipers lulled"; the Flute lulls Vipers automatically, so there is no Play action)
 - **Observed:** Inventory pane shows the Flute as "NOT USABLE NOW" at the edge of the Viper Pit, with no Play action.
 - **What the code does:** `selectors.ts` offers `useArtifact{artifact:12}` only in the `encounter` phase when Dragons are among the strangers (SC-11-30). The Viper Pit crossing is a `special` step, so the Flute action isn't offered there. Peter's note that "Flute playing may not be implemented" for Vipers matches this.
 - **Steps:**
@@ -37,7 +37,7 @@ Numbers in brackets are Peter's item numbers. Work through Group 1 first.
   3. Tests: engine `legalActions` at a Viper Pit edge with the Flute; web `ItemActions` / `InventoryPanel` test.
 - **Docs:** engine spec (SC-11-30 neighbours) and the manual (`treasure.ts` / `areas.ts`).
 
-### I-4. [1] Bell Rope help says "once per visit"; the rule and implementation are "once per game"
+### I-4. [1] — DONE (8392031). Bell Rope help says "once per visit"; the rule and implementation are "once per game"
 - **Observed:** help text wording is wrong. The implementation matches the rules.
 - **Fix:** `apps/web/src/manual/areas.ts:41` — change "Pull it once per visit" to the once-only wording. Check any other Bell Rope text (card panel, event notices, `house.ts`) for the same claim.
 - **Size:** one-line wording fix plus a grep. No engine change.
@@ -47,7 +47,7 @@ Numbers in brackets are Peter's item numbers. Work through Group 1 first.
 - **Fix:** surface a short message at the point of refusal, e.g. "There are no frontline fighters there to support them." Reuse the existing notice or toast mechanism used for other refused moves. Check whether the engine already returns a reason code or `planRejected` to hang the text on. Add a UI test for the message.
 - **Docs:** manual `play.ts` or the combat topic if the rule isn't already stated there.
 
-### I-6. [3] Strength badge shows potential strength, not the effective strength right now
+### I-6. [3] — DONE (SC-9.7-23). Strength badge shows potential strength, not the effective strength right now
 - **Observed:** Peter expects the badge to show the creature's current contribution (a Priest in the background shows 2; a Hero facing a Spectre without a Magic Sword shows 0). Today it always shows the maximum.
 - **Why this is in Group 1:** Peter reads the current badge as misleading during a fight. It is arguably an enhancement, so confirm with Peter before building. It is also the largest item here, because it needs a per-creature "effective strength in this pairing" selector that agrees with the combat engine.
 - **Steps (if confirmed):**
