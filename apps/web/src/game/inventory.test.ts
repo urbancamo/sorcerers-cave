@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { newGame, type GameState } from '@sorcerers-cave/engine';
+import { newGame, SPECIAL_VIPER_PIT, type GameState } from '@sorcerers-cave/engine';
 import { inventoryRows, artifactState } from './inventory';
 
 const HERO = 0, PRIEST = 4, DWARF = 7, WIZARD = 8;
@@ -73,5 +73,25 @@ describe('inventory', () => {
     const s = game([[HERO, [T.sword]]]);
     s.party[0]!.status = 3;
     expect(inventoryRows(s)).toEqual([]);
+  });
+
+  describe('the Charmed Flute at the Viper Pit', () => {
+    const atPit = (carrier: number) => {
+      const s = game([[carrier, [T.flute]]]);
+      s.areas[s.partyArea]!.card = (SPECIAL_VIPER_PIT << 7) | 31;
+      return s;
+    };
+    it('is shown as in effect (green) when a capable bearer holds it', () => {
+      const [r] = inventoryRows(atPit(HERO));
+      expect(r).toMatchObject({ color: 'green', tag: 'in effect · Vipers lulled' });
+    });
+    it('is still gray for a carrier who cannot play it', () => {
+      const [r] = inventoryRows(atPit(DWARF));
+      expect(r).toMatchObject({ color: 'gray', tag: 'carrier cannot use' });
+    });
+    it('is not claimed to be in effect away from the pit', () => {
+      const [r] = inventoryRows(game([[HERO, [T.flute]]]));
+      expect(r!.tag).toBe('not usable now');
+    });
   });
 });

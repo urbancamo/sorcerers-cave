@@ -1,9 +1,10 @@
-import { ALL_TREASURES, BORNEABLE, canUseArtifact, isBorne, legalActions, staffBonus, type GameState } from '@sorcerers-cave/engine';
+import { ALL_TREASURES, BORNEABLE, SPECIAL_VIPER_PIT, canUseArtifact, decodeOpen, isBorne, legalActions, staffBonus, type GameState } from '@sorcerers-cave/engine';
 import { memberLabels } from './memberLabels';
 
 // Draft classification for the inventory (docs/requirements/ui-review, "Artifact classification"); it still needs a
 // rules review. Active artifacts need a player action; passive ones work by being carried or wielded.
 const ACTIVE = new Set([4, 5, 6, 8, 9, 12, 15, 16, 19]);
+const T_CHARMED_FLUTE = 12;
 const T_MAGIC_SHIELD = 20;
 const T_MAGIC_STAFF = 9;
 const SHIELD_ELIGIBLE = new Set([0, 1, 5, 6]); // Hero, W-Hero, Man, Woman: the only bearers for whom the shield's ward works
@@ -34,6 +35,11 @@ export function artifactState(state: GameState, mi: number, tid: number, usable:
   if (bonus > 0) {
     if (!canUseArtifact(m.creatureId, tid)) return { color: 'yellow', tag: `+${bonus} magic · cannot use against Medusa` };
     return usable.has(tid) ? { color: 'green', tag: `+${bonus} magic · usable now` } : { color: 'yellow', tag: `+${bonus} magic · not usable now` };
+  }
+  // At the Viper Pit the Flute is not played: the engine lulls the Vipers by itself while a capable bearer holds it, so say
+  // so rather than "not usable now" (which reads as if something were missing).
+  if (tid === T_CHARMED_FLUTE && canUseArtifact(m.creatureId, tid) && decodeOpen(state.areas[state.partyArea]!).special === SPECIAL_VIPER_PIT) {
+    return { color: 'green', tag: 'in effect · Vipers lulled' };
   }
   if (ACTIVE.has(tid)) {
     if (!canUseArtifact(m.creatureId, tid)) return { color: 'gray', tag: 'carrier cannot use' };
