@@ -52,6 +52,7 @@ import { SettingsPanel } from "./shell/SettingsPanel";
 import { ExitPanel } from "./shell/ExitPanel";
 import { useDismissOutside } from "./shell/useDismissOutside";
 import { describeArea, readVerbose, writeVerbose } from "../data/areaText";
+import { readAutoRoll, writeAutoRoll } from "./autoRoll";
 import { HelpPanel } from "./shell/HelpPanel";
 import { HelpProvider } from "../manual/HelpContext";
 import type { HelpScreen } from "../manual";
@@ -86,6 +87,7 @@ export default function GameScreen() {
   const sibylOpen = useRef<{ open: boolean; area: number }>({ open: false, area: -1 });
   sibylOpen.current.open = selected?.kind === 'member' && !!selected.member.sibyl;
   const partyAreaNow = useRef(-1);
+  const [autoRoll, setAutoRoll] = useState(readAutoRoll); // skip the "Roll the dice" click on special rolls (a per-player setting)
   const [verbose, setVerbose] = useState(readVerbose); // story-voice area descriptions (a per-player setting)
   // Shows the save/restore code modal when set. `restored` distinguishes a plain save (dismiss ⇒
   // back to menu) from a just-forked Test Mode scenario (dismiss ⇒ keep playing the new game).
@@ -329,7 +331,7 @@ export default function GameScreen() {
   // A notable feat (dragon kill, the Sorcerer, the Ruby, the Elixir) gets its own celebration AFTER the
   // result it follows (the hook only offers it once the roll and notices are dismissed).
   const overlay = roll ? (
-    <DiceRoll title={roll.title} lanes={roll.lanes} message={roll.message} tone={roll.tone} partyLeft={!!displayState.variants?.combatRevision} onContinue={clearRoll} />
+    <DiceRoll title={roll.title} lanes={roll.lanes} message={roll.message} tone={roll.tone} stakes={roll.stakes} partyLeft={!!displayState.variants?.combatRevision} onContinue={clearRoll} />
   ) : celebration ? (
     <FeatCelebration view={celebration} cards={cards ?? []} onContinue={clearCelebration} />
   ) : null;
@@ -409,7 +411,7 @@ export default function GameScreen() {
                      : undefined} />
       )}
       {rightSlot === 'help' && <HelpPanel screens={helpScreens} flags={displayState.variants} />}
-      {rightSlot === 'settings' && <SettingsPanel verbose={verbose} onVerbose={(on) => { setVerbose(on); writeVerbose(on); }} state={displayState} code={code ?? undefined} kitActive={!!displayState.variants?.extensionKit} onLog={() => setShowLog(true)} />}
+      {rightSlot === 'settings' && <SettingsPanel verbose={verbose} onVerbose={(on) => { setVerbose(on); writeVerbose(on); }} autoRoll={autoRoll} onAutoRoll={(on) => { setAutoRoll(on); writeAutoRoll(on); }} state={displayState} code={code ?? undefined} kitActive={!!displayState.variants?.extensionKit} onLog={() => setShowLog(true)} />}
       {rightSlot === 'exit' && <ExitPanel onSave={handleSave} onAbandon={() => engine.quit()} />}
       <EncounterPanel state={displayState} dispatch={dispatchWithRolls} leaveOnMove />
       {fightVisible && cards && <FightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}

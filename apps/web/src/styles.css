@@ -590,6 +590,15 @@
   max-height: calc(100vh - 32px);
   overflow-y: auto;
 }
+.scv-dice-stakes {
+  max-width: 26rem;
+  margin: 0;
+  font-family: var(--body);
+  font-size: 16px;
+  text-align: center;
+  color: var(--parchment);
+  line-height: 1.5;
+}
 .scv-dice-title {
   font-family: var(--display);
   font-size: 12px;
@@ -666,7 +675,7 @@
   opacity: 0.7;
   filter: grayscale(0.3);
 }
-.scv-die:not(.settled) {
+.scv-die:not(.settled):not(.waiting) {
   animation: scv-tumble 0.18s linear infinite;
 }
 .scv-die.settled {

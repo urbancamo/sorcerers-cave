@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { readAutoRoll } from "./autoRoll";
 
 export type DieSpec = { value: number; name?: string; total?: number; outcome?: "win" | "lose" | "tie" };
 /** A reaction lane has only `enemy`; a combat lane has both sides (shown side by side). */
@@ -14,6 +15,8 @@ export function DiceRoll({
   message,
   tone,
   partyLeft,
+  stakes,
+  autoRoll,
   onContinue,
 }: {
   title: string;
@@ -22,14 +25,21 @@ export function DiceRoll({
   tone: "good" | "bad" | "neutral";
   /** Revised fights show the party on the left; the older fight surface puts the foe there. */
   partyLeft?: boolean;
+  /** What is riding on the roll. When given, the dice wait, unthrown, for the player's "Roll the dice" click
+   *  (unless they have chosen to auto-roll); the values shown are already decided, the click only reveals them. */
+  stakes?: string;
+  autoRoll?: boolean;
   onContinue: () => void;
 }) {
   const [tick, setTick] = useState(0);
   const [settled, setSettled] = useState(false);
+  const gated = !!stakes && !(autoRoll ?? readAutoRoll());
+  const [thrown, setThrown] = useState(!gated);
 
   useEffect(() => {
     setSettled(false);
     setTick(0);
+    if (!thrown) return;
     let n = 0;
     const iv = setInterval(() => {
       n += 1;
@@ -41,12 +51,12 @@ export function DiceRoll({
       }
     }, TICK_MS);
     return () => clearInterval(iv);
-  }, [lanes]);
+  }, [lanes, thrown]);
 
   let dieIdx = 0;
   const die = (spec: DieSpec, big: boolean) => {
     const i = dieIdx++;
-    const face = settled ? spec.value : ((tick + i) % 6) + 1;
+    const face = !thrown ? "?" : settled ? spec.value : ((tick + i) % 6) + 1;
     return (
       <div className="scv-dice-side">
         {spec.name && <span className="scv-dice-name">{spec.name}</span>}
@@ -55,6 +65,7 @@ export function DiceRoll({
             "scv-die" +
             (big ? " big" : "") +
             (settled ? " settled" : "") +
+            (!thrown ? " waiting" : "") +
             (settled && spec.outcome ? " " + spec.outcome : "")
           }
           data-testid="die"
@@ -72,6 +83,7 @@ export function DiceRoll({
     <div className="scv-dice-overlay" role="dialog" aria-label="dice roll">
       <div className="scv-dice-card">
         <div className="scv-dice-title">{title}</div>
+        {!thrown && stakes && <p className="scv-dice-stakes">{stakes}</p>}
         <div className={"scv-dice-lanes" + (versus ? " versus" : "")}>
           {lanes.map((lane, i) =>
             lane.party ? (
@@ -88,6 +100,7 @@ export function DiceRoll({
             ),
           )}
         </div>
+        {!thrown && <button className="scv-primary" onClick={() => setThrown(true)}>Roll the dice</button>}
         {settled && (
           <>
             {message && <p className={"scv-dice-msg " + tone}>{message}</p>}

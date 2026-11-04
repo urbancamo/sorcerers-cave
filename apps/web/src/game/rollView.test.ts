@@ -274,3 +274,10 @@ describe("rollFromEvents", () => {
     expect(view.tone).toBe("bad");
   });
 });
+
+describe("Quarrel waits for the player's roll", () => {
+  it("carries a stakes line, so the dice open unthrown behind a Roll the dice button", () => {
+    const duel = rollFromEvents([{ type: "quarrel", aId: 0, bId: 5, aRoll: 2, bRoll: 5, loserId: 0 }])!;
+    expect(duel.stakes).toMatch(/Hero.*Man/);
+  });
+});

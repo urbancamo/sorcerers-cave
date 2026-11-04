@@ -5,7 +5,9 @@ import { ALL_CREATURES, ALL_TREASURES, type GameEvent } from "@sorcerers-cave/en
 import type { Lane } from "./DiceRoll";
 
 export type Tone = "good" | "bad" | "neutral";
-export type RollView = { title: string; lanes: Lane[]; message: string; tone: Tone };
+/** `stakes`, when present, is what is riding on the roll: the overlay then opens with a "Roll the dice" button so the player
+ *  throws the dice themself (the values are already decided; the click only reveals them). Without it the dice tumble at once. */
+export type RollView = { title: string; lanes: Lane[]; message: string; tone: Tone; stakes?: string };
 
 // The Bell Rope's 2-3 "toll" band uses the design's exact foreboding wording (US-03 Feedback).
 const BELL_TOLL_TEXT = "A bell tolls once, far above — and is answered by silence. Something, somewhere, now knows you are here.";
@@ -101,7 +103,7 @@ function chestView(events: GameEvent[]): RollView | null {
     6: { message: "Gems! +80 points.", tone: "good" },
   };
   const o = OUTCOME[chest.result] ?? { message: "The chest creaks open.", tone: "neutral" as Tone };
-  return { title: "The Treasure Chest", lanes: [{ enemy: { value: chest.result } }], message: o.message, tone: o.tone };
+  return { title: "The Treasure Chest", lanes: [{ enemy: { value: chest.result } }], message: o.message, tone: o.tone, stakes: "You lift the lid. A 1 is a curse, a 2 a Spectre, a 3 only sand — but a 4, 5 or 6 is silver, gold or gems." };
 }
 
 /** Turn a decided casualty (a 2-member match loss) into a single-die overlay showing the d6 and
@@ -130,7 +132,7 @@ function medusaView(events: GameEvent[]): RollView | null {
   const message = wipedOut
     ? "Medusa's gaze petrifies the whole party…"
     : stoned > 0 ? `Medusa's gaze — ${stoned} turned to stone.` : "Medusa's gaze — the party averts its eyes!";
-  return { title: "Medusa's gaze", lanes, message, tone: stoned > 0 ? "bad" : "good" };
+  return { title: "Medusa's gaze", lanes, message, tone: stoned > 0 ? "bad" : "good", stakes: "Every member of the party meets her gaze. A roll of 1 or 2 turns that creature to stone." };
 }
 
 /** Turn the Viper Pit crossing into a die-per-member overlay (a roll of 1 is a fatal fall). */
@@ -145,7 +147,7 @@ function viperView(events: GameEvent[]): RollView | null {
   const message = wipedOut
     ? "The vipers take the last of the party…"
     : lost > 0 ? `The vipers strike — ${lost} fall into the pit.` : "The party picks its way across — all safe.";
-  return { title: "The Viper Pit", lanes, message, tone: lost > 0 ? "bad" : "good" };
+  return { title: "The Viper Pit", lanes, message, tone: lost > 0 ? "bad" : "good", stakes: "Each creature edges across the ledge. A roll of 1 or 2 and it falls into the pit, lost with whatever it carried." };
 }
 
 /** Turn the Whirlpool's crossing roll into a single-die overlay (design US-05 Feedback, verbatim). */
@@ -153,7 +155,7 @@ function whirlpoolView(events: GameEvent[]): RollView | null {
   const w = events.find((e): e is Extract<GameEvent, { type: "whirlpoolRoll" }> => e.type === "whirlpoolRoll");
   if (!w) return null;
   const message = w.dragged ? "The whirlpool drags the whole party under!" : "The party wades the shallows safely.";
-  return { title: "The Whirlpool", lanes: [{ enemy: { value: w.roll } }], message, tone: w.dragged ? "bad" : "good" };
+  return { title: "The Whirlpool", lanes: [{ enemy: { value: w.roll } }], message, tone: w.dragged ? "bad" : "good", stakes: "The party wades the shallows together. On a 1 or 2 the whirlpool drags the whole party down a level." };
 }
 
 /** Turn the Bell Rope's roll into a single-die overlay, one message per band (design US-03 Feedback, verbatim). */
@@ -165,7 +167,7 @@ function bellRopeView(events: GameEvent[]): RollView | null {
     b.outcome === "vanish" ? `The rope yanks ${puller} upward. They are never seen again.`
       : b.outcome === "toll" ? BELL_TOLL_TEXT
         : "The bell's echo shakes something loose — two cards are drawn. The party cannot withdraw this turn.";
-  return { title: "The Bell Rope", lanes: [{ enemy: { value: b.roll } }], message, tone: b.outcome === "vanish" ? "bad" : "neutral" };
+  return { title: "The Bell Rope", lanes: [{ enemy: { value: b.roll } }], message, tone: b.outcome === "vanish" ? "bad" : "neutral", stakes: `${puller} takes hold of the rope. A 1 and they vanish for good; 2–3 the bell only rings; 4–6 two more cards are drawn.` };
 }
 
 /** Turn the Crypt's roll into a single-die overlay (design US-08 Feedback, verbatim). */
@@ -173,7 +175,7 @@ function cryptView(events: GameEvent[]): RollView | null {
   const c = events.find((e): e is Extract<GameEvent, { type: "cryptRoll" }> => e.type === "cryptRoll");
   if (!c) return null;
   const message = c.outcome === "trap" ? "The floor gives way! The party plunges into darkness." : "Within the crypt: gems!";
-  return { title: "The Crypt", lanes: [{ enemy: { value: c.roll } }], message, tone: c.outcome === "trap" ? "bad" : "good" };
+  return { title: "The Crypt", lanes: [{ enemy: { value: c.roll } }], message, tone: c.outcome === "trap" ? "bad" : "good", stakes: "The party steps inside the crypt. Low and the floor gives way beneath them; high and there are gems to be found." };
 }
 
 /** Turn Desertion's per-ally rolls into a die-per-ally overlay (design US-09 Feedback) — one lane per
@@ -190,7 +192,7 @@ function desertionView(events: GameEvent[]): RollView | null {
   const message = deserters.length
     ? deserters.map((r) => `${nameOf(r.creatureId)} slips away into the dark, taking ${itemsOf(r.items)}.`).join(" ")
     : "The party holds together.";
-  return { title: "Desertion", lanes, message, tone: deserters.length ? "bad" : "good" };
+  return { title: "Desertion", lanes, message, tone: deserters.length ? "bad" : "good", stakes: "Each ally decides whether to stay. A roll of 1 or 2 and they slip away, taking everything they carry." };
 }
 
 /** Turn Quarrel's one-round mini-fight into a side-by-side dice overlay (design US-11 Feedback,
@@ -214,6 +216,7 @@ function quarrelView(events: GameEvent[]): RollView | null {
     lanes,
     message: `Tempers flare — ${aName} and ${bName} come to blows! ${outcome}`,
     tone: q.loserId === null ? "good" : "bad",
+    stakes: `Tempers flare between ${aName} and ${bName}, the two strongest of the party. Each rolls a die; the lower total falls.`,
   };
 }
 
@@ -229,7 +232,7 @@ function elixirView(events: GameEvent[]): RollView | null {
       : d.outcome === "nothing" ? "It tastes of pond water. Nothing happens."
         : "The draught takes hold."; // the prize wording ("…power settle into their bones", +2) is the celebration's (feats.ts)
   const tone: Tone = d.outcome === "death" ? "bad" : d.outcome === "nothing" ? "neutral" : "good";
-  return { title: "The Elixir", lanes: [{ enemy: { value: d.roll } }], message, tone };
+  return { title: "The Elixir", lanes: [{ enemy: { value: d.roll } }], message, tone, stakes: `${drinker} raises the flask and drinks. Poison, pond water, or a surge of strength — only the dice know.` };
 }
 
 /** Build the dice overlay (if any) for the events an action produced — reaction, chest, casualty,

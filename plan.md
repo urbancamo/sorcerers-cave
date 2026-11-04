@@ -61,9 +61,9 @@ Numbers in brackets are Peter's item numbers. Work through Group 1 first.
 
 ## Group 2: Enhancements (we'll deal with these after the issues)
 
-### E-1. [8] Visible dice rolls with a "Roll the dice" button for chambers, hazards and artefacts
+### E-1. [8] — IN PROGRESS (built: gated `DiceRoll` with a stakes line and a "Roll the dice" button; Settings option to roll automatically). Visible dice rolls with a "Roll the dice" button for chambers, hazards and artefacts
 - Peter's principle: whenever a Special Chamber, Hazard or Artefact needs a roll (single, or one per party member), the player should see the dice and click to roll, to build tension as in the tabletop game.
-- Applies to: Bell Rope, Whirlpool, Viper Pit, Desertion, Medusa, Crypt, Elixir, Treasure Chest. Ghouls and Quarrel already show dice in the fight interface.
+- Applies to: Bell Rope, Whirlpool, Viper Pit, Desertion, Medusa, Crypt, Elixir, Treasure Chest, and Quarrel (added by Mark). Ghouls already show dice in the fight interface.
 - Likely approach: reuse the existing dice overlay (`.scv-dice-overlay`, `wellDraw`/`bellRoll`-style events that already carry the roll). Add a "pending roll" step so the engine event is held until the player clicks.
 - Design question to settle first: does the engine roll up front and the UI merely reveal it (simple, keeps determinism and Test Mode forced dice working), or does it wait for a click action? Recommend reveal-only.
 - Needs a brainstorm and a small design doc before building, and a per-player option to skip the animation for repeat play.
