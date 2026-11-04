@@ -722,7 +722,7 @@ function doMove(dir){
     setPrompt(ev.deadEnd?'That way is a dead end.':'No exit that way.','danger'); flashMarker(dir,true);
     if(ev.whirlpool){ // a stairway never leads onto the Whirlpool: say why the party stays where it is
       busy=true;
-      showNote('A dead end with a view','The stair ends at a high balcony in the rock. Far below, the Whirlpool churns and roars — you may watch it a moment, but there is no way down to it. The party can only retrace its steps to the area above.').then(()=>{ busy=false; });
+      showNote('A dead end with a view',['The stair ends at a high balcony in the rock.','Far below, the Whirlpool churns and roars — you may watch it a moment, but there is no way down to it.','The party can only retrace its steps to the area above.']).then(()=>{ busy=false; });
     }
     return;
   }
@@ -877,7 +877,8 @@ function showNote(title,body){
   return new Promise(res=>{
     const ov=document.createElement('div'); ov.className='scv-dice-overlay';
     const card=document.createElement('div'); card.className='scv-dice-card';
-    card.innerHTML='<div class="scv-dice-title">'+title+'</div><p class="scv-dice-msg">'+body+'</p>';
+    card.style.maxWidth='24rem'; // a narrow card: the paragraphs wrap short
+    card.innerHTML='<div class="scv-dice-title">'+title+'</div>'+[].concat(body).map(b=>'<p class="scv-dice-msg">'+b+'</p>').join('');
     const row=document.createElement('div'); row.className='scv-dice-actions';
     const ok=document.createElement('button'); ok.className='scv-primary'; ok.textContent='OK';
     ok.addEventListener('click',()=>{ ov.remove(); res(); });
