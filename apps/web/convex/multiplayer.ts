@@ -4,6 +4,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Id, Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { uniqueCode } from "./game";
+import { deepestLevel } from "./highScores";
 import { buildMpGame, choosePartyFor, mpReduce, partyView, fogFilter, distantFights, zombiePostSweep, repairTurnFlow, mpScore, occupants, areaInteractionMask, expireTrade, expirePvp, expireUnionProposal, pvpView, PVP_WINDOW_MS, CREATURES, TREASURES, KIT_CREATURES, PARTY_BUDGET, type MpGameState, type MpAction, type PartyState, type GameEvent } from "@sorcerers-cave/engine";
 
 // Permissive action shape; the engine (mpReduce) enforces semantics. Includes the lobby-level endTurn.
@@ -579,6 +580,7 @@ async function recordTerminals(
       extensionKit: after.variants?.extensionKit ?? undefined,
       sibyl: after.variants?.sibyl ?? undefined, // SC-SIB-9: the Sibyl keys its own table
       seatCount: after.parties.length,
+      maxDepth: deepestLevel(view),
     });
     const verb = OUTCOME_VERB[p.status] ?? "finished";
     if (row) await postAction(ctx, gameId, p.seat, p.name, row.color, `${verb} (score ${score})`, now);

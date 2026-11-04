@@ -111,6 +111,9 @@ export default defineSchema({
     // Multiplayer only: how many seats shared the cave — treasure is split, so the count is the
     // context a reader needs to judge the score. Absent on rows recorded before 2026-07-28.
     seatCount: v.optional(v.number()),
+    // The deepest level of any tile placed on the final map ("lowest level reached"). Older rows lack it until
+    // `highScores.backfillMaxDepth` has run; `list` derives it from `state` meanwhile.
+    maxDepth: v.optional(v.number()),
   })
     .index("by_game", ["gameId"])
     .index("by_score", ["score"]),

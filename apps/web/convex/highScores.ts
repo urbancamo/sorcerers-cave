@@ -1,10 +1,18 @@
-import { mutation, query } from "./_generated/server";
+import { internalMutation, mutation, query } from "./_generated/server";
+import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { scoreGame, unpackCoord, GS_PLAYING, GS_ESCAPED, type GameState, type GameEvent } from "@sorcerers-cave/engine";
 
 const MAX_NAME = 40;
 const LEADERBOARD_LIMIT = 100;
+
+/** The deepest level of any tile placed on the map — "lowest level reached" on the leaderboard. A level the party was dragged
+ *  or dropped to counts, since the landing tile is placed there. */
+export function deepestLevel(state: GameState): number {
+  const levels = state.areas.map((a) => unpackCoord(a.coord).level);
+  return levels.length ? Math.max(...levels) : 1;
+}
 
 /**
  * Record a finished game on the global leaderboard. The score is recomputed
@@ -61,6 +69,7 @@ export const save = mutation({
       forcedRedraw: state.variants?.forcedRedraw ?? undefined,
       // The Sibyl (SC-SIB-9): keys this entry into its own table — her presence changes the game's result.
       sibyl: state.variants?.sibyl ?? undefined,
+      maxDepth: deepestLevel(state),
     });
   },
 });
@@ -117,6 +126,8 @@ export const list = query({
       forcedRedraw: r.forcedRedraw ?? undefined,
       sibyl: r.sibyl ?? undefined,
       seatCount: r.seatCount ?? undefined,
+      // Rows saved before the column existed are derived from their stored map (and persisted by `backfillMaxDepth`).
+      maxDepth: r.maxDepth ?? deepestLevel(r.state as GameState),
     }));
   },
 });
@@ -132,8 +143,7 @@ export const stats = query({
     if (!hs) return null;
     const state = hs.state as GameState;
 
-    const levels = state.areas.map((a) => unpackCoord(a.coord).level);
-    const maxDepth = levels.length ? Math.max(...levels) : 1;
+    const maxDepth = deepestLevel(state);
     const dragonsSlain = state.party.reduce((n, m) => n + (m.dragonKills ?? 0), 0);
 
     // Some figures aren't kept in the state, so derive them from the per-action event log:
@@ -197,5 +207,24 @@ export const log = query({
       },
       moves: rows.map((r) => ({ seq: r.seq, action: r.action, events: r.events })),
     };
+  },
+});
+
+/**
+ * One-off backfill: stamp `maxDepth` on every high-score row saved before the column existed. Run it page by page until `isDone`:
+ *   npx convex run highScores:backfillMaxDepth '{"paginationOpts":{"numItems":25,"cursor":null}}'
+ * then repeat with the returned `continueCursor`. Rows that already have a value are left alone, so it is safe to re-run.
+ */
+export const backfillMaxDepth = internalMutation({
+  args: { paginationOpts: paginationOptsValidator },
+  handler: async (ctx, { paginationOpts }) => {
+    const page = await ctx.db.query("highScores").paginate(paginationOpts);
+    let patched = 0;
+    for (const r of page.page) {
+      if (r.maxDepth !== undefined) continue;
+      await ctx.db.patch(r._id, { maxDepth: deepestLevel(r.state as GameState) });
+      patched++;
+    }
+    return { patched, isDone: page.isDone, continueCursor: page.continueCursor };
   },
 });

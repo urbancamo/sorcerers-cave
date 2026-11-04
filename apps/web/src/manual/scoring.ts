@@ -35,7 +35,7 @@ export const SCORING: Section = {
       p('You can end a run at any time with **Abandon** (in Settings) — but quitting *abandons* your party to the cave: they do not climb out. The score they had gathered is still tallied (a wiped party, of course, scores nothing), but an abandoned party cannot record a score.'),
     ] },
     { id: 'high-score-tables', title: 'The high-score tables', brief: 'Eight tables, because solo, multiplayer, kit and Sibyl games cannot fairly be compared.', cards: [], screens: ['high-scores', 'game-over'], blocks: [
-      p('Enter a name to record an escaped party on the shared **high-score board**. It keeps separate tables for solitaire and multiplayer games, for base-game and Extension Kit games, and for games with or without the Sibyl — **eight tables** in all, because those games cannot fairly be compared. Switch between them with the buttons above the table.'),
+      p('Enter a name to record an escaped party on the shared **high-score board**. It keeps separate tables for solitaire and multiplayer games, for base-game and Extension Kit games, and for games with or without the Sibyl — **eight tables** in all, because those games cannot fairly be compared. Switch between them with the buttons above the table. The **Depth** column shows the deepest level the party reached.'),
       p('A game played with the revised combat cannot be recorded on the leaderboard.', 'combatRevision'),
     ] },
     { id: 'feats', title: 'Great feats', brief: 'A single-handed Dragon kill, felling the Sorcerer, freeing the Lost Ruby, drinking the Elixir.', cards: [], blocks: [
