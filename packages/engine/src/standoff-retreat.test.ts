@@ -72,3 +72,28 @@ describe("the Magic Shield note", () => {
     expect(bd.chips.some((c) => /shield/i.test(c.label))).toBe(false);
   });
 });
+
+// DLFW bug report: after a one-way fall (Chasm) neither withdraw nor retreat is allowed, so a standoff left the party with no action.
+// Option B: with no exit, the standoff ends the fight; the strangers stay in the chamber and the party moves on by an ordinary move.
+describe("a standoff after a one-way fall", () => {
+  const fallStandoff = (): GameState => {
+    let s: GameState = { ...newGame(1792934533360, Array(12).fill(7), undefined, true), variants: { combatRevision: true, forcedRedraw: true, sorcererTeleport: true, trapRules: true } };
+    for (const a of STEPS.slice(0, -1)) s = reduce(s, a).state;
+    s = { ...structuredClone(s), fellThroughTrap: true };
+    return reduce(s, STEPS[STEPS.length - 1]!).state;
+  };
+
+  it("ends the fight, leaves the strangers in the chamber, and lets the party move on", () => {
+    const s = fallStandoff();
+    expect(s.fight).toBe(null);
+    expect(s.phase).toBe("explore");
+    expect(s.strangers).toEqual([]);
+    expect(s.areas[s.partyArea]!.contents).toContain(100 + C_SPECTRE);
+    expect(legalActions(s).some((a) => a.type === "move")).toBe(true);
+  });
+
+  it("keeps the party's gear and marks the chamber hostile", () => {
+    const s = fallStandoff();
+    expect(s.hostileAreas ?? []).toContain(s.partyArea);
+  });
+});

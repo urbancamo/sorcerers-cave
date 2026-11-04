@@ -245,6 +245,27 @@ function finalizeRound(state: GameState): GameEvent[] {
       afterFight(state, events);
     }
   }
+  else if (state.fight?.rev?.standoff && state.fellThroughTrap) {
+    // A standoff after a one-way fall has no exit: neither withdraw nor retreat is allowed. The fight simply ends, the strangers stay
+    // in the chamber (hostile, so they meet the party again if it returns), and the party moves on by an ordinary move. No gear is dropped.
+    const area = state.areas[state.partyArea]!;
+    area.contents = [
+      ...area.contents,
+      ...state.strangers.map((id) => 100 + id),
+      ...state.treasures.map((id) => 200 + id),
+      ...(state.sleeping ?? []).map((id) => 400 + id),
+      ...(state.statues ?? []).map((id) => 500 + id),
+      ...(state.lulled ?? []).map((id) => 100 + id),
+    ];
+    state.strangers = []; state.treasures = []; state.hazards = []; state.sleeping = [];
+    if (state.statues) state.statues = [];
+    state.lulled = [];
+    events.push(...settleFelledSorcerer(state));
+    state.fight = null;
+    state.phase = "explore";
+    state.party.forEach((m) => { m.potionActive = false; });
+    if (!state.hostileAreas?.includes(state.partyArea)) state.hostileAreas = [...(state.hostileAreas ?? []), state.partyArea];
+  }
   // else: still fighting; resolveRound already advanced the round
   return events;
 }

@@ -173,7 +173,7 @@ export type GameEvent =
   | { type: "scrollSurprise" } // the Scroll used in round 1 for +1 to the surprise bonus (revised combat)
   | { type: "ghoulsDepart" } // the Ghouls' one round is over: any left withdraw to their lair and the combat ends (revised combat, Peter 20-OCT-2026)
   | { type: "spectreDeparts" } // the chest Spectre's one round is over and it vanishes (revised combat, Peter 14-OCT-2026)
-  | { type: "fightStandoff" } // no side can continue a match, make one or break a stalemate: the fight is over and the party must withdraw
+  | { type: "fightStandoff" } // no side can continue a match, make one or break a stalemate: the fight is over and the party must withdraw (after a one-way fall, with no exit, the fight just ends and the strangers stay in the chamber)
   | { type: "fightWon" }
   // A losing pair's casualty was decided: `roll` is the d6, `gotPreference` whether 4-6 honoured the choice.
   | { type: "casualtyChosen"; creatureId: number; roll: number; gotPreference: boolean }

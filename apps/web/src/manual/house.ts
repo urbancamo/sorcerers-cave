@@ -88,7 +88,7 @@ export const HOUSE: Section = {
     ] },
     { id: 'rc-roll', title: 'Rolling the round', brief: 'A die per side per match; undecidable matches stay as they are.', requires: 'combatRevision', cards: [], screens: ['fight-revised'], blocks: [
       p('A die is rolled for each side of each match. A match that cannot be decided — neither side can beat the other on any roll — simply stays as it is, and matches already in play carry over from round to round.'),
-      p('The fight ends when you have won, when your party is gone, or when no creature on either side can continue a match, be sent into one, or break a stalemate — and then you must *retreat*.'),
+      p('The fight ends when you have won, when your party is gone, or when no creature on either side can continue a match, be sent into one, or break a stalemate — and then you must *retreat*. (If you have just fallen through a trap there is no way back, so the fight simply ends: the strangers stay in the chamber and you walk on.)'),
       p('The Treasure Chest\'s Spectre fights for one round only, with no surprise, and then vanishes; anyone it kills stays dead.'),
     ] },
   ],
