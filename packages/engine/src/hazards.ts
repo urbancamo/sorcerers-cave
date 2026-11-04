@@ -12,6 +12,7 @@ import { SPECIAL_GATEWAY } from "./data/areaCards";
 import { decodeArea, decodeOpen } from "./decode";
 import { AF_DESTROYED, AF_UNRESOLVED, type GameState, type PartyMember } from "./state";
 import type { GameEvent } from "./actions";
+import { stageMidStateOnce } from "./midState";
 import { frontStrength, partyRollBonus } from "./combat";
 import { eyeForsakenByDeath, markDied, ringInvincible, usesArtifactsAs } from "./effects";
 import { spillCarried, sweepFallen } from "./loot";
@@ -120,6 +121,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
       }
       case HAZARD_MEDUSA: {
         // (A staff-Wizard's aversion is handled above, before the gaze fires.)
+        stageMidStateOnce(state); // her dice present against the room as it stood BEFORE anyone is stoned
         const rolls: { creatureId: number; roll: number; petrified: boolean }[] = [];
         for (const m of state.party) {
           if (m.status !== 0 && m.status !== 1) continue;
@@ -240,6 +242,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         // spliced one at a time, since splicing mid-loop would shift the roster-order indices of the
         // allies still to roll.
         const allies = state.party.filter((m) => m.status === 1);
+        if (allies.some((a) => a.creatureId !== C_WOLF)) stageMidStateOnce(state); // the rolls present before anyone leaves
         const deserted: PartyMember[] = [];
         for (const a of allies) {
           // `hazard: HAZARD_DESERTION` (review fix, Task 10) — this is the ONE `wolfUnmoved` source
@@ -310,6 +313,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
           .map((m) => ({ m, fs: frontStrength(m, state) }))
           .sort((x, y) => y.fs - x.fs);
         const a = ranked[0]!, b = ranked[1]!; // >= 2 guaranteed by the fizzle check above
+        stageMidStateOnce(state); // the duel presents against the party as it stood BEFORE the loser falls
         const rollBonus = partyRollBonus(state); // Ring +1 / curse −1 — "the party's dice" (design build note)
         const aRoll = rollDieForState(state);
         const bRoll = rollDieForState(state);

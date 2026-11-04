@@ -3,6 +3,7 @@ import { tryMove, hasExit } from "./map";
 import { moveWithRedraw } from "./redraw";
 import { decodeArea, decodeOpen } from "./decode";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WHIRLPOOL, SPECIAL_WELL, SPECIAL_BELL_ROPE, SPECIAL_GREAT_HALL, TILE_MIN, TILE_MAX, TILE_TUNNEL_ES } from "./data/areaCards";
+import { setMidState, stageMidStateOnce, clearMidState, takeMidState } from "./midState";
 import { viperCrossing, deepPoolCrossing, whirlpoolCrossing, giantCanRecover, sunkKey, tryReclaimSunk } from "./special";
 import { enterChamber, drawSmallCards } from "./chamber";
 import { applyHazards, hasStaffWizard, livingDwarfCount } from "./hazards";
@@ -777,10 +778,9 @@ function resolveExtraDraw(state: GameState, events: GameEvent[]): void {
 // through relocateDown. The snapshot lets the UI hold the room the events actually happened in
 // as the backdrop until their dice/notices are dismissed (docs/bugs/ZTNU-log.json). Per-reduce
 // scratch: the engine is synchronous, `reduce` drains it before returning.
-let pendingMidState: GameState | null = null;
 
 function relocateDown(state: GameState): void {
-  pendingMidState = structuredClone(state);
+  stageMidStateOnce(state); // unless a dice roll earlier in this action already staged the room it should present against
   let { x, y, level } = unpackCoord(state.areas[state.partyArea]!.coord);
   let idx: number;
   for (;;) {
@@ -840,7 +840,7 @@ export function reduce(
   state: GameState,
   action: GameAction,
 ): { state: GameState; events: GameEvent[]; midState?: GameState } {
-  pendingMidState = null;
+  clearMidState();
   let result = reduceCore(state, action);
   // The revised combat's turncoat Apprentice (Peter, 14-OCT-2026): an action that takes the party out of the area where the Sorcerer was
   // slain parts company with her first, so she is never in the party for whatever it meets next. The action is replayed from the party
@@ -851,11 +851,8 @@ export function reduce(
     const redo = reduceCore(pre, action);
     result = { state: redo.state, events: [...parted, ...redo.events] };
   }
-  if (pendingMidState !== null) {
-    const midState: GameState = pendingMidState;
-    pendingMidState = null;
-    return { ...result, midState };
-  }
+  const midState = takeMidState();
+  if (midState !== null) return { ...result, midState };
   return result;
 }
 
@@ -1051,7 +1048,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
             relocateDown(wade);
             return { state: wade, events: [...evs.filter((e) => e.type !== "deadEndCardSwapped" && e.type !== "deadEnd"), ...resolveArea(wade)] };
           }
-          pendingMidState = structuredClone(state); // a safe wade too: its die is shown on the Whirlpool's tile, before the party moves on
+          setMidState(state); // a safe wade too: its die is shown on the Whirlpool's tile, before the party moves on
           wade.subLocation = { area: fromIdx, at: "doorway", dir: action.dir };
           if (res.noViableExits) evs.push({ type: "deadEndNoViableExits" });
           return { state: wade, events: evs };
@@ -1076,6 +1073,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
 
       if (crossing && fromSpecial === SPECIAL_VIPER_PIT) {
         events.push({ type: "crossedSpecial", special: SPECIAL_VIPER_PIT });
+        setMidState(state); // show the crossing dice on the pit's ledge first, before the party is seen to walk on (SC-4-43)
         events.push(...viperCrossing(next));
         if (!next.party.some((m) => m.status === 0 || m.status === 1)) {
           next.gs = GS_DEAD;
@@ -1111,7 +1109,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           kept.push(...resolveArea(next));
           return { state: next, events: kept };
         }
-        pendingMidState = structuredClone(state); // safe wade: show the die on the Whirlpool's tile first (SC-4-43)
+        setMidState(state); // safe wade: show the die on the Whirlpool's tile first (SC-4-43)
       }
 
       events.push(...resolveArea(next));
