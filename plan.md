@@ -72,8 +72,9 @@ Numbers in brackets are Peter's item numbers. Work through Group 1 first.
 - Make the Card View a toggle: a second click on the same object closes it, so players don't have to travel to the top-right close button.
 - Small, self-contained web change. Add a test: click opens, a second click on the same target closes, and a click on a different target switches.
 
-### E-3. [2] Charmed Flute reveals secret doors on every visited area (for later)
+### E-3. [2] PARKED (Mark, 2026-11-04) until the major multiplayer review. Charmed Flute reveals secret doors on every visited area
 - Peter's idea: playing the Flute (a different tune) should reveal all secret doors on visited map areas, to avoid tedious area-by-area use.
+- **Why parked:** in solo a party always knows any secret door it has walked (the far end is laid as a retraceable stair, `map.ts`), so "reveal on visited areas" would reveal almost nothing. The idea only matters in multiplayer, where other parties' doors are hidden. The Flute's existing per-tile reveal stays as it is. Decisions to revisit then: visited-only vs whole map, one-off vs permanent, cost (once per game suggested), and the multiplayer rules wording.
 - Rules and balance change, so it needs MSW's ruling first. Also touches the multiplayer text ("Secret doors ... may use ... or if you hold the Charmed Flute"). Park until the Flute-play UI (I-3) exists.
 
 ---
