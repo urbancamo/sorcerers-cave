@@ -25,7 +25,7 @@ export const HAZARDS: Section = {
     ] },
     { id: 'hazard-mutiny', title: 'Mutiny', cards: cards('hazard', 'Mutiny'), blocks: [
       p('Your befriended allies desert — reverting to strangers and dropping any treasure they carried back onto the floor. If your party is made up entirely of allies, one loyal soul remains. You then face the deserters as you would any group of strangers.'),
-      p('The Mutiny card is left lying on the tile where it was drawn, whether or not anyone deserted.'),
+      p('Only allies are affected: a party of original adventurers is untouched, and the game says so. The Mutiny card is left lying on the tile where it was drawn, whether or not anyone deserted.'),
     ] },
     { id: 'hazard-trap', title: 'Trap', cards: cards('hazard', 'Trap'), blocks: [
       p('The floor gives way and the party plunges to the area directly below — and there is **no climbing back**. A **Dwarf** guides the party safely past a trap.'),
@@ -34,7 +34,7 @@ export const HAZARDS: Section = {
     ] },
     { id: 'hazard-desertion', title: 'Desertion', variant: 'kit', cards: cards('hazard', 'Desertion'), blocks: [
       p('Roll a die for every ally in the party — original party members never risk this one. A roll of **1 or 2** and that ally disappears for good, taking everything they carried; nothing is left behind to loot.'),
-      p('A **Wolf** ally never rolls at all.'),
+      p('A **Wolf** ally never rolls at all. With no allies in the party nothing is rolled, and the game says so.'),
     ] },
     { id: 'hazard-harpies', title: 'Harpies', variant: 'kit', cards: cards('hazard', 'Harpies'), blocks: [
       p('If the party carries no artefacts at all, or holds the **Talisman**, they simply circle off and lurk — the same check runs again on your next visit.'),

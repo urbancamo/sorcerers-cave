@@ -137,10 +137,10 @@ describe("eventNotices", () => {
     expect(eventNotices([{ type: "crossedSpecial", special: SPECIAL_DEEP_POOL }])[0]!.text).toMatch(/deep pool/i);
   });
 
-  it("describes hazards, but defers Mutiny and Trap to their own UI", () => {
+  it("describes hazards, but defers a Trap to its own UI (a Mutiny only speaks up when it changed nothing)", () => {
     expect(eventNotices([{ type: "hazardFired", hazard: HAZARD_MEDUSA }])[0]!.text).toMatch(/medusa/i);
     expect(eventNotices([{ type: "hazardFired", hazard: HAZARD_EARTHQUAKE }])[0]!.text).toMatch(/earthquake/i);
-    expect(eventNotices([{ type: "hazardFired", hazard: HAZARD_MUTINY }])).toHaveLength(0);
+    expect(eventNotices([{ type: "hazardFired", hazard: HAZARD_MUTINY }]).map((n) => n.text).join()).toMatch(/no allies/i);
     expect(eventNotices([{ type: "hazardFired", hazard: HAZARD_TRAP }])).toHaveLength(0);
   });
 
@@ -512,5 +512,26 @@ describe("Sibyl notices (SC-SIB-5/8)", () => {
     ]);
     // The look is its own feedback (the fading card, SibylLook): no repeating toast on every look.
     expect(eventNotices([{ type: "sibylExamined" }])).toEqual([]);
+  });
+});
+
+describe("Mutiny and Desertion with nobody to affect (Peter's 2026-11-04 items 5 and 6)", () => {
+  it("a Mutiny that changed nothing says there were no allies to turn", () => {
+    const n = eventNotices([{ type: "hazardFired", hazard: 0 }]);
+    expect(n).toHaveLength(1);
+    expect(n[0]!.text).toMatch(/no allies in the party/i);
+  });
+  it("a Mutiny that made allies desert adds nothing to its own notice", () => {
+    const n = eventNotices([{ type: "hazardFired", hazard: 0 }, { type: "mutinied", deserters: [5], treasures: [] }]);
+    expect(n.map((x) => x.text).join(" ")).not.toMatch(/stand firm/i);
+  });
+  it("a Desertion with no allies to roll for says so, instead of staying silent", () => {
+    const n = eventNotices([{ type: "hazardFired", hazard: 5 }]);
+    expect(n).toHaveLength(1);
+    expect(n[0]!.text).toMatch(/no allies/i);
+  });
+  it("a Desertion that rolled keeps only its own summary", () => {
+    const n = eventNotices([{ type: "hazardFired", hazard: 5 }, { type: "desertionRoll", creatureId: 5, roll: 4, deserted: false, items: [] }]);
+    expect(n.map((x) => x.text)).toEqual(["The party holds together."]);
   });
 });

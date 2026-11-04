@@ -493,6 +493,16 @@ export function eventNotices(events: GameEvent[]): Notice[] {
   if (hadDesertionActivity && !desertionRolls.some((e) => e.deserted)) {
     out.push({ text: "The party holds together.", tone: "good" });
   }
+  // Mutiny and Desertion only ever touch ALLIES. With none in the party they fire and change nothing, which used to read as a stuck card
+  // (Peter, 2026-11-04 items 5 and 6): say so. (A Mutiny that did make someone desert has its own notice; a Wolf's skip has its own too.)
+  const fired = (hz: number) => events.some((e) => e.type === "hazardFired" && e.hazard === hz);
+  if (fired(HAZARD_MUTINY) && !events.some((e) => e.type === "mutinied")) {
+    const wolf = events.some((e) => e.type === "wolfUnmoved" && e.hazard === HAZARD_MUTINY);
+    out.push({ text: wolf ? "Mutiny! Nobody deserts — the Wolf is unmoved." : "Mutiny! But there are no allies in the party to turn — the original adventurers stand firm.", tone: "neutral" });
+  }
+  if (fired(HAZARD_DESERTION) && !hadDesertionActivity) {
+    out.push({ text: "Desertion! But there are no allies in the party — only allies are ever tempted to leave.", tone: "neutral" });
+  }
   return out;
 }
 
