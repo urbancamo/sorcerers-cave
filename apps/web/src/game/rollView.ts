@@ -214,7 +214,7 @@ function quarrelView(events: GameEvent[]): RollView | null {
   return {
     title: "Quarrel",
     lanes,
-    message: `Tempers flare — ${aName} and ${bName} come to blows! ${outcome}`,
+    message: outcome,
     tone: q.loserId === null ? "good" : "bad",
     stakes: `Tempers flare between ${aName} and ${bName}, the two strongest of the party. Each rolls a die; the lower total falls.`,
   };
