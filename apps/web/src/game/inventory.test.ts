@@ -76,22 +76,36 @@ describe('inventory', () => {
   });
 
   describe('the Charmed Flute at the Viper Pit', () => {
-    const atPit = (carrier: number) => {
+    const atPit = (carrier: number, played = false) => {
       const s = game([[carrier, [T.flute]]]);
       s.areas[s.partyArea]!.card = (SPECIAL_VIPER_PIT << 7) | 31;
+      if (played) s.vipersLulledArea = s.partyArea;
       return s;
     };
-    it('is shown as in effect (green) when a capable bearer holds it', () => {
+    it('is usable now (green) for a capable bearer: the player plays it', () => {
       const [r] = inventoryRows(atPit(HERO));
-      expect(r).toMatchObject({ color: 'green', tag: 'in effect · Vipers lulled' });
+      expect(r).toMatchObject({ color: 'green', tag: 'usable now' });
+    });
+    it('reads as played once the Vipers are asleep', () => {
+      const [r] = inventoryRows(atPit(HERO, true));
+      expect(r).toMatchObject({ color: 'yellow', tag: 'played · Vipers asleep' });
     });
     it('is still gray for a carrier who cannot play it', () => {
       const [r] = inventoryRows(atPit(DWARF));
       expect(r).toMatchObject({ color: 'gray', tag: 'carrier cannot use' });
     });
-    it('is not claimed to be in effect away from the pit', () => {
+    it('is not usable away from the pit', () => {
       const [r] = inventoryRows(game([[HERO, [T.flute]]]));
       expect(r!.tag).toBe('not usable now');
     });
+  });
+});
+
+describe('playing the Flute at the Viper Pit', () => {
+  it('is offered as "lull the Vipers" (and as "lull the Dragons" only against Dragons)', async () => {
+    const { useOptions } = await import('./artifactUse');
+    const s = game([[HERO, [T.flute]]], { phase: 'explore' });
+    s.areas[s.partyArea]!.card = (SPECIAL_VIPER_PIT << 7) | 31;
+    expect(useOptions(s, T.flute).map((o) => o.label)).toContain('lull the Vipers');
   });
 });

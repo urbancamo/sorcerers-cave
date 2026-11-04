@@ -1,5 +1,5 @@
 import {
-  ALL_CREATURES, DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, legalActions, type GameState, type GameAction,
+  ALL_CREATURES, SPECIAL_VIPER_PIT, decodeOpen, DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, legalActions, type GameState, type GameAction,
 } from '@sorcerers-cave/engine';
 import { memberLabel } from './memberLabels';
 import { holyWaterTargetName } from './holyWaterLabel';
@@ -35,7 +35,7 @@ function targetLabel(a: UseArtifact, state: GameState): string {
     case 6: return `revive ${who(a.target!)}`;
     case 9: return `free ${who(a.target!)} from stone`;
     case 4: return `fly ${DIR_NAME[a.dir ?? -1] ?? '?'}`;
-    case 12: return a.dir === undefined ? 'lull the Dragons' : `reveal the secret stair ${a.dir === DIR_DOWN ? 'below' : 'above'}`;
+    case 12: return a.dir === undefined ? (decodeOpen(state.areas[state.partyArea]!).special === SPECIAL_VIPER_PIT ? 'lull the Vipers' : 'lull the Dragons') : `reveal the secret stair ${a.dir === DIR_DOWN ? 'below' : 'above'}`;
     case 15: return who(a.target!);
     case 16: return a.target !== undefined ? holyWaterTargetName(state, a.target, who) : 'use';
     // The Sorcerer is only weakened by Lotus Dust (SC-11-12), so his option says what actually happens.

@@ -28,7 +28,7 @@ Numbers in brackets are Peter's item numbers. Work through Group 1 first.
   3. Fix only if step 1 fails.
 - **Docs:** manual `hazards.ts`; spec SC-EXT-14 if behaviour changes.
 
-### I-3. [7] Charmed Flute never becomes "USABLE NOW" at the Viper Pit — DONE (shown as "in effect · Vipers lulled"; the Flute lulls Vipers automatically, so there is no Play action)
+### I-3. [7] Charmed Flute never becomes "USABLE NOW" at the Viper Pit — DONE: the Flute is now a deliberate play at the pit ("lull the Vipers"; Mark, 2026-11-04). Holding it no longer lulls them; they sleep until the party leaves
 - **Observed:** Inventory pane shows the Flute as "NOT USABLE NOW" at the edge of the Viper Pit, with no Play action.
 - **What the code does:** `selectors.ts` offers `useArtifact{artifact:12}` only in the `encounter` phase when Dragons are among the strangers (SC-11-30). The Viper Pit crossing is a `special` step, so the Flute action isn't offered there. Peter's note that "Flute playing may not be implemented" for Vipers matches this.
 - **Steps:**

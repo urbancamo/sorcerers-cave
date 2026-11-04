@@ -13,7 +13,7 @@ export const AREAS: Section = {
     ] },
     { id: 'area-viper-pit', title: 'The Viper Pit', cards: cards('area', 'Viper Pit'), blocks: [
       p('Cross the narrow ledge and a careless step can pitch a member — and their treasure — into the snakes. Arriving by stair or trap lands you safely on the island.'),
-      p('Holding the **Charmed Flute** lulls the Vipers so the party crosses unharmed.'),
+      p('**Play** the **Charmed Flute** at the pit (Inventory → the Flute → *lull the Vipers*) and the Vipers sleep while you stay, so the party crosses unharmed. Merely carrying it does nothing — if you cross without playing it, the dice decide.'),
     ] },
     { id: 'area-tomb', title: 'Tomb of Kings', cards: cards('area', 'Tomb of Kings'), blocks: [
       p('Draw **one extra card** on entry.'),
