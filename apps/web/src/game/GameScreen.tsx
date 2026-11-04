@@ -49,6 +49,7 @@ import { inventoryRows } from "./inventory";
 import { viewParty } from "../view/viewParty";
 import { PartyList } from "./shell/PartyList";
 import { SettingsPanel } from "./shell/SettingsPanel";
+import { ExitPanel } from "./shell/ExitPanel";
 import { describeArea, readVerbose, writeVerbose } from "../data/areaText";
 import { HelpPanel } from "./shell/HelpPanel";
 import { HelpProvider } from "../manual/HelpContext";
@@ -404,7 +405,8 @@ export default function GameScreen() {
                      : undefined} />
       )}
       {rightSlot === 'help' && <HelpPanel screens={helpScreens} flags={displayState.variants} />}
-      {rightSlot === 'settings' && <SettingsPanel verbose={verbose} onVerbose={(on) => { setVerbose(on); writeVerbose(on); }} state={displayState} code={code ?? undefined} kitActive={!!displayState.variants?.extensionKit} onSave={handleSave} onLog={() => setShowLog(true)} onAbandon={() => engine.quit()} />}
+      {rightSlot === 'settings' && <SettingsPanel verbose={verbose} onVerbose={(on) => { setVerbose(on); writeVerbose(on); }} state={displayState} code={code ?? undefined} kitActive={!!displayState.variants?.extensionKit} onLog={() => setShowLog(true)} />}
+      {rightSlot === 'exit' && <ExitPanel onSave={handleSave} onAbandon={() => engine.quit()} />}
       <EncounterPanel state={displayState} dispatch={dispatchWithRolls} leaveOnMove />
       {fightVisible && cards && <FightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
       {fightVisible && cards && <RevisedFightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} inventory={leftSlot === 'inventory' ? inventoryPanel : undefined}

@@ -14,15 +14,6 @@ describe('SettingsPanel', () => {
     expect(text).toContain('14');
     expect(text).toContain('88 / 90');
   });
-
-  it('offers Save and Log only when handlers are given', () => {
-    const onSave = vi.fn();
-    const { rerender } = render(<SettingsPanel state={state} kitActive={false} />);
-    expect(screen.queryByRole('button', { name: 'Save game' })).toBeNull();
-    rerender(<SettingsPanel state={state} kitActive={false} onSave={onSave} />);
-    fireEvent.click(screen.getByRole('button', { name: 'Save game' }));
-    expect(onSave).toHaveBeenCalledOnce();
-  });
 });
 
 describe('SettingsPanel — verbose descriptions', () => {
@@ -31,27 +22,5 @@ describe('SettingsPanel — verbose descriptions', () => {
     render(<SettingsPanel state={state} kitActive={false} verbose={false} onVerbose={onVerbose} />);
     fireEvent.click(screen.getByLabelText('Verbose descriptions'));
     expect(onVerbose).toHaveBeenCalledWith(true);
-  });
-});
-
-describe('SettingsPanel — abandon', () => {
-  it('offers Abandon only when a handler is given, and asks before acting', () => {
-    const onAbandon = vi.fn();
-    const { rerender } = render(<SettingsPanel state={state} kitActive={false} />);
-    expect(screen.queryByRole('button', { name: /Abandon/ })).toBeNull();
-    rerender(<SettingsPanel state={state} kitActive={false} onAbandon={onAbandon} />);
-    fireEvent.click(screen.getByRole('button', { name: /Abandon/ }));
-    expect(onAbandon).not.toHaveBeenCalled(); // a second tap is required: it ends the game
-    expect(screen.getByTestId('confirm-prompt')).toHaveTextContent(/do not escape/);
-    fireEvent.click(screen.getByRole('button', { name: 'Confirm' }));
-    expect(onAbandon).toHaveBeenCalledOnce();
-  });
-
-  it('lets the player back out', () => {
-    const onAbandon = vi.fn();
-    render(<SettingsPanel state={state} kitActive={false} onAbandon={onAbandon} />);
-    fireEvent.click(screen.getByRole('button', { name: /Abandon/ }));
-    fireEvent.click(screen.getByRole('button', { name: 'Cancel' }));
-    expect(onAbandon).not.toHaveBeenCalled();
   });
 });

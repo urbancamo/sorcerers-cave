@@ -13,6 +13,7 @@ const GLYPHS = {
   inventory: <Icon><path d="M6 8h12l1 13H5L6 8z" /><path d="M9 8V6a3 3 0 0 1 6 0v2" /></Icon>,
   card: <Icon><path d="M4 5a2 2 0 0 1 2-2h5v18H6a2 2 0 0 1-2-2V5z" /><path d="M20 5a2 2 0 0 0-2-2h-5v18h5a2 2 0 0 0 2-2V5z" /></Icon>,
   settings: <Icon><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" /></Icon>,
+  exit: <Icon><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="M16 17l5-5-5-5M21 12H9" /></Icon>,
   help: <span className="scv-ic scv-ic-t" aria-hidden="true">?</span>,
   fullscreen: <Icon><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></Icon>,
   test: <span className="scv-ic scv-ic-t" aria-hidden="true">T</span>,
@@ -23,7 +24,8 @@ const BRIEF: Partial<Record<keyof typeof GLYPHS, string>> = {
   party: 'the living members and what each carries',
   inventory: 'every item the party carries, and who has it',
   card: 'the card under focus, with what the manual says about it',
-  settings: 'game code, level, turn, and Save and Game log',
+  settings: 'game code, level, turn, verbose descriptions and the Game log',
+  exit: 'save the game, or abandon the expedition',
   help: 'help for this screen, and the whole manual',
   fullscreen: 'fill the browser window',
 };
@@ -73,6 +75,7 @@ export function TitleBar({ left, right, testMode, testOpen, inFight, onLeft, onR
       <div className="scv-tb-group">
         <IconButton id="card" label="Card panel" active={right === 'card'} onClick={() => onRight('card')} />
         <IconButton id="settings" label="Settings" active={right === 'settings'} onClick={() => onRight('settings')} />
+        <IconButton id="exit" label="Exit" active={right === 'exit'} onClick={() => onRight('exit')} />
         <IconButton id="help" label="Help" active={right === 'help'} onClick={() => onRight('help')} />
         <FullscreenButton />
         {testMode && <IconButton id="test" label="Test panel" active={!!testOpen} onClick={() => onTest?.()} />}
