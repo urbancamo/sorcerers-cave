@@ -234,8 +234,7 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "vipersAsleep": // the Flute has just been played; nobody has chosen an exit yet
         out.push({ text: "The Flute's tune sends the vipers to sleep. The party may now cross the ledge unharmed — choose an exit.", tone: "good" });
         break;
-      case "vipersLulled": // the crossing itself
-        out.push({ text: "The vipers sleep on — the party crosses unharmed.", tone: "good" });
+      case "vipersLulled": // the crossing itself: the party simply walks on, and the "asleep" notice already said why it is safe
         break;
       case "wardedOff":
         out.push({ text: `The Talisman wards off ${name(e.creatureId)}.`, tone: "good" });

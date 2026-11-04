@@ -543,7 +543,7 @@ describe("the Flute at the Viper Pit: playing it and crossing are different mome
     expect(n[0]!.text).toMatch(/choose an exit/i);
     expect(n[0]!.text).not.toMatch(/crosses unharmed/i);
   });
-  it("the crossing itself says the party crosses unharmed", () => {
-    expect(eventNotices([{ type: "vipersLulled" }])[0]!.text).toMatch(/crosses unharmed/i);
+  it("the crossing itself adds no message: the party just walks on", () => {
+    expect(eventNotices([{ type: "vipersLulled" }])).toEqual([]);
   });
 });
