@@ -75,6 +75,11 @@ export default function GameScreen() {
   const [testOpen, setTestOpen] = useState(false); // the floating test panel, independent of the slots
   const [partyExpanded, setPartyExpanded] = useState(false); // the party list widened to show strength, magic and charisma
   const [selected, setSelected] = useState<Selected | null>(null); // what the card panel shows
+  // The Sibyl's card is where her looks live. The scene re-reports "nothing selected here" on every state change (and after a peek),
+  // which would close it mid-look; so while she is open, the scene's own reports are ignored until the party moves to another chamber.
+  const sibylOpen = useRef<{ open: boolean; area: number }>({ open: false, area: -1 });
+  sibylOpen.current.open = selected?.kind === 'member' && !!selected.member.sibyl;
+  const partyAreaNow = useRef(-1);
   const [verbose, setVerbose] = useState(readVerbose); // story-voice area descriptions (a per-player setting)
   // Shows the save/restore code modal when set. `restored` distinguishes a plain save (dismiss ⇒
   // back to menu) from a just-forked Test Mode scenario (dismiss ⇒ keep playing the new game).
@@ -136,6 +141,8 @@ export default function GameScreen() {
   // Treasure on offer: put the first piece on the card panel, where its "Give to" choices are, and re-offer as pieces are taken.
   // (Declared here, before the early returns, because it is a hook; `state` can still be null at this point.)
   const onShow = holding && heldState ? heldState : state;
+  partyAreaNow.current = onShow?.partyArea ?? -1;
+  useEffect(() => { if (selected?.kind === 'member' && selected.member.sibyl) sibylOpen.current.area = partyAreaNow.current; }, [selected]);
   useOfferOnPickup(!!onShow && onShow.phase === 'pickup' && !holding && onShow.treasures.length > 0, `${onShow?.partyArea}:${onShow?.treasures.join(',')}`, () => {
     const piece = engine?.current.treasure[0];
     if (!piece) return;
@@ -367,6 +374,7 @@ export default function GameScreen() {
         shell={{
           left: fightVisible ? null : leftSlot, right: rightSlot,
           onSelectCard: (card, where, explicit) => {
+            if (!explicit && sibylOpen.current.open && sibylOpen.current.area === partyAreaNow.current) return;
             // Nothing on the floor of a special chamber: show the chamber itself (see arrivalSelection) instead of closing the panel.
             const arrival = !card && engine ? arrivalSelection(displayState, engine.current, art?.tiles ?? []) : null;
             setSelected(card ? { kind: 'card', card, where } : arrival);
