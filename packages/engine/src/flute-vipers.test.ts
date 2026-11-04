@@ -38,7 +38,7 @@ describe("the Charmed Flute at the Viper Pit is a player's action", () => {
   it("playing it lulls the vipers: the crossing is safe with no dice, then they wake when the party moves on", () => {
     const s = atPit([member(0, [FLUTE]), member(5)], 1);
     const played = reduce(s, play);
-    expect(played.events).toEqual([{ type: "artifactUsed", artifact: FLUTE }, { type: "vipersLulled" }]);
+    expect(played.events).toEqual([{ type: "artifactUsed", artifact: FLUTE }, { type: "vipersAsleep" }]);   // asleep — but no one has crossed yet
     expect(played.state.vipersLulledArea).toBe(0);
     expect(legalActions(played.state)).not.toContainEqual(play);                  // once is enough: they sleep until the party leaves
 

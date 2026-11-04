@@ -172,14 +172,14 @@ BEGIN MOVES
  166 MOVE 1                   -> TRN 69 LVL 5 ARA 41 PH EXP GS 0 SEED 1957048677 EV moved
  167 MOVE 5                   -> TRN 70 LVL 4 ARA 21 PH EXP GS 0 SEED 1957048677 EV moved
  168 MOVE 4                   -> TRN 71 LVL 4 ARA 43 PH EXP GS 0 SEED 1957048677 EV moved,enteredSpecial
- 169 USE 12                   -> TRN 71 LVL 4 ARA 43 PH EXP GS 0 SEED 1957048677 EV artifactUsed,vipersLulled
+ 169 USE 12                   -> TRN 71 LVL 4 ARA 43 PH EXP GS 0 SEED 1957048677 EV artifactUsed,vipersAsleep
  170 MOVE 1                   -> TRN 71 LVL 4 ARA 43 PH EXP GS 0 SEED 1957048677 EV deadEnd
  171 MOVE 2                   -> TRN 72 LVL 4 ARA 21 PH EXP GS 0 SEED 1957048677 EV moved
  172 MOVE 4                   -> TRN 73 LVL 4 ARA 43 PH EXP GS 0 SEED 1957048677 EV moved,enteredSpecial
- 173 USE 12                   -> TRN 73 LVL 4 ARA 43 PH EXP GS 0 SEED 1957048677 EV artifactUsed,vipersLulled
+ 173 USE 12                   -> TRN 73 LVL 4 ARA 43 PH EXP GS 0 SEED 1957048677 EV artifactUsed,vipersAsleep
  174 MOVE 2                   -> TRN 74 LVL 4 ARA 21 PH EXP GS 0 SEED 1957048677 EV moved
  175 MOVE 4                   -> TRN 75 LVL 4 ARA 43 PH EXP GS 0 SEED 1957048677 EV moved,enteredSpecial
- 176 USE 12                   -> TRN 75 LVL 4 ARA 43 PH EXP GS 0 SEED 1957048677 EV artifactUsed,vipersLulled
+ 176 USE 12                   -> TRN 75 LVL 4 ARA 43 PH EXP GS 0 SEED 1957048677 EV artifactUsed,vipersAsleep
  177 JUMPISLAND               -> TRN 76 LVL 4 ARA 43 PH EXP GS 0 SEED 1957048677 EV islandJump,vipersLulled
  178 MOVE 2                   -> TRN 77 LVL 4 ARA 21 PH EXP GS 0 SEED 1957048677 EV moved
  179 MOVE 6                   -> TRN 78 LVL 5 ARA 41 PH EXP GS 0 SEED 1957048677 EV moved

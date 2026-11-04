@@ -535,3 +535,15 @@ describe("Mutiny and Desertion with nobody to affect (Peter's 2026-11-04 items 5
     expect(n.map((x) => x.text)).toEqual(["The party holds together."]);
   });
 });
+
+describe("the Flute at the Viper Pit: playing it and crossing are different moments", () => {
+  it("playing it says the vipers are asleep and that an exit is still to be chosen, not that the party has crossed", () => {
+    const n = eventNotices([{ type: "vipersAsleep" }]);
+    expect(n).toHaveLength(1);
+    expect(n[0]!.text).toMatch(/choose an exit/i);
+    expect(n[0]!.text).not.toMatch(/crosses unharmed/i);
+  });
+  it("the crossing itself says the party crosses unharmed", () => {
+    expect(eventNotices([{ type: "vipersLulled" }])[0]!.text).toMatch(/crosses unharmed/i);
+  });
+});

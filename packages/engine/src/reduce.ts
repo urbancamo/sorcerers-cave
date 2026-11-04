@@ -1818,7 +1818,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           // player's choice, never automatic: an unplayed Flute lulls neither.
           if (next.phase === "explore" && decodeOpen(next.areas[next.partyArea]!).special === SPECIAL_VIPER_PIT && next.vipersLulledArea !== next.partyArea) {
             next.vipersLulledArea = next.partyArea;
-            return { state: next, events: [{ type: "artifactUsed", artifact: 12 }, { type: "vipersLulled" }] };
+            return { state: next, events: [{ type: "artifactUsed", artifact: 12 }, { type: "vipersAsleep" }] };
           }
           if (next.phase !== "encounter" || !next.strangers.includes(10)) return { state, events: [{ type: "blocked" }] };
           return { state: next, events: lullDragons(next) };
