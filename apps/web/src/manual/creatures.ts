@@ -139,7 +139,7 @@ export const CREATURES: Section = {
       p('The hardiest constitution in the kit: **immune** to Medusa, Mutiny, Desertion and Quarrel. Touches no artefact and carries nothing. Ranks beside a Troll for leadership.'),
     ] },
     { id: 'creature-sibyl', title: 'The Sibyl', variant: 'sibyl', cards: cards('creature', 'Sibyl'), blocks: [
-      p('An optional seer who never fights. She waits to one side and you meet her only **after the other strangers have been dealt with**. You may test her once: **5–6** and she joins you; **1–4** and she stays, never to be asked again. She is never hostile.'),
+      p('An optional seer who never fights. She waits to one side and you meet her only **after the other strangers have been dealt with**. You may test her once: **5–6** and she joins you; **1–4** and she stays, never to be asked again. Her card in the chamber then carries a note saying she was found indifferent. She is never hostile.'),
       p('She **cannot fight, carry or be harmed**, cannot mutiny or desert, is worth no points, never counts as a living member and will not leave the cave.'),
       p('While she travels with you, choose *Party* in the title bar and click her to open her card; its buttons let you **look** at the top of the area pack, or at a face-down tile. It costs no turn. In multiplayer only you see what she shows.'),
     ] },

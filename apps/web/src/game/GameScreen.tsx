@@ -41,6 +41,7 @@ import { ItemActions } from "./shell/ItemActions";
 import { FloorTreasureActions } from "./shell/FloorTreasureActions";
 import { useOfferOnPickup } from "./shell/useOfferOnPickup";
 import { arrivalSelection } from "./shell/areaSelection";
+import { SibylNote } from "./shell/SibylNote";
 import { medusaSelection } from "./shell/medusaSelection";
 import { SibylLook } from "./SibylLook";
 import { memberLabels } from "./memberLabels";
@@ -395,7 +396,7 @@ export default function GameScreen() {
       {rightSlot === 'card' && selected && (
         <CardPanel selected={selected} floor={floorCards} onFloor={(card) => selected.kind === 'card' && setSelected({ kind: 'card', card, where: selected.where })} onAward={(award, from) => setSelected({ kind: 'award', award, from })} areaText={selected.kind === 'area' ? describeArea(displayState, selected.index, verbose) : undefined} onMember={(member) => setSelected({ kind: 'member', member })}
                    onItem={(item, from) => setSelected({ kind: 'item', item, from })}
-                   actions={selected.kind === 'card' && !holding ? <FloorTreasureActions state={displayState} dispatch={dispatchWithRolls} card={selected.card} />
+                   actions={selected.kind === 'card' && !holding ? <><FloorTreasureActions state={displayState} dispatch={dispatchWithRolls} card={selected.card} /><SibylNote state={displayState} card={selected.card} /></>
                    : selected.kind === 'item' && itemLive ? <ItemActions state={displayState} dispatch={dispatchWithRolls} mi={itemLive.mi} idx={itemLive.idx} />
                    // The Sibyl's free look is reachable only from her own card, and never prompted.
                    : selected.kind === 'member' && selected.member.sibyl && sibylLooks.length > 0
