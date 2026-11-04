@@ -201,7 +201,8 @@ export type GameEvent =
   | { type: "unicornDeparted"; creatureId: number }
   | { type: "carpetUsed"; dir: number }
   | { type: "dragonsLulled"; count: number }
-  | { type: "vipersLulled" }
+  | { type: "vipersLulled" }   // the crossing itself: the vipers sleep, so nobody rolls
+  | { type: "vipersAsleep" }    // the Flute has just been played at the pit; the party has not yet chosen to cross
   | { type: "secretDoorRevealed"; dir: number }
   // A downed (slain or petrified) member's CARRIED items spilled onto the chamber floor — borne items
   // stay with the body (§Medusa "anything they were carrying can be taken", plan ④a / I-12).

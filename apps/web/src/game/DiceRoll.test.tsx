@@ -63,4 +63,43 @@ describe("DiceRoll", () => {
     expect(dice[0]).toHaveTextContent("5");
     expect(dice[1]).toHaveTextContent("2");
   });
+
+  describe("when the roll has stakes", () => {
+    const props = { title: "The Whirlpool", lanes: [{ enemy: { value: 2 } }], message: "Dragged under!", tone: "bad" as const, stakes: "On a 1 or 2 the whirlpool drags the party down." };
+
+    it("waits for the player's Roll the dice click before anything tumbles or is revealed", () => {
+      render(<DiceRoll {...props} autoRoll={false} onContinue={() => {}} />);
+      expect(screen.getByText(/drags the party down/)).toBeInTheDocument();
+      expect(screen.getByTestId("die")).toHaveTextContent("?");
+      expect(screen.getByTestId("die")).toHaveClass("waiting");   // still: the tumble animation is for after the click
+      act(() => vi.advanceTimersByTime(5000));
+      expect(screen.getByTestId("die")).toHaveTextContent("?");           // nothing happens by itself
+      expect(screen.queryByText("Dragged under!")).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /continue/i })).not.toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole("button", { name: /roll the dice/i }));
+      act(() => vi.advanceTimersByTime(11 * 80));
+      expect(screen.getByTestId("die")).toHaveTextContent("2");
+      expect(screen.getByTestId("die")).not.toHaveClass("waiting");
+      expect(screen.getByText("Dragged under!")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: /roll the dice/i })).not.toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /continue/i })).toBeInTheDocument();
+    });
+
+    it("rolls at once, with no button, when the player has chosen to auto-roll", () => {
+      render(<DiceRoll {...props} autoRoll onContinue={() => {}} />);
+      expect(screen.queryByRole("button", { name: /roll the dice/i })).not.toBeInTheDocument();
+      act(() => vi.advanceTimersByTime(11 * 80));
+      expect(screen.getByTestId("die")).toHaveTextContent("2");
+    });
+
+    it("one click throws every die of a many-member roll together", () => {
+      const lanes = [{ enemy: { name: "Hero", value: 1 } }, { enemy: { name: "Dwarf", value: 5 } }];
+      render(<DiceRoll {...props} lanes={lanes} autoRoll={false} onContinue={() => {}} />);
+      expect(screen.getAllByTestId("die").map((d) => d.textContent)).toEqual(["?", "?"]);
+      fireEvent.click(screen.getByRole("button", { name: /roll the dice/i }));
+      act(() => vi.advanceTimersByTime(11 * 80));
+      expect(screen.getAllByTestId("die").map((d) => d.textContent)).toEqual(["1", "5"]);
+    });
+  });
 });

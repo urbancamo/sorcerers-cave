@@ -70,7 +70,7 @@ export const HOUSE: Section = {
       p('When you must put *every* free creature in front there is nothing to choose, so the game does it for you.'),
     ] },
     { id: 'rc-pairing', title: 'Pairings and spares', brief: 'Tap a fighter, then the foe it will face; nothing is final until you roll.', requires: 'combatRevision', cards: [], screens: ['fight-revised'], blocks: [
-      p('The attacker matches each of its free creatures one-to-one against a creature in the front line, for as long as any can be paired. Tap one of your fighters and then the foe it will face (or drag it there), and do the same with your spare creatures, dropping each onto a pairing it will join or, for a Priest or Wizard, onto its “behind” slot. The strength totals follow as you go.'),
+      p('The attacker matches each of its free creatures one-to-one against a creature in the front line, for as long as any can be paired. Tap one of your fighters and then the foe it will face (or drag it there), and do the same with your spare creatures, dropping each onto a pairing it will join or, for a Priest or Wizard, onto its “behind” slot. The strength totals follow as you go. A magic user can only stand behind a pairing that already has a fighter in front, and if you drop a creature somewhere it cannot go, a short note under the battle says why.'),
       p('Nothing is final: tap a creature you have placed to take it back, or press *Undo pairings* to start again. Nothing is decided until you press **Roll the Round**, and the whole arrangement is checked then. When there is only one way to pair your fighters the pairing is already laid out.'),
       p('A Spectre or Demon cannot be paired with a fighter who has no magic.'),
     ] },
@@ -80,6 +80,7 @@ export const HOUSE: Section = {
     ] },
     { id: 'rc-tags', title: 'What the numbers are made of', brief: 'Small tags under each side list what its strength total is made of.', requires: 'combatRevision', cards: [], screens: ['fight-revised'], blocks: [
       p('Under each side of every match, small tags list what its strength total is made of: artefact bonuses (Magic Sword, Axe, Staff, Strength Potion), a Dragon-slayer\'s or Elixir\'s bonus, the magic of a Priest or Wizard in front of or *behind* the line, and a Magic Shield\'s ward (which takes magic away).'),
+      p('The round number on a creature\'s card is what it adds to its match *right now*: a Priest or Wizard standing behind the line shows only its magic, a caster facing a Spectre or Demon shows its magic alone, and a creature facing a Shielded foe loses its magic. Until a creature is placed in a match its card shows its full potential strength.'),
       p('Tags in italics, such as the Ring, a curse or the surprise bonus, are added to the **die** instead and are not in the total. When the Eye of God is present, a tag says that magic and artefacts are switched off. Past four tags on a side the rest fold into *+N more*; tap it to see them all.'),
       p('The left of the screen shows the same party panel as the Party icon. Creatures that can still be placed show their fighting strength (and a ✦ for a magic user) and can be selected or dragged; one already placed is dimmed. Inventory swaps the list for the items the party carries. Artefacts are used from the item\'s own card, not the foot of the fight panel.'),
     ] },

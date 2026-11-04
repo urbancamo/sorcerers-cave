@@ -210,7 +210,8 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "unicornDeparted": return `the unicorn departed from ${creature(e.creatureId)}`;
     case "carpetUsed": return `the Magic Carpet moved the party ${dir(e.dir)}`;
     case "dragonsLulled": return `the Charmed Flute lulled ${e.count} dragon(s)`;
-    case "vipersLulled": return "the Charmed Flute lulled the vipers";
+    case "vipersLulled": return "the party crossed the Viper Pit while the vipers slept";
+    case "vipersAsleep": return "the Charmed Flute put the vipers to sleep";
     case "secretDoorRevealed": return `a secret stairway was revealed (${dir(e.dir)})`;
     case "itemsSpilled": return `${creature(e.creatureId)}'s carried items spilled to the floor: ${e.items.map(treasure).join(", ")}`;
     case "chasmDescend": return "the party climbed down into the chasm";
@@ -541,6 +542,7 @@ export function eventCode(e: GameEvent): string | null {
     case "carpetUsed": return `CPT ${d1(e.dir)}`;
     case "dragonsLulled": return `LUL ${e.count}`;
     case "vipersLulled": return "LUL VIP";
+    case "vipersAsleep": return "SLP VIP";
     case "secretDoorRevealed": return `SEC ${d1(e.dir)}`;
     case "itemsSpilled": return `SPL ${cr3(e.creatureId)} ${e.items.map(tr3).join(",")}`;
     case "deadEnd": return `DED ${d1(e.dir)}`;

@@ -4,6 +4,7 @@ import { memberLabels } from './memberLabels';
 // Draft classification for the inventory (docs/requirements/ui-review, "Artifact classification"); it still needs a
 // rules review. Active artifacts need a player action; passive ones work by being carried or wielded.
 const ACTIVE = new Set([4, 5, 6, 8, 9, 12, 15, 16, 19]);
+const T_CHARMED_FLUTE = 12;
 const T_MAGIC_SHIELD = 20;
 const T_MAGIC_STAFF = 9;
 const SHIELD_ELIGIBLE = new Set([0, 1, 5, 6]); // Hero, W-Hero, Man, Woman: the only bearers for whom the shield's ward works
@@ -34,6 +35,10 @@ export function artifactState(state: GameState, mi: number, tid: number, usable:
   if (bonus > 0) {
     if (!canUseArtifact(m.creatureId, tid)) return { color: 'yellow', tag: `+${bonus} magic · cannot use against Medusa` };
     return usable.has(tid) ? { color: 'green', tag: `+${bonus} magic · usable now` } : { color: 'yellow', tag: `+${bonus} magic · not usable now` };
+  }
+  // Played at the Viper Pit, the Flute keeps the Vipers asleep until the party leaves; say so rather than "not usable now".
+  if (tid === T_CHARMED_FLUTE && canUseArtifact(m.creatureId, tid) && state.vipersLulledArea === state.partyArea) {
+    return { color: 'yellow', tag: 'played · Vipers asleep' };
   }
   if (ACTIVE.has(tid)) {
     if (!canUseArtifact(m.creatureId, tid)) return { color: 'gray', tag: 'carrier cannot use' };

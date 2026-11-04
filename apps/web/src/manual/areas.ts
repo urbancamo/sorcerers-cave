@@ -13,7 +13,7 @@ export const AREAS: Section = {
     ] },
     { id: 'area-viper-pit', title: 'The Viper Pit', cards: cards('area', 'Viper Pit'), blocks: [
       p('Cross the narrow ledge and a careless step can pitch a member — and their treasure — into the snakes. Arriving by stair or trap lands you safely on the island.'),
-      p('Holding the **Charmed Flute** lulls the Vipers so the party crosses unharmed.'),
+      p('**Play** the **Charmed Flute** at the pit (Inventory → the Flute → *lull the Vipers*) and the Vipers sleep while you stay, so the party crosses unharmed. Merely carrying it does nothing — if you cross without playing it, the dice decide.'),
     ] },
     { id: 'area-tomb', title: 'Tomb of Kings', cards: cards('area', 'Tomb of Kings'), blocks: [
       p('Draw **one extra card** on entry.'),
@@ -35,10 +35,10 @@ export const AREAS: Section = {
       p('Descend it any turn, in or out of an encounter; any strangers or treasure waiting there are left parked for later. It never dries up.'),
     ] },
     { id: 'area-well', title: 'The Well', variant: 'kit', cards: cards('area', 'The Well'), blocks: [
-      p('Draw **one extra small card** straight into the chamber — no move required. Legal any turn, as many times as the small pack allows.'),
+      p('Draw **one extra small card** straight into the chamber — no move required. Like the Bell Rope, it can be used **only once in the whole game**, and drawing means the party cannot withdraw that turn.'),
     ] },
     { id: 'area-bell-rope', title: 'The Bell Rope', variant: 'kit', cards: cards('area', 'The Bell Rope'), blocks: [
-      p('Pull it once per visit and a d6 decides the toll: a **1** spirits the puller away for good, with everything they carried; **2–3** is nothing but an eerie sound; **4–6** draws two cards at once.'),
+      p('It can be pulled only once in the whole game, by one member of your choice, and a d6 decides the toll: a **1** spirits the puller away for good, with everything they carried; **2–3** is nothing but an eerie sound; **4–6** draws two cards at once.'),
     ] },
     { id: 'area-gallery', title: 'The Gallery', variant: 'kit', cards: cards('area', 'The Gallery'), blocks: [
       p('Every creature drawn here on a fresh visit arrives as a **stone statue**, not a living stranger — free to loot around, no fight.'),

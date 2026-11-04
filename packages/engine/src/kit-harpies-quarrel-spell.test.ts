@@ -387,6 +387,9 @@ function spellState(over: Partial<GameState>): GameState {
   });
 }
 
+// The spent hazard card is left on the party's tile as a display-only marker (SC-7.2-16); everything else about a fizzle is unchanged.
+const withoutMarkers = (areas: GameState["areas"]) => areas.map((a) => { const { markers: _m, ...rest } = a; return rest; });
+
 describe("Spell — remap-on-draw: splice into the pack, replace the cell face-down (US-22, SC-EXT-28)", () => {
   it("splices prev's card value into the middle of the REMAINING large pack, and draws the next card for the cell", () => {
     const s = spellState({});
@@ -440,7 +443,7 @@ describe("Spell — remap-on-draw: splice into the pack, replace the cell face-d
     const beforePack = [...s.largePack];
     const { events } = applyHazards(s);
     expect(events).toEqual([{ type: "hazardFired", hazard: HAZARD_SPELL }, { type: "spellRemap", fizzled: true }]);
-    expect(JSON.stringify(s.areas)).toBe(before);
+    expect(JSON.stringify(withoutMarkers(s.areas))).toBe(before);   // only the spent card's display marker is added
     expect(s.largePack).toEqual(beforePack);
     expect(s.largeIdx).toBe(0);
   });
@@ -478,7 +481,7 @@ describe("Spell — remap-on-draw: splice into the pack, replace the cell face-d
     const before = JSON.stringify(s.areas);
     const { events } = applyHazards(s);
     expect(events).toEqual([{ type: "hazardFired", hazard: HAZARD_SPELL }, { type: "spellRemap", fizzled: true }]);
-    expect(JSON.stringify(s.areas)).toBe(before);
+    expect(JSON.stringify(withoutMarkers(s.areas))).toBe(before);
   });
 
   it("discards after firing (fizzled or not) — Spell is never re-parked", () => {

@@ -12,6 +12,7 @@ import { SPECIAL_GATEWAY } from "./data/areaCards";
 import { decodeArea, decodeOpen } from "./decode";
 import { AF_DESTROYED, AF_UNRESOLVED, type GameState, type PartyMember } from "./state";
 import type { GameEvent } from "./actions";
+import { stageMidStateOnce } from "./midState";
 import { frontStrength, partyRollBonus } from "./combat";
 import { eyeForsakenByDeath, markDied, ringInvincible, usesArtifactsAs } from "./effects";
 import { spillCarried, sweepFallen } from "./loot";
@@ -56,6 +57,13 @@ export function hasStaffWizard(state: GameState): boolean {
   return state.party.some((m) => (m.status === 0 || m.status === 1) && usesArtifactsAs(m.creatureId, C_WIZARD) && m.treasure.includes(T_MAGIC_STAFF));
 }
 
+/** Leave the drawn hazard card lying on the tile the party stands in (display-only, like the Earthquake scar), so a card that fires and
+ *  is spent does not vanish with the live working set on the next interaction — which reads as nothing having happened. Never re-fires. */
+function leaveCard(state: GameState, hz: number): void {
+  const here = state.areas[state.partyArea];
+  if (here) here.markers = [...(here.markers ?? []), 300 + hz];
+}
+
 /** Resolve every hazard in the working set, in priority order (spec §7.2). */
 export function applyHazards(state: GameState): { events: GameEvent[]; fell: boolean; trapChoice: boolean; knownTrap: boolean; ghouls: boolean } {
   const events: GameEvent[] = [];
@@ -95,7 +103,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
     // skipping the generic `hazardFired` push, same shape as the checks above.
     if (hz === HAZARD_QUARREL) {
       const eligible = living(state).filter((m) => m.creatureId !== C_WOLF && m.creatureId !== C_LION);
-      if (eligible.length < 2) { events.push({ type: "quarrelFizzled" }); continue; }
+      if (eligible.length < 2) { leaveCard(state, HAZARD_QUARREL); events.push({ type: "quarrelFizzled" }); continue; }
     }
     if (hz === HAZARD_MEDUSA) {
       const here = state.areas[state.partyArea];
@@ -120,6 +128,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
       }
       case HAZARD_MEDUSA: {
         // (A staff-Wizard's aversion is handled above, before the gaze fires.)
+        stageMidStateOnce(state); // her dice present against the room as it stood BEFORE anyone is stoned
         const rolls: { creatureId: number; roll: number; petrified: boolean }[] = [];
         for (const m of state.party) {
           if (m.status !== 0 && m.status !== 1) continue;
@@ -188,8 +197,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         // Leave the card on the tile it was drawn in (display-only, like the Earthquake scar) so it
         // doesn't vanish with the live working set on the next interaction — whether or not anyone
         // deserts (a party of originals only is untouched, which otherwise looks like nothing happened).
-        const here = state.areas[state.partyArea];
-        if (here) here.markers = [...(here.markers ?? []), 300 + HAZARD_MUTINY];
+        leaveCard(state, HAZARD_MUTINY);
         const allies = state.party.filter((m) => m.status === 1);
         const originals = state.party.filter((m) => m.status === 0);
         // Extension kit (SC-EXT-18, design US-18): a Wolf ally is immune to Mutiny — excluded from
@@ -230,6 +238,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         break;
       }
       case HAZARD_DESERTION: {
+        leaveCard(state, HAZARD_DESERTION); // whether or not there is an ally to roll for
         // Extension kit (SC-EXT-14, design US-09): one visible d6 per ALLY (status 1), in roster
         // order — original (status 0) members never roll. A Wolf ally (creature 20) is immune and
         // simply skipped, with its own notice, rather than rolling (design US-18). A roll of 1-2
@@ -240,6 +249,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         // spliced one at a time, since splicing mid-loop would shift the roster-order indices of the
         // allies still to roll.
         const allies = state.party.filter((m) => m.status === 1);
+        if (allies.some((a) => a.creatureId !== C_WOLF)) stageMidStateOnce(state); // the rolls present before anyone leaves
         const deserted: PartyMember[] = [];
         for (const a of allies) {
           // `hazard: HAZARD_DESERTION` (review fix, Task 10) — this is the ONE `wolfUnmoved` source
@@ -262,6 +272,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         // "carried AND borne, from every member" — leave outright: filtered off `treasure`, and off
         // `borne` too since a stolen Sword/Staff/Ring can't stay listed as borne once it's gone.
         harpiesFired = true;
+        leaveCard(state, HAZARD_HARPIES); // a struck card leaves the game's play but stays on the tile to show what happened (a parked one lurks in `contents`)
         const stolen: number[] = [];
         let eyeStolen = false;
         for (const m of state.party) {
@@ -305,11 +316,13 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         // silently break the combined-force rule (there is no seat-ownership signal here to narrow
         // by, and `mpTag` is bookkeeping, not membership). Solo is unaffected: with no union the
         // array is simply the one party's own roster, exactly as before.
+        leaveCard(state, HAZARD_QUARREL);
         const ranked = state.party
           .filter((m) => (m.status === 0 || m.status === 1) && m.creatureId !== C_WOLF && m.creatureId !== C_LION)
           .map((m) => ({ m, fs: frontStrength(m, state) }))
           .sort((x, y) => y.fs - x.fs);
         const a = ranked[0]!, b = ranked[1]!; // >= 2 guaranteed by the fizzle check above
+        stageMidStateOnce(state); // the duel presents against the party as it stood BEFORE the loser falls
         const rollBonus = partyRollBonus(state); // Ring +1 / curse −1 — "the party's dice" (design build note)
         const aRoll = rollDieForState(state);
         const bRoll = rollDieForState(state);
@@ -342,6 +355,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         break;
       }
       case HAZARD_SPELL: {
+        leaveCard(state, HAZARD_SPELL); // fizzled or not, the spent card stays where it was drawn
         // Fires once on draw (design US-22, SC-EXT-28): only an un-destroyed, non-gateway TUNNEL
         // (not chamber) `prev` is eligible, and the large pack must have a card left to draw.
         const prevArea = state.areas[state.prev];

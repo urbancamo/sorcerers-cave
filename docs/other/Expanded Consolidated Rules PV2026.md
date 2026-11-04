@@ -407,9 +407,9 @@ in the middle.
 
 ### The Well.
 
-*“You may draw 1 small card and not withdraw.”*
+*“You may draw 1 small card and not withdraw. Once only.”*
 
-The idea is that you pull up the rope. Basically this area is like the bell rope, but you do have the advantage of
+The idea is that you pull up the rope. The Well may be used only once, as with the bell rope. Basically this area is like the bell rope, but you do have the advantage of
 surprise if attacking a stranger crawling up the shaft. If you draw the Eye of God, you must take it; if you draw the
 lost ruby, it is free for the taking. A trap drawn here continues to affect the whole area.
 

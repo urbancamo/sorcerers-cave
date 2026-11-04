@@ -30,6 +30,14 @@ const reaching = (kind: "redeploy" | "engage" | "deploy"): GameState => {
 };
 
 describe("RevisedFightSurface", () => {
+  it("a Priest standing behind the line wears a badge of just its magic (2), not its printed strength", () => {
+    const priestParty = [5, 4].map((creatureId) => ({ creatureId, status: 0 as const, dragonKills: 0, treasure: [] }));
+    const s: GameState = structuredClone(attacking([OGRE], { party: priestParty }));
+    s.fight!.rev!.matches = [{ pf: [0], pb: [1], sf: [0], sb: [] }];
+    render(<RevisedFightSurface state={s} dispatch={vi.fn()} cards={cards} />);
+    expect(screen.getByTestId("rev-mback-0").querySelector(".scv-fc-badge")).toHaveTextContent(/^2$/);
+  });
+
   it("renders nothing outside a revised fight, and the battle-plan surface steps aside for one", () => {
     const legacy: GameState = { ...newGame(1, [5]), phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, strangers: [OGRE] };
     const { container } = render(<RevisedFightSurface state={legacy} dispatch={vi.fn()} cards={cards} />);
@@ -457,6 +465,25 @@ describe("RevisedFightSurface", () => {
     fireEvent.drop(screen.getByTestId(`rev-m${m.back ? "front" : "back"}-${m.match}`), { dataTransfer: { getData: () => String(m.creature) } });
     fireEvent.click(screen.getByRole("button", { name: /roll the round/i }));
     expect(dispatch).toHaveBeenLastCalledWith({ type: "redeploy", moves: [] });
+  });
+
+  it("redeploy: a refused drop says why instead of doing nothing", () => {
+    const s = reaching("redeploy");
+    const { m } = firstMove(s);
+    render(<RevisedFightSurface state={s} dispatch={vi.fn()} cards={cards} />);
+    expect(screen.queryByTestId("rev-refusal")).toBeNull();
+    fireEvent.drop(screen.getByTestId(`rev-m${m.back ? "front" : "back"}-${m.match}`), { dataTransfer: { getData: () => String(m.creature) } });
+    expect(screen.getByTestId("rev-refusal")).toHaveTextContent(/magic user|two fighters|cannot go there/i);
+  });
+
+  it("a magic user dropped behind a foe that has no fighter in front is told there is nobody to support it", () => {
+    const priestParty = [5, 4].map((creatureId) => ({ creatureId, status: 0 as const, dragonKills: 0, treasure: [] }));
+    const s: GameState = structuredClone(attacking([OGRE], { party: priestParty }));
+    expect(s.fight!.pending).toMatchObject({ by: "party", kind: "engage" });
+    render(<RevisedFightSurface state={s} dispatch={vi.fn()} cards={cards} />);
+    // the Priest (party index 1) is dragged onto the foe's background slot while nobody is paired with it
+    fireEvent.drop(screen.getByTestId("rev-bslot-0"), { dataTransfer: { getData: () => "1" } });
+    expect(screen.getByTestId("rev-refusal")).toHaveTextContent(/no frontline fighters there to support/i);
   });
 
   it("review: after the strangers pair up, the party sees the arrangement and can only fight on", () => {

@@ -8,6 +8,7 @@ const member = (creatureId: number, treasure: number[] = []) => ({ creatureId, s
 describe("viperCrossing (spec §10.1)", () => {
   it("the Charmed Flute carries everyone across safely (no rolls)", () => {
     const s = makeState({ party: [member(0, [12]), member(5)], seed: 1 }); // Hero may play it
+    s.vipersLulledArea = s.partyArea;                                       // ...and has: lulling is a deliberate play, not just holding it
     const seedBefore = s.seed;
     const events = viperCrossing(s);
     expect(s.seed).toBe(seedBefore); // no dice rolled

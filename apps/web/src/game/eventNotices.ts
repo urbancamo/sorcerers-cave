@@ -231,8 +231,10 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "dragonsLulled":
         out.push({ text: `The Charmed Flute lulls ${plural(e.count, "dragon")} to sleep.`, tone: "good" });
         break;
-      case "vipersLulled":
-        out.push({ text: "The Charmed Flute lulls the vipers — the party crosses unharmed.", tone: "good" });
+      case "vipersAsleep": // the Flute has just been played; nobody has chosen an exit yet
+        out.push({ text: "The Flute's tune sends the vipers to sleep. The party may now cross the ledge unharmed — choose an exit.", tone: "good" });
+        break;
+      case "vipersLulled": // the crossing itself: the party simply walks on, and the "asleep" notice already said why it is safe
         break;
       case "wardedOff":
         out.push({ text: `The Talisman wards off ${name(e.creatureId)}.`, tone: "good" });
@@ -492,6 +494,16 @@ export function eventNotices(events: GameEvent[]): Notice[] {
   const hadDesertionActivity = desertionRolls.length > 0 || desertionWolfSkips.length > 0;
   if (hadDesertionActivity && !desertionRolls.some((e) => e.deserted)) {
     out.push({ text: "The party holds together.", tone: "good" });
+  }
+  // Mutiny and Desertion only ever touch ALLIES. With none in the party they fire and change nothing, which used to read as a stuck card
+  // (Peter, 2026-11-04 items 5 and 6): say so. (A Mutiny that did make someone desert has its own notice; a Wolf's skip has its own too.)
+  const fired = (hz: number) => events.some((e) => e.type === "hazardFired" && e.hazard === hz);
+  if (fired(HAZARD_MUTINY) && !events.some((e) => e.type === "mutinied")) {
+    const wolf = events.some((e) => e.type === "wolfUnmoved" && e.hazard === HAZARD_MUTINY);
+    out.push({ text: wolf ? "Mutiny! Nobody deserts — the Wolf is unmoved." : "Mutiny! But there are no allies in the party to turn — the original adventurers stand firm.", tone: "neutral" });
+  }
+  if (fired(HAZARD_DESERTION) && !hadDesertionActivity) {
+    out.push({ text: "Desertion! But there are no allies in the party — only allies are ever tempted to leave.", tone: "neutral" });
   }
   return out;
 }

@@ -12,3 +12,9 @@ describe('whirlpoolMove', () => {
     expect(whirlpoolMove([{ type: 'blocked' }])).toBeNull();
   });
 });
+
+describe('whirlpoolMove — the Viper Pit shows its dice first too', () => {
+  it('treats a crossing that rolled per member as a dice-first move, nobody dragged down', () => {
+    expect(whirlpoolMove([{ type: 'viperPit', rolls: [{ creatureId: 0, roll: 4, died: false }] }])).toEqual({ dragged: false });
+  });
+});

@@ -198,17 +198,22 @@ export function nominateViolation(state: GameState, nominated: unknown): string 
 
 interface Strength { party: number; strangers: number; shieldStalemate: boolean; ward: { creatureId: number; mode: "nullify" | "weaken" }[] }
 
+/** What party member `i` adds to match `m` right now (Fighting a Match, step i), standing in its front line or — `back` — its background.
+ *  A caster at the back adds its magic only; at the front facing a magic-only foe, magic alone; facing a Shielded foe, its strength less its
+ *  magic. `matchStrength` sums these, and the fight screen shows the same number on the creature's badge (Peter's 2026-11-04 item 3). */
+export function partyContribution(state: GameState, m: RevMatch, i: number, back: boolean): number {
+  const magicOnly = m.sf.some((s) => isMagicOnly(state, s));
+  const partyMagicOff = !magicOnly && m.sf.some((s) => strangerShielded(state, s));
+  const mem = state.party[i]!;
+  if (back) return partyMagicOff ? 0 : casterMP(mem, state);
+  if (magicOnly && casterMP(mem, state) > 0) return casterMP(mem, state);
+  return partyMagicOff ? frontStrength(mem, state) - casterMP(mem, state) : frontStrength(mem, state);
+}
+
 /** The two sides' totals in one match (Fighting a Match, steps i and ii): the same arithmetic as the legacy preview, for the match as it
  *  stands. A Shield also wards stranger casters backing the match (the card). */
 export function matchStrength(state: GameState, m: RevMatch): Strength {
-  const magicOnly = m.sf.some((s) => isMagicOnly(state, s));
-  const partyMagicOff = !magicOnly && m.sf.some((s) => strangerShielded(state, s));
-  const memberStr = (i: number): number => {
-    const mem = state.party[i]!;
-    if (magicOnly && casterMP(mem, state) > 0) return casterMP(mem, state);
-    return partyMagicOff ? frontStrength(mem, state) - casterMP(mem, state) : frontStrength(mem, state);
-  };
-  const party = m.pf.reduce((a, i) => a + memberStr(i), 0) + (partyMagicOff ? 0 : m.pb.reduce((a, i) => a + casterMP(state.party[i]!, state), 0));
+  const party = m.pf.reduce((a, i) => a + partyContribution(state, m, i, false), 0) + m.pb.reduce((a, i) => a + partyContribution(state, m, i, true), 0);
   const shieldStalemate = isShieldStalemate(state, { front: m.pf, strangers: m.sf });
   const shielded = matchShielded(state, m.pf), ward: Strength["ward"] = [];
   const wardedMP = (s: number): number => {

@@ -5,7 +5,7 @@ import { chamberName } from "../data/areaText";
 
 // Extension kit blocking-confirm popups (design Part 2 — Trap-fall pattern), verbatim per story.
 const CHASM_CONFIRM = "Descend? You cannot return this way.";
-const WELL_CONFIRM = "Draw 1 card — you cannot withdraw this turn.";
+const WELL_CONFIRM = "Draw 1 card — the Well can be used only once, and you cannot withdraw this turn.";
 const CRYPT_CONFIRM = "Enter? A trap here cannot be avoided.";
 // Precise Locations (house rule, designer-approved 2026-07-30): jumping to the island without
 // leaving the tile carries the ordinary crossing's own risk — the Pit's fatal per-creature roll,

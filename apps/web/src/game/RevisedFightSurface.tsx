@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
 // ALL_CREATURES/ALL_TREASURES (SC-EXT-29): a kit id or a Ghoul can stand in any fight.
 import {
-  ALL_CREATURES, ALL_TREASURES, legalActions, fightView, freeOf, matchStrength, matchModifiers, legalMoves, legalPairs, deployViolation, engageViolation, engageMovesViolation, redeployViolation,
+  ALL_CREATURES, ALL_TREASURES, isCaster, legalActions, fightView, freeOf, matchStrength, partyContribution, matchModifiers, legalMoves, legalPairs, deployViolation, engageViolation, engageMovesViolation, redeployViolation,
   type GameState, type GameAction, type UnitView,
 } from "@sorcerers-cave/engine";
 import type { CardArt } from "../data/manifest";
@@ -29,6 +29,7 @@ type Retreat = Extract<GameAction, { type: "retreat" }>;
 
 export function RevisedFightSurface({ state, dispatch, cards, onMember, inventory }: { state: GameState; dispatch: (a: GameAction) => void; cards: CardArt[]; onMember?: (m: ViewPartyMember) => void; inventory?: ReactNode }) {
   const fight = state.fight, rev = fight?.rev;
+  const [refusal, setRefusal] = useState<string | null>(null);   // why the last placement was refused, in the player's words
   const [picked, setPicked] = useState<number | null>(null);   // a party creature tapped, waiting for its foe
   const [chosen, setChosen] = useState<number[]>([]);          // deploy: the creatures to stand in front
   const [sel, setSel] = useState<number[]>([]);                // deploy: creatures selected in the list, waiting to be moved to the front line as one
@@ -109,9 +110,9 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
     return out;
   };
   const partyCopy = copyIdx(state.party.map((m) => m.creatureId)), strangerCopy = copyIdx(state.strangers);
-  const partyCard = (i: number, extra: { onPick?: () => void; selected?: boolean; testId?: string; dim?: boolean; caption?: string; draggable?: boolean; dragId?: number } = {}) => (
+  const partyCard = (i: number, extra: { onPick?: () => void; selected?: boolean; testId?: string; dim?: boolean; caption?: string; draggable?: boolean; dragId?: number; strength?: number } = {}) => (
     <FightCard key={`p${i}`} creatureId={state.party[i]!.creatureId} label={labels[i]} kind={partyUnits.get(i)?.caster ? "caster" : "ally"}
-               strength={partyUnits.get(i)?.strength ?? 0} treasure={state.party[i]!.treasure} cards={cards} state={state} variantIdx={partyCopy.get(i)} {...extra} />
+               strength={extra.strength ?? partyUnits.get(i)?.strength ?? 0} treasure={state.party[i]!.treasure} cards={cards} state={state} variantIdx={partyCopy.get(i)} {...extra} />
   );
   const strangerCard = (s: number, extra: { onPick?: () => void; selected?: boolean; testId?: string; dim?: boolean; caption?: string } = {}) => (
     <FightCard key={`s${s}`} creatureId={state.strangers[s]!} kind="foe" strength={strangerUnits.get(s)?.strength ?? 0}
@@ -210,8 +211,23 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
     const c = raw !== "" && !Number.isNaN(Number(raw)) ? Number(raw) : picked;
     setPicked(null);
     if (c === null || inPairs(usedPairs).has(c)) return;
+    // A foe nobody is paired with has no front line yet, so nothing there to stand behind (a drop is refused, with the reason).
+    const unpaired = to.foe !== undefined && !usedPairs.some((p) => p.stranger === to.foe);
     const next = [...usedPlaced.filter((x) => x.creature !== c), { creature: c, back, ...to }];
-    if (placementBad(next) === null) setPlaced(next);
+    if (!unpaired && placementBad(next) === null) { setPlaced(next); setRefusal(null); return; }
+    setRefusal(refusalReason(c, to, back));
+  };
+  // The engine's reason for a refused placement is for logs ("creature 3 cannot back match 0"); say it the way a player thinks of it.
+  const refusalReason = (c: number, to: { mi?: number; foe?: number }, back: boolean): string => {
+    const others = usedPlaced.filter((x) => x.creature !== c);
+    const inFront = to.mi !== undefined
+      ? (rev.matches[to.mi]?.pf.length ?? 0) + others.filter((x) => x.mi === to.mi && !x.back).length
+      : (usedPairs.some((p) => p.stranger === to.foe) ? 1 : 0) + others.filter((x) => x.foe === to.foe && !x.back).length;
+    if (back) {
+      if (!isCaster(state.party[c]!)) return "Only a magic user can stand in the background.";
+      if (inFront === 0) return "There are no frontline fighters there to support — a magic user needs a fighter in front of it.";
+    } else if (inFront >= 2) return "That match already has two fighters in front.";
+    return "That creature cannot go there — a Spectre or Demon can only be faced by a magic user, or a fighter with a magic weapon.";
   };
   const placing = mine?.kind === "redeploy" || mine?.kind === "engage";
   const slotProps = (mi: number, back: boolean, tid: string) => !placing ? {} : {
@@ -223,7 +239,7 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
   };
   const addedTo = (mi: number, back: boolean) => usedPlaced.filter((x) => x.mi === mi && x.back === back).map((x) => x.creature);
   const addedToFoe = (s: number, back: boolean) => usedPlaced.filter((x) => x.foe === s && x.back === back).map((x) => x.creature);
-  const takeBack = (c: number) => setPlaced(usedPlaced.filter((x) => x.creature !== c));
+  const takeBack = (c: number) => { setRefusal(null); setPlaced(usedPlaced.filter((x) => x.creature !== c)); };
 
   const retreats = legalActions(state).filter((a): a is Retreat => a.type === "retreat");
   const strangerNames = (ss: readonly number[]) => ss.map((s) => ALL_CREATURES[state.strangers[s]!]!.name).join(" + ");
@@ -261,7 +277,7 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
             <div className="scv-match-party">
               <div className="scv-match-line">
                 <div className="scv-match-front" {...slotProps(mi, false, `rev-mfront-${mi}`)}>
-                  {m.pf.map((i) => partyCard(i))}
+                  {m.pf.map((i) => partyCard(i, { strength: partyContribution(state, m, i, false) }))}
                   {addedTo(mi, false).map((i) => partyCard(i, { testId: `rev-join-${i}`, caption: "joining — tap to undo", onPick: () => takeBack(i) }))}
                   {/* The front holds two positions, as in the battle plan: empty ones only fill it out, so a second fighter never widens the row. */}
                   {placing && Array.from({ length: Math.max(0, 2 - m.pf.length - addedTo(mi, false).length) }, (_, k) => (
@@ -270,7 +286,7 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
                 </div>
                 <div className="scv-match-bg" {...slotProps(mi, true, `rev-mback-${mi}`)}>
                   <span className="scv-match-slotlbl">✦ behind</span>
-                  {[...m.pb, ...addedTo(mi, true)].map((i) => partyCard(i, m.pb.includes(i) ? {} : { testId: `rev-join-${i}`, caption: "joining — tap to undo", onPick: () => takeBack(i) }))}
+                  {[...m.pb, ...addedTo(mi, true)].map((i) => partyCard(i, m.pb.includes(i) ? { strength: partyContribution(state, m, i, true) } : { testId: `rev-join-${i}`, caption: "joining — tap to undo", onPick: () => takeBack(i) }))}
                   {m.pb.length + addedTo(mi, true).length === 0 && <span className="scv-match-hint">magic user</span>}
                 </div>
               </div>
@@ -321,7 +337,7 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
                     {paired && target && addedToFoe(s, false).length === 0 && <span className="scv-slot-empty">drop a creature</span>}
                     {!paired && <span className="scv-slot-empty">{target ? "pick a creature, then tap here" : "—"}</span>}
                   </div>
-                  <div className="scv-match-bg" data-testid={`rev-bslot-${s}`} {...(paired && target ? {
+                  <div className="scv-match-bg" data-testid={`rev-bslot-${s}`} {...(target ? {
                     role: "button", tabIndex: 0,
                     onClick: () => placeAt({ foe: s }, true),
                     onKeyDown: (e: KeyboardEvent) => { if (e.key === "Enter") placeAt({ foe: s }, true); },
@@ -457,6 +473,7 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
         </p>
       )}
       {mine?.kind === "engage" && !autoPairs && <p className="scv-fight-sub" data-testid="rev-engage-hint">Pair each of your fighters with a foe. Spare creatures can join a pairing, or stand behind it if they are casters. Nothing is final until you roll.</p>}
+      {refusal && placing && <p className="scv-fight-reason" role="status" data-testid="rev-refusal">{refusal}</p>}
       {mine?.kind === "engage" && engageBad && usedPairs.length > 0 && <p className="scv-fight-reason">{engageBad}</p>}
       {mine?.kind === "deploy" && !forcedDeploy && usedChosen.length > 0 && deployBad && <p className="scv-fight-reason">{deployBad}</p>}
 

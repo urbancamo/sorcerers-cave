@@ -375,7 +375,7 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
       {fightVisible && cards && <FightSurface state={state} dispatch={dispatchWithRolls} cards={cards} />}
       {yourTurn && <ExplorePanel state={state} dispatch={dispatchWithRolls} />}
       {showParty && <PartyPanel state={state} dispatch={dispatch} onClose={() => setShowParty(false)} />}
-      {roll && <DiceRoll title={roll.title} lanes={roll.lanes} message={roll.message} tone={roll.tone} onContinue={() => setRoll(null)} />}
+      {roll && <DiceRoll title={roll.title} lanes={roll.lanes} message={roll.message} tone={roll.tone} stakes={roll.stakes} onContinue={() => setRoll(null)} />}
       {notices && <NoticeModal notices={notices} onClose={() => setNotices(null)} />}
       {!roll && fightRoll && <DiceRoll title={fightRoll.title} lanes={fightRoll.lanes} message={fightRoll.message} tone={fightRoll.tone} onContinue={clearFightRoll} />}
       {!notices && fightNotices && <NoticeModal notices={fightNotices} onClose={clearFightNotices} />}

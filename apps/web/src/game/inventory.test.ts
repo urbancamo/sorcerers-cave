@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { newGame, type GameState } from '@sorcerers-cave/engine';
+import { newGame, SPECIAL_VIPER_PIT, type GameState } from '@sorcerers-cave/engine';
 import { inventoryRows, artifactState } from './inventory';
 
 const HERO = 0, PRIEST = 4, DWARF = 7, WIZARD = 8;
@@ -73,5 +73,39 @@ describe('inventory', () => {
     const s = game([[HERO, [T.sword]]]);
     s.party[0]!.status = 3;
     expect(inventoryRows(s)).toEqual([]);
+  });
+
+  describe('the Charmed Flute at the Viper Pit', () => {
+    const atPit = (carrier: number, played = false) => {
+      const s = game([[carrier, [T.flute]]]);
+      s.areas[s.partyArea]!.card = (SPECIAL_VIPER_PIT << 7) | 31;
+      if (played) s.vipersLulledArea = s.partyArea;
+      return s;
+    };
+    it('is usable now (green) for a capable bearer: the player plays it', () => {
+      const [r] = inventoryRows(atPit(HERO));
+      expect(r).toMatchObject({ color: 'green', tag: 'usable now' });
+    });
+    it('reads as played once the Vipers are asleep', () => {
+      const [r] = inventoryRows(atPit(HERO, true));
+      expect(r).toMatchObject({ color: 'yellow', tag: 'played · Vipers asleep' });
+    });
+    it('is still gray for a carrier who cannot play it', () => {
+      const [r] = inventoryRows(atPit(DWARF));
+      expect(r).toMatchObject({ color: 'gray', tag: 'carrier cannot use' });
+    });
+    it('is not usable away from the pit', () => {
+      const [r] = inventoryRows(game([[HERO, [T.flute]]]));
+      expect(r!.tag).toBe('not usable now');
+    });
+  });
+});
+
+describe('playing the Flute at the Viper Pit', () => {
+  it('is offered as "lull the Vipers" (and as "lull the Dragons" only against Dragons)', async () => {
+    const { useOptions } = await import('./artifactUse');
+    const s = game([[HERO, [T.flute]]], { phase: 'explore' });
+    s.areas[s.partyArea]!.card = (SPECIAL_VIPER_PIT << 7) | 31;
+    expect(useOptions(s, T.flute).map((o) => o.label)).toContain('lull the Vipers');
   });
 });

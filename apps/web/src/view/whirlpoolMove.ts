@@ -7,5 +7,7 @@ import type { GameEvent } from "@sorcerers-cave/engine";
  */
 export function whirlpoolMove(events: readonly GameEvent[]): { dragged: boolean } | null {
   const roll = events.find((e): e is Extract<GameEvent, { type: "whirlpoolRoll" }> => e.type === "whirlpoolRoll");
-  return roll ? { dragged: roll.dragged } : null;
+  if (roll) return { dragged: roll.dragged };
+  // The Viper Pit is the same in this respect: its dice come before the party is seen to leave the pit (nobody is dragged down a level).
+  return events.some((e) => e.type === "viperPit") ? { dragged: false } : null;
 }

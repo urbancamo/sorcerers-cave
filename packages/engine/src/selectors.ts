@@ -1,7 +1,7 @@
 import { decodeArea, decodeOpen, type DecodedArea } from "./decode";
 import { examinableAreas, isGuardCode, sibylWaiting } from "./sibyl";
 import { DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, unpackCoord, packCoord } from "./coords";
-import { GS_PLAYING, AF_DESTROYED, AF_BELL_SPENT, type GameState } from "./state";
+import { GS_PLAYING, AF_DESTROYED, AF_BELL_SPENT, AF_WELL_SPENT, type GameState } from "./state";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
 import type { GameAction } from "./actions";
 import { canCarry } from "./pickup";
@@ -92,8 +92,6 @@ function artifactActions(state: GameState): GameAction[] {
         if (state.strangers[i] !== 9) actions.push({ type: "useArtifact", artifact: 5, target: i });
       }
     }
-    // The Charmed Flute lulls Dragons passively (on chamber entry, while held) — see resolveArea —
-    // so there is no explicit lull action to offer here.
   }
   // Reviving the fallen is offered at rest (explore) AND while looting (pickup), so a party can
   // restore members straight after a fight that dropped treasure.
@@ -125,6 +123,8 @@ function artifactActions(state: GameState): GameAction[] {
       const cur = state.areas[state.partyArea]!;
       const { level, x, y } = unpackCoord(cur.coord);
       const dec = decodeOpen(cur);
+      // At a Viper Pit the Flute is played to lull the Vipers (once; they sleep until the party leaves).
+      if (dec.special === SPECIAL_VIPER_PIT && state.vipersLulledArea !== state.partyArea) actions.push({ type: "useArtifact", artifact: 12 });
       const below = state.areas.find((a) => a.coord === packCoord(level + 1, x, y));
       if (!dec.stairDown && below && decodeOpen(below).stairUp) actions.push({ type: "useArtifact", artifact: 12, dir: DIR_DOWN });
       const above = state.areas.find((a) => a.coord === packCoord(level - 1, x, y));
@@ -132,6 +132,12 @@ function artifactActions(state: GameState): GameAction[] {
     }
   }
   return actions;
+}
+
+/** Extension kit (SC-EXT-7): the Well is drawable on an unspent Well tile while the small pack has a card. */
+function wellDrawable(state: GameState, special: number): boolean {
+  return special === SPECIAL_WELL && state.smallIdx < state.smallPack.length
+    && (state.areas[state.partyArea]!.flags & AF_WELL_SPENT) === 0;
 }
 
 /** Extension kit (SC-EXT-8): one `pullBellRope` action per living party member, offered while the
@@ -204,7 +210,7 @@ export function legalActions(state: GameState): GameAction[] {
     // The Well and the Bell Rope are likewise offered mid-encounter — drawing/pulling doesn't require
     // resolving the current strangers first (design US-03/US-07 — same "no test/fight required" logic
     // as the Chasm's escape hatch above).
-    if (special === SPECIAL_WELL && state.smallIdx < state.smallPack.length) actions.push({ type: "drawFromWell" });
+    if (wellDrawable(state, special)) actions.push({ type: "drawFromWell" });
     actions.push(...bellRopeActions(state));
     actions.push(...artifactActions(state));
     return actions; // quitting is via the HUD Quit button, not an in-menu action
@@ -275,10 +281,9 @@ export function legalActions(state: GameState): GameAction[] {
   if (state.party.some((m) => (m.status === 0 || m.status === 1) && m.treasure.includes(14))) actions.push({ type: "openChest" });
   // The Chasm is reusable terrain: always offered while resting on it, not a one-shot (design US-02).
   if (dec.special === SPECIAL_CHASM) actions.push({ type: "descendChasm" });
-  // The Well is likewise reusable terrain, repeatable every turn — no spent flag (design US-07,
-  // Resolved interpretation 4) — gated only on the small pack having a card left to draw.
-  if (dec.special === SPECIAL_WELL && state.smallIdx < state.smallPack.length) actions.push({ type: "drawFromWell" });
-  // The Bell Rope, unlike the Well, is spent forever once pulled (AF_BELL_SPENT, design US-03).
+  // The Well, like the Bell Rope, is spent forever once drawn from (AF_WELL_SPENT / AF_BELL_SPENT) and
+  // needs a card left in the small pack.
+  if (wellDrawable(state, dec.special)) actions.push({ type: "drawFromWell" });
   actions.push(...bellRopeActions(state));
   // The Crypt (SC-EXT-13): offered only at rest ("the start of any turn", design US-08 — no
   // Chasm/Well/Bell-style mid-encounter latitude) while standing on the area `cryptCoord` names;

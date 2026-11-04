@@ -213,7 +213,7 @@ describe("rollFromEvents", () => {
       enemy: { name: "Hero", value: 2, outcome: "lose" },
       party: { name: "Man", value: 5, outcome: "win" },
     });
-    expect(duel.message).toMatch(/tempers flare/i);
+    expect(duel.message).not.toMatch(/tempers flare|come to blows/i); // that is the stakes line, before the roll
     expect(duel.message).toMatch(/hero falls to man's fury/i);
     expect(duel.tone).toBe("bad");
 
@@ -272,5 +272,12 @@ describe("rollFromEvents", () => {
     expect(view.lanes[0]!.party!.outcome).toBe("lose");
     expect(view.message).toMatch(/slain/i);
     expect(view.tone).toBe("bad");
+  });
+});
+
+describe("Quarrel waits for the player's roll", () => {
+  it("carries a stakes line, so the dice open unthrown behind a Roll the dice button", () => {
+    const duel = rollFromEvents([{ type: "quarrel", aId: 0, bId: 5, aRoll: 2, bRoll: 5, loserId: 0 }])!;
+    expect(duel.stakes).toMatch(/Hero.*Man/);
   });
 });

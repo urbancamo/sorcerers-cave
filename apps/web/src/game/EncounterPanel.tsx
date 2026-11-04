@@ -18,7 +18,7 @@ const RETREAT_DIR: Record<number, string> = { 1: "north", 2: "east", 3: "south",
 
 // Extension kit blocking-confirm popups (design Part 2 — Trap-fall pattern), verbatim per story.
 const CHASM_CONFIRM = "Descend? You cannot return this way.";
-const WELL_CONFIRM = "Draw 1 card — you cannot withdraw this turn.";
+const WELL_CONFIRM = "Draw 1 card — the Well can be used only once, and you cannot withdraw this turn.";
 
 /** Disambiguate identical option labels (e.g. two Men) by appending “ #2”, “ #3” to the repeats. */
 function dedupeLabels(labels: string[]): string[] {
