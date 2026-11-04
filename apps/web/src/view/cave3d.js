@@ -626,7 +626,7 @@ function laySunkTreasure(area){
    stone marker card on top (docs/assets/tokens/markers/marker-02.png). Rebuilt whenever the party or
    its position changes; they remain until cured by the Magic Staff. */
 const STONE_MARKER='/assets/tokens/markers/marker-02.png';
-function makeStoneCard(file){
+function makeStoneCard(file,member){
   const g=new THREE.Group();
   const mat=new THREE.Mesh(new THREE.PlaneGeometry(CARD_W*1.16,CARD_H*1.12),
     new THREE.MeshBasicMaterial({color:0x05050a,transparent:true,opacity:0.55,depthWrite:false}));
@@ -634,6 +634,7 @@ function makeStoneCard(file){
   const face=new THREE.Mesh(new THREE.PlaneGeometry(CARD_W,CARD_H),
     new THREE.MeshBasicMaterial({map:loadPlainTexture(file),color:0x6a6a72,transparent:true,depthWrite:false})); // greyed = stone
   face.rotation.x=-Math.PI/2; face.position.y=0.001; face.renderOrder=6;
+  face.userData.member=member; // a click on the stoned member's card opens it in the card view (see onPointerUp)
   const marker=new THREE.Mesh(new THREE.PlaneGeometry(CARD_W*0.92,CARD_H*0.92),
     new THREE.MeshBasicMaterial({map:loadPlainTexture(STONE_MARKER),transparent:true,opacity:0.5,depthWrite:false})); // half-transparent so the member shows through
   marker.rotation.x=-Math.PI/2; marker.position.y=0.02; marker.renderOrder=8;
@@ -656,7 +657,7 @@ function layPetrified(){
     const n=members.length, center=(n-1)/2, dx=0.27, fanStep=n>1?Math.min(0.17,0.62/(n-1)):0;
     members.forEach((m,i)=>{
       const off=i-center;
-      const o=makeStoneCard(m.card); o.rotation.y=-off*fanStep;
+      const o=makeStoneCard(m.card,m); o.rotation.y=-off*fanStep;
       o.position.set(TILE_W*0.16 + off*dx, 0.07 + i*0.016, TILE_D*0.19 + Math.abs(off)*0.045); // lower-right, clear of the content lanes
       grp.add(o);
     });
@@ -1137,6 +1138,8 @@ function onPointerUp(e){
   if(hitE){let g=hitE.object;while(g&&!g.userData.move)g=g.parent;if(g){doMove(g.userData.move);return;}}
   const hitC=visibleHit(ray.intersectObjects(contentMeshes,false));
   if(hitC){const f=hitC.object;showCard(f.userData.card, f.userData.area?f.userData.area.name:engine.current.name, true);return;}
+  const hitS=onSelectMember&&visibleHit(ray.intersectObjects(petrifiedGroup.children,true).filter(h=>h.object.userData.member));
+  if(hitS){onSelectMember(hitS.object.userData.member);return;}
   const hitT=visibleHit(ray.intersectObjects(tileMeshes,false));
   if(hitT){const a=hitT.object.userData.area; if(a===engine.current){viewSnapTile();areaPanel(engine.current,true);} else inspectArea(a);}
 }
