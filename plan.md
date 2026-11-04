@@ -68,7 +68,7 @@ Numbers in brackets are Peter's item numbers. Work through Group 1 first.
 - Design question to settle first: does the engine roll up front and the UI merely reveal it (simple, keeps determinism and Test Mode forced dice working), or does it wait for a click action? Recommend reveal-only.
 - Needs a brainstorm and a small design doc before building, and a per-player option to skip the animation for repeat play.
 
-### E-2. [9] Click a tiny card or area again to dismiss its Card View
+### E-2. [9] — DONE (second click on the same card, tile, member or item closes the panel). Click a tiny card or area again to dismiss its Card View
 - Make the Card View a toggle: a second click on the same object closes it, so players don't have to travel to the top-right close button.
 - Small, self-contained web change. Add a test: click opens, a second click on the same target closes, and a click on a different target switches.
 

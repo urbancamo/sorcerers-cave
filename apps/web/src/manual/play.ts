@@ -20,7 +20,7 @@ export const PLAY: Section = {
         '**Click a marker** — move that way.',
         '**Drag / scroll** — orbit and zoom the cave. *Snap* gives a clean overhead view, *Levels* focuses one floor, *Orbit* shows the whole cave.',
         '**Party / Inventory icons** — the party list, or the items the party carries. The ⤢ button on the Party heading widens the same list to show each member\'s card, printed strength, magic and charisma, and a total for those able to fight; ⤡ puts it back. The party list is open when the game begins, so you can see the party you chose; close it and it stays closed.',
-        '**Click a map tile** — describe that area in the card panel. Arriving at a special chamber (the Chasm, the Well, the Bell Rope and the like) shows it there for you, and the bar of choices along the bottom takes the chamber\'s name.',
+        '**Click a map tile** — describe that area in the card panel; click the same tile (or card, party member or item) again to put the card away. Arriving at a special chamber (the Chasm, the Well, the Bell Rope and the like) shows it there for you, and the bar of choices along the bottom takes the chamber\'s name.',
         '**Card / Settings / Exit icons** — the card panel; game information with the Game log; and Exit, which saves the game or abandons the expedition.',
         '**Full screen icon** — fills the browser window; press it again, or Esc, to leave. Not shown where the browser has no full screen (iPhone).',
         '**Abandon** (under the Exit icon) — abandon the expedition after a confirmation (the party is left behind; the score is still tallied).',

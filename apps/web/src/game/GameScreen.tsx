@@ -49,6 +49,7 @@ import { inventoryRows } from "./inventory";
 import { viewParty } from "../view/viewParty";
 import { PartyList } from "./shell/PartyList";
 import { SettingsPanel } from "./shell/SettingsPanel";
+import { sameSelection } from "./shell/sameSelection";
 import { ExitPanel } from "./shell/ExitPanel";
 import { useDismissOutside } from "./shell/useDismissOutside";
 import { describeArea, readVerbose, writeVerbose } from "../data/areaText";
@@ -82,6 +83,12 @@ export default function GameScreen() {
   const [testOpen, setTestOpen] = useState(false); // the floating test panel, independent of the slots
   const [partyExpanded, setPartyExpanded] = useState(false); // the party list widened to show strength, magic and charisma
   const [selected, setSelected] = useState<Selected | null>(null); // what the card panel shows
+  // A click on a card, tile, member or item shows it in the card panel; a second click on the SAME thing tidies the panel away again,
+  // so the player need not travel to the far corner to close it (Peter, 2026-11-04 item 9).
+  const pick = (next: Selected, rightNow = rightSlot, current = selected): void => {
+    if (rightNow === 'card' && sameSelection(current, next)) { setSelected(null); setRightSlot(null); return; }
+    setSelected(next); setRightSlot('card');
+  };
   // The Sibyl's card is where her looks live. The scene re-reports "nothing selected here" on every state change (and after a peek),
   // which would close it mid-look; so while she is open, the scene's own reports are ignored until the party moves to another chamber.
   const sibylOpen = useRef<{ open: boolean; area: number }>({ open: false, area: -1 });
@@ -368,7 +375,7 @@ export default function GameScreen() {
           onSelect={(row) => {
             const from = viewParty(displayState, cards ?? []).find((v) => v.label === row.carrier);
             const item = from?.items[row.idx];
-            if (from && item) { setSelected({ kind: 'item', item, from, at: { mi: row.mi, idx: row.idx } }); setRightSlot('card'); }
+            if (from && item) pick({ kind: 'item', item, from, at: { mi: row.mi, idx: row.idx } });
           }} />
   );
 
@@ -386,15 +393,16 @@ export default function GameScreen() {
           left: fightVisible ? null : leftSlot, right: rightSlot,
           onSelectCard: (card, where, explicit) => {
             if (!explicit && sibylOpen.current.open && sibylOpen.current.area === partyAreaNow.current) return;
+            if (card && explicit) { pick({ kind: 'card', card, where }); return; } // the player clicked this card: a second click closes it
             // Nothing on the floor of a special chamber: show the chamber itself (see arrivalSelection) instead of closing the panel.
             const arrival = !card && engine ? arrivalSelection(displayState, engine.current, art?.tiles ?? []) : null;
             setSelected(card ? { kind: 'card', card, where } : arrival);
             setRightSlot((cur) => (card ? (explicit ? 'card' : (cur ?? 'card')) : arrival ? (cur ?? 'card') : (cur === 'card' ? null : cur)));
           },
-          onSelectMember: (member) => { setSelected({ kind: 'member', member }); setRightSlot('card'); },
+          onSelectMember: (member) => pick({ kind: 'member', member }),
           onSelectArea: (area, file, rot) => {
             const at = displayState.areas.findIndex((pa) => { const c = unpackCoord(pa.coord); return c.level === area.level && c.x === area.col && c.y === area.row; });
-            if (at >= 0) { setSelected({ kind: 'area', index: at, name: area.name, file, rot }); setRightSlot('card'); }
+            if (at >= 0) pick({ kind: 'area', index: at, name: area.name, file, rot });
           },
         }} />
       <TitleBar left={fightVisible ? (leftSlot === 'inventory' ? 'inventory' : 'party') : leftSlot} right={rightSlot} testMode={!!displayState.testMode} testOpen={testOpen} onTest={() => setTestOpen((o) => !o)}
@@ -416,13 +424,13 @@ export default function GameScreen() {
       <EncounterPanel state={displayState} dispatch={dispatchWithRolls} leaveOnMove />
       {fightVisible && cards && <FightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
       {fightVisible && cards && <RevisedFightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} inventory={leftSlot === 'inventory' ? inventoryPanel : undefined}
-                                                  onMember={(member) => { setSelected({ kind: 'member', member }); setRightSlot('card'); }} />}
+                                                  onMember={(member) => pick({ kind: 'member', member })} />}
       <ExplorePanel state={displayState} dispatch={dispatchWithRolls} />
       {displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} onSave={handleSave} open={testOpen} />}
       {displayState.testMode && <DeadEndSwapBadge />}
       {!fightVisible && leftSlot === 'party' && (
         <PartyList members={viewParty(displayState, cards ?? [])} expanded={partyExpanded} onToggleExpand={() => setPartyExpanded((e) => !e)}
-                   onSelect={(member) => { setSelected({ kind: 'member', member }); setRightSlot('card'); }} />
+                   onSelect={(member) => pick({ kind: 'member', member })} />
       )}
       {!fightVisible && leftSlot === 'inventory' && inventoryPanel}
       {displayState.phase === "trap" && !holding && !overlay && !notices && (
