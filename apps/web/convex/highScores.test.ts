@@ -1,6 +1,6 @@
 import { convexTest } from "convex-test";
 import { expect, test } from "vitest";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import schema from "./schema";
 import { packCoord, GS_ESCAPED, GS_DEAD } from "@sorcerers-cave/engine";
 import { asUser } from "./game.test";
@@ -300,4 +300,24 @@ test("list keeps kit × sibyl combinations in separate tables (legacy rows read 
   expect(await names({ extensionKit: true })).toEqual(["KitOnly"]);
   expect(await names({ sibyl: true })).toEqual(["SibylOnly", "SibylByState"]);
   expect(await names({ extensionKit: true, sibyl: true })).toEqual(["Both"]);
+});
+
+test("list shows the deepest level, derived from the stored map for rows saved before the column existed", async () => {
+  const t = convexTest(schema, modules);
+  await seedScore(t); // a legacy row: no maxDepth stored; its map reaches level 4
+  const rows = await t.query(api.highScores.list, {});
+  expect(rows[0]?.maxDepth).toBe(4);
+});
+
+test("backfillMaxDepth stamps legacy rows, leaves stamped ones alone, and is safe to re-run", async () => {
+  const t = convexTest(schema, modules);
+  const legacy = await seedScore(t);
+  const stamped = await seedScore(t);
+  await t.run(async (ctx) => { await ctx.db.patch(stamped, { maxDepth: 9 }); });
+  const run = () => t.mutation(internal.highScores.backfillMaxDepth, { paginationOpts: { numItems: 25, cursor: null } });
+  expect(await run()).toMatchObject({ patched: 1, isDone: true });
+  const read = (id: typeof legacy) => t.run(async (ctx) => (await ctx.db.get(id))?.maxDepth);
+  expect(await read(legacy)).toBe(4);
+  expect(await read(stamped)).toBe(9); // not recomputed
+  expect(await run()).toMatchObject({ patched: 0 });
 });

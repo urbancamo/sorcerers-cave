@@ -28,6 +28,8 @@ export interface LeaderboardRow {
   // Multiplayer only: seats that shared the cave (treasure is split, so the count is the score's
   // context). Absent on rows recorded before 2026-07-28 — rendered as "—".
   seatCount?: number;
+  // The deepest level of any tile on the final map.
+  maxDepth?: number;
 }
 
 const OUTCOME_LABEL: Record<number, string> = {
@@ -215,6 +217,7 @@ export function HighScores({ rows, highlightId, onReplay, multiplayer }: {
           <th>Outcome</th>
           {multiplayer && <th className="scv-hs-num">Players</th>}
           <th className="scv-hs-num">Party</th>
+          <th className="scv-hs-num" title="The deepest level reached">Depth</th>
           <th className="scv-hs-num">Score</th>
           <th aria-hidden="true"></th>
         </tr>
@@ -238,6 +241,7 @@ export function HighScores({ rows, highlightId, onReplay, multiplayer }: {
               <td>{OUTCOME_LABEL[r.outcome] ?? "—"}</td>
               {multiplayer && <td className="scv-hs-num">{r.seatCount ?? "—"}</td>}
               <td className="scv-hs-num">{survivors}/{r.party.length}</td>
+              <td className="scv-hs-num">{r.maxDepth ?? "—"}</td>
               <td className="scv-hs-num">{r.score}</td>
               <td className="scv-hs-chev" aria-hidden="true">›</td>
             </tr>

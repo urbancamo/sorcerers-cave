@@ -24,14 +24,16 @@ function Face({ file, name }: { file: string | null; name: string }) {
 }
 
 /** The universal card inspector: the card, its mini-cards when it carries any, and the manual's wording for it. */
-export function CardPanel({ selected, onItem, onMember, onAward, onClose, actions, areaText }: {
+export function CardPanel({ selected, onItem, onMember, onAward, onClose, actions, areaText, floor, onFloor }: {
   selected: Selected;
   areaText?: string; // the words for an `area` selection
-  actions?: ReactNode; // an item card's own actions (use, wield, give, drop)
+  actions?: ReactNode; // a card's own actions: an item's (use, wield, give, drop), or who carries a treasure on the floor
   onItem: (item: ViewItem, from: ViewPartyMember) => void;
   onMember: (member: ViewPartyMember) => void;
   onAward?: (award: Award, from: ViewPartyMember) => void;
   onClose?: () => void; // shown on a recruit card, which has no title-bar icon to dismiss it
+  floor?: Card[]; // every card lying in the chamber the party stands in; a strip of them is shown when the selected card is one
+  onFloor?: (card: Card) => void;
 }) {
   if (selected.kind === 'area') {
     return (
@@ -106,6 +108,7 @@ export function CardPanel({ selected, onItem, onMember, onAward, onClose, action
           </div>
         )}
         {text && <p className="scv-cp-text">{text}</p>}
+        {actions}
         <CardHelp category="creature" name={m.name} />
       </aside>
     );
@@ -129,13 +132,26 @@ export function CardPanel({ selected, onItem, onMember, onAward, onClose, action
   }
   const { card, where } = selected;
   const text = cardText(card.category, card.name);
+  // The whole group in the chamber, so no card needs hunting for in the cave: one enlarged, the rest a click away (like a member's items).
+  const strip = floor && floor.length > 1 && floor.some((c) => c.id === card.id) ? floor : null;
   return (
     <aside className="scv-slot scv-slot-right scv-cardpanel" aria-label="Card panel">
       <h2 className="scv-slot-hd">{CATEGORY_LABEL[card.category] ?? 'Card'}</h2>
       <Face file={card.file} name={card.name} />
+      {strip && (
+        <div className="scv-cp-minis" aria-label="In this chamber">
+          {strip.map((c) => (
+            <button key={c.id} type="button" className={'scv-cp-mini' + (c.id === card.id ? ' is-sel' : '')} title={c.name} aria-pressed={c.id === card.id}
+                    aria-label={c.name} onClick={() => onFloor?.(c)}>
+              {c.file ? <img src={c.file} alt="" /> : <span>{c.name}</span>}
+            </button>
+          ))}
+        </div>
+      )}
       <div className="scv-cp-name">{card.name}</div>
       <div className="scv-cp-meta">{where}{card.asleep ? ' · asleep' : ''}{card.stone ? ' · stone' : ''}</div>
       {text && <p className="scv-cp-text">{text}</p>}
+      {actions}
       <CardHelp category={card.category} name={card.name} general />
     </aside>
   );

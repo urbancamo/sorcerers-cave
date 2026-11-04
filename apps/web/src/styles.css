@@ -11,6 +11,7 @@
   --brass: #c9a14e;
   --brass-bright: #e6c578;
   --crimson: #a8443a;
+  --party-green: #5bbf63; /* DESIGN.md Party Green: the go-here / yours colour */
   --line: rgba(232, 219, 187, 0.13);
   --line-strong: rgba(232, 219, 187, 0.26);
   --display: "Cinzel", serif;
@@ -293,8 +294,8 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 8px 14px;
-  padding: 12px 18px;
+  gap: 4px 12px;
+  padding: 7px 14px;
   background: rgba(15, 15, 20, 0.82);
   border: 1px solid var(--line-strong);
   border-radius: 14px;
@@ -324,6 +325,10 @@
 .scv-enc-treasure {
   color: var(--brass);
 }
+.scv-enc-odds {
+  color: var(--stone-dim);
+  white-space: nowrap;
+}
 .scv-enc-round {
   font-size: 10.5px;
   letter-spacing: 0.14em;
@@ -342,7 +347,7 @@
   font-family: var(--ui);
   font-size: 13px;
   text-align: left;
-  padding: 9px 12px;
+  padding: 6px 11px;
   border-radius: 9px;
   border: 1px solid var(--line-strong);
   color: var(--parchment);
@@ -397,14 +402,14 @@
 /* Test Mode's override controls (TestControlsPanel.tsx, §Test Mode): a QA-only overlay, so it
    follows the same fixed-position/z-index pattern as .scv-enc above rather than sitting in normal
    document flow — without this it renders behind the fixed 3D canvas and is unreachable. Placed on
-   the right edge, clear of .scv-enc (bottom-center) and the roster panel (left). */
+   the bottom-right corner (the encounter bar and camera dock sit at the bottom-left). */
 .scv-tc {
   position: fixed;
-  top: 96px;
-  right: 311px; /* clear of the right-hand panel; drag the header to move it */
+  bottom: 14px; /* the bottom-right corner, so minimized it is a bar there and expanding grows it upwards; drag the header to move it */
+  right: 14px;
   z-index: 62; /* above the slots (58), the fight dialog (55) and the dice overlay (60) */
   width: min(320px, 90vw);
-  max-height: calc(100vh - 116px);
+  max-height: calc(100vh - 56px);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
@@ -1983,6 +1988,9 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 .scv-rev-match { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
 .scv-rev-side { display: flex; gap: 10px; align-items: flex-start; }
 .scv-rev-frontline { align-self: flex-start; flex: none; min-width: 254px; }
+/* Throughout the choosing of the front line it is where creatures go: a green wash and solid edge make the drop target obvious. */
+.scv-rev-frontline.is-target { background: color-mix(in srgb, var(--party-green) 22%, transparent); border: 1px solid color-mix(in srgb, var(--party-green) 75%, transparent); }
+.scv-rev-frontline.is-target .scv-slot-empty { color: var(--cream); border-color: color-mix(in srgb, var(--party-green) 60%, transparent); }
 /* The Ghouls' announcement (RevisedFightSurface): a cold, green-lit gloom with drifting mist and a guttering title. Decoration only. */
 .scv-ghouls { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; padding: 16px; overflow: hidden;
   background: radial-gradient(ellipse at 50% 40%, rgba(24,44,30,.92), rgba(4,8,6,.97) 70%); animation: scv-ghouls-in .9s ease-out both; }
@@ -2237,20 +2245,22 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 .scv-cp-mini{width:44px;border:1px solid var(--line);border-radius:5px;background:transparent;padding:0;cursor:pointer;color:var(--stone);font-size:9px;}
 .scv-cp-mini img{width:100%;display:block;border-radius:4px;}
 .scv-cp-mini:hover,.scv-cp-mini:focus-visible{border-color:var(--brass-bright);outline:none;}
+.scv-cp-mini.is-sel{border-color:var(--brass-bright);box-shadow:0 0 0 1px var(--brass-bright);}
 .scv-cp-back{float:right;background:none;border:0;color:var(--stone);font:inherit;letter-spacing:0;text-transform:none;cursor:pointer;}
 .scv-cp-back:hover{color:var(--brass-bright);}
 #hud.shell .roster .mbr.pick{cursor:pointer;}
 .scv-slot-left{left:14px;}
 .scv-slot-hd span{float:right;color:var(--stone-dim);letter-spacing:0;text-transform:none;font-family:var(--ui);}
 .scv-inv-list{list-style:none;display:flex;flex-direction:column;gap:4px;}
-.scv-inv-row{width:100%;display:grid;grid-template-columns:18px 1fr auto;align-items:center;gap:8px;text-align:left;padding:6px 8px;
+.scv-inv-row{width:100%;display:grid;grid-template-columns:18px minmax(0,1fr) auto;align-items:center;gap:8px;text-align:left;padding:6px 8px;
   border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--parchment);cursor:pointer;}
 .scv-inv-row:hover,.scv-inv-row:focus-visible{border-color:var(--brass);outline:none;}
 .scv-inv-row.sel{background:rgba(201,161,78,.14);border-color:var(--brass);}
 .scv-inv-main{display:flex;flex-direction:column;min-width:0;}
 .scv-inv-name{font-size:13px;}
 .scv-inv-sub{font-size:10.5px;color:var(--stone-dim);}
-.scv-inv-tag{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;}
+/* A long tag (the Staff's "+1 magic · cannot use against Medusa") wraps within a capped column instead of running over the name beside it. */
+.scv-inv-tag{font-size:9.5px;letter-spacing:.06em;text-transform:uppercase;max-width:11em;text-align:right;line-height:1.25;overflow-wrap:anywhere;}
 .scv-inv-row.st-green .scv-inv-glyph,.scv-inv-row.st-green .scv-inv-tag{color:#6fcf7a;}
 .scv-inv-row.st-yellow .scv-inv-glyph,.scv-inv-row.st-yellow .scv-inv-tag{color:#e0b93c;}
 .scv-inv-row.st-gray .scv-inv-glyph,.scv-inv-row.st-gray .scv-inv-tag{color:#8a857a;}
@@ -2258,9 +2268,6 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 .scv-inv-manage{margin-top:10px;width:100%;padding:7px 10px;border-radius:6px;border:1px solid var(--line);background:transparent;color:var(--stone);font-size:12px;cursor:pointer;}
 .scv-inv-manage:hover{border-color:var(--brass);color:var(--parchment);}
 .scv-ia{display:flex;flex-direction:column;gap:8px;margin-top:4px;}
-.scv-pickup{display:flex;flex-direction:column;gap:12px;}
-.scv-pickup-item{display:flex;flex-direction:column;gap:6px;}
-.scv-pickup-who{display:flex;flex-direction:column;gap:5px;}
 
 /* ---- combat: the party list on the left, the dialog taking the rest of the height ---- */
 .scv-partylist .mbr.pick{cursor:pointer;}
@@ -2337,3 +2344,21 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
 
 .scv-mp-helpbtn{position:fixed;top:12px;right:130px;z-index:60;width:30px;height:30px;border-radius:50%;border:1px solid var(--line-strong);background:rgba(15,15,20,.82);color:var(--brass-bright);font-size:15px;cursor:pointer;}
 @media (max-width:640px){.scv-mp-helpbtn{top:56px;right:14px;}}
+
+/* the party list, expanded in place: wider, the member's card beside the name, strength line and a total */
+.scv-partylist.expanded{width:min(420px,46vw);}
+.scv-pl-total{margin:0 0 8px;font-size:12.5px;color:var(--parchment);}
+.scv-pl-total b{color:var(--brass-bright);}
+.scv-pl-stats{font-size:11.5px;color:var(--stone);margin-top:2px;}
+.scv-pl-card{width:46px;flex:none;border-radius:5px;box-shadow:0 2px 8px rgba(0,0,0,.45);}
+/* The compact row fixes each thumbnail at 24x33 with object-fit:cover; widening it alone cropped the top and bottom off the card, so the height follows the card's shape. */
+.scv-partylist.expanded .carry .tre{width:34px;height:auto;aspect-ratio:63/88;}
+.scv-pl-expand { margin-left: 8px; padding: 0 6px; background: none; border: 1px solid var(--line); border-radius: 6px; color: var(--stone); cursor: pointer; font-size: 14px; line-height: 1.4; }
+.scv-pl-expand:hover { border-color: var(--brass); color: var(--cream); }
+
+/* Solo shell, desktop: the camera dock sits bottom-left and the encounter bar shares its row, centred and kept clear of the dock
+   (multiplayer's older HUD keeps both centred). */
+@media (min-width: 721px) {
+  #hud.shell .dock { left: 14px; transform: none; }
+  .scv-shell-root .scv-enc { bottom: 24px; max-width: max(360px, calc(100vw - 680px)); }
+}

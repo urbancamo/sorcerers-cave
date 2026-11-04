@@ -105,7 +105,7 @@ export interface ChamberDraw {
 
 /** The result of tryMove() — the view choreographs this. */
 export type MoveEvent =
-  | { moved: false; deadEnd?: boolean; placed?: Area | null } // placed: a tile drawn onto a dead-end frontier (party stays put)
+  | { moved: false; deadEnd?: boolean; whirlpool?: boolean; placed?: Area | null } // placed: a tile drawn onto a dead-end frontier (party stays put)
   | {
       moved: true;
       dir: Dir;
@@ -114,6 +114,7 @@ export type MoveEvent =
       descended?: 'D';         // present when a down-staircase was taken
       ascended?: 'U';          // present when an up-staircase was taken
       fell?: boolean;          // present when a trap dropped the party a level (one-way, no climb back)
+      whirlpool?: { dragged: boolean }; // the move crossed a Whirlpool: its die shows first; a drag drops the party a level
       trap?: 'sprung' | 'avoided'; // a trap fired: 'sprung' = fell, 'avoided' = a dwarf guided past it
       chamber?: ChamberDraw;   // present when the area has on-floor cards to reveal
       notices?: Notice[];      // feedback for otherwise-silent outcomes (viper deaths, hazards, Deep Pool, effects)

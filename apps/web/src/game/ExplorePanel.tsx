@@ -1,7 +1,7 @@
 import { legalActions, decodeArea, SPECIAL_VIPER_PIT, type GameState, type GameAction } from "@sorcerers-cave/engine";
 import { memberLabel } from "./memberLabels";
 import { ConfirmButton, ConfirmPicker } from "./ConfirmButton";
-import { uncarryableNotes } from "./uncarryableNotes";
+import { chamberName } from "../data/areaText";
 
 // Extension kit blocking-confirm popups (design Part 2 — Trap-fall pattern), verbatim per story.
 const CHASM_CONFIRM = "Descend? You cannot return this way.";
@@ -39,22 +39,12 @@ export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: 
   // with her; staying turns her, and every stranger here, on the party.
   const stay = all.find((a) => a.type === "stay") ?? null;
   const hasKitActions = !!descendChasm || !!drawFromWell || !!enterCrypt || pullBellRope.length > 0 || !!jumpToIsland;
-  // Uncarryable treasure parked on this tile (design 2026-07-28): pickup auto-skips when nothing
-  // can be taken, so the standing explanation lives here while the party remains in the chamber.
-  // Parked contents encode treasure as 200+tid.
-  const notes = uncarryableNotes(
-    state,
-    state.areas[state.partyArea]!.contents.filter((c) => c >= 200 && c < 300).map((c) => c - 200),
-  );
-  if (!attack && !hasKitActions && !reclaimTreasure && notes.length === 0 && !stay) return null;
+  // (Why parked treasure cannot be carried is told on that treasure's own card, so a note alone never opens this bar.)
+  if (!attack && !hasKitActions && !reclaimTreasure && !stay) return null;
 
   return (
     <div className="scv-enc" data-testid="explore-panel">
-      <h3 className="scv-enc-hd">Actions</h3>
-
-      {notes.map((msg) => (
-        <p key={msg} className="scv-enc-line scv-muted">{msg}</p>
-      ))}
+      <h3 className="scv-enc-hd">{chamberName(state, state.partyArea) ?? "Actions"}</h3>
 
       {attack && (
         <div className="scv-enc-actions">
@@ -82,7 +72,7 @@ export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: 
             rowLabel="Bell Rope"
             placeholder="Pull the bell rope…"
             options={pullBellRope.map((a) => ({ label: memberLabel(state.party, a.mi), value: a }))}
-            confirmText={(a) => `Pull the bell rope with ${memberLabel(state.party, a.mi)}? Declining is always allowed.`}
+            confirmText={(a) => `Pull the bell rope with ${memberLabel(state.party, a.mi)}?`}
             onConfirm={(a) => dispatch(a)}
           />
         </div>

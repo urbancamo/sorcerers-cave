@@ -13,7 +13,7 @@ describe('TitleBar', () => {
   it('shows the title and the party, inventory, card and settings icons', () => {
     bar();
     expect(screen.getByText("SORCERER'S CAVE")).toBeInTheDocument();
-    for (const name of ['Party', 'Inventory', 'Card panel', 'Settings']) {
+    for (const name of ['Party', 'Inventory', 'Card panel', 'Settings', 'Exit']) {
       expect(screen.getByRole('button', { name })).toBeInTheDocument();
     }
   });

@@ -2,6 +2,7 @@ import {
   reduce, legalActions, unpackCoord, packCoord, targetCoord, AF_DESTROYED,
   type GameState, type GameAction, type GameEvent,
 } from "@sorcerers-cave/engine";
+import { whirlpoolMove } from "./whirlpoolMove";
 import type { CaveEngine, Area, StateSnapshot, Move, MoveEvent, Dir } from "./ports";
 import { projectArea, encodeWorkingSet, areaKey, laneCards, type ArtTables } from "./projection";
 import { eventNotices } from "../game/eventNotices";
@@ -14,6 +15,9 @@ export interface AdapterOptions {
   onAction?: (action: GameAction) => void;
   /** Multiplayer turn-gate: when present and false, no moves/exits are offered or accepted. */
   canAct?: () => boolean;
+  /** Solo: treasure on the floor never has to be dealt with. During a pickup the doorways are offered, and walking through one
+   *  leaves the treasure first (the same `leaveTreasure` the engine already has), so no "Leave the treasure" button is needed. */
+  leavePickupOnMove?: boolean;
 }
 
 export interface CaveAdapter extends CaveEngine {
@@ -43,6 +47,8 @@ export function createCaveAdapter(initial: GameState, art: ArtTables, opts: Adap
   // that tile's `contents`. enterChamber clears `contents` on entry, so for the current tile it only
   // holds items dropped here this visit (dropTreasure) — merge them so a just-dropped item shows
   // immediately even while an encounter/pickup working set is active. Undefined when the floor is bare.
+  const leavingPickup = () => !!opts.leavePickupOnMove && state.phase === "pickup";
+
   const liveForCurrent = (): number[] | undefined => {
     const parked = state.areas[state.partyArea]?.contents ?? [];
     const merged = [...encodeWorkingSet(state), ...parked];
@@ -82,10 +88,12 @@ export function createCaveAdapter(initial: GameState, art: ArtTables, opts: Adap
       // an encounter by any doorway, so exit chevrons must appear there too — but only for that one
       // turn, not for as long as `indiffStreak >= 1` (a dead-end attempt or testing again closes it).
       const leavingIndifferentEncounter = state.phase === "encounter" && state.indiffLeaveOpen === true;
-      if (state.phase !== "explore" && !leavingIndifferentEncounter) return [];
+      if (state.phase !== "explore" && !leavingIndifferentEncounter && !leavingPickup()) return [];
+      // The explore view of a pickup: its doorways are the ones the party would have once it has left the treasure.
+      const view = leavingPickup() ? { ...state, phase: "explore" as const } : state;
       const { level, x, y } = unpackCoord(state.areas[state.partyArea]!.coord);
       const moves: Move[] = [];
-      for (const a of legalActions(state)) {
+      for (const a of legalActions(view)) {
         if (a.type !== "move") continue;
         const dir = NUM_TO_DIR[a.dir]!;
         const t = unpackCoord(targetCoord(a.dir, level, x, y));
@@ -98,7 +106,7 @@ export function createCaveAdapter(initial: GameState, art: ArtTables, opts: Adap
       }
       // The Cave exit: any level-1 up-stair offers exitCave instead of a move-up (spec §"Movement").
       // Surface it as a "U" marker so it's clickable; doMove routes it through the exit confirmation.
-      if (legalActions(state).some((a) => a.type === "exitCave")) {
+      if (legalActions(view).some((a) => a.type === "exitCave")) {
         moves.push({ dir: "U", kind: "exit", target: { level, col: x, row: y } });
       }
       return moves;
@@ -122,20 +130,23 @@ export function createCaveAdapter(initial: GameState, art: ArtTables, opts: Adap
     },
     tryMove(dir: Dir): MoveEvent {
       if (!acting()) return { moved: false }; // not your turn
-      const before = state;
+      // Walking away from a pickup leaves the treasure first; only recorded once the move itself is accepted.
+      const leave: GameAction | null = leavingPickup() ? { type: "leaveTreasure" } : null;
+      const before = leave ? reduce(state, leave).state : state;
       const num = DIR_TO_NUM[dir];
       const action: GameAction = { type: "move", dir: num };
       const { state: next, events } = reduce(before, action);
       const blocked = events.some((e) => e.type === "blocked");
       const deadEnd = events.some((e) => e.type === "deadEnd");
       if (blocked) return { moved: false }; // no exit that way — nothing drawn or placed
+      if (leave) opts.onAction?.(leave);
       if (deadEnd) {
         // a tile may have been drawn onto the frontier; keep the placement (pruned exit + face-down tile)
         state = next;
         opts.onAction?.(action);
         const drew = next.areas.length > before.areas.length;
         const placed = drew ? projectArea(next.areas[next.areas.length - 1]!, next.areas.length - 1, next, art) : null;
-        return { moved: false, deadEnd: true, placed };
+        return { moved: false, deadEnd: true, placed, ...(events.some((e) => e.type === "deadEnd" && e.whirlpool) ? { whirlpool: true } : {}) };
       }
       state = next;
       opts.onAction?.(action);
@@ -148,6 +159,8 @@ export function createCaveAdapter(initial: GameState, art: ArtTables, opts: Adap
       if (dir === "U") ev.ascended = "U";
       if (events.some((e) => e.type === "trapSprung")) { ev.trap = "sprung"; ev.fell = true; }
       else if (events.some((e) => e.type === "trapAvoided")) ev.trap = "avoided";
+      const wp = whirlpoolMove(events);
+      if (wp) { ev.whirlpool = wp; if (wp.dragged) ev.fell = true; }
       const drew = events.find((e): e is Extract<GameEvent, { type: "drewChamber" }> => e.type === "drewChamber");
       if (drew) {
         // Build the draw display from the drewChamber event (the full draw, captured BEFORE

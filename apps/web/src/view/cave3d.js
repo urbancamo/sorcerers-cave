@@ -90,19 +90,6 @@ function zzzTexture(){
   cx.fillText('Z',44,86);cx.font='bold 30px Georgia, serif';cx.fillText('z',74,62);cx.font='bold 22px Georgia, serif';cx.fillText('z',96,42);
   _zzzTex=new THREE.CanvasTexture(cv);_zzzTex.colorSpace=THREE.SRGBColorSpace;return _zzzTex;
 }
-// Extension kit (SC-EXT-10, design US-06): a small "STONE" marker for a Gallery statue — a stone
-// stranger laid on the chamber floor, distinct from `zzzTexture`'s Lotus-Dust sleep glyph (different
-// cause, different overlay). Mirrors `zzzTexture`'s own cached-canvas-texture pattern.
-let _stoneTex=null;
-function stoneTexture(){
-  if(_stoneTex) return _stoneTex;
-  const s=128,cv=document.createElement('canvas');cv.width=cv.height=s;
-  const cx=cv.getContext('2d');
-  cx.font='bold 22px Georgia, serif';cx.textAlign='center';cx.textBaseline='middle';
-  cx.fillStyle='#b8b1a2';cx.shadowColor='rgba(0,0,0,0.8)';cx.shadowBlur=6;
-  cx.fillText('STONE',64,64);
-  _stoneTex=new THREE.CanvasTexture(cv);_stoneTex.colorSpace=THREE.SRGBColorSpace;return _stoneTex;
-}
 // Secret-door card art (door-01.png = "A", door-02 = "B", …), cached and shared across rebuilds.
 const _texLoader=new THREE.TextureLoader();
 const doorTexCache=new Map();
@@ -471,6 +458,11 @@ function reconcileTiles(canAct){
   if(changed){ rebuildPlatforms(); rebuildStairs(); rebuildSecretDoors(); rebuildLevelButtons(); }
 }
 function refresh(canAct){
+  // Any ascent not made by a canvas move (withdraw, retreat up a stair, a carpet or teleport...) also goes 'home', so only the new current
+  // level is shown; a canvas move (busy) does the same itself in doMove.
+  const lvlNow=engine.current.level;
+  if(lastPartyLevel!==null && lvlNow<lastPartyLevel && !busy) homeOnArrival=true;
+  lastPartyLevel=lvlNow;
   updateHUD(); selectCurrent(); refreshExitMarkers(); reconcileTiles(canAct); layPetrified();
   // Re-lay every chamber whose on-floor cards changed (e.g. a treasure was picked up);
   // layContents is a no-op when an area's contents are unchanged.
@@ -535,11 +527,6 @@ function makeCardObject(card, yaw){
       new THREE.MeshBasicMaterial({map:zzzTexture(),transparent:true,depthWrite:false}));
     zzz.rotation.x=-Math.PI/2; zzz.position.set(CARD_W*0.24,0.02,-CARD_H*0.30); zzz.renderOrder=7;
     regMat(zzz.material); g.add(zzz);
-  } else if(card.stone){ // "STONE" marker so it reads as scenery, not a threat (design US-06)
-    const stone=new THREE.Mesh(new THREE.PlaneGeometry(CARD_W*0.7,CARD_W*0.7),
-      new THREE.MeshBasicMaterial({map:stoneTexture(),transparent:true,depthWrite:false}));
-    stone.rotation.x=-Math.PI/2; stone.position.set(0,0.02,-CARD_H*0.30); stone.renderOrder=7;
-    regMat(stone.material); g.add(stone);
   }
   g.userData.face=face;
   contentMeshes.push(face);
@@ -639,7 +626,7 @@ function laySunkTreasure(area){
    stone marker card on top (docs/assets/tokens/markers/marker-02.png). Rebuilt whenever the party or
    its position changes; they remain until cured by the Magic Staff. */
 const STONE_MARKER='/assets/tokens/markers/marker-02.png';
-function makeStoneCard(file){
+function makeStoneCard(file,member){
   const g=new THREE.Group();
   const mat=new THREE.Mesh(new THREE.PlaneGeometry(CARD_W*1.16,CARD_H*1.12),
     new THREE.MeshBasicMaterial({color:0x05050a,transparent:true,opacity:0.55,depthWrite:false}));
@@ -647,6 +634,7 @@ function makeStoneCard(file){
   const face=new THREE.Mesh(new THREE.PlaneGeometry(CARD_W,CARD_H),
     new THREE.MeshBasicMaterial({map:loadPlainTexture(file),color:0x6a6a72,transparent:true,depthWrite:false})); // greyed = stone
   face.rotation.x=-Math.PI/2; face.position.y=0.001; face.renderOrder=6;
+  face.userData.member=member; // a click on the stoned member's card opens it in the card view (see onPointerUp)
   const marker=new THREE.Mesh(new THREE.PlaneGeometry(CARD_W*0.92,CARD_H*0.92),
     new THREE.MeshBasicMaterial({map:loadPlainTexture(STONE_MARKER),transparent:true,opacity:0.5,depthWrite:false})); // half-transparent so the member shows through
   marker.rotation.x=-Math.PI/2; marker.position.y=0.02; marker.renderOrder=8;
@@ -669,7 +657,7 @@ function layPetrified(){
     const n=members.length, center=(n-1)/2, dx=0.27, fanStep=n>1?Math.min(0.17,0.62/(n-1)):0;
     members.forEach((m,i)=>{
       const off=i-center;
-      const o=makeStoneCard(m.card); o.rotation.y=-off*fanStep;
+      const o=makeStoneCard(m.card,m); o.rotation.y=-off*fanStep;
       o.position.set(TILE_W*0.16 + off*dx, 0.07 + i*0.016, TILE_D*0.19 + Math.abs(off)*0.045); // lower-right, clear of the content lanes
       grp.add(o);
     });
@@ -731,10 +719,19 @@ function doMove(dir){
       refreshExitMarkers(); // the attempted exit was pruned
     }
     else if(ev.deadEnd) reconcileTiles(); // a tile already laid: if it is face down, its fog card gains the stub for this doorway
-    setPrompt(ev.deadEnd?'That way is a dead end.':'No exit that way.','danger'); flashMarker(dir,true); return;
+    setPrompt(ev.deadEnd?'That way is a dead end.':'No exit that way.','danger'); flashMarker(dir,true);
+    if(ev.whirlpool){ // a stairway never leads onto the Whirlpool: say why the party stays where it is
+      busy=true;
+      showNote('A dead end with a view',['The stair ends at a high balcony in the rock.','Far below, the Whirlpool churns and roars — you may watch it a moment, but there is no way down to it.','The party can only retrace its steps to the area above.']).then(()=>{ busy=false; });
+    }
+    return;
   }
   busy=true;
   if(ev.placed){ buildAreaMesh(ev.area,true).then(()=>{rebuildPlatforms();rebuildStairs();rebuildSecretDoors();rebuildLevelButtons();}); }
+  // A Whirlpool crossing shows its die BEFORE the result: the React side holds the engine's pre-move snapshot (the party still on the
+  // Whirlpool's tile) while the dice are up, and refresh() walks the token once they are dismissed. So there is no walk to start here;
+  // a drag drops the party a level, and arrival then goes 'home' so only that level is shown.
+  if(ev.whirlpool){ if(ev.whirlpool.dragged) homeOnArrival=true; busy=false; return; }
   // move token (a sprung trap drops the party a level, animated like a descent)
   const drop = ev.descended||ev.ascended||ev.fell;
   const from=partyToken.position.clone(), to=partyTokenPos(ev.area);
@@ -745,10 +742,10 @@ function doMove(dir){
   setTimeout(()=>{
     updateHUD(); selectCurrent();
     // Descending (or falling) auto-hides the level above so it never occludes the new one.
-    // Climbing UP a level hides the lower (deeper) levels left behind — they only clutter the view.
+    // Climbing UP a level goes 'home' (only the level climbed to is shown); the levels left below only clutter the view.
     // Otherwise just keep an existing isolated view focused on the current level.
     if(ev.descended||ev.fell) setIsolation(engine.current.level, 'above');
-    else if(ev.ascended) setIsolation(engine.current.level, 'below');
+    else if(ev.ascended) viewSnapTile(); // climbing up: 'home', so only the new current level is shown
     else if(isoFocus!=null) setIsolation(engine.current.level, isoDir);
     if(ev.chamber) onChamber(ev.area,ev.chamber); else {
       const n=ev.area.name;
@@ -873,6 +870,19 @@ function showChoice(title,body,okLabel,cancelLabel,tone){
     cancel.addEventListener('click',()=>{ ov.remove(); res(false); });
     ok.addEventListener('click',()=>{ ov.remove(); res(true); });
     row.appendChild(cancel); row.appendChild(ok); card.appendChild(row);
+    ov.appendChild(card); document.body.appendChild(ov); ok.focus();
+  });
+}
+function showNote(title,body){
+  return new Promise(res=>{
+    const ov=document.createElement('div'); ov.className='scv-dice-overlay';
+    const card=document.createElement('div'); card.className='scv-dice-card';
+    card.style.maxWidth='24rem'; // a narrow card: the paragraphs wrap short
+    card.innerHTML='<div class="scv-dice-title">'+title+'</div>'+[].concat(body).map(b=>'<p class="scv-dice-msg">'+b+'</p>').join('');
+    const row=document.createElement('div'); row.className='scv-dice-actions';
+    const ok=document.createElement('button'); ok.className='scv-primary'; ok.textContent='OK';
+    ok.addEventListener('click',()=>{ ov.remove(); res(); });
+    row.appendChild(ok); card.appendChild(row);
     ov.appendChild(card); document.body.appendChild(ov); ok.focus();
   });
 }
@@ -1048,6 +1058,7 @@ function animate(){
    Free-orbit the whole cave, ring every area the party may be sent to, and report the one the player
    clicks. The React dialog owns the confirm/back buttons; this only does the choosing. */
 let picker=null; // {byKey: akey -> area index, onPick, rings, hover}
+let lastPartyLevel=null; // the party's level at the last refresh, to spot an ascent
 let homeOnArrival=false; // snap the camera 'home' to the party's tile once the teleport lands (see refresh)
 function pickerHover(e){
   if(!picker) return;
@@ -1145,6 +1156,8 @@ function onPointerUp(e){
   if(hitE){let g=hitE.object;while(g&&!g.userData.move)g=g.parent;if(g){doMove(g.userData.move);return;}}
   const hitC=visibleHit(ray.intersectObjects(contentMeshes,false));
   if(hitC){const f=hitC.object;showCard(f.userData.card, f.userData.area?f.userData.area.name:engine.current.name, true);return;}
+  const hitS=onSelectMember&&visibleHit(ray.intersectObjects(petrifiedGroup.children,true).filter(h=>h.object.userData.member));
+  if(hitS){onSelectMember(hitS.object.userData.member);return;}
   const hitT=visibleHit(ray.intersectObjects(tileMeshes,false));
   if(hitT){const a=hitT.object.userData.area; if(a===engine.current){viewSnapTile();areaPanel(engine.current,true);} else inspectArea(a);}
 }
@@ -1191,7 +1204,7 @@ export async function boot({ mount, engine: eng, tiles: tileMap, deadEnd, party:
   contentGroups.clear();
   for(const k of Object.keys(levelBounds)) delete levelBounds[k];
   for(const k of Object.keys(isoAlpha)) delete isoAlpha[k];
-  isoFocus=null;isoHinted=false;picker=null;homeOnArrival=false;partyToken=null;selectRing=null;tokenMove=null;goal.active=false;
+  isoFocus=null;isoHinted=false;picker=null;homeOnArrival=false;lastPartyLevel=null;partyToken=null;selectRing=null;tokenMove=null;goal.active=false;
   // Clear transient interaction state that lives at module scope, so a new game never inherits it from
   // however the previous one ended. In particular `busy` is left true when a game ends by leaving the
   // Cave (the exit-confirm path), which would otherwise block every move on the next game's gateway.

@@ -1,10 +1,11 @@
-import { ALL_TREASURES, BORNEABLE, canUseArtifact, isBorne, legalActions, type GameState } from '@sorcerers-cave/engine';
+import { ALL_TREASURES, BORNEABLE, canUseArtifact, isBorne, legalActions, staffBonus, type GameState } from '@sorcerers-cave/engine';
 import { memberLabels } from './memberLabels';
 
 // Draft classification for the inventory (docs/requirements/ui-review, "Artifact classification"); it still needs a
 // rules review. Active artifacts need a player action; passive ones work by being carried or wielded.
 const ACTIVE = new Set([4, 5, 6, 8, 9, 12, 15, 16, 19]);
 const T_MAGIC_SHIELD = 20;
+const T_MAGIC_STAFF = 9;
 const SHIELD_ELIGIBLE = new Set([0, 1, 5, 6]); // Hero, W-Hero, Man, Woman: the only bearers for whom the shield's ward works
 
 export type ArtifactColor = 'gray' | 'yellow' | 'green';
@@ -27,6 +28,13 @@ export function artifactState(state: GameState, mi: number, tid: number, usable:
   const t = ALL_TREASURES[tid]!;
   if (m.status !== 0 && m.status !== 1) return { color: 'gray', tag: 'carrier cannot act' };
   if (t.kind === 'heavy' || tid === 11) return { color: 'gray', tag: 'treasure only' };
+  // The Staff adds magical power to a Priest (+1) and a Wizard (+2) just by being carried, so the label says how much; only the Wizard
+  // can also use its powers (ward off Medusa, wake the stone), so a Priest is told what it cannot do rather than "carrier cannot use".
+  const bonus = tid === T_MAGIC_STAFF ? staffBonus(m.creatureId) : 0;
+  if (bonus > 0) {
+    if (!canUseArtifact(m.creatureId, tid)) return { color: 'yellow', tag: `+${bonus} magic · cannot use against Medusa` };
+    return usable.has(tid) ? { color: 'green', tag: `+${bonus} magic · usable now` } : { color: 'yellow', tag: `+${bonus} magic · not usable now` };
+  }
   if (ACTIVE.has(tid)) {
     if (!canUseArtifact(m.creatureId, tid)) return { color: 'gray', tag: 'carrier cannot use' };
     return usable.has(tid) ? { color: 'green', tag: 'usable now' } : { color: 'yellow', tag: 'not usable now' };

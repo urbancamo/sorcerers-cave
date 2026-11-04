@@ -58,6 +58,18 @@ describe("ExplorePanel", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "descendChasm" });
   });
 
+  it("is headed with the chamber's name, and with Actions elsewhere", () => {
+    const base = newGame(1, [0]);
+    const chasm: GameState = { ...base, areas: base.areas.map((a, i) => (i === 0 ? { ...a, card: 16 | (6 << 7) } : a)) };
+    const { unmount } = render(<ExplorePanel state={chasm} dispatch={() => {}} />);
+    expect(screen.getByRole("heading", { level: 3 })).toHaveTextContent("The Chasm");
+    unmount();
+    const guarded: GameState = { ...base, pacifiedAreas: [base.partyArea] };
+    guarded.areas[base.partyArea]!.contents = [100 + 6, 200 + 1];
+    render(<ExplorePanel state={guarded} dispatch={() => {}} />);
+    expect(screen.getByRole("heading", { level: 3 })).toHaveTextContent("Actions");
+  });
+
   it("offers the Well's draw button with a blocking confirm before dispatching (US-07)", () => {
     const dispatch = vi.fn();
     const base = newGame(1, [0]);
@@ -90,43 +102,12 @@ describe("ExplorePanel", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "pullBellRope", mi: 1 });
   });
 
-  // Uncarryable-treasure chamber notes (design 2026-07-28): pickup auto-skips when nothing can be
-  // taken, so the standing explanation lives here while the party remains in the chamber.
-  it("notes a parked treasure that is too heavy for anyone, even with no other actions", () => {
+  // Treasure nobody can carry is explained on its own card (shell/FloorTreasureActions), not by an information-only bar here.
+  it("shows no bar for a treasure nobody can carry when there is no action to take", () => {
     const s = newGame(1, [5, 6]); // Man (50) + Woman (25) vs the 100 kg chest on the floor
     s.areas[s.partyArea]!.contents = [200 + 14];
     render(<ExplorePanel state={s} dispatch={() => {}} />);
-    expect(screen.getByText("The Treasure Chest is too heavy for anyone to carry.")).toBeInTheDocument();
-  });
-
-  it("words a Giant-less Deep Pool's parked treasure as needing a Giant, not as too heavy", () => {
-    const s = newGame(1, [5, 6]); // no Giant; Gold is light enough for the Man
-    s.areas[s.partyArea]! = { ...s.areas[s.partyArea]!, card: 16 | (2 << 7), contents: [200 + 1] }; // Deep Pool
-    render(<ExplorePanel state={s} dispatch={() => {}} />);
-    expect(screen.getByText("Only a Giant can lift the Gold from the pool.")).toBeInTheDocument();
-  });
-
-  it("words a Deep Pool's parked chest as too heavy when a Giant is present but loaded", () => {
-    const s = newGame(1, [0]);
-    s.areas[s.partyArea]! = { ...s.areas[s.partyArea]!, card: 16 | (2 << 7), contents: [200 + 14] };
-    s.party = [{ creatureId: 12, status: 0, treasure: [14, 1, 2], dragonKills: 0 }]; // Giant at 150/150 kg
-    render(<ExplorePanel state={s} dispatch={() => {}} />);
-    expect(screen.getByText("The Treasure Chest is too heavy for anyone to carry.")).toBeInTheDocument();
-  });
-
-  it("shows no note for parked treasure someone could carry", () => {
-    const s = newGame(1, [5, 6]);
-    s.areas[s.partyArea]!.contents = [200 + 1]; // Gold — the Man could take it on re-entry
-    render(<ExplorePanel state={s} dispatch={() => {}} />);
-    expect(screen.queryByText(/too heavy|from the pool/i)).not.toBeInTheDocument();
-  });
-
-  it("makes no too-heavy claim when the whole party is down", () => {
-    const s = newGame(1, [5]);
-    s.areas[s.partyArea]!.contents = [200 + 14];
-    s.party = s.party.map((m) => ({ ...m, status: 3 }));
-    render(<ExplorePanel state={s} dispatch={() => {}} />);
-    expect(screen.queryByText(/too heavy/i)).not.toBeInTheDocument();
+    expect(screen.queryByTestId("explore-panel")).toBeNull();
   });
 });
 

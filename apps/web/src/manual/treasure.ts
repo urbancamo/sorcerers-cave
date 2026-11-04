@@ -26,17 +26,18 @@ export const TREASURE: Section = {
       p('One d6 decides it for good: **1–2** is an inescapable trap — the whole party falls a level, even with a Dwarf. **3–6** turns the card into the gems themselves: 25 kg, 20 points. Either roll spends the crypt.'),
     ] },
     { id: 'pickup-capacity', title: 'Picking up treasure', brief: 'Only members with spare carrying capacity are offered a piece.', cards: [], screens: ['pickup'], blocks: [
+      p('Click a piece of treasure on the chamber floor, or pick it from the row of small cards in the card panel, and its card shows a *Give to* button for every member who can take it; the first piece is shown for you when the treasure comes on offer, and you can still click any other card meanwhile. *Give to…* is greyed out, with the reason, when no one can carry it. You never have to take anything: walk through any doorway and the treasure stays where it lies.'),
       p('Unguarded treasure is yours to pick up; guarded treasure waits until the strangers are befriended or beaten. When you pick a piece up, only the members who have the **spare capacity** to bear it are offered, with what they carry shown beside their name.'),
       p('Heavy treasure (Silver, Gold, Gems) weighs 25 kg each; the **Treasure Chest** is 100 kg, so only a strong back — a Giant, or an empty-handed Ogre — can carry it. Artefacts weigh nothing.'),
       p('The **Lost Ruby** sits in a statue of strength 8: win the wrestle, or still the statue with the Eye of God, to take it.'),
     ] },
     { id: 'inventory-status', title: 'The Inventory', brief: 'Every item the party carries, who has it, and whether it can be used now.', cards: [], screens: ['inventory'], blocks: [
-      p('Each item shows a colour and a word: **usable now** (green), **not usable now**, **wielded** or **passive** (yellow), or gray when its carrier cannot use it or it is treasure only. Click an item to read it.'),
+      p('Each item shows a colour and a word: **usable now** (green), **not usable now**, **wielded** or **passive** (yellow), or gray when its carrier cannot use it or it is treasure only. The Magic Staff also shows the magic it adds to its carrier (+1 for a Priest, +2 for a Wizard). Click an item to read it.'),
       p('A hero\'s earned marks, such as the upside-down Dragon card for a Dragon slain single-handed, sit among the mini-cards on their card and open the same way.'),
     ] },
     { id: 'item-actions', title: 'What you can do with an item', brief: 'Use it, wield or stow it, open the Chest, give it to another member, or drop it.', cards: [], screens: ['inventory'], blocks: [
       p('An item\'s card holds everything you can do with it: use it (choosing a target or direction), wield or stow it, open the Treasure Chest, give it to another member or drop it. Nothing suggests when to use an artefact; that is up to you.'),
-      note('good', 'Redistribute freely', 'Outside a fight, use *Give to* to hand an item to a stronger back, or *Drop here* to drop it where you stand. A wielded item goes with its holder; a carried one spills when the holder falls.'),
+      note('good', 'Redistribute freely', 'Outside a fight, use *Give to* to hand an item to a stronger back, or *Drop here* to drop it where you stand. *Give to…* is greyed out when no other member can carry the item; hover it for the reason. A wielded item goes with its holder; a carried one spills when the holder falls.'),
     ] },
     { id: 'artifact-general', title: 'About artefacts', cards: cards('artifact', '*'), blocks: [
       p('Artefacts weigh nothing and grant powers. Some are used up; others serve as long as you hold them. Nothing suggests when to use one; that is up to you.'),

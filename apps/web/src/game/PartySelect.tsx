@@ -101,9 +101,21 @@ export function PartySelect({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [kitOn]);
 
-  // Toggling the kit resets any picks — kit-only creatures can't survive a switch to kit-off, and
-  // starting the count fresh avoids surprising the player with a budget that silently changed meaning.
-  const toggleKit = () => { setKit((k) => !k); setCounts({}); };
+  // Switching the kit keeps the picks the player has made: only those that cannot exist in the new roster (kit-only creatures when
+  // the kit goes off) are dropped, and the rest are held to the new stock. Costs may change (Ogre 5 -> 4), which the budget line shows.
+  const toggleKit = () => {
+    const nextKit = !kit;
+    const nextVariants = { ...(nextKit ? { extensionKit: true } : {}), ...(sibylOn ? { sibyl: true } : {}) };
+    const nextStock = stock ?? startingStock(Object.keys(nextVariants).length ? nextVariants : undefined);
+    const nextIds = new Set((nextKit ? [...BASE_SELECTABLE, ...KIT_SELECTABLE] : BASE_SELECTABLE).map((c) => c.id));
+    setKit(nextKit);
+    setCounts((c) => Object.fromEntries(
+      Object.entries(c).flatMap(([id, n]) => {
+        const kept = nextIds.has(Number(id)) ? Math.min(n, testMode ? Infinity : (nextStock[Number(id)] ?? 0)) : 0;
+        return kept > 0 ? [[id, kept]] : [];
+      }),
+    ));
+  };
 
   // Test Mode has no stock ceiling — every creature is available in unlimited supply.
   const cap = (id: number) => (testMode ? Infinity : (effectiveStock[id] ?? 0));

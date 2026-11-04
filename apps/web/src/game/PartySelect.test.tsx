@@ -118,6 +118,18 @@ describe("PartySelect — extension kit toggle (SC-EXT-29, design US-01/§1.3)",
     expect(costOf(/^Dwarf$/).getByText(/cost 1 · 0\/4/)).toBeInTheDocument();
   });
 
+  it("keeps the picks already made when the kit is switched on or off, dropping only kit-only creatures", () => {
+    render(<PartySelect onConfirm={() => {}} kitToggle />);
+    fireEvent.click(screen.getByRole("button", { name: /add dwarf/i }));
+    const toggle = screen.getByRole("checkbox", { name: /extension kit/i });
+    fireEvent.click(toggle);
+    fireEvent.click(screen.getByRole("button", { name: /add witch/i }));
+    expect(screen.getByRole("button", { name: /remove dwarf/i })).toBeEnabled(); // the Dwarf survived turning the kit on
+    fireEvent.click(toggle);
+    expect(screen.getByRole("button", { name: /remove dwarf/i })).toBeEnabled(); // ...and turning it off, which only takes the Witch away
+    expect(screen.queryByRole("button", { name: /remove witch/i })).toBeNull();
+  });
+
   it("confirms a kit-on party and reports variants: { extensionKit: true }", () => {
     const onConfirm = vi.fn();
     render(<PartySelect onConfirm={onConfirm} kitToggle />);

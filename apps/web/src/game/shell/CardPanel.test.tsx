@@ -17,6 +17,38 @@ describe('CardPanel', () => {
     expect(screen.getByText(/Heavy treasure \(25 kg\)/)).toBeInTheDocument();
   });
 
+  it('shows the actions a floor card offers (such as who carries the treasure)', () => {
+    render(<CardPanel selected={{ kind: 'card', card: { id: 'x', name: 'Silver', category: 'treasure', file: '/s.png' }, where: 'Gold Hall' }} onItem={noop} onMember={noop}
+                      actions={<button type="button">Give to Dwarf</button>} />);
+    expect(screen.getByRole('button', { name: 'Give to Dwarf' })).toBeInTheDocument();
+  });
+
+  describe('the chamber floor strip', () => {
+    const dragon = { id: 'c1', name: 'Dragon', category: 'creature' as const, file: '/d.png' };
+    const gold = { id: 't1', name: 'Gold', category: 'treasure' as const, file: '/g.png' };
+    const sel = { kind: 'card' as const, card: dragon, where: 'Lair' };
+
+    it('shows every card on the floor as a mini-card, with the enlarged one marked', () => {
+      render(<CardPanel selected={sel} floor={[dragon, gold]} onFloor={() => {}} onItem={noop} onMember={noop} />);
+      expect(screen.getByRole('button', { name: 'Dragon' })).toHaveAttribute('aria-pressed', 'true');
+      expect(screen.getByRole('button', { name: 'Gold' })).toHaveAttribute('aria-pressed', 'false');
+    });
+
+    it('enlarges the card that is clicked', () => {
+      const onFloor = vi.fn();
+      render(<CardPanel selected={sel} floor={[dragon, gold]} onFloor={onFloor} onItem={noop} onMember={noop} />);
+      fireEvent.click(screen.getByRole('button', { name: 'Gold' }));
+      expect(onFloor).toHaveBeenCalledWith(gold);
+    });
+
+    it('shows no strip for a lone card, or for a card that is not on this chamber floor', () => {
+      const { rerender } = render(<CardPanel selected={sel} floor={[dragon]} onFloor={() => {}} onItem={noop} onMember={noop} />);
+      expect(screen.queryByLabelText('In this chamber')).toBeNull();
+      rerender(<CardPanel selected={sel} floor={[gold, { ...gold, id: 't2' }]} onFloor={() => {}} onItem={noop} onMember={noop} />);
+      expect(screen.queryByLabelText('In this chamber')).toBeNull();
+    });
+  });
+
   it('shows a party member with mini-cards, and a mini-card opens that artifact', () => {
     const onItem = vi.fn();
     render(<CardPanel selected={{ kind: 'member', member }} onItem={onItem} onMember={noop} />);
@@ -32,6 +64,11 @@ describe('CardPanel', () => {
     expect(screen.getByText(/Lulls Dragons/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /← Wizard/ }));
     expect(onMember).toHaveBeenCalledWith(member);
+  });
+
+  it('puts a member\'s own actions at the foot of the card (the Sibyl\'s look)', () => {
+    render(<CardPanel selected={{ kind: 'member', member: { ...member, sibyl: true, items: [] } }} onItem={noop} onMember={noop} actions={<button>Look at the top of the pack</button>} />);
+    expect(screen.getByRole('button', { name: 'Look at the top of the pack' })).toBeInTheDocument();
   });
 
   it('describes the Sibyl without fighting numbers', () => {

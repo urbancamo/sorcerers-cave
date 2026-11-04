@@ -66,7 +66,21 @@ describe('CaveHud — thin shell', () => {
     expect(container.querySelector('#cardpanel')).toBeNull(); // the React card panel replaces it
     expect(screen.queryByText('ABCD')).toBeNull();
     expect(container.querySelector('#snapBtn')).not.toBeNull();
+  });
+
+  // Save and Game log live in Settings, and Abandon joins them there; the dock is camera controls only.
+  it('leaves Save, Game log and Quit to Settings, keeping only the camera controls in the dock', () => {
+    const { container } = render(<CaveHud mountRef={ref()} shell onSave={() => {}} onLog={() => {}} />);
+    expect(screen.queryByRole('button', { name: /game log/i })).toBeNull();
+    expect(screen.queryByRole('button', { name: /save and return/i })).toBeNull();
+    expect(container.querySelector('#resetBtn')).toHaveAttribute('hidden'); // still in the DOM: the 3D scene binds to it
+    expect(container.querySelector('#orbitBtn')).not.toBeNull();
+  });
+
+  it('keeps Save, Game log and Quit in the dock for the other views', () => {
+    const { container } = render(<CaveHud mountRef={ref()} onSave={() => {}} onLog={() => {}} />);
     expect(screen.getByRole('button', { name: /game log/i })).toBeInTheDocument();
+    expect(container.querySelector('#resetBtn')).not.toHaveAttribute('hidden');
   });
 
   it('exposes the open slots to the stylesheet', () => {

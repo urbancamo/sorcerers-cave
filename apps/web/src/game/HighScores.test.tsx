@@ -242,6 +242,14 @@ describe("HighScores", () => {
     expect(useQueryMock.mock.lastCall?.[1]).toEqual({ mode: "multi", extensionKit: false, sibyl: false });
   });
 
+  it("shows the deepest level reached in a Depth column, dashed when unknown", () => {
+    useQueryMock.mockReturnValue([row({ _id: "a", name: "Deep", maxDepth: 5 }), row({ _id: "b", name: "Unknown" })]);
+    render(<LeaderboardPanel />);
+    expect(screen.getByRole("columnheader", { name: "Depth" })).toBeInTheDocument();
+    expect(within(screen.getByText("Deep").closest("tr")!).getByText("5")).toBeInTheDocument();
+    expect(within(screen.getByText("Unknown").closest("tr")!).getAllByText("—").length).toBeGreaterThan(0);
+  });
+
   it("the multiplayer table adds a Players column, dashed for legacy rows", () => {
     useQueryMock.mockReturnValue([
       row({ _id: "a", name: "Trio", seatCount: 3 }),
@@ -252,7 +260,7 @@ describe("HighScores", () => {
     const trio = screen.getByText("Trio").closest("tr")!;
     expect(within(trio).getByText("3")).toBeInTheDocument();
     const legacy = screen.getByText("Legacy").closest("tr")!;
-    expect(within(legacy).getByText("—")).toBeInTheDocument();
+    expect(within(legacy).getAllByText("—").length).toBeGreaterThan(0); // Players (and Depth) unknown
   });
 
   it("the solitaire table has no Players column", () => {

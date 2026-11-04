@@ -83,7 +83,23 @@ function label(a: GameAction, state: GameState): string {
   }
 }
 
-export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch: (a: GameAction) => void }) {
+/** What the player is deciding, in a word: an Encounter, Treasure or an Artifact on the floor, or the Medusa pause. */
+function barLabel(state: GameState): string {
+  if (state.phase === "medusa") return "Medusa";
+  if (state.phase === "pickup") {
+    const onlyArtifacts = state.treasures.length > 0 && state.treasures.every((id) => ALL_TREASURES[id]?.kind === "artifact");
+    return onlyArtifacts ? "Artifact" : "Treasure";
+  }
+  return "Encounter";
+}
+
+/** A pickup where "Leave the treasure" is the only legal action is pure interruption: the panel leaves for the player. */
+const onlyLeave = (state: GameState, actions: GameAction[]) =>
+  state.phase === "pickup" && actions.length > 0 && actions.every((a) => a.type === "leaveTreasure");
+
+/** `leaveOnMove` (solo): treasure is never "left" with a button; the party just walks on (see the cave adapter's `leavePickupOnMove`),
+ *  so the Leave action is dropped and a pickup with nothing else to choose shows no bar. Multiplayer keeps the button. */
+export function EncounterPanel({ state, dispatch, leaveOnMove = false }: { state: GameState; dispatch: (a: GameAction) => void; leaveOnMove?: boolean }) {
   const activePhase = ACTIVE.has(state.phase);
   const actions = activePhase ? legalActions(state) : [];
   // Auto-skip (design 2026-07-28): a pickup where "Leave the treasure" is the only legal action —
@@ -91,7 +107,7 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
   // nothing. The standing explanation (too heavy / Giant-only pool) lives in the explore panel's
   // chamber note. Ref-guarded per state object so a re-render (or StrictMode's double effect)
   // can't dispatch twice; MP's async dispatch gets one call per subscribed state for the same reason.
-  const autoSkip = state.phase === "pickup" && actions.length > 0 && actions.every((a) => a.type === "leaveTreasure");
+  const autoSkip = onlyLeave(state, actions);
   const skippedFor = useRef<GameState | null>(null);
   useEffect(() => {
     if (autoSkip && skippedFor.current !== state) {
@@ -101,6 +117,8 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
   }, [autoSkip, state, dispatch]);
   if (!activePhase || autoSkip) return null;
   const strangers = state.strangers.map((id) => ALL_CREATURES[id]!.name);
+  const fighters = state.party.filter((m) => m.status === 0 || m.status === 1); // stone and the fallen add nothing
+  const sum = (ns: number[]) => ns.reduce((n, v) => n + v, 0);
   const treasures = state.treasures.map((id) => ALL_TREASURES[id]!.name);
 
   // Collapse the action explosion into one control per treasure / per artefact:
@@ -133,8 +151,10 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
     // Leaving an indifferent encounter by any doorway (SC-4-18a) is movement, same as explore's own
     // moves — driven by the 3D exit markers/keys (engineAdapter.ts's openMoves), never a panel button.
     else if (a.type === "move") continue;
+    else if (a.type === "leaveTreasure" && leaveOnMove) continue;
     else simple.push(a);
   }
+  if (leaveOnMove && state.phase === "pickup" && !retake && simple.length === 0 && pullBellRope.length === 0) return null;
 
   // Treasure nobody can take (design 2026-07-28): the engine already withholds `takeTreasure` when
   // no active member qualifies, so a row-less listing would be silent — explain it beside the rows
@@ -150,9 +170,16 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
   };
   return (
     <div className="scv-enc" data-testid="encounter-panel">
-      <h3 className="scv-enc-hd">{state.phase}{state.phase === "encounter" && <HelpButton topics={["encounter-choices", "reaction-roll", "reaction-results", "tip-surprise", "tip-befriend"]} label="Help with meeting strangers" />}</h3>
+      <h3 className="scv-enc-hd">{barLabel(state)}{state.phase === "encounter" && <HelpButton topics={["encounter-choices", "reaction-roll", "reaction-results", "tip-surprise", "tip-befriend"]} label="Help with meeting strangers" />}</h3>
       {strangers.length > 0 && (
-        <p className="scv-enc-line scv-enc-strangers"><span className="k">Strangers: </span>{strangers.join(", ")}</p>
+        <p className="scv-enc-line scv-enc-strangers">{strangers.join(", ")}</p>
+      )}
+      {/* Printed numbers only, so the party can judge "can we take them?" without opening any card; bonuses apply in the fight. */}
+      {state.phase === "encounter" && state.strangers.length > 0 && (
+        <p className="scv-enc-line scv-enc-odds" data-testid="enc-odds" title="Printed values only. Artefacts, the surprise bonus and curses are applied in the fight itself.">
+          Strength: them {sum(state.strangers.map((id) => ALL_CREATURES[id]!.fs))} · you {sum(fighters.map((m) => ALL_CREATURES[m.creatureId]!.fs))}
+          {" · "}Magic: them {sum(state.strangers.map((id) => ALL_CREATURES[id]!.mp))} · you {sum(fighters.map((m) => ALL_CREATURES[m.creatureId]!.mp))}
+        </p>
       )}
       {/* The Sibyl is never among `state.strangers` (SC-SIB-2): name her when she is the one to be tested. */}
       {sibylWaiting(state) && (
@@ -178,7 +205,7 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
         </div>
       )}
 
-      {/* Taking treasure is the party leader's choice on the chamber card (shell/ChamberPickup); leaving it stays here. */}
+      {/* Taking treasure is the party leader's choice on the treasure's own card (shell/FloorTreasureActions); nothing needs leaving. */}
 
       {/* Treasure nobody can take: an info line in place of the assignment row it can't have. */}
       {uncarryable.map((msg) => (
@@ -192,7 +219,7 @@ export function EncounterPanel({ state, dispatch }: { state: GameState; dispatch
             rowLabel="Bell Rope"
             placeholder="Pull the bell rope…"
             options={dedupeLabels(pullBellRope.map((a) => memberLabel(state.party, a.mi))).map((lbl, k) => ({ label: lbl, value: pullBellRope[k]! }))}
-            confirmText={(a) => `Pull the bell rope with ${memberLabel(state.party, a.mi)}? Declining is always allowed.`}
+            confirmText={(a) => `Pull the bell rope with ${memberLabel(state.party, a.mi)}?`}
             onConfirm={(a) => dispatch(a)}
           />
         </div>

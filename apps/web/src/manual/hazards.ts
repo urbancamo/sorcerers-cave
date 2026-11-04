@@ -15,7 +15,7 @@ export const HAZARDS: Section = {
     ] },
     { id: 'hazard-medusa', title: 'Medusa', cards: cards('hazard', 'Medusa'), blocks: [
       p('Her gaze sweeps the party; a die is rolled for each member, and a **1 or 2** turns that member **to stone**. A petrified member can do nothing until freed by the **Magic Staff** (a wizard bearing the staff is immune).'),
-      p('Medusa **lurks for good**: her card stays on the chamber floor, and she rolls against the party *again every time you re-enter*. If her gaze petrifies your *whole* party, the expedition ends there.'),
+      p('Medusa **lurks for good**: her card stays on the chamber floor, and she rolls against the party *again every time you re-enter*. When she looms and you hold Lotus Dust, her card opens in the card panel and the bar offers the throw or proceeding. If her gaze petrifies your *whole* party, the expedition ends there.'),
     ] },
     { id: 'hazard-ghouls', title: 'Ghouls', cards: cards('hazard', 'Ghouls'), blocks: [
       p('Each member fights a round against the ghouls (strength 2) at full fighting strength — a Magic Sword or Strength Potion counts — and anyone who loses is slain. There is no surprise on either side.'),

@@ -140,10 +140,10 @@ export function TestControlsPanel({ state, dispatch, onSave, open = true }: { st
   // once the tester drags the header; null keeps the original fixed position. `dragRef` (a ref, not
   // state) holds the in-progress drag's starting point so pointermove handlers stay cheap — it never
   // needs to trigger a re-render itself, only the `setPos` calls it makes do.
-  const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
+  const [pos, setPos] = useState<{ x: number; bottom: number } | null>(null);
   const [minimized, setMinimized] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
-  const dragRef = useRef<{ startX: number; startY: number; origX: number; origY: number } | null>(null);
+  const dragRef = useRef<{ startX: number; startY: number; origX: number; origBottom: number } | null>(null);
   // A queued chamber is consumed by the move into the next area, so the creature list that fed it is
   // stale once the party enters a different area: clear it, ready for the next chamber. (Treasures and
   // hazards are left as the tester set them.) Before the early return below — hooks can't follow it.
@@ -157,13 +157,13 @@ export function TestControlsPanel({ state, dispatch, onSave, open = true }: { st
 
   const startDrag = (e: React.PointerEvent<HTMLDivElement>) => {
     const rect = panelRef.current!.getBoundingClientRect();
-    dragRef.current = { startX: e.clientX, startY: e.clientY, origX: pos?.x ?? rect.left, origY: pos?.y ?? rect.top };
+    dragRef.current = { startX: e.clientX, startY: e.clientY, origX: pos?.x ?? rect.left, origBottom: pos?.bottom ?? window.innerHeight - rect.bottom };
     e.currentTarget.setPointerCapture?.(e.pointerId);
   };
   const onDrag = (e: React.PointerEvent<HTMLDivElement>) => {
     const d = dragRef.current;
     if (!d) return;
-    setPos({ x: d.origX + (e.clientX - d.startX), y: d.origY + (e.clientY - d.startY) });
+    setPos({ x: d.origX + (e.clientX - d.startX), bottom: d.origBottom - (e.clientY - d.startY) });
   };
   const endDrag = () => { dragRef.current = null; };
 
@@ -184,7 +184,9 @@ export function TestControlsPanel({ state, dispatch, onSave, open = true }: { st
       ref={panelRef}
       className="scv-tc"
       data-testid="test-controls"
-      style={pos ? { left: pos.x, top: pos.y, right: "auto" } : undefined}
+      // Once moved, the panel is anchored by its BOTTOM edge: parked along the foot of the screen, minimizing and expanding
+      // then grows it upwards instead of down off the screen.
+      style={pos ? { left: pos.x, bottom: pos.bottom, top: "auto", right: "auto", maxHeight: `calc(100vh - ${pos.bottom}px - 20px)` } : undefined}
     >
       <div
         className="scv-tc-drag"

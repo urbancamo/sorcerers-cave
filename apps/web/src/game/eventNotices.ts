@@ -259,8 +259,7 @@ export function eventNotices(events: GameEvent[]): Notice[] {
       case "medusaAsleep":
         out.push({ text: "Medusa slumbers on under the Lotus Dust — her gaze never lifts.", tone: "good" });
         break;
-      case "droppedRetaken":
-        out.push({ text: `Your fighters reclaim ${plural(e.count, "treasure")} they set down for the fight.`, tone: "good" });
+      case "droppedRetaken": // the player just pressed the button; a blocking pop-up to confirm it would only be in the way
         break;
       case "sorcererSlain": // celebrated by the FeatCelebration overlay (feats.ts), not a text notice
         break;

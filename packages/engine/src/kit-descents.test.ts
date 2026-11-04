@@ -289,6 +289,16 @@ describe("The Whirlpool — crossing roll (US-05, SC-EXT-6)", () => {
     expect(legalActions(state)).not.toContainEqual({ type: "withdraw" });
   });
 
+  it("both a drag and a safe wade carry the pre-move snapshot, so the die shows before the party moves (SC-4-43)", () => {
+    const drag = reduce(whirlpoolState({ party: [member(HERO)], seed: seedForDragRoll(), largePack: [PLAIN_NORTH_TUNNEL, PLAIN_CHAMBER] }), { type: "move", dir: DIR_S });
+    const safe = reduce(whirlpoolState({ party: [member(HERO)], seed: seedForSafeRoll(), largePack: [PLAIN_NORTH_TUNNEL] }), { type: "move", dir: DIR_S });
+    for (const r of [drag, safe]) {
+      expect(r.midState).toBeDefined();
+      expect(r.midState!.partyArea).toBe(0); // still on the Whirlpool's tile
+    }
+    expect(safe.state.partyArea).not.toBe(0); // while the real result has moved on
+  });
+
   it("repeated crossings of the same Whirlpool each roll their own d6", () => {
     // Cross south safely (a genuine crossing — prev was the west tile; S is adjacent to a W entry),
     // then come back onto the Whirlpool (a retrace, no roll — now entering via the SOUTH doorway),
@@ -353,7 +363,7 @@ describe("Whirlpool revision (2026-08-08): no stairway may lead here", () => {
       partyArea: 0, prev: 0, party: [member(HERO)],
     });
     const { state, events } = reduce(s, { type: "move", dir: DIR_DOWN });
-    expect(events).toContainEqual({ type: "deadEnd", dir: DIR_DOWN });
+    expect(events).toContainEqual({ type: "deadEnd", dir: DIR_DOWN, whirlpool: true });
     expect(state.partyArea).toBe(0); // never moved
     expect(decodeOpen(state.areas[0]!).stairDown).toBe(false); // pruned — no longer offered
   });
@@ -366,7 +376,7 @@ describe("Whirlpool revision (2026-08-08): no stairway may lead here", () => {
       largePack: [WHIRLPOOL_CARD], largeIdx: 0,
     });
     const { state, events } = reduce(s, { type: "move", dir: DIR_DOWN });
-    expect(events).toContainEqual({ type: "deadEnd", dir: DIR_DOWN });
+    expect(events).toContainEqual({ type: "deadEnd", dir: DIR_DOWN, whirlpool: true });
     expect(state.partyArea).toBe(0);
     expect(decodeOpen(state.areas[0]!).stairDown).toBe(false); // pruned
     expect(state.areas).toHaveLength(2); // the Whirlpool card WAS drawn and placed — just face-down
@@ -383,7 +393,7 @@ describe("Whirlpool revision (2026-08-08): no stairway may lead here", () => {
       partyArea: 0, prev: 0, party: [member(HERO)],
     });
     const { state, events } = reduce(s, { type: "move", dir: DIR_DOWN });
-    expect(events).toContainEqual({ type: "deadEnd", dir: DIR_DOWN }); // blocked exactly like the ordinary draw
+    expect(events).toContainEqual({ type: "deadEnd", dir: DIR_DOWN, whirlpool: true }); // blocked exactly like the ordinary draw
     expect(state.partyArea).toBe(0); // never moved
     expect(decodeOpen(state.areas[0]!).stairDown).toBe(false); // pruned
     expect(state.areas).toHaveLength(2); // the Whirlpool WAS placed — just face-down, same as an un-forced draw

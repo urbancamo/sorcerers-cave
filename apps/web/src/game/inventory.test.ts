@@ -2,8 +2,8 @@ import { describe, it, expect } from 'vitest';
 import { newGame, type GameState } from '@sorcerers-cave/engine';
 import { inventoryRows, artifactState } from './inventory';
 
-const HERO = 0, DWARF = 7, WIZARD = 8;
-const T = { silver: 0, sword: 3, carpet: 4, lotus: 5, flute: 12, shield: 20 };
+const HERO = 0, PRIEST = 4, DWARF = 7, WIZARD = 8;
+const T = { silver: 0, staff: 9, sword: 3, carpet: 4, lotus: 5, flute: 12, shield: 20 };
 
 const game = (carriers: [number, number[]][], over: Partial<GameState> = {}): GameState => {
   const s = newGame(1, [HERO]); // any valid pick: the party is replaced below
@@ -25,6 +25,23 @@ describe('inventory', () => {
   it('shows a class that cannot use an active artifact as gray', () => {
     const [r] = inventoryRows(game([[HERO, [T.carpet]]]));
     expect(r).toMatchObject({ color: 'gray', tag: 'carrier cannot use' });
+  });
+
+  describe('the Magic Staff', () => {
+    it('shows a Priest the +1 magic it adds, and that it cannot be used against Medusa (not "carrier cannot use")', () => {
+      const [r] = inventoryRows(game([[PRIEST, [T.staff]]]));
+      expect(r).toMatchObject({ color: 'yellow', tag: '+1 magic · cannot use against Medusa' });
+    });
+
+    it('shows a Wizard the +2 magic it adds, and whether its powers can be used now', () => {
+      const s = game([[WIZARD, [T.staff]]]);
+      expect(artifactState(s, 0, T.staff, new Set())).toEqual({ color: 'yellow', tag: '+2 magic · not usable now' });
+      expect(artifactState(s, 0, T.staff, new Set([T.staff]))).toEqual({ color: 'green', tag: '+2 magic · usable now' });
+    });
+
+    it('still reads as no use to a class that gains nothing from it', () => {
+      expect(inventoryRows(game([[HERO, [T.staff]]]))[0]).toMatchObject({ color: 'gray', tag: 'carrier cannot use' });
+    });
   });
 
   it('shows an active artifact its carrier can use but not now as yellow, and green once the action is offered', () => {

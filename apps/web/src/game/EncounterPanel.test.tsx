@@ -1,6 +1,6 @@
 import { render, screen, fireEvent } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
-import { newGame, type GameState } from "@sorcerers-cave/engine";
+import { newGame, ALL_CREATURES, type GameState } from "@sorcerers-cave/engine";
 import { EncounterPanel } from "./EncounterPanel";
 
 function encounterState(): GameState {
@@ -209,5 +209,76 @@ describe("EncounterPanel — artifact use lives on the item's card", () => {
     expect(screen.queryByLabelText("Elixir")).toBeNull();
     expect(screen.queryByRole("button", { name: "Read the Scroll" })).toBeNull();
     expect(screen.queryByLabelText(/use holy water/i)).toBeNull();
+  });
+});
+
+describe("EncounterPanel — leaveOnMove (solo: the party simply walks away from treasure)", () => {
+  it("shows no bar for a pickup whose only choices are giving treasure out or leaving it", () => {
+    const pickup: GameState = { ...newGame(1, [5, 6]), phase: "pickup", treasures: [1] }; // Gold: the right-hand panel handles Give to
+    const { container } = render(<EncounterPanel state={pickup} dispatch={() => {}} leaveOnMove />);
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("keeps the one-tap retake but drops the Leave button", () => {
+    const pickup: GameState = { ...newGame(1, [0]), phase: "pickup", treasures: [1], fightDrops: [{ mi: 0, tid: 1 }] };
+    render(<EncounterPanel state={pickup} dispatch={() => {}} leaveOnMove />);
+    expect(screen.getByRole("button", { name: /retake dropped treasure/i })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /leave the treasure/i })).toBeNull();
+  });
+
+  it("still offers Leave without it (multiplayer)", () => {
+    const pickup: GameState = { ...newGame(1, [5, 6]), phase: "pickup", treasures: [1] };
+    render(<EncounterPanel state={pickup} dispatch={() => {}} />);
+    expect(screen.getByRole("button", { name: /leave the treasure/i })).toBeInTheDocument();
+  });
+});
+
+describe("EncounterPanel — the thin bar", () => {
+  it("names the strangers in one line and compares printed strength and magic", () => {
+    // Man + Woman (strength 5 and 3? the numbers come from the engine tables) against a lone Man.
+    const s = encounterState();
+    render(<EncounterPanel state={s} dispatch={() => {}} />);
+    const odds = screen.getByTestId("enc-odds");
+    expect(odds).toHaveTextContent(/strength.*them.*you/i);
+    expect(odds).toHaveTextContent(/magic.*them.*you/i);
+    expect(odds).toHaveAttribute("title", expect.stringMatching(/printed/i));
+  });
+
+  it("adds up the strangers and only the party members able to fight", () => {
+    const s: GameState = { ...newGame(1, [5, 6]), phase: "encounter", strangers: [5, 5] };
+    s.party[1]!.status = 2; // the Woman (the Man alone can still fight) is turned to stone: adds nothing
+    const { fs: manFs } = ALL_CREATURES[5]!;
+    render(<EncounterPanel state={s} dispatch={() => {}} />);
+    expect(screen.getByTestId("enc-odds")).toHaveTextContent(`Strength: them ${manFs * 2} · you ${manFs}`);
+  });
+
+  it("shows no comparison outside an encounter with strangers", () => {
+    const pickup: GameState = { ...newGame(1, [5, 6]), phase: "pickup", treasures: [1] };
+    render(<EncounterPanel state={pickup} dispatch={() => {}} />);
+    expect(screen.queryByTestId("enc-odds")).toBeNull();
+  });
+});
+
+describe("EncounterPanel — the bar's label says what the player is deciding", () => {
+  const heading = () => screen.getByRole("heading", { level: 3 });
+
+  it("is Encounter while meeting strangers", () => {
+    render(<EncounterPanel state={encounterState()} dispatch={() => {}} />);
+    expect(heading()).toHaveTextContent(/^Encounter/);
+  });
+
+  it("is Medusa at the Medusa pause", () => {
+    const s: GameState = { ...newGame(1, [5, 6]), phase: "medusa", strangers: [] };
+    render(<EncounterPanel state={s} dispatch={() => {}} />);
+    expect(heading()).toHaveTextContent(/^Medusa/);
+  });
+
+  it("is Treasure or Artifact when the bar shows during a pickup (a retake after a fight)", () => {
+    const retake = (treasures: number[]): GameState => ({ ...newGame(1, [0]), phase: "pickup", treasures, fightDrops: [{ mi: 0, tid: treasures[0]! }] });
+    const { unmount } = render(<EncounterPanel state={retake([1])} dispatch={() => {}} leaveOnMove />); // Gold
+    expect(heading()).toHaveTextContent(/^Treasure/);
+    unmount();
+    render(<EncounterPanel state={{ ...retake([3]), fightDrops: [{ mi: 0, tid: 1 }] }} dispatch={() => {}} />); // Magic Sword, with the Leave button showing
+    expect(heading()).toHaveTextContent(/^Artifact/);
   });
 });

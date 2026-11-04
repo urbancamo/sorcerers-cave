@@ -245,6 +245,27 @@ function finalizeRound(state: GameState): GameEvent[] {
       afterFight(state, events);
     }
   }
+  else if (state.fight?.rev?.standoff && state.fellThroughTrap) {
+    // A standoff after a one-way fall has no exit: neither withdraw nor retreat is allowed. The fight simply ends, the strangers stay
+    // in the chamber (hostile, so they meet the party again if it returns), and the party moves on by an ordinary move. No gear is dropped.
+    const area = state.areas[state.partyArea]!;
+    area.contents = [
+      ...area.contents,
+      ...state.strangers.map((id) => 100 + id),
+      ...state.treasures.map((id) => 200 + id),
+      ...(state.sleeping ?? []).map((id) => 400 + id),
+      ...(state.statues ?? []).map((id) => 500 + id),
+      ...(state.lulled ?? []).map((id) => 100 + id),
+    ];
+    state.strangers = []; state.treasures = []; state.hazards = []; state.sleeping = [];
+    if (state.statues) state.statues = [];
+    state.lulled = [];
+    events.push(...settleFelledSorcerer(state));
+    state.fight = null;
+    state.phase = "explore";
+    state.party.forEach((m) => { m.potionActive = false; });
+    if (!state.hostileAreas?.includes(state.partyArea)) state.hostileAreas = [...(state.hostileAreas ?? []), state.partyArea];
+  }
   // else: still fighting; resolveRound already advanced the round
   return events;
 }
@@ -1030,11 +1051,17 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
             relocateDown(wade);
             return { state: wade, events: [...evs.filter((e) => e.type !== "deadEndCardSwapped" && e.type !== "deadEnd"), ...resolveArea(wade)] };
           }
+          pendingMidState = structuredClone(state); // a safe wade too: its die is shown on the Whirlpool's tile, before the party moves on
           wade.subLocation = { area: fromIdx, at: "doorway", dir: action.dir };
           if (res.noViableExits) evs.push({ type: "deadEndNoViableExits" });
           return { state: wade, events: evs };
         }
-        return { state: res.state, events: [...swapEvents, res.deadEnd ? { type: "deadEnd", dir: action.dir } : { type: "blocked" }, ...(res.noViableExits ? [{ type: "deadEndNoViableExits" } as GameEvent] : [])] };
+        // A stairway onto the Whirlpool never opens (SC-EXT-6): flag it so the player is told why the party stays put.
+        const { level: fl, x: fx, y: fy } = unpackCoord(state.areas[fromIdx]!.coord);
+        const wpTarget = targetCoord(action.dir, fl, fx, fy);
+        const intoWhirlpool = (action.dir === DIR_UP || action.dir === DIR_DOWN)
+          && res.state.areas.some((a) => a.coord === wpTarget && decodeArea(a.card).special === SPECIAL_WHIRLPOOL);
+        return { state: res.state, events: [...swapEvents, res.deadEnd ? (intoWhirlpool ? { type: "deadEnd", dir: action.dir, whirlpool: true } : { type: "deadEnd", dir: action.dir }) : { type: "blocked" }, ...(res.noViableExits ? [{ type: "deadEndNoViableExits" } as GameEvent] : [])] };
       }
       const next = { ...res.state, turn: res.state.turn + 1 };
       next.fellThroughTrap = false; // a normal move reaches a reachable area (resolveArea re-sets it if a trap fires)
@@ -1084,6 +1111,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           kept.push(...resolveArea(next));
           return { state: next, events: kept };
         }
+        pendingMidState = structuredClone(state); // safe wade: show the die on the Whirlpool's tile first (SC-4-43)
       }
 
       events.push(...resolveArea(next));

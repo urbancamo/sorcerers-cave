@@ -8,7 +8,6 @@ import { useCaveGame } from "./useCaveGame";
 import { CaveCanvas, type CaveApi } from "../view/CaveCanvas";
 import { SplashScreen } from "./SplashScreen";
 import { PartySelect } from "./PartySelect";
-import { PartyPanel } from "./PartyPanel";
 import { GameOverScreen } from "./GameOverScreen";
 import { EncounterPanel } from "./EncounterPanel";
 import { TrapChoice } from "./TrapChoice";
@@ -39,18 +38,25 @@ import { TitleBar } from "./shell/TitleBar";
 import { CardPanel, type Selected } from "./shell/CardPanel";
 import { InventoryPanel } from "./shell/InventoryPanel";
 import { ItemActions } from "./shell/ItemActions";
-import { ChamberPickup } from "./shell/ChamberPickup";
+import { FloorTreasureActions } from "./shell/FloorTreasureActions";
+import { useOfferOnPickup } from "./shell/useOfferOnPickup";
+import { arrivalSelection } from "./shell/areaSelection";
+import { SibylNote } from "./shell/SibylNote";
+import { medusaSelection } from "./shell/medusaSelection";
 import { SibylLook } from "./SibylLook";
 import { memberLabels } from "./memberLabels";
 import { inventoryRows } from "./inventory";
 import { viewParty } from "../view/viewParty";
 import { PartyList } from "./shell/PartyList";
 import { SettingsPanel } from "./shell/SettingsPanel";
+import { ExitPanel } from "./shell/ExitPanel";
+import { useDismissOutside } from "./shell/useDismissOutside";
 import { describeArea, readVerbose, writeVerbose } from "../data/areaText";
 import { HelpPanel } from "./shell/HelpPanel";
 import { HelpProvider } from "../manual/HelpContext";
 import type { HelpScreen } from "../manual";
 import { toggleLeft, toggleRight, type LeftSlot, type RightSlot } from "./shell/shellState";
+import { useOpenPartyOnce } from "./shell/useOpenPartyOnce";
 
 export default function GameScreen() {
   const { isAuthenticated, isLoading } = useConvexAuth();
@@ -68,9 +74,18 @@ export default function GameScreen() {
   // Thin shell slots (title bar icons). Inventory shows the party-and-treasure panel until the inventory list replaces it.
   const [leftSlot, setLeftSlot] = useState<LeftSlot>(null);
   const [rightSlot, setRightSlot] = useState<RightSlot>(null);
+  // The Exit menu goes as soon as the player presses anything else (its own panel and its title-bar icon aside).
+  const closeExit = useCallback(() => setRightSlot((cur) => (cur === 'exit' ? null : cur)), []);
+  useDismissOutside(rightSlot === 'exit', '[aria-label="Exit"]', closeExit);
+  useOpenPartyOnce(gameId, setLeftSlot); // the chosen party is on screen from the first step into the Gateway
   const [testOpen, setTestOpen] = useState(false); // the floating test panel, independent of the slots
-  const [managing, setManaging] = useState(false); // the party panel, until the artifact card takes over moving and dropping treasure
+  const [partyExpanded, setPartyExpanded] = useState(false); // the party list widened to show strength, magic and charisma
   const [selected, setSelected] = useState<Selected | null>(null); // what the card panel shows
+  // The Sibyl's card is where her looks live. The scene re-reports "nothing selected here" on every state change (and after a peek),
+  // which would close it mid-look; so while she is open, the scene's own reports are ignored until the party moves to another chamber.
+  const sibylOpen = useRef<{ open: boolean; area: number }>({ open: false, area: -1 });
+  sibylOpen.current.open = selected?.kind === 'member' && !!selected.member.sibyl;
+  const partyAreaNow = useRef(-1);
   const [verbose, setVerbose] = useState(readVerbose); // story-voice area descriptions (a per-player setting)
   // Shows the save/restore code modal when set. `restored` distinguishes a plain save (dismiss ⇒
   // back to menu) from a just-forked Test Mode scenario (dismiss ⇒ keep playing the new game).
@@ -116,11 +131,14 @@ export default function GameScreen() {
   stateRef.current = state;
   const getSnapshot = useCallback(() => stateRef.current, []);
   const { roll, notices, celebration, clearCelebration, holding, heldState, dispatchWithRolls, holdMove, clearRoll, clearNotices } = useDispatchWithRolls(
-    // A fall that happens outside a canvas move (the Trap, dealt with last, after the Ghouls fight) drops the party a level with no
+    // A fall or descent that happens outside a canvas move (the Trap, dealt with last, after the Ghouls fight) drops the party a level with no
     // move animation: home the camera on the new tile when it lands, as the Home button would, so only the party's level is shown.
     async (a: GameAction) => {
       const res = await dispatch(a);
-      if ((res as { events?: GameEvent[] } | null)?.events?.some((e) => e.type === "trapSprung")) caveApi.current?.snapOnArrival();
+      const events = (res as { events?: GameEvent[] } | null)?.events;
+      if (events?.some((e) => e.type === "trapSprung")) caveApi.current?.snapOnArrival();
+      // Descending the Chasm is likewise not a canvas move: home the camera so only the new level is shown.
+      if (a.type === "descendChasm" && !events?.some((e) => e.type === "blocked")) caveApi.current?.snapOnArrival();
       return res;
     },
     getSnapshot,
@@ -129,6 +147,17 @@ export default function GameScreen() {
   presentingRef.current = holding || !!roll || !!notices;
   const cards = useManifestCards();
   const caveApi = useRef<CaveApi | null>(null);
+  // Treasure on offer: put the first piece on the card panel, where its "Give to" choices are, and re-offer as pieces are taken.
+  // (Declared here, before the early returns, because it is a hook; `state` can still be null at this point.)
+  const onShow = holding && heldState ? heldState : state;
+  partyAreaNow.current = onShow?.partyArea ?? -1;
+  useEffect(() => { if (selected?.kind === 'member' && selected.member.sibyl) sibylOpen.current.area = partyAreaNow.current; }, [selected]);
+  useOfferOnPickup(!!onShow && onShow.phase === 'pickup' && !holding && onShow.treasures.length > 0, `${onShow?.partyArea}:${onShow?.treasures.join(',')}`, () => {
+    const piece = engine?.current.treasure[0];
+    if (!piece) return;
+    setSelected({ kind: 'card', card: piece, where: engine!.current.name });
+    setRightSlot((cur) => cur ?? 'card');
+  });
   const pickDestination = useCallback<DestinationPicker>((o) => caveApi.current?.setPicker(o), []);
   // The Sorcerer's teleport. Once the destination is chosen the camera settles on the party's own chamber (the particles
   // rise there); at full black the party is moved and the camera cuts to the destination (after the view has taken the
@@ -144,13 +173,30 @@ export default function GameScreen() {
     setTimeout(() => caveApi.current?.frameArea(to, true), 300);
   };
   const art = useManifestArt(); // tile + card art, for the Sorcerer's teleport map
+  // Arriving at a special chamber with nothing on its floor: show the chamber on the card panel. This runs after the scene (a child) has
+  // reported its own selection for the arrival, so it is the last word; a chamber with cards keeps the scene's own first card.
+  useEffect(() => {
+    if (!engine || !onShow || holding) return;
+    const here = engine.current;
+    if (here.strangers.length > 0 || here.treasure.length > 0) return;
+    const arrival = arrivalSelection(onShow, here, art?.tiles ?? []);
+    if (arrival) { setSelected(arrival); setRightSlot((cur) => cur ?? 'card'); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- offered once per arrival (the area), not on every state change
+  }, [onShow?.partyArea, holding]);
+  // The Medusa pause is a must-act choice, so show her card while it lasts (she is a marker, not a stranger, so the scene may not).
+  useEffect(() => {
+    if (!engine || !onShow || holding) return;
+    const medusa = medusaSelection(onShow, art?.cards ?? [], engine.current.name);
+    if (medusa) { setSelected(medusa); setRightSlot((cur) => cur ?? 'card'); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- once per pause, not on every state change
+  }, [onShow?.phase === 'medusa', onShow?.partyArea, holding]);
   const gameOver = !!state && state.gs !== GS_PLAYING;
   // The finished game's move log, for the post-game .txt / .log downloads (fetched only at game over).
   const gameLog = useQuery(api.game.log, gameOver && gameId ? { id: gameId } : "skip") as GameLog | null | undefined;
 
   // Return to the splash screen, clearing all in-game overlays and the current game binding.
   const goHome = useCallback(() => {
-    clearRoll(); clearNotices(); setSavedCode(null); setManaging(false); setLeftSlot(null); setRightSlot(null); setSelected(null); setTestOpen(false);
+    clearRoll(); clearNotices(); setSavedCode(null); setPartyExpanded(false); setLeftSlot(null); setRightSlot(null); setSelected(null); setTestOpen(false);
     setGameId(null); setStarted(false); setWantTestGame(false);
   }, [clearRoll, clearNotices]);
 
@@ -310,10 +356,12 @@ export default function GameScreen() {
     ? (selected.at ?? { mi: memberLabels(displayState.party).indexOf(selected.from.label), idx: selected.from.items.indexOf(selected.item) })
     : null;
   const sibylLooks = legalActions(displayState).filter((a): a is Extract<GameAction, { type: "examineArea" }> => a.type === "examineArea");
+  // Every stranger and treasure card in the chamber the party stands in (the strip on a floor card).
+  const floorCards = engine ? [...engine.current.strangers, ...engine.current.treasure] : undefined;
   const itemLive = itemAt && itemAt.mi >= 0 && itemAt.idx >= 0 ? itemAt : null;
 
   const inventoryPanel = (
-    <InventoryPanel rows={inventoryRows(displayState)} onManage={() => setManaging(true)}
+    <InventoryPanel rows={inventoryRows(displayState)}
           selected={selected?.kind === 'item' ? (selected.at ?? null) : null}
           onSelect={(row) => {
             const from = viewParty(displayState, cards ?? []).find((v) => v.label === row.carrier);
@@ -328,15 +376,18 @@ export default function GameScreen() {
 
   return (
     <HelpProvider variants={displayState.variants}>
-    <div className="relative h-screen w-screen">
-      <CaveCanvas key={gameId} onReady={(api) => { caveApi.current = api; }} engine={engine} state={displayState} canAct={!presentingRef.current} color={color} code={code ?? undefined} onSave={handleSave} onLog={() => setShowLog(true)}
+    <div className="relative h-screen w-screen scv-shell-root">
+      <CaveCanvas key={gameId} onReady={(api) => { caveApi.current = api; }} engine={engine} state={displayState} canAct={!presentingRef.current} color={color} code={code ?? undefined}
         // A card on the floor opens the card panel unless Settings or the test panel holds the slot; a click on a card or
         // party member always takes the slot. No card on the floor closes it again.
         shell={{
           left: fightVisible ? null : leftSlot, right: rightSlot,
           onSelectCard: (card, where, explicit) => {
-            setSelected(card ? { kind: 'card', card, where } : null);
-            setRightSlot((cur) => (card ? (explicit ? 'card' : (cur ?? 'card')) : (cur === 'card' ? null : cur)));
+            if (!explicit && sibylOpen.current.open && sibylOpen.current.area === partyAreaNow.current) return;
+            // Nothing on the floor of a special chamber: show the chamber itself (see arrivalSelection) instead of closing the panel.
+            const arrival = !card && engine ? arrivalSelection(displayState, engine.current, art?.tiles ?? []) : null;
+            setSelected(card ? { kind: 'card', card, where } : arrival);
+            setRightSlot((cur) => (card ? (explicit ? 'card' : (cur ?? 'card')) : arrival ? (cur ?? 'card') : (cur === 'card' ? null : cur)));
           },
           onSelectMember: (member) => { setSelected({ kind: 'member', member }); setRightSlot('card'); },
           onSelectArea: (area, file, rot) => {
@@ -347,21 +398,20 @@ export default function GameScreen() {
       <TitleBar left={fightVisible ? (leftSlot === 'inventory' ? 'inventory' : 'party') : leftSlot} right={rightSlot} testMode={!!displayState.testMode} testOpen={testOpen} onTest={() => setTestOpen((o) => !o)}
                 // In a fight the list is always showing: Party returns to it, Inventory swaps it out and back.
                 onLeft={(p) => setLeftSlot((cur) => (fightVisible && p === 'party' ? 'party' : toggleLeft(cur, p)))} onRight={(p) => setRightSlot((cur) => toggleRight(cur, p))} />
-      {displayState.phase === 'pickup' && !holding && rightSlot !== 'settings' && rightSlot !== 'help' && cards && (
-        <ChamberPickup state={displayState} dispatch={dispatchWithRolls} cards={cards} />
-      )}
-      {rightSlot === 'card' && selected && displayState.phase !== 'pickup' && (
-        <CardPanel selected={selected} onAward={(award, from) => setSelected({ kind: 'award', award, from })} areaText={selected.kind === 'area' ? describeArea(displayState, selected.index, verbose) : undefined} onMember={(member) => setSelected({ kind: 'member', member })}
+      {rightSlot === 'card' && selected && (
+        <CardPanel selected={selected} floor={floorCards} onFloor={(card) => selected.kind === 'card' && setSelected({ kind: 'card', card, where: selected.where })} onAward={(award, from) => setSelected({ kind: 'award', award, from })} areaText={selected.kind === 'area' ? describeArea(displayState, selected.index, verbose) : undefined} onMember={(member) => setSelected({ kind: 'member', member })}
                    onItem={(item, from) => setSelected({ kind: 'item', item, from })}
-                   actions={selected.kind === 'item' && itemLive ? <ItemActions state={displayState} dispatch={dispatchWithRolls} mi={itemLive.mi} idx={itemLive.idx} />
+                   actions={selected.kind === 'card' && !holding ? <><FloorTreasureActions state={displayState} dispatch={dispatchWithRolls} card={selected.card} /><SibylNote state={displayState} card={selected.card} /></>
+                   : selected.kind === 'item' && itemLive ? <ItemActions state={displayState} dispatch={dispatchWithRolls} mi={itemLive.mi} idx={itemLive.idx} />
                    // The Sibyl's free look is reachable only from her own card, and never prompted.
                    : selected.kind === 'member' && selected.member.sibyl && sibylLooks.length > 0
                      ? <SibylLook state={displayState} actions={sibylLooks} dispatch={dispatchWithRolls} tools={{ pick: pickDestination, peek: (a) => caveApi.current?.peekTile(a) }} />
                      : undefined} />
       )}
       {rightSlot === 'help' && <HelpPanel screens={helpScreens} flags={displayState.variants} />}
-      {rightSlot === 'settings' && <SettingsPanel verbose={verbose} onVerbose={(on) => { setVerbose(on); writeVerbose(on); }} state={displayState} code={code ?? undefined} kitActive={!!displayState.variants?.extensionKit} onSave={handleSave} onLog={() => setShowLog(true)} />}
-      <EncounterPanel state={displayState} dispatch={dispatchWithRolls} />
+      {rightSlot === 'settings' && <SettingsPanel verbose={verbose} onVerbose={(on) => { setVerbose(on); writeVerbose(on); }} state={displayState} code={code ?? undefined} kitActive={!!displayState.variants?.extensionKit} onLog={() => setShowLog(true)} />}
+      {rightSlot === 'exit' && <ExitPanel onSave={handleSave} onAbandon={() => engine.quit()} />}
+      <EncounterPanel state={displayState} dispatch={dispatchWithRolls} leaveOnMove />
       {fightVisible && cards && <FightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
       {fightVisible && cards && <RevisedFightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} inventory={leftSlot === 'inventory' ? inventoryPanel : undefined}
                                                   onMember={(member) => { setSelected({ kind: 'member', member }); setRightSlot('card'); }} />}
@@ -369,11 +419,10 @@ export default function GameScreen() {
       {displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} onSave={handleSave} open={testOpen} />}
       {displayState.testMode && <DeadEndSwapBadge />}
       {!fightVisible && leftSlot === 'party' && (
-        <PartyList members={viewParty(displayState, cards ?? [])}
+        <PartyList members={viewParty(displayState, cards ?? [])} expanded={partyExpanded} onToggleExpand={() => setPartyExpanded((e) => !e)}
                    onSelect={(member) => { setSelected({ kind: 'member', member }); setRightSlot('card'); }} />
       )}
       {!fightVisible && leftSlot === 'inventory' && inventoryPanel}
-      {managing && <PartyPanel state={displayState} dispatch={dispatch} onClose={() => setManaging(false)} />}
       {displayState.phase === "trap" && !holding && !overlay && !notices && (
         <TrapChoice traps={displayState.areas[displayState.partyArea]?.contents.filter((c) => c === 300 + HAZARD_TRAP).length || 1} dispatch={(a) => {
           // A deliberate fall drops the party a level outside doMove's animation, so home the camera on the

@@ -18,6 +18,17 @@ describe("rollFromEvents", () => {
     expect(rollFromEvents([roll("partyWon", "Hero")])?.message).toBe("no members of the party fell, 1 fought off a Ghoul.");
   });
 
+  it("tells the party it may leave, or test again, after an indifferent reaction (the doorways are open for one action)", () => {
+    const view = rollFromEvents([{ type: "reaction", outcome: "indifferent", roll: 3 }])!;
+    expect(view.message).toBe("Indifferent — they pay you no heed. You may leave by any doorway, or test them again.");
+    expect(view.tone).toBe("neutral");
+  });
+
+  it("does not offer a test again once they are indifferent for good", () => {
+    const view = rollFromEvents([{ type: "reaction", outcome: "indifferent", roll: 3 }, { type: "pacified" }])!;
+    expect(view.message).toBe("Indifferent again — they now ignore you for good. Go on your way.");
+  });
+
   it("builds a single-die reaction view, with a join message on a friendly recruit", () => {
     const events: GameEvent[] = [
       { type: "reaction", outcome: "friendly", roll: 6 },

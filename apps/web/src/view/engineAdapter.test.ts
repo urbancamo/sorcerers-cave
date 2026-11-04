@@ -237,3 +237,31 @@ describe("tryMove + MoveEvent", () => {
     if (ev.moved) { expect(ev.descended).toBe("D"); expect(ev.area.level).toBe(2); }
   });
 });
+
+// Treasure on the floor never has to be dealt with: a player who ignores it simply walks on. The solo shell turns this on
+// (`leavePickupOnMove`); multiplayer keeps its explicit "Leave the treasure" button.
+describe("leaving a pickup by walking away", () => {
+  const rooms = () => [mkArea(2, 1, 50, 50, { visited: true }), mkArea(8, 1, 51, 50, { visited: true })];
+  const pickup = () => mkState(rooms(), 0, { phase: "pickup", treasures: [1] });
+
+  it("offers the doorways during a pickup, and a move leaves the treasure first", () => {
+    const seen: string[] = [];
+    const eng = createCaveAdapter(pickup(), art, { leavePickupOnMove: true, onAction: (a) => seen.push(a.type) });
+    expect(eng.openMoves().map((m) => m.dir)).toEqual(["E"]);
+    const ev = eng.tryMove("E");
+    expect(ev.moved).toBe(true);
+    expect(seen).toEqual(["leaveTreasure", "move"]);
+  });
+
+  it("offers nothing during a pickup unless the option is on", () => {
+    const eng = createCaveAdapter(pickup(), art);
+    expect(eng.openMoves()).toEqual([]);
+  });
+
+  it("does not leave anything behind when the move itself is refused", () => {
+    const seen: string[] = [];
+    const eng = createCaveAdapter(pickup(), art, { leavePickupOnMove: true, onAction: (a) => seen.push(a.type) });
+    expect(eng.tryMove("W").moved).toBe(false); // no west exit
+    expect(seen).toEqual([]);
+  });
+});

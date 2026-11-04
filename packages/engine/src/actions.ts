@@ -103,7 +103,7 @@ export type GameAction =
 // Encounter-resolution and fight events arrive with combat (Milestone C-2).
 export type GameEvent =
   | { type: "moved"; area: number; level: number }
-  | { type: "deadEnd"; dir: number; retreat?: true } // retreat: the fight bounce-back, not a plain blocked move
+  | { type: "deadEnd"; dir: number; retreat?: true; whirlpool?: true } // retreat: the fight bounce-back, not a plain blocked move; whirlpool: a stairway onto the Whirlpool, which never opens
   // Dead End rule (§6.3.2, "forced redraw", `variants.forcedRedraw`): one per completed
   // reject-and-redraw cycle during a `move`, emitted ahead of the move's own final event(s).
   | { type: "deadEndCardSwapped"; removed: number; drawn: number; reason?: "deadEnd" | "sealed" }
@@ -173,7 +173,7 @@ export type GameEvent =
   | { type: "scrollSurprise" } // the Scroll used in round 1 for +1 to the surprise bonus (revised combat)
   | { type: "ghoulsDepart" } // the Ghouls' one round is over: any left withdraw to their lair and the combat ends (revised combat, Peter 20-OCT-2026)
   | { type: "spectreDeparts" } // the chest Spectre's one round is over and it vanishes (revised combat, Peter 14-OCT-2026)
-  | { type: "fightStandoff" } // no side can continue a match, make one or break a stalemate: the fight is over and the party must withdraw
+  | { type: "fightStandoff" } // no side can continue a match, make one or break a stalemate: the fight is over and the party must withdraw (after a one-way fall, with no exit, the fight just ends and the strangers stay in the chamber)
   | { type: "fightWon" }
   // A losing pair's casualty was decided: `roll` is the d6, `gotPreference` whether 4-6 honoured the choice.
   | { type: "casualtyChosen"; creatureId: number; roll: number; gotPreference: boolean }
