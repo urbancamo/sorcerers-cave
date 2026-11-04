@@ -471,6 +471,11 @@ function reconcileTiles(canAct){
   if(changed){ rebuildPlatforms(); rebuildStairs(); rebuildSecretDoors(); rebuildLevelButtons(); }
 }
 function refresh(canAct){
+  // Any ascent not made by a canvas move (withdraw, retreat up a stair, a carpet or teleport...) also goes 'home', so only the new current
+  // level is shown; a canvas move (busy) does the same itself in doMove.
+  const lvlNow=engine.current.level;
+  if(lastPartyLevel!==null && lvlNow<lastPartyLevel && !busy) homeOnArrival=true;
+  lastPartyLevel=lvlNow;
   updateHUD(); selectCurrent(); refreshExitMarkers(); reconcileTiles(canAct); layPetrified();
   // Re-lay every chamber whose on-floor cards changed (e.g. a treasure was picked up);
   // layContents is a no-op when an area's contents are unchanged.
@@ -749,10 +754,10 @@ function doMove(dir){
   setTimeout(()=>{
     updateHUD(); selectCurrent();
     // Descending (or falling) auto-hides the level above so it never occludes the new one.
-    // Climbing UP a level hides the lower (deeper) levels left behind — they only clutter the view.
+    // Climbing UP a level goes 'home' (only the level climbed to is shown); the levels left below only clutter the view.
     // Otherwise just keep an existing isolated view focused on the current level.
     if(ev.descended||ev.fell) setIsolation(engine.current.level, 'above');
-    else if(ev.ascended) setIsolation(engine.current.level, 'below');
+    else if(ev.ascended) viewSnapTile(); // climbing up: 'home', so only the new current level is shown
     else if(isoFocus!=null) setIsolation(engine.current.level, isoDir);
     if(ev.chamber) onChamber(ev.area,ev.chamber); else {
       const n=ev.area.name;
@@ -1052,6 +1057,7 @@ function animate(){
    Free-orbit the whole cave, ring every area the party may be sent to, and report the one the player
    clicks. The React dialog owns the confirm/back buttons; this only does the choosing. */
 let picker=null; // {byKey: akey -> area index, onPick, rings, hover}
+let lastPartyLevel=null; // the party's level at the last refresh, to spot an ascent
 let homeOnArrival=false; // snap the camera 'home' to the party's tile once the teleport lands (see refresh)
 function pickerHover(e){
   if(!picker) return;
@@ -1195,7 +1201,7 @@ export async function boot({ mount, engine: eng, tiles: tileMap, deadEnd, party:
   contentGroups.clear();
   for(const k of Object.keys(levelBounds)) delete levelBounds[k];
   for(const k of Object.keys(isoAlpha)) delete isoAlpha[k];
-  isoFocus=null;isoHinted=false;picker=null;homeOnArrival=false;partyToken=null;selectRing=null;tokenMove=null;goal.active=false;
+  isoFocus=null;isoHinted=false;picker=null;homeOnArrival=false;lastPartyLevel=null;partyToken=null;selectRing=null;tokenMove=null;goal.active=false;
   // Clear transient interaction state that lives at module scope, so a new game never inherits it from
   // however the previous one ended. In particular `busy` is left true when a game ends by leaving the
   // Cave (the exit-confirm path), which would otherwise block every move on the next game's gateway.
