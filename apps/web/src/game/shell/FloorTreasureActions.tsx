@@ -3,8 +3,11 @@ import type { Card } from '../../view/ports';
 import { memberLabel } from '../memberLabels';
 import { uncarryableNotes } from '../uncarryableNotes';
 import { HelpButton } from '../../manual/HelpButton';
+import { ConfirmButton } from '../ConfirmButton';
 
 const T_LOST_RUBY = 11;
+const T_CRYPT = 21;
+const CRYPT_CONFIRM = 'Enter? A trap here cannot be avoided.';
 
 /**
  * What the card panel offers for a treasure or artefact lying on the chamber floor during a pickup: the party leader chooses
@@ -14,6 +17,15 @@ const T_LOST_RUBY = 11;
 export function FloorTreasureActions({ state, dispatch, card }: { state: GameState; dispatch: (a: GameAction) => void; card: Pick<Card, 'category' | 'entityId'> }) {
   if (card.category !== 'treasure' && card.category !== 'artifact') return null;
   const tid = Number(card.entityId);
+  // The sealed crypt is shown as the Crypt/Gems card; its one action lives on that card (SC-EXT-13).
+  if (tid === T_CRYPT) {
+    const enter = legalActions(state).find((a) => a.type === 'enterCrypt');
+    if (enter) return (
+      <div className="scv-ia" data-testid="crypt-actions">
+        <ConfirmButton label="Enter the crypt" confirmText={CRYPT_CONFIRM} onConfirm={() => dispatch(enter)} />
+      </div>
+    );
+  }
   // Treasure left in the chamber once the pickup is over (parked as 200+id): there is nothing to choose, but the card says why nobody can carry it.
   if (state.phase !== 'pickup') {
     if (!state.areas[state.partyArea]?.contents.includes(200 + tid)) return null;

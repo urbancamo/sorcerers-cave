@@ -8,6 +8,20 @@ const pickup = (picks: number[], treasures: number[], over: Partial<GameState> =
 const card = (entityId: number, category: 'treasure' | 'artifact' | 'creature' = 'treasure') => ({ id: `t-${entityId}`, name: 'x', category, entityId: String(entityId), file: '' });
 
 describe('FloorTreasureActions — what the treasure card on the floor offers', () => {
+  it('puts Enter the crypt on the sealed crypt card, in a pickup or at rest, behind a confirm (SC-EXT-13)', () => {
+    for (const phase of ['pickup', 'explore'] as const) {
+      const g = newGame(1, [5, 6]);
+      const d = vi.fn();
+      const state: GameState = { ...g, phase, treasures: phase === 'pickup' ? [14] : [], cryptCoord: g.areas[g.partyArea]!.coord };
+      const { unmount } = render(<FloorTreasureActions state={state} dispatch={d} card={card(21)} />);
+      fireEvent.click(screen.getByRole('button', { name: /enter the crypt/i }));
+      expect(d).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole('button', { name: /confirm/i }));
+      expect(d).toHaveBeenCalledWith({ type: 'enterCrypt' });
+      unmount();
+    }
+  });
+
   it('gives the treasure to a member who can carry it', () => {
     const d = vi.fn();
     render(<FloorTreasureActions state={pickup([5, 6], [1])} dispatch={d} card={card(1)} />); // Gold

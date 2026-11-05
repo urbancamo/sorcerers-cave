@@ -2064,11 +2064,13 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // the Chasm/Well/Bell Rope's escape-hatch latitude, the design gives the Crypt no "legal
       // mid-encounter too" note, so this is gated tighter, to `explore` only) while standing on the
       // area `cryptCoord` names.
-      if (state.phase !== "explore") return { state, events: [{ type: "blocked" }] };
+      if (state.phase !== "explore" && state.phase !== "pickup") return { state, events: [{ type: "blocked" }] };
       if (state.cryptCoord === undefined || state.areas[state.partyArea]!.coord !== state.cryptCoord) {
         return { state, events: [{ type: "blocked" }] };
       }
       const next = structuredClone(state);
+      // From an open pickup the floor treasure is left behind, exactly as walking on or `leaveTreasure` does.
+      if (next.phase === "pickup") persistAndExplore(next);
       next.cryptCoord = undefined; // spent either way — no second entry (design US-08)
       const roll = cursedRoll(next);
       const events: GameEvent[] = [];
