@@ -1,4 +1,5 @@
 import { type DragEvent, useEffect, useRef, useState } from "react";
+import { UnusedGearNote } from "./UnusedGearNote";
 // ALL_CREATURES/ALL_TREASURES (not the base-only tables, SC-EXT-29): a kit-on party/stranger set
 // can hold kit ids (14-21) the moment any fight begins — the base tables would crash before the
 // surface renders anything.
@@ -288,6 +289,7 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
           </span>
         )}
       </div>
+      <UnusedGearNote state={state} />
 
       <div className="scv-fight-strangers">
         {/* Each battle reads left-to-right: the foe(s), the strength tally, the front line facing them,

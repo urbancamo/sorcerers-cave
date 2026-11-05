@@ -1,7 +1,7 @@
 import { ALL_TREASURES, BORNEABLE, canUseArtifact, isBorne, legalActions, staffBonus, type GameState } from '@sorcerers-cave/engine';
 import { memberLabels } from './memberLabels';
-import { useVerbs } from './wielding';
 
+import { useVerbs } from './wielding';
 // Draft classification for the inventory (docs/requirements/ui-review, "Artifact classification"); it still needs a
 // rules review. Active artifacts need a player action; passive ones work by being carried or wielded.
 const ACTIVE = new Set([4, 5, 6, 8, 9, 12, 15, 16, 19]);

@@ -1,5 +1,4 @@
 import { useEffect, useState } from "react";
-import { useVerbs, wieldRefusal } from "./wielding";
 import {
   ALL_CREATURES, ALL_TREASURES, carriedWeight, canCarry, BORNEABLE, isBorne,
   type GameState, type GameAction,
@@ -8,6 +7,7 @@ import { memberLabels } from "./memberLabels";
 import { loadManifest, resolveCard, resolveCardVariant, type CardArt } from "../data/manifest";
 import { awardsOf } from "./awards";
 
+import { useVerbs, wieldRefusal } from "./wielding";
 // Status badges mirror the in-cave roster (see view/cave3d.js renderRoster): a befriended member
 // shows the same green "ally" pill, a petrified one the grey "stone" pill, so the detailed party
 // view and the summary roster read identically.

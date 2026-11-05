@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
+import { UnusedGearNote } from "./UnusedGearNote";
 // ALL_CREATURES/ALL_TREASURES (SC-EXT-29): a kit id or a Ghoul can stand in any fight.
 import {
   ALL_CREATURES, ALL_TREASURES, isCaster, legalActions, fightView, freeOf, matchStrength, partyContribution, matchModifiers, legalMoves, legalPairs, deployViolation, engageViolation, engageMovesViolation, redeployViolation,
@@ -435,6 +436,7 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
         {rev.review && <span className="scv-fight-banner" data-testid="rev-review">{rev.attacker === "strangers" ? "The attackers have chosen their targets…" : "The strangers have taken their places"}</span>}
         <span className="scv-fight-cap">{rev.attacker === "party" ? "You attack" : "They attack"} · your dice {bonus >= 0 ? "+" : "−"}{Math.abs(bonus)}</span>
       </div>
+      <UnusedGearNote state={state} />
 
       {/* One row per combat, as in the original battle plan: the foe(s) on the left, the strength tally, then the party's side.
           Matches already in play come first, then every stranger not yet in one (a pairing under way shows in its row). */}
