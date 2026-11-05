@@ -591,6 +591,16 @@ DEMON.”*
 
 It can be carried with the sword, but only one or the other can be used in a fight by the bearer.
 
+### Wielding and wearing (this implementation)
+
+A weapon or charm helps only while it is in use. The Magic Sword, Magic Axe, Magic Staff and Magic Shield must be
+**wielded**; the Ring and the Talisman must be **worn**. Items picked up are merely carried, and nothing is wielded or
+worn automatically, so prepare the party before a fight (wielding and wearing are not possible during one). Each
+member has two hands: at most one attacking weapon (Sword, Axe or Staff) plus the Shield. Worn items use no hand. The
+Eye of God works just by being carried. A Wizard's Staff must be wielded to ward off Medusa or reanimate stoned
+creatures, and one Talisman worn by any living member protects the whole party. No item is lost with a fallen holder:
+everything spills to the floor.
+
 ### Magic carpet. 5 vp.
 
 *“Artefact. When commanded by a PRIEST or WIZARD, will transport a party to any adjacent area in any direction (
