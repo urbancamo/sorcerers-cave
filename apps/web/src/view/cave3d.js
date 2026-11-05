@@ -289,6 +289,7 @@ function rebuildStairs(){
 }
 // Persistent secret-door card markers, laid flat on each area the party reached by a secret stair.
 const DOOR_AR=195/157; // door card art aspect (h/w)
+const secretDoorOffset=()=>[-TILE_W*0.30,TILE_D*0.30]; // where the door marker lies on its tile (a free corner: the stair markers use the others)
 function rebuildSecretDoors(){
   // Dispose geometry/material but keep the shared, cached door textures.
   [...secretGroup.children].forEach(o=>{o.geometry?.dispose?.();o.material?.dispose?.();secretGroup.remove(o);});
@@ -301,7 +302,7 @@ function rebuildSecretDoors(){
     const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat);
     m.rotation.x=-Math.PI/2; // flat to the floor
     // A free corner (the up/down stair markers sit at the other corners) so the animated up marker stays visible.
-    const p=worldPos(a); m.position.set(p.x-TILE_W*0.30, p.y+0.03, p.z+TILE_D*0.30);
+    const p=worldPos(a); { const [dx,dz]=secretDoorOffset(); m.position.set(p.x+dx, p.y+0.03, p.z+dz); }
     m.renderOrder=3; m.userData.lvl=a.level; regMat(m.material); secretGroup.add(m);
   });
 }
@@ -389,7 +390,8 @@ function refreshExitMarkers(){
       // stair marker near a corner of the tile
       // Over the stairwell drawn on the tile's art where it is known (tiles are laid unrotated); otherwise a corner of the tile.
       const at=a.rot?null:stairAt(tiles.get(a.tileId)?.file,m.dir);
-      const corner=at?[(at[0]-0.5)*TILE_W,(at[1]-0.5)*TILE_D]:m.dir==='D'?[TILE_W*0.30,TILE_D*0.30]:[-TILE_W*0.30,-TILE_D*0.30];
+      // A stair with no art here is an engine-added return stair — the secret door — so its marker floats over the door marker laid on this tile.
+      const corner=at?[(at[0]-0.5)*TILE_W,(at[1]-0.5)*TILE_D]:a.secretDoor!=null?secretDoorOffset():m.dir==='D'?[TILE_W*0.30,TILE_D*0.30]:[-TILE_W*0.30,-TILE_D*0.30];
       const ring=ringFlat(col,0.3,0.44);ring.rotation.x=-Math.PI/2;ring.position.y=0.06;ring.material.depthTest=false;ring.renderOrder=19;
       const spr=chevronSprite(col,true); spr.position.y=0.5;
       grp.add(ring,spr);
