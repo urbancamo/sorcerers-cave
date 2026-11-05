@@ -260,8 +260,8 @@ describe("eventNotices", () => {
     expect(eventNotices([{ type: "desertionRoll", creatureId: 5, roll: 1, deserted: true, items: [1, 3] }])).toHaveLength(0);
     // A single non-deserting roll alone still triggers the derived "holds together" summary below —
     // that's the ONLY text this event type can still produce.
-    expect(eventNotices([{ type: "desertionRoll", creatureId: 6, roll: 4, deserted: false, items: [1] }]))
-      .toEqual([{ text: "The party holds together.", tone: "good" }]);
+    // A roll that left everyone in place says nothing here: the dice overlay already reads "The party holds together.".
+    expect(eventNotices([{ type: "desertionRoll", creatureId: 6, roll: 4, deserted: false, items: [1] }])).toHaveLength(0);
 
     const wolf = eventNotices([{ type: "wolfUnmoved", hazard: HAZARD_DESERTION }])[0]!;
     expect(wolf.text).toBe("The Wolf is unmoved.");
@@ -273,7 +273,7 @@ describe("eventNotices", () => {
       { type: "desertionRoll", creatureId: 5, roll: 4, deserted: false, items: [] },
       { type: "desertionRoll", creatureId: 6, roll: 5, deserted: false, items: [] },
     ]);
-    expect(allStay.some((n) => n.text === "The party holds together.")).toBe(true);
+    expect(allStay.some((n) => n.text === "The party holds together.")).toBe(false);
 
     // An all-Wolf-ally roster rolls nothing at all (every ally is skipped) but still holds together.
     const allWolves = eventNotices([
@@ -530,9 +530,9 @@ describe("Mutiny and Desertion with nobody to affect (Peter's 2026-11-04 items 5
     expect(n).toHaveLength(1);
     expect(n[0]!.text).toMatch(/no allies/i);
   });
-  it("a Desertion that rolled keeps only its own summary", () => {
+  it("a Desertion that rolled adds no second pop-up: the dice overlay carries the summary", () => {
     const n = eventNotices([{ type: "hazardFired", hazard: 5 }, { type: "desertionRoll", creatureId: 5, roll: 4, deserted: false, items: [] }]);
-    expect(n.map((x) => x.text)).toEqual(["The party holds together."]);
+    expect(n.map((x) => x.text)).toEqual([]);
   });
 });
 

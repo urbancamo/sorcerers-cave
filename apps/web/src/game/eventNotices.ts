@@ -501,7 +501,9 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
   const desertionWolfSkips = events.filter((e): e is Extract<GameEvent, { type: "wolfUnmoved" }> =>
     e.type === "wolfUnmoved" && e.hazard === HAZARD_DESERTION);
   const hadDesertionActivity = desertionRolls.length > 0 || desertionWolfSkips.length > 0;
-  if (hadDesertionActivity && !desertionRolls.some((e) => e.deserted)) {
+  // With dice rolled, the Desertion overlay already says "The party holds together." — a second pop-up after it is redundant, so this notice
+  // is only for the all-Wolf roster, where nothing rolls and so there is no overlay.
+  if (hadDesertionActivity && desertionRolls.length === 0) {
     out.push({ text: "The party holds together.", tone: "good" });
   }
   // Mutiny and Desertion only ever touch ALLIES. With none in the party they fire and change nothing, which used to read as a stuck card
