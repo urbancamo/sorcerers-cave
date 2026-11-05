@@ -37,3 +37,9 @@ export function unusedGear(state: GameState): string[] {
   }
   return out;
 }
+
+/** What a party member's fight card shows: a wieldable or wearable item only while it is in use. A carried Sword does nothing, so it is not
+ *  shown against its bearer. Everything else (heavy treasure, other artefacts) shows as before. */
+export function fightGear(m: PartyMember): number[] {
+  return m.treasure.filter((t) => !BORNEABLE.includes(t) || isBorne(m, t));
+}

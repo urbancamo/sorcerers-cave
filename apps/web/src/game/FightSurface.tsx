@@ -15,6 +15,7 @@ import { emptyDraft, place, unplace, toMatches, freeMembers, type PlanDraft } fr
 import { holyWaterTargetName } from "./holyWaterLabel";
 import { ConfirmButton } from "./ConfirmButton";
 import { HelpButton } from "../manual/HelpButton";
+import { fightGear } from './wielding';
 
 // Extension kit blocking-confirm text (design US-21), verbatim — mirrors EncounterPanel.tsx's own
 // copy of the same constant (selectors.ts offers useArtifact(19) as legal in BOTH the encounter
@@ -198,7 +199,7 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
                 const i = pm.front[slot];
                 return i !== undefined ? (
                   <FightCard key={slot} creatureId={state.party[i]!.creatureId} label={labels[i]} kind={kindOf(state, i)} strength={memberStrength(i, spectre)}
-                             treasure={state.party[i]!.treasure} artifactsOnly cards={cards} state={state} draggable dragId={i} onRelicClick={showRelic}
+                             treasure={fightGear(state.party[i]!)} artifactsOnly cards={cards} state={state} draggable dragId={i} onRelicClick={showRelic}
                              onPick={() => setDraft((d) => unplace(d, i))} variantIdx={partyCopyIdx.get(i)} />
                 ) : <span key={slot} className="scv-slot-empty">drop a fighter</span>;
               })}
@@ -209,7 +210,7 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
               <span className="scv-match-slotlbl">✦ behind</span>
               {pm.backers.length ? pm.backers.map((i) => (
                 <FightCard key={i} creatureId={state.party[i]!.creatureId} label={labels[i]} kind="caster" strength={casterMP(state.party[i]!, state)}
-                           treasure={state.party[i]!.treasure} cards={cards} state={state} draggable dragId={i} onRelicClick={showRelic}
+                           treasure={fightGear(state.party[i]!)} cards={cards} state={state} draggable dragId={i} onRelicClick={showRelic}
                            onPick={() => setDraft((d) => unplace(d, i))} variantIdx={partyCopyIdx.get(i)} />
               )) : <span className="scv-match-hint">magic user</span>}
             </div>
@@ -303,7 +304,7 @@ export function FightSurface({ state, dispatch, cards }: { state: GameState; dis
       <FightHand testId="fight-tray">
         {tray.map((i) => (
           <FightCard key={i} testId={`tray-${i}`} creatureId={state.party[i]!.creatureId} label={labels[i]} kind={kindOf(state, i)} strength={frontStrength(state.party[i]!, state)}
-                     treasure={state.party[i]!.treasure} cards={cards} state={state} draggable dragId={i} selected={sel === i}
+                     treasure={fightGear(state.party[i]!)} cards={cards} state={state} draggable dragId={i} selected={sel === i}
                      onPick={() => setSel(sel === i ? null : i)} variantIdx={partyCopyIdx.get(i)} />
         ))}
       </FightHand>
