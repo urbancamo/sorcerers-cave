@@ -210,7 +210,7 @@ function prepareAction(state: GameState): GameAction | null {
 /** Drive one game with the given policy and render its conformance vector text. `variants` (Task 17,
  *  SC-EXT-1) threads straight into `newGame`; omitted (every non-"kit" run below), the vector text is
  *  byte-identical to before this parameter existed — no `KIT` header line, no kit deck content. */
-function buildVector(seed: number, picks: number[], policy: Policy, maxSteps: number, variants?: { extensionKit?: boolean }): string {
+function buildVector(seed: number, picks: number[], policy: Policy, maxSteps: number, variants?: { extensionKit?: boolean }, actions?: GameAction[]): string {
   const rnd = lcg(seed * 2654435761);
   let state = newGame(seed, picks, variants);
   const lines: string[] = [
@@ -261,6 +261,7 @@ function buildVector(seed: number, picks: number[], policy: Policy, maxSteps: nu
         }
       }
       const r = reduce(state, action!);
+      actions?.push(action!);
       state = r.state;
       lines.push(
         `${String(step + 1).padStart(4)} ${encodeAction(action!).padEnd(24)} -> TRN ${state.turn} LVL ${state.level} ARA ${state.partyArea} PH ${PHASE_CODE[state.phase]} GS ${state.gs} SEED ${state.seed} EV ${r.events.map((e) => e.type).join(",") || "-"}`,
@@ -301,6 +302,7 @@ function buildVector(seed: number, picks: number[], policy: Policy, maxSteps: nu
       action = from[rnd() % from.length]!;
     }
     const r = reduce(state, action);
+    actions?.push(action);
     state = r.state;
     lines.push(
       `${String(step + 1).padStart(4)} ${encodeAction(action).padEnd(24)} -> TRN ${state.turn} LVL ${state.level} ARA ${state.partyArea} PH ${PHASE_CODE[state.phase]} GS ${state.gs} SEED ${state.seed} EV ${r.events.map((e) => e.type).join(",") || "-"}`,
@@ -389,4 +391,22 @@ describe("conformance vectors — committed port fixtures match the engine", () 
       await expect(text).toMatchFileSnapshot(`../../../docs/specs/conformance/${name}.txt`);
     });
   }
+});
+
+// The "golden game": one of the runs above, handed to the web app so the splash screen's replay box opens
+// it by a reserved code (apps/web/src/game/goldenGame.ts). Only the initial conditions and the action list
+// are stored — the viewer re-derives every frame and event with the engine's replay(). It is a file
+// snapshot, so it is regenerated with the vectors (`vitest -u`) and fails here, not silently in the
+// browser, if an engine change makes the stored actions drift.
+const GOLDEN_GAME = { code: "GOLD", run: { seed: 2355, picks: [0], policy: "artifacts" as Policy, maxSteps: 300 } };
+
+describe("golden game — the replayable run bundled with the web app", () => {
+  it(`${GOLDEN_GAME.code} (seed ${GOLDEN_GAME.run.seed}: Sorcerer slain, Lotus Dust on Medusa, a chest opened) matches its committed bundle`, async () => {
+    const { seed, picks, policy, maxSteps } = GOLDEN_GAME.run;
+    const actions: GameAction[] = [];
+    buildVector(seed, picks, policy, maxSteps, undefined, actions);
+    expect(actions.length).toBeGreaterThan(10);
+    const bundle = { [GOLDEN_GAME.code]: { seed, picks, actions } };
+    await expect(JSON.stringify(bundle, null, 1) + "\n").toMatchFileSnapshot("../../../apps/web/src/data/golden-game.json");
+  });
 });

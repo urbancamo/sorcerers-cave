@@ -32,6 +32,7 @@ import { MULTIPLAYER_ENABLED } from "./featureFlags";
 import { MultiplayerSetup } from "./MultiplayerSetup";
 import { MultiplayerLobby } from "./MultiplayerLobby";
 import { ReplayView, type ReplayBundle } from "./ReplayView";
+import { goldenBundle } from "./goldenGame";
 import { getTestSecret } from "./testMode";
 import { TestControlsPanel } from "./TestControlsPanel";
 import { TitleBar } from "./shell/TitleBar";
@@ -246,6 +247,9 @@ export default function GameScreen() {
   const convex = useConvex();
   const [replayBundle, setReplayBundle] = useState<ReplayBundle | null>(null);
   const handleReplay = useCallback(async (code: string): Promise<string | null> => {
+    // The bundled golden game (a reserved code, no backend involved) is checked before Convex.
+    const golden = goldenBundle(code);
+    if (golden) { setReplayBundle(golden); return null; }
     const bundle = (await convex.query(api.game.replayByCode, { code })) as ReplayBundle | null;
     if (!bundle) return "No replayable game found with that code.";
     if (!bundle.replayable) return "This game predates full logging and cannot be replayed.";
