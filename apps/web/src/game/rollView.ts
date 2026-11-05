@@ -3,11 +3,12 @@
 // drinker. Byte-identical for ids 0-13.
 import { ALL_CREATURES, ALL_TREASURES, type GameEvent } from "@sorcerers-cave/engine";
 import type { Lane } from "./DiceRoll";
+import { spentHazard } from "./hazardCard";
 
 export type Tone = "good" | "bad" | "neutral";
 /** `stakes`, when present, is what is riding on the roll: the overlay then opens with a "Roll the dice" button so the player
  *  throws the dice themself (the values are already decided; the click only reveals them). Without it the dice tumble at once. */
-export type RollView = { title: string; lanes: Lane[]; message: string; tone: Tone; stakes?: string };
+export type RollView = { title: string; lanes: Lane[]; message: string; tone: Tone; stakes?: string; hazard?: number };
 
 // The Bell Rope's 2-3 "toll" band uses the design's exact foreboding wording (US-03 Feedback).
 const BELL_TOLL_TEXT = "A bell tolls once, far above — and is answered by silence. Something, somewhere, now knows you are here.";
@@ -238,6 +239,12 @@ function elixirView(events: GameEvent[]): RollView | null {
 /** Build the dice overlay (if any) for the events an action produced — reaction, chest, casualty,
  *  Medusa, Viper, the extension kit's own roll events, else combat. */
 export function rollFromEvents(events: GameEvent[]): RollView | null {
+  const view = rollFromEventsUntagged(events);
+  const hazard = view ? spentHazard(events) : null;
+  return view && hazard !== null ? { ...view, hazard } : view;
+}
+
+function rollFromEventsUntagged(events: GameEvent[]): RollView | null {
   const reaction = events.find((e): e is Extract<GameEvent, { type: "reaction" }> => e.type === "reaction");
   if (reaction) {
     // `certain` (bug fix 2026-08-02): the leader's hostileMax/indiffMax make `outcome` the same

@@ -8,7 +8,7 @@ export const HAZARDS: Section = {
     { id: 'hazard-order', title: 'When hazards strike', cards: cards('hazard', '*'), blocks: [
       p('A hazard strikes immediately — before any treasure or strangers are dealt with. If several appear at once they resolve in this order: **Earthquake → Medusa → Ghouls → Mutiny → Trap**.'),
       p('With the Extension Kit the order lengthens to: Earthquake → Spell → Harpies → Medusa → Ghouls → Quarrel → Desertion → Mutiny → Trap (the Trap is always last).'),
-      p('Hazards that strike once and are spent — Mutiny, and with the Kit Desertion, Quarrel, Spell and the Harpies — leave their card lying on the tile where it was drawn, whether or not it changed anything, so you can see what happened there. Ghouls, Medusa and a lurking Harpies card instead stay in the chamber and strike again.'),
+      p('Hazards that strike once and are spent — Mutiny, and with the Kit Desertion, Quarrel, Spell and the Harpies — appear in a pop-up showing the drawn card, along with any dice and what became of the party. When you continue, the card is discarded and the chamber is left clear. Ghouls, Medusa and a lurking Harpies card instead stay in the chamber and strike again.'),
     ] },
     { id: 'hazard-earthquake', title: 'Earthquake', cards: cards('hazard', 'Earthquake'), blocks: [
       p('The area you just came from collapses. It is removed from play — drawn as rubble, impassable, and the doorway back to it is sealed. You cannot return the way you came.'),
@@ -26,7 +26,7 @@ export const HAZARDS: Section = {
     ] },
     { id: 'hazard-mutiny', title: 'Mutiny', cards: cards('hazard', 'Mutiny'), blocks: [
       p('Your befriended allies desert — reverting to strangers and dropping any treasure they carried back onto the floor. If your party is made up entirely of allies, one loyal soul remains. You then face the deserters as you would any group of strangers.'),
-      p('Only allies are affected: a party of original adventurers is untouched, and the game says so. The Mutiny card is left lying on the tile where it was drawn, whether or not anyone deserted.'),
+      p('Only allies are affected: a party of original adventurers is untouched, and the game says so. The Mutiny card is shown in a pop-up whether or not anyone deserted, then discarded.'),
     ] },
     { id: 'hazard-trap', title: 'Trap', cards: cards('hazard', 'Trap'), blocks: [
       p('The floor gives way and the party plunges to the area directly below — and there is **no climbing back**. A **Dwarf** guides the party safely past a trap.'),
