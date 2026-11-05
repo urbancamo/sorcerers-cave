@@ -30,7 +30,7 @@ export function SettingsPanel({ state, code, kitActive, onLog, verbose, onVerbos
     ['Party', String(state.party.length)],
     ['Score so far', idol ? `${score} + Idol` : String(score)],
     ['Deck', `${state.largePack.length - state.largeIdx} / ${state.largePack.length}`],
-    ...(curses > 0 ? [['Curses', String(curses)] as [string, string]] : []),
+    ['Curses', curses > 0 ? String(curses) : 'Uncursed'],
   ];
   return (
     <aside className="scv-slot scv-slot-right scv-settings" aria-label="Settings">
