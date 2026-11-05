@@ -16,7 +16,8 @@ const JUMP_ISLAND_CONFIRM_POOL = "Swim for the island? Anyone but a Giant leaves
 /** The explore-phase action menu: the tile's own actions (the extension kit's escape-hatches, guardians, the Sibyl, the Apprentice).
  *  Using an artifact (and opening the Chest) is not here: it lives on that item's card, so nothing suggests when to use one. */
 export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: (a: GameAction) => void }) {
-  if (state.phase !== "explore") return null;
+  // An open pickup keeps the tile's own actions on offer (an uncarryable treasure reopens it on every visit); taking one leaves the floor treasure behind.
+  if (state.phase !== "explore" && state.phase !== "pickup") return null;
   const all = legalActions(state);
   // A permanently-indifferent chamber is traversed in explore, but the party may still attack its guards.
   const attack = all.find((a) => a.type === "attack") ?? null;

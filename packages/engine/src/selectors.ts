@@ -158,6 +158,11 @@ function bellRopeActions(state: GameState): GameAction[] {
 /** A sealed crypt is parked in the area the party stands in (SC-EXT-13). */
 const cryptHere = (state: GameState): boolean => state.cryptCoord !== undefined && state.areas[state.partyArea]!.coord === state.cryptCoord;
 
+/** The explore-phase tile actions that an open treasure pickup must not hide (an uncarryable treasure reopens the pickup on every visit). */
+export const AT_REST_FROM_PICKUP: ReadonlySet<string> = new Set([
+  "enterCrypt", "descendChasm", "drawFromWell", "pullBellRope", "jumpToIsland", "openChest", "examineArea", "exitCave", "stay",
+]);
+
 export function legalActions(state: GameState): GameAction[] {
   if (state.gs !== GS_PLAYING) return [];
 
@@ -261,8 +266,9 @@ export function legalActions(state: GameState): GameAction[] {
     });
     if (canRetake) actions.push({ type: "retakeDropped" });
     actions.push({ type: "leaveTreasure" });
-    // The sealed crypt can be entered from an open pickup too: the floor treasure is simply left behind (SC-EXT-13).
-    if (cryptHere(state)) actions.push({ type: "enterCrypt" });
+    // An open pickup is a quiet pre-step: the at-rest tile actions (crypt, chasm, well, bell rope, chest, island, exit, the Sibyl's
+    // look, the Apprentice) stay on offer, and taking one leaves the floor treasure behind, as walking on does (SC-EXT-13).
+    actions.push(...legalActions({ ...state, phase: "explore", treasures: [] }).filter((a) => AT_REST_FROM_PICKUP.has(a.type)));
     actions.push(...artifactActions(state)); // e.g. Healing Balm to revive the fallen before moving on
     return actions;
   }
