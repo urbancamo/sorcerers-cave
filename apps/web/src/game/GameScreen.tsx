@@ -80,7 +80,7 @@ export default function GameScreen() {
   const closeExit = useCallback(() => setRightSlot((cur) => (cur === 'exit' ? null : cur)), []);
   useDismissOutside(rightSlot === 'exit', '[aria-label="Exit"]', closeExit);
   useOpenPartyOnce(gameId, setLeftSlot); // the chosen party is on screen from the first step into the Gateway
-  const [testOpen, setTestOpen] = useState(false); // the floating test panel, independent of the slots
+  const [testOpen, setTestOpen] = useState(true); // the floating test panel (only exists in Test Mode), open by default, independent of the slots
   const [partyExpanded, setPartyExpanded] = useState(false); // the party list widened to show strength, magic and charisma
   const [selected, setSelected] = useState<Selected | null>(null); // what the card panel shows
   // A click on a card, tile, member or item shows it in the card panel; a second click on the SAME thing tidies the panel away again,
@@ -338,7 +338,7 @@ export default function GameScreen() {
   // A notable feat (dragon kill, the Sorcerer, the Ruby, the Elixir) gets its own celebration AFTER the
   // result it follows (the hook only offers it once the roll and notices are dismissed).
   const overlay = roll ? (
-    <DiceRoll title={roll.title} lanes={roll.lanes} message={roll.message} tone={roll.tone} stakes={roll.stakes} partyLeft={!!displayState.variants?.combatRevision} onContinue={clearRoll} />
+    <DiceRoll title={roll.title} lanes={roll.lanes} message={roll.message} tone={roll.tone} stakes={roll.stakes} hazard={roll.hazard} cards={cards ?? []} partyLeft={!!displayState.variants?.combatRevision} onContinue={clearRoll} />
   ) : celebration ? (
     <FeatCelebration view={celebration} cards={cards ?? []} onContinue={clearCelebration} />
   ) : null;
@@ -451,7 +451,7 @@ export default function GameScreen() {
         />
       )}
       {overlay}
-      {notices && !roll && <NoticeModal notices={notices} onClose={clearNotices} />}   {/* after the dice: the outcome they explain (e.g. a trap fall) is told once the player has continued */}
+      {notices && !roll && <NoticeModal notices={notices} cards={cards ?? []} onClose={clearNotices} />}   {/* after the dice: the outcome they explain (e.g. a trap fall) is told once the player has continued */}
       {savedCode && (
         <SaveGameModal
           code={savedCode.code}

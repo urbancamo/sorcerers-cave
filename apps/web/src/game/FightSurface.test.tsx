@@ -181,7 +181,7 @@ describe("FightSurface", () => {
 
   it("shows a fighter's artefact modifier in the matchup", () => {
     const s: GameState = { ...newGame(1, [0]), phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, strangers: [3],
-      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [3] }] }; // Hero with the Magic Sword vs a Troll
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [3], borne: [3] }] }; // Hero wielding the Magic Sword vs a Troll
     render(<FightSurface state={s} dispatch={() => {}} cards={cards} />);
     fireEvent.click(screen.getByTestId("tray-0"));  // pick the Hero
     fireEvent.click(screen.getByTestId("front-0")); // engage the Troll

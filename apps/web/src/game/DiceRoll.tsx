@@ -1,5 +1,7 @@
 import { useEffect, useState } from "react";
 import { readAutoRoll } from "./autoRoll";
+import { HazardCardPiece } from "./HazardCardPiece";
+import type { CardArt } from "../data/manifest";
 
 export type DieSpec = { value: number; name?: string; total?: number; outcome?: "win" | "lose" | "tie" };
 /** A reaction lane has only `enemy`; a combat lane has both sides (shown side by side). */
@@ -17,6 +19,8 @@ export function DiceRoll({
   partyLeft,
   stakes,
   autoRoll,
+  hazard,
+  cards,
   onContinue,
 }: {
   title: string;
@@ -29,6 +33,9 @@ export function DiceRoll({
    *  (unless they have chosen to auto-roll); the values shown are already decided, the click only reveals them. */
   stakes?: string;
   autoRoll?: boolean;
+  /** A once-only hazard card this roll plays out (Mutiny, Desertion, Quarrel, Spell, Harpies): shown as the set piece, then discarded. */
+  hazard?: number;
+  cards?: CardArt[];
   onContinue: () => void;
 }) {
   const [tick, setTick] = useState(0);
@@ -82,6 +89,7 @@ export function DiceRoll({
   return (
     <div className="scv-dice-overlay" role="dialog" aria-label="dice roll">
       <div className="scv-dice-card">
+        {hazard !== undefined && cards && <HazardCardPiece hazard={hazard} cards={cards} />}
         <div className="scv-dice-title">{title}</div>
         {!thrown && stakes && <p className="scv-dice-stakes">{stakes}</p>}
         <div className={"scv-dice-lanes" + (versus ? " versus" : "")}>

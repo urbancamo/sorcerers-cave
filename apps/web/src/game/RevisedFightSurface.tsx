@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, type DragEvent, type KeyboardEvent, type ReactNode } from "react";
+import { UnusedGearNote } from "./UnusedGearNote";
 // ALL_CREATURES/ALL_TREASURES (SC-EXT-29): a kit id or a Ghoul can stand in any fight.
 import {
   ALL_CREATURES, ALL_TREASURES, isCaster, legalActions, fightView, freeOf, matchStrength, partyContribution, matchModifiers, legalMoves, legalPairs, deployViolation, engageViolation, engageMovesViolation, redeployViolation,
@@ -13,6 +14,7 @@ import type { ViewPartyMember } from "../view/cave3d";
 import { MatchChips } from "./MatchChips";
 import { memberLabels } from "./memberLabels";
 import { HelpButton } from "../manual/HelpButton";
+import { fightGear } from './wielding';
 
 // Peter's revised fighting rules (variants.combatRevision, engine spec SC-9.7-*): a fight is a series of rounds, each a few decisions —
 // the Scroll (attacker), the defender's front line, the attacker's pairings, then either side's extra creatures — and the matches are
@@ -112,7 +114,7 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
   const partyCopy = copyIdx(state.party.map((m) => m.creatureId)), strangerCopy = copyIdx(state.strangers);
   const partyCard = (i: number, extra: { onPick?: () => void; selected?: boolean; testId?: string; dim?: boolean; caption?: string; draggable?: boolean; dragId?: number; strength?: number } = {}) => (
     <FightCard key={`p${i}`} creatureId={state.party[i]!.creatureId} label={labels[i]} kind={partyUnits.get(i)?.caster ? "caster" : "ally"}
-               strength={extra.strength ?? partyUnits.get(i)?.strength ?? 0} treasure={state.party[i]!.treasure} cards={cards} state={state} variantIdx={partyCopy.get(i)} {...extra} />
+               strength={extra.strength ?? partyUnits.get(i)?.strength ?? 0} treasure={fightGear(state.party[i]!)} cards={cards} state={state} variantIdx={partyCopy.get(i)} {...extra} />
   );
   const strangerCard = (s: number, extra: { onPick?: () => void; selected?: boolean; testId?: string; dim?: boolean; caption?: string } = {}) => (
     <FightCard key={`s${s}`} creatureId={state.strangers[s]!} kind="foe" strength={strangerUnits.get(s)?.strength ?? 0}
@@ -435,6 +437,7 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
         {rev.review && <span className="scv-fight-banner" data-testid="rev-review">{rev.attacker === "strangers" ? "The attackers have chosen their targets…" : "The strangers have taken their places"}</span>}
         <span className="scv-fight-cap">{rev.attacker === "party" ? "You attack" : "They attack"} · your dice {bonus >= 0 ? "+" : "−"}{Math.abs(bonus)}</span>
       </div>
+      <UnusedGearNote state={state} />
 
       {/* One row per combat, as in the original battle plan: the foe(s) on the left, the strength tally, then the party's side.
           Matches already in play come first, then every stranger not yet in one (a pairing under way shows in its row). */}

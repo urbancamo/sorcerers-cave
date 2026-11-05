@@ -12,16 +12,17 @@ BEGIN MOVES
    6 MOVE 3                   -> TRN 5 LVL 1 ARA 4 PH EXP GS 0 SEED 2007970086 EV crossedSpecial,moved
    7 MOVE 2                   -> TRN 6 LVL 1 ARA 5 PH PKP GS 0 SEED 2007970086 EV moved,drewChamber
    8 TAKE 0 1                 -> TRN 6 LVL 1 ARA 5 PH EXP GS 0 SEED 2007970086 EV -
-   9 MOVE 3                   -> TRN 7 LVL 1 ARA 6 PH EXP GS 0 SEED 2007970086 EV moved
-  10 MOVE 6                   -> TRN 8 LVL 2 ARA 7 PH ENC GS 0 SEED 2007970086 EV moved,drewChamber
-  11 TEST                     -> TRN 8 LVL 2 ARA 7 PH ENC GS 0 SEED 2146808167 EV reaction
-  12 TEST                     -> TRN 8 LVL 2 ARA 7 PH FGT GS 0 SEED 877927188 EV reaction,fightStarted
-  13 FIGHT 0+1>0              -> TRN 8 LVL 2 ARA 7 PH FGT GS 0 SEED 760035762 EV combatRoll,strangerKilled
-  14 FIGHT 0+1>0              -> TRN 8 LVL 2 ARA 7 PH FGT GS 0 SEED 1138873472 EV combatRoll
-  15 CASUALTY 0               -> TRN 8 LVL 2 ARA 7 PH FGT GS 0 SEED 283552441 EV casualtyChosen,memberDied
-  16 FIGHT 0>0                -> TRN 8 LVL 2 ARA 7 PH FGT GS 0 SEED 1077765727 EV combatRoll
-  17 FIGHT 0>0                -> TRN 8 LVL 2 ARA 7 PH END GS 2 SEED 1656633717 EV combatRoll,memberDied,itemsSpilled,gameOver
-END MOVES 17
+   9 BORNE 1 0 1              -> TRN 6 LVL 1 ARA 5 PH EXP GS 0 SEED 2007970086 EV -
+  10 MOVE 3                   -> TRN 7 LVL 1 ARA 6 PH EXP GS 0 SEED 2007970086 EV moved
+  11 MOVE 6                   -> TRN 8 LVL 2 ARA 7 PH ENC GS 0 SEED 2007970086 EV moved,drewChamber
+  12 TEST                     -> TRN 8 LVL 2 ARA 7 PH ENC GS 0 SEED 2146808167 EV reaction
+  13 TEST                     -> TRN 8 LVL 2 ARA 7 PH FGT GS 0 SEED 877927188 EV reaction,fightStarted
+  14 FIGHT 0+1>0              -> TRN 8 LVL 2 ARA 7 PH FGT GS 0 SEED 760035762 EV combatRoll,strangerKilled
+  15 FIGHT 0+1>0              -> TRN 8 LVL 2 ARA 7 PH FGT GS 0 SEED 1138873472 EV combatRoll
+  16 CASUALTY 0               -> TRN 8 LVL 2 ARA 7 PH FGT GS 0 SEED 283552441 EV casualtyChosen,memberDied
+  17 FIGHT 0>0                -> TRN 8 LVL 2 ARA 7 PH FGT GS 0 SEED 1077765727 EV combatRoll
+  18 FIGHT 0>0                -> TRN 8 LVL 2 ARA 7 PH END GS 2 SEED 1656633717 EV combatRoll,memberDied,itemsSpilled,gameOver
+END MOVES 18
 FINAL GS 2 PH END TRN 8 LVL 2 AREAS 8 LARGEIDX 7 SMALLIDX 3 SEED 1656633717 SCORE 0
 STATE CURSES 0 BONUS 0 SORCKILLED 0 STRANGERS 10 TREASURES - HAZARDS -
 PARTY 0 CID 4 ST 3 DK 0 CARRY - BORNE -

@@ -152,4 +152,12 @@ describe('ItemActions — the Scroll in revised combat', () => {
     fireEvent.click(screen.getByRole('button', { name: /confirm/i }));
     expect(dispatch).toHaveBeenLastCalledWith({ type: 'scroll', use: 'destroy' });
   });
+
+  it('offers Wield in a fight for a member who is not yet deployed', () => {
+    const fight = { surprise: 0, round: 1, focus: 0 } as unknown as GameState['fight'];
+    const d = show(carrying([0], T.sword, { phase: 'fight', fight }), T.sword);
+    fireEvent.click(screen.getByRole('button', { name: 'Wield' }));
+    expect(d).toHaveBeenCalledWith({ type: 'setBorne', mi: 0, idx: idxOf(carrying([0], T.sword), T.sword), borne: true });
+    expect(screen.queryByRole('button', { name: 'Drop here' })).toBeNull();
+  });
 });

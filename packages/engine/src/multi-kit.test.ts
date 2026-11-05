@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { inUseGear } from "./testkit";
 import { buildMpGame, choosePartyFor, mpReduce, partyView, type CaveState, type PartyState, type MpGameState } from "./multi";
 import { buildLargePack, buildSmallPack } from "./decks";
 import { shuffle, nextSeed, rollDie } from "./rng";
@@ -20,7 +21,7 @@ import {
  */
 
 const member = (creatureId: number, treasure: number[] = []): PartyMember =>
-  ({ creatureId, status: 0, dragonKills: 0, treasure });
+  ({ creatureId, status: 0, dragonKills: 0, treasure, borne: inUseGear(treasure) });
 
 // A playing-phase party at the shared gateway (area 0), at rest — copied from multi.test.ts's
 // local builder (this suite edits no existing test file).

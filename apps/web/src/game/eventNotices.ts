@@ -6,6 +6,7 @@ import {
   DIR_DOWN,
   type GameEvent,
 } from "@sorcerers-cave/engine";
+import { spentHazard } from "./hazardCard";
 
 // Exhaustiveness guard for the switch in eventNotices(): if a new GameEvent member is added
 // without a case below, TypeScript reports `x` as not assignable to `never` here — a compile
@@ -16,6 +17,8 @@ export type Tone = "good" | "bad" | "neutral";
 export interface Notice {
   text: string;
   tone: Tone;
+  /** A spent hazard card these notices tell of (Mutiny, Desertion, Quarrel, Spell, Harpies): the pop-up shows it, then it is discarded. */
+  hazard?: number;
 }
 
 // ALL_CREATURES (not the base-only CREATURES, carry-forward from Task 15): any creatureId here can
@@ -55,6 +58,12 @@ function hazardNotice(hz: number): Notice | null {
  * skipped so nothing is double-reported.
  */
 export function eventNotices(events: GameEvent[]): Notice[] {
+  const out = eventNoticesUntagged(events);
+  const hazard = spentHazard(events);
+  return hazard === null ? out : out.map((n) => ({ ...n, hazard }));
+}
+
+function eventNoticesUntagged(events: GameEvent[]): Notice[] {
   // The Viper Pit crossing has its own die-per-member overlay (see rollView), which shows the crossing
   // and any fatal falls — so suppress the duplicate text notices for it.
   const hasViper = events.some((e) => e.type === "viperPit");
@@ -492,7 +501,9 @@ export function eventNotices(events: GameEvent[]): Notice[] {
   const desertionWolfSkips = events.filter((e): e is Extract<GameEvent, { type: "wolfUnmoved" }> =>
     e.type === "wolfUnmoved" && e.hazard === HAZARD_DESERTION);
   const hadDesertionActivity = desertionRolls.length > 0 || desertionWolfSkips.length > 0;
-  if (hadDesertionActivity && !desertionRolls.some((e) => e.deserted)) {
+  // With dice rolled, the Desertion overlay already says "The party holds together." — a second pop-up after it is redundant, so this notice
+  // is only for the all-Wolf roster, where nothing rolls and so there is no overlay.
+  if (hadDesertionActivity && desertionRolls.length === 0) {
     out.push({ text: "The party holds together.", tone: "good" });
   }
   // Mutiny and Desertion only ever touch ALLIES. With none in the party they fire and change nothing, which used to read as a stuck card

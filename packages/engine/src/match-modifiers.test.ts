@@ -17,10 +17,14 @@ const rng = (seed: number) => { let x = seed * 2654435761 % 4294967296; return (
 const lineup = (seed: number): GameState => {
   const r = rng(seed), pick = <T,>(xs: T[]): T => xs[Math.floor(r() * xs.length)]!;
   const gear = () => [SWORD, STAFF, RING, AXE, SHIELD].filter(() => r() < 0.3);
-  const member = (): PartyMember => ({
-    creatureId: pick(PARTY_IDS), status: 0, dragonKills: r() < 0.2 ? 1 + Math.floor(r() * 2) : 0, treasure: [...gear(), ...(r() < 0.15 ? [EYE] : [])],
-    ...(r() < 0.15 ? { fsBonus: 2 } : {}), ...(r() < 0.15 ? { potionActive: true } : {}),
-  });
+  // Every artefact the member holds is in use (the Eye works carried), so every chip can appear.
+  const member = (): PartyMember => {
+    const treasure = [...gear(), ...(r() < 0.15 ? [EYE] : [])];
+    return {
+      creatureId: pick(PARTY_IDS), status: 0, dragonKills: r() < 0.2 ? 1 + Math.floor(r() * 2) : 0, treasure, borne: treasure.filter((t) => t !== EYE),
+      ...(r() < 0.15 ? { fsBonus: 2 } : {}), ...(r() < 0.15 ? { potionActive: true } : {}),
+    };
+  };
   const party = [member(), member(), member(), member()];
   const strangers = [pick(STRANGER_IDS), pick(STRANGER_IDS), pick(STRANGER_IDS), pick(STRANGER_IDS)];
   let s = driveStrangers(reduce(makeState({ phase: "encounter", strangers, treasures: r() < 0.1 ? [EYE] : [], party, seed, level: 1 + Math.floor(r() * 4), variants: { combatRevision: true, extensionKit: true } }), { type: "attack" }).state).state;
@@ -76,8 +80,8 @@ describe("matchModifiers", () => {
   });
 
   it("names the sword, the staff and a caster behind the line (Mark's play-test)", () => {
-    const man: PartyMember = { creatureId: 5, status: 0, dragonKills: 0, treasure: [SWORD] };
-    const priest: PartyMember = { creatureId: 4, status: 0, dragonKills: 0, treasure: [STAFF] };
+    const man: PartyMember = { creatureId: 5, status: 0, dragonKills: 0, treasure: [SWORD], borne: [SWORD] };
+    const priest: PartyMember = { creatureId: 4, status: 0, dragonKills: 0, treasure: [STAFF], borne: [STAFF] };
     const s = driveStrangers(reduce(makeState({ phase: "encounter", strangers: [2], treasures: [], party: [man, priest, { ...man, treasure: [] }], variants: { combatRevision: true } }), { type: "attack" }).state).state;
     const bd = matchModifiers(s, { pf: [0], pb: [1], sf: [0], sb: [] });
     expect(bd.chips.filter((c) => !c.roll).map((c) => `${c.side}|${c.label}|${c.value}`)).toEqual([

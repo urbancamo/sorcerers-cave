@@ -15,6 +15,7 @@
 // strangerDriver.ts). The engine decides nothing for either side: it only checks legality and plays out what was chosen.
 import { ALL_CREATURES as CREATURES } from "./data/creatures";
 import { ALL_TREASURES } from "./data/treasures";
+import { inUse } from "./loot";
 import { rollDieForState } from "./rng";
 import { casterMP, frontStrength, isCaster, partyRollBonus } from "./combat";
 import { activeCurses, eyeForsakenByDeath, eyePresent, hasLivingHuman, markDied, ringInvincible, slaySorcerer } from "./effects";
@@ -244,7 +245,7 @@ export function matchModifiers(state: GameState, m: RevMatch): MatchBreakdown {
   const partyMagicOff = !magicOnly && shieldedFoe !== undefined;
   const chips: MatchChip[] = [];
   const add = (side: MatchChip["side"], label: string, value: number, roll = false): void => { if (value !== 0) chips.push({ label, value, side, roll }); };
-  const holds = (i: number, t: number): boolean => state.party[i]!.treasure.includes(t);
+  const holds = (i: number, t: number): boolean => inUse(state.party[i]!, t); // in use (wielded or worn), not merely carried
 
   // The party's front line, then its magic behind it.
   let partyBase = 0, partyMagic = 0;
@@ -318,7 +319,7 @@ function bonusesFor(state: GameState): NonNullable<RevFight["bonus"]> {
   return {
     party: partyRollBonus(state) + (surprise && rev.attacker === "party" && fight.surprise > 0 ? 1 : 0) + (surprise && rev.scrollSurprise ? 1 : 0),
     strangers: sBonus + (surprise && rev.attacker === "strangers" && fight.surprise < 0 ? 1 : 0),
-    partyRing: !eyePresent(state) && livingParty(state).some((i) => state.party[i]!.treasure.includes(T_THE_RING)),
+    partyRing: !eyePresent(state) && livingParty(state).some((i) => inUse(state.party[i]!, T_THE_RING)),
     strangersRing: sBonus > 0,
   };
 }

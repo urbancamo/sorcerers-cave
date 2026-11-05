@@ -8,14 +8,14 @@ export const HAZARDS: Section = {
     { id: 'hazard-order', title: 'When hazards strike', cards: cards('hazard', '*'), blocks: [
       p('A hazard strikes immediately — before any treasure or strangers are dealt with. If several appear at once they resolve in this order: **Earthquake → Medusa → Ghouls → Mutiny → Trap**.'),
       p('With the Extension Kit the order lengthens to: Earthquake → Spell → Harpies → Medusa → Ghouls → Quarrel → Desertion → Mutiny → Trap (the Trap is always last).'),
-      p('Hazards that strike once and are spent — Mutiny, and with the Kit Desertion, Quarrel, Spell and the Harpies — leave their card lying on the tile where it was drawn, whether or not it changed anything, so you can see what happened there. Ghouls, Medusa and a lurking Harpies card instead stay in the chamber and strike again.'),
+      p('Hazards that strike once and are spent — Mutiny, and with the Kit Desertion, Quarrel, Spell and the Harpies — appear in a pop-up showing the drawn card, along with any dice and what became of the party. When you continue, the card is discarded and the chamber is left clear. Ghouls, Medusa and a lurking Harpies card instead stay in the chamber and strike again.'),
     ] },
     { id: 'hazard-earthquake', title: 'Earthquake', cards: cards('hazard', 'Earthquake'), blocks: [
       p('The area you just came from collapses. It is removed from play — drawn as rubble, impassable, and the doorway back to it is sealed. You cannot return the way you came.'),
       p('The earthquake card is left lying on the rubble to mark what fell.'),
     ] },
     { id: 'hazard-medusa', title: 'Medusa', cards: cards('hazard', 'Medusa'), blocks: [
-      p('Her gaze sweeps the party; a die is rolled for each member, and a **1 or 2** turns that member **to stone**. A petrified member can do nothing until freed by the **Magic Staff** (a wizard bearing the staff is immune).'),
+      p('Her gaze sweeps the party; a die is rolled for each member, and a **1 or 2** turns that member **to stone**. A petrified member can do nothing until freed by the **Magic Staff** (a wizard wielding the staff is immune).'),
       p('Medusa **lurks for good**: her card stays on the chamber floor, and she rolls against the party *again every time you re-enter*. When she looms and you hold Lotus Dust, her card opens in the card panel and the bar offers the throw or proceeding. If her gaze petrifies your *whole* party, the expedition ends there.'),
     ] },
     { id: 'hazard-ghouls', title: 'Ghouls', cards: cards('hazard', 'Ghouls'), blocks: [
@@ -26,7 +26,7 @@ export const HAZARDS: Section = {
     ] },
     { id: 'hazard-mutiny', title: 'Mutiny', cards: cards('hazard', 'Mutiny'), blocks: [
       p('Your befriended allies desert — reverting to strangers and dropping any treasure they carried back onto the floor. If your party is made up entirely of allies, one loyal soul remains. You then face the deserters as you would any group of strangers.'),
-      p('Only allies are affected: a party of original adventurers is untouched, and the game says so. The Mutiny card is left lying on the tile where it was drawn, whether or not anyone deserted.'),
+      p('Only allies are affected: a party of original adventurers is untouched, and the game says so. The Mutiny card is shown in a pop-up whether or not anyone deserted, then discarded.'),
     ] },
     { id: 'hazard-trap', title: 'Trap', cards: cards('hazard', 'Trap'), blocks: [
       p('The floor gives way and the party plunges to the area directly below — and there is **no climbing back**. A **Dwarf** guides the party safely past a trap.'),
@@ -38,7 +38,7 @@ export const HAZARDS: Section = {
       p('A **Wolf** ally never rolls at all. With no allies in the party nothing is rolled, and the game says so.'),
     ] },
     { id: 'hazard-harpies', title: 'Harpies', variant: 'kit', cards: cards('hazard', 'Harpies'), blocks: [
-      p('If the party carries no artefacts at all, or holds the **Talisman**, they simply circle off and lurk — the same check runs again on your next visit.'),
+      p('If the party carries no artefacts at all, or **wears** the **Talisman**, they simply circle off and lurk — the same check runs again on your next visit.'),
       p('Otherwise every artefact any living member holds is gone at once, swept away to the **Lair** (onto its floor if you have already found it, or held in reserve until you do). Losing the **Eye of God** this way still curses the party.'),
     ] },
     { id: 'hazard-quarrel', title: 'Quarrel', variant: 'kit', cards: cards('hazard', 'Quarrel'), blocks: [

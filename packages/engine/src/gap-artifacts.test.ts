@@ -4,14 +4,14 @@ import { legalActions } from "./selectors";
 import { applyHazards } from "./hazards";
 import { fluteLulls } from "./effects";
 import { viperCrossing } from "./special";
-import { makeState } from "./testkit";
+import { makeState, inUseGear } from "./testkit";
 import { packCoord, DIR_N } from "./coords";
 import { HAZARD_MEDUSA } from "./data/hazards";
 
 // Ids used throughout (per spec §16 / §3): party creatures Wizard 8, Troll 3, Hero 0;
 // treasures Lotus Dust 5, Magic Staff 9, Charmed Flute 12; Spectre stranger id 9; Medusa hazard 3.
 const member = (creatureId: number, treasure: number[] = [], status = 0) =>
-  ({ creatureId, status: status as 0 | 1 | 2 | 3, dragonKills: 0, treasure });
+  ({ creatureId, status: status as 0 | 1 | 2 | 3, dragonKills: 0, treasure, borne: inUseGear(treasure) });
 const area = (card: number, coord: number, contents: number[] = []) =>
   ({ card, coord, faceUp: true, visited: true, contents, flags: 0, indiffCount: 0 });
 

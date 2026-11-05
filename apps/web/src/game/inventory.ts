@@ -1,6 +1,7 @@
 import { ALL_TREASURES, BORNEABLE, canUseArtifact, isBorne, legalActions, staffBonus, type GameState } from '@sorcerers-cave/engine';
 import { memberLabels } from './memberLabels';
 
+import { useVerbs } from './wielding';
 // Draft classification for the inventory (docs/requirements/ui-review, "Artifact classification"); it still needs a
 // rules review. Active artifacts need a player action; passive ones work by being carried or wielded.
 const ACTIVE = new Set([4, 5, 6, 8, 9, 12, 15, 16, 19]);
@@ -32,6 +33,8 @@ export function artifactState(state: GameState, mi: number, tid: number, usable:
   // The Staff adds magical power to a Priest (+1) and a Wizard (+2) just by being carried, so the label says how much; only the Wizard
   // can also use its powers (ward off Medusa, wake the stone), so a Priest is told what it cannot do rather than "carrier cannot use".
   const bonus = tid === T_MAGIC_STAFF ? staffBonus(m.creatureId) : 0;
+  // Wielded or worn items work only while in use (wielding weapons): say so rather than imply the item is helping.
+  if (bonus > 0 && !isBorne(m, tid)) return { color: 'yellow', tag: 'carried · not wielded' };
   if (bonus > 0) {
     if (!canUseArtifact(m.creatureId, tid)) return { color: 'yellow', tag: `+${bonus} magic · cannot use against Medusa` };
     return usable.has(tid) ? { color: 'green', tag: `+${bonus} magic · usable now` } : { color: 'yellow', tag: `+${bonus} magic · not usable now` };
@@ -45,7 +48,11 @@ export function artifactState(state: GameState, mi: number, tid: number, usable:
     return usable.has(tid) ? { color: 'green', tag: 'usable now' } : { color: 'yellow', tag: 'not usable now' };
   }
   if (tid === T_MAGIC_SHIELD && !SHIELD_ELIGIBLE.has(m.creatureId)) return { color: 'gray', tag: 'inert for this carrier' };
-  return { color: 'yellow', tag: BORNEABLE.includes(tid) && isBorne(m, tid) ? 'wielded' : 'passive' };
+  if (BORNEABLE.includes(tid)) {
+    const state = useVerbs(tid).state;
+    return { color: 'yellow', tag: isBorne(m, tid) ? state : `carried · not ${state}` };
+  }
+  return { color: 'yellow', tag: 'passive' };
 }
 
 /** Every item the party carries, from the item's point of view: what it is, who has it, and whether it can be used now. */

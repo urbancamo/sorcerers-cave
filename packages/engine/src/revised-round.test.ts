@@ -170,7 +170,7 @@ describe("the revised round engine: whole fights, headless", () => {
   it("a fight in which two sides cannot hurt each other ends in a standoff, and the party may retreat", () => {
     // a Dwarf and a Woman against a lone Spectre they cannot face: the Spectre slays them; use two casters-less stalemate instead:
     // the Ring bearer below level 4 is mortal, so build a real stalemate with the Shield (Man bearing it vs a Spectre)
-    const s = makeState({ phase: "encounter", strangers: [SPECTRE], party: [{ ...member(MAN), treasure: [20] }], variants: REVISED, seed: 5 });
+    const s = makeState({ phase: "encounter", strangers: [SPECTRE], party: [{ ...member(MAN), treasure: [20], borne: [20] }], variants: REVISED, seed: 5 }); // the Shield wielded
     const p = playRevisedFight(reduce(s, { type: "attack" }).state);
     expect(p.end).toBe("standoff");
     expect(p.events.some((e) => e.type === "fightStandoff")).toBe(true);

@@ -4,6 +4,7 @@ import { Reveal } from './reveal.js';
 import { spriteRotationForScreenVector } from './billboard.js';
 import { fitDistance } from './camera-fit.js';
 import { carryRowHtml, escAttr } from './rosterCarry';
+import { stairAt } from '../data/stairPositions';
 
 /* ============================================================
    Sorcerer's Cave — 3D viewer + interactive navigation
@@ -288,6 +289,9 @@ function rebuildStairs(){
 }
 // Persistent secret-door card markers, laid flat on each area the party reached by a secret stair.
 const DOOR_AR=195/157; // door card art aspect (h/w)
+const secretDoorOffset=()=>[-TILE_W*0.30,TILE_D*0.30]; // where the door marker lies on its tile (a free corner: the stair markers use the others)
+// The stair marker sits just north of the door card (card half-height + the marker's own radius), so it points at the door without covering it.
+const secretDoorMarkerOffset=()=>{ const [dx,dz]=secretDoorOffset(); return [dx, dz-(1.15/3*DOOR_AR/2+0.22)]; };
 function rebuildSecretDoors(){
   // Dispose geometry/material but keep the shared, cached door textures.
   [...secretGroup.children].forEach(o=>{o.geometry?.dispose?.();o.material?.dispose?.();secretGroup.remove(o);});
@@ -300,7 +304,7 @@ function rebuildSecretDoors(){
     const m=new THREE.Mesh(new THREE.PlaneGeometry(w,h),mat);
     m.rotation.x=-Math.PI/2; // flat to the floor
     // A free corner (the up/down stair markers sit at the other corners) so the animated up marker stays visible.
-    const p=worldPos(a); m.position.set(p.x-TILE_W*0.30, p.y+0.03, p.z+TILE_D*0.30);
+    const p=worldPos(a); { const [dx,dz]=secretDoorOffset(); m.position.set(p.x+dx, p.y+0.03, p.z+dz); }
     m.renderOrder=3; m.userData.lvl=a.level; regMat(m.material); secretGroup.add(m);
   });
 }
@@ -327,9 +331,11 @@ function buildSelectRing(){
 /* ---- exit markers (the navigation affordance) ---- */
 // Camera-facing chevron sprite: never goes edge-on (the old cone did in portrait),
 // and its glyph is rotated each frame to point screen-outward through the doorway.
-let _chevTex=null;
-function chevronTexture(){
-  if(_chevTex) return _chevTex;
+let _chevTex=null, _stairTex=null;
+// `stairs`: the up/down stair markers add two bars under the chevron, like steps. The glyph is rotated 180° for a DOWN stair, so its
+// bars then sit above the arrow; the doorway markers (N/E/S/W) are drawn without them.
+function chevronTexture(stairs=false){
+  if(stairs?_stairTex:_chevTex) return stairs?_stairTex:_chevTex;
   const s=128, cv=document.createElement('canvas'); cv.width=cv.height=s;
   const cx=cv.getContext('2d');
   // Dark "coin" backing so the marker reads against light stone from ANY angle — including the
@@ -340,11 +346,19 @@ function chevronTexture(){
   // chevron points UP; the transparent padding around the coin widens the tap target
   cx.strokeStyle='#ffffff'; cx.lineWidth=13; cx.lineCap='round'; cx.lineJoin='round';
   cx.shadowColor='rgba(0,0,0,0.6)'; cx.shadowBlur=6;
-  cx.beginPath(); cx.moveTo(36,76); cx.lineTo(64,46); cx.lineTo(92,76); cx.stroke();
-  _chevTex=new THREE.CanvasTexture(cv); _chevTex.colorSpace=THREE.SRGBColorSpace; return _chevTex;
+  const up=stairs?-12:0; // a stair's chevron sits higher to leave room for the step bars below it
+  cx.beginPath(); cx.moveTo(36,76+up); cx.lineTo(64,46+up); cx.lineTo(92,76+up); cx.stroke();
+  if(stairs){
+    cx.lineWidth=9;
+    cx.beginPath(); cx.moveTo(40,84); cx.lineTo(88,84); cx.stroke();
+    cx.beginPath(); cx.moveTo(40,100); cx.lineTo(88,100); cx.stroke();
+  }
+  const tex=new THREE.CanvasTexture(cv); tex.colorSpace=THREE.SRGBColorSpace;
+  if(stairs) _stairTex=tex; else _chevTex=tex;
+  return tex;
 }
-function chevronSprite(color){
-  const m=new THREE.SpriteMaterial({map:chevronTexture(),color,transparent:true,opacity:0.95,depthTest:false,depthWrite:false});
+function chevronSprite(color,stairs=false){
+  const m=new THREE.SpriteMaterial({map:chevronTexture(stairs),color,transparent:true,opacity:0.95,depthTest:false,depthWrite:false});
   const s=new THREE.Sprite(m); s.scale.set(1.1,1.1,1); // big quad = big tap target; glyph sits in the centre
   // Draw markers ON TOP of the tiles/content (which have renderOrder 2-7). Without this the floor
   // tile is drawn after the depthWrite:false sprite and paints over it — the marker then only shows
@@ -376,9 +390,12 @@ function refreshExitMarkers(){
       grp.userData.spr=spr; grp.userData.outward=true; grp.userData.center=p.clone();
     } else {
       // stair marker near a corner of the tile
-      const corner=m.dir==='D'?[TILE_W*0.30,TILE_D*0.30]:[-TILE_W*0.30,-TILE_D*0.30];
+      // Over the stairwell drawn on the tile's art where it is known (tiles are laid unrotated); otherwise a corner of the tile.
+      const at=a.rot?null:stairAt(tiles.get(a.tileId)?.file,m.dir);
+      // A stair with no art here is an engine-added return stair — the secret door — so its marker floats just above (north of) the door marker laid on this tile.
+      const corner=at?[(at[0]-0.5)*TILE_W,(at[1]-0.5)*TILE_D]:a.secretDoor!=null?secretDoorMarkerOffset():m.dir==='D'?[TILE_W*0.30,TILE_D*0.30]:[-TILE_W*0.30,-TILE_D*0.30];
       const ring=ringFlat(col,0.3,0.44);ring.rotation.x=-Math.PI/2;ring.position.y=0.06;ring.material.depthTest=false;ring.renderOrder=19;
-      const spr=chevronSprite(col); spr.position.y=0.5;
+      const spr=chevronSprite(col,true); spr.position.y=0.5;
       grp.add(ring,spr);
       grp.position.set(p.x+corner[0],p.y+0.02,p.z+corner[1]);
       grp.userData.spr=spr; grp.userData.outward=false; grp.userData.stairDir=m.dir; // U up, D down (screen-space)

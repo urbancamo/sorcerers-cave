@@ -7,6 +7,7 @@ import { casterMP } from "./combat";
 import { eyeActive } from "./effects";
 import { scoreGame } from "./score";
 import type { GameAction, GameState } from "./index";
+import { BORNEABLE, isBorne, wieldConflict } from "./loot";
 
 /**
  * CROSS-IMPLEMENTATION CONFORMANCE VECTORS (engine-spec Appendix D).
@@ -192,6 +193,20 @@ function encodeAction(a: GameAction): string {
   }
 }
 
+/** The "artifacts" policy prepares the party the way a player must: before anything else it wields or wears each weapon, shield, Ring and
+ *  Talisman a living member carries (wielding weapons: an item's effect applies only in use, and nothing is put in use automatically). */
+function prepareAction(state: GameState): GameAction | null {
+  for (let mi = 0; mi < state.party.length; mi++) {
+    const m = state.party[mi]!;
+    if (m.status !== 0 && m.status !== 1) continue;
+    for (let idx = 0; idx < m.treasure.length; idx++) {
+      const t = m.treasure[idx]!;
+      if (BORNEABLE.includes(t) && !isBorne(m, t) && wieldConflict(m, t) === null) return { type: "setBorne", mi, idx, borne: true };
+    }
+  }
+  return null;
+}
+
 /** Drive one game with the given policy and render its conformance vector text. `variants` (Task 17,
  *  SC-EXT-1) threads straight into `newGame`; omitted (every non-"kit" run below), the vector text is
  *  byte-identical to before this parameter existed — no `KIT` header line, no kit deck content. */
@@ -209,7 +224,7 @@ function buildVector(seed: number, picks: number[], policy: Policy, maxSteps: nu
   ];
   let step = 0;
   for (; step < maxSteps && state.gs === 0; step++) {
-    let action: GameAction | null = null;
+    let action: GameAction | null = policy === "artifacts" && state.phase === "explore" ? prepareAction(state) : null;
     if (policy === "kit") {
       // The "kit" policy is a byte-for-byte port of kit-golden.test.ts's own `run()` decision logic —
       // same branch shape AND same rnd()-consumption order — so this vector replays the identical

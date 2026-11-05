@@ -6,6 +6,7 @@ import { ALL_CREATURES as CREATURES } from "./data/creatures";
 import type { GameState, PartyMember } from "./state";
 import { eyePresent, activeCurses } from "./effects";
 import { swordBonus, axeBonus, staffBonus } from "./capabilities";
+import { inUse } from "./loot";
 
 const T_MAGIC_SWORD = 3;
 const T_MAGIC_STAFF = 9;
@@ -16,9 +17,8 @@ export function isCaster(member: PartyMember): boolean {
   return CREATURES[member.creatureId]!.mp > 0;
 }
 
-function holds(member: PartyMember, treasureId: number): boolean {
-  return member.treasure.includes(treasureId);
-}
+// The party's artefact effects apply only while the item is in use (wielded or worn), not merely carried (loot.ts).
+const holds = inUse;
 
 /** Front-line fighting strength: FS + dragon-kills + a caster's magical power + Magic Sword bonus (spec §9.3).
  *  A Priest or Wizard fighting hand-to-hand uses its TOTAL strength — fighting strength PLUS magical power

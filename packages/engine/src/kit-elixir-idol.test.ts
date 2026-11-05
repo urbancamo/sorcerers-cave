@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
 import { legalActions } from "./selectors";
-import { makeState } from "./testkit";
+import { makeState, inUseGear } from "./testkit";
 import { rollDie } from "./rng";
 import { frontStrength } from "./combat";
 import { previewPlan } from "./combatPlan";
@@ -30,6 +30,7 @@ const member = (creatureId: number, treasure: number[] = [], status: 0 | 1 | 2 |
   status,
   dragonKills: 0,
   treasure,
+  borne: inUseGear(treasure),
   ...overrides,
 });
 

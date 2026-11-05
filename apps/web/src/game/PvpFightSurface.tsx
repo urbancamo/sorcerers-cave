@@ -10,6 +10,7 @@ import { FightHand } from "./FightHand";
 import { PARTY_COLOR_HEX, type PartyColor } from "./partyColors";
 import { loadManifest, resolveCardVariant, type CardArt } from "../data/manifest";
 import { HelpButton } from "../manual/HelpButton";
+import { fightGear } from './wielding';
 
 /**
  * Two-sided PvP fight surface (spec §I-10). Participants only — a non-participant never receives
@@ -176,7 +177,7 @@ export function PvpFightSurface({
     const caster = isCaster(m);
     return (
       <FightCard key={id} testId={`pvp-${opts.tid ?? "mem"}-${id}`} creatureId={m.creatureId} label={labels[idxOf(id)]} kind={caster ? "caster" : "ally"}
-                 strength={caster ? casterMP(m, yourState) || frontStrength(m, yourState) : frontStrength(m, yourState)} treasure={m.treasure}
+                 strength={caster ? casterMP(m, yourState) || frontStrength(m, yourState) : frontStrength(m, yourState)} treasure={fightGear(m)}
                  cards={cardArt} state={yourState} variantIdx={cardOf(id)?.copy} onPick={opts.onPick} selected={opts.selected} dim={opts.dim} caption={opts.caption} />
     );
   };

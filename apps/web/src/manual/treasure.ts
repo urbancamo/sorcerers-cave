@@ -32,24 +32,30 @@ export const TREASURE: Section = {
       p('The **Lost Ruby** sits in a statue of strength 8: win the wrestle, or still the statue with the Eye of God, to take it.'),
     ] },
     { id: 'inventory-status', title: 'The Inventory', brief: 'Every item the party carries, who has it, and whether it can be used now.', cards: [], screens: ['inventory'], blocks: [
-      p('Each item shows a colour and a word: **usable now** (green), **not usable now**, **wielded** or **passive** (yellow), or gray when its carrier cannot use it or it is treasure only. The Magic Staff also shows the magic it adds to its carrier (+1 for a Priest, +2 for a Wizard). Click an item to read it.'),
+      p('Each item shows a colour and a word: **usable now** (green), **not usable now**, **wielded**, **worn**, **carried · not wielded** (or *not worn*) or **passive** (yellow), or gray when its carrier cannot use it or it is treasure only. The Magic Staff also shows the magic it adds to its carrier (+1 for a Priest, +2 for a Wizard). Click an item to read it.'),
       p('A hero\'s earned marks, such as the upside-down Dragon card for a Dragon slain single-handed, sit among the mini-cards on their card and open the same way.'),
     ] },
-    { id: 'item-actions', title: 'What you can do with an item', brief: 'Use it, wield or stow it, open the Chest, give it to another member, or drop it.', cards: [], screens: ['inventory'], blocks: [
-      p('An item\'s card holds everything you can do with it: use it (choosing a target or direction), wield or stow it, open the Treasure Chest, give it to another member or drop it. Nothing suggests when to use an artefact; that is up to you.'),
-      note('good', 'Redistribute freely', 'Outside a fight, use *Give to* to hand an item to a stronger back, or *Drop here* to drop it where you stand. *Give to…* is greyed out when no other member can carry the item; hover it for the reason. A wielded item goes with its holder; a carried one spills when the holder falls.'),
+    { id: 'item-actions', title: 'What you can do with an item', brief: 'Use it, wield or wear it, open the Chest, give it to another member, or drop it.', cards: [], screens: ['inventory'], blocks: [
+      p('An item\'s card holds everything you can do with it: use it (choosing a target or direction), wield or wear it (or stow it again), open the Treasure Chest, give it to another member or drop it. Nothing suggests when to use an artefact; that is up to you.'),
+      note('good', 'Redistribute freely', 'Outside a fight, use *Give to* to hand an item to a stronger back, or *Drop here* to drop it where you stand. *Give to…* is greyed out when no other member can carry the item; hover it for the reason. Nothing is lost with a member who falls: whether wielded, worn or carried, it spills to the floor for the party to pick up.'),
+    ] },
+    { id: 'wielding', title: 'Wielding and wearing', brief: 'A weapon or charm helps only while it is wielded or worn, never just because it is carried.', cards: [], screens: ['fight', 'fight-revised'], blocks: [
+      p('Picking up a weapon does not arm anyone. A **Magic Sword, Axe, Staff or Shield** must be **wielded**, and **The Ring** and the **Talisman** must be **worn**, before they do anything. Use the *Wield* or *Wear* button on the item\'s card in the Party or Inventory panel (and *Stow* or *Remove* to put it away). Nothing is ever wielded or worn for you, and you are best to prepare the party before a fight. During a fight you can still wield or wear for a member who has not yet been deployed, from the item\'s card in the Inventory.'),
+      p('Each member has two hands. A member may wield **one attacking weapon** (the Sword, the Axe or the Staff) **and the Shield** together, never two attacking weapons; the Game tells you why when a second is refused. The Ring and the Talisman are worn in addition and use no hand.'),
+      p('What needs wielding or wearing: the weapons\' strength and magic bonuses, the Sword\'s power to fight Spectres, the Axe\'s to fight Demons, the Shield\'s ward, the Ring\'s +1 and its invincibility, the Talisman\'s wards, and a Wizard\'s Staff against Medusa and for freeing the stone. The **Eye of God** works just by being carried.'),
+      note('good', 'A fight reminds you', 'If a carried item would have helped, the fight screen says so ("Magic Sword (Hero) carried, not wielded"). It only tells you: nothing is wielded for you.'),
     ] },
     { id: 'artifact-general', title: 'About artefacts', cards: cards('artifact', '*'), blocks: [
       p('Artefacts weigh nothing and grant powers. Some are used up; others serve as long as you hold them. Nothing suggests when to use one; that is up to you.'),
     ] },
     artefact('Magic Sword', 'sword', 'Adds 1 to the Strength of the Man or Woman who bears it, or 2 to a Hero. Also enables the bearer to fight Spectres.',
-      'As written. The Woman Hero counts as a Hero (+2). Nullified while an Eye of God is present.'),
+      'As written. It must be wielded. The Woman Hero counts as a Hero (+2). Nullified while an Eye of God is present.'),
     artefact('Magic Staff', 'staff', 'Increases the Magical Power of a Priest by 1, or of a Wizard by 2. In the hands of a Wizard, reanimates creatures turned to stone, and wards off Medusa.',
-      'As written; a Wizard may free petrified members at rest or while looting after a fight. Not used up.'),
+      'As written. It must be wielded, for its magic and for a Wizard\'s powers: freeing petrified members at rest or while looting after a fight, and warding Medusa. Not used up.'),
     artefact('The Ring', 'ring', 'When worn by a Man, Woman, Priest, Wizard, Hero or Dwarf, adds 1 to the die rolls of your party. Also makes the bearer invincible on the fourth level or deeper.',
-      'As written — the +1 applies while any member holds it; invincibility only on level 4+.'),
+      'As written. It must be worn: the +1 applies while any member wears it; invincibility only on level 4+.'),
     artefact('Talisman', 'talisman', 'Wards off Zombies and Ghouls from the party displaying it. On the fourth level or deeper, also wards off Spectres.',
-      'Wards Ghouls and (on level 4+) Spectres. Zombies do not appear in this deck.'),
+      'It must be worn by any one living member to ward the whole party: Ghouls, and (on level 4+) Spectres. It also keeps the Harpies away. Zombies do not appear in this deck.'),
     artefact('Eye of God', 'eye', 'A gem which renders powerless all magic in the area, and annihilates Spectres and Zombies. Having taken it up, you must keep it; otherwise you will be cursed.',
       'Nullifies magic and destroys Spectres; also stills the Lost Ruby statue. In a fight it covers the whole area: it switches off every artefact and magic bonus on *both* sides and stops the strangers arming themselves. The Sorcerer is the one exception (−2 only).', {}, [
         note('danger', 'Keep it or be cursed', 'Once taken up, the Eye must stay with its bearer. Drop it, hand it on, or lose its bearer in battle and a curse falls on the party: **−1 to every roll** and the −30 score penalty. Slaying the Sorcerer lifts every curse.'),
@@ -70,12 +76,12 @@ export const TREASURE: Section = {
     artefact('Holy Water', 'holy-water', 'Reanimate creature of STONE. Destroys MEDUSA, SPECTRE, or DEMON, or weakens SORCERER or APPRENTICE by 2. One use only.',
       'Four uses, pick one: free a petrified member, or wake a whole Gallery statue; destroy a lurking Medusa, Spectre or Demon; or weaken the Sorcerer\'s or Apprentice\'s magic by 2. Only a human or priest-class member can use it. Used up.', { variant: 'kit' }),
     artefact('Magic Axe', 'axe', 'Adds 1 to the Strength of a MAN, WOMAN, or HERO; 3 to that of a DWARF. Also enables the bearer to fight a DEMON.',
-      'As written — the Woman Hero gets +1, not +3. An active Eye of God silences the bonus, but any bearer may still stand against a Demon. Not used up.', { variant: 'kit' }),
+      'As written — the Woman Hero gets +1, not +3. It must be wielded, and only one attacking weapon at a time. An active Eye of God silences the bonus, but any wielder may still stand against a Demon. Not used up.', { variant: 'kit' }),
     artefact('Scroll', 'scroll', 'On being read by any HUMAN, destroys all enemies in an area other than those with Magical Power. Any party using it is CURSED.',
       'As written — no target picker, just a living human present. Anything with magical power 0 (Man, Woman, Ogre, Troll, Dwarf, Lion, Wolf, even a Dragon) falls; any caster, the Spectre and the Demon shrug it off. The curse lasts until the Sorcerer falls. Used up.', { variant: 'kit' }, [
         note('info', 'House rule', 'Under the revised combat it is read at the start of a round instead, and it is not used up.', 'combatRevision'),
       ]),
     artefact('Magic Shield', 'shield', 'When borne by a MAN, WOMAN, or HERO, nullifies the opponent\'s magical power. Reduces the power of SORCERER or APPRENTICE by 2.',
-      'As written — the Woman Hero counts too; in anyone else\'s grip it is inert. Its ward covers only the one foe paired against its bearer. An active Eye of God silences it. It also lets its bearer face a Spectre or Demon when nobody has any other way to touch it: the round is a **stalemate** and neither is harmed. Not used up.', { variant: 'kit' }),
+      'As written. It must be wielded (together with one attacking weapon if you like) — the Woman Hero counts too; in anyone else\'s grip it is inert. Its ward covers only the one foe paired against its bearer. An active Eye of God silences it. It also lets its bearer face a Spectre or Demon when nobody has any other way to touch it: the round is a **stalemate** and neither is harmed. Not used up.', { variant: 'kit' }),
   ],
 };

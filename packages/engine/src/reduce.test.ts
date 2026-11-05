@@ -1016,7 +1016,7 @@ describe("reduce — treasure redistribution (party panel)", () => {
     const s = makeState({
       phase: "explore", areas: [A, B], partyArea: 1, prev: 0, level: 1,
       party: [
-        { creatureId: 8, status: 0, dragonKills: 0, treasure: [9] },            // Wizard with the Magic Staff
+        { creatureId: 8, status: 0, dragonKills: 0, treasure: [9], borne: [9] }, // Wizard wielding the Magic Staff
         { creatureId: 5, status: 2, dragonKills: 0, treasure: [], stoneArea: 0 }, // Man, left as stone in A
       ],
     });

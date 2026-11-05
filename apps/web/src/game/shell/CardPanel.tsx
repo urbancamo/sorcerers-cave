@@ -118,7 +118,7 @@ export function CardPanel({ selected, onItem, onMember, onAward, onClose, action
     const text = cardText(item.artifact ? 'artifact' : 'treasure', item.name);
     return (
       <aside className="scv-slot scv-slot-right scv-cardpanel" aria-label="Card panel">
-        <h2 className="scv-slot-hd">{item.artifact ? 'Artifact' : 'Treasure'}{actions && <HelpButton topics={['item-actions']} label="Help with this item" />}
+        <h2 className="scv-slot-hd">{item.artifact ? 'Artifact' : 'Treasure'}{actions && <HelpButton topics={['item-actions', 'wielding']} label="Help with this item" />}
           <button type="button" className="scv-cp-back" onClick={() => onMember(from)}>← {from.label}</button>
         </h2>
         <Face file={item.file} name={item.name} />

@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+import { inUseGear } from "./testkit";
 import {
   declarePvp, setDefenderLine, setAttackerEngage, setDefenderCasters, resolveRoundPvp,
   retreatPvp, proposeStop, acceptStop, expirePvp, pvpView,
@@ -12,7 +13,7 @@ import { packCoord, DIR_N, DIR_E } from "./coords";
 
 // Builders copied from multi.test.ts (kept local — this suite may not edit existing files).
 const member = (creatureId: number, treasure: number[] = [], over: Partial<PartyMember> = {}): PartyMember =>
-  ({ creatureId, status: 0, dragonKills: 0, treasure, ...over });
+  ({ creatureId, status: 0, dragonKills: 0, treasure, borne: inUseGear(treasure), ...over });
 
 const partyAt = (seat: number, over: Partial<PartyState> = {}): PartyState => ({
   seat, color: ["green", "blue", "yellow", "red"][seat]!, name: "Party " + seat, status: "exploring", kills: 0,
@@ -187,14 +188,14 @@ describe("resolveRoundPvp (I-10)", () => {
     expect(s.window).toEqual({ seat: 1, deadline: 1000, kind: "pvpLayout" }); // but the DEFENDER still lays out first
   });
 
-  it("a wipe spills the fallen's carried items to the victor's pickup; borne items stay on the corpse", () => {
-    // The Dwarf bears the Magic Sword (borne) and carries the Talisman.
+  it("a wipe spills everything the fallen held to the victor's pickup, a wielded weapon included", () => {
+    // The Dwarf wields the Magic Sword and carries the Talisman: both spill (W-7).
     const r0 = declared([member(12)], [member(7, [3, 7], { borne: [3] })], { surprise: true });
     const r = fullRound(r0.state, ["1:0"], [{ attackers: ["0:0"], defenders: ["1:0"] }]);
-    expect(r.events).toContainEqual({ type: "itemsSpilled", creatureId: 7, items: [7] });
-    expect(r.events).toContainEqual({ type: "treasureReclaimed", count: 1 });
-    expect(r.state.parties[1]!.party[0]!.treasure).toEqual([3]); // borne Sword goes down with the body
-    expect(r.state.parties[0]!.treasures).toEqual([7]); // the Talisman is the winner's spoils
+    expect(r.events).toContainEqual({ type: "itemsSpilled", creatureId: 7, items: [3, 7] });
+    expect(r.events).toContainEqual({ type: "treasureReclaimed", count: 2 });
+    expect(r.state.parties[1]!.party[0]!.treasure).toEqual([]);
+    expect(r.state.parties[0]!.treasures).toEqual([3, 7]); // the Sword and the Talisman are the winner's spoils
     expect(r.state.parties[0]!.phase).toBe("pickup");
     expect(r.state.cave.areas[0]!.contents).toEqual([]); // floor fully reclaimed
   });

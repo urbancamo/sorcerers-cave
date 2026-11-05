@@ -7,7 +7,7 @@ Numbers in brackets are Peter's item numbers. Work through Group 1 first.
 
 ## Group 1: Issues (things that look wrong or misleading today)
 
-### I-1. [5] Mutiny "does nothing" and the card persists — STRUCK OFF (Mark tested it: works). Not an engine bug (it only affects allies); a notice now says so; the persistent card is deliberate (8ef8d10) and now covers every spent hazard card
+### I-1. [5] Mutiny "does nothing" and the card persists — STRUCK OFF (Mark tested it: works). Not an engine bug (it only affects allies); a notice now says so; the leftover card (8ef8d10) was replaced on 2026-11-05 by a set-piece pop-up with the card, after which it is discarded; same for Desertion, Quarrel, Spell and struck Harpies
 - **Observed:** queued Mutiny with a large party; nothing happened; the Mutiny card stays in the chamber.
 - **What the code does:** `hazards.ts` `HAZARD_MUTINY` only affects **allies** (status 1). A party of originals is untouched, and the card is deliberately left on the tile as a display marker (`300 + HAZARD_MUTINY`) so it doesn't vanish.
 - **Likely cause:** Peter's party was all originals, so there was nobody to desert. The card staying is intentional, but it reads as "stuck".

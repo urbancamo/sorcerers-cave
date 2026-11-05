@@ -1,6 +1,7 @@
 import { ALL_CREATURES as CREATURES, FLAG_BEFRIENDS_UNICORN, FLAG_HUMAN } from "./data/creatures";
 import { HAZARD_MEDUSA } from "./data/hazards";
 import { shieldEligible } from "./capabilities";
+import { inUse } from "./loot";
 import { removeStranger, addStranger } from "./strangerGear";
 import type { GameState, PartyMember } from "./state";
 import type { GameEvent } from "./actions";
@@ -89,6 +90,11 @@ function partyHolds(state: GameState, treasureId: number): boolean {
   return state.party.some((m) => living(m) && m.treasure.includes(treasureId));
 }
 
+/** Does any living member have the item in use (wielded or worn)? The Talisman's ward is the party's, but only while it is worn. */
+function partyUses(state: GameState, treasureId: number): boolean {
+  return state.party.some((m) => living(m) && inUse(m, treasureId));
+}
+
 /**
  * The Charmed Flute is held by a living player able to play it: it lulls Dragons (in a chamber) and
  * Vipers (the pit crossing) to sleep for as long as the party holds it (§ Charmed Flute). The lull is
@@ -162,12 +168,12 @@ export function healingBalmEligible(state: GameState, idx: number): boolean {
 
 /** The Talisman wards off Spectres on the 4th level or deeper (this edition's deck has no Zombies/Ghouls). */
 export function talismanWardsSpectres(state: GameState): boolean {
-  return state.level >= 4 && partyHolds(state, T_TALISMAN);
+  return state.level >= 4 && partyUses(state, T_TALISMAN);
 }
 
 /** The Ring makes its bearer immune to killing die-rolls on the 4th level or deeper (negated by an active Eye). */
 export function ringInvincible(member: PartyMember, state: GameState): boolean {
-  return state.level >= 4 && member.treasure.includes(T_THE_RING) && !eyePresent(state);
+  return state.level >= 4 && inUse(member, T_THE_RING) && !eyePresent(state);
 }
 
 /**
@@ -182,7 +188,7 @@ export function ringInvincible(member: PartyMember, state: GameState): boolean {
  */
 export function shieldWardActive(state: GameState, member: PartyMember): boolean {
   return !eyePresent(state) && living(member) &&
-    shieldEligible(member.creatureId) && member.treasure.includes(T_MAGIC_SHIELD);
+    shieldEligible(member.creatureId) && inUse(member, T_MAGIC_SHIELD);
 }
 
 /** A living Woman (id 6) or W-Hero (id 1) is in the party — required to win and keep a Unicorn's loyalty. */

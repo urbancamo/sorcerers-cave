@@ -18,7 +18,7 @@ function partyState(): GameState {
 }
 
 describe("PartyPanel", () => {
-  it("offers Bear for a borneable item, Stow once borne, and neither for plain treasure", () => {
+  it("offers Wield for a weapon, Stow once wielded, and neither for plain treasure", () => {
     const dispatch = vi.fn();
     const s = partyState();
     s.party[0]!.treasure.push(3); // Magic Sword — borneable
@@ -26,23 +26,40 @@ describe("PartyPanel", () => {
 
     // Plain Gold: no bear/stow control.
     fireEvent.click(screen.getByRole("button", { name: /^gold$/i }));
-    expect(screen.queryByRole("button", { name: /bear \(wield\)/i })).toBeNull();
+    expect(screen.queryByRole("button", { name: /^wield$/i })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /cancel/i }));
 
-    // The Sword offers Bear; dispatch carries the setBorne action.
+    // The Sword offers Wield; dispatch carries the setBorne action.
     fireEvent.click(screen.getByRole("button", { name: /^magic sword$/i }));
-    fireEvent.click(screen.getByRole("button", { name: /bear \(wield\)/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^wield$/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "setBorne", mi: 0, idx: 1, borne: true });
 
-    // Once borne it is marked and offers Stow instead.
+    // Once wielded it is marked and offers Stow instead.
     const borneState = structuredClone(s);
     borneState.party[0]!.borne = [3];
     rerender(<PartyPanel state={borneState} dispatch={dispatch} onClose={() => {}} />);
-    const sword = screen.getByRole("button", { name: /magic sword \(borne\)/i });
+    const sword = screen.getByRole("button", { name: /magic sword \(wielded\)/i });
     expect(sword.className).toContain("borne");
     fireEvent.click(sword);
     fireEvent.click(screen.getByRole("button", { name: /stow \(carry\)/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "setBorne", mi: 0, idx: 1, borne: false });
+  });
+
+  it("offers Wear / Remove for the Ring and the Talisman, and says why a second attacking weapon cannot be wielded", () => {
+    const dispatch = vi.fn();
+    const s = partyState();
+    s.party[0]!.treasure.push(10, 3, 17); // Ring, Magic Sword, Magic Axe
+    s.party[0]!.borne = [3];               // the Sword is already wielded
+    render(<PartyPanel state={s} dispatch={dispatch} onClose={() => {}} />);
+
+    fireEvent.click(screen.getByRole("button", { name: /^the ring$/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^wear$/i }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "setBorne", mi: 0, idx: 1, borne: true }); // the panel closes its selection after acting
+
+    fireEvent.click(screen.getByRole("button", { name: /^magic axe$/i }));
+    const axe = screen.getByRole("button", { name: /^wield$/i });
+    expect(axe).toBeDisabled();
+    expect(axe).toHaveAttribute("title", expect.stringMatching(/already wielding the magic sword/i));
   });
 
   it("does not dim the Magic Shield when borne by an eligible member (Man, US-23)", () => {
@@ -50,7 +67,7 @@ describe("PartyPanel", () => {
     s.party[0]!.treasure.push(20); // Man carries and bears the Shield
     s.party[0]!.borne = [20];
     render(<PartyPanel state={s} dispatch={() => {}} onClose={() => {}} />);
-    const live = screen.getByRole("button", { name: /magic shield \(borne\)$/i });
+    const live = screen.getByRole("button", { name: /magic shield \(wielded\)$/i });
     expect(live.className).not.toContain("inert");
   });
 
@@ -59,7 +76,7 @@ describe("PartyPanel", () => {
     s.party[1]!.treasure.push(20); // the Dwarf carries and bears the Shield
     s.party[1]!.borne = [20];
     render(<PartyPanel state={s} dispatch={() => {}} onClose={() => {}} />);
-    const inert = screen.getByRole("button", { name: /magic shield \(borne\) \(inert\)/i });
+    const inert = screen.getByRole("button", { name: /magic shield \(wielded\) \(inert\)/i });
     expect(inert.className).toContain("inert");
     expect(inert.title).toMatch(/inert — needs a man, woman, hero, or w-hero/i);
   });
