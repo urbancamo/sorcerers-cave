@@ -1770,6 +1770,10 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
             return ok;
           }
           (next.sleeping ??= []).push(sid); // the creature sleeps — inert, but stays in the chamber
+          // "asleep for 2 turns of the player who uses it": note when it wakes, as the Medusa throw does
+          // (turn + 2). `enterChamber` wakes it into the strangers on the first entry after that.
+          const here = next.areas[next.partyArea]!;
+          (here.sleepers ??= []).push({ id: sid, until: next.turn + 2 });
           removeStrangerFromFight(next, action.target); // (what it bore drops onto the floor)
           consume();
           if (next.strangers.length === 0) { // no one left awake to face — the party may proceed past the sleepers

@@ -202,6 +202,7 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "medusaLooms": return "Medusa looms — throw the Lotus Dust, or proceed";
     case "medusaSlept": return "the Lotus Dust put Medusa to sleep (two turns)";
     case "medusaAsleep": return "Medusa slept on — no gaze";
+    case "sleeperWoke": return `${creature(e.creatureId)} woke — the Lotus Dust has worn off`;
     case "droppedRetaken": return `reclaimed ${e.count} dropped treasure`;
     case "annihilated": return `the Eye of God annihilated ${creature(e.creatureId)}`;
     case "statuePowerless": return "the guardian statue stood powerless";
@@ -536,6 +537,7 @@ export function eventCode(e: GameEvent): string | null {
     case "medusaLooms": return "MED LOM";
     case "medusaSlept": return "MED SLP";
     case "medusaAsleep": return "MED ZZZ";
+    case "sleeperWoke": return `WAK ${cr3(e.creatureId)}`;
     case "annihilated": return `ANH ${cr3(e.creatureId)}`;
     case "unicornGuards": return "UNI GRD";
     case "unicornDeparted": return "UNI DEP";

@@ -270,6 +270,9 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
       case "medusaAsleep":
         out.push({ text: "Medusa slumbers on under the Lotus Dust — her gaze never lifts.", tone: "good" });
         break;
+      case "sleeperWoke":
+        out.push({ text: `The Lotus Dust has worn off — the ${name(e.creatureId)} you put to sleep is awake again.`, tone: "bad" });
+        break;
       case "droppedRetaken": // the player just pressed the button; a blocking pop-up to confirm it would only be in the way
         break;
       case "sorcererSlain": // celebrated by the FeatCelebration overlay (feats.ts), not a text notice

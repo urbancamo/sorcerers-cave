@@ -174,7 +174,24 @@ export function enterChamber(state: GameState): GameEvent[] {
   // fold-in that used to live here for these two specials is gone; Deep Pool/Viper Pit's OWN
   // Giant/Flute-gated `sunkTreasure` reclaim is unaffected (handled in reduce.ts's
   // `resolveAreaLoop`, which returns before `enterChamber` runs at all for those two).
-  for (const code of area.contents) reload(state, code);
+  // A Lotus-slept stranger (400+id) stays asleep only for its two turns ("asleep for 2 turns of the player
+  // who uses it"): each parked sleeper is paired with one `area.sleepers` record, and while the party's turn
+  // is <= that record's `until` it reloads asleep. After that it wakes into an ordinary stranger (100+id) and
+  // the party must deal with it again. A sleeper with no record (a save from before this rule) wakes too.
+  const pool = [...(area.sleepers ?? [])];
+  const stillAsleep: { id: number; until: number }[] = [];
+  for (const code of area.contents) {
+    if (code >= 400 && code < 500) {
+      const at = pool.findIndex((r) => r.id === code - 400);
+      const rec = at >= 0 ? pool.splice(at, 1)[0]! : undefined;
+      if (rec && state.turn <= rec.until) { stillAsleep.push(rec); reload(state, code); continue; }
+      reload(state, 100 + (code - 400));
+      events.push({ type: "sleeperWoke", creatureId: code - 400 });
+      continue;
+    }
+    reload(state, code);
+  }
+  if (stillAsleep.length > 0) area.sleepers = stillAsleep; else delete area.sleepers; // (drops lapsed/stale records)
   // Standing traps (`variants.trapRules`): note how many traps came back from the area, as opposed to
   // being drawn below, so a later fall can tell a knowing re-entry from a trap met for the first time.
   if (state.variants?.trapRules) {

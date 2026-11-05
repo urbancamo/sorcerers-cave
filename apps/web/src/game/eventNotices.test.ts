@@ -16,6 +16,13 @@ describe("stranger loadout notices", () => {
   });
 });
 
+describe("Lotus Dust sleep notices", () => {
+  it("tells the player a slept Dragon has woken once its two turns have lapsed", () => {
+    const out = eventNotices([{ type: "sleeperWoke", creatureId: 10 }]);
+    expect(out).toEqual([{ text: "The Lotus Dust has worn off — the Dragon you put to sleep is awake again.", tone: "bad" }]);
+  });
+});
+
 describe("eventNotices exhaustiveness (base hardening)", () => {
   it("surfaces a generic notice for a blocked action (previously silent everywhere)", () => {
     const out = eventNotices([{ type: "blocked" }]);
