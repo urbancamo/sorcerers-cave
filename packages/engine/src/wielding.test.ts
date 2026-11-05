@@ -38,9 +38,18 @@ describe("W-2/W-3: wield and wear", () => {
     expect(wieldConflict(s0.party[0]!, SHIELD)).toBeNull();
     expect(set(s0, 0, 1, true).state.party[0]!.borne).toEqual([AXE, SHIELD]);
   });
-  it("wielding stays blocked mid-fight", () => {
+  it("in a classic fight a member may still be armed before the round is fought", () => {
     const fight = makeState({ phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, party: [mem(HERO, [TALISMAN])] });
-    expect(set(fight, 0, 0, true).events).toContainEqual({ type: "blocked" });
+    expect(set(fight, 0, 0, true).state.party[0]!.borne).toEqual([TALISMAN]);
+  });
+  it("in a revised fight only a member not yet deployed may wield or wear", () => {
+    let st = driveStrangers(reduce(makeState({ phase: "encounter", strangers: [2], party: [mem(HERO, [SWORD]), mem(WIZARD, [STAFF])], seed: 1, variants: { combatRevision: true } }), { type: "attack" }).state).state;
+    st.fight!.pending = { by: "party", kind: "deploy", min: 1 };
+    st.fight!.rev!.matches = [{ pf: [0], pb: [], sf: [0], sb: [] }];
+    expect(set(st, 0, 0, true).events).toContainEqual({ type: "blocked" }); // deployed
+    expect(set(st, 1, 0, true).state.party[1]!.borne).toEqual([STAFF]);     // waiting
+    st.fight!.pending = { by: "strangers", kind: "engage" };
+    expect(set(st, 1, 0, true).events).toContainEqual({ type: "blocked" }); // not the party's turn
   });
 });
 

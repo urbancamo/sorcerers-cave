@@ -21,7 +21,7 @@ import {
   eyePresent, slaySorcerer, revertApprenticesOnSorcererDeath,
 } from "./effects";
 import { canTeleportTo } from "./sorcerer";
-import { BORNEABLE, isBorne, inUse, wieldConflict, sweepFallen, spillCarried } from "./loot";
+import { BORNEABLE, isBorne, inUse, wieldConflict, sweepFallen, spillCarried, canArm } from "./loot";
 import { rollDieForState } from "./rng";
 import {
   getSubLocation, chasmMoveAllowed, oppositeDir, RING_ADJACENCY_SPECIALS, ISLAND_JUMP_SPECIALS, SUB_LOCATION_SPECIALS,
@@ -1413,8 +1413,9 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
     case "setBorne": {
       // Put an item in use (wield a Sword/Axe/Staff/Shield, wear the Ring/Talisman) or stow it. Only these have the mode, and its
       // effect applies only while in use (loot.ts). A member wields at most one attacking weapon (two hands: weapon + Shield).
-      // Party-panel action like moveTreasure — not offered via legalActions, not usable mid-fight.
-      if (state.phase === "fight" || state.phase === "gameOver") return { state, events: [{ type: "blocked" }] };
+      // Party-panel action like moveTreasure — not offered via legalActions. In a fight it is allowed only for a member not yet
+      // deployed (not in a pairing), while the party is the one to decide (revised combat) or before the classic round is fought.
+      if (!canArm(state, action.mi)) return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
       const m = next.party[action.mi];
       if (!m || !(m.status === 0 || m.status === 1)) return { state, events: [{ type: "blocked" }] };

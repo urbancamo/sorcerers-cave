@@ -49,3 +49,23 @@ export function sweepFallen(state: GameState, dest: "working" | "contents"): Gam
   }
   return events;
 }
+
+/** Is party member `mi` committed to this fight's pairings? Only the revised round engine keeps pairings in the state (a match, or the
+ *  front line awaiting its engagement); the classic fight builds its plan on the client and resolves it in one step, so there nobody is
+ *  committed until the round is fought. Wielding and wearing are allowed in a fight only for a member who is not committed. */
+export function committedInFight(state: GameState, mi: number): boolean {
+  const rev = state.fight?.rev;
+  if (!rev) return false;
+  return rev.deployed.party.includes(mi) || rev.matches.some((x) => x.pf.includes(mi) || x.pb.includes(mi));
+}
+
+/** May any wielding or wearing be done now? Not after the game; in a fight only while the party is the one to decide (revised combat) or
+ *  before the classic round is fought; and (per member) only if that member is not committed to a pairing. */
+export function canArm(state: GameState, mi: number): boolean {
+  if (state.phase === "gameOver") return false;
+  if (state.phase !== "fight") return true;
+  const f = state.fight;
+  if (!f) return false;
+  if (f.rev ? f.pending?.by !== "party" : f.pending) return false;
+  return !committedInFight(state, mi);
+}

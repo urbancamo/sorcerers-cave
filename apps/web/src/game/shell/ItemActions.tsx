@@ -1,4 +1,4 @@
-import { BORNEABLE, canCarry, isBorne, legalActions, type GameAction, type GameState } from '@sorcerers-cave/engine';
+import { BORNEABLE, canArm, canCarry, isBorne, legalActions, type GameAction, type GameState } from '@sorcerers-cave/engine';
 import { memberLabel } from '../memberLabels';
 import { ConfirmButton, ConfirmPicker } from '../ConfirmButton';
 import { useOptions, ELIXIR_CONFIRM, SCROLL_CONFIRM } from '../artifactUse';
@@ -51,7 +51,7 @@ export function ItemActions({ state, dispatch, mi, idx }: { state: GameState; di
       )}
       {openChest && <button type="button" className="scv-enc-btn" onClick={() => dispatch(openChest)}>Open the Treasure Chest</button>}
       {/* Wield or wear: an item's effect applies only while it is in use. Nothing is put in use for you. */}
-      {manage && BORNEABLE.includes(tid) && (() => {
+      {alive && canArm(state, mi) && BORNEABLE.includes(tid) && (() => {
         const inUse = isBorne(m, tid), v = useVerbs(tid), refusal = inUse ? null : wieldRefusal(m, tid);
         return (
           <>

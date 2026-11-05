@@ -20,11 +20,11 @@ describe("setBorne (bear vs stow)", () => {
     expect(stowed.party[0]!.borne).toEqual([]);
   });
 
-  it("rejects bearing a non-borneable item, mid-fight use, and dead/stone members", () => {
+  it("rejects bearing a non-borneable item, use after the game, and dead/stone members", () => {
     const s = makeState({ party: [member({ treasure: [1] })] }); // Gold has no borne mode
     expect(reduce(s, { type: "setBorne", mi: 0, idx: 0, borne: true }).events).toContainEqual({ type: "blocked" });
-    const fight = makeState({ phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, party: [member({ treasure: [3] })] });
-    expect(reduce(fight, { type: "setBorne", mi: 0, idx: 0, borne: true }).events).toContainEqual({ type: "blocked" });
+    const over = makeState({ phase: "gameOver", party: [member({ treasure: [3] })] });
+    expect(reduce(over, { type: "setBorne", mi: 0, idx: 0, borne: true }).events).toContainEqual({ type: "blocked" });
     const stone = makeState({ party: [member({ treasure: [3], status: 2 })] });
     expect(reduce(stone, { type: "setBorne", mi: 0, idx: 0, borne: true }).events).toContainEqual({ type: "blocked" });
   });
