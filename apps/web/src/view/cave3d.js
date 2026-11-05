@@ -290,6 +290,8 @@ function rebuildStairs(){
 // Persistent secret-door card markers, laid flat on each area the party reached by a secret stair.
 const DOOR_AR=195/157; // door card art aspect (h/w)
 const secretDoorOffset=()=>[-TILE_W*0.30,TILE_D*0.30]; // where the door marker lies on its tile (a free corner: the stair markers use the others)
+// The stair marker sits just north of the door card (card half-height + the marker's own radius), so it points at the door without covering it.
+const secretDoorMarkerOffset=()=>{ const [dx,dz]=secretDoorOffset(); return [dx, dz-(1.15/3*DOOR_AR/2+0.22)]; };
 function rebuildSecretDoors(){
   // Dispose geometry/material but keep the shared, cached door textures.
   [...secretGroup.children].forEach(o=>{o.geometry?.dispose?.();o.material?.dispose?.();secretGroup.remove(o);});
@@ -390,8 +392,8 @@ function refreshExitMarkers(){
       // stair marker near a corner of the tile
       // Over the stairwell drawn on the tile's art where it is known (tiles are laid unrotated); otherwise a corner of the tile.
       const at=a.rot?null:stairAt(tiles.get(a.tileId)?.file,m.dir);
-      // A stair with no art here is an engine-added return stair — the secret door — so its marker floats over the door marker laid on this tile.
-      const corner=at?[(at[0]-0.5)*TILE_W,(at[1]-0.5)*TILE_D]:a.secretDoor!=null?secretDoorOffset():m.dir==='D'?[TILE_W*0.30,TILE_D*0.30]:[-TILE_W*0.30,-TILE_D*0.30];
+      // A stair with no art here is an engine-added return stair — the secret door — so its marker floats just above (north of) the door marker laid on this tile.
+      const corner=at?[(at[0]-0.5)*TILE_W,(at[1]-0.5)*TILE_D]:a.secretDoor!=null?secretDoorMarkerOffset():m.dir==='D'?[TILE_W*0.30,TILE_D*0.30]:[-TILE_W*0.30,-TILE_D*0.30];
       const ring=ringFlat(col,0.3,0.44);ring.rotation.x=-Math.PI/2;ring.position.y=0.06;ring.material.depthTest=false;ring.renderOrder=19;
       const spr=chevronSprite(col,true); spr.position.y=0.5;
       grp.add(ring,spr);
