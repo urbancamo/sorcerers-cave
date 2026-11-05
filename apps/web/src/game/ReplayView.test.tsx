@@ -205,3 +205,34 @@ describe("ReplayView — rendering through the existing cave view (§RB-5)", () 
     expect(screen.getByText(/initial deal/i)).toBeInTheDocument();
   });
 });
+
+describe("ReplayView — full screen", () => {
+  const setSupport = (enabled: boolean) => Object.defineProperty(document, "fullscreenEnabled", { value: enabled, configurable: true });
+  const setElement = (el: Element | null) => Object.defineProperty(document, "fullscreenElement", { value: el, configurable: true });
+  afterEach(() => { setElement(null); });
+
+  it("has a Full screen button that asks the browser to fill the window", async () => {
+    setSupport(true);
+    const request = vi.fn().mockResolvedValue(undefined);
+    document.documentElement.requestFullscreen = request;
+    await renderView();
+    fireEvent.click(screen.getByRole("button", { name: "Full screen" }));
+    expect(request).toHaveBeenCalledOnce();
+  });
+
+  it("turns into Exit full screen once the browser is full screen, and leaves it on click", async () => {
+    setSupport(true);
+    const exit = vi.fn().mockResolvedValue(undefined);
+    document.exitFullscreen = exit;
+    await renderView();
+    act(() => { setElement(document.documentElement); document.dispatchEvent(new Event("fullscreenchange")); });
+    fireEvent.click(screen.getByRole("button", { name: "Exit full screen" }));
+    expect(exit).toHaveBeenCalledOnce();
+  });
+
+  it("is absent where the browser offers no full screen", async () => {
+    setSupport(false);
+    await renderView();
+    expect(screen.queryByRole("button", { name: /full screen/i })).toBeNull();
+  });
+});

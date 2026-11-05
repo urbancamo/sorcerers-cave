@@ -6,6 +6,7 @@ import type { ArtTables } from "../view/projection";
 import { CaveCanvas, type CaveApi } from "../view/CaveCanvas";
 import { DEFAULT_PARTY_COLOR, type PartyColor } from "./partyColors";
 import { actionLabel, describeEvent, type GameLog } from "./gameLog";
+import { useFullscreen } from "./shell/useFullscreen";
 
 /** The `game.replayByCode` query result: the `log` bundle shape plus the `replayable` flag. */
 export interface ReplayBundle {
@@ -60,6 +61,8 @@ export function ReplayView({ bundle, onExit }: { bundle: ReplayBundle; onExit: (
     return () => window.removeEventListener("keydown", onKey);
   }, [last]);
 
+  const fullscreen = useFullscreen();
+
   const [art, setArt] = useState<ArtTables | null>(null);
   useEffect(() => { void loadManifest().then(setArt); }, []);
 
@@ -107,6 +110,12 @@ export function ReplayView({ bundle, onExit }: { bundle: ReplayBundle; onExit: (
           )}
           <button className="scv-primary" onClick={() => jump(i + 1)} disabled={i === last} aria-label="next move">Next ▶</button>
           <button className="scv-primary" onClick={() => jump(last)} disabled={i === last} aria-label="last move">Last ⏭</button>
+          {fullscreen.supported && (
+            <button className="scv-primary" onClick={fullscreen.toggle} aria-pressed={fullscreen.on}
+                    aria-label={fullscreen.on ? "Exit full screen" : "Full screen"}>
+              {fullscreen.on ? "⤡ Exit full screen" : "⤢ Full screen"}
+            </button>
+          )}
         </div>
         <input
           type="range"
