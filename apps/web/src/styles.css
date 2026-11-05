@@ -402,14 +402,14 @@
 /* Test Mode's override controls (TestControlsPanel.tsx, §Test Mode): a QA-only overlay, so it
    follows the same fixed-position/z-index pattern as .scv-enc above rather than sitting in normal
    document flow — without this it renders behind the fixed 3D canvas and is unreachable. Placed on
-   the bottom-right corner (the encounter bar and camera dock sit at the bottom-left). */
+   the bottom-left, above the camera dock (the encounter bar shares the dock's row). */
 .scv-tc {
   position: fixed;
-  bottom: 84px; /* the bottom-right corner, clear above the home / level dock; minimized it is a bar there and expanding grows it upwards; drag the header to move it */
-  right: 14px;
+  bottom: 96px; /* bottom-left, directly above the home / level dock (bottom 24px, ~58px tall); minimized it is a bar there and expanding grows it upwards; drag the header to move it */
+  left: 14px;
   z-index: 62; /* above the slots (58), the fight dialog (55) and the dice overlay (60) */
   width: min(320px, 90vw);
-  max-height: calc(100vh - 126px);
+  max-height: calc(100vh - 140px);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
