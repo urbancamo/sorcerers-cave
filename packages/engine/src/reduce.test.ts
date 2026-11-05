@@ -966,7 +966,7 @@ describe("reduce — treasure redistribution (party panel)", () => {
     expect(reduce(s, { type: "dropTreasure", mi: 0, idx: 0 }).events).toContainEqual({ type: "blocked" });
   });
 
-  it("forsaking the Eye of God (drop or transfer) curses the party", () => {
+  it("forsaking the Eye of God (a drop) curses the party; passing it between members does not", () => {
     const dropState = makeState({
       phase: "explore",
       party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [13] }], // Hero holding the Eye of God
@@ -984,9 +984,10 @@ describe("reduce — treasure redistribution (party panel)", () => {
         { creatureId: 5, status: 0, dragonKills: 0, treasure: [] },
       ],
     });
+    // Passing it to another living member keeps it in the party: no curse (Peter, 2026-11-04 curses bug).
     const moved = reduce(moveState, { type: "moveTreasure", from: 0, to: 1, idx: 0 });
-    expect(moved.state.curses).toBe(1);
-    expect(moved.events).toContainEqual({ type: "eyeForsaken" });
+    expect(moved.state.curses).toBe(0);
+    expect(moved.events).not.toContainEqual({ type: "eyeForsaken" });
     expect(moved.state.party[1]!.treasure).toEqual([13]);
   });
 

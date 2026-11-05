@@ -2,6 +2,7 @@ import { ALL_CREATURES as CREATURES, FLAG_BEFRIENDS_UNICORN, FLAG_HUMAN } from "
 import { HAZARD_MEDUSA } from "./data/hazards";
 import { shieldEligible } from "./capabilities";
 import { inUse } from "./loot";
+import { rollDieForState } from "./rng";
 import { removeStranger, addStranger } from "./strangerGear";
 import type { GameState, PartyMember } from "./state";
 import type { GameEvent } from "./actions";
@@ -133,6 +134,12 @@ export function eyePresent(state: GameState): boolean {
  */
 export function activeCurses(state: GameState): number {
   return state.sorcererKilled ? 0 : state.curses;
+}
+
+/** A die roll made outside a fight (Medusa, the Whirlpool, the Elixir, the Chest...): each curse subtracts 1, and the result is never
+ *  less than 1 (Peter, 2026-11-04). In a fight the same subtraction is part of the party's die bonus and nothing clamps it. */
+export function cursedRoll(state: GameState): number {
+  return Math.max(1, rollDieForState(state) - activeCurses(state));
 }
 
 /**

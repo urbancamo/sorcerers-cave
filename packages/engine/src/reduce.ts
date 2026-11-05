@@ -18,7 +18,7 @@ import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import {
   wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, markDied, healingBalmEligible, ringInvincible, usesArtifactsAs, canUseArtifact,
   hasLivingHuman, holyWaterTargets, HW_STATUE_BASE, HW_MEDUSA, HW_STRANGER_BASE, HW_PARKED_STATUE_BASE, isHumanOrPriestClass,
-  eyePresent, slaySorcerer, revertApprenticesOnSorcererDeath,
+  eyePresent, slaySorcerer, revertApprenticesOnSorcererDeath, cursedRoll, activeCurses,
 } from "./effects";
 import { canTeleportTo } from "./sorcerer";
 import { BORNEABLE, isBorne, inUse, wieldConflict, sweepFallen, spillCarried, canArm } from "./loot";
@@ -1236,7 +1236,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         }
         const partyRoll = rollDieForState(next);
         const enemyRoll = rollDieForState(next);
-        const fighterTotal = frontStrength(fighter) + partyRoll;
+        const fighterTotal = frontStrength(fighter) + partyRoll - activeCurses(next);
         const won = fighterTotal >= 8 + enemyRoll; // the statue guards with strength 8 (§16)
         // Surface the roll so the UI can show the fight (the statue is a foe you must beat).
         events.push({
@@ -1341,8 +1341,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       from.treasure.splice(action.idx, 1);
       if (isBorne(from, tid)) from.borne = from.borne!.filter((t) => t !== tid); // handing it over un-bears it
       to.treasure.push(tid);
-      // The Eye of God must stay with its bearer — moving it off them brings a curse (§Eye of God).
-      if (tid === T_EYE_OF_GOD) { next.curses += 1; return { state: next, events: [{ type: "eyeForsaken" }] }; }
+      // The Eye of God must stay with the party: passing it to another living member keeps it, so no curse (Peter, 2026-11-04).
       return { state: next, events: [] };
     }
 
@@ -1554,7 +1553,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       const roll = rollDieForState(next);
       // 4-6 grants the player's preference (§"A Round of Fighting"). The revised rules add the Ring's +1 (a 7 counting as 6), as for the strangers.
       const ring = next.fight!.rev?.bonus?.partyRing ? 1 : 0;
-      const victim = Math.min(6, roll + ring) >= 4 ? preferred : other;
+      const victim = Math.min(6, roll + ring - activeCurses(next)) >= 4 ? preferred : other;
       markDied(next, next.party[victim]!);
       dropPartyMember(next, victim);
       const events: GameEvent[] = [
@@ -1829,7 +1828,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           const drinker = next.party[action.target];
           if (!drinker || (drinker.status !== 0 && drinker.status !== 1)) return { state, events: [{ type: "blocked" }] };
           consume(); // consumed on use, whatever the outcome
-          const roll = rollDieForState(next);
+          const roll = cursedRoll(next);
           const events: GameEvent[] = [{ type: "artifactUsed", artifact: 15 }];
           if (roll === 1) {
             // Poison — a normal "killing die-roll" death: the Ring's usual invincibility still
@@ -1959,7 +1958,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       const next = structuredClone(state);
       const bearer = next.party[bearerIdx]!;
       bearer.treasure.splice(bearer.treasure.indexOf(14), 1); // the chest is opened (consumed)
-      const roll = rollDieForState(next);
+      const roll = cursedRoll(next);
       const events: GameEvent[] = [{ type: "chestOpened", result: roll }];
       switch (roll) {
         case 1: next.curses += 1; break; // a Curse
@@ -2032,7 +2031,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       const next = structuredClone(state);
       next.areas[next.partyArea]!.flags |= AF_BELL_SPENT; // spent forever, whatever the roll (design US-03)
       const creatureId = next.party[action.mi]!.creatureId;
-      const roll = rollDieForState(next);
+      const roll = cursedRoll(next);
       const events: GameEvent[] = [];
       if (roll === 1) {
         // Desertion semantics (design Resolved-3): removed from the game with everything carried —
@@ -2071,7 +2070,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       }
       const next = structuredClone(state);
       next.cryptCoord = undefined; // spent either way — no second entry (design US-08)
-      const roll = rollDieForState(next);
+      const roll = cursedRoll(next);
       const events: GameEvent[] = [];
       if (roll <= 2) {
         // Unavoidable trap: the WHOLE party falls, whatever a Dwarf's GUIDES_PAST_TRAP would normally

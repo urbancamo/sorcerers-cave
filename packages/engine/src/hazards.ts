@@ -15,7 +15,7 @@ import { AF_DESTROYED, AF_UNRESOLVED, type GameState, type PartyMember } from ".
 import type { GameEvent } from "./actions";
 import { stageMidStateOnce } from "./midState";
 import { frontStrength, partyRollBonus } from "./combat";
-import { eyeForsakenByDeath, markDied, ringInvincible, usesArtifactsAs } from "./effects";
+import { eyeForsakenByDeath, markDied, ringInvincible, usesArtifactsAs, cursedRoll } from "./effects";
 import { spillCarried, sweepFallen } from "./loot";
 import { stashOrDeliver } from "./chamber";
 
@@ -131,7 +131,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
           // `hazard: HAZARD_MEDUSA` (review fix) keeps this skip out of the presentation layer's
           // Desertion-only "party holds together" derivation (SC-EXT-14).
           if (m.creatureId === C_WOLF) { events.push({ type: "wolfUnmoved", hazard: HAZARD_MEDUSA }); continue; }
-          const roll = rollDieForState(state);
+          const roll = cursedRoll(state);
           const petrified = roll <= 2; // a 1 or 2 turns that creature to stone (§Medusa)
           if (petrified) {
             m.status = 2; m.stoneArea = state.partyArea; // left as stone in this chamber
@@ -170,7 +170,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
           if (m.status !== 0 && m.status !== 1) continue;
           const ours = rollDieForState(state);
           const theirs = rollDieForState(state);
-          const partyTotal = frontStrength(m, state) + ours, enemyTotal = 2 + theirs;
+          const partyTotal = frontStrength(m, state) + ours + partyRollBonus(state), enemyTotal = 2 + theirs;
           events.push({
             type: "combatRoll", party: CREATURES[m.creatureId]!.name, enemy: "Ghouls",
             partyRoll: ours, enemyRoll: theirs, partyTotal, enemyTotal,
@@ -244,7 +244,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
           // `hazard: HAZARD_DESERTION` (review fix, Task 10) — this is the ONE `wolfUnmoved` source
           // the presentation layer's "party holds together" summary must count (SC-EXT-14).
           if (a.creatureId === C_WOLF) { events.push({ type: "wolfUnmoved", hazard: HAZARD_DESERTION }); continue; }
-          const roll = rollDieForState(state);
+          const roll = cursedRoll(state);
           const leaves = roll <= 2;
           // `[...a.treasure]` snapshots what the ally is carrying at roll time (design US-09
           // Feedback: "taking [treasure list]") — taken BEFORE any removal, so it reflects exactly
