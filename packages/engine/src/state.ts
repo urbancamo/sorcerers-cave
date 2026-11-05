@@ -106,6 +106,11 @@ export interface PlacedArea {
   // <= this value ("asleep for 2 turns of the player who uses it", §Lotus Dust) — entries meanwhile
   // draw no gaze. Cleared (she wakes) on the first entry after it lapses.
   medusaAsleepUntil?: number;
+  // Lotus Dust thrown at a STRANGER here: one record per creature parked asleep on this tile (its 400+id
+  // code in `contents`). Same two-turn rule as Medusa — it sleeps while the thrower's `turn` is <= `until`
+  // (throw turn + 2), and wakes into an ordinary stranger on the first entry after that. Absent until the
+  // first throw, so a game that never uses the dust is byte-identical.
+  sleepers?: { id: number; until: number }[];
 }
 
 // surprise: +1 party, -1 strangers, 0 none (applies to round 1 only). focus indexes `strangers`.

@@ -193,6 +193,7 @@ export type GameEvent =
   | { type: "medusaLooms" }
   | { type: "medusaSlept"; until: number } // the dust is thrown — she sleeps while the thrower's turn <= until
   | { type: "medusaAsleep" } // entered while she sleeps — no gaze this entry
+  | { type: "sleeperWoke"; creatureId: number } // a Lotus-slept stranger's two turns have lapsed: it is awake again on re-entry
   | { type: "droppedRetaken"; count: number } // fighters reclaimed the heavy treasure they dropped to fight
   | { type: "annihilated"; creatureId: number }
   | { type: "statuePowerless" }
