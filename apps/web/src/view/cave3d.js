@@ -327,9 +327,11 @@ function buildSelectRing(){
 /* ---- exit markers (the navigation affordance) ---- */
 // Camera-facing chevron sprite: never goes edge-on (the old cone did in portrait),
 // and its glyph is rotated each frame to point screen-outward through the doorway.
-let _chevTex=null;
-function chevronTexture(){
-  if(_chevTex) return _chevTex;
+let _chevTex=null, _stairTex=null;
+// `stairs`: the up/down stair markers add two bars under the chevron, like steps. The glyph is rotated 180° for a DOWN stair, so its
+// bars then sit above the arrow; the doorway markers (N/E/S/W) are drawn without them.
+function chevronTexture(stairs=false){
+  if(stairs?_stairTex:_chevTex) return stairs?_stairTex:_chevTex;
   const s=128, cv=document.createElement('canvas'); cv.width=cv.height=s;
   const cx=cv.getContext('2d');
   // Dark "coin" backing so the marker reads against light stone from ANY angle — including the
@@ -340,11 +342,19 @@ function chevronTexture(){
   // chevron points UP; the transparent padding around the coin widens the tap target
   cx.strokeStyle='#ffffff'; cx.lineWidth=13; cx.lineCap='round'; cx.lineJoin='round';
   cx.shadowColor='rgba(0,0,0,0.6)'; cx.shadowBlur=6;
-  cx.beginPath(); cx.moveTo(36,76); cx.lineTo(64,46); cx.lineTo(92,76); cx.stroke();
-  _chevTex=new THREE.CanvasTexture(cv); _chevTex.colorSpace=THREE.SRGBColorSpace; return _chevTex;
+  const up=stairs?-12:0; // a stair's chevron sits higher to leave room for the step bars below it
+  cx.beginPath(); cx.moveTo(36,76+up); cx.lineTo(64,46+up); cx.lineTo(92,76+up); cx.stroke();
+  if(stairs){
+    cx.lineWidth=9;
+    cx.beginPath(); cx.moveTo(40,84); cx.lineTo(88,84); cx.stroke();
+    cx.beginPath(); cx.moveTo(40,100); cx.lineTo(88,100); cx.stroke();
+  }
+  const tex=new THREE.CanvasTexture(cv); tex.colorSpace=THREE.SRGBColorSpace;
+  if(stairs) _stairTex=tex; else _chevTex=tex;
+  return tex;
 }
-function chevronSprite(color){
-  const m=new THREE.SpriteMaterial({map:chevronTexture(),color,transparent:true,opacity:0.95,depthTest:false,depthWrite:false});
+function chevronSprite(color,stairs=false){
+  const m=new THREE.SpriteMaterial({map:chevronTexture(stairs),color,transparent:true,opacity:0.95,depthTest:false,depthWrite:false});
   const s=new THREE.Sprite(m); s.scale.set(1.1,1.1,1); // big quad = big tap target; glyph sits in the centre
   // Draw markers ON TOP of the tiles/content (which have renderOrder 2-7). Without this the floor
   // tile is drawn after the depthWrite:false sprite and paints over it — the marker then only shows
@@ -378,7 +388,7 @@ function refreshExitMarkers(){
       // stair marker near a corner of the tile
       const corner=m.dir==='D'?[TILE_W*0.30,TILE_D*0.30]:[-TILE_W*0.30,-TILE_D*0.30];
       const ring=ringFlat(col,0.3,0.44);ring.rotation.x=-Math.PI/2;ring.position.y=0.06;ring.material.depthTest=false;ring.renderOrder=19;
-      const spr=chevronSprite(col); spr.position.y=0.5;
+      const spr=chevronSprite(col,true); spr.position.y=0.5;
       grp.add(ring,spr);
       grp.position.set(p.x+corner[0],p.y+0.02,p.z+corner[1]);
       grp.userData.spr=spr; grp.userData.outward=false; grp.userData.stairDir=m.dir; // U up, D down (screen-space)
