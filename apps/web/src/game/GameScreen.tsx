@@ -80,7 +80,7 @@ export default function GameScreen() {
   const closeExit = useCallback(() => setRightSlot((cur) => (cur === 'exit' ? null : cur)), []);
   useDismissOutside(rightSlot === 'exit', '[aria-label="Exit"]', closeExit);
   useOpenPartyOnce(gameId, setLeftSlot); // the chosen party is on screen from the first step into the Gateway
-  const [testOpen, setTestOpen] = useState(false); // the floating test panel, independent of the slots
+  const [testOpen, setTestOpen] = useState(true); // the floating test panel (only exists in Test Mode), open by default, independent of the slots
   const [partyExpanded, setPartyExpanded] = useState(false); // the party list widened to show strength, magic and charisma
   const [selected, setSelected] = useState<Selected | null>(null); // what the card panel shows
   // A click on a card, tile, member or item shows it in the card panel; a second click on the SAME thing tidies the panel away again,

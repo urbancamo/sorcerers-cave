@@ -405,11 +405,11 @@
    the bottom-right corner (the encounter bar and camera dock sit at the bottom-left). */
 .scv-tc {
   position: fixed;
-  bottom: 14px; /* the bottom-right corner, so minimized it is a bar there and expanding grows it upwards; drag the header to move it */
+  bottom: 84px; /* the bottom-right corner, clear above the home / level dock; minimized it is a bar there and expanding grows it upwards; drag the header to move it */
   right: 14px;
   z-index: 62; /* above the slots (58), the fight dialog (55) and the dice overlay (60) */
   width: min(320px, 90vw);
-  max-height: calc(100vh - 56px);
+  max-height: calc(100vh - 126px);
   overflow-y: auto;
   display: flex;
   flex-direction: column;
