@@ -15,7 +15,7 @@ export const HAZARDS: Section = {
       p('The earthquake card is left lying on the rubble to mark what fell.'),
     ] },
     { id: 'hazard-medusa', title: 'Medusa', cards: cards('hazard', 'Medusa'), blocks: [
-      p('Her gaze sweeps the party; a die is rolled for each member, and a **1 or 2** turns that member **to stone**. A petrified member can do nothing until freed by the **Magic Staff** (a wizard bearing the staff is immune).'),
+      p('Her gaze sweeps the party; a die is rolled for each member, and a **1 or 2** turns that member **to stone**. A petrified member can do nothing until freed by the **Magic Staff** (a wizard wielding the staff is immune).'),
       p('Medusa **lurks for good**: her card stays on the chamber floor, and she rolls against the party *again every time you re-enter*. When she looms and you hold Lotus Dust, her card opens in the card panel and the bar offers the throw or proceeding. If her gaze petrifies your *whole* party, the expedition ends there.'),
     ] },
     { id: 'hazard-ghouls', title: 'Ghouls', cards: cards('hazard', 'Ghouls'), blocks: [
@@ -38,7 +38,7 @@ export const HAZARDS: Section = {
       p('A **Wolf** ally never rolls at all. With no allies in the party nothing is rolled, and the game says so.'),
     ] },
     { id: 'hazard-harpies', title: 'Harpies', variant: 'kit', cards: cards('hazard', 'Harpies'), blocks: [
-      p('If the party carries no artefacts at all, or holds the **Talisman**, they simply circle off and lurk — the same check runs again on your next visit.'),
+      p('If the party carries no artefacts at all, or **wears** the **Talisman**, they simply circle off and lurk — the same check runs again on your next visit.'),
       p('Otherwise every artefact any living member holds is gone at once, swept away to the **Lair** (onto its floor if you have already found it, or held in reserve until you do). Losing the **Eye of God** this way still curses the party.'),
     ] },
     { id: 'hazard-quarrel', title: 'Quarrel', variant: 'kit', cards: cards('hazard', 'Quarrel'), blocks: [
