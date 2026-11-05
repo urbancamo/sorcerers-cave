@@ -5,6 +5,7 @@ import { spriteRotationForScreenVector } from './billboard.js';
 import { fitDistance } from './camera-fit.js';
 import { carryRowHtml, escAttr } from './rosterCarry';
 import { stairAt } from '../data/stairPositions';
+import { keyOutsideAlpha } from './tileAlpha';
 
 /* ============================================================
    Sorcerer's Cave — 3D viewer + interactive navigation
@@ -41,7 +42,6 @@ let renderer, scene, camera, controls, maxAniso;
 
 /* ---- alpha-cut textures ---- */
 const texCache=new Map();
-const smooth=(e0,e1,x)=>{const t=Math.max(0,Math.min(1,(x-e0)/(e1-e0)));return t*t*(3-2*t);};
 function loadAlphaTexture(src,maxW=1024){
   if(texCache.has(src))return texCache.get(src);
   const p=new Promise(res=>{
@@ -50,8 +50,8 @@ function loadAlphaTexture(src,maxW=1024){
       const sc=Math.min(1,maxW/img.width),w=Math.round(img.width*sc),h=Math.round(img.height*sc);
       const cv=document.createElement('canvas');cv.width=w;cv.height=h;
       const cx=cv.getContext('2d');cx.drawImage(img,0,0,w,h);
-      const im=cx.getImageData(0,0,w,h),d=im.data;
-      for(let i=0;i<d.length;i+=4){const lum=0.3*d[i]+0.59*d[i+1]+0.11*d[i+2];d[i+3]=Math.round(255*smooth(12,48,lum));}
+      const im=cx.getImageData(0,0,w,h);
+      keyOutsideAlpha(im.data,w,h); // only the black around the art is cut away; black painted inside a tile stays
       cx.putImageData(im,0,0);
       const tex=new THREE.CanvasTexture(cv);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=maxAniso;res(tex);
     };
