@@ -7,6 +7,7 @@ import { ALL_TREASURES } from "./data/treasures";
 import { frontStrength, casterMP, partyRollBonus, isCaster } from "./combat";
 import { eyePresent, ringInvincible, activeCurses, eyeForsakenByDeath, markDied, slaySorcerer, shieldWardActive } from "./effects";
 import { equipStrangers } from "./strangerEquip";
+import { inUse } from "./loot";
 import { removeStranger, gearOf } from "./strangerGear";
 import { swordBonus, axeBonus, staffBonus, swordFightsSpectre, shieldEligible } from "./capabilities";
 import type { GameState, PartyMember, BattlePlan } from "./state";
@@ -37,12 +38,12 @@ export const living = (state: GameState, i: number): boolean => {
 
 /** A Man/Woman/Hero/W-Hero bearing the Magic Sword may fight a Spectre hand-to-hand (§Spectre). */
 const canSwordSpectre = (state: GameState, m: PartyMember): boolean =>
-  !eyePresent(state) && m.treasure.includes(T_MAGIC_SWORD) && swordFightsSpectre(m.creatureId);
+  !eyePresent(state) && inUse(m, T_MAGIC_SWORD) && swordFightsSpectre(m.creatureId);
 
 /** Any bearer of the Magic Axe may fight a Demon hand-to-hand, even with mp 0 — no species
  *  restriction, unlike the Sword's Spectre precedent (design US-13/US-24, SC-EXT-21). */
 const canAxeDemon = (state: GameState, m: PartyMember): boolean =>
-  !eyePresent(state) && m.treasure.includes(T_MAGIC_AXE);
+  !eyePresent(state) && inUse(m, T_MAGIC_AXE);
 
 export const MAGIC_ONLY_IDS = [C_SPECTRE, C_DEMON];
 
@@ -342,12 +343,12 @@ export function previewPlan(state: GameState, plan: BattlePlan): PlanPreview {
     const modifiers: MatchModifier[] = [];
     for (const i of mt.front) {
       const m = state.party[i]!, c = m.creatureId;
-      if (!eye && m.treasure.includes(T_MAGIC_SWORD)) {
+      if (!eye && inUse(m, T_MAGIC_SWORD)) {
         const v = swordBonus(c); // Hero class +2, Man/Woman class +1
         if (v) modifiers.push({ label: `Magic Sword · ${named(i)}`, value: v, side: "party", roll: false });
       }
       // Extension kit (SC-EXT-26): the Magic Axe's own bonus-table chip, mirroring the Sword's.
-      if (!eye && m.treasure.includes(T_MAGIC_AXE)) {
+      if (!eye && inUse(m, T_MAGIC_AXE)) {
         const v = axeBonus(c); // Dwarf +3, Hero/Man/Woman class +1
         if (v) modifiers.push({ label: `Magic Axe · ${named(i)}`, value: v, side: "party", roll: false });
       }
@@ -366,12 +367,12 @@ export function previewPlan(state: GameState, plan: BattlePlan): PlanPreview {
     }
     for (const i of mt.backers) {
       const m = state.party[i]!, c = m.creatureId;
-      if (!eye && m.treasure.includes(T_MAGIC_STAFF)) {
+      if (!eye && inUse(m, T_MAGIC_STAFF)) {
         const v = staffBonus(c); // Priest class +1, Wizard class +2
         if (v) modifiers.push({ label: `Magic Staff · ${named(i)}`, value: v, side: "party", roll: false });
       }
     }
-    if (!eye && state.party.some((m) => (m.status === 0 || m.status === 1) && m.treasure.includes(T_THE_RING))) {
+    if (!eye && state.party.some((m) => (m.status === 0 || m.status === 1) && inUse(m, T_THE_RING))) {
       modifiers.push({ label: "The Ring", value: 1, side: "party", roll: true });
     }
     // What the strangers bear: the same chips as the party's, on the enemy side.

@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { frontStrength, casterMP, partyRollBonus, isCaster } from "./combat";
-import { makeState } from "./testkit";
+import { makeState, inUseGear } from "./testkit";
 
 const member = (creatureId: number, extra: Partial<{ dragonKills: number; treasure: number[] }> = {}) => ({
-  creatureId, status: 0 as const, dragonKills: extra.dragonKills ?? 0, treasure: extra.treasure ?? [],
+  creatureId, status: 0 as const, dragonKills: extra.dragonKills ?? 0, treasure: extra.treasure ?? [], borne: inUseGear(extra.treasure ?? []),
 });
 
 describe("combat strength (spec §9.3)", () => {

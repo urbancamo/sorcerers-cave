@@ -1,3 +1,4 @@
+import { BORNEABLE } from "./loot";
 import type { GameState, PlacedArea } from "./state";
 import { GATEWAY_START_COORD } from "./state";
 
@@ -38,3 +39,7 @@ export function makeState(overrides: Partial<GameState> = {}): GameState {
     ...overrides,
   };
 }
+
+/** Fixture helper: the wielded/worn subset of a member's gear. Party effects apply only to items in use (loot.ts), so a test member that
+ *  is meant to HAVE its Sword, Ring, … lists them in `borne` as well as `treasure`. A test of "merely carried" builds the member by hand. */
+export const inUseGear = (treasure: readonly number[]): number[] => treasure.filter((t) => BORNEABLE.includes(t));

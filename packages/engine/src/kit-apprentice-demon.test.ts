@@ -2,7 +2,7 @@ import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
 import { reactionRoll } from "./reaction";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
-import { makeState } from "./testkit";
+import { makeState, inUseGear } from "./testkit";
 import { packCoord } from "./coords";
 import { SPECIAL_GALLERY, SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT } from "./data/areaCards";
 import { AF_DESTROYED, GS_PLAYING, GS_ESCAPED, type GameState, type PartyMember, type BattlePlan } from "./state";
@@ -34,6 +34,7 @@ const member = (creatureId: number, treasure: number[] = []): PartyMember => ({
   status: 0,
   dragonKills: 0,
   treasure,
+  borne: inUseGear(treasure),
 });
 const ally = (creatureId: number, treasure: number[] = []): PartyMember => ({
   creatureId,

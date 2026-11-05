@@ -490,7 +490,7 @@ export function resolveRoundPvp(mp: MpGameState, now: number, windowMs: number =
     }
   }
 
-  // The fallen spill their CARRIED items onto the tile (borne items go down with the body) so the
+  // The fallen spill everything they held onto the tile (nothing is lost with the body) so the
   // eventual victor — or any later party — can loot them (I-12).
   for (const seat of [...s.attacker, ...s.defender]) events.push(...sweepFallen(viewFor(seat), "contents"));
 

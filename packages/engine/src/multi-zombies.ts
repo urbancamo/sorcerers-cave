@@ -246,7 +246,7 @@ export function riseAsZombies(mp: MpGameState, seat: number): MpGameState {
   if (mp.parties.some((q) => q.sorcererKilled)) return mp;
   const corpses = p.party.filter((m) => m.status === 3 && m.creatureId !== C_DRAGON && m.creatureId !== C_SPECTRE);
   if (corpses.length === 0) return mp;
-  // Corpses rise clean: borne items are lost with the rising flesh; carried items spilled at the
+  // Corpses rise clean: everything they held spilled at the
   // wipe (I-12). Encounter memory (hostile/pacified areas, streaks) belonged to the living party.
   const members: PartyMember[] = corpses.map((m) => ({ creatureId: m.creatureId, status: 0, dragonKills: 0, treasure: [] }));
   const risen: PartyState = {

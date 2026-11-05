@@ -5,7 +5,7 @@ import { reduce } from "./reduce";
 import { applyHazards } from "./hazards";
 import { HAZARD_MEDUSA } from "./data/hazards";
 import { BORNEABLE } from "./loot";
-import { makeState } from "./testkit";
+import { makeState, inUseGear } from "./testkit";
 import type { PartyMember } from "./state";
 import type { GameEvent } from "./actions";
 
@@ -43,6 +43,7 @@ const member = (creatureId: number, treasure: number[] = [], overrides: Partial<
   status: 0,
   dragonKills: 0,
   treasure,
+  borne: inUseGear(treasure),
   ...overrides,
 });
 
@@ -78,7 +79,7 @@ describe("Magic Axe (US-24, SC-EXT-26)", () => {
     expect(pv.matches[0]!.partyStr).toBe(4); // Dwarf FS 1 + Axe +3
   });
 
-  it("is BORNEABLE and petrifies WITH a stoned bearer (carried items still spill)", () => {
+  it("is BORNEABLE, but a stoned bearer's Axe spills like everything else (W-7)", () => {
     expect(BORNEABLE).toContain(T_AXE);
     for (let seed = 1; seed < 500; seed++) {
       const s = makeState({
@@ -90,8 +91,8 @@ describe("Magic Axe (US-24, SC-EXT-26)", () => {
       const rolls = events.find((e) => e.type === "medusaGaze") as { rolls: { petrified: boolean }[] } | undefined;
       if (!rolls?.rolls[0]?.petrified) continue;
       expect(s.party[0]!.status).toBe(2);
-      expect(s.party[0]!.treasure).toEqual([T_AXE]); // the borne Axe stays on the statue
-      expect(s.treasures).toContain(T_GOLD);          // the carried Gold spills to the floor
+      expect(s.party[0]!.treasure).toEqual([]);                 // nothing stays on the statue: a wielded Axe is not lost with its bearer
+      expect(s.treasures).toEqual(expect.arrayContaining([T_AXE, T_GOLD])); // both spill to the floor
       return;
     }
     throw new Error("no petrifying seed found");
@@ -105,7 +106,7 @@ describe("Magic Axe (US-24, SC-EXT-26)", () => {
 describe("Magic Shield (US-23, SC-EXT-27)", () => {
   it("is BORNEABLE, and setBorne is legal for ANY member — even one ineligible for the ward", () => {
     expect(BORNEABLE).toContain(T_SHIELD);
-    const s = makeState({ party: [member(WIZARD, [T_SHIELD])] }); // a Wizard: never ward-eligible
+    const s = makeState({ party: [member(WIZARD, [T_SHIELD], { borne: [] })] }); // a Wizard: never ward-eligible, carrying it
     const r = reduce(s, { type: "setBorne", mi: 0, idx: 0, borne: true });
     expect(r.events).not.toContainEqual({ type: "blocked" });
     expect(r.state.party[0]!.borne).toEqual([T_SHIELD]);

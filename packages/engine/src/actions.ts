@@ -12,7 +12,7 @@ export type GameAction =
   // Redistribute carried treasure (spec §"keep holdings… A player may redistribute treasure"):
   | { type: "moveTreasure"; from: number; to: number; idx: number } // give party[from].treasure[idx] to party[to]
   | { type: "dropTreasure"; mi: number; idx: number }               // drop party[mi].treasure[idx] onto the floor
-  // Bear (wield/wear/display) or stow a borneable item — Sword/Staff/Ring only (plan ④a). Dispatched
+  // Put in use (wield a Sword/Axe/Staff/Shield, wear the Ring/Talisman) or stow an item (wielding weapons, 2026-11-05). Dispatched
   // by the party panel like moveTreasure/dropTreasure; never offered via legalActions.
   | { type: "setBorne"; mi: number; idx: number; borne: boolean }
   | { type: "test" }
@@ -204,8 +204,8 @@ export type GameEvent =
   | { type: "vipersLulled" }   // the crossing itself: the vipers sleep, so nobody rolls
   | { type: "vipersAsleep" }    // the Flute has just been played at the pit; the party has not yet chosen to cross
   | { type: "secretDoorRevealed"; dir: number }
-  // A downed (slain or petrified) member's CARRIED items spilled onto the chamber floor — borne items
-  // stay with the body (§Medusa "anything they were carrying can be taken", plan ④a / I-12).
+  // A downed (slain or petrified) member's items — wielded, worn and carried alike — spilled onto the chamber floor
+  // (§Medusa "anything they were carrying can be taken", plan ④a / I-12).
   | { type: "itemsSpilled"; creatureId: number; items: number[] }
   // Heavy treasure cast down at a PvP declaration (§388 "left on the area card until the issue is
   // decided", spec I-9). Distinct from treasureDropped, which is the DEEP POOL sinking — reusing

@@ -91,26 +91,27 @@ BEGIN MOVES
   85 TAKE 0 3                 -> TRN 44 LVL 4 ARA 33 PH PKP GS 0 SEED 443111936 EV -
   86 TAKE 0 3                 -> TRN 44 LVL 4 ARA 33 PH PKP GS 0 SEED 443111936 EV -
   87 TAKE 0 3                 -> TRN 44 LVL 4 ARA 33 PH EXP GS 0 SEED 443111936 EV -
-  88 USE 12 D5                -> TRN 44 LVL 4 ARA 33 PH EXP GS 0 SEED 443111936 EV artifactUsed,secretDoorRevealed
-  89 MOVE 5                   -> TRN 45 LVL 3 ARA 26 PH EXP GS 0 SEED 443111936 EV moved
-  90 MOVE 1                   -> TRN 45 LVL 3 ARA 26 PH EXP GS 0 SEED 443111936 EV deadEnd
-  91 MOVE 2                   -> TRN 46 LVL 3 ARA 34 PH EXP GS 0 SEED 443111936 EV moved
-  92 MOVE 1                   -> TRN 47 LVL 3 ARA 35 PH EXP GS 0 SEED 443111936 EV moved
-  93 MOVE 4                   -> TRN 48 LVL 3 ARA 29 PH EXP GS 0 SEED 443111936 EV moved
-  94 MOVE 6                   -> TRN 49 LVL 4 ARA 30 PH EXP GS 0 SEED 443111936 EV moved
-  95 MOVE 2                   -> TRN 50 LVL 4 ARA 31 PH EXP GS 0 SEED 443111936 EV moved,enteredSpecial
-  96 USE 12                   -> TRN 50 LVL 4 ARA 31 PH EXP GS 0 SEED 443111936 EV artifactUsed,vipersAsleep
-  97 JUMPISLAND               -> TRN 51 LVL 4 ARA 31 PH EXP GS 0 SEED 443111936 EV islandJump,vipersLulled
-  98 MOVE 3                   -> TRN 52 LVL 4 ARA 32 PH EXP GS 0 SEED 443111936 EV crossedSpecial,vipersLulled,moved
-  99 MOVE 4                   -> TRN 53 LVL 4 ARA 33 PH EXP GS 0 SEED 443111936 EV moved,drewChamber
- 100 MOVE 1                   -> TRN 54 LVL 4 ARA 30 PH EXP GS 0 SEED 443111936 EV moved
- 101 MOVE 5                   -> TRN 55 LVL 3 ARA 29 PH EXP GS 0 SEED 443111936 EV moved
- 102 MOVE 4                   -> TRN 56 LVL 3 ARA 28 PH EXP GS 0 SEED 443111936 EV moved,drewChamber
- 103 MOVE 3                   -> TRN 57 LVL 3 ARA 27 PH EXP GS 0 SEED 443111936 EV moved,enteredSpecial
- 104 MOVE 4                   -> TRN 58 LVL 4 ARA 37 PH ENC GS 0 SEED 1997149740 EV crossedSpecial,moved,drewChamber,hazardFired,trapSprung,moved,drewChamber,hazardFired,itemsSpilled,medusaGaze,hazardFired,mutinied
- 105 TEST                     -> TRN 58 LVL 4 ARA 37 PH FGT GS 0 SEED 336922869 EV reaction,fightStarted
- 106 FIGHT 1>2                -> TRN 58 LVL 4 ARA 37 PH END GS 2 SEED 216671483 EV combatRoll,memberDied,itemsSpilled,gameOver
-END MOVES 106
+  88 BORNE 3 2 1              -> TRN 44 LVL 4 ARA 33 PH EXP GS 0 SEED 443111936 EV -
+  89 USE 12 D5                -> TRN 44 LVL 4 ARA 33 PH EXP GS 0 SEED 443111936 EV artifactUsed,secretDoorRevealed
+  90 MOVE 5                   -> TRN 45 LVL 3 ARA 26 PH EXP GS 0 SEED 443111936 EV moved
+  91 MOVE 1                   -> TRN 45 LVL 3 ARA 26 PH EXP GS 0 SEED 443111936 EV deadEnd
+  92 MOVE 2                   -> TRN 46 LVL 3 ARA 34 PH EXP GS 0 SEED 443111936 EV moved
+  93 MOVE 1                   -> TRN 47 LVL 3 ARA 35 PH EXP GS 0 SEED 443111936 EV moved
+  94 MOVE 4                   -> TRN 48 LVL 3 ARA 29 PH EXP GS 0 SEED 443111936 EV moved
+  95 MOVE 6                   -> TRN 49 LVL 4 ARA 30 PH EXP GS 0 SEED 443111936 EV moved
+  96 MOVE 2                   -> TRN 50 LVL 4 ARA 31 PH EXP GS 0 SEED 443111936 EV moved,enteredSpecial
+  97 USE 12                   -> TRN 50 LVL 4 ARA 31 PH EXP GS 0 SEED 443111936 EV artifactUsed,vipersAsleep
+  98 JUMPISLAND               -> TRN 51 LVL 4 ARA 31 PH EXP GS 0 SEED 443111936 EV islandJump,vipersLulled
+  99 MOVE 3                   -> TRN 52 LVL 4 ARA 32 PH EXP GS 0 SEED 443111936 EV crossedSpecial,vipersLulled,moved
+ 100 MOVE 4                   -> TRN 53 LVL 4 ARA 33 PH EXP GS 0 SEED 443111936 EV moved,drewChamber
+ 101 MOVE 1                   -> TRN 54 LVL 4 ARA 30 PH EXP GS 0 SEED 443111936 EV moved
+ 102 MOVE 5                   -> TRN 55 LVL 3 ARA 29 PH EXP GS 0 SEED 443111936 EV moved
+ 103 MOVE 4                   -> TRN 56 LVL 3 ARA 28 PH EXP GS 0 SEED 443111936 EV moved,drewChamber
+ 104 MOVE 3                   -> TRN 57 LVL 3 ARA 27 PH EXP GS 0 SEED 443111936 EV moved,enteredSpecial
+ 105 MOVE 4                   -> TRN 58 LVL 4 ARA 37 PH ENC GS 0 SEED 1997149740 EV crossedSpecial,moved,drewChamber,hazardFired,trapSprung,moved,drewChamber,hazardFired,itemsSpilled,medusaGaze,hazardFired,mutinied
+ 106 TEST                     -> TRN 58 LVL 4 ARA 37 PH FGT GS 0 SEED 336922869 EV reaction,fightStarted
+ 107 FIGHT 1>2                -> TRN 58 LVL 4 ARA 37 PH END GS 2 SEED 216671483 EV combatRoll,memberDied,itemsSpilled,gameOver
+END MOVES 107
 FINAL GS 2 PH END TRN 58 LVL 4 AREAS 38 LARGEIDX 37 SMALLIDX 36 SEED 216671483 SCORE 0
 STATE CURSES 0 BONUS 0 SORCKILLED 0 STRANGERS 3,4,12,8 TREASURES 13,11,0,0,10,1,1,1 HAZARDS -
 PARTY 0 CID 5 ST 3 DK 0 CARRY - BORNE -

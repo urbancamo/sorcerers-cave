@@ -2,33 +2,33 @@ import type { GameState, PartyMember } from "./state";
 import type { GameEvent } from "./actions";
 
 /**
- * Borne vs carried (multiplayer plan ④a, from Peter's notes): turn-to-stone — and by the same logic,
- * death — affects only the living flesh. An item the member was BEARING (wielding/worn/displayed) goes
- * down with the body: petrified with a stone member, lost with a corpse. An item merely CARRIED spills
- * onto the chamber floor, recoverable "as easily as if it had been dropped" (§Medusa: "anything they
- * were carrying can be taken from them"). Only these items have a borne mode in the base game:
- * the Magic Sword (3), the Magic Staff (9) and The Ring (10) — everything else is always carried.
+ * In use vs carried (docs/requirements/2026-11-05-wielding-weapons-spec.md). A member's `borne` list is the items it is USING:
+ * wielding (Magic Sword 3, Staff 9, Axe 17, Shield 20) or wearing (The Ring 10, the Talisman 7). An item's combat or warding effect
+ * applies only while it is in use — merely carrying it gives nothing (W-4). Nothing is put in use automatically (W-6). The Eye of
+ * God works by being carried; every other artefact is unchanged.
  *
- * Passive combat effects (Sword bonus, Staff MP, Ring rolls) remain possession-based, exactly as
- * before — `borne` changes only the fate of the item when its holder falls.
- *
- * Extension kit (SC-EXT-26/27, design US-23/US-24): the Magic Axe (17) and Magic Shield (20) join
- * the SAME borne mode, mirrored exactly — their own passive combat effects (the Axe's fs bonus,
- * the Shield's ward) are likewise possession-based (combat.ts/combatPlan.ts), never `isBorne`;
- * `borne` still governs only what happens to the item when the holder falls or turns to stone.
+ * Nothing is lost with a fallen holder (W-7): in use or not, every item spills like a carried one.
  */
-export const BORNEABLE: readonly number[] = [3, 9, 10, 17, 20];
+export const WIELDED: readonly number[] = [3, 9, 17, 20];
+export const WORN: readonly number[] = [7, 10];
+export const BORNEABLE: readonly number[] = [...WIELDED, ...WORN];
+/** The attacking weapons: a member wields at most one of these at a time (two hands: one weapon plus the Shield). */
+export const ATTACKING: readonly number[] = [3, 9, 17];
 
 export const isBorne = (m: PartyMember, tid: number): boolean => (m.borne ?? []).includes(tid);
+/** Is `tid` held AND in use by this member? The one test every party combat or warding effect goes through. */
+export const inUse = (m: PartyMember, tid: number): boolean => m.treasure.includes(tid) && isBorne(m, tid);
+/** The attacking weapon already wielded that stops `tid` being wielded too (W-3), or null. */
+export function wieldConflict(m: PartyMember, tid: number): number | null {
+  if (!ATTACKING.includes(tid)) return null;
+  return (m.borne ?? []).find((t) => ATTACKING.includes(t) && t !== tid) ?? null;
+}
 
-/**
- * Spill one downed member's CARRIED items off the body, returning the spilled ids (borne items stay
- * on `m.treasure`, locked with the body). Naturally idempotent: after a spill only borne items remain.
- */
+/** Spill everything a downed member carried off the body, returning the spilled ids. Idempotent: after a spill nothing remains. */
 export function spillCarried(m: PartyMember): number[] {
-  const keep = m.treasure.filter((t) => isBorne(m, t));
-  const spilled = m.treasure.filter((t) => !isBorne(m, t));
-  if (spilled.length) m.treasure = keep;
+  const spilled = m.treasure;
+  m.treasure = [];
+  m.borne = undefined;
   return spilled;
 }
 

@@ -1,12 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
-import { makeState } from "./testkit";
+import { makeState, inUseGear } from "./testkit";
 import { packCoord } from "./coords";
 import { frontStrength, casterMP, partyRollBonus } from "./combat";
 import { resolvePlannedRound } from "./combatPlan";
 
 const member = (creatureId: number, treasure: number[] = [], status = 0) =>
-  ({ creatureId, status: status as 0 | 1 | 2 | 3, dragonKills: 0, treasure });
+  ({ creatureId, status: status as 0 | 1 | 2 | 3, dragonKills: 0, treasure, borne: inUseGear(treasure) });
 
 /**
  * Build a two-area state at the given level where a `move` south enters a fresh chamber.
@@ -213,7 +213,7 @@ describe("The Ring — level-4 invincibility (§ The Ring)", () => {
       phase: "fight",
       fight: { surprise: 0, round: 1, focus: 0 },
       level: 4,
-      party: [{ creatureId: 7, status: 0, dragonKills: 0, treasure: [10] }], // Dwarf + Ring
+      party: [{ creatureId: 7, status: 0, dragonKills: 0, treasure: [10], borne: [10] }], // Dwarf wearing the Ring
       strangers: [10], // Dragon
       seed: 3,
     });

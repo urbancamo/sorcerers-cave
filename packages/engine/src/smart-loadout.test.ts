@@ -118,7 +118,7 @@ describe("as a registered strategy", () => {
     // use a throwaway registered strategy to capture the view
     const g = makeState({
       phase: "encounter", strangers: [HERO], treasures: [SWORD],
-      party: [{ creatureId: WIZARD, status: 1, dragonKills: 0, treasure: [STAFF] }, { creatureId: MAN, status: 3, dragonKills: 0, treasure: [] }],
+      party: [{ creatureId: WIZARD, status: 1, dragonKills: 0, treasure: [STAFF], borne: [STAFF] }, { creatureId: MAN, status: 3, dragonKills: 0, treasure: [] }],
       variants: { strangerLevel: "capture" },
     });
     return import("./strategy").then(({ registerStrategy, unregisterStrategy }) => {

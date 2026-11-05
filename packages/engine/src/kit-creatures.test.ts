@@ -4,7 +4,7 @@ import { legalActions } from "./selectors";
 import { applyHazards } from "./hazards";
 import { frontStrength, casterMP } from "./combat";
 import { scoreBreakdown } from "./score";
-import { makeState } from "./testkit";
+import { makeState, inUseGear } from "./testkit";
 import { packCoord, DIR_E, DIR_S, DIR_DOWN } from "./coords";
 import { decodeArea } from "./decode";
 import { SPECIAL_GALLERY } from "./data/areaCards";
@@ -48,6 +48,7 @@ const member = (creatureId: number, treasure: number[] = [], status: 0 | 1 | 2 |
   status,
   dragonKills: 0,
   treasure,
+  borne: inUseGear(treasure),
 });
 
 const AREA = { card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [] as number[], flags: 0, indiffCount: 0 };

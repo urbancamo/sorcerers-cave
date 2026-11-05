@@ -1,10 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { validatePlan, resolvePlannedRound, previewPlan } from "./combatPlan";
-import { makeState } from "./testkit";
+import { makeState, inUseGear } from "./testkit";
 import type { BattlePlan } from "./state";
 import type { GameEvent } from "./actions";
 
-const member = (creatureId: number, treasure: number[] = []) => ({ creatureId, status: 0 as const, dragonKills: 0, treasure });
+const member = (creatureId: number, treasure: number[] = []) => ({ creatureId, status: 0 as const, dragonKills: 0, treasure, borne: inUseGear(treasure) });
 const fightS = (over: Parameters<typeof makeState>[0] = {}) =>
   makeState({ phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, ...over });
 const ok = (s: ReturnType<typeof makeState>, p: BattlePlan) => validatePlan(s, p).ok;
@@ -260,7 +260,7 @@ describe("previewPlan — strongest-combination preview (§395)", () => {
 
   it("lists the artefact and round modifiers in play for a matchup", () => {
     const s = clone(fightS({
-      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [3, 10] }], // Hero with the Magic Sword + The Ring
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [3, 10], borne: [3, 10] }], // Hero wielding the Magic Sword + wearing The Ring
       strangers: [3], fight: { surprise: 1, round: 1, focus: 0 }, // a Troll; the party has surprise
     }));
     const pv = previewPlan(s, { matches: [{ front: [0], backers: [], strangers: [0] }] });

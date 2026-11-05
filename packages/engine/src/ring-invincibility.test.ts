@@ -9,7 +9,7 @@ import { HAZARD_GHOULS } from "./data/hazards";
 // This must hold for EVERY combat die-roll, not just the stranger-fight matches — including the Ghouls
 // hazard and the Lost-Ruby statue wrestle. (§Ring / SC-11-25)
 const RING = 10;
-const man = (treasure: number[] = []) => ({ creatureId: 5, status: 0 as const, dragonKills: 0, treasure }); // Man (a legal Ring-wearer)
+const man = (treasure: number[] = []) => ({ creatureId: 5, status: 0 as const, dragonKills: 0, treasure, borne: treasure.filter((t) => t === 10) }); // Man (a legal Ring-wearer): the Ring is worn
 
 describe("Ring invincibility extends to the Ghouls hazard (§7.2 / SC-11-25)", () => {
   // A seed at which the Ghouls slay a lone (unringed) Man. Rolls don't depend on level or the Ring

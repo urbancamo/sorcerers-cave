@@ -3,7 +3,7 @@ import { resolvePlannedRound } from "./combatPlan";
 import { reduce } from "./reduce";
 import { frontStrength } from "./combat";
 import { healingBalmEligible } from "./effects";
-import { makeState } from "./testkit";
+import { makeState, inUseGear } from "./testkit";
 import { packCoord } from "./coords";
 import { GS_DEAD } from "./state";
 import type { GameState, PartyMember } from "./state";
@@ -11,7 +11,7 @@ import type { GameEvent } from "./actions";
 
 // Reuse the helper style from combatPlan.test.ts.
 const member = (creatureId: number, treasure: number[] = []): PartyMember =>
-  ({ creatureId, status: 0, dragonKills: 0, treasure });
+  ({ creatureId, status: 0, dragonKills: 0, treasure, borne: inUseGear(treasure) });
 const fightS = (over: Parameters<typeof makeState>[0] = {}) =>
   makeState({ phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, ...over });
 // Deep-ish clone so a resolution mutates its own copy, not the test fixture.

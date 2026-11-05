@@ -21,7 +21,7 @@ import {
   eyePresent, slaySorcerer, revertApprenticesOnSorcererDeath,
 } from "./effects";
 import { canTeleportTo } from "./sorcerer";
-import { BORNEABLE, isBorne, sweepFallen, spillCarried } from "./loot";
+import { BORNEABLE, isBorne, inUse, wieldConflict, sweepFallen, spillCarried } from "./loot";
 import { rollDieForState } from "./rng";
 import {
   getSubLocation, chasmMoveAllowed, oppositeDir, RING_ADJACENCY_SPECIALS, ISLAND_JUMP_SPECIALS, SUB_LOCATION_SPECIALS,
@@ -362,7 +362,7 @@ function settleFelledSorcerer(state: GameState): GameEvent[] {
 function reviveStoned(state: GameState): GameEvent[] {
   const events: GameEvent[] = [];
   const wizardWithStaff = state.party.some(
-    (m) => (m.status === 0 || m.status === 1) && usesArtifactsAs(m.creatureId, C_WIZARD) && m.treasure.includes(9),
+    (m) => (m.status === 0 || m.status === 1) && usesArtifactsAs(m.creatureId, C_WIZARD) && inUse(m, 9),
   );
   if (!wizardWithStaff) return events;
   for (const m of state.party) {
@@ -1411,8 +1411,8 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
     }
 
     case "setBorne": {
-      // Bear (wield/wear) or stow an item (plan ④a). Only the Sword/Staff/Ring have a borne mode;
-      // borne items go down with the body on death/petrification, carried items spill to the floor.
+      // Put an item in use (wield a Sword/Axe/Staff/Shield, wear the Ring/Talisman) or stow it. Only these have the mode, and its
+      // effect applies only while in use (loot.ts). A member wields at most one attacking weapon (two hands: weapon + Shield).
       // Party-panel action like moveTreasure — not offered via legalActions, not usable mid-fight.
       if (state.phase === "fight" || state.phase === "gameOver") return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
@@ -1421,7 +1421,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       const tid = m.treasure[action.idx];
       if (tid === undefined) return { state, events: [{ type: "blocked" }] };
       if (action.borne) {
-        if (!BORNEABLE.includes(tid) || isBorne(m, tid)) return { state, events: [{ type: "blocked" }] };
+        if (!BORNEABLE.includes(tid) || isBorne(m, tid) || wieldConflict(m, tid) !== null) return { state, events: [{ type: "blocked" }] };
         m.borne = [...(m.borne ?? []), tid];
       } else {
         if (!isBorne(m, tid)) return { state, events: [{ type: "blocked" }] };

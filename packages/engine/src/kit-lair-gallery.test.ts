@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
 import { legalActions } from "./selectors";
-import { makeState } from "./testkit";
+import { makeState, inUseGear } from "./testkit";
 import { packCoord } from "./coords";
 import { decodeArea } from "./decode";
 import { stashOrDeliver } from "./chamber";
@@ -34,6 +34,7 @@ const member = (creatureId: number, treasure: number[] = []): PartyMember => ({
   status: 0,
   dragonKills: 0,
   treasure,
+  borne: inUseGear(treasure),
 });
 
 // A start tile with only an EAST doorway (bit 2) — the party begins here and moves east onto the

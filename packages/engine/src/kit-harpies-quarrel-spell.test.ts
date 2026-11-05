@@ -122,7 +122,7 @@ describe("Harpies — steal-all-artifacts, park condition, Eye-of-God curse (US-
 
   it("parks even WITH artifacts present, when the party holds the Talisman", () => {
     const s = makeState({
-      party: [member(HERO, 0, [TALISMAN, MAGIC_SWORD])],
+      party: [member(HERO, 0, [TALISMAN, MAGIC_SWORD], [TALISMAN])], // the Talisman worn
       hazards: [HAZARD_HARPIES],
     });
     const { events } = applyHazards(s);
@@ -282,7 +282,7 @@ describe("Quarrel — top-two effective-fs duel, Wolf/Lion exclusion, tie-break 
     // The Ring guards against a killing roll only at level >= 4 with no active Eye (`ringInvincible`).
     const seed = seedForSequence([(v) => v <= 3, (v) => v >= 4]);
     const s = makeState({
-      party: [member(HERO, 0, [GOLD, THE_RING]), member(OGRE, 0)],
+      party: [member(HERO, 0, [GOLD, THE_RING], [THE_RING]), member(OGRE, 0)],
       hazards: [HAZARD_QUARREL],
       treasures: [],
       level: 4,

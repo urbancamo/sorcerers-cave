@@ -4,6 +4,7 @@ import { rollDieForState } from "./rng";
 // no longer crashes them; byte-identical for ids 0-13.
 import { ALL_CREATURES as CREATURES, FLAG_GUIDES_PAST_TRAP } from "./data/creatures";
 import { ALL_TREASURES } from "./data/treasures";
+import { inUse } from "./loot";
 import {
   HAZARD_MUTINY, HAZARD_TRAP, HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_DESERTION,
   HAZARD_HARPIES, HAZARD_QUARREL, HAZARD_SPELL,
@@ -41,7 +42,7 @@ export function hasLivingDwarf(state: GameState): boolean {
 }
 
 function livingHolds(state: GameState, treasureId: number): boolean {
-  return living(state).some((m) => m.treasure.includes(treasureId));
+  return living(state).some((m) => inUse(m, treasureId)); // the Talisman wards only while worn
 }
 
 /** Any living member holds ANY artifact (kind==="artifact", base or kit, SC-EXT-2) — Harpies' park
@@ -54,7 +55,7 @@ function livingHasArtifacts(state: GameState): boolean {
  *  bearing the Magic Staff — makes Medusa powerless over the whole party, and cracks every Gallery
  *  statue awake on entry (card; SC-EXT-11). */
 export function hasStaffWizard(state: GameState): boolean {
-  return state.party.some((m) => (m.status === 0 || m.status === 1) && usesArtifactsAs(m.creatureId, C_WIZARD) && m.treasure.includes(T_MAGIC_STAFF));
+  return state.party.some((m) => (m.status === 0 || m.status === 1) && usesArtifactsAs(m.creatureId, C_WIZARD) && inUse(m, T_MAGIC_STAFF));
 }
 
 /** Resolve every hazard in the working set, in priority order (spec §7.2). */
@@ -182,7 +183,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
           }
         }
         // The ghoul-slain spill their carried artifacts onto the floor with the dropped heavy treasure
-        // ("this may be picked up at the end of the turn", §Ghouls); borne items are lost with the body.
+        // ("this may be picked up at the end of the turn", §Ghouls).
         events.push(...sweepFallen(state, "working"));
         break;
       }
@@ -329,7 +330,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
             // No `memberDied` here — the `quarrel` event above already carries its own dedicated
             // Feedback wording ("[loser] falls to [winner]'s fury."); Ghouls sets the precedent for
             // a hazard-specific death not doubling up on the generic notice. Curse check BEFORE the
-            // spill below (review fix): spillCarried strips the (never-borneable) Eye of God out of
+            // spill below (review fix): spillCarried strips the Eye of God out of
             // `treasure` first, which would otherwise mask eyeForsakenByDeath's own check — every
             // other death site (Ghouls' own case below; combatPlan.ts; special.ts; multi-fight.ts;
             // reduce.ts) already runs the curse check before stripping.

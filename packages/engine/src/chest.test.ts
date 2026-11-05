@@ -1,12 +1,12 @@
 import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
 import { scoreGame } from "./score";
-import { makeState } from "./testkit";
+import { makeState, inUseGear } from "./testkit";
 import { packCoord } from "./coords";
 import { GS_ESCAPED } from "./state";
 import { playRevisedFight } from "./headless";
 
-const member = (creatureId: number, treasure: number[] = []) => ({ creatureId, status: 0 as 0 | 1 | 2 | 3, dragonKills: 0, treasure });
+const member = (creatureId: number, treasure: number[] = []) => ({ creatureId, status: 0 as 0 | 1 | 2 | 3, dragonKills: 0, treasure, borne: inUseGear(treasure) });
 const area = { card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [] as number[], flags: 0, indiffCount: 0 };
 
 describe("openChest (spec §11/§16)", () => {

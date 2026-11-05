@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { frontStrength, casterMP, partyRollBonus } from "./combat";
 import { eyePresent, ringInvincible, shieldWardActive } from "./effects";
-import { makeState } from "./testkit";
+import { makeState, inUseGear } from "./testkit";
 
-const member = (creatureId: number, treasure: number[] = []) => ({ creatureId, status: 0 as const, dragonKills: 0, treasure });
+const member = (creatureId: number, treasure: number[] = []) => ({ creatureId, status: 0 as const, dragonKills: 0, treasure, borne: inUseGear(treasure) });
 const T_SWORD = 3, T_STAFF = 9, T_RING = 10, T_EYE = 13, T_AXE = 17, T_SHIELD = 20;
 const THIEF = 19, WITCH = 18, SCHOLAR = 17, APPRENTICE = 14, SORCERER = 11, WHERO = 1;
 

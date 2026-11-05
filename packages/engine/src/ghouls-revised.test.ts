@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
 import { legalActions } from "./selectors";
-import { makeState } from "./testkit";
+import { makeState, inUseGear } from "./testkit";
 import { packCoord } from "./coords";
 import { driveStrangers } from "./strangerDriver";
 import { playRevisedFight } from "./headless";
@@ -13,7 +13,7 @@ import type { GameState, PartyMember } from "./state";
 // in the area and attack any party that enters or re-enters. Otherwise the fight is against a stranger party of as many strength-2
 // creatures as there are creatures in the player party, with no surprise, and the Ring bonus and curse penalty apply as usual.
 const HERO = 0, MAN = 5, OGRE = 2, DWARF = 7, TALISMAN = 7;
-const member = (creatureId: number, treasure: number[] = []): PartyMember => ({ creatureId, status: 0, dragonKills: 0, treasure });
+const member = (creatureId: number, treasure: number[] = []): PartyMember => ({ creatureId, status: 0, dragonKills: 0, treasure, borne: inUseGear(treasure) });
 const A = { card: 2, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }; // exit E
 
 /** The party steps East into a chamber whose small-pack draw is the Ghouls (plus whatever else is drawn with them). */

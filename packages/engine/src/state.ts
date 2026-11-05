@@ -44,11 +44,10 @@ export interface PartyMember {
   status: MemberStatus;
   dragonKills: number;
   treasure: number[]; // treasure ids carried
-  // Items the member is BEARING (wielded/worn/displayed) rather than merely carrying — a subset of
-  // `treasure` by id (only the Magic Sword 3, Magic Staff 9 and The Ring 10 have a borne mode).
-  // Passive combat effects stay possession-based; `borne` governs only what happens to the item when
-  // the flesh fails: a borne item is petrified/lost WITH the body, a carried item spills to the floor
-  // (§Medusa "anything they were carrying can be taken", multiplayer plan ④a). Absent = all carried.
+  // Items the member is USING rather than merely carrying — a subset of `treasure` by id: wielded (Magic Sword 3, Staff 9, Axe 17,
+  // Shield 20) or worn (Talisman 7, The Ring 10). An item's combat or warding effect applies only while it is listed here (loot.ts
+  // `inUse`); nothing is listed automatically. Nothing is lost with a fallen holder: in use or not, it spills to the floor
+  // (§Medusa "anything they were carrying can be taken"). Absent = all carried.
   borne?: number[];
   potionActive?: boolean; // Strength Potion drunk this fight (+2 frontStrength until it ends)
   // Extension kit (SC-EXT-22, design US-19): a PERMANENT frontStrength bonus — currently only ever

@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
 import { eyeActive, talismanWardsSpectres, ringInvincible, hasWoman, wardOffSpectres, annihilateWithEye, reconcileUnicorns, canUseArtifact } from "./effects";
-import { makeState } from "./testkit";
+import { makeState, inUseGear } from "./testkit";
 import type { MemberStatus } from "./state";
 
-const member = (creatureId: number, treasure: number[] = [], status: MemberStatus = 0) => ({ creatureId, status, dragonKills: 0, treasure });
+const member = (creatureId: number, treasure: number[] = [], status: MemberStatus = 0) => ({ creatureId, status, dragonKills: 0, treasure, borne: inUseGear(treasure) });
 
 describe("passive-effect predicates", () => {
   it("eyeActive is true only when a living member holds the Eye (id 13)", () => {

@@ -1,14 +1,14 @@
 import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
 import { legalActions } from "./selectors";
-import { makeState } from "./testkit";
+import { makeState, inUseGear } from "./testkit";
 import { packCoord } from "./coords";
 import { HAZARD_MEDUSA, HAZARD_TRAP } from "./data/hazards";
 import type { PartyMember } from "./state";
 
 const T_LOTUS = 5;
 const member = (creatureId: number, treasure: number[] = []): PartyMember =>
-  ({ creatureId, status: 0, dragonKills: 0, treasure });
+  ({ creatureId, status: 0, dragonKills: 0, treasure, borne: inUseGear(treasure) });
 
 // A start tile with an East exit; the large pack holds a chamber (W reverse-door) whose
 // small-pack draw is the Medusa hazard — moving East walks straight into her lair.

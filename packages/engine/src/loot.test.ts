@@ -57,12 +57,13 @@ describe("stone members (Medusa petrification, plan ④a)", () => {
     throw new Error("no petrifying seed found");
   };
 
-  it("petrification spills CARRIED items to the chamber floor; BORNE items petrify with the body", () => {
+  it("petrification spills EVERYTHING to the chamber floor, wielded items too (W-7)", () => {
     const { s, events } = gaze([member({ treasure: [3, 1, 7], borne: [3] })]); // Sword borne; Gold+Talisman carried
     expect(s.party[0]!.status).toBe(2);
-    expect(s.party[0]!.treasure).toEqual([3]);            // only the borne Sword stays on the statue
-    expect(s.treasures).toEqual(expect.arrayContaining([1, 7])); // carried items joined the floor
-    expect(events).toContainEqual({ type: "itemsSpilled", creatureId: 0, items: [1, 7] });
+    expect(s.party[0]!.treasure).toEqual([]);             // nothing stays on the statue
+    expect(s.party[0]!.borne ?? []).toEqual([]);
+    expect(s.treasures).toEqual(expect.arrayContaining([3, 1, 7])); // the wielded Sword and the carried items joined the floor
+    expect(events).toContainEqual({ type: "itemsSpilled", creatureId: 0, items: [3, 1, 7] });
   });
 
   it("a stone member's remaining items cannot be moved or dropped", () => {
@@ -89,7 +90,7 @@ describe("stone members (Medusa petrification, plan ④a)", () => {
 });
 
 describe("fallen members (death loot, I-12 / SC-9.5)", () => {
-  it("on a WON fight the fallen's CARRIED items join the pickup; a borne item is lost with the body", () => {
+  it("on a WON fight everything the fallen held joins the pickup, a wielded Sword included", () => {
     // Two members vs one weak stranger: member 0 (doomed) carries Talisman(7)+Gold(1), bears Sword(3).
     // Find a seed where member 0 dies in round 1 and the party wins a later round.
     for (let seed = 1; seed < 2000; seed++) {
@@ -112,16 +113,15 @@ describe("fallen members (death loot, I-12 / SC-9.5)", () => {
         s = r.state;
       }
       if (s.gs === GS_DEAD) continue; // Ogre also died — try another seed
-      // The fallen member's carried Talisman + Gold spilled into the post-win pickup; borne Sword did not.
-      expect(s.treasures).toEqual(expect.arrayContaining([7, 1]));
-      expect(s.treasures).not.toContain(3);
-      expect(s.party[0]!.treasure).toEqual([3]); // the Sword rests with the body
+      // The fallen member's Talisman, Gold and wielded Sword all spilled into the post-win pickup.
+      expect(s.treasures).toEqual(expect.arrayContaining([7, 1, 3]));
+      expect(s.party[0]!.treasure).toEqual([]);
       return;
     }
     throw new Error("no suitable seed found");
   });
 
-  it("on a WIPE the fallen's carried items park on the tile for whoever comes next", () => {
+  it("on a WIPE everything the fallen held parks on the tile for whoever comes next", () => {
     for (let seed = 1; seed < 2000; seed++) {
       const s = makeState({
         seed,
@@ -133,8 +133,8 @@ describe("fallen members (death loot, I-12 / SC-9.5)", () => {
       const r = reduce(s, { type: "resolveRound", matches: [{ front: [0], backers: [], strangers: [0] }] });
       if (r.state.gs !== GS_DEAD) continue;
       expect(r.state.areas[r.state.partyArea]!.contents).toContain(200 + 7); // Talisman on the tile
-      expect(r.state.areas[r.state.partyArea]!.contents).not.toContain(200 + 3); // borne Sword lost with body
-      expect(r.events).toContainEqual({ type: "itemsSpilled", creatureId: 5, items: [7] });
+      expect(r.state.areas[r.state.partyArea]!.contents).toContain(200 + 3); // the wielded Sword is not lost with the body
+      expect(r.events).toContainEqual({ type: "itemsSpilled", creatureId: 5, items: [7, 3] });
       return;
     }
     throw new Error("no suitable seed found");

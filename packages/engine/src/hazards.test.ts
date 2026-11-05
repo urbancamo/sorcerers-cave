@@ -172,7 +172,7 @@ describe("applyHazards (spec §7.2)", () => {
   it("the Talisman wards off Ghouls — no harm, no hazard fired (card)", () => {
     const s = makeState({
       party: [
-        { creatureId: 7, status: 0, dragonKills: 0, treasure: [7] }, // Dwarf holding the Talisman (id 7)
+        { creatureId: 7, status: 0, dragonKills: 0, treasure: [7], borne: [7] }, // Dwarf wearing the Talisman (id 7)
         { creatureId: 7, status: 0, dragonKills: 0, treasure: [] },  // a weak Dwarf the Ghouls would slay
       ],
       hazards: [HAZARD_GHOULS],
@@ -187,7 +187,7 @@ describe("applyHazards (spec §7.2)", () => {
   it("a Wizard bearing the Magic Staff makes Medusa powerless over the whole party (card)", () => {
     const s = makeState({
       party: [
-        { creatureId: 8, status: 0, dragonKills: 0, treasure: [9] }, // Wizard with the Magic Staff (id 9)
+        { creatureId: 8, status: 0, dragonKills: 0, treasure: [9], borne: [9] }, // Wizard wielding the Magic Staff (id 9)
         { creatureId: 5, status: 0, dragonKills: 0, treasure: [] },  // Man — would be vulnerable, but the staff wards
       ],
       hazards: [HAZARD_MEDUSA],
