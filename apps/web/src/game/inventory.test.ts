@@ -27,14 +27,28 @@ describe('inventory', () => {
     expect(r).toMatchObject({ color: 'gray', tag: 'carrier cannot use' });
   });
 
+  describe('wielding weapons', () => {
+    it('says whether a weapon, the Shield, the Ring or the Talisman is in use or merely carried', () => {
+      const s = game([[HERO, [T.sword, 10, 7]]]);
+      const tags = () => inventoryRows(s).map((r) => r.tag);
+      expect(tags()).toEqual(['carried · not wielded', 'carried · not worn', 'carried · not worn']);
+      s.party[0]!.borne = [T.sword, 10, 7];
+      expect(tags()).toEqual(['wielded', 'worn', 'worn']);
+    });
+  });
+
   describe('the Magic Staff', () => {
     it('shows a Priest the +1 magic it adds, and that it cannot be used against Medusa (not "carrier cannot use")', () => {
-      const [r] = inventoryRows(game([[PRIEST, [T.staff]]]));
+      const s = game([[PRIEST, [T.staff]]]);
+      s.party[0]!.borne = [T.staff]; // wielded: only then does it add magic
+      const [r] = inventoryRows(s);
       expect(r).toMatchObject({ color: 'yellow', tag: '+1 magic · cannot use against Medusa' });
     });
 
     it('shows a Wizard the +2 magic it adds, and whether its powers can be used now', () => {
       const s = game([[WIZARD, [T.staff]]]);
+      expect(artifactState(s, 0, T.staff, new Set())).toEqual({ color: 'yellow', tag: 'carried · not wielded' }); // carried: no magic, no powers
+      s.party[0]!.borne = [T.staff];
       expect(artifactState(s, 0, T.staff, new Set())).toEqual({ color: 'yellow', tag: '+2 magic · not usable now' });
       expect(artifactState(s, 0, T.staff, new Set([T.staff]))).toEqual({ color: 'green', tag: '+2 magic · usable now' });
     });

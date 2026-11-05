@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useVerbs, wieldRefusal } from "./wielding";
 import {
   ALL_CREATURES, ALL_TREASURES, carriedWeight, canCarry, BORNEABLE, isBorne,
   type GameState, type GameAction,
@@ -93,13 +94,13 @@ export function PartyPanel({
         {sel && selTid !== undefined && canManage && (
           <div className="scv-pp-bar">
             <span>Move <b>{ALL_TREASURES[selTid]?.name}</b> to a member, or</span>
-            {/* Bear vs stow (Sword/Staff/Ring only): a BORNE item is wielded/worn — it is petrified or
-                lost WITH its holder; a carried item spills to the floor when the holder falls (§④a). */}
-            {BORNEABLE.includes(selTid) && isAlive(party[sel.mi]!.status) && (
-              isBorne(party[sel.mi]!, selTid)
-                ? <button className="scv-pp-act" onClick={() => { dispatch({ type: "setBorne", mi: sel.mi, idx: sel.idx, borne: false }); setSel(null); }}>Stow (carry)</button>
-                : <button className="scv-pp-act" onClick={() => { dispatch({ type: "setBorne", mi: sel.mi, idx: sel.idx, borne: true }); setSel(null); }}>Bear (wield)</button>
-            )}
+            {/* Wield or wear (Sword, Axe, Staff, Shield / Ring, Talisman): an item's effect applies only while it is in use. */}
+            {BORNEABLE.includes(selTid) && isAlive(party[sel.mi]!.status) && (() => {
+              const m = party[sel.mi]!, v = useVerbs(selTid), refusal = isBorne(m, selTid) ? null : wieldRefusal(m, selTid);
+              return isBorne(m, selTid)
+                ? <button className="scv-pp-act" onClick={() => { dispatch({ type: "setBorne", mi: sel.mi, idx: sel.idx, borne: false }); setSel(null); }}>{v.off} (carry)</button>
+                : <button className="scv-pp-act" disabled={refusal !== null} title={refusal ?? undefined} onClick={() => { dispatch({ type: "setBorne", mi: sel.mi, idx: sel.idx, borne: true }); setSel(null); }}>{v.on}</button>;
+            })()}
             {/* Bug fix 2026-08-05: "Drop into chamber" was wrong whenever the party stood
                 anywhere else — a tunnel, the Gateway, or one of the four Precise-Locations
                 specials (where a drop actually sinks into a sub-location, not a chamber floor
@@ -149,8 +150,8 @@ export function PartyPanel({
                         type="button"
                         className={"scv-pp-item" + (t.kind === "artifact" ? " art" : "") + (selected ? " sel" : "") + (borne ? " borne" : "") + (shieldInert ? " inert" : "")}
                         disabled={!canManage}
-                        aria-label={t.name + (borne ? " (borne)" : "") + (shieldInert ? " (inert)" : "")}
-                        title={t.name + (t.kind === "artifact" ? " · artifact" : ` · ${t.weight}kg`) + (borne ? " · borne (wielded — stays with the body if the holder falls)" : "") + (isIdol ? " · value revealed at game's end" : "") + (shieldInert ? " · inert — needs a Man, Woman, Hero, or W-Hero to bear it" : "")}
+                        aria-label={t.name + (borne ? ` (${useVerbs(tid).state})` : "") + (shieldInert ? " (inert)" : "")}
+                        title={t.name + (t.kind === "artifact" ? " · artifact" : ` · ${t.weight}kg`) + (borne ? ` · ${useVerbs(tid).state}` : "") + (isIdol ? " · value revealed at game's end" : "") + (shieldInert ? " · inert — needs a Man, Woman, Hero, or W-Hero to bear it" : "")}
                         onClick={() => setSel(selected ? null : { mi, idx })}
                         onMouseEnter={() => setPreview(timg)}
                         onMouseLeave={() => setPreview((p) => (p === timg ? null : p))}
