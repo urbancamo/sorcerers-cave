@@ -4,6 +4,7 @@ import { Reveal } from './reveal.js';
 import { spriteRotationForScreenVector } from './billboard.js';
 import { fitDistance } from './camera-fit.js';
 import { carryRowHtml, escAttr } from './rosterCarry';
+import { stairAt } from '../data/stairPositions';
 
 /* ============================================================
    Sorcerer's Cave — 3D viewer + interactive navigation
@@ -386,7 +387,9 @@ function refreshExitMarkers(){
       grp.userData.spr=spr; grp.userData.outward=true; grp.userData.center=p.clone();
     } else {
       // stair marker near a corner of the tile
-      const corner=m.dir==='D'?[TILE_W*0.30,TILE_D*0.30]:[-TILE_W*0.30,-TILE_D*0.30];
+      // Over the stairwell drawn on the tile's art where it is known (tiles are laid unrotated); otherwise a corner of the tile.
+      const at=a.rot?null:stairAt(tiles.get(a.tileId)?.file,m.dir);
+      const corner=at?[(at[0]-0.5)*TILE_W,(at[1]-0.5)*TILE_D]:m.dir==='D'?[TILE_W*0.30,TILE_D*0.30]:[-TILE_W*0.30,-TILE_D*0.30];
       const ring=ringFlat(col,0.3,0.44);ring.rotation.x=-Math.PI/2;ring.position.y=0.06;ring.material.depthTest=false;ring.renderOrder=19;
       const spr=chevronSprite(col,true); spr.position.y=0.5;
       grp.add(ring,spr);
