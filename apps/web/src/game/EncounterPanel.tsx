@@ -3,7 +3,7 @@
 // starting party — this panel is the very first thing that renders such a draw, so the base tables
 // would crash here before a kit-on game gets past its first encounter.
 import { useEffect, useRef } from "react";
-import { ALL_CREATURES, ALL_TREASURES, carriedWeight, legalActions, sibylWaiting, type GameState, type GameAction } from "@sorcerers-cave/engine";
+import { ALL_CREATURES, ALL_TREASURES, AT_REST_FROM_PICKUP, carriedWeight, legalActions, sibylWaiting, type GameState, type GameAction } from "@sorcerers-cave/engine";
 import { memberLabel } from "./memberLabels";
 import { uncarryableNotes } from "./uncarryableNotes";
 import { ConfirmButton, ConfirmPicker } from "./ConfirmButton";
@@ -101,7 +101,8 @@ const onlyLeave = (state: GameState, actions: GameAction[]) =>
  *  so the Leave action is dropped and a pickup with nothing else to choose shows no bar. Multiplayer keeps the button. */
 export function EncounterPanel({ state, dispatch, leaveOnMove = false }: { state: GameState; dispatch: (a: GameAction) => void; leaveOnMove?: boolean }) {
   const activePhase = ACTIVE.has(state.phase);
-  const actions = activePhase ? legalActions(state) : [];
+  // In a pickup the tile's own at-rest actions belong to the explore bar (ExplorePanel); here they would only hide the auto-skip below.
+  const actions = (activePhase ? legalActions(state) : []).filter((a) => !(state.phase === "pickup" && AT_REST_FROM_PICKUP.has(a.type)));
   // Auto-skip (design 2026-07-28): a pickup where "Leave the treasure" is the only legal action —
   // nothing takeable, nothing usable — is pure interruption; leave automatically and render
   // nothing. The standing explanation (too heavy / Giant-only pool) lives in the explore panel's

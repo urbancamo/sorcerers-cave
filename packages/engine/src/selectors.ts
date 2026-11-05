@@ -155,6 +155,14 @@ function bellRopeActions(state: GameState): GameAction[] {
  * The actions the UI may offer in the current state (the interactive contract).
  * The UI renders controls from this list; reduce validates against the same rules.
  */
+/** A sealed crypt is parked in the area the party stands in (SC-EXT-13). */
+const cryptHere = (state: GameState): boolean => state.cryptCoord !== undefined && state.areas[state.partyArea]!.coord === state.cryptCoord;
+
+/** The explore-phase tile actions that an open treasure pickup must not hide (an uncarryable treasure reopens the pickup on every visit). */
+export const AT_REST_FROM_PICKUP: ReadonlySet<string> = new Set([
+  "enterCrypt", "descendChasm", "drawFromWell", "pullBellRope", "jumpToIsland", "openChest", "examineArea", "exitCave", "stay",
+]);
+
 export function legalActions(state: GameState): GameAction[] {
   if (state.gs !== GS_PLAYING) return [];
 
@@ -258,6 +266,9 @@ export function legalActions(state: GameState): GameAction[] {
     });
     if (canRetake) actions.push({ type: "retakeDropped" });
     actions.push({ type: "leaveTreasure" });
+    // An open pickup is a quiet pre-step: the at-rest tile actions (crypt, chasm, well, bell rope, chest, island, exit, the Sibyl's
+    // look, the Apprentice) stay on offer, and taking one leaves the floor treasure behind, as walking on does (SC-EXT-13).
+    actions.push(...legalActions({ ...state, phase: "explore", treasures: [] }).filter((a) => AT_REST_FROM_PICKUP.has(a.type)));
     actions.push(...artifactActions(state)); // e.g. Healing Balm to revive the fallen before moving on
     return actions;
   }
@@ -288,9 +299,7 @@ export function legalActions(state: GameState): GameAction[] {
   // The Crypt (SC-EXT-13): offered only at rest ("the start of any turn", design US-08 — no
   // Chasm/Well/Bell-style mid-encounter latitude) while standing on the area `cryptCoord` names;
   // gone the instant `enterCrypt` resolves it, whatever the roll (no second entry).
-  if (state.cryptCoord !== undefined && state.areas[state.partyArea]!.coord === state.cryptCoord) {
-    actions.push({ type: "enterCrypt" });
-  }
+  if (cryptHere(state)) actions.push({ type: "enterCrypt" });
   // A permanently-indifferent chamber is traversed in the explore phase, but the party may still choose
   // to attack its guards (to win the treasure they guard) — offer it while they're parked on the tile.
   if (state.pacifiedAreas?.includes(state.partyArea) &&

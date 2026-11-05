@@ -116,7 +116,7 @@ describe("The Crypt — draw-classify park (US-08, SC-EXT-13)", () => {
     expect(back.events.some((e) => e.type === "cryptParked")).toBe(false); // no reload, no re-announce
   });
 
-  it("legalActions offers enterCrypt only at rest on the crypt's own area — not elsewhere, not mid-encounter/pickup", () => {
+  it("legalActions offers enterCrypt only at rest on the crypt's own area — not elsewhere, not mid-encounter", () => {
     const parked = reduce(cryptState({ party: [member(HERO)] }), { type: "move", dir: DIR_E });
     expect(legalActions(parked.state)).toContainEqual({ type: "enterCrypt" });
 
@@ -126,8 +126,16 @@ describe("The Crypt — draw-classify park (US-08, SC-EXT-13)", () => {
     const midEncounter: GameState = { ...parked.state, phase: "encounter", strangers: [MAN] };
     expect(legalActions(midEncounter)).not.toContainEqual({ type: "enterCrypt" });
 
-    const midPickup: GameState = { ...parked.state, phase: "pickup", treasures: [1] };
-    expect(legalActions(midPickup)).not.toContainEqual({ type: "enterCrypt" });
+  });
+
+  it("is also offered during an open pickup in the crypt's chamber; the floor treasure is left behind, not lost", () => {
+    const parked = reduce(cryptState({ party: [member(HERO)] }), { type: "move", dir: DIR_E });
+    const midPickup: GameState = { ...parked.state, phase: "pickup", treasures: [14] };
+    expect(legalActions(midPickup)).toContainEqual({ type: "enterCrypt" });
+    const out = reduce(midPickup, { type: "enterCrypt" });
+    expect(out.events.some((e) => e.type === "cryptRoll")).toBe(true);
+    expect(out.state.cryptCoord).toBeUndefined();
+    expect(out.state.areas[out.state.partyArea]!.contents.concat(out.state.treasures.map((t) => 200 + t))).toContain(200 + 14);
   });
 
   it("reduce blocks enterCrypt off the crypt's area, and when there is no parked crypt at all", () => {

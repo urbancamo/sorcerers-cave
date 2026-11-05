@@ -23,6 +23,7 @@ import {
 import { canTeleportTo } from "./sorcerer";
 import { BORNEABLE, isBorne, inUse, wieldConflict, sweepFallen, spillCarried, canArm } from "./loot";
 import { rollDieForState } from "./rng";
+import { legalActions, AT_REST_FROM_PICKUP } from "./selectors";
 import {
   getSubLocation, chasmMoveAllowed, oppositeDir, RING_ADJACENCY_SPECIALS, ISLAND_JUMP_SPECIALS, SUB_LOCATION_SPECIALS,
   type SubAt,
@@ -841,6 +842,12 @@ export function reduce(
   action: GameAction,
 ): { state: GameState; events: GameEvent[]; midState?: GameState } {
   clearMidState();
+  // From an open pickup, an at-rest tile action first leaves the floor treasure behind (as walking on does), then runs as usual.
+  // Only when it is on offer, so a refused action never costs the party its pickup.
+  if (state.phase === "pickup" && AT_REST_FROM_PICKUP.has(action.type) && legalActions(state).some((a) => JSON.stringify(a) === JSON.stringify(action))) {
+    state = structuredClone(state);
+    persistAndExplore(state);
+  }
   let result = reduceCore(state, action);
   // The revised combat's turncoat Apprentice (Peter, 14-OCT-2026): an action that takes the party out of the area where the Sorcerer was
   // slain parts company with her first, so she is never in the party for whatever it meets next. The action is replayed from the party

@@ -22,7 +22,7 @@ export const TREASURE: Section = {
       p('Fifty kilograms of stone, and it does nothing along the way. Only at the final reckoning does it speak: a die is cast for it once, and its worth is ten times whatever it shows, from 10 to 60 points. Carried out by the dead or the stone-turned, it is worth nothing.'),
     ] },
     { id: 'treasure-crypt', title: 'Crypt / Gems', variant: 'kit', cards: cards('treasure', 'Crypt/Gems'), blocks: [
-      p('It does not drop onto the floor when drawn: it parks as a single spot in that chamber, and from then on any turn you are at rest there, an *Enter the crypt* option is on offer.'),
+      p('It does not drop onto the floor when drawn: it parks as a single spot in that chamber, and from then on, whenever you are in that chamber (even with treasure on the floor to pick up), an *Enter the crypt* option is on offer on the crypt card itself.'),
       p('One d6 decides it for good: **1–2** is an inescapable trap — the whole party falls a level, even with a Dwarf. **3–6** turns the card into the gems themselves: 25 kg, 20 points. Either roll spends the crypt.'),
     ] },
     { id: 'pickup-capacity', title: 'Picking up treasure', brief: 'Only members with spare carrying capacity are offered a piece.', cards: [], screens: ['pickup'], blocks: [
