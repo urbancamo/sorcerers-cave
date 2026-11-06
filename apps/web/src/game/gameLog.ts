@@ -198,7 +198,9 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "wardedOff": return `the Talisman warded off ${creature(e.creatureId)}`;
     case "ghoulsWarded": return "the Talisman warded off the Ghouls";
     case "ghoulsAttack": return `${e.count} Ghoul${e.count === 1 ? "" : "s"} fall on the party`;
-    case "medusaAverted": return "the Magic Staff turned Medusa's gaze aside";
+    case "medusaAverted": return e.by === "eye" ? "the Eye of God left Medusa powerless" : "the Magic Staff turned Medusa's gaze aside";
+    case "leaderChosen": return `${creature(e.creatureId)} was chosen as the party's new leader`;
+    case "quarrelLooms": return "a quarrel looms — the players chose who takes part";
     case "medusaLooms": return "Medusa looms — throw the Lotus Dust, or proceed";
     case "medusaSlept": return "the Lotus Dust put Medusa to sleep (two turns)";
     case "medusaAsleep": return "Medusa slept on — no gaze";
@@ -208,7 +210,7 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "statuePowerless": return "the guardian statue stood powerless";
     case "deathPrevented": return `the Ring made ${creature(e.creatureId)} invincible`;
     case "unicornGuards": return `a unicorn guards ${creature(e.creatureId)}`;
-    case "unicornDeparted": return `the unicorn departed from ${creature(e.creatureId)}`;
+    case "unicornDeparted": return "the Unicorn, left without a Woman, stayed behind to guard the area";
     case "carpetUsed": return `the Magic Carpet moved the party ${dir(e.dir)}`;
     case "dragonsLulled": return `the Charmed Flute lulled ${e.count} dragon(s)`;
     case "vipersLulled": return "the party crossed the Viper Pit while the vipers slept";
@@ -294,7 +296,7 @@ function scoreLinesHuman(state: GameState | null): string[] {
   }
   const b = scoreBreakdown(state);
   for (const m of b.members) {
-    if (m.counts) out.push(`  ${m.name}${m.dragonDoubled ? " (dragon-slayer ×2)" : ""} — ${m.creaturePoints}`);
+    if (m.counts) out.push(`  ${m.name}${m.dragonDoubled ? " (dragon-slayer, +10 per dragon)" : ""} — ${m.creaturePoints}`);
     else out.push(`  ${m.name} (${STATUS_WORD[m.status] ?? "lost"}) — scored nothing`);
     for (const t of m.treasures) {
       out.push(`      ${t.name}${t.kind === "artifact" ? " (artifact)" : ""} — ${m.counts ? t.points : 0}`);
@@ -328,7 +330,7 @@ function scoreLinesPrinter(state: GameState | null): string[] {
   }
   const b = scoreBreakdown(state);
   for (const m of b.members) {
-    if (m.counts) out.push(scoreRow(cr3(m.creatureId) + (m.dragonDoubled ? "  DRAGON-SLAYER X2" : ""), String(m.creaturePoints)));
+    if (m.counts) out.push(scoreRow(cr3(m.creatureId) + (m.dragonDoubled ? "  DRAGON-SLAYER" : ""), String(m.creaturePoints)));
     else out.push(scoreRow(cr3(m.creatureId) + "  " + (STATUS_WORD[m.status] ?? "lost").toUpperCase(), "SCORED NOTHING"));
     for (const t of m.treasures) out.push(scoreRow("    " + tr3(t.id) + (t.kind === "artifact" ? " ARTIFACT" : ""), String(m.counts ? t.points : 0)));
   }
@@ -534,6 +536,8 @@ export function eventCode(e: GameEvent): string | null {
     case "ghoulsWarded": return "WRD GHL";
     case "ghoulsAttack": return `GHL ${e.count}`;
     case "medusaAverted": return "MED AVD";
+    case "leaderChosen": return `LDR ${cr3(e.creatureId)}`;
+    case "quarrelLooms": return "QRL LOM";
     case "medusaLooms": return "MED LOM";
     case "medusaSlept": return "MED SLP";
     case "medusaAsleep": return "MED ZZZ";

@@ -92,7 +92,7 @@ export function GameOverScreen({
                 <div className="scv-rc-head">
                   <span className="scv-rc-name">
                     {m.name}
-                    {m.dragonDoubled && <span className="scv-rc-tag"> dragon-slayer ×2 <HelpButton topics={["score-dragon-slayer"]} label="Help with dragon-slayers" /></span>}
+                    {m.dragonDoubled && <span className="scv-rc-tag"> dragon-slayer +10 each <HelpButton topics={["score-dragon-slayer"]} label="Help with dragon-slayers" /></span>}
                     {note && <span className="scv-rc-tag"> {note}</span>}
                   </span>
                   <span className="scv-rc-pts">{m.counts ? m.creaturePoints : 0}</span>

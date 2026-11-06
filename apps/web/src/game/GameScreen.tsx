@@ -11,6 +11,8 @@ import { PartySelect } from "./PartySelect";
 import { GameOverScreen } from "./GameOverScreen";
 import { EncounterPanel } from "./EncounterPanel";
 import { TrapChoice } from "./TrapChoice";
+import { LeaderChoice } from "./LeaderChoice";
+import { QuarrelChoice } from "./QuarrelChoice";
 import { ExplorePanel } from "./ExplorePanel";
 import { FightSurface } from "./FightSurface";
 import { RevisedFightSurface } from "./RevisedFightSurface";
@@ -444,6 +446,12 @@ export default function GameScreen() {
           if (a.type === "fallThroughTrap") caveApi.current?.snapOnArrival();
           dispatchWithRolls(a);
         }} />
+      )}
+      {displayState.phase === "leader" && !holding && !overlay && !notices && (
+        <LeaderChoice state={displayState} dispatch={dispatchWithRolls} />
+      )}
+      {displayState.phase === "quarrel" && !holding && !overlay && !notices && (
+        <QuarrelChoice state={displayState} dispatch={dispatchWithRolls} />
       )}
       {displayState.phase === "sorcerer" && !holding && !overlay && !notices && teleportTo === null && art && (
         <SorcererTerms state={displayState} art={art} dispatch={dispatchWithRolls} onTeleport={startTeleport} setPicker={pickDestination} />

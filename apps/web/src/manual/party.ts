@@ -5,6 +5,10 @@ import type { Section } from './types';
 export const PARTY: Section = {
   id: 'party', numeral: 'II', title: 'Building Your Party',
   topics: [
+    { id: 'party-leader', title: 'A new leader', brief: 'When the last original member falls, you choose which ally leads on.', cards: [], screens: ['explore'], blocks: [
+      p('The party is led by its original adventurers. If the last of them is lost — killed, turned to stone, or gone through Desertion or Mutiny — you are asked to **choose a new leader** from the allies who remain. If only one ally is left, that ally simply takes the lead.'),
+      p('The new leader counts as an **original** member from then on, no longer an ally: Desertion and Mutiny cannot touch them.'),
+    ] },
     { id: 'party-budget', title: 'Your party and its budget', brief: 'Spend up to 6 selection points on your expedition before you enter.', cards: [], screens: ['party-select'], blocks: [
       p('Spend up to **6 selection points** recruiting your expedition before you enter. Each creature costs points to recruit and is worth points if it survives the cave. Stronger, more valuable creatures cost more, so a typical party is a careful mix — muscle to fight, backs to carry treasure, and a specialist or two.'),
       p('You may take up to twelve members, but the 6-point budget is the real limit. Carrying capacity matters: an Ogre or a Giant can haul far more treasure home than a Dwarf.'),

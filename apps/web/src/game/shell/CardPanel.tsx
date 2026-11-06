@@ -78,7 +78,7 @@ export function CardPanel({ selected, onItem, onMember, onAward, onClose, action
         <div className="scv-cp-meta">{slayer ? `${award.count} slain by ${from.label}` : `drunk by ${from.label}`}</div>
         <p className="scv-cp-text">
           {slayer
-            ? 'Slain single-handed. Each Dragon adds +1 to this hero\'s fighting strength, and the hero\'s worth is doubled at scoring, for ever.'
+            ? 'Slain single-handed. Each Dragon adds +1 to this hero\'s fighting strength, and the hero is worth 10 more points at scoring for each dragon, for ever.'
             : award.title}
         </p>
       </aside>

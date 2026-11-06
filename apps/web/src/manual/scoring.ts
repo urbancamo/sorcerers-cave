@@ -10,7 +10,7 @@ export const SCORING: Section = {
       list(
         'The points value of every member who **walks out alive** (stone and fallen members count for nothing).',
         'Plus the points value of all treasure they carry.',
-        '**Dragon-slayers** who killed a dragon single-handed count double.',
+        '**Dragon-slayers** who killed a dragon single-handed score **10 extra points for each dragon killed**.',
         'Plus any loot banked from the Treasure Chest, and **+30** for slaying the Sorcerer.',
         '**−30** if the party is under a curse.',
       ),

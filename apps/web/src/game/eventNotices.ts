@@ -253,8 +253,13 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
         break;
       case "ghoulsAttack":
         break;   // announced by the fight surface itself (RevisedFightSurface), before the first roll
+      case "leaderChosen":
+        out.push({ text: `With no original adventurer left, the ${ALL_CREATURES[e.creatureId]?.name ?? "creature"} takes the lead — and counts as an original member from now on.`, tone: "neutral" });
+        break;
+      case "quarrelLooms":
+        break;   // the choice dialog announces it
       case "medusaAverted":
-        out.push({ text: "Medusa's gaze sweeps the party — but the Wizard's Magic Staff turns it aside; no one is stoned.", tone: "good" });
+        out.push({ text: e.by === "eye" ? "Medusa's gaze sweeps the party — but the Eye of God leaves her powerless; no one is stoned." : "Medusa's gaze sweeps the party — but the Wizard's Magic Staff turns it aside; no one is stoned.", tone: "good" });
         break;
       case "trapSprung": // the move-result trap indicator / confirm modal narrates an ordinary fall; these two add the WHY
         if (events.some((x) => x.type === "fightWon") && !e.guideLost && !e.deliberate) out.push({ text: "With the Ghouls gone, the floor gives way — the party plunges a level deeper!", tone: "bad" });   // the Trap is dealt with last, after a fight: no move indicator narrates this fall
@@ -297,7 +302,7 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
       case "unicornGuards":
         break;
       case "unicornDeparted":
-        out.push({ text: `The unicorn departs from ${name(e.creatureId)}.`, tone: "neutral" });
+        out.push({ text: "With no Woman left, the Unicorn leaves the party and stays behind to guard this place.", tone: "neutral" });
         break;
       case "chasmDescend":
         out.push({ text: "The party climbs down into the chasm.", tone: "neutral" });

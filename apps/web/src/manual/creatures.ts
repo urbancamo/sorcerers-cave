@@ -110,7 +110,7 @@ export const CREATURES: Section = {
       list(
         '**It needs a Woman.** A Unicorn joins only a party with a living Woman or Woman Hero.',
         '**Without one it stays to guard.** The chamber is quiet for you from then on and its treasure stays out of reach, unless you choose to attack the guardians.',
-        '**It leaves with the last Woman.** When the last living Woman or Woman Hero falls, the Unicorn departs.',
+        '**It leaves with the last Woman — but not mid-fight.** When the last living Woman or Woman Hero falls, a Unicorn that is in a fight keeps fighting to protect itself (in the revised combat, only while it is matched with a foe; if a round leaves it unmatched it goes at once). As soon as no fight is going on — it won, or you retreated, or the Woman was lost outside a fight — it leaves the party and stays in that chamber as an indifferent guard, just like a Unicorn you meet without a Woman. A retreat leaves it behind.',
         '**As an ally** it fights in the front line at strength 4 and cannot carry treasure.',
       ),
     ] },
