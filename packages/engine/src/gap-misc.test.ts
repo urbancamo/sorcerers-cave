@@ -135,9 +135,7 @@ describe("Unicorn departs when the last Woman falls (§SC-8.5-5)", () => {
     expect(events).toContainEqual({ type: "unicornDeparted", creatureId: 13 });
   });
 
-  it("SC-8.5-5: a fight round that fells the last Woman makes the Unicorn depart on finalize", () => {
-    // Woman + allied Unicorn vs a Dragon. The Woman (front) is out-strengthed and falls; on the
-    // post-round finalize (reduce's resolveRound → finalizeRound → reconcileUnicorns) the Unicorn leaves.
+  it("SC-8.5-5 / R-17: a round that fells the last Woman does NOT remove the Unicorn while the (classic) fight goes on: it keeps fighting to protect itself", () => {
     const s = makeState({
       phase: "fight",
       fight: { surprise: 0, round: 1, focus: 0 },
@@ -150,8 +148,9 @@ describe("Unicorn departs when the last Woman falls (§SC-8.5-5)", () => {
     });
     const { state, events } = reduce(s, { type: "resolveRound", matches: [{ front: [0], backers: [], strangers: [0] }] });
     expect(state.party.find((m) => m.creatureId === 6)!.status).toBe(3); // the Woman fell
-    expect(state.party.some((m) => m.creatureId === 13)).toBe(false);    // the Unicorn departed
-    expect(events).toContainEqual({ type: "unicornDeparted", creatureId: 13 });
+    expect(state.phase).toBe("fight");
+    expect(state.party.some((m) => m.creatureId === 13)).toBe(true);     // the Unicorn is still with the party, in the fight
+    expect(events).not.toContainEqual({ type: "unicornDeparted", creatureId: 13 });
   });
 });
 

@@ -16,7 +16,7 @@ import { C_SIBYL, SIBYL_CODE, examinableAreas, isGuardCode, sibylHere, sibylWait
 import { frontStrength } from "./combat";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import {
-  wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, markDied, healingBalmEligible, ringInvincible, usesArtifactsAs, canUseArtifact,
+  wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, orphanUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, markDied, healingBalmEligible, ringInvincible, usesArtifactsAs, canUseArtifact,
   hasLivingHuman, holyWaterTargets, HW_STATUE_BASE, HW_MEDUSA, HW_STRANGER_BASE, HW_PARKED_STATUE_BASE, isHumanOrPriestClass,
   eyePresent, slaySorcerer, revertApprenticesOnSorcererDeath, cursedRoll, activeCurses,
 } from "./effects";
@@ -197,7 +197,14 @@ function pullParkedDemon(state: GameState, area: PlacedArea): boolean {
 /** Settle the outcome once a round (and any casualty choices) is fully resolved: a Unicorn may
  *  depart, the party may be wiped, or the foes cleared (→ pickup / explore). */
 function finalizeRound(state: GameState): GameEvent[] {
-  const events = reconcileUnicorns(state); // a Unicorn departs if the last Woman fell (§ Unicorn)
+  // House rule R-17: a Unicorn left without a Woman keeps fighting to protect itself while it is engaged; in the revised combat, one a round
+  // leaves unmatched leaves the party at once and guards the chamber. At the end of the fight (and outside fights) `reduce` parks it.
+  const events: GameEvent[] = [];
+  const rev = state.fight?.rev;
+  if (rev && state.strangers.length > 0) {
+    const engaged = (i: number) => rev.matches.some((mt) => mt.sf.length > 0 && (mt.pf.includes(i) || mt.pb.includes(i)));
+    events.push(...orphanUnicorns(state, state.partyArea, (i) => !engaged(i)));
+  }
   const partyAlive = state.party.some((m) => m.status === 0 || m.status === 1);
   if (!partyAlive) {
     const sorcererEvents = settleFelledSorcerer(state); // (reads the fight, so before it is cleared)
@@ -398,7 +405,7 @@ function wakeGalleryStatues(state: GameState): GameEvent[] {
  *  throw-or-proceed decision is the player's (§Lotus Dust "Works on MEDUSA"). A Dwarf-only holder
  *  can't throw it, so the gaze simply proceeds — same as holding no Lotus Dust at all. */
 function medusaLooms(state: GameState): boolean {
-  if (!state.hazards.includes(HAZARD_MEDUSA) || hasStaffWizard(state)) return false;
+  if (!state.hazards.includes(HAZARD_MEDUSA) || hasStaffWizard(state) || eyeActive(state)) return false;
   const until = state.areas[state.partyArea]!.medusaAsleepUntil;
   if (until !== undefined && state.turn <= until) return false; // asleep — nothing to decide
   return state.party.some((m) => (m.status === 0 || m.status === 1) && m.treasure.includes(5) && isHumanOrPriestClass(m.creatureId));
@@ -412,7 +419,10 @@ function medusaLooms(state: GameState): boolean {
  *  fresh entry, yet a dragon it just drew is still genuinely new information the player hasn't seen
  *  (`resolveExtraDraw` passes `true` explicitly for that case). */
 function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[], announceLull = freshEntry): boolean {
-  const { events: hzEvents, fell, trapChoice, knownTrap, ghouls } = applyHazards(state);
+  const applied = applyHazards(state);
+  const { events: hzEvents, fell, trapChoice, knownTrap, quarrelAsk } = applied;
+  const ghouls = applied.ghouls || state.quarrelGhouls === true;   // (a resumed pass remembers the Ghouls that struck before the Quarrel paused it)
+  delete state.quarrelGhouls;
   events.push(...hzEvents);
   // A hazard may incapacitate the whole party (Medusa petrifies everyone, or Ghouls slay them) —
   // with no one left able to act, the expedition ends.
@@ -421,6 +431,13 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
     state.phase = "gameOver";
     if (state.party.every((m) => m.status === 2)) events.push({ type: "petrifiedOut" }); // all turned to stone
     events.push({ type: "gameOver", gs: GS_DEAD });
+    return false;
+  }
+  // R-14: the Quarrel has equals to choose between — hold the entry here, with the hazards that follow it still to deal with.
+  if (quarrelAsk) {
+    state.phase = "quarrel";
+    state.quarrelPause = { freshEntry, announceLull, ...quarrelAsk };
+    if (ghouls) state.quarrelGhouls = true;
     return false;
   }
   // The Trap is dealt with last (Rules, "Hazard cards"): with the revised Ghouls in the chamber they are fought first, and the fall
@@ -849,6 +866,7 @@ export function reduce(
     persistAndExplore(state);
   }
   let result = reduceCore(state, action);
+  // (First, so the trail, the Unicorn and the leader checks below see the party as it really ends up: the redo replaces the whole result.)
   // The revised combat's turncoat Apprentice (Peter, 14-OCT-2026): an action that takes the party out of the area where the Sorcerer was
   // slain parts company with her first, so she is never in the party for whatever it meets next. The action is replayed from the party
   // without her (same dice), and her leaving is reported ahead of its events.
@@ -857,6 +875,33 @@ export function reduce(
     const parted = partCompany(pre);
     const redo = reduceCore(pre, action);
     result = { state: redo.state, events: [...parted, ...redo.events] };
+  }
+  // The path the party walks (register R-12: the Spell takes the last tunnel on it). Recorded here, once, rather than at every place that moves the party.
+  if (result && result.state !== state && result.state.partyArea !== state.partyArea) {
+    result.state.trail = [...(state.trail ?? [state.partyArea]), result.state.partyArea].slice(-300);
+  }
+  // House rule R-17 (MSW, 2026-11-06): once no fight is going on, a Unicorn with no Woman left in the party becomes an indifferent
+  // stranger in the area (the fight's chamber, if the action ended a fight: a retreat leaves it behind).
+  if (result && result.state.phase !== "fight" && result.state.gs === GS_PLAYING && !hasWoman(result.state) && result.state.party.some((m) => m.creatureId === C_UNICORN && (m.status === 0 || m.status === 1))) {
+    const at = state.phase === "fight" ? state.partyArea : result.state.partyArea;
+    const settled = structuredClone(result.state);
+    const events = orphanUnicorns(settled, at);
+    if (events.length) result = { ...result, state: settled, events: [...result.events, ...events] };
+  }
+  // R-07/R-10 (MSW, 2026-11-06): when no original member is left the player picks a new leader from the allies, who counts as original from
+  // then on. A lone ally is simply promoted; several make the player choose (phase "leader"). Never in the middle of a fight or a pause.
+  if (result && !("seat" in result.state) && result.state.gs === GS_PLAYING && ["explore", "pickup", "encounter"].includes(result.state.phase)
+      && !result.state.party.some((m) => m.status === 0) && result.state.party.some((m) => m.status === 1)) {
+    const settled = structuredClone(result.state);
+    const allies = settled.party.map((m, i) => ({ m, i })).filter((x) => x.m.status === 1);
+    if (allies.length === 1) {
+      allies[0]!.m.status = 0;
+      result = { ...result, state: settled, events: [...result.events, { type: "leaderChosen", creatureId: allies[0]!.m.creatureId }] };
+    } else {
+      settled.leaderReturn = settled.phase;
+      settled.phase = "leader";
+      result = { ...result, state: settled };
+    }
   }
   // The vipers sleep only while the party stays at that pit: the moment it moves on, they wake.
   if (result?.state.vipersLulledArea !== undefined && result.state.partyArea !== result.state.vipersLulledArea) {
@@ -924,6 +969,8 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
     return { state: next, events };
   }
   if (waiting && action.type !== "quit") return revBlocked;
+  // The player's pick of a leader (R-07/R-10) or of the Quarrel's combatants (R-14) comes before anything else.
+  if (((state.phase === "leader" && action.type !== "chooseLeader") || (state.phase === "quarrel" && action.type !== "chooseQuarrel")) && action.type !== "quit") return revBlocked;
 
   switch (action.type) {
     case "quit":
@@ -1701,6 +1748,34 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       return { state: next, events: resumeFromMedusaPause(next) };
     }
 
+    case "chooseQuarrel": {
+      // R-14: the tie between equals. Only legal in the `quarrel` pause; the members must be the right number of the tied candidates.
+      const pause = state.quarrelPause;
+      if (state.phase !== "quarrel" || !pause) return { state, events: [{ type: "blocked" }] };
+      const members = [...new Set(action.members)];
+      if (members.length !== pause.slots || !members.every((i) => pause.candidates.includes(i))) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      delete next.quarrelPause;
+      next.quarrelChosen = [...pause.fixed, ...members];
+      next.phase = "explore";
+      const events: GameEvent[] = [];
+      if (next.quarrelGhouls) next.quarrelGhouls = true;
+      if (finishChamber(next, pause.freshEntry, events, pause.announceLull)) events.push(...resolveAreaLoop(next));
+      delete next.quarrelChosen;
+      return { state: next, events };
+    }
+
+    case "chooseLeader": {
+      // R-07/R-10: only legal in the `leader` pause, and only for a living ally.
+      const cand = state.party[action.idx];
+      if (state.phase !== "leader" || !cand || cand.status !== 1) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      next.party[action.idx]!.status = 0;
+      next.phase = next.leaderReturn ?? "explore";
+      delete next.leaderReturn;
+      return { state: next, events: [{ type: "leaderChosen", creatureId: cand.creatureId }] };
+    }
+
     case "avoidTrap":
     case "fallThroughTrap": {
       // The Dwarf's choice at a trap (`variants.trapRules`): only legal in the `trap` pause.
@@ -1738,6 +1813,9 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           dm.status = 0;
           dm.diedTurn = undefined;
           dm.diedArea = undefined;
+          // The fall spilled the member's load, but a fallen member's `borne` list is not cleared (B-05); the revived one must not
+          // be listed as using what lies on the floor (B-06).
+          if (dm.borne) dm.borne = dm.borne.filter((t) => dm.treasure.includes(t));
           consume();
           return ok;
         }
@@ -1861,6 +1939,12 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
             type: "elixirDrunk", creatureId: drinker.creatureId, roll,
             outcome: roll === 1 ? "death" : roll <= 3 ? "nothing" : "strength",
           });
+          // The last living member poisoned: the expedition ends (invariant soak, B-02 — the game used to carry on with nobody alive).
+          if (!next.party.some((m) => m.status === 0 || m.status === 1)) {
+            next.gs = GS_DEAD;
+            next.phase = "gameOver";
+            events.push({ type: "gameOver", gs: GS_DEAD });
+          }
           return { state: next, events };
         }
         case 16: { // Holy Water — one use, target enumeration (design US-20, SC-EXT-24)

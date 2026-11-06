@@ -175,7 +175,7 @@ describe("Unicorn loyalty to a Woman (§ Unicorn)", () => {
     expect(state.pacifiedAreas).toContain(state.partyArea); // guarded for this party (per-party, re-entry skips it)
   });
 
-  it("a Unicorn ally departs after combat once the last Woman is gone", () => {
+  it("R-17: a Unicorn ally stays in the fight after the last Woman falls (it fights to protect itself); it leaves when the fight is over", () => {
     // Setup: Woman (FS 2) + Unicorn ally (MP 4) vs Dragon (FS 6).
     // With seed 2: partyRoll=1, enemyRoll=5 → partyTotal=7, enemyTotal=11 → Dragon wins.
     // The Woman (weakest in group) dies. Then reconcileUnicorns fires and removes the Unicorn.
@@ -194,10 +194,10 @@ describe("Unicorn loyalty to a Woman (§ Unicorn)", () => {
     const { state: result, events } = reduce(s, { type: "resolveRound", matches: [{ front: [0], backers: [], strangers: [0] }] });
     // The Woman dies deterministically at seed 2.
     expect(events).toContainEqual({ type: "memberDied", creatureId: 6 });
-    // Once the last Woman is gone, the Unicorn must depart.
-    expect(events).toContainEqual({ type: "unicornDeparted", creatureId: 13 });
-    // The Unicorn is no longer in the party.
-    expect(result.party.map((m) => m.creatureId)).not.toContain(13);
+    // House rule R-17: the (classic) fight goes on, and the Unicorn with it.
+    expect(events).not.toContainEqual({ type: "unicornDeparted", creatureId: 13 });
+    expect(result.phase).toBe("fight");
+    expect(result.party.map((m) => m.creatureId)).toContain(13);
   });
 });
 

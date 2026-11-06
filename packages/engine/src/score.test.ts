@@ -15,12 +15,12 @@ describe("scoreGame (spec §12)", () => {
     expect(scoreGame(s)).toBe(25);
   });
 
-  it("doubles a dragon-slayer's creature points (not treasure)", () => {
+  it("adds 10 points per dragon killed to a dragon-slayer's creature points (R-20; not treasure)", () => {
     const s = makeState({
       gs: GS_ESCAPED,
-      party: [{ creatureId: 0, status: 0, dragonKills: 1, treasure: [1] }], // Hero 10*2 + Gold 10
+      party: [{ creatureId: 0, status: 0, dragonKills: 2, treasure: [1] }], // Hero 10 + 2*10 + Gold 10
     });
-    expect(scoreGame(s)).toBe(30);
+    expect(scoreGame(s)).toBe(40);
   });
 
   it("excludes stone/dead members and applies a flat 30 curse penalty (not per-curse)", () => {

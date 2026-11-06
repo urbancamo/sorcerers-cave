@@ -124,6 +124,15 @@ export function candidateActions(state: GameState, canExit = true, requireSorcer
         seen.add(planKey(matches));
         plans.push(matches);
       }
+      if (!plans.length) {
+        // Neither builder found a legal plan (found by the invariant soak): a Spectre or Demon the party cannot engage is faced with the
+        // empty round, and a magic-capable ally the builders overlook with a single front, so the search is never left with nothing to try.
+        if (validatePlan(state, { matches: [] }).ok) plans.push([]);
+        else for (let i = 0; i < state.party.length; i++) for (let j = 0; j < state.strangers.length; j++) {
+          const matches = [{ front: [i], backers: [] as number[], strangers: [j] }];
+          if (validatePlan(state, { matches }).ok) plans.push(matches);
+        }
+      }
       return [...plans.map((matches): GameAction => ({ type: "resolveRound", matches })), ...legal];
     }
     default:

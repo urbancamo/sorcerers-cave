@@ -11,11 +11,12 @@ import {
 } from "./data/hazards";
 import { SPECIAL_GATEWAY } from "./data/areaCards";
 import { decodeArea, decodeOpen } from "./decode";
+import { packCoord, unpackCoord } from "./coords";
 import { AF_DESTROYED, AF_UNRESOLVED, type GameState, type PartyMember } from "./state";
 import type { GameEvent } from "./actions";
 import { stageMidStateOnce } from "./midState";
 import { frontStrength, partyRollBonus } from "./combat";
-import { eyeForsakenByDeath, markDied, ringInvincible, usesArtifactsAs, cursedRoll } from "./effects";
+import { eyeActive, eyeForsakenByDeath, markDied, ringInvincible, usesArtifactsAs, cursedRoll } from "./effects";
 import { spillCarried, sweepFallen } from "./loot";
 import { stashOrDeliver } from "./chamber";
 
@@ -58,8 +59,23 @@ export function hasStaffWizard(state: GameState): boolean {
   return state.party.some((m) => (m.status === 0 || m.status === 1) && usesArtifactsAs(m.creatureId, C_WIZARD) && inUse(m, T_MAGIC_STAFF));
 }
 
+/** The area the Spell takes: the last tunnel on the party's walked path (most recent first: the tile it just left, then the trail, then two
+ *  moves back) that is not the party's own area, not collapsed, not the Gateway, holds no small card, and is not a chamber. `null`: none. */
+function spellTarget(state: GameState): number | null {
+  const order = [state.prev, ...(state.trail ?? []).slice().reverse(), state.prev2];
+  for (const i of new Set(order)) {
+    const a = state.areas[i];
+    if (!a || i === state.partyArea || (a.flags & AF_DESTROYED) !== 0) continue;
+    const dec = decodeOpen(a);
+    if (dec.chamber || dec.special === SPECIAL_GATEWAY) continue;
+    if (a.contents.length > 0 || (a.dropped?.length ?? 0) > 0) continue;
+    return i;
+  }
+  return null;
+}
+
 /** Resolve every hazard in the working set, in priority order (spec §7.2). */
-export function applyHazards(state: GameState): { events: GameEvent[]; fell: boolean; trapChoice: boolean; knownTrap: boolean; ghouls: boolean } {
+export function applyHazards(state: GameState): { events: GameEvent[]; fell: boolean; trapChoice: boolean; knownTrap: boolean; ghouls: boolean; quarrelAsk?: { fixed: number[]; candidates: number[]; slots: number } } {
   const events: GameEvent[] = [];
   let fell = false;
   // `trapRules`: a Dwarf-guided party meeting exactly one trap does not auto-avoid it — the caller pauses for
@@ -81,6 +97,8 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
   // The revised combat (Peter, 14-OCT-2026): the Ghouls are fought as a party of their own, by the round engine, once the rest of the
   // entry is settled — not here by one roll per member. The caller starts that fight; this pass only says they struck.
   let ghouls = false;
+  // R-14: the Quarrel needs the player to choose between equals — the pass stops before it and hands the choice to the caller.
+  let quarrelAsk: { fixed: number[]; candidates: number[]; slots: number } | undefined;
 
   for (const hz of order) {
     if (!state.hazards.includes(hz)) continue;
@@ -98,6 +116,15 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
     if (hz === HAZARD_QUARREL) {
       const eligible = living(state).filter((m) => m.creatureId !== C_WOLF && m.creatureId !== C_LION);
       if (eligible.length < 2) { events.push({ type: "quarrelFizzled" }); continue; }
+      // "The two strongest are determined by total strength ... you may choose between equals" (book; R-14): when equals straddle the
+      // second place, the player chooses (solo; multiplayer keeps the roster order).
+      if (!state.quarrelChosen && !("seat" in state)) {
+        const ranked = eligible.map((m) => ({ i: state.party.indexOf(m), fs: frontStrength(m, state) })).sort((x, y) => y.fs - x.fs);
+        const second = ranked[1]!.fs;
+        const fixed = ranked.filter((x) => x.fs > second).map((x) => x.i), tied = ranked.filter((x) => x.fs === second).map((x) => x.i);
+        const slots = 2 - fixed.length;
+        if (tied.length > slots) { quarrelAsk = { fixed, candidates: tied, slots }; break; }
+      }
     }
     if (hz === HAZARD_MEDUSA) {
       const here = state.areas[state.partyArea];
@@ -107,6 +134,9 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         delete here.medusaAsleepUntil; // her two turns have run — she wakes, and her gaze fires
       }
       if (hasStaffWizard(state)) { events.push({ type: "medusaAverted" }); continue; } // the staff averts her gaze — no one stoned
+      // "The Eye of God renders Medusa powerless" (Rules, Medusa; ruling R-09, 2026-11-06): she cannot gaze while the party holds it. It does
+      // not free anyone she has already turned to stone. She stays in the chamber and strikes again if the Eye is later gone.
+      if (eyeActive(state)) { events.push({ type: "medusaAverted", by: "eye" }); continue; }
     }
     events.push({ type: "hazardFired", hazard: hz });
     switch (hz) {
@@ -304,10 +334,15 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         // silently break the combined-force rule (there is no seat-ownership signal here to narrow
         // by, and `mpTag` is bookkeeping, not membership). Solo is unaffected: with no union the
         // array is simply the one party's own roster, exactly as before.
-        const ranked = state.party
+        let ranked = state.party
           .filter((m) => (m.status === 0 || m.status === 1) && m.creatureId !== C_WOLF && m.creatureId !== C_LION)
           .map((m) => ({ m, fs: frontStrength(m, state) }))
           .sort((x, y) => y.fs - x.fs);
+        if (state.quarrelChosen) {   // the player chose between equals (R-14)
+          const picked = state.quarrelChosen.map((i) => state.party[i]).map((m) => ranked.find((r) => r.m === m)).filter((r) => !!r);
+          if (picked.length === 2) ranked = picked as typeof ranked;
+          delete state.quarrelChosen;
+        }
         const a = ranked[0]!, b = ranked[1]!; // >= 2 guaranteed by the fizzle check above
         stageMidStateOnce(state); // the duel presents against the party as it stood BEFORE the loser falls
         const rollBonus = partyRollBonus(state); // Ring +1 / curse −1 — "the party's dice" (design build note)
@@ -342,21 +377,29 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         break;
       }
       case HAZARD_SPELL: {
-        // Fires once on draw (design US-22, SC-EXT-28): only an un-destroyed, non-gateway TUNNEL
-        // (not chamber) `prev` is eligible, and the large pack must have a card left to draw.
-        const prevArea = state.areas[state.prev];
-        const dec = prevArea ? decodeOpen(prevArea) : undefined;
-        const eligible = !!prevArea && state.prev !== state.partyArea
-          && (prevArea.flags & AF_DESTROYED) === 0
-          && !!dec && !dec.chamber && dec.special !== SPECIAL_GATEWAY
-          && state.largeIdx < state.largePack.length;
-        if (!eligible) { events.push({ type: "spellRemap", fizzled: true }); break; }
+        // "The last unoccupied tunnel your party was in" (book; register R-12, MSW 2026-11-06): look back along the path the party walked
+        // for the last TUNNEL on it that is not collapsed and holds no small card (and, in multiplayer, no other party). Chambers are not
+        // affected. No such tunnel, or no tile left in the large pack to replace it with, and the Spell is ineffective.
+        const t = state.largeIdx < state.largePack.length ? spellTarget(state) : null;
+        if (t === null) { events.push({ type: "spellRemap", fizzled: true }); break; }
+        const prevArea = state.areas[t]!;
+        const gone = unpackCoord(prevArea.coord);
         // The old tunnel's card value splices into the middle of the REMAINING large pack (not the
         // whole array — cards already drawn stay put), so it can turn up again as a later draw.
-        const oldValue = prevArea!.card;
+        const oldValue = prevArea.card;
         const remaining = state.largePack.length - state.largeIdx;
         const insertAt = state.largeIdx + Math.floor(remaining / 2);
         state.largePack.splice(insertAt, 0, oldValue);
+        // Secret-door markers on the levels above and below, at the far end of a stairway in the vanished tunnel, go with it (book).
+        const dec = decodeOpen(prevArea);
+        for (const [dl, stairHere, bit] of [[1, dec.stairDown, 32], [-1, dec.stairUp, 64]] as const) {
+          if (!stairHere) continue;
+          const other = state.areas.find((o) => o.coord === packCoord(gone.level + dl, gone.x, gone.y));
+          if (!other) continue;
+          delete other.secretDoor;
+          if (other.mirroredStairs) other.mirroredStairs &= ~bit;
+          if (!other.mirroredStairs) delete other.mirroredStairs;
+        }
         // The map cell is replaced by the NEXT card off the pack — a fresh `PlacedArea`, so the old
         // tile's `secretDoor`/`mirroredStairs` history is gone (design), `visited:false` so its real
         // first-visit resolution (a chamber draw, or just a tunnel) and any mirrored-stair treatment
@@ -364,8 +407,8 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         // only tells the renderer to show it face-down until then.
         const drawn = state.largePack[state.largeIdx]!;
         state.largeIdx += 1;
-        state.areas[state.prev] = {
-          card: drawn, coord: prevArea!.coord, faceUp: true, visited: false,
+        state.areas[t] = {
+          card: drawn, coord: prevArea.coord, faceUp: true, visited: false,
           contents: [], flags: AF_UNRESOLVED, indiffCount: 0,
         };
         events.push({ type: "spellRemap", fizzled: false });
@@ -379,8 +422,10 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
   // visit that PARKED rather than fired — `harpiesFired` is true only when it actually struck, and
   // the design is explicit that a struck Harpies card "leaves the game (no re-park)".
   const here = state.areas[state.partyArea];
+  const cut = quarrelAsk ? order.indexOf(HAZARD_QUARREL) : order.length;   // a paused pass has dealt only with what precedes the Quarrel
+  const pending = quarrelAsk ? state.hazards.filter((h) => order.indexOf(h) >= cut) : [];
   if (here) {
-    for (const hz of state.hazards) {
+    for (const hz of state.hazards.filter((h) => order.indexOf(h) < cut)) {
       if ((hz === HAZARD_MEDUSA || hz === HAZARD_GHOULS) && !here.contents.includes(300 + hz)) {
         here.contents.push(300 + hz);
       }
@@ -394,7 +439,8 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
       }
     }
   }
-  state.hazards = [];
+  state.hazards = pending;
+  if (quarrelAsk) { events.push({ type: "quarrelLooms" }); return { events, fell, trapChoice, knownTrap: false, ghouls, quarrelAsk }; }
   // A trap that was reloaded (not drawn) on this entry was KNOWN to the party: falling to it is deliberate.
   const knownTrap = (state.knownTraps ?? 0) > 0;
   delete state.knownTraps; // per-entry scratch from `enterChamber`; never outlives the hazard pass

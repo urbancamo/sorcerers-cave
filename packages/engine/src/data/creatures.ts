@@ -49,12 +49,12 @@ export const STARTING_STOCK: Readonly<Record<number, number>> = {
 // needs to resolve either a base or a kit creature.
 export const KIT_CREATURES: readonly Creature[] = [
   { id: 14, name: "Apprentice", fs: 2, mp: 7, carry: 0, cost: null, points: 0, flags: FLAG_HUMAN, hostileMax: 5, indiffMax: 5, leaderPri: 10 }, // custom reaction: US-14 (6=friendly only while Sorcerer lives; no indifferent band)
-  { id: 15, name: "Demon", fs: 0, mp: 6, carry: 0, cost: null, points: 0, flags: FLAG_INHUMAN, hostileMax: 6, indiffMax: 6, leaderPri: 10 },
-  { id: 16, name: "Lion", fs: 3, mp: 0, carry: 0, cost: 2, points: 3, flags: FLAG_INHUMAN, hostileMax: 4, indiffMax: 5, leaderPri: 3 },
-  { id: 17, name: "Scholar", fs: 2, mp: 1, carry: 25, cost: 3, points: 5, flags: FLAG_HUMAN, hostileMax: 1, indiffMax: 4, leaderPri: 6 },
-  { id: 18, name: "Witch", fs: 1, mp: 4, carry: 0, cost: 5, points: 10, flags: FLAG_HUMAN, hostileMax: 2, indiffMax: 4, leaderPri: 6 },
+  { id: 15, name: "Demon", fs: 0, mp: 6, carry: 0, cost: null, points: 0, flags: FLAG_INHUMAN, hostileMax: 5, indiffMax: 6, leaderPri: 10 },
+  { id: 16, name: "Lion", fs: 3, mp: 0, carry: 0, cost: 2, points: 3, flags: FLAG_INHUMAN, hostileMax: 4, indiffMax: 4, leaderPri: 3 },
+  { id: 17, name: "Scholar", fs: 2, mp: 1, carry: 25, cost: 3, points: 5, flags: FLAG_HUMAN, hostileMax: 2, indiffMax: 4, leaderPri: 6 },
+  { id: 18, name: "Witch", fs: 1, mp: 4, carry: 0, cost: 5, points: 10, flags: FLAG_HUMAN, hostileMax: 2, indiffMax: 5, leaderPri: 6 },
   { id: 19, name: "Thief", fs: 2, mp: 0, carry: 25, cost: 3, points: 5, flags: FLAG_HUMAN, hostileMax: 2, indiffMax: 4, leaderPri: 5 },
-  { id: 20, name: "Wolf", fs: 2, mp: 0, carry: 0, cost: 1, points: 2, flags: FLAG_INHUMAN, hostileMax: 4, indiffMax: 5, leaderPri: 2 },
+  { id: 20, name: "Wolf", fs: 2, mp: 0, carry: 0, cost: 1, points: 2, flags: FLAG_INHUMAN, hostileMax: 1, indiffMax: 3, leaderPri: 2 },
 ];
 
 // The optional Sibyl card (rules §OPTIONS AND VARIATIONS, SC-SIB-1), id 21. A SEPARATE table for the

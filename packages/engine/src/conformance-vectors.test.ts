@@ -47,7 +47,7 @@ type Policy = "base" | "slayer" | "artifacts" | "kit";
 
 // --- Vector text rendering (grammar documented in docs/specs/conformance/README.md) --------------
 
-const PHASE_CODE: Record<string, string> = { explore: "EXP", medusa: "MDS", trap: "TRP", encounter: "ENC", fight: "FGT", pickup: "PKP", sorcerer: "SOR", gameOver: "END" };
+const PHASE_CODE: Record<string, string> = { explore: "EXP", medusa: "MDS", trap: "TRP", encounter: "ENC", fight: "FGT", pickup: "PKP", sorcerer: "SOR", leader: "LDR", quarrel: "QRL", gameOver: "END" };
 const list = (xs: readonly number[] | undefined): string => (xs && xs.length ? xs.join(",") : "-");
 // Precise Locations (§10.5): `PlacedArea.sunkTreasure` buckets — `<at>:<items>` per non-empty
 // bucket, `;`-joined, `-` when there are none. `at` is `island` or DIR_N..DIR_W's own 1-4 (same
@@ -99,6 +99,9 @@ function encodeAction(a: GameAction): string {
     case "strangersRedeploy": return `STRANGERS-REDEPLOY ${a.strategyId} ${a.strategyVersion} ${a.moves.map((x) => `${x.creature}:${x.match}${x.back ? "b" : "f"}`).join(",") || "-"}`;
     case "strangersNominate": return `STRANGERS-NOMINATE ${a.strategyId} ${a.strategyVersion} ${a.nominated}`;
     case "strangersAssignArtefacts": return `STRANGERS ${a.strategyId} ${a.strategyVersion} ${a.allocations.map((x) => `${x.artifact}:${x.stranger}`).join(",") || "-"}`;
+    // The player's picks of a new leader (R-07/R-10) and of the Quarrel's combatants (R-14); like the trap choice, never taken by the recorded solo vectors.
+    case "chooseLeader": return `CHOOSELEADER ${a.idx}`;
+    case "chooseQuarrel": return `CHOOSEQUARREL ${a.members.join(",")}`;
     case "avoidTrap": return "AVOIDTRAP";
     case "fallThroughTrap": return "FALLTRAP";
     case "drawFromWell": return "DRAWFROMWELL";

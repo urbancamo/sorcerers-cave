@@ -1,6 +1,7 @@
 import { decodeArea, decodeOpen, type DecodedArea } from "./decode";
 import { examinableAreas, isGuardCode, sibylWaiting } from "./sibyl";
-import { DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, unpackCoord, packCoord } from "./coords";
+import { DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, unpackCoord, packCoord, targetCoord } from "./coords";
+import { nothingToDraw } from "./map";
 import { GS_PLAYING, AF_DESTROYED, AF_BELL_SPENT, AF_WELL_SPENT, type GameState } from "./state";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
 import type { GameAction } from "./actions";
@@ -32,7 +33,16 @@ function lateralMoves(state: GameState, dec: DecodedArea, sub: SubLocation): Gam
   const actions: GameAction[] = [];
   const blockedDir = RING_ADJACENCY_SPECIALS.has(dec.special) && sub.at === "doorway" && sub.dir !== undefined
     ? oppositeDir(sub.dir) : undefined;
-  const ok = (dir: number) => chasmMoveAllowed(state, dir);
+  // Once every tile has been placed an unexplored exit is no longer viable (ruling R-15, MSW 2026-11-06; SC-6.1-6): a move toward empty
+  // space has nothing to draw, so it is not offered. Moves onto tiles already on the map are unaffected.
+  const here = state.areas[state.partyArea];
+  const placed = (dir: number) => {
+    if (!here || state.largePack.length === 0 || !nothingToDraw(state, dir)) return true; // (no pack at all = a bare test fixture, not a used-up one)
+    const { level, x, y } = unpackCoord(here.coord);
+    const target = targetCoord(dir, level, x, y);
+    return state.areas.some((a) => a.coord === target);
+  };
+  const ok = (dir: number) => chasmMoveAllowed(state, dir) && placed(dir);
   if (dec.n && blockedDir !== DIR_N && ok(DIR_N)) actions.push({ type: "move", dir: DIR_N });
   if (dec.e && blockedDir !== DIR_E && ok(DIR_E)) actions.push({ type: "move", dir: DIR_E });
   if (dec.s && blockedDir !== DIR_S && ok(DIR_S)) actions.push({ type: "move", dir: DIR_S });
@@ -180,6 +190,18 @@ export function legalActions(state: GameState): GameAction[] {
     }
     acts.push({ type: "proceed" });
     return acts;
+  }
+  if (state.phase === "leader") {
+    // R-07/R-10: no original member is left — pick which living ally leads (and counts as original from then on).
+    return state.party.flatMap((m, idx): GameAction[] => (m.status === 1 ? [{ type: "chooseLeader", idx }] : []));
+  }
+  if (state.phase === "quarrel") {
+    // R-14: the tie between equals — every way of choosing the missing combatants from the tied candidates.
+    const pause = state.quarrelPause;
+    if (!pause) return [];
+    const picks: number[][] = [[]];
+    for (let n = 0; n < pause.slots; n++) for (const p of picks.filter((q) => q.length === n)) for (const c of pause.candidates) if (!p.length || c > p[p.length - 1]!) picks.push([...p, c]);
+    return picks.filter((p) => p.length === pause.slots).map((members): GameAction => ({ type: "chooseQuarrel", members }));
   }
   if (state.phase === "trap") {
     // The Dwarf's choice at a trap (`variants.trapRules`): be guided past it, or fall through it on purpose.

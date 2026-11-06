@@ -270,6 +270,53 @@ export function revertApprenticesOnSorcererDeath(state: GameState): GameEvent[] 
   return [{ type: "apprenticeTurned", count: turned.length, items: dropped }];
 }
 
+/** The party array shrank at `gone`: every party index held elsewhere that pointed past it moves down one, and one that pointed AT it is
+ *  dropped (invariant soak, B-03: a Unicorn leaving mid-fight left the revised fight and its casualty queue pointing at the old slots,
+ *  and the next view of the fight threw). A casualty pair that loses a member is settled — the one who left is the one who fell out of the
+ *  match, so the other stays (register R-16). */
+function reindexAfterRemoval(state: GameState, gone: number): void {
+  const move = (xs: number[]) => xs.filter((x) => x !== gone).map((x) => (x > gone ? x - 1 : x));
+  const f = state.fight;
+  if (f) {
+    if (f.casualtyQueue) {
+      f.casualtyQueue = f.casualtyQueue.filter((pair) => !pair.includes(gone)).map(move);
+      if (!f.casualtyQueue.length) delete f.casualtyQueue;
+    }
+    if (f.rev) {
+      f.rev.matches.forEach((m) => { m.pf = move(m.pf); m.pb = move(m.pb); });
+      f.rev.deployed.party = move(f.rev.deployed.party);
+    }
+    if (f.pending?.by === "strangers" && f.pending.kind === "casualty") {
+      f.pending = { ...f.pending, pair: move([...f.pending.pair]) as [number, number] };
+    }
+  }
+  if (state.fightDrops) state.fightDrops = state.fightDrops.filter((d) => d.mi !== gone).map((d) => ({ ...d, mi: d.mi > gone ? d.mi - 1 : d.mi }));
+}
+
+/** House rule for the Unicorn (MSW, 2026-11-06, register R-17): with no Woman left it does not simply vanish. It leaves the party and
+ *  stays at `areaIdx` as an indifferent stranger guarding the area, the same state as a Womanless Unicorn met in a chamber (it is left in
+ *  the area's contents and the area is marked pacified and Unicorn-guarded for this party). `only` picks which Unicorns go (by party
+ *  index); omit it for all of them. Never leaves the party empty. */
+export function orphanUnicorns(state: GameState, areaIdx: number, only?: (partyIdx: number) => boolean): GameEvent[] {
+  if (hasWoman(state)) return [];
+  const events: GameEvent[] = [];
+  for (let i = state.party.length - 1; i >= 0; i--) {
+    const m = state.party[i]!;
+    if (m.creatureId !== C_UNICORN || !living(m) || (only && !only(i))) continue;
+    if (!state.party.some((o, j) => j !== i && living(o))) continue;
+    state.party.splice(i, 1);
+    reindexAfterRemoval(state, i);
+    const area = state.areas[areaIdx];
+    if (area) {
+      area.contents.push(100 + C_UNICORN);
+      if (!state.pacifiedAreas?.includes(areaIdx)) state.pacifiedAreas = [...(state.pacifiedAreas ?? []), areaIdx];
+      if (!state.unicornGuardAreas?.includes(areaIdx)) state.unicornGuardAreas = [...(state.unicornGuardAreas ?? []), areaIdx];
+    }
+    events.push({ type: "unicornDeparted", creatureId: C_UNICORN }, { type: "unicornGuards", creatureId: C_UNICORN });
+  }
+  return events;
+}
+
 /** A Unicorn stays allied only while a Woman lives; otherwise it departs. Mutates `party`. */
 export function reconcileUnicorns(state: GameState): GameEvent[] {
   if (hasWoman(state)) return [];
@@ -278,6 +325,7 @@ export function reconcileUnicorns(state: GameState): GameEvent[] {
     const m = state.party[i]!;
     if (m.creatureId === C_UNICORN && living(m)) {
       state.party.splice(i, 1);
+      reindexAfterRemoval(state, i);
       events.push({ type: "unicornDeparted", creatureId: C_UNICORN });
     }
   }

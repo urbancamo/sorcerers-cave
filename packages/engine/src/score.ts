@@ -22,8 +22,8 @@ export interface ScoredMember {
   name: string;
   status: MemberStatus;
   counts: boolean; // status 0/1 contributes to the total (stone/dead score nothing)
-  creaturePoints: number; // after dragon-slayer doubling; 0 when !counts
-  dragonDoubled: boolean;
+  creaturePoints: number; // including the dragon-slayer bonus (+10 per kill); 0 when !counts
+  dragonDoubled: boolean; // the member has slain a dragon (the name is historic: the bonus is +10 per kill, no longer a doubling)
   treasures: ScoredTreasure[]; // listed for the record even when the member doesn't count
   subtotal: number; // creaturePoints + carried treasure points; 0 when !counts
 }
@@ -57,7 +57,8 @@ export function scoreBreakdown(state: GameState): ScoreBreakdown {
     const counts = m.status === 0 || m.status === 1; // skip stone and dead
     const dragonDoubled = m.dragonKills > 0;
     const base = CREATURES[m.creatureId]!.points;
-    const creaturePoints = counts ? (dragonDoubled ? base * 2 : base) : 0; // doubling: creature points only
+    // Dragon-slayer (R-20, MSW 2026-11-06, the book): +10 points for each dragon the member has killed, on top of its creature points.
+    const creaturePoints = counts ? base + 10 * m.dragonKills : 0;
     // `ALL_TREASURES` (base + kit, SC-EXT-2) so a kit heavy find (e.g. Crypt/Gems, SC-EXT-13) scores
     // its real points instead of crashing on a `TREASURES` lookup miss; byte-identical for ids 0-14.
     // The Idol (SC-EXT-23) overrides its listed 0 with the deferred 10×roll — "for the record" even
