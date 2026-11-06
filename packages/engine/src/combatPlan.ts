@@ -477,7 +477,10 @@ export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEve
     }
   }
 
-  // Resolve each match (one die per side).
+  // Resolve each match (one die per side). The matches name members by position in `party`, and a match can change that
+  // list before a later one is fought (felling the Sorcerer sends an allied Apprentice away), so the members are fixed here,
+  // by identity, rather than looked up by index as each match comes up.
+  const roster = [...state.party];
   for (const mt of matches) {
     // Bug fix 2026-08-09 (SC-EXT-40): a Magic Shield stalemate never rolls — "the spectre or demon
     // is simply ignored for that round; neither it nor the shield bearer will be killed." No dice,
@@ -486,14 +489,14 @@ export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEve
       events.push({ type: "shieldStalemate", creatureIds: mt.strangers.map((si) => state.strangers[si]!) });
       continue;
     }
-    const front = mt.front.map((i) => state.party[i]!);
+    const front = mt.front.map((i) => roster[i]!);
     const partyRoll = rollDieForState(state);
     const enemyRoll = rollDieForState(state);
     const partyTotal = mt.partyStr + partyRoll + rollBonus + surpriseParty;
     const enemyTotal = mt.enemyStr + enemyRoll + surpriseEnemy + enemyBonus;
     events.push({
       type: "combatRoll",
-      party: mt.front.concat(mt.backers).map((i) => CREATURES[state.party[i]!.creatureId]!.name).join(" + "),
+      party: mt.front.concat(mt.backers).map((i) => CREATURES[roster[i]!.creatureId]!.name).join(" + "),
       enemy: mt.strangers.map((si) => CREATURES[state.strangers[si]!]!.name).join(" + "),
       partyRoll, enemyRoll, partyTotal, enemyTotal,
       result: partyTotal > enemyTotal ? "partyWon" : enemyTotal > partyTotal ? "enemyWon" : "tie",
@@ -537,7 +540,7 @@ export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEve
       const mortal = front.filter((m) => !ringInvincible(m, state));
       if (mortal.length === 0) events.push({ type: "deathPrevented", creatureId: front[0]!.creatureId });
       else if (mortal.length === 1) { markDied(state, mortal[0]!); events.push({ type: "memberDied", creatureId: mortal[0]!.creatureId }, ...eyeForsakenByDeath(state, mortal[0]!)); }
-      else pendingCasualties.push(mortal.map((m) => state.party.indexOf(m)));
+      else pendingCasualties.push(mortal.map((m) => state.party.indexOf(m)).filter((i) => i >= 0)); // a member who has left the party can no longer be chosen
     }
     // tie: no death
   }
