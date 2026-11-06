@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import best from "./fixtures/best-score-search.json";
 import top from "./fixtures/top-score-games.json";
-import { replay } from "./index";
+import { newGame, replay } from "./index";
+import { beamSearch } from "./goldenSearch";
 import { scoreBreakdown } from "./score";
 import { validatePicks } from "./setup";
 import { GS_ESCAPED } from "./state";
@@ -16,7 +17,7 @@ const run = (g: { seed: number; picks: number[]; variants: object; actions: unkn
   return { frames, end: frames[frames.length - 1]!.state };
 };
 
-describe("score search: the best game (GOLD)", () => {
+describe("score search: the best game (K001)", () => {
   const { frames, end } = run(best);
   it("replays move for move, ends on the surface with a living party, and scores what was recorded", () => {
     expect(frames).toHaveLength(best.actions.length + 1);
@@ -26,6 +27,22 @@ describe("score search: the best game (GOLD)", () => {
     expect(scoreBreakdown(end).total).toBe(best.score);
     expect(best.note).toMatch(/not a proven maximum/);
   });
+  it("records what is needed to reproduce the run: when, how big, which salt, which engine, and the items each shard searched", () => {
+    const { run, perShard, searches } = best.budget;
+    expect(run).toMatchObject({ salt: expect.any(Number), shards: expect.any(Number), hours: expect.any(Number), engineCommit: expect.any(String), startedAt: expect.any(String) });
+    expect(perShard).toHaveLength(run!.shards);
+    expect(perShard.reduce((n, x) => n + x.items, 0)).toBe(searches);
+  });
+
+  it("is found again by re-running its recorded search settings (the search is deterministic)", () => {
+    // The stored game is the first-found highest score of one beam search; the settings that ran it are in the fixture.
+    const { weights, exitAfter, beamWidth, maxSteps, killFirst } = best.search;
+    const r = beamSearch(newGame(best.seed, best.picks, best.variants), { width: beamWidth, maxSteps, weights, exitAfter, requireSorcerer: killFirst });
+    const top = r.finished.reduce((m, f) => (f.score > m.score ? f : m));
+    expect(top.score).toBe(best.score);
+    expect(top.actions).toEqual(best.actions);
+  }, 60_000);
+
   it("is the top-ranked scenario of its rule set, and the best of all of them", () => {
     const ofRules = top.games.filter((g) => g.rules === best.rules);
     expect(ofRules[0]).toMatchObject({ rank: 1, seed: best.seed, picks: best.picks, score: best.score });

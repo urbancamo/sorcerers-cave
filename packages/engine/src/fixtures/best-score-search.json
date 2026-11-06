@@ -756,6 +756,91 @@
   }
  ],
  "budget": {
+  "run": {
+   "startedAt": "2026-11-06T00:11:31Z",
+   "hours": 7,
+   "shards": 12,
+   "salt": 1,
+   "engineCommit": "d729e47",
+   "searchCodeCommit": "b162b9c",
+   "uncommittedEngineFiles": 0,
+   "machine": "Darwin arm64, 14 cores",
+   "note": "Reconstructed after the fact: this run was launched before run.json existed. Engine rules are unchanged between d729e47 and b162b9c; only the search code (goldenSearch.ts requireSorcerer flag, scoreSearch.search.ts) was uncommitted when it ran."
+  },
+  "perShard": [
+   {
+    "shard": 0,
+    "items": 9237,
+    "firstItem": 0,
+    "lastItem": 110832
+   },
+   {
+    "shard": 1,
+    "items": 9486,
+    "firstItem": 1,
+    "lastItem": 113821
+   },
+   {
+    "shard": 2,
+    "items": 9114,
+    "firstItem": 2,
+    "lastItem": 109358
+   },
+   {
+    "shard": 3,
+    "items": 9248,
+    "firstItem": 3,
+    "lastItem": 110967
+   },
+   {
+    "shard": 4,
+    "items": 9365,
+    "firstItem": 4,
+    "lastItem": 112372
+   },
+   {
+    "shard": 5,
+    "items": 9224,
+    "firstItem": 5,
+    "lastItem": 110681
+   },
+   {
+    "shard": 6,
+    "items": 9108,
+    "firstItem": 6,
+    "lastItem": 109290
+   },
+   {
+    "shard": 7,
+    "items": 9435,
+    "firstItem": 7,
+    "lastItem": 113215
+   },
+   {
+    "shard": 8,
+    "items": 9263,
+    "firstItem": 8,
+    "lastItem": 111152
+   },
+   {
+    "shard": 9,
+    "items": 9181,
+    "firstItem": 9,
+    "lastItem": 110169
+   },
+   {
+    "shard": 10,
+    "items": 9242,
+    "firstItem": 10,
+    "lastItem": 110902
+   },
+   {
+    "shard": 11,
+    "items": 9365,
+    "firstItem": 11,
+    "lastItem": 112379
+   }
+  ],
   "salt": 1,
   "searches": 111268,
   "searchesThatEscaped": 6574,
