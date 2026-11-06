@@ -3,6 +3,7 @@ import { reduce } from "./reduce";
 import { reactionRoll } from "./reaction";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import { makeState, inUseGear } from "./testkit";
+import { ALL_CREATURES } from "./data/creatures";
 import { packCoord } from "./coords";
 import { SPECIAL_GALLERY, SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT } from "./data/areaCards";
 import { AF_DESTROYED, GS_PLAYING, GS_ESCAPED, type GameState, type PartyMember, type BattlePlan } from "./state";
@@ -100,6 +101,26 @@ describe("Apprentice ally reverts the instant the Sorcerer dies (US-14/Resolved-
     expect(s.strangers).toEqual([APPRENTICE]); // present as a hostile stranger in this same area
     expect(s.treasures).toContain(GOLD); // her carried loot spills, not lost outright
     expect(events).toContainEqual({ type: "apprenticeTurned", count: 1, items: [GOLD] });
+  });
+
+  it("a later match in the same round still fights the right members after the Apprentice has left the party", () => {
+    // Match 1 fells the Sorcerer, so the Apprentice (index 2) leaves `party` and every member after her shifts down one place.
+    // Match 2 names its fighter by the position the plan was made with (4); it used to read past the end of the shortened party.
+    const s = clone(fightS({
+      fight: { surprise: 1, round: 1, focus: 0 },
+      lotusOnSorcerer: true,
+      party: [member(GIANT, [MAGIC_SWORD]), member(WIZARD, [MAGIC_STAFF]), ally(APPRENTICE), member(MAN), member(HERO)],
+      strangers: [SORCERER, MAN],
+      seed: 1,
+    }));
+    const hero = s.party[4]!;
+    const events = resolvePlannedRound(s, { matches: [{ front: [0], backers: [1], strangers: [0] }, { front: [4], backers: [], strangers: [1] }] });
+
+    expect(s.sorcererKilled).toBe(true);
+    expect(s.party.some((m) => m.creatureId === APPRENTICE)).toBe(false);
+    expect(events.filter((e) => e.type === "combatRoll")).toHaveLength(2); // both matches were fought
+    expect(events.find((e) => e.type === "combatRoll" && e.party === ALL_CREATURES[HERO]!.name)).toBeDefined(); // by the member the plan named
+    expect(s.party).toContain(hero);
   });
 
   it("does nothing when no Apprentice is allied", () => {

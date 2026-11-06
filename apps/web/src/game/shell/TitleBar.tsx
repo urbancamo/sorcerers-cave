@@ -1,5 +1,6 @@
-import { useEffect, useState, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import type { LeftSlot, RightSlot } from './shellState';
+import { useFullscreen } from './useFullscreen';
 
 const Icon = ({ children }: { children: ReactNode }) => (
   <svg className="scv-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"
@@ -41,17 +42,9 @@ function IconButton({ id, label, active, onClick, disabled }: { id: keyof typeof
 
 /** Toggles browser full screen. Hidden where the browser offers none (iPhone Safari); the state follows Esc and F11 too. */
 function FullscreenButton() {
-  const [on, setOn] = useState(() => !!document.fullscreenElement);
-  useEffect(() => {
-    const sync = () => setOn(!!document.fullscreenElement);
-    document.addEventListener('fullscreenchange', sync);
-    return () => document.removeEventListener('fullscreenchange', sync);
-  }, []);
-  if (!document.fullscreenEnabled) return null;
-  return (
-    <IconButton id="fullscreen" label={on ? 'Exit full screen' : 'Full screen'} active={on}
-                onClick={() => { void (on ? document.exitFullscreen() : document.documentElement.requestFullscreen()).catch(() => {}); }} />
-  );
+  const { supported, on, toggle } = useFullscreen();
+  if (!supported) return null;
+  return <IconButton id="fullscreen" label={on ? 'Exit full screen' : 'Full screen'} active={on} onClick={toggle} />;
 }
 
 /** The thin title bar: left icons open the party list or the inventory, right icons the card panel, Settings and (test mode only) the test panel. */

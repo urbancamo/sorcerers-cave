@@ -1,0 +1,741 @@
+{
+ "GOLD": {
+  "seed": 727800,
+  "picks": [
+   6,
+   6,
+   16
+  ],
+  "variants": {
+   "extensionKit": true
+  },
+  "actions": [
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "move",
+    "dir": 2
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "move",
+    "dir": 6
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "test"
+   },
+   {
+    "type": "test"
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 0
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "move",
+    "dir": 2
+   },
+   {
+    "type": "test"
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 0
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 1
+   },
+   {
+    "type": "setBorne",
+    "mi": 0,
+    "idx": 1,
+    "borne": true
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 0
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 0
+   },
+   {
+    "type": "setBorne",
+    "mi": 0,
+    "idx": 2,
+    "borne": true
+   },
+   {
+    "type": "setBorne",
+    "mi": 0,
+    "idx": 3,
+    "borne": true
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 1,
+    "mi": 3
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 0
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "pullBellRope",
+    "mi": 0
+   },
+   {
+    "type": "test"
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "move",
+    "dir": 2
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "move",
+    "dir": 4
+   },
+   {
+    "type": "move",
+    "dir": 2
+   },
+   {
+    "type": "move",
+    "dir": 3
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "move",
+    "dir": 6
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "move",
+    "dir": 6
+   },
+   {
+    "type": "test"
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "descendChasm"
+   },
+   {
+    "type": "leaveTreasure"
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "test"
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "withdraw"
+   },
+   {
+    "type": "move",
+    "dir": 2
+   },
+   {
+    "type": "move",
+    "dir": 4
+   },
+   {
+    "type": "move",
+    "dir": 4
+   },
+   {
+    "type": "test"
+   },
+   {
+    "type": "resolveRound",
+    "matches": [
+     {
+      "front": [
+       9,
+       10
+      ],
+      "backers": [],
+      "strangers": [
+       1
+      ]
+     },
+     {
+      "front": [
+       11
+      ],
+      "backers": [],
+      "strangers": [
+       0
+      ]
+     }
+    ]
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "move",
+    "dir": 3
+   },
+   {
+    "type": "move",
+    "dir": 3
+   },
+   {
+    "type": "move",
+    "dir": 2
+   },
+   {
+    "type": "move",
+    "dir": 2
+   },
+   {
+    "type": "withdraw"
+   },
+   {
+    "type": "move",
+    "dir": 3
+   },
+   {
+    "type": "test"
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 0
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 0
+   },
+   {
+    "type": "setBorne",
+    "mi": 0,
+    "idx": 5,
+    "borne": true
+   },
+   {
+    "type": "move",
+    "dir": 2
+   },
+   {
+    "type": "test"
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 0
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 3
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 4
+   },
+   {
+    "type": "move",
+    "dir": 3
+   },
+   {
+    "type": "move",
+    "dir": 2
+   },
+   {
+    "type": "move",
+    "dir": 2
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "move",
+    "dir": 4
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "useArtifact",
+    "artifact": 5
+   },
+   {
+    "type": "withdraw"
+   },
+   {
+    "type": "move",
+    "dir": 3
+   },
+   {
+    "type": "move",
+    "dir": 3
+   },
+   {
+    "type": "test"
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 1,
+    "mi": 9
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 0
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 6
+   },
+   {
+    "type": "move",
+    "dir": 2
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "test"
+   },
+   {
+    "type": "test"
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 1,
+    "mi": 0
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 7
+   },
+   {
+    "type": "move",
+    "dir": 2
+   },
+   {
+    "type": "move",
+    "dir": 2
+   },
+   {
+    "type": "test"
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 1,
+    "mi": 8
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 0
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "test"
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 9
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "move",
+    "dir": 2
+   },
+   {
+    "type": "attack"
+   },
+   {
+    "type": "resolveRound",
+    "matches": [
+     {
+      "front": [
+       9,
+       10
+      ],
+      "backers": [],
+      "strangers": [
+       0
+      ]
+     },
+     {
+      "front": [
+       22
+      ],
+      "backers": [],
+      "strangers": [
+       1
+      ]
+     },
+     {
+      "front": [
+       11
+      ],
+      "backers": [],
+      "strangers": [
+       2
+      ]
+     }
+    ]
+   },
+   {
+    "type": "retakeDropped"
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 11
+   },
+   {
+    "type": "move",
+    "dir": 2
+   },
+   {
+    "type": "move",
+    "dir": 4
+   },
+   {
+    "type": "move",
+    "dir": 3
+   },
+   {
+    "type": "move",
+    "dir": 2
+   },
+   {
+    "type": "move",
+    "dir": 3
+   },
+   {
+    "type": "move",
+    "dir": 3
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "move",
+    "dir": 2
+   },
+   {
+    "type": "move",
+    "dir": 5
+   },
+   {
+    "type": "attack"
+   },
+   {
+    "type": "resolveRound",
+    "matches": [
+     {
+      "front": [
+       9,
+       10
+      ],
+      "backers": [],
+      "strangers": [
+       1
+      ]
+     },
+     {
+      "front": [
+       22
+      ],
+      "backers": [],
+      "strangers": [
+       0
+      ]
+     }
+    ]
+   },
+   {
+    "type": "retakeDropped"
+   },
+   {
+    "type": "useArtifact",
+    "artifact": 15,
+    "target": 0
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 1,
+    "mi": 9
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 0
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 9
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 9
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 10
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 1,
+    "mi": 10
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 10
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "move",
+    "dir": 4
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "withdraw"
+   },
+   {
+    "type": "move",
+    "dir": 5
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 1,
+    "mi": 10
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 10
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 0
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "move",
+    "dir": 5
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "withdraw"
+   },
+   {
+    "type": "move",
+    "dir": 4
+   },
+   {
+    "type": "move",
+    "dir": 2
+   },
+   {
+    "type": "move",
+    "dir": 2
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 10
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 11
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "move",
+    "dir": 5
+   },
+   {
+    "type": "attack"
+   },
+   {
+    "type": "resolveRound",
+    "matches": [
+     {
+      "front": [
+       0
+      ],
+      "backers": [],
+      "strangers": [
+       0
+      ]
+     }
+    ]
+   },
+   {
+    "type": "takeTreasure",
+    "ti": 0,
+    "mi": 0
+   },
+   {
+    "type": "move",
+    "dir": 1
+   },
+   {
+    "type": "move",
+    "dir": 4
+   },
+   {
+    "type": "move",
+    "dir": 3
+   },
+   {
+    "type": "useArtifact",
+    "artifact": 19
+   },
+   {
+    "type": "withdraw"
+   },
+   {
+    "type": "move",
+    "dir": 2
+   },
+   {
+    "type": "move",
+    "dir": 2
+   },
+   {
+    "type": "move",
+    "dir": 2
+   },
+   {
+    "type": "move",
+    "dir": 3
+   },
+   {
+    "type": "exitCave"
+   }
+  ]
+ }
+}
