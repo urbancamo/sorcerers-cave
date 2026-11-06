@@ -1919,6 +1919,10 @@
   box-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.85);
 }
 .scv-hs-modal .scv-primary { margin-top: 0; align-self: center; }
+/* Test Mode scenario browser: wider than the leaderboard, so the summary columns fit. */
+.scv-sc-modal { max-width: 760px; text-align: left; }
+.scv-resume-row .scv-sc-btn { flex: none; padding-left: 12px; padding-right: 12px; }
+.scv-sc-code { font-family: var(--mono, ui-monospace, monospace); font-weight: 700; color: var(--brass-bright); }
 
 /* ---- player-driven fight surface ---- */
 .scv-fight { position: fixed; left: 50%; bottom: 18px; transform: translateX(-50%); z-index: 55;

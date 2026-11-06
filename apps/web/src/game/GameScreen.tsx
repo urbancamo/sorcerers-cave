@@ -247,8 +247,8 @@ export default function GameScreen() {
   const convex = useConvex();
   const [replayBundle, setReplayBundle] = useState<ReplayBundle | null>(null);
   const handleReplay = useCallback(async (code: string): Promise<string | null> => {
-    // The bundled golden game (a reserved code, no backend involved) is checked before Convex.
-    const golden = goldenBundle(code);
+    // The bundled searched games (codes like K001, no backend involved) are checked before Convex.
+    const golden = await goldenBundle(code);
     if (golden) { setReplayBundle(golden); return null; }
     const bundle = (await convex.query(api.game.replayByCode, { code })) as ReplayBundle | null;
     if (!bundle) return "No replayable game found with that code.";

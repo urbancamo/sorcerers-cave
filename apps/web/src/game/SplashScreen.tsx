@@ -4,6 +4,8 @@ import { loadManifest, resolveCard } from "../data/manifest";
 import { HighScoresModal } from "./HighScores";
 import { HelpModal } from "../manual/HelpModal";
 import { markNudgeSeen, nudgeSeen } from "../manual/nudge";
+import { isScenarioCode } from "./goldenGame";
+import { ScenarioBrowserModal } from "./ScenarioBrowser";
 
 // The eight recruitable creatures (ids 0–7) make the decorative fan.
 const FAN_IDS = CREATURES.filter((c) => c.cost !== null).map((c) => c.id);
@@ -47,6 +49,7 @@ export function SplashScreen({
   const [replayCode, setReplayCode] = useState("");
   const [replayErr, setReplayErr] = useState<string | null>(null);
   const [replaying, setReplaying] = useState(false);
+  const [showScenarios, setShowScenarios] = useState(false);
   const [restoreCode, setRestoreCode] = useState("");
   const [restoreErr, setRestoreErr] = useState<string | null>(null);
   const [restoring, setRestoring] = useState(false);
@@ -75,7 +78,7 @@ export function SplashScreen({
 
   const submitReplay = async () => {
     const code = replayCode.trim().toUpperCase();
-    if (!/^[A-Z]{4}$/.test(code)) { setReplayErr("Enter a four-letter game code."); return; }
+    if (!/^[A-Z]{4}$/.test(code) && !isScenarioCode(code)) { setReplayErr("Enter a four-letter game code (or a scenario code such as K001)."); return; }
     if (!onReplay) return;
     setReplaying(true);
     setReplayErr(null);
@@ -252,6 +255,12 @@ export function SplashScreen({
             >
               {replaying ? "Loading…" : "Replay"}
             </button>
+            {/* Test Mode only: browse the 75 searched games (B001…S025) instead of typing a code. */}
+            {onStartTestGame && (
+              <button className="scv-primary scv-sc-btn" data-testid="scenario-browser" title="Browse the scenario games" aria-label="Browse scenario games" onClick={() => setShowScenarios(true)}>
+                List
+              </button>
+            )}
           </div>
           {replayErr && <p className="scv-resume-err" role="alert">{replayErr}</p>}
         </div>
@@ -260,6 +269,7 @@ export function SplashScreen({
       </section>
 
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
+      {showScenarios && <ScenarioBrowserModal onClose={() => setShowScenarios(false)} onOpen={onReplay} />}
       {showScores && <HighScoresModal onClose={() => setShowScores(false)} onReplay={onReplay} />}
 
       <footer className="scv-attrib">
