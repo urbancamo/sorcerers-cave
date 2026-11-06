@@ -70,12 +70,13 @@ export const DEFAULT_WEIGHTS: Weights = { power: 3, areas: 0.2, deck: 6, sibyl: 
 
 /** How promising a state is. Higher is better. Carried value is the real score so far; power keeps the party able to fight; deck
  *  progress is the way to meet the Sorcerer; his death is worth a lot; once he is dead the way home matters. */
-export function heuristic(state: GameState, w: Weights = DEFAULT_WEIGHTS, homing = true): number {
+export function heuristic(state: GameState, w: Weights = DEFAULT_WEIGHTS, homing = true, requireSorcerer = true): number {
   let h = scoreBreakdown(state).total + w.power * power(state) + w.areas * state.areas.length + w.deck * state.smallIdx;
   if (state.hasSibyl) h += w.sibyl;
-  if (state.sorcererKilled) {
-    h += w.killBonus;
-    if (!homing) return h; // still collecting: the way home is not yet the point
+  if (state.sorcererKilled) h += w.killBonus;
+  // The way home matters once the party has done what it came for: always, when the goal is only the score; after the
+  // Sorcerer's death, when he must die first. `homing` is false while the search is still told to keep collecting.
+  if (homing && (state.sorcererKilled || !requireSorcerer)) {
     const { home, frontier } = walkDistances(state);
     // No known way out: head for the nearest unexplored doorway, and for the higher levels, where the stairs up are.
     h -= Number.isFinite(home) ? w.home * home : 200 + 4 * (Number.isFinite(frontier) ? frontier : 60) + 40 * state.level;
@@ -104,13 +105,13 @@ const planKey = (m: unknown) => JSON.stringify(m);
 /** The actions worth trying from a state: the engine's legal actions, with the two fixed choices taken for the search — wield
  *  and wear before anything else, and leave the cave only once the Sorcerer is dead — and the fight plans legalActions leaves to
  *  the UI built for it (the strongest-foe-first plan and the one-to-one plan). */
-export function candidateActions(state: GameState, canExit = true): GameAction[] {
+export function candidateActions(state: GameState, canExit = true, requireSorcerer = true): GameAction[] {
   const legal = legalActions(state);
   switch (state.phase) {
     case "explore": {
       const prep = prepareAction(state);
       if (prep) return [prep];
-      return legal.filter((a) => a.type !== "exitCave" || (state.sorcererKilled && canExit));
+      return legal.filter((a) => a.type !== "exitCave" || (canExit && (state.sorcererKilled || !requireSorcerer)));
     }
     case "sorcerer":
       return legal.filter((a) => a.type === "slaySorcerer"); // the golden game slays him; sparing him is a different game
@@ -162,9 +163,10 @@ export interface BeamResult {
 
 /** Beam search from `initial`: each step tries every candidate action on every state in the beam and keeps the `width` best
  *  distinct results. Dead or quit parties are dropped; a party on the surface is recorded and not expanded further. */
-export function beamSearch(initial: GameState, opts: { width: number; maxSteps: number; weights?: Partial<Weights>; exitAfter?: number }): BeamResult {
+export function beamSearch(initial: GameState, opts: { width: number; maxSteps: number; weights?: Partial<Weights>; exitAfter?: number; requireSorcerer?: boolean }): BeamResult {
   const w: Weights = { ...DEFAULT_WEIGHTS, ...opts.weights };
-  let beam: Node[] = [{ state: initial, parent: null, action: null, h: heuristic(initial, w) }];
+  const requireSorcerer = opts.requireSorcerer ?? true; // false: the goal is only the score of a party that escapes
+  let beam: Node[] = [{ state: initial, parent: null, action: null, h: heuristic(initial, w, true, requireSorcerer) }];
   const finished: Finished[] = [];
   let expanded = 0;
   const crashes: { actions: GameAction[]; error: string }[] = [];
@@ -175,7 +177,7 @@ export function beamSearch(initial: GameState, opts: { width: number; maxSteps: 
     const next: Node[] = [];
     for (const node of beam) {
       const homing = step >= (opts.exitAfter ?? 0);
-      for (const action of candidateActions(node.state, homing)) {
+      for (const action of candidateActions(node.state, homing, requireSorcerer)) {
         let r: ReturnType<typeof reduce>;
         try {
           r = reduce(node.state, action);
@@ -195,7 +197,7 @@ export function beamSearch(initial: GameState, opts: { width: number; maxSteps: 
         const key = JSON.stringify(s);
         if (seen.has(key)) continue;
         seen.add(key);
-        child.h = heuristic(s, w, homing);
+        child.h = heuristic(s, w, homing, requireSorcerer);
         if (s.sorcererKilled && sorcererKilledAt === null) sorcererKilledAt = step;
         next.push(child);
       }

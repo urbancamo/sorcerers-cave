@@ -31,6 +31,13 @@ describe("goldenSearch: the look-ahead search that finds the golden game", () =>
     expect(candidateActions(killed, false).some((a) => a.type === "exitCave")).toBe(false); // exit gated by the caller
   });
 
+  it("lets the party leave at once when the goal is only the score (requireSorcerer false), but never when he must die first", () => {
+    const s = newGame(2, [4, 6], KIT);
+    expect(candidateActions(s, true, false).some((a) => a.type === "exitCave")).toBe(true);
+    expect(candidateActions(s, true, true).some((a) => a.type === "exitCave")).toBe(false);
+    expect(candidateActions(s, false, false).some((a) => a.type === "exitCave")).toBe(false); // still gated by the caller
+  });
+
   it("rates a state where the Sorcerer is dead above the same state with him alive", () => {
     const s = newGame(2, [4, 6], KIT);
     expect(heuristic({ ...s, sorcererKilled: true })).toBeGreaterThan(heuristic(s));

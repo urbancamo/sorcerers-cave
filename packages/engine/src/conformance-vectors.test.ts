@@ -7,7 +7,7 @@ import { casterMP } from "./combat";
 import { eyeActive } from "./effects";
 import { scoreGame } from "./score";
 import type { GameAction, GameState } from "./index";
-import goldenSearch from "./fixtures/golden-search.json";
+import goldenSearch from "./fixtures/best-score-search.json";
 import { buildPlan, buildStrongPlan, lcg, prepareAction } from "./botKit";
 
 /**
@@ -314,14 +314,13 @@ describe("conformance vectors — committed port fixtures match the engine", () 
   }
 });
 
-// The "golden game": the game found by the offline search (goldenSearch.search.ts, pinned in
-// fixtures/golden-search.json) — Extension Kit and Sibyl on, Sorcerer slain, party back on the surface with the best score the
-// search found. It is handed to the web app so the splash screen's replay box opens it by a reserved code
+// The "golden game": the highest-scoring escaped game found by the offline score search (scoreSearch.search.ts, pinned in
+// fixtures/best-score-search.json) — the party back on the surface, no other requirement. It is handed to the web app so the splash screen's replay box opens it by a reserved code
 // (apps/web/src/game/goldenGame.ts). Only the initial conditions, variants and action list are stored — the viewer re-derives
 // every frame and event with the engine's replay(). It is a file snapshot, so it fails here, not silently in the browser, if
 // the fixture changes; regenerate with `vitest -u`.
 describe("golden game — the replayable run bundled with the web app", () => {
-  it("GOLD (the searched Sorcerer-slaying, Sibyl-keeping, best-scoring run) matches its committed bundle", async () => {
+  it("GOLD (the best-scoring searched run) matches its committed bundle", async () => {
     const { seed, picks, variants, actions } = goldenSearch;
     const bundle = { GOLD: { seed, picks, variants, actions } };
     await expect(JSON.stringify(bundle, null, 1) + "\n").toMatchFileSnapshot("../../../apps/web/src/data/golden-game.json");
