@@ -2,7 +2,7 @@
 # After an overnight search: turn the shard output into the pinned results and check them.
 #   scripts/pin-results.sh [dir]        default dir: search-out-score
 # 1. merge: replays candidates on the engine, writes src/fixtures/best-score-search.json and top-score-games.json (top 25 per rule
-#    set, any missing moves re-derived) and docs/testing/search-scenario-tables.md
+#    set, any missing moves re-derived), src/fixtures/search-index.json (every escaped search) and docs/testing/search-scenario-tables.md
 # 2. regenerates the web app's replay bundle (apps/web/src/data/scenario-games.json, codes B001...S025)
 # 3. runs the pinned engine tests and the web tests that read those files
 set -e

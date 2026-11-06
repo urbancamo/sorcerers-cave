@@ -10,6 +10,7 @@ game is an ordinary list of actions that `replay()` plays back on the real engin
 | `best-score-search.json` | The single highest-scoring escaped game found, plus the search budget. **This is replay code `K001`.** | `scoreSearch.search.ts` |
 | `top-score-games.json` | The 25 best *distinct* games (different draft or seed) of **each** rule set (base, kit, kit + Sibyl), 75 in all, best first within a rule set, each with its full action list. | `scoreSearch.search.ts` |
 | `golden-search.json` | An earlier, goal-driven game: Extension Kit + Sibyl on, Sorcerer slain, escaped (score 264). | `goldenSearch.search.ts` |
+| `search-index.json` | **Every** search of the run that reached the surface (6,574 of them), best first: item number, score, rules, draft, seed, whether it killed the Sorcerer first. No moves (they are rebuilt, below). About 200 KB. | the merge |
 | `docs/testing/search-scenario-tables.md` | Generated: the run's provenance and budget, and a table of all 75 games. | `scripts/pin-results.sh` |
 | `apps/web/src/data/scenario-games.json` | All 75 games keyed by replay code (`B001`…`S025`), generated from `top-score-games.json` by the conformance-vectors test. | `vitest -u` |
 
@@ -59,9 +60,29 @@ nothing is random that is not recorded. To reproduce:
 4. Every pinned game stores those settings (`search`) and its item number, so step 2 is not even needed to re-run one. A fast test
    (`scoreSearch.pinned.test.ts`) does exactly this for the best game and checks it comes out move for move the same.
 
-What the fixtures do **not** hold is the raw shard output (`search-out-score/`, about 36 MB, not committed): it is only needed to choose the
-top 25, and re-running the items regenerates anything in it. The shards' item ranges are in the generated tables, so the exact set of items
-searched can be re-enumerated (shard `k` of `n` ran items `k, k+n, k+2n, …` up to its last item).
+## The index, and rebuilding any game
+
+The shard files kept moves for only a handful of searches, and each search keeps only its single best escape (the beam found 22.3
+million escapes in total; the rest were never stored and are near-duplicates). So `search-index.json` is what makes the whole run
+reusable: it lists every search that reached the surface, so you can choose by score, rules or draft, and any listed game can be
+rebuilt exactly from its item number, because the search is deterministic.
+
+```
+# one or more items
+SEARCH_ITEMS=112180,85070 SEARCH_SALT=1 npx vitest run -c vitest.search.config.ts src/scoreSearch.search.ts
+# every indexed game scoring at least 300 (the index's salt is checked)
+SEARCH_MIN_SCORE=300 SEARCH_SALT=1 npx vitest run -c vitest.search.config.ts src/scoreSearch.search.ts
+```
+
+Run these in `packages/engine`, on the engine commit recorded in the index's `run`. They write `search-items.json` (override with
+`SEARCH_ITEMS_OUT`): each game re-run, replayed on the engine and checked to end on the surface with the indexed score, in the same shape
+as `top-score-games.json`. It costs about 2 seconds per item. A game that fails to replay to its score stops the command, which is how you
+find out that a rule change has invalidated the index (then re-run the search). Checked on 6 games that had no moves stored, scoring 18
+to 384: all rebuilt to exactly their indexed score.
+
+What is not kept: the raw shard output (`search-out-score/`, about 36 MB, not committed), which the index replaces, and the non-best
+escapes. The shards' item ranges are in the generated tables, so the exact set of items searched can be re-enumerated (shard `k` of `n`
+ran items `k, k+n, k+2n, …` up to its last item).
 
 ## How they are tested
 
@@ -95,7 +116,7 @@ the codes should be re-found. To do another overnight run:
    `search-out-score/run.json`). Use `SEARCH_SALT=2 …` for an independent run, and move `search-out-score/` aside first for a fresh one.
 2. When it finishes, `packages/engine/scripts/pin-results.sh`. It merges the shards (replaying candidates best-first on the engine, keeping
    only games that really escape with the recorded score, and re-deriving the moves of any candidate its shard did not keep), writes
-   `best-score-search.json`, `top-score-games.json` (top 25 per rule set) and the generated tables, regenerates the web bundle
+   `best-score-search.json`, `top-score-games.json` (top 25 per rule set), `search-index.json` and the generated tables, regenerates the web bundle
    (`apps/web/src/data/scenario-games.json`), then runs the pinned engine tests and the web tests. No test needs editing by hand.
 3. Review the diff and commit the fixtures, the bundle and the tables.
 

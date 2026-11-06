@@ -42,6 +42,7 @@ const OUT = process.env.SEARCH_OUT ?? "search-out-score";
 const FIXTURE = "src/fixtures/best-score-search.json";
 const TOP_FIXTURE = "src/fixtures/top-score-games.json";
 const TOP_N = 25;
+const INDEX = "src/fixtures/search-index.json";
 const TABLES = "../../docs/testing/search-scenario-tables.md";
 const PREFIX = ["B", "K", "S"];
 
@@ -124,7 +125,9 @@ interface Row {
   actions?: GameAction[];
 }
 
-describe.skipIf(!!process.env.SEARCH_MERGE)("score search: one shard, until the deadline", () => {
+const REBUILD = !!(process.env.SEARCH_ITEMS || process.env.SEARCH_MIN_SCORE);
+
+describe.skipIf(!!process.env.SEARCH_MERGE || REBUILD)("score search: one shard, until the deadline", () => {
   it("searches its work items", () => {
     const shard = env("SEARCH_SHARD", 0);
     const shards = env("SEARCH_SHARDS", 1);
@@ -238,6 +241,11 @@ describe.skipIf(!process.env.SEARCH_MERGE)("score search: merge the shards into 
     writeFileSync(FIXTURE, JSON.stringify({ note: NOTE, ...game(verified[0]!, 1), budget }, null, 1) + "\n");
     writeFileSync(TOP_FIXTURE, JSON.stringify({ note: NOTE, budget, perRules: TOP_N, games: sets.flatMap((v) => v.map((g, k) => game(g, k + 1))) }, null, 1) + "\n");
     writeFileSync(TABLES, tablesDoc(sets, budget));
+    // The index of EVERY search that reached the surface (the shard files keep moves for only a few): enough to pick games by score
+    // and to rebuild any of them from its item number (see the rebuild test below). One row per line, so a diff stays readable.
+    const escaped = rows.filter((r) => r.score >= 0).sort((a, b) => b.score - a.score || a.i - b.i);
+    const line = (r: Row) => JSON.stringify([r.i, r.score, r.item.rules, r.item.picks, r.item.seed, r.item.killFirst ? 1 : 0]);
+    writeFileSync(INDEX, `{\n"note": ${JSON.stringify("Every search of the run that reached the surface, best first. Rebuild a game's moves from its item number: SEARCH_ITEMS=<i,...> or SEARCH_MIN_SCORE=<n> with SEARCH_SALT=<salt>, via src/scoreSearch.search.ts (see docs/testing/search-scenarios.md). rules: 0 base, 1 kit, 2 kit+sibyl.")},\n"run": ${JSON.stringify(run)},\n"searches": ${rows.length},\n"columns": ["item","score","rules","picks","seed","killFirst"],\n"rows": [\n${escaped.map(line).join(",\n")}\n]\n}\n`);
     return;
   });
 });
@@ -282,3 +290,30 @@ function tablesDoc(
   });
   return out.join("\n") + "\n";
 }
+
+// Rebuild games from their item numbers: SEARCH_ITEMS=112180,5 or SEARCH_MIN_SCORE=300 (every index row at or above that score).
+// Needs the run's salt (SEARCH_SALT) and the engine it ran on. Writes SEARCH_ITEMS_OUT (default search-items.json): each game replayed
+// on the engine, in the shape of top-score-games.json, so it can be pinned or used as a scenario.
+describe.skipIf(!REBUILD)("score search: rebuild games from item numbers", () => {
+  it("re-runs the items and keeps those that replay to their score on the engine", () => {
+    let ids: number[];
+    if (process.env.SEARCH_MIN_SCORE) {
+      const idx = JSON.parse(readFileSync(INDEX, "utf8")) as { run: { salt: number } | null; rows: [number, number][] };
+      if (idx.run && idx.run.salt !== SALT) throw new Error(`the index is from salt ${idx.run.salt}; set SEARCH_SALT=${idx.run.salt}`);
+      ids = idx.rows.filter((r) => r[1] >= Number(process.env.SEARCH_MIN_SCORE)).map((r) => r[0]);
+    } else ids = process.env.SEARCH_ITEMS!.split(",").map(Number);
+    const games = [];
+    for (const i of ids) {
+      const item = itemFor(i);
+      const variants = RULES[item.rules]!.variants;
+      const r = beamSearch(newGame(item.seed, item.picks, variants), { width: item.width, maxSteps: item.steps, weights: item.weights, exitAfter: item.exitAfter, requireSorcerer: item.killFirst });
+      const top = r.finished.reduce<(typeof r.finished)[number] | null>((m, f) => (!m || f.score > m.score ? f : m), null);
+      if (!top) continue;
+      const end = replay(item.seed, item.picks, top.actions, variants).at(-1)!.state;
+      if (end.gs !== GS_ESCAPED || scoreBreakdown(end).total !== top.score) throw new Error(`item ${i} did not replay to its score`);
+      games.push({ item: i, rules: RULES[item.rules]!.name, variants: variants ?? {}, seed: item.seed, picks: item.picks, score: top.score, search: { weights: item.weights, exitAfter: item.exitAfter, beamWidth: item.width, maxSteps: item.steps, killFirst: item.killFirst }, actions: top.actions });
+    }
+    writeFileSync(process.env.SEARCH_ITEMS_OUT ?? "search-items.json", JSON.stringify(games) + "\n");
+    expect(games.length).toBeGreaterThan(0);
+  });
+});

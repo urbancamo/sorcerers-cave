@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import best from "./fixtures/best-score-search.json";
 import top from "./fixtures/top-score-games.json";
+import index from "./fixtures/search-index.json";
 import { newGame, replay } from "./index";
 import { beamSearch } from "./goldenSearch";
 import { scoreBreakdown } from "./score";
@@ -72,5 +73,30 @@ describe.each(RULESETS)("score search: the top-25 scenarios, rules: %s", (rules)
     expect(frames.filter((f) => f.events.some((e) => e.type === "blocked"))).toEqual([]);
     expect(end.gs).toBe(GS_ESCAPED);
     expect(scoreBreakdown(end).total).toBe(g.score);
+  });
+});
+
+// The index lists every search of the run that reached the surface (the shard files kept moves for only a few); any of them can be
+// rebuilt from its item number — see docs/testing/search-scenarios.md.
+describe("score search: the index of every escaped search", () => {
+  const rows = index.rows as [number, number, number, number[], number, number][];
+  it("matches the run's budget and is ordered best first, one row per item", () => {
+    expect(rows).toHaveLength(best.budget.searchesThatEscaped);
+    expect(index.searches).toBe(best.budget.searches);
+    expect(index.run).toEqual(best.budget.run);
+    const scores = rows.map((r) => r[1]);
+    expect([...scores].sort((a, b) => b - a)).toEqual(scores);
+    expect(new Set(rows.map((r) => r[0])).size).toBe(rows.length);
+    expect(index.columns).toEqual(["item", "score", "rules", "picks", "seed", "killFirst"]);
+  });
+  it("contains every pinned game, with the same score, rules, draft and seed", () => {
+    const byItem = new Map(rows.map((r) => [r[0], r]));
+    const ruleIndex = { base: 0, kit: 1, "kit+sibyl": 2 } as const;
+    for (const g of top.games) {
+      const r = byItem.get(g.item)!;
+      expect(r, `item ${g.item}`).toBeDefined();
+      expect(r.slice(1, 5)).toEqual([g.score, ruleIndex[g.rules as keyof typeof ruleIndex], g.picks, g.seed]);
+    }
+    expect(rows[0]![1]).toBe(best.score);
   });
 });
