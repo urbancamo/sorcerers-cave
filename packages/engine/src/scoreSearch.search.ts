@@ -168,25 +168,38 @@ describe.skipIf(!process.env.SEARCH_MERGE)("score search: merge the shards into 
       .filter((f: string) => f.endsWith(".jsonl"))
       .flatMap((f: string) => readFileSync(`${dir}/${f}`, "utf8").split("\n").filter(Boolean).map((l: string) => JSON.parse(l) as Row));
     expect(rows.length).toBeGreaterThan(0);
-    const ranked = rows.filter((r) => r.actions).sort((a, b) => b.score - a.score);
-    expect(ranked.length, "no search escaped the cave").toBeGreaterThan(0);
     // The search's own bookkeeping is not the authority: replay each candidate on the engine, best first, and keep only games that
-    // really end on the surface with the score recorded. The first is pinned as the best; the first TOP_N distinct ones are saved as
-    // scenarios (distinct = a different rule set, draft and seed, so the list is not one game found many times).
-    const verified: { row: Row; variants: Variants }[] = [];
-    const seen = new Set<string>();
-    for (const row of ranked) {
-      const key = `${row.item.rules}|${row.item.picks.join()}|${row.item.seed}`;
-      if (seen.has(key)) continue;
-      const variants = RULES[row.item.rules]!.variants;
-      const frames = replay(row.item.seed, row.item.picks, row.actions!, variants);
-      const end = frames[frames.length - 1]!.state;
-      if (end.gs !== GS_ESCAPED || scoreBreakdown(end).total !== row.score) continue;
-      seen.add(key);
-      verified.push({ row, variants });
-      if (verified.length === TOP_N) break;
-    }
-    if (verified.length === 0) throw new Error("no candidate replayed to its recorded score on the engine");
+    // really end on the surface with the score recorded. The first per rule set is pinned as that set's best; the first TOP_N distinct
+    // ones (a different draft or seed, so the list is not one game found many times) are saved as scenarios. A row keeps its moves
+    // only when it was near its shard's best at the time, so the moves of the others are re-derived by running the item again
+    // (every item is a pure function of its number).
+    const movesOf = (row: Row): GameAction[] | undefined => {
+      if (row.actions) return row.actions;
+      const v = RULES[row.item.rules]!.variants;
+      const r = beamSearch(newGame(row.item.seed, row.item.picks, v), { width: row.item.width, maxSteps: row.item.steps, weights: row.item.weights, exitAfter: row.item.exitAfter, requireSorcerer: row.item.killFirst });
+      return r.finished.find((f) => f.score === row.score)?.actions;
+    };
+    const verifiedFor = (k: number) => {
+      const out: { row: Row; variants: Variants; actions: GameAction[] }[] = [];
+      const seen = new Set<string>();
+      for (const row of rows.filter((r) => r.item.rules === k && r.score >= 0).sort((x, y) => y.score - x.score || x.i - y.i)) {
+        const key = `${row.item.picks.join()}|${row.item.seed}`;
+        if (seen.has(key)) continue;
+        seen.add(key);
+        const actions = movesOf(row);
+        if (!actions) continue;
+        const variants = RULES[k]!.variants;
+        const frames = replay(row.item.seed, row.item.picks, actions, variants);
+        const end = frames[frames.length - 1]!.state;
+        if (end.gs !== GS_ESCAPED || scoreBreakdown(end).total !== row.score) continue;
+        out.push({ row, variants, actions });
+        if (out.length === TOP_N) break;
+      }
+      return out;
+    };
+    const sets = RULES.map((_, k) => verifiedFor(k));
+    expect(sets.every((v) => v.length > 0), "every rule set needs at least one escaped game").toBe(true);
+    const verified = sets.flat().sort((x, y) => y.row.score - x.row.score);
     const budget = {
       salt: SALT,
       searches: rows.length,
@@ -195,7 +208,7 @@ describe.skipIf(!process.env.SEARCH_MERGE)("score search: merge the shards into 
       cpuHours: Math.round(rows.reduce((n, r) => n + r.ms, 0) / 36000) / 100,
       byRules: RULES.map((x, k) => ({ rules: x.name, searches: rows.filter((r) => r.item.rules === k).length, best: Math.max(-1, ...rows.filter((r) => r.item.rules === k).map((r) => r.score)) })),
     };
-    const game = ({ row, variants }: { row: Row; variants: Variants }, rank: number) => ({
+    const game = ({ row, variants, actions }: { row: Row; variants: Variants; actions: GameAction[] }, rank: number) => ({
       rank,
       rules: RULES[row.item.rules]!.name,
       variants: variants ?? {},
@@ -204,12 +217,12 @@ describe.skipIf(!process.env.SEARCH_MERGE)("score search: merge the shards into 
       score: row.score,
       item: row.i,
       search: { weights: row.item.weights, exitAfter: row.item.exitAfter, beamWidth: row.item.width, maxSteps: row.item.steps, killFirst: row.item.killFirst },
-      actions: row.actions,
+      actions,
     });
     const NOTE = "Found by src/scoreSearch.search.ts: the highest score of any escaped game in a random search, no other requirement. (The search itself may choose to make the Sorcerer die first: that is a search tactic, not a requirement.) 'Best' means best found within the budget below, not a proven maximum.";
     mkdirSync("src/fixtures", { recursive: true });
     writeFileSync(FIXTURE, JSON.stringify({ note: NOTE, ...game(verified[0]!, 1), budget }, null, 1) + "\n");
-    writeFileSync(TOP_FIXTURE, JSON.stringify({ note: NOTE, budget, games: verified.map((v, k) => game(v, k + 1)) }, null, 1) + "\n");
+    writeFileSync(TOP_FIXTURE, JSON.stringify({ note: NOTE, budget, perRules: TOP_N, games: sets.flatMap((v) => v.map((g, k) => game(g, k + 1))) }, null, 1) + "\n");
     return;
   });
 });
