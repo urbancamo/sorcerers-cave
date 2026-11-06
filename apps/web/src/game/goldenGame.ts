@@ -5,11 +5,11 @@ import type { ReplayBundle } from "./ReplayView";
 /** The reserved replay code for the golden game: type it into the splash screen's replay box. */
 export const GOLDEN_CODE = "GOLD";
 
-// The record is generated from a conformance-vector run (packages/engine/src/conformance-vectors.test.ts,
-// "golden game") and holds only the initial conditions and the action list. It lives in the app bundle
+// The record is generated from the engine's pinned search result (packages/engine/src/fixtures/golden-search.json, via the
+// "golden game" test in conformance-vectors.test.ts) and holds only the initial conditions, variants and the action list. It lives in the app bundle
 // rather than in Convex so opening it writes nothing to the shared backend and can never drift from the
 // engine version it ships with — that test fails first if it would.
-const RECORDS = golden as Record<string, { seed: number; picks: number[]; actions: GameAction[] }>;
+const RECORDS = golden as Record<string, { seed: number; picks: number[]; variants?: ReplayBundle["game"]["variants"]; actions: GameAction[] }>;
 
 /** The replay bundle for a golden-game code (case and surrounding spaces ignored), or null if it isn't one. */
 export function goldenBundle(code: string): ReplayBundle | null {
@@ -18,10 +18,10 @@ export function goldenBundle(code: string): ReplayBundle | null {
   if (!rec) return null;
   // One engine pass derives each move's events for the viewer's log, exactly as a Convex-stored game's
   // `gameEvents` rows carry them; frame 0 is the initial deal and has no move.
-  const frames = replay(rec.seed, rec.picks, rec.actions);
+  const frames = replay(rec.seed, rec.picks, rec.actions, rec.variants);
   return {
     replayable: true,
-    game: { code: key, seed: rec.seed, picks: rec.picks, color: null, status: "finished", createdAt: 0 },
+    game: { code: key, seed: rec.seed, picks: rec.picks, variants: rec.variants, color: null, status: "finished", createdAt: 0 },
     moves: frames.slice(1).map((f) => ({ seq: f.seq, action: f.action as GameAction, events: f.events })),
   };
 }

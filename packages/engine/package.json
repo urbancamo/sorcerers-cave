@@ -10,7 +10,8 @@
   "scripts": {
     "test": "vitest run",
     "typecheck": "tsc --noEmit",
-    "soak": "vitest run -c vitest.soak.config.ts"
+    "soak": "vitest run -c vitest.soak.config.ts",
+    "search": "vitest run -c vitest.search.config.ts"
   },
   "devDependencies": {
     "typescript": "^6.0.3",

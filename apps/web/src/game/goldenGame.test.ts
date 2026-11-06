@@ -24,17 +24,18 @@ describe("golden game replay code", () => {
   });
 
   it("replays with every recorded action legal on this engine, and shows what the golden game is for", () => {
-    // If a rules change makes the stored actions drift, this fails — regenerate with the conformance
-    // vectors (`pnpm --filter engine exec vitest run -u src/conformance-vectors.test.ts`), then check the
-    // run still shows these features (a regenerated run can quietly stop reaching them).
+    // If a rules change makes the stored actions drift, this fails — re-run the engine's offline search
+    // (`npm run search -w packages/engine`), pin its result and regenerate the bundle with the conformance vectors
+    // (`pnpm --filter engine exec vitest run -u src/conformance-vectors.test.ts`).
     const b = goldenBundle(GOLDEN_CODE)!;
+    expect(b.game.variants).toEqual({ extensionKit: true, sibyl: true });
     const frames = replay(b.game.seed!, b.game.picks!, b.moves.map((m) => m.action), b.game.variants);
     const events = frames.flatMap((f) => f.events);
+    const end = frames[frames.length - 1]!.state;
     expect(events.some((e) => e.type === "blocked")).toBe(false);
     expect(events.some((e) => e.type === "sorcererSlain")).toBe(true);
-    expect(events.some((e) => e.type === "medusaSlept")).toBe(true);   // Lotus Dust thrown at Medusa
-    expect(events.some((e) => e.type === "chestOpened")).toBe(true);
-    expect(frames[frames.length - 1]!.state.sorcererKilled).toBe(true);
-    expect(frames[frames.length - 1]!.state.gs).toBe(0); // still playing: the run stops at its 300-move cap
+    expect(events.some((e) => e.type === "sibylJoins")).toBe(true);
+    expect(end.sorcererKilled).toBe(true);
+    expect(end.gs).toBe(1); // GS_ESCAPED: the party is back on the surface
   });
 });
