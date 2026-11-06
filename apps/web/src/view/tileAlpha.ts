@@ -13,7 +13,7 @@ const smooth = (e0: number, e1: number, x: number) => {
   const t = Math.max(0, Math.min(1, (x - e0) / (e1 - e0)));
   return t * t * (3 - 2 * t);
 };
-const luminance = (d: Uint8ClampedArray, i: number) => 0.3 * d[i] + 0.59 * d[i + 1] + 0.11 * d[i + 2];
+const luminance = (d: Uint8ClampedArray, i: number) => 0.3 * d[i]! + 0.59 * d[i + 1]! + 0.11 * d[i + 2]!;
 
 /** Rewrite the alpha channel of RGBA `data` (w x h) in place. */
 export function keyOutsideAlpha(data: Uint8ClampedArray, w: number, h: number): void {

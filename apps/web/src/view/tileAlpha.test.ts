@@ -4,7 +4,7 @@ import { keyOutsideAlpha } from './tileAlpha';
 // Build a w x h RGBA image from rows of characters:
 // '.' black (0), '#' grey stone (140), '~' dark mortar (lum ~30), ',' faint fringe (lum 4).
 function image(rows: string[]) {
-  const h = rows.length, w = rows[0].length;
+  const h = rows.length, w = rows[0]!.length;
   const d = new Uint8ClampedArray(w * h * 4);
   rows.forEach((row, y) => [...row].forEach((c, x) => {
     const v = c === '#' ? 140 : c === '~' ? 30 : c === ',' ? 4 : 0;
