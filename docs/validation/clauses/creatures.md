@@ -23,4 +23,4 @@
 | RC-CR-12 | Unicorn: approached only after the other strangers; joins only with a Woman; leaves without one | Agrees (SC-8.5-4/5, R-17) |
 | RC-CR-13 | Apprentice: hostile once the Sorcerer is dead; will not go to the surface; uses artefacts as a Wizard | Agrees in the legacy combat; the revised combat defers the revert (SC-EXT-20, SC-EXT-42). Not re-run here |
 | RC-CR-14 | Sorcerer: Lotus Dust and Eye of God each -2; may not be tested; spared on terms; a failed attack is cursed | Agrees (SC-8.5-1, SC-12-21..23, SC-11-x) |
-| RC-CR-15 | Thief: steals ONE treasure of your choice from indifferent strangers, who then turn hostile and attack next turn | **Differs** (R-33) |
+| RC-CR-15 | Thief: steals ONE treasure of your choice from indifferent strangers, who then turn hostile and attack next turn | Agrees since R-33 |

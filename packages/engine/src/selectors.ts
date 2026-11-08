@@ -12,6 +12,7 @@ import { getSubLocation, chasmMoveAllowed, oppositeDir, RING_ADJACENCY_SPECIALS,
 import { giantCanRecover, sunkKey } from "./special";
 import { teleportDestinations } from "./sorcerer";
 
+const C_THIEF = 19; // R-33: only the Thief steals from indifferent strangers (Thief-unlocked pickup)
 const C_GIANT = 12; // only a Giant may lift treasure out of a Deep Pool (§Deep Pool)
 
 /**
@@ -276,7 +277,7 @@ export function legalActions(state: GameState): GameAction[] {
         const m = state.party[mi]!;
         // Only offer the take to living/ally members who have the spare capacity to carry it
         // (heavy treasure counts against carry weight; artifacts are weightless so always fit).
-        if ((m.status === 0 || m.status === 1) && canCarry(m, state.treasures[ti]!) && (!giantOnly || m.creatureId === C_GIANT)) {
+        if ((m.status === 0 || m.status === 1) && canCarry(m, state.treasures[ti]!) && (!giantOnly || m.creatureId === C_GIANT) && (!state.thiefPickup || m.creatureId === C_THIEF)) {
           actions.push({ type: "takeTreasure", ti, mi });
         }
       }

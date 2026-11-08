@@ -1363,10 +1363,28 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // Extension kit (SC-EXT-19): a Thief-unlocked pickup (`settlePacifiedArea`) narrates each lift
       // ("The Thief palms the [item].") — captured before `takeTreasure` splices `next.treasures`.
       const liftedTid = next.treasures[action.ti];
+      // R-33: in a Thief-unlocked pickup only the Thief may steal, and only one treasure (below).
+      if (next.thiefPickup && next.party[action.mi]?.creatureId !== C_THIEF) return { state, events: [{ type: "blocked" }] };
       const lifted = takeTreasure(next, action.ti, action.mi);
       const events: GameEvent[] = lifted && next.thiefPickup && liftedTid !== undefined
         ? [{ type: "thiefPalmed", tid: liftedTid }]
         : [];
+      if (lifted && next.thiefPickup) {
+        // R-33 (Peter, §Thief): "The strangers immediately become hostile to your party and will attack on the following
+        // turn if you do not leave the area." The guards come back, the area is no longer pacified but hostile for good,
+        // and the party may leave this turn (the indifferent-leave window); testing or attacking starts the fight.
+        const area = next.areas[next.partyArea]!;
+        next.strangers = area.contents.filter(isGuardCode).map((c) => c - 100);
+        area.contents = area.contents.filter((c) => !isGuardCode(c));
+        next.pacifiedAreas = (next.pacifiedAreas ?? []).filter((a) => a !== next.partyArea);
+        if (!next.hostileAreas?.includes(next.partyArea)) next.hostileAreas = [...(next.hostileAreas ?? []), next.partyArea];
+        delete next.thiefPickup;
+        next.phase = "encounter";
+        next.surpriseReady = false;
+        next.indiffLeaveOpen = true;
+        events.push({ type: "thiefDetected" });
+        return { state: next, events };
+      }
       if (next.treasures.length === 0) persistAndExplore(next);
       return { state: next, events };
     }
@@ -1513,6 +1531,11 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
     case "test": {
       if (state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
       if (sibylWaiting(state)) return meetSibyl(state);
+      // R-33: strangers turned hostile by a theft attack when approached (the strangers have the surprise).
+      if (state.hostileAreas?.includes(state.partyArea) && state.strangers.length > 0) {
+        const hostile = structuredClone(state);
+        return { state: hostile, events: startFight(hostile, -1) };
+      }
       if ((state.indiffStreak ?? 0) >= 3) return { state, events: [{ type: "blocked" }] }; // permanently indifferent
       const next = structuredClone(state);
       next.surpriseReady = false; // approaching to test forfeits the chance of a surprise attack (§Surprise)
@@ -1605,6 +1628,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       }
       if (state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
+      if (next.hostileAreas?.includes(next.partyArea)) return { state: next, events: startFight(next, -1) }; // R-33: hostile after a theft
       // Surprise only on an immediate attack from a fresh, non-trap entry (§Surprise).
       return { state: next, events: startFight(next, next.surpriseReady ? 1 : 0) };
     }

@@ -241,6 +241,7 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "quarrelFizzled": return "a quarrel fizzled — too few eligible combatants";
     case "spellRemap": return e.fizzled ? "the Spell fizzled — no eligible tile to remap" : "the Spell remapped a tile";
     case "thiefPalmed": return `the Thief palmed ${treasure(e.tid)}`;
+    case "thiefDetected": return "the strangers noticed the theft and turned hostile";
     case "apprenticeTurned": return `${e.count} Apprentice(s) turned when the Sorcerer fell` + (e.items.length ? `, dropping ${e.items.map(treasure).join(", ")}` : "");
     case "apprenticeStaysBehind": return `${e.count} Apprentice(s) stayed behind in the cave`;
     case "apprenticeWaits": return `${e.count} Apprentice(s) have lost their master — leave this area, or they will turn on the party`;
@@ -580,6 +581,7 @@ export function eventCode(e: GameEvent): string | null {
     case "quarrelFizzled": return "QRL FIZ";
     case "spellRemap": return e.fizzled ? "RMP FIZ" : "RMP OK";
     case "thiefPalmed": return `PLM ${tr3(e.tid)}`;
+    case "thiefDetected": return "THD";
     case "apprenticeTurned": return `APR TRN ${e.count}`;
     case "apprenticeStaysBehind": return `APR STY ${e.count}`;
     case "apprenticeWaits": return `APR WAIT ${e.count}`;

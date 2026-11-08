@@ -342,10 +342,31 @@ describe("Thief pickup — unlocks guarded treasure in an indifference-pacified 
     expect(s.treasures).toEqual([1]); // still live to take
     expect(s.areas[0]!.contents).toContain(100 + 6); // the indifferent guard parks, unengaged
 
-    const took = reduce(s, { type: "takeTreasure", ti: 0, mi: 0 });
-    expect(took.state.party[0]!.treasure).toEqual([1]);
+    // R-33 (Peter, §Thief): only the Thief steals, one treasure; the strangers turn hostile.
+    expect(reduce(s, { type: "takeTreasure", ti: 0, mi: 0 }).events).toEqual([{ type: "blocked" }]); // the Man may not
+    const took = reduce(s, { type: "takeTreasure", ti: 0, mi: 1 });
+    expect(took.state.party[1]!.treasure).toEqual([1]);
     expect(took.events).toContainEqual({ type: "thiefPalmed", tid: 1 });
-    expect(took.state.thiefPickup).toBeUndefined(); // cleared once the pickup empties out
+    expect(took.events).toContainEqual({ type: "thiefDetected" });
+    expect(took.state.thiefPickup).toBeUndefined();
+    expect(took.state.phase).toBe("encounter");
+    expect(took.state.strangers).toEqual([6]);
+    expect(took.state.hostileAreas).toContain(0);
+    expect(took.state.pacifiedAreas ?? []).not.toContain(0);
+    // Leaving at once is allowed; staying and testing or attacking starts the fight, strangers having the surprise.
+    expect(legalActions(took.state).some((a) => a.type === "move")).toBe(true);
+    expect(reduce(took.state, { type: "test" }).state.fight?.surprise).toBe(-1);
+  });
+  it("R-33: the theft takes one treasure only; the rest stays for later", () => {
+    let s2 = makeState({
+      phase: "encounter", strangers: [6], treasures: [1, 0], seed: 9,
+      party: [member(THIEF)],
+      areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+    });
+    for (let i = 0; i < 3; i++) s2 = reduce(s2, { type: "test" }).state;
+    const took = reduce(s2, { type: "takeTreasure", ti: 0, mi: 0 });
+    expect(took.state.party[0]!.treasure).toHaveLength(1);
+    expect(took.state.treasures).toHaveLength(1);
   });
 
   it("with a living Thief ally, RE-ENTERING an already-pacified area also unlocks the guarded treasure", () => {
@@ -360,8 +381,7 @@ describe("Thief pickup — unlocks guarded treasure in an indifference-pacified 
     expect(state.thiefPickup).toBe(true);
     expect(state.treasures).toEqual([1]);
     expect(state.areas[1]!.contents).toContain(100 + 6);
-    expect(legalActions(state)).toContainEqual({ type: "takeTreasure", ti: 0, mi: 0 });
-    expect(legalActions(state)).toContainEqual({ type: "takeTreasure", ti: 0, mi: 1 });
+    expect(legalActions(state).filter((a) => a.type === "takeTreasure")).toEqual([{ type: "takeTreasure", ti: 0, mi: 1 }]); // R-33: the Thief alone
     expect(events.some((e) => e.type === "thiefPalmed")).toBe(false); // no lift happened yet, just the unlock
   });
 

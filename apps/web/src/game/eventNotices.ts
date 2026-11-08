@@ -394,6 +394,9 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
             : { text: "A spell takes hold — the tunnel behind you folds in on itself and is elsewhere. Its secret doors are gone.", tone: "bad" },
         );
         break;
+      case "thiefDetected":
+        out.push({ text: "The strangers realise they have been robbed — they turn hostile and will attack unless you leave.", tone: "bad" });
+        break;
       case "thiefPalmed":
         out.push({ text: `The Thief palms the ${treasureName(e.tid)}.`, tone: "good" });
         break;

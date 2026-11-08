@@ -304,6 +304,8 @@ export type GameEvent =
   // area's strangers would otherwise still guard. `tid` is the lifted treasure id (design Feedback:
   // "The Thief palms the [item]."); fires once per successful lift, never for an ordinary pickup.
   | { type: "thiefPalmed"; tid: number }
+  // R-33 (Peter, §Thief): the theft turns the strangers hostile; they attack on the next turn unless the party leaves.
+  | { type: "thiefDetected" }
   // Extension kit (SC-EXT-20, design US-14/Resolved-7): the Sorcerer's death instantly breaks
   // every Apprentice ally's loyalty — `count` how many turned (normally one), `items` the pooled
   // treasure ids dropped into the chamber floor (`revertApprenticesOnSorcererDeath`, effects.ts).
