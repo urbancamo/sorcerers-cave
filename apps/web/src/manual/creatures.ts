@@ -31,7 +31,7 @@ export const CREATURES: Section = {
       p('A fight runs one round per turn until one side is wiped out, put to sleep, or your party retreats. Each fighter is matched against a stranger and a die is rolled for each side; total strength plus the die decides the winner, and the loser is slain. A tie kills no one.'),
     ] },
     { id: 'fight-surprise', title: 'Surprise', brief: 'The side with surprise adds +1 to all its rolls in the first round.', cards: cards('creature', '*'), screens: ['fight', 'fight-revised'], blocks: [
-      p('The side with surprise adds **+1** to all its rolls in the **first round**. Your party gains it by attacking immediately on entering a chamber by a fresh doorway (or by magic carpet). You do *not* get it if you stopped to test the strangers first, or if you fell in through a trap. Strangers gain surprise when they turn hostile on being approached.'),
+      p('The side with surprise adds **+1** to all its rolls in the **first round**. Your party gains it by attacking immediately on entering a chamber by a fresh doorway: one into a chamber you have not been in, or through a doorway you have not used before even into a chamber you have visited. A way you cannot walk back (the Magic Carpet, the Sorcerer\'s teleport, a Whirlpool, the Chasm) always gives it. You do *not* get it if you stopped to test the strangers first, or if you fell in through a trap. Strangers gain surprise when they turn hostile on being approached.'),
       p('A party that drops through a trap **on purpose** arrives with surprise.', 'trapRules'),
     ] },
     { id: 'fight-pairing', title: 'Pairing off', brief: 'Match fighters to foes; outnumber them and two can gang up on one.', cards: cards('creature', '*'), screens: ['fight'], blocks: [

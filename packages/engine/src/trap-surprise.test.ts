@@ -125,7 +125,7 @@ describe("deliberateFall lifetime", () => {
     expect(state.fellThroughTrap).toBe(false);
   });
 
-  it("another relocation (a Chasm descent) clears it, so that landing earns nothing", () => {
+  it("a Chasm descent is a one-way route and earns surprise by itself (R-28, Peter's Determining Surprise Attack; it used to earn none)", () => {
     const CHASM = (SPECIAL_CHASM << 7) | 31;
     const s = makeState({
       variants: ON,
@@ -134,7 +134,6 @@ describe("deliberateFall lifetime", () => {
     });
     const { state } = reduce(s, { type: "descendChasm" });
     expect(state.level).toBe(2);
-    expect(state.deliberateFall).toBeUndefined();
-    expect(state.surpriseReady).toBe(false);
+    expect(state.surpriseReady).toBe(true);
   });
 });

@@ -3,6 +3,9 @@ import { reduce } from "./reduce";
 import { makeState, inUseGear } from "./testkit";
 import { driveStrangers } from "./strangerDriver";
 import { matchModifiers } from "./revisedRound";
+import { playRevisedFight } from "./headless";
+import { applyHazards } from "./hazards";
+import { HAZARD_QUARREL } from "./data/hazards";
 import { packCoord } from "./coords";
 import type { GameState } from "./state";
 
@@ -93,5 +96,100 @@ describe("revised fights: the Treasure Chest Spectre (Peter, 2026-10-10 Q6)", ()
       return;
     }
     throw new Error("no seed opened a Spectre");
+  });
+});
+
+describe("revised fights, Step d: the attacker pairs its creatures one-to-one with the defender's front line", () => {
+  const stage = () => attackFrom([mem(HERO), mem(MAN), mem(WOMAN)], [OGRE, 3]);
+  it("an engagement that leaves a defender unpaired while the attacker has creatures free is refused", () => {
+    expect(reduce(stage(), { type: "engage", pairs: [{ party: 0, stranger: 0 }] } as never).events[0]).toMatchObject({ type: "planRejected" });
+  });
+  it("a complete one-to-one engagement is accepted", () => {
+    const r = reduce(stage(), { type: "engage", pairs: [{ party: 0, stranger: 0 }, { party: 1, stranger: 1 }] } as never);
+    expect(r.events[0]).toMatchObject({ type: "engaged" });
+  });
+});
+
+describe("revised fights: a match's outcome", () => {
+  const GIANT = 12;
+  /** The party's Man and Woman side by side against a Giant; the Giant's win leaves the party to nominate. Returns every casualty die seen. */
+  const casualtyDice = (ring: boolean) => {
+    const out: { roll: number; got: boolean }[] = [];
+    for (let seed = 1; seed < 400 && out.length < 40; seed++) {
+      let s = attackFrom([mem(MAN, ring ? [T_RING] : []), mem(WOMAN)], [GIANT], { seed });
+      s = reduce(s, { type: "engage", pairs: [{ party: 0, stranger: 0 }], moves: [{ creature: 1, match: 0, back: false }] } as never).state;
+      if (!s.fight?.casualtyQueue?.length) continue;
+      const r = reduce(s, { type: "chooseCasualty", idx: 0 });
+      const ev = r.events.find((e) => e.type === "casualtyChosen") as { roll: number; gotPreference: boolean } | undefined;
+      if (ev) out.push({ roll: ev.roll, got: ev.gotPreference });
+    }
+    return out;
+  };
+  it("a lost two-creature front line: a die of 4, 5 or 6 grants the nominee's death", () => {
+    const dice = casualtyDice(false);
+    expect(dice.length).toBeGreaterThan(5);
+    for (const d of dice) expect(d.got, `roll ${d.roll}`).toBe(d.roll >= 4);
+  });
+  it("...and the Ring adds 1 to that die (a 7 counts as 6)", () => {
+    const dice = casualtyDice(true);
+    expect(dice.length).toBeGreaterThan(5);
+    for (const d of dice) expect(d.got, `roll ${d.roll}`).toBe(d.roll + 1 >= 4);
+  });
+  it("a tie leaves the match unresolved: both creatures stay in it and the fight goes on", () => {
+    for (let seed = 1; seed < 400; seed++) {
+      const s = attackFrom([mem(HERO)], [HERO], { seed });
+      const p = playRevisedFight(s);
+      const tie = p.events.find((e) => e.type === "combatRoll" && (e as { result: string }).result === "tie");
+      if (!tie) continue;
+      expect(p.events.filter((e) => e.type === "combatRoll").length).toBeGreaterThan(1); // it was fought again
+      return;
+    }
+    throw new Error("no seed produced a tie");
+  });
+});
+
+describe("revised fights, Step g and Ending a Fight: a stalemate (Peter's example: a Spectre against a Thief with the Magic Shield)", () => {
+  it("ends in a standoff when neither side can harm the other, and the party may leave", () => {
+    const s = attackFrom([mem(19, [20])], [9], { variants: { combatRevision: true, extensionKit: true } as never });
+    const p = playRevisedFight(s);
+    expect(p.state.fight?.rev?.standoff ?? p.events.some((e) => e.type === "fightStandoff")).toBeTruthy();
+  });
+});
+
+describe("revised fights, Step b: the Scroll cannot be used in an area where it has already been used", () => {
+  it("is not offered there again", () => {
+    expect(attackFrom([mem(HERO, [T_SCROLL])], [OGRE], { scrollAreas: [0] }).fight!.pending).not.toMatchObject({ kind: "scroll" });
+  });
+});
+
+describe("Determining Surprise Attack: arriving by a route that cannot be walked back (Magic Carpet, teleport, whirlpool, chasm)", () => {
+  const room = (x: number, visited: boolean, contents: number[] = []) => ({ card: 31, coord: packCoord(1, x, 50), faceUp: true, visited, contents, flags: 0, indiffCount: 0 });
+  const byCarpet = (visited: boolean) =>
+    reduce(makeState({ phase: "explore", areas: [room(50, true), room(51, visited, [100 + OGRE])], partyArea: 0, party: [mem(4, [4])] }), { type: "useArtifact", artifact: 4, dir: 2 } as never).state;
+  it("a carpet arrival at a chamber never entered gives the party surprise", () => expect(byCarpet(false).surpriseReady).toBe(true));
+  // R-28 (MSW 2026-11-08, follow Peter): any arrival by a one-way route gets it, whether or not the party has been in that chamber before.
+  it("...and so does one at a chamber the party has visited before, where strangers wait (R-28)", () => expect(byCarpet(true).surpriseReady).toBe(true));
+  it("a doorway nobody has used earns it even into a visited chamber, and a doorway already walked does not (R-28)", () => {
+    const door = (open: number) => ({ card: 31, coord: packCoord(1, open, 50), faceUp: true, visited: true, contents: open === 51 ? [100 + OGRE] : [], flags: 0, indiffCount: 0 });
+    const walk = (doorsUsed: number[]) => reduce(makeState({ phase: "explore", areas: [door(50), door(51)], partyArea: 0, prev: 0, doorsUsed, party: [mem(HERO)] }), { type: "move", dir: 2 } as never).state;
+    // card 31's exits decide whether the move is possible at all; if it is blocked the test cannot say anything, so fail loudly rather than pass
+    const fresh = walk([]);
+    expect(fresh.partyArea, "the move east must succeed in this fixture").toBe(1);
+    expect(fresh.surpriseReady).toBe(true);
+    expect(walk([1]).surpriseReady).toBe(false);
+  });
+});
+
+describe("Procedure: Quarrel Fight — no bonuses or penalties for the Ring, curses or surprise", () => {
+  const loserFor = (seed: number, curses: number, ring: boolean) => {
+    const st = makeState({ seed, curses, party: [mem(MAN, ring ? [T_RING] : []), mem(OGRE)], hazards: [HAZARD_QUARREL], variants: { extensionKit: true } as never });
+    return applyHazards(st).events.find((e) => e.type === "quarrel") as { loserId: number | null; aRoll: number; bRoll: number };
+  };
+  it("the same dice give the same duel with curses or a Ring as without", () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const plain = loserFor(seed, 0, false);
+      expect(loserFor(seed, 3, false).loserId, `seed ${seed}, three curses`).toBe(plain.loserId);
+      expect(loserFor(seed, 0, true).loserId, `seed ${seed}, a Ring`).toBe(plain.loserId);
+    }
   });
 });

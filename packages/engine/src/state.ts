@@ -355,6 +355,8 @@ export interface GameState {
   // retreated-from chamber it is the party that gains it. Set right after the fall, cleared (`delete`, never
   // `= false`, SC-EXT-1) by every other relocation and by the next normal move; absent when the flag is off.
   deliberateFall?: boolean;
+  // The doorways the party has walked, as `min(areaA, areaB) * 100000 + max(...)` (R-28): a doorway not in the list earns surprise even into a visited chamber.
+  doorsUsed?: number[];
   // Extension kit (SC-EXT-9): the turn number `withdraw` is blocked for — set by a Well draw or a
   // Bell Rope 4-6 roll (design US-03/US-07), alongside `fellThroughTrap` on the same legality check.
   // `turn` only advances on `move`, so this self-invalidates once the party moves on — no explicit

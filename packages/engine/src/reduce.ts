@@ -729,7 +729,11 @@ function resolveAreaLoop(state: GameState): GameEvent[] {
     }
     // First visit by this (unused) doorway → eligible for surprise. A deliberate trap arrival (`trapRules`) is a
     // new route in its own right, so it qualifies even into a chamber the party has already visited.
-    const freshEntry = !state.areas[state.partyArea]!.visited || state.deliberateFall === true;
+    // R-28 (MSW 2026-11-08, Peter): a doorway nobody has used since the strangers took the area earns surprise even into a chamber the party has
+    // visited before. `doorsUsed` holds the edges walked so far; a one-way arrival or a fall is handled by `deliberateFall` / `fellThroughTrap`.
+    const arrived = state.partyArea, left = state.prev;
+    const unusedDoor = state.areas[arrived]!.visited && !state.fellThroughTrap && left !== arrived && !(state.doorsUsed ?? []).includes(Math.min(left, arrived) * 100000 + Math.max(left, arrived));
+    const freshEntry = !state.areas[arrived]!.visited || state.deliberateFall === true || unusedDoor;
     events.push(...enterChamber(state));
     events.push(...wakeGalleryStatues(state)); // Staff-Wizard cracks every Gallery statue awake (SC-EXT-11)
     events.push(...annihilateWithEye(state)); // the Eye destroys Spectres on sight (§ Eye of God)
@@ -851,7 +855,7 @@ function carpetMove(state: GameState, dir: number): void {
   state.partyArea = idx;
   state.level = targetLevel;
   state.fellThroughTrap = false; // carpet links both ways
-  delete state.deliberateFall;
+  state.deliberateFall = true; // R-28 (MSW 2026-11-08, Peter's "Determining Surprise Attack"): a route that cannot be walked back always earns surprise
   delete state.subLocation; // Precise Locations (§10.5): a real position change invalidates any jump override
 }
 
@@ -880,6 +884,11 @@ export function reduce(
   // The path the party walks (register R-12: the Spell takes the last tunnel on it). Recorded here, once, rather than at every place that moves the party.
   if (result && result.state !== state && result.state.partyArea !== state.partyArea) {
     result.state.trail = [...(state.trail ?? [state.partyArea]), result.state.partyArea].slice(-300);
+  }
+  // The doorways walked (R-28): a move, withdrawal or retreat uses the edge between the two areas, in either direction.
+  if (result && result.state !== state && result.state.partyArea !== state.partyArea && (action.type === "move" || action.type === "withdraw" || action.type === "retreat")) {
+    const key = Math.min(state.partyArea, result.state.partyArea) * 100000 + Math.max(state.partyArea, result.state.partyArea);
+    if (!(result.state.doorsUsed ?? []).includes(key)) result.state.doorsUsed = [...(result.state.doorsUsed ?? []), key];
   }
   // House rule R-17 (MSW, 2026-11-06): once no fight is going on, a Unicorn with no Woman left in the party becomes an indifferent
   // stranger in the area (the fight's chamber, if the action ended a fight: a retreat leaves it behind).
@@ -1117,6 +1126,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
             if (origDead === undefined) delete from.deadDoors; else from.deadDoors = origDead;
             delete wade.subLocation;
             relocateDown(wade);
+            wade.deliberateFall = true; // R-28: the Whirlpool is a one-way route, which earns surprise
             return { state: wade, events: [...evs.filter((e) => e.type !== "deadEndCardSwapped" && e.type !== "deadEnd"), ...resolveArea(wade)] };
           }
           setMidState(state); // a safe wade too: its die is shown on the Whirlpool's tile, before the party moves on
@@ -1174,6 +1184,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           next.partyArea = fromIdx;
           next.prev = oldPrev;
           relocateDown(next);
+          next.deliberateFall = true; // R-28: the Whirlpool is a one-way route, which earns surprise
           // The cancelled move takes its Dead End swap with it (the pack stays a valid permutation: the swap
           // was made in place), so the log must not narrate a swap that no longer shows on the map.
           const kept: GameEvent[] = events.filter((e) => e.type !== "deadEndCardSwapped");
@@ -1743,7 +1754,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       next.partyArea = action.area;
       next.level = unpackCoord(to.coord).level;
       next.fellThroughTrap = true; // magic leaves no way back: no withdrawing from the landing
-      delete next.deliberateFall;
+      next.deliberateFall = true; // R-28: a one-way route earns surprise
       delete next.subLocation;
       const events: GameEvent[] = [
         { type: "sorcererSpared" },
@@ -2104,6 +2115,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       persistAndExplore(next);
       const events: GameEvent[] = [{ type: "chasmDescend" }];
       relocateDown(next); // one-way, no mirrored stair-up — `fellThroughTrap` blocks withdraw below (SC-EXT-5)
+      next.deliberateFall = true; // R-28: the Chasm is a one-way route, which earns surprise
       events.push(...resolveArea(next));
       return { state: next, events };
     }
