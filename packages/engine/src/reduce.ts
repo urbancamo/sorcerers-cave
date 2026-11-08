@@ -1140,7 +1140,9 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         const wpTarget = targetCoord(action.dir, fl, fx, fy);
         const intoWhirlpool = (action.dir === DIR_UP || action.dir === DIR_DOWN)
           && res.state.areas.some((a) => a.coord === wpTarget && decodeArea(a.card).special === SPECIAL_WHIRLPOOL);
-        return { state: res.state, events: [...swapEvents, res.deadEnd ? (intoWhirlpool ? { type: "deadEnd", dir: action.dir, whirlpool: true } : { type: "deadEnd", dir: action.dir }) : { type: "blocked" }, ...(res.noViableExits ? [{ type: "deadEndNoViableExits" } as GameEvent] : [])] };
+        // R-31 (Peter, §Exploring the Cave): a dead end is marked (*), the end of the turn. A blocked move is not.
+        const after = res.deadEnd ? { ...res.state, turn: res.state.turn + 1 } : res.state;
+        return { state: after, events: [...swapEvents, res.deadEnd ? (intoWhirlpool ? { type: "deadEnd", dir: action.dir, whirlpool: true } : { type: "deadEnd", dir: action.dir }) : { type: "blocked" }, ...(res.noViableExits ? [{ type: "deadEndNoViableExits" } as GameEvent] : [])] };
       }
       const next = { ...res.state, turn: res.state.turn + 1 };
       next.fellThroughTrap = false; // a normal move reaches a reachable area (resolveArea re-sets it if a trap fires)

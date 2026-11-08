@@ -9,8 +9,8 @@ exports[`kit golden firewall — kit-on engine behaviour is frozen > seed 165018
     "partyAlive": 5,
     "phase": "explore",
     "score": 62,
-    "stateHash": "db808146",
-    "turn": 254,
+    "stateHash": "e44205a4",
+    "turn": 261,
   },
   "narrative": [
     "#0 move:2 => moved,drewChamber",

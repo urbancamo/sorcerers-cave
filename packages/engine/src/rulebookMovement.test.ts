@@ -5,7 +5,7 @@ import { DIR_S } from "./coords";
 
 /**
  * Movement, dead ends and secret doors, checked against the Consolidated Rules V2 (§Exploring the Cave, §Starting a New Level,
- * §Secret doors). Clause list: docs/validation/clauses/movement.md. R-31 is open and asserted with `it.fails`.
+ * §Secret doors). Clause list: docs/validation/clauses/movement.md. R-31 (a dead end uses the turn) follows Peter.
  */
 describe('Exploring the Cave: a dead end', () => {
   it('"he places the card face down and leaves his party where it is"', () => {
@@ -16,7 +16,7 @@ describe('Exploring the Cave: a dead end', () => {
     expect(state.largeIdx).toBe(1);
   });
   // R-31: the book's (*) makes the dead end the end of the turn; the engine does not count a turn.
-  it.fails('R-31: the dead end uses up the turn', () => {
+  it('R-31: the dead end uses up the turn', () => {
     const { state } = reduce(makeState({ largePack: [12], largeIdx: 0, turn: 1 }), { type: 'move', dir: DIR_S });
     expect(state.turn).toBe(2);
   });

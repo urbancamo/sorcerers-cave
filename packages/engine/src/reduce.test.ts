@@ -50,11 +50,11 @@ describe("reduce (spec §4 turn dispatch)", () => {
     expect(events).toContainEqual({ type: "drewChamber", strangers: [], treasures: [], hazards: [] });
   });
 
-  it("a dead-end move does not advance the turn and emits deadEnd", () => {
+  it("a dead-end move uses up the turn (R-31) and emits deadEnd", () => {
     // Draw 12 (SW, no north door) moving South -> dead-end.
     const s = makeState({ largePack: [12], largeIdx: 0, turn: 1 });
     const { state, events } = reduce(s, { type: "move", dir: DIR_S });
-    expect(state.turn).toBe(1);
+    expect(state.turn).toBe(2);
     expect(events).toContainEqual({ type: "deadEnd", dir: DIR_S });
   });
 
