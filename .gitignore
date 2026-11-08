@@ -65,3 +65,5 @@ docs/requirements/**/*.pdf
 /packages/engine/search-out/
 /packages/engine/search-out-score/
 /.impeccable/
+/packages/engine/soak-out-r0/
+/packages/engine/soak-out-r1/

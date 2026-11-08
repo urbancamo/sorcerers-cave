@@ -881,6 +881,10 @@ export function reduce(
     const parted = partCompany(pre);
     const redo = reduceCore(pre, action);
     result = { state: redo.state, events: [...parted, ...redo.events] };
+    // Found by the soak (2026-11-08): the Apprentice was the last living member, so nobody is left — "that player is eliminated" (§Apprentice).
+    if (parted.length && result.state.gs === GS_PLAYING && !result.state.party.some((m) => m.status === 0 || m.status === 1)) {
+      result = partyWipedOut(result.state, result.events);
+    }
   }
   // The path the party walks (register R-12: the Spell takes the last tunnel on it). Recorded here, once, rather than at every place that moves the party.
   if (result && result.state !== state && result.state.partyArea !== state.partyArea) {
@@ -900,14 +904,7 @@ export function reduce(
     if (events.length) {
       result = { ...result, state: settled, events: [...result.events, ...events] };
       // MSW, 2026-11-08: a lone Unicorn with no Woman turns indifferent and is no longer a member, so nobody is left: the party does not survive.
-      if (!settled.party.some((m) => m.status === 0 || m.status === 1)) {
-        const over = structuredClone(settled);
-        over.gs = GS_DEAD;
-        over.phase = "gameOver";
-        over.fight = null;
-        const swept = sweepFallen(over, "contents");
-        result = { ...result, state: over, events: [...result.events, ...swept, { type: "gameOver", gs: GS_DEAD }] };
-      }
+      if (!settled.party.some((m) => m.status === 0 || m.status === 1)) result = { ...result, ...partyWipedOut(settled, result.events) };
     }
   }
   // R-07/R-10 (MSW, 2026-11-06): when no original member is left the player picks a new leader from the allies, who counts as original from
@@ -933,6 +930,16 @@ export function reduce(
   const midState = takeMidState();
   if (midState !== null) return { ...result, midState };
   return result;
+}
+
+/** The game ends with nobody left alive (the lone Unicorn leaving, the last Apprentice parting): wipe-out, fallen treasure swept to the floor. */
+function partyWipedOut(settled: GameState, events: GameEvent[]): { state: GameState; events: GameEvent[] } {
+  const over = structuredClone(settled);
+  over.gs = GS_DEAD;
+  over.phase = "gameOver";
+  over.fight = null;
+  const swept = sweepFallen(over, "contents");
+  return { state: over, events: [...events, ...swept, { type: "gameOver", gs: GS_DEAD }] };
 }
 
 function reduceCore(state: GameState, action: GameAction): { state: GameState; events: GameEvent[] } {
