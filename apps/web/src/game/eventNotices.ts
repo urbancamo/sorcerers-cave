@@ -209,6 +209,9 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
         if (n) out.push(n);
         break;
       }
+      case "deepPoolDelay":
+        out.push({ text: `The Giant needs ${e.loads} trips to carry the treasure across: ${plural(e.turns, "turn")} lost.`, tone: "neutral" });
+        break;
       case "treasureDropped":
         out.push({ text: `${plural(e.count, "heavy treasure")} sinks into the Deep Pool — reclaim it on the way back.`, tone: "bad" });
         break;

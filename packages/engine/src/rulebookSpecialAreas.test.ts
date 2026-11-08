@@ -84,7 +84,7 @@ describe('Well: "you may draw 1 small card and not withdraw"; surprise if attack
     expect(reduce(state, { type: 'withdraw' }).events.some((e) => e.type === 'blocked')).toBe(true);
   });
   // R-29: Peter gives the party surprise against a stranger drawn from the Well; the engine gives none.
-  it.fails('R-29: attacking a stranger drawn from the Well has the advantage of surprise', () => {
+  it('R-29: attacking a stranger drawn from the Well has the advantage of surprise', () => {
     const { state } = reduce(well(), { type: 'drawFromWell' });
     expect(reduce(state, { type: 'attack' }).events).toContainEqual({ type: 'fightStarted', surprise: 1 });
   });
@@ -101,11 +101,21 @@ describe('Deep Pool: heavy treasure and the Giant', () => {
     const s = scene(SPECIAL_DEEP_POOL, { party: [member(GIANT), member(MAN, [0])] });
     expect(deepPoolCrossing(s, 0)).toEqual([]);
   });
-  // R-30: more than one load for the Giant costs one turn per extra load. A Giant carries 150 kg = six 25 kg sacks;
-  // seven sacks are two loads, so one turn's delay. The engine has no delay.
-  it.fails('R-30: seven sacks across the pool is two Giant loads, so the party is delayed one turn', () => {
+  // R-30: a load is the Giant's 150 kg (six 25 kg sacks); each extra load costs the party one turn.
+  it('R-30: six sacks is one load, no delay', () => {
+    const s = scene(SPECIAL_DEEP_POOL, { party: [member(GIANT, [0, 0, 0]), member(MAN, [0, 0, 0])], turn: 5 });
+    expect(deepPoolCrossing(s, 0)).toEqual([]);
+    expect(s.turn).toBe(5);
+  });
+  it('R-30: seven sacks is two loads, so the party is delayed one turn', () => {
     const s = scene(SPECIAL_DEEP_POOL, { party: [member(GIANT, [0, 0, 0, 0]), member(MAN, [0, 0, 0])], turn: 5 });
-    const events = deepPoolCrossing(s, 0);
-    expect(events.some((e) => e.type === 'delayed')).toBe(true);
+    expect(deepPoolCrossing(s, 0)).toEqual([{ type: 'deepPoolDelay', loads: 2, turns: 1 }]);
+    expect(s.turn).toBe(6);
+  });
+  it('R-30: thirteen sacks is three loads, two turns; two Giants carry twice as much', () => {
+    const a = scene(SPECIAL_DEEP_POOL, { party: [member(GIANT, [0, 0, 0, 0, 0, 0]), member(MAN, [0, 0, 0, 0, 0, 0, 0])], turn: 1 });
+    expect(deepPoolCrossing(a, 0)).toEqual([{ type: 'deepPoolDelay', loads: 3, turns: 2 }]);
+    const b = scene(SPECIAL_DEEP_POOL, { party: [member(GIANT, [0, 0, 0, 0, 0, 0]), member(GIANT, [0, 0, 0, 0, 0, 0]), member(MAN)], turn: 1 });
+    expect(deepPoolCrossing(b, 0)).toEqual([]);
   });
 });

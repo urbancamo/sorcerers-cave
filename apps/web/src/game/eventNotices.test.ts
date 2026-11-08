@@ -140,6 +140,7 @@ describe("eventNotices", () => {
 
   it("reports Deep Pool treasure being dropped and reclaimed", () => {
     expect(eventNotices([{ type: "treasureDropped", count: 2 }])[0]!.text).toMatch(/2 heavy treasures sink/i);
+    expect(eventNotices([{ type: "deepPoolDelay", loads: 2, turns: 1 }])[0]!.text).toMatch(/2 trips.*1 turn lost/i);
     expect(eventNotices([{ type: "treasureReclaimed", count: 1 }])[0]!).toMatchObject({ tone: "good" });
     expect(eventNotices([{ type: "crossedSpecial", special: SPECIAL_DEEP_POOL }])[0]!.text).toMatch(/deep pool/i);
   });

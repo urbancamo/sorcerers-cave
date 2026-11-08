@@ -9,7 +9,7 @@ export const AREAS: Section = {
       p('Where you enter — and the way out. Any stairway up from level 1 leaves the cave for good.'),
     ] },
     { id: 'area-deep-pool', title: 'The Deep Pool', cards: cards('area', 'Deep Pool'), blocks: [
-      p('To cross, heavy treasure is dropped into the water (recoverable on the way back) unless a **Giant** carries it across.'),
+      p('To cross, heavy treasure is dropped into the water (recoverable on the way back) unless a **Giant** carries it across. A Giant carries 150 kg (six sacks) a trip; each extra trip costs the party **one turn**.'),
     ] },
     { id: 'area-viper-pit', title: 'The Viper Pit', cards: cards('area', 'Viper Pit'), blocks: [
       p('Cross the narrow ledge and a careless step can pitch a member — and their treasure — into the snakes. Arriving by stair or trap lands you safely on the island.'),
@@ -35,7 +35,7 @@ export const AREAS: Section = {
       p('Descend it any turn, in or out of an encounter; any strangers or treasure waiting there are left parked for later. It never dries up.'),
     ] },
     { id: 'area-well', title: 'The Well', variant: 'kit', cards: cards('area', 'The Well'), blocks: [
-      p('Draw **one extra small card** straight into the chamber — no move required. Like the Bell Rope, it can be used **only once in the whole game**, and drawing means the party cannot withdraw that turn.'),
+      p('Draw **one extra small card** straight into the chamber — no move required. Like the Bell Rope, it can be used **only once in the whole game**, and drawing means the party cannot withdraw that turn. A stranger you draw is crawling up the shaft: attack at once and your party has the advantage of **surprise**.'),
     ] },
     { id: 'area-bell-rope', title: 'The Bell Rope', variant: 'kit', cards: cards('area', 'The Bell Rope'), blocks: [
       p('It can be pulled only once in the whole game, by one member of your choice, and a d6 decides the toll: a **1** spirits the puller away for good, with everything they carried; **2–3** is nothing but an eerie sound; **4–6** draws two cards at once.'),

@@ -1,6 +1,8 @@
 import { rollDieForState } from "./rng";
 import { fluteLulls, eyeForsakenByDeath, markDied, cursedRoll } from "./effects";
 import { canCarry } from "./pickup";
+import { ALL_CREATURES } from "./data/creatures";
+import { ALL_TREASURES } from "./data/treasures";
 import { getSubLocation } from "./subLocation";
 import type { SubAt } from "./subLocation";
 import type { GameState, PartyMember, PlacedArea } from "./state";
@@ -106,7 +108,18 @@ export function viperCrossing(state: GameState, pitIdx: number = state.partyArea
 export function deepPoolCrossing(state: GameState, poolIdx: number): GameEvent[] {
   const events: GameEvent[] = [];
   const members = living(state);
-  if (members.some((m) => m.creatureId === C_GIANT)) return events; // Giant carries everything
+  const giants = members.filter((m) => m.creatureId === C_GIANT).length;
+  if (giants > 0) {
+    // R-30 (Peter, §Deep Pool): a load is a Giant's carrying capacity; each load beyond the first costs the party a turn.
+    // Giants carry in parallel, so the capacity per trip is their combined CAP.
+    const kg = members.reduce((sum, m) => sum + m.treasure.filter((t) => HEAVY.has(t)).reduce((w, t) => w + ALL_TREASURES[t]!.weight, 0), 0);
+    const loads = Math.ceil(kg / (ALL_CREATURES[C_GIANT]!.carry * giants));
+    if (loads > 1) {
+      state.turn += loads - 1;
+      events.push({ type: "deepPoolDelay", loads, turns: loads - 1 });
+    }
+    return events;
+  }
   const pool = state.areas[poolIdx]!;
   pool.dropped = pool.dropped ?? [];
   for (const m of members) {

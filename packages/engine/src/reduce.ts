@@ -777,10 +777,11 @@ function finishExtraDraw(state: GameState, events: GameEvent[], hadSurprise: boo
  * Mirrors the tail of the per-chamber body in `resolveAreaLoop` (Eye/Talisman on a fresh Spectre,
  * the Medusa pause, then `finishExtraDraw`'s hazards + phase contract).
  */
-function resolveExtraDraw(state: GameState, events: GameEvent[]): void {
+function resolveExtraDraw(state: GameState, events: GameEvent[], surprise = false): void {
   // Preserve any surprise already earned by this chamber's ORIGINAL fresh entry and not yet spent —
   // finishChamber(freshEntry=false) would otherwise force it to false unconditionally (SC-4-16 fix).
-  const hadSurprise = state.surpriseReady;
+  // R-29 (Peter, §Well): the party has surprise against a stranger crawling up the shaft; the Bell Rope gives none.
+  const hadSurprise = state.surpriseReady || surprise;
   events.push(...annihilateWithEye(state));
   events.push(...wardOffSpectres(state));
   if (medusaLooms(state)) {
@@ -2135,7 +2136,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       drawSmallCards(next, 1, events); // exactly one code, appended onto whatever's already in the working set
       if (!hadCrypt && next.cryptCoord === next.areas[next.partyArea]!.coord) events.push({ type: "cryptParked" });
       next.noWithdrawTurn = next.turn; // blocks withdraw this turn only (SC-EXT-9)
-      resolveExtraDraw(next, events); // strangers/hazards resolve normally, same as any chamber draw
+      resolveExtraDraw(next, events, true); // strangers/hazards resolve normally; the Well gives surprise (R-29)
       return { state: next, events };
     }
 

@@ -189,6 +189,7 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "casualtyChosen": return `${creature(e.creatureId)} fell (rolled ${e.roll}${e.gotPreference ? ", choice honoured" : ""})`;
     case "crossedSpecial": return `crossed a special area (type ${e.special})`;
     case "treasureDropped": return `${e.count} heavy treasure sank into the pool`;
+    case "deepPoolDelay": return `the Giant made ${e.loads} trips across the pool (${e.turns} turn delay)`;
     case "heavyDownForFight": return `${e.count} heavy treasure cast down for the fight`;
     case "treasureReclaimed": return `recovered ${e.count} treasure from the pool`;
     case "artifactUsed": return `used ${treasure(e.artifact)}`;
@@ -512,6 +513,7 @@ export function eventCode(e: GameEvent): string | null {
     case "sorcererSpared": return "SOR SPR";
     case "partyTeleported": return `TEL L${e.level} ${e.treasureIds.length}`;
     case "treasureDropped": return `TDR ${e.count}`;
+    case "deepPoolDelay": return `DPD ${e.loads}`;
     case "heavyDownForFight": return `FDR ${e.count}`;
     case "treasureReclaimed": return `TRC ${e.count}`;
     case "droppedRetaken": return `RTK ${e.count}`;

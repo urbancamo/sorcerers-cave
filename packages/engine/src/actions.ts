@@ -181,6 +181,7 @@ export type GameEvent =
   | { type: "casualtyChosen"; creatureId: number; roll: number; gotPreference: boolean }
   | { type: "crossedSpecial"; special: number }
   | { type: "treasureDropped"; count: number }
+  | { type: "deepPoolDelay"; loads: number; turns: number } // R-30: a Giant had to make more than one trip
   | { type: "treasureReclaimed"; count: number }
   | { type: "artifactUsed"; artifact: number }
   | { type: "chestOpened"; result: number }
