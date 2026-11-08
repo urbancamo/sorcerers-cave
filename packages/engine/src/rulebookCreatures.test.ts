@@ -1,4 +1,5 @@
 import { describe, it, expect } from "vitest";
+// @ts-ignore node types are not installed in this package; this test only ever runs under node
 import { readFileSync } from "node:fs";
 import { ALL_CREATURES } from "./data/creatures";
 import { findLeader } from "./reaction";
