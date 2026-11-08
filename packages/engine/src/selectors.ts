@@ -1,3 +1,4 @@
+import { potionEligible } from "./capabilities";
 import { decodeArea, decodeOpen, type DecodedArea } from "./decode";
 import { examinableAreas, isGuardCode, sibylWaiting } from "./sibyl";
 import { DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, unpackCoord, packCoord, targetCoord } from "./coords";
@@ -67,7 +68,7 @@ function artifactActions(state: GameState): GameAction[] {
   if (state.phase === "fight") {
     if (has(8, () => true)) { // Strength Potion -> each boostable living member
       living(state).forEach(({ m, idx }) => {
-        if ([0, 1, 5, 6].includes(m.creatureId)) actions.push({ type: "useArtifact", artifact: 8, target: idx });
+        if (potionEligible(m.creatureId)) actions.push({ type: "useArtifact", artifact: 8, target: idx });
       });
     }
   }

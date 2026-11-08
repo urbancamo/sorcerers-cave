@@ -62,7 +62,7 @@ export const TREASURE: Section = {
       ]),
     artefact('Charmed Flute', 'flute', 'When played by a Man, Woman, Hero, Priest or Wizard, lulls Dragons and Vipers to sleep. Also opens secret doors. Sleeping creatures are protected by a curse.',
       'When you meet a Dragon, open the Flute\'s card and choose *lull the Dragons*: they fall asleep (“Zzz”) and stop blocking you. It is not used up. At the Viper Pit it works the same way: choose *lull the Vipers* before you cross, and the party passes unharmed — the Vipers sleep until you leave. Holding the Flute is not enough; if you cross without playing it, you roll as usual. Sleeping Dragons wake again when you leave and come back. It also reveals secret stairways.'),
-    artefact('Strength Potion', 'potion', 'Adds 2 to the Strength of a Man, Woman or Hero for the duration of a fight. One draught only.', 'As written. Used up.'),
+    artefact('Strength Potion', 'potion', 'Adds 2 to the Strength of a Man, Woman, Hero or Thief for the duration of a fight. One draught only.', 'As written. Used up.'),
     artefact('Lotus Dust', 'lotus', 'Enough to put one creature to sleep for 2 turns. Works on Medusa, but not on Ghouls, Spectres or Zombies.',
       'Sleeps one stranger (no effect on a Spectre). A slept creature stays in the chamber and no longer blocks you, but only for **two of your turns** — if you come back after that it is awake again and you must deal with it as before. Only a human or priest-class member can throw it; an Ogre, Troll or Dwarf can carry it but not use it. The Sorcerer is only weakened by 2. Used up.'),
     artefact('Healing Balm', 'balm', 'In the hands of a Wizard, Priest, or Woman, will restore to life any creature just killed. Enough for one cure only.',

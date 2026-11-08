@@ -130,7 +130,7 @@ export const CREATURES: Section = {
       p('Uses artefacts exactly as a Priest does. Ranks beside the Priest when deciding who leads a group.'),
     ] },
     { id: 'creature-thief', title: 'Thief', brief: 'Can lift treasure from a chamber of permanent indifference.', variant: 'kit', cards: cards('creature', 'Thief'), blocks: [
-      p('Plays a Man\'s part with the Charmed Flute and the Magic Sword (+1). Uniquely, the Thief can walk treasure out of a chamber the party has talked down to **permanent indifference** — no fight, no test.'),
+      p('Plays a Man\'s part with the Charmed Flute, the Magic Sword (+1) and the Strength Potion. Uniquely, the Thief can walk treasure out of a chamber the party has talked down to **permanent indifference** — no fight, no test.'),
     ] },
     { id: 'creature-lion', title: 'Lion', brief: 'Cheap muscle; will not quarrel.', variant: 'kit', cards: cards('creature', 'Lion'), blocks: [
       p('Pure, cheaply-priced muscle. Touches no artefact and carries nothing, and **will not quarrel**. Ranks beside an Ogre for leadership.'),

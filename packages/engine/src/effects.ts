@@ -32,8 +32,8 @@ const FLUTE_BASE = [0, 1, 4, 5, 6, 8]; // Hero, W-Hero, Priest, Man, Woman, Wiza
  * artifacts as Wizard(8); Scholar(17) and Witch(18) as Priest(4); Thief(19) as Man(5) (design
  * §1.3 table). Sword/Axe named-bonus tables are the sole exception (they name specific base
  * creatures, not a class) — deliberately NOT routed through this map. Strength Potion's TARGET
- * list (selectors.ts artifact 8) is likewise excluded: it names specific base creatures to boost,
- * not a class of artifact USERS, so it must never be extended here either.
+ * list was excluded too, until R-23 (MSW 2026-11-08) added the Man-class Thief via `potionEligible`
+ * (capabilities.ts); it is still not routed through this map.
  */
 const CLASS_EXTENSIONS: Readonly<Record<number, readonly number[]>> = {
   8: [14],     // Wizard -> Apprentice

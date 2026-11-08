@@ -263,15 +263,14 @@ describe("Class-based artifact eligibility — negative cases: Lion, Wolf, Demon
 });
 
 describe("Class-based artifact eligibility — explicit exceptions stay untouched (SC-EXT-17)", () => {
-  it("Strength Potion's TARGET list (Man/Woman/Hero/W-Hero) is NOT extended to the Man-class Thief", () => {
+  it("Strength Potion's TARGET list DOES extend to the Man-class Thief (MSW 2026-11-08, R-23; supersedes SC-EXT-17)", () => {
     const s = makeState({
       phase: "fight", fight: { surprise: 0, round: 1, focus: 0 },
       areas: [AREA], strangers: [10],
       party: [member(THIEF, [STRENGTH_POTION])],
     });
-    // The Thief holds and could invoke the Potion, but may not TARGET himself with the boost.
-    expect(reduce(s, { type: "useArtifact", artifact: STRENGTH_POTION, target: 0 }).events).toEqual([{ type: "blocked" }]);
-    expect(legalActions(s).some((a) => a.type === "useArtifact" && a.artifact === STRENGTH_POTION)).toBe(false);
+    expect(reduce(s, { type: "useArtifact", artifact: STRENGTH_POTION, target: 0 }).state.party[0]!.potionActive).toBe(true);
+    expect(legalActions(s).some((a) => a.type === "useArtifact" && a.artifact === STRENGTH_POTION)).toBe(true);
   });
 
   it("the Magic Sword's bonus DOES extend to the Thief, who uses artefacts as a Man (Peter, 03-OCT-2026; supersedes SC-EXT-17)", () => {

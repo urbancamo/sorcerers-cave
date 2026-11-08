@@ -1,3 +1,4 @@
+import { potionEligible } from "./capabilities";
 import { GS_PLAYING, GS_QUIT, GS_ESCAPED, GS_DEAD, AF_DESTROYED, AF_BELL_SPENT, AF_WELL_SPENT, AF_UNRESOLVED, type GameState, type PartyMember, type PlacedArea } from "./state";
 import { tryMove, hasExit } from "./map";
 import { moveWithRedraw } from "./redraw";
@@ -1807,10 +1808,10 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       const ok: { state: GameState; events: GameEvent[] } = { state: next, events: [{ type: "artifactUsed", artifact: action.artifact }] };
 
       switch (action.artifact) {
-        case 8: { // Strength Potion — fight only, target a living Man/Woman/Hero
+        case 8: { // Strength Potion — fight only, target a living Man/Woman/Hero (or Thief)
           if (next.phase !== "fight" || action.target === undefined) return { state, events: [{ type: "blocked" }] };
           const tm = next.party[action.target];
-          const boostable = tm && (tm.status === 0 || tm.status === 1) && [0, 1, 5, 6].includes(tm.creatureId);
+          const boostable = tm && (tm.status === 0 || tm.status === 1) && potionEligible(tm.creatureId);
           if (!boostable) return { state, events: [{ type: "blocked" }] };
           tm.potionActive = true;
           consume();

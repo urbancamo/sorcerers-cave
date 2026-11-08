@@ -36,8 +36,11 @@ export const swordBonus = (creatureId: number): number => (is(creatureId, "hero"
 /** Magic Axe strength bonus: +3 for a Dwarf, +1 for a Hero-, Man- or Woman-class bearer. */
 export const axeBonus = (creatureId: number): number => (is(creatureId, "dwarf") ? 3 : is(creatureId, "hero", "man", "woman") ? 1 : 0);
 
-/** Magic Staff bonus to magical power: +2 for the Wizard class, +1 for the Priest class (card text says +2 for both; D3 is open). */
+/** Magic Staff bonus to magical power: +2 for the Wizard class, +1 for the Priest class (the printed card, ruled by MSW 2026-11-08, R-25; the rulebook's summary says +2 for both). */
 export const staffBonus = (creatureId: number): number => (is(creatureId, "wizard") ? 2 : is(creatureId, "priest") ? 1 : 0);
+
+/** Strength Potion: a Hero-, Man- or Woman-class drinker (so the Thief, who uses artefacts as a Man; MSW 2026-11-08, R-23). */
+export const potionEligible = (creatureId: number): boolean => is(creatureId, "hero", "man", "woman");
 
 /** Magic Shield: only a Hero-, Man- or Woman-class bearer has its ward live. */
 export const shieldEligible = (creatureId: number): boolean => is(creatureId, "hero", "man", "woman");
