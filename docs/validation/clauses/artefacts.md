@@ -13,4 +13,12 @@
 | RC-AR-TL | The Talisman wards off Spectres on level 4 or deeper | Verified | Talisman | |
 | RC-AR-ST | Magic Staff: +2 magical power for a Priest or a Wizard | Verified against the printed card (Priest +1, Wizard +2; R-25) | Staff x2 (`it.fails`) | R-25 |
 
-Not yet covered in this area (next): Crypt/Gems bands, Idol value, Holy Water modes, Lotus Dust, Scroll, Healing Balm window, Magic Shield matching, Carpet, Eye curse on loss, Lost Ruby statue.
+| RC-AR-EY | Eye of God: annihilates Spectres; Staff magic and Sword bonus powerless, fighting strength kept; dropping it is a curse | Verified | Eye x4 | |
+| RC-AR-BM | Healing Balm: a Wizard/Priest/Woman restores a creature just killed; not in a fight; one cure | Verified | Balm x3 | |
+| RC-AR-CP | Magic Carpet: a Priest/Wizard moves the party to an adjacent area; the carpet stays where used | Verified | Carpet | |
+| RC-AR-LD | Lotus Dust: works on creatures, not on Spectres | Verified | Lotus | |
+| RC-AR-SC | Scroll: attacking only; not used up; once per area | Classic combat differs by ruling (any party, consumed; R-26 leave); revised combat agrees | Scroll (pins classic) | R-26 |
+| RC-AR-CR/ID | Crypt: 1-2 trap, 3-6 gems; Idol worth 10 x a die | Verified by existing tests (kit-crypt-desertion, kit-elixir-idol), numbers equal the book | existing | |
+| RC-AR-HW | Holy Water: reanimates stone, destroys Medusa/Spectre/Demon, weakens Sorcerer/Apprentice by 2, one use | Verified by existing tests (kit-holywater-scroll) | existing | |
+
+Not covered in this area: Magic Shield matching (belongs to the fights area), the Lost Ruby statue (strength 8; special areas).

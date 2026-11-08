@@ -7,7 +7,8 @@ import { swordBonus, axeBonus, staffBonus, shieldEligible, ringEligible } from "
 import { makeState, inUseGear } from "./testkit";
 import { reduce } from "./reduce";
 import { rollDie } from "./rng";
-import { activeCurses, ringInvincible, talismanWardsSpectres } from "./effects";
+import { activeCurses, ringInvincible, talismanWardsSpectres, annihilateWithEye } from "./effects";
+import { casterMP, frontStrength } from "./combat";
 import { packCoord } from "./coords";
 import { legalActions } from "./selectors";
 
@@ -174,5 +175,70 @@ describe("R-23: the Thief drinks the Strength Potion as a Man", () => {
     expect(has(legalActions(s), 8)).toBe(true);
     const r = reduce(s, { type: "useArtifact", artifact: 8, target: 0 });
     expect(r.state.party[0]!.potionActive).toBe(true);
+  });
+});
+
+// ---- the Eye of God, Healing Balm, Magic Carpet, Lotus Dust, Scroll: the card texts ----
+describe("rulebook cards: the Eye of God (powerless magic and artefacts, annihilates Spectres, must be kept)", () => {
+  it("annihilates a Spectre", () => {
+    const st = makeState({ strangers: [9], party: [worn(0, [13])] });
+    annihilateWithEye(st);
+    expect(st.strangers).toEqual([]);
+  });
+  it("makes a Wizard's Staff magic powerless, but he keeps his fighting strength", () => {
+    const st = makeState({ strangers: [2], party: [worn(8, [9]), worn(0, [13])] });
+    expect(casterMP(st.party[0]!, st)).toBe(0);
+    expect(frontStrength(st.party[0]!, st)).toBe(2); // Wizard PHY 2
+  });
+  it("makes the Magic Sword powerless", () => {
+    const st = makeState({ party: [worn(0, [3, 13])] });
+    expect(frontStrength(st.party[0]!, st)).toBe(5); // Hero 5, no +2
+  });
+  it("dropping it is a curse", () => {
+    const st = makeState({ phase: "explore", areas: [area], party: [worn(0, [13]), worn(5, [])] });
+    expect(reduce(st, { type: "dropTreasure", mi: 0, idx: 0 } as never).state.curses).toBe(1);
+  });
+});
+
+describe("rulebook cards: the Healing Balm (Wizard, Priest or Woman; just killed; not in a fight; one cure)", () => {
+  const dead = (o = {}) => worn(5, []) && { creatureId: 5, status: 3 as const, dragonKills: 0, treasure: [], diedTurn: 1, diedArea: 0, ...o };
+  it("a Wizard restores a creature just killed, and the balm is used up", () => {
+    const r = reduce(makeState({ phase: "explore", areas: [area], party: [worn(8, [6]), dead()] }), { type: "useArtifact", artifact: 6, target: 1 });
+    expect(r.state.party[1]!.status).toBe(0);
+    expect(r.state.party[0]!.treasure).not.toContain(6);
+  });
+  it("a Man cannot administer it", () => {
+    const r = reduce(makeState({ phase: "explore", areas: [area], party: [worn(5, [6]), dead({ creatureId: 2 })] }), { type: "useArtifact", artifact: 6, target: 1 });
+    expect(r.state.party[1]!.status).toBe(3);
+  });
+  it("it cannot be used in a fight", () => {
+    const r = reduce(makeState({ phase: "fight", fight: { surprise: 0, round: 1, focus: 0 } as never, strangers: [2], areas: [area], party: [worn(8, [6]), dead()] }), { type: "useArtifact", artifact: 6, target: 1 });
+    expect(r.state.party[1]!.status).toBe(3);
+  });
+});
+
+describe("rulebook cards: the Magic Carpet (a Priest or Wizard moves the party to an adjacent area; the carpet stays behind)", () => {
+  it("moves the party one area east, and leaves the carpet where it was used", () => {
+    const r = reduce(makeState({ phase: "explore", areas: [area], party: [worn(4, [4])] }), { type: "useArtifact", artifact: 4, dir: 2 } as never);
+    expect(r.state.areas.length).toBe(2);                          // a new tile drawn for the destination
+    expect(r.state.party[0]!.treasure).not.toContain(4);           // no longer carried
+    expect(r.state.areas[0]!.contents).toContain(200 + 4);         // left in the area it was used in
+  });
+});
+
+describe("rulebook cards: Lotus Dust works on Medusa and creatures, but not on Spectres", () => {
+  it("is offered against a Dragon and not against a Spectre", () => {
+    const st = makeState({ phase: "encounter", areas: [area], strangers: [10, 9], party: [worn(5, [5])] });
+    const targets = legalActions(st).filter((a) => a.type === "useArtifact" && a.artifact === 5).map((a) => (a as { target: number }).target);
+    expect(targets).toEqual([0]);
+  });
+});
+
+describe("rulebook cards: the Scroll (attacking only; cannot be used twice in one area)", () => {
+  // R-26 (MSW 2026-11-08): leave the classic combat as it is. Any party may read the Scroll there, and it is used up; the revised combat follows
+  // the book (attacker only, kept, once per area). This test pins the classic behaviour so a change is noticed.
+  it("classic combat: the Scroll is used up when read (ruled: leave, R-26)", () => {
+    const st = makeState({ phase: "encounter", areas: [area], strangers: [2], party: [worn(0, [19])] });
+    expect(reduce(st, { type: "useArtifact", artifact: 19 }).state.party[0]!.treasure).not.toContain(19);
   });
 });
