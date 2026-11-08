@@ -303,7 +303,7 @@ export function orphanUnicorns(state: GameState, areaIdx: number, only?: (partyI
   for (let i = state.party.length - 1; i >= 0; i--) {
     const m = state.party[i]!;
     if (m.creatureId !== C_UNICORN || !living(m) || (only && !only(i))) continue;
-    if (!state.party.some((o, j) => j !== i && living(o))) continue;
+    const last = !state.party.some((o, j) => j !== i && living(o)); // the lone survivor: with it gone, nobody is left (MSW, 2026-11-08)
     state.party.splice(i, 1);
     reindexAfterRemoval(state, i);
     const area = state.areas[areaIdx];
@@ -312,7 +312,7 @@ export function orphanUnicorns(state: GameState, areaIdx: number, only?: (partyI
       if (!state.pacifiedAreas?.includes(areaIdx)) state.pacifiedAreas = [...(state.pacifiedAreas ?? []), areaIdx];
       if (!state.unicornGuardAreas?.includes(areaIdx)) state.unicornGuardAreas = [...(state.unicornGuardAreas ?? []), areaIdx];
     }
-    events.push({ type: "unicornDeparted", creatureId: C_UNICORN }, { type: "unicornGuards", creatureId: C_UNICORN });
+    events.push(last ? { type: "unicornDeparted", creatureId: C_UNICORN, last: true } : { type: "unicornDeparted", creatureId: C_UNICORN }, { type: "unicornGuards", creatureId: C_UNICORN });
   }
   return events;
 }

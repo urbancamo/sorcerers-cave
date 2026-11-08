@@ -210,7 +210,7 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "statuePowerless": return "the guardian statue stood powerless";
     case "deathPrevented": return `the Ring made ${creature(e.creatureId)} invincible`;
     case "unicornGuards": return `a unicorn guards ${creature(e.creatureId)}`;
-    case "unicornDeparted": return "the Unicorn, left without a Woman, stayed behind to guard the area";
+    case "unicornDeparted": return e.last ? "the Unicorn, left alone without a Woman, turned indifferent and left: no one is left in the party" : "the Unicorn, left without a Woman, stayed behind to guard the area";
     case "carpetUsed": return `the Magic Carpet moved the party ${dir(e.dir)}`;
     case "dragonsLulled": return `the Charmed Flute lulled ${e.count} dragon(s)`;
     case "vipersLulled": return "the party crossed the Viper Pit while the vipers slept";

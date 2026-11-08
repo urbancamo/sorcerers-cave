@@ -81,8 +81,12 @@ function combatView(events: GameEvent[]): RollView | null {
     return { title: "The Ghouls", lanes, message: over ? `The Ghouls slay the party… (${tally})` : `${tally}.`, tone: lost > 0 ? "bad" : "good" };
   }
 
+  // The last Woman fell and the Unicorn, left alone, turned indifferent and left: say so, or the wipe-out looks unexplained.
+  const unicornLeft = events.some((e) => e.type === "unicornDeparted" && e.last);
   const message = over
-    ? "The party is slain…"
+    ? unicornLeft
+      ? "The party is slain… With no Woman left, the Unicorn turned indifferent and left, and no one is left in the party."
+      : "The party is slain…"
     : won
       ? "Victory — the foes have fallen!"
       : `Round resolved — ${killed} foe(s) down, ${lost} of yours lost.`;

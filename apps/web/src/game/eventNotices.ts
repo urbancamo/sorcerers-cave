@@ -302,7 +302,9 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
       case "unicornGuards":
         break;
       case "unicornDeparted":
-        out.push({ text: "With no Woman left, the Unicorn leaves the party and stays behind to guard this place.", tone: "neutral" });
+        out.push(e.last
+          ? { text: "With no Woman left, the lone Unicorn turns indifferent and is no longer one of your party. No one is left: the party does not survive.", tone: "bad" }
+          : { text: "With no Woman left, the Unicorn leaves the party and stays behind to guard this place.", tone: "neutral" });
         break;
       case "chasmDescend":
         out.push({ text: "The party climbs down into the chasm.", tone: "neutral" });

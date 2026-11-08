@@ -26,9 +26,14 @@ describe("an orphaned Unicorn (R-17)", () => {
     expect(state.party.map((x) => x.creatureId)).toEqual([6, 13]);
   });
 
-  it("never empties the party: a lone Unicorn stays", () => {
+  it("a lone Unicorn turns indifferent and leaves: nobody is left, so the party does not survive (MSW, 2026-11-08)", () => {
     const s = makeState({ phase: "pickup", areas: [{ ...area }], party: [m(6, 3), m(13, 1)], treasures: [] });
-    const { state } = reduce(s, { type: "leaveTreasure" });
-    expect(state.party.map((x) => x.creatureId)).toEqual([6, 13]);
+    const { state, events } = reduce(s, { type: "leaveTreasure" });
+    expect(state.party.map((x) => x.creatureId)).toEqual([6]);
+    expect(state.areas[0]!.contents).toContain(100 + 13);
+    expect(state.gs).toBe(2);
+    expect(state.phase).toBe("gameOver");
+    expect(events).toContainEqual({ type: "unicornDeparted", creatureId: 13, last: true });
+    expect(events).toContainEqual({ type: "gameOver", gs: 2 });
   });
 });

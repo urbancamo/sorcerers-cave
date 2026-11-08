@@ -886,7 +886,18 @@ export function reduce(
     const at = state.phase === "fight" ? state.partyArea : result.state.partyArea;
     const settled = structuredClone(result.state);
     const events = orphanUnicorns(settled, at);
-    if (events.length) result = { ...result, state: settled, events: [...result.events, ...events] };
+    if (events.length) {
+      result = { ...result, state: settled, events: [...result.events, ...events] };
+      // MSW, 2026-11-08: a lone Unicorn with no Woman turns indifferent and is no longer a member, so nobody is left: the party does not survive.
+      if (!settled.party.some((m) => m.status === 0 || m.status === 1)) {
+        const over = structuredClone(settled);
+        over.gs = GS_DEAD;
+        over.phase = "gameOver";
+        over.fight = null;
+        const swept = sweepFallen(over, "contents");
+        result = { ...result, state: over, events: [...result.events, ...swept, { type: "gameOver", gs: GS_DEAD }] };
+      }
+    }
   }
   // R-07/R-10 (MSW, 2026-11-06): when no original member is left the player picks a new leader from the allies, who counts as original from
   // then on. A lone ally is simply promoted; several make the player choose (phase "leader"). Never in the middle of a fight or a pause.

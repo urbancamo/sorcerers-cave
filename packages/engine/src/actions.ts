@@ -203,7 +203,7 @@ export type GameEvent =
   | { type: "unicornGuards"; creatureId: number }
   | { type: "leaderChosen"; creatureId: number }   // R-07/R-10: an ally became the party's leader (original)
   | { type: "quarrelLooms" }                       // R-14: the Quarrel needs the player to choose between equals
-  | { type: "unicornDeparted"; creatureId: number }
+  | { type: "unicornDeparted"; creatureId: number; last?: true }
   | { type: "carpetUsed"; dir: number }
   | { type: "dragonsLulled"; count: number }
   | { type: "vipersLulled" }   // the crossing itself: the vipers sleep, so nobody rolls
