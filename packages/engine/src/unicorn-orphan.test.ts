@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import { reduce } from "./reduce";
 import { makeState } from "./testkit";
 import { packCoord } from "./coords";
+import { applyHazards } from "./hazards";
+import { HAZARD_MEDUSA } from "./data/hazards";
 import type { PartyMember } from "./state";
 
 // House rule R-17 (MSW, 2026-11-06): with no Woman left, a Unicorn does not vanish. Inside a fight it keeps fighting to protect itself;
@@ -35,5 +37,20 @@ describe("an orphaned Unicorn (R-17)", () => {
     expect(state.phase).toBe("gameOver");
     expect(events).toContainEqual({ type: "unicornDeparted", creatureId: 13, last: true });
     expect(events).toContainEqual({ type: "gameOver", gs: 2 });
+  });
+
+  it("Medusa turning the only Woman to stone leaves a lone Unicorn, which leaves: the party does not survive", () => {
+    // Scan for a gaze that stones the Woman but spares the Unicorn (the Unicorn is then the only living member).
+    for (let seed = 1; seed < 500; seed++) {
+      const s = makeState({ seed, phase: "pickup", areas: [{ ...area }], party: [m(6), m(13, 1)], treasures: [], hazards: [HAZARD_MEDUSA] });
+      applyHazards(s);
+      if (s.party[0]!.status !== 2 || s.party[1]!.status === 2 || s.party[1]!.status === 3) continue;
+      const { state, events } = reduce(s, { type: "leaveTreasure" });
+      expect(state.party.map((x) => x.creatureId)).toEqual([6]);
+      expect(state.gs).toBe(2);
+      expect(events).toContainEqual({ type: "unicornDeparted", creatureId: 13, last: true });
+      return;
+    }
+    throw new Error("no seed stoned only the Woman");
   });
 });
