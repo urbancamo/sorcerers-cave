@@ -238,7 +238,7 @@
 | SC-8.1-6 | Approaching to Test forfeits surprise (`surpriseReady` cleared before the reaction roll). | reduce.ts:844 | reduce.test.ts › attack with no fresh-entry surprise (indirect) |
 | SC-8.1-7 | Test is blocked when not in encounter or when `indiffStreak >= 3` (permanently indifferent). | reduce.ts:841-842 | reduce.test.ts › three indifferent results pacify (final test → blocked) |
 | SC-8.1-8 | Withdraw/Attack are blocked outside encounter (Attack has a separate explore-phase pacified-guard path — SC-8.5-7). | reduce.ts:641,908 | reduce.test.ts › (blocked withdraw after trap) |
-| SC-8.2-1 | Leader = the stranger with the highest `leaderPri`; ties → first in draw order. Ranks: Sorcerer 11, Spectre 10, Dragon 9, Wizard 8, Hero/W-Hero 7, Priest 6, Man/Woman 5, Giant 4, Ogre 3, Troll 2, Dwarf 1, Unicorn 0. | reaction.ts:18-25, creatures.ts:23-36 | reaction.test.ts › findLeader picks the highest leader-priority stranger (ties → first) |
+| SC-8.2-1 | Leader = the stranger with the highest `leaderPri`; ties → first in draw order. R-32 (Peter's list, §Encountering Strangers) — every creature has its own rank, so draw order never decides the leader except between Hero/W-Hero and between Spectre/Demon: Sorcerer 18, Apprentice 17, Demon/Spectre 16, Dragon 15, Wizard 14, Hero/W-Hero 13, Priest 12, Witch 11, Man 10, Woman 9, Scholar 8, Thief 7, Giant 6, Ogre 5, Troll 4, Lion 3, Wolf 2, Dwarf 1, Unicorn/Sibyl/Ghoul 0. | reaction.ts:18-25, creatures.ts:23-36 | reaction.test.ts › findLeader picks the highest leader-priority stranger (ties → first) |
 | SC-8.2-2 | All strangers react as the leader (a single reaction roll governs the whole group). | reaction.ts:18-19, reduce.ts:845-847 | reaction.test.ts › (implicit) |
 | SC-8.3-1 | Reaction roll = one raw d6 via `rollDie(seed)`; `roll` threaded for display; seed advanced and stored. | reaction.ts:27-33, reduce.ts:845-846 | reaction.test.ts › advances the seed |
 | SC-8.3-2 | Charisma modifier: +1 if ANY living/ally member has FLAG_CHARISMA (Hero id 0, W-Hero id 1). | reaction.ts:34-37 | reaction.test.ts › (no-charisma party isolates the raw die) |
@@ -866,19 +866,19 @@ this table without consulting the TypeScript.
 
 | id | name | fs | mp | carry | cost | pts | flags | hostileMax | indiffMax | leaderPri | notes |
 |----|------|----|----|-------|------|-----|-------|------------|-----------|-----------|-------|
-| 0 | Hero | 5 | 0 | 75 | 6 | 10 | 3 = HUMAN+CHARISMA | 3 | 3 | 7 | |
-| 1 | W-Hero | 4 | 0 | 50 | 5 | 10 | 7 = HUMAN+CHARISMA+BEFRIENDS_UNICORN | 3 | 3 | 7 | |
-| 2 | Ogre | 5 | 0 | 100 | 5 | 5 | 16 = INHUMAN | 4 | 5 | 3 | |
-| 3 | Troll | 4 | 0 | 75 | 4 | 4 | 16 = INHUMAN | 3 | 4 | 2 | |
-| 4 | Priest | 2 | 2 | 25 | 4 | 8 | 1 = HUMAN | 1 | 4 | 6 | caster |
-| 5 | Man | 3 | 0 | 50 | 3 | 5 | 1 = HUMAN | 2 | 4 | 5 | |
-| 6 | Woman | 2 | 0 | 25 | 2 | 5 | 5 = HUMAN+BEFRIENDS_UNICORN | 2 | 4 | 5 | |
+| 0 | Hero | 5 | 0 | 75 | 6 | 10 | 3 = HUMAN+CHARISMA | 3 | 3 | 13 | |
+| 1 | W-Hero | 4 | 0 | 50 | 5 | 10 | 7 = HUMAN+CHARISMA+BEFRIENDS_UNICORN | 3 | 3 | 13 | |
+| 2 | Ogre | 5 | 0 | 100 | 5 | 5 | 16 = INHUMAN | 4 | 5 | 5 | |
+| 3 | Troll | 4 | 0 | 75 | 4 | 4 | 16 = INHUMAN | 3 | 4 | 4 | |
+| 4 | Priest | 2 | 2 | 25 | 4 | 8 | 1 = HUMAN | 1 | 4 | 12 | caster |
+| 5 | Man | 3 | 0 | 50 | 3 | 5 | 1 = HUMAN | 2 | 4 | 10 | |
+| 6 | Woman | 2 | 0 | 25 | 2 | 5 | 5 = HUMAN+BEFRIENDS_UNICORN | 2 | 4 | 9 | |
 | 7 | Dwarf | 1 | 0 | 25 | 1 | 2 | 24 = INHUMAN+GUIDES_PAST_TRAP | 0 | 4 | 1 | |
-| 8 | Wizard | 2 | 5 | 0 | null | 15 | 1 = HUMAN | 1 | 5 | 8 | caster |
-| 9 | Spectre | 0 | 5 | 0 | null | 0 | 0 | 5 | 6 | 10 | fightable only by magic / a wielded Sword (§9.4) |
-| 10 | Dragon | 6 | 0 | 0 | null | 0 | 16 = INHUMAN | 4 | 6 | 9 | rolls 5–6 indifferent; never friendly |
-| 11 | Sorcerer | 4 | 9 | 0 | null | 0 | 0 | 6 | 6 | 11 | hostileMax 6 ⇒ always hostile |
-| 12 | Giant | 7 | 0 | 150 | null | 7 | 16 = INHUMAN | 3 | 5 | 4 | |
+| 8 | Wizard | 2 | 5 | 0 | null | 15 | 1 = HUMAN | 1 | 5 | 14 | caster |
+| 9 | Spectre | 0 | 5 | 0 | null | 0 | 0 | 5 | 6 | 16 | fightable only by magic / a wielded Sword (§9.4) |
+| 10 | Dragon | 6 | 0 | 0 | null | 0 | 16 = INHUMAN | 4 | 6 | 15 | rolls 5–6 indifferent; never friendly |
+| 11 | Sorcerer | 4 | 9 | 0 | null | 0 | 0 | 6 | 6 | 18 | hostileMax 6 ⇒ always hostile |
+| 12 | Giant | 7 | 0 | 150 | null | 7 | 16 = INHUMAN | 3 | 5 | 6 | |
 | 13 | Unicorn | 4 | 0 | 0 | null | 4 | 4 = BEFRIENDS_UNICORN | 0 | 0 | 0 | joins only with a Woman/W-Hero (§8); STR 4, non-magical (SC-8.5-10) |
 
 > Reaction thresholds: a d6 roll ≤ hostileMax is hostile, ≤ indiffMax indifferent, else friendly

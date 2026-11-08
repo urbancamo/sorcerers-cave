@@ -51,12 +51,12 @@ describe("extension-kit data tables (SC-EXT-2)", () => {
       c.id, c.name, c.fs, c.mp, c.carry, c.cost, c.points, c.flags, c.hostileMax, c.indiffMax, c.leaderPri,
     ]);
     expect(rows).toEqual([
-      [14, "Apprentice", 2, 7, 0, null, 0, FLAG_HUMAN, 5, 5, 10],
-      [15, "Demon", 0, 6, 0, null, 0, FLAG_INHUMAN, 5, 6, 10],
+      [14, "Apprentice", 2, 7, 0, null, 0, FLAG_HUMAN, 5, 5, 17],
+      [15, "Demon", 0, 6, 0, null, 0, FLAG_INHUMAN, 5, 6, 16],
       [16, "Lion", 3, 0, 0, 2, 3, FLAG_INHUMAN, 4, 4, 3],
-      [17, "Scholar", 2, 1, 25, 3, 5, FLAG_HUMAN, 2, 4, 6],
-      [18, "Witch", 1, 4, 0, 5, 10, FLAG_HUMAN, 2, 5, 6],
-      [19, "Thief", 2, 0, 25, 3, 5, FLAG_HUMAN, 2, 4, 5],
+      [17, "Scholar", 2, 1, 25, 3, 5, FLAG_HUMAN, 2, 4, 8],
+      [18, "Witch", 1, 4, 0, 5, 10, FLAG_HUMAN, 2, 5, 11],
+      [19, "Thief", 2, 0, 25, 3, 5, FLAG_HUMAN, 2, 4, 7],
       [20, "Wolf", 2, 0, 0, 1, 2, FLAG_INHUMAN, 1, 3, 2],
     ]);
     // Base CREATURES table is untouched (still exactly ids 0-13 — data.test.ts pins this).

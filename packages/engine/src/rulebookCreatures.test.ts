@@ -77,12 +77,8 @@ describe("leader priority (§Encountering Strangers)", () => {
   it("the list is complete", () => { expect(names.length).toBe(20); });
   // For each ordered pair, the higher-ranked creature leads whichever way the group is drawn.
   const failing = pairs.filter(([hi, lo]) => findLeader([id(lo), id(hi)]) !== 1 || findLeader([id(hi), id(lo)]) !== 0);
-  // R-32: the engine ranks several creatures below, level with or above where Peter's list puts them (12 pairs); ties go to draw order.
-  it.fails("R-32: the engine orders every pair as the book's priority list does", () => {
+  // R-32 (follow Peter): every creature has its own rank, so the leader never depends on draw order.
+  it("R-32: the engine orders every pair as the book's priority list does", () => {
     expect(failing.map(([a, b]) => `${a}>${b}`)).toEqual([]);
-  });
-  it("the engine's differences are exactly the 12 pairs known", () => {
-    expect(failing.map(([a, b]) => `${a}>${b}`).join(" ")).toBe(
-      "Apprentice>Demon Apprentice>Spectre Priest>Witch Priest>Scholar Witch>Scholar Man>Woman Man>Scholar Man>Thief Woman>Scholar Woman>Thief Ogre>Lion Troll>Lion Troll>Wolf");
   });
 });
