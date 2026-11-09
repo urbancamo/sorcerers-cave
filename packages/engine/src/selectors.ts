@@ -2,7 +2,7 @@ import { potionEligible } from "./capabilities";
 import { decodeArea, decodeOpen, type DecodedArea } from "./decode";
 import { examinableAreas, isGuardCode, sibylWaiting } from "./sibyl";
 import { DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, unpackCoord, packCoord, targetCoord } from "./coords";
-import { nothingToDraw } from "./map";
+import { nothingToDraw, existingAreaConnects } from "./map";
 import { GS_PLAYING, AF_DESTROYED, AF_BELL_SPENT, AF_WELL_SPENT, type GameState } from "./state";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
 import type { GameAction } from "./actions";
@@ -36,13 +36,17 @@ function lateralMoves(state: GameState, dec: DecodedArea, sub: SubLocation): Gam
   const blockedDir = RING_ADJACENCY_SPECIALS.has(dec.special) && sub.at === "doorway" && sub.dir !== undefined
     ? oppositeDir(sub.dir) : undefined;
   // Once every tile has been placed an unexplored exit is no longer viable (ruling R-15, MSW 2026-11-06; SC-6.1-6): a move toward empty
-  // space has nothing to draw, so it is not offered. Moves onto tiles already on the map are unaffected.
+  // space has nothing to draw, so it is not offered. A move onto a tile already on the map is offered only if it would connect: a revealed
+  // dead end (no matching doorway on the far side, a collapsed tile, a stair onto the Whirlpool) could only waste the turn, so it is hidden
+  // (Peter's report 2026-11-06, MSW: hide it entirely; SC-6.1-12).
   const here = state.areas[state.partyArea];
   const placed = (dir: number) => {
-    if (!here || state.largePack.length === 0 || !nothingToDraw(state, dir)) return true; // (no pack at all = a bare test fixture, not a used-up one)
+    if (!here) return true;
     const { level, x, y } = unpackCoord(here.coord);
     const target = targetCoord(dir, level, x, y);
-    return state.areas.some((a) => a.coord === target);
+    const dest = state.areas.find((a) => a.coord === target);
+    if (dest) return existingAreaConnects(dest, dir);
+    return state.largePack.length === 0 || !nothingToDraw(state, dir); // (no pack at all = a bare test fixture, not a used-up one)
   };
   const ok = (dir: number) => chasmMoveAllowed(state, dir) && placed(dir);
   if (dec.n && blockedDir !== DIR_N && ok(DIR_N)) actions.push({ type: "move", dir: DIR_N });
