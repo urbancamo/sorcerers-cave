@@ -58,6 +58,8 @@ function actionCode(a: GameAction): string {
 }
 
 /** FNV-1a hash of a JSON-serialised value (stable enough as a state fingerprint). */
+// `trail` (the Spell's look-back path, register R-12) was added after this golden was frozen and is not part of what it pins.
+const withoutTrail = (s: object) => { const { trail: _trail, ...rest } = s as { trail?: unknown }; return rest; };
 function fnv(value: unknown): string {
   const s = JSON.stringify(value);
   let h = 0x811c9dc5;
@@ -97,7 +99,7 @@ function run(seed: number, picks: number[]): { narrative: string[]; final: Recor
     final: {
       gs: state.gs, phase: state.phase, turn: state.turn, level: state.level,
       areas: state.areas.length, partyAlive: state.party.filter((m) => m.status === 0 || m.status === 1).length,
-      score: scoreGame(state), stateHash: fnv(state),
+      score: scoreGame(state), stateHash: fnv(withoutTrail(state)),
     },
   };
 }

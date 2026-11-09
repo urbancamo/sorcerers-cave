@@ -9,7 +9,7 @@ game is an ordinary list of actions that `replay()` plays back on the real engin
 |---|---|---|
 | `best-score-search.json` | The single highest-scoring escaped game found, plus the search budget. **This is replay code `K001`.** | `scoreSearch.search.ts` |
 | `top-score-games.json` | The 25 best *distinct* games (different draft or seed) of **each** rule set (base, kit, kit + Sibyl), 75 in all, best first within a rule set, each with its full action list. | `scoreSearch.search.ts` |
-| `golden-search.json` | An earlier, goal-driven game: Extension Kit + Sibyl on, Sorcerer slain, escaped (score 264). | `goldenSearch.search.ts` |
+| `golden-search.json` | An earlier, goal-driven game: Extension Kit + Sibyl on, Sorcerer slain, escaped (score 341). | `goldenSearch.search.ts` |
 | `search-index.json` | **Every** search of the run that reached the surface (6,574 of them), best first: item number, score, rules, draft, seed, whether it killed the Sorcerer first. No moves (they are rebuilt, below). About 200 KB. | the merge |
 | `docs/testing/search-scenario-tables.md` | Generated: the run's provenance and budget, and a table of all 75 games. | `scripts/pin-results.sh` |
 | `apps/web/src/data/scenario-games.json` | All 75 games keyed by replay code (`B001`…`S025`), generated from `top-score-games.json` by the conformance-vectors test. | `vitest -u` |

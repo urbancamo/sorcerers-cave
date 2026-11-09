@@ -31,7 +31,7 @@ export const CREATURES: Section = {
       p('A fight runs one round per turn until one side is wiped out, put to sleep, or your party retreats. Each fighter is matched against a stranger and a die is rolled for each side; total strength plus the die decides the winner, and the loser is slain. A tie kills no one.'),
     ] },
     { id: 'fight-surprise', title: 'Surprise', brief: 'The side with surprise adds +1 to all its rolls in the first round.', cards: cards('creature', '*'), screens: ['fight', 'fight-revised'], blocks: [
-      p('The side with surprise adds **+1** to all its rolls in the **first round**. Your party gains it by attacking immediately on entering a chamber by a fresh doorway (or by magic carpet). You do *not* get it if you stopped to test the strangers first, or if you fell in through a trap. Strangers gain surprise when they turn hostile on being approached.'),
+      p('The side with surprise adds **+1** to all its rolls in the **first round**. Your party gains it by attacking immediately on entering a chamber by a fresh doorway: one into a chamber you have not been in, or through a doorway you have not used before even into a chamber you have visited. A way you cannot walk back (the Magic Carpet, the Sorcerer\'s teleport, a Whirlpool, the Chasm) always gives it. You do *not* get it if you stopped to test the strangers first, or if you fell in through a trap. Strangers gain surprise when they turn hostile on being approached.'),
       p('A party that drops through a trap **on purpose** arrives with surprise.', 'trapRules'),
     ] },
     { id: 'fight-pairing', title: 'Pairing off', brief: 'Match fighters to foes; outnumber them and two can gang up on one.', cards: cards('creature', '*'), screens: ['fight'], blocks: [
@@ -110,7 +110,7 @@ export const CREATURES: Section = {
       list(
         '**It needs a Woman.** A Unicorn joins only a party with a living Woman or Woman Hero.',
         '**Without one it stays to guard.** The chamber is quiet for you from then on and its treasure stays out of reach, unless you choose to attack the guardians.',
-        '**It leaves with the last Woman.** When the last living Woman or Woman Hero falls, the Unicorn departs.',
+        '**It leaves with the last Woman — but not mid-fight.** When the last living Woman or Woman Hero falls, a Unicorn that is in a fight keeps fighting to protect itself (in the revised combat, only while it is matched with a foe; if a round leaves it unmatched it goes at once). As soon as no fight is going on — it won, or you retreated, or the Woman was lost outside a fight — it leaves the party and stays in that chamber as an indifferent guard, just like a Unicorn you meet without a Woman. A retreat leaves it behind. **If the Unicorn is the last one left**, it turns indifferent and is no longer a member of the party, so nobody is left and the party does not survive.',
         '**As an ally** it fights in the front line at strength 4 and cannot carry treasure.',
       ),
     ] },
@@ -129,8 +129,8 @@ export const CREATURES: Section = {
     { id: 'creature-scholar', title: 'Scholar', brief: 'Uses artefacts as a Priest.', variant: 'kit', cards: cards('creature', 'Scholar'), blocks: [
       p('Uses artefacts exactly as a Priest does. Ranks beside the Priest when deciding who leads a group.'),
     ] },
-    { id: 'creature-thief', title: 'Thief', brief: 'Can lift treasure from a chamber of permanent indifference.', variant: 'kit', cards: cards('creature', 'Thief'), blocks: [
-      p('Plays a Man\'s part with the Charmed Flute and the Magic Sword (+1). Uniquely, the Thief can walk treasure out of a chamber the party has talked down to **permanent indifference** — no fight, no test.'),
+    { id: 'creature-thief', title: 'Thief', brief: 'Steals one treasure from indifferent strangers, who then turn hostile.', variant: 'kit', cards: cards('creature', 'Thief'), blocks: [
+      p('Plays a Man\'s part with the Charmed Flute, the Magic Sword (+1) and the Strength Potion. Uniquely, the Thief can steal **one treasure** (one he can carry) from strangers the party has talked down to **permanent indifference** — no fight, no test. The strangers notice at once: they turn **hostile** for the rest of the game and attack unless the party leaves.'),
     ] },
     { id: 'creature-lion', title: 'Lion', brief: 'Cheap muscle; will not quarrel.', variant: 'kit', cards: cards('creature', 'Lion'), blocks: [
       p('Pure, cheaply-priced muscle. Touches no artefact and carries nothing, and **will not quarrel**. Ranks beside an Ogre for leadership.'),

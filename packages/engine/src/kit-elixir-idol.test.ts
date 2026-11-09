@@ -8,7 +8,7 @@ import { previewPlan } from "./combatPlan";
 import { scoreBreakdown, scoreGame } from "./score";
 import { canCarry } from "./pickup";
 import { packCoord } from "./coords";
-import type { PartyMember } from "./state";
+import { GS_DEAD, GS_PLAYING, type PartyMember } from "./state";
 
 /**
  * Extension kit — the Elixir (artifact 15, US-19, SC-EXT-22) and the Idol (treasure 18, US-25,
@@ -65,6 +65,17 @@ describe("useArtifact — Elixir (US-19, SC-EXT-22)", () => {
     expect(events).toContainEqual({ type: "itemsSpilled", creatureId: HERO, items: [T_EYE_OF_GOD] });
     expect(events).toContainEqual({ type: "elixirDrunk", creatureId: HERO, roll: 1, outcome: "death" });
     expect(state.treasures).toEqual([T_EYE_OF_GOD]); // spilled onto the chamber floor
+  });
+
+  it("1: the LAST living member poisoned ends the expedition (invariant soak B-02: the game used to carry on with nobody alive)", () => {
+    const seed = seedForValue(1);
+    const alone = reduce(makeState({ phase: "explore", areas: [area], party: [member(HERO, [T_ELIXIR])], seed }), { type: "useArtifact", artifact: T_ELIXIR, target: 0 });
+    expect(alone.state.gs).toBe(GS_DEAD);
+    expect(alone.state.phase).toBe("gameOver");
+    expect(alone.events.at(-1)).toEqual({ type: "gameOver", gs: GS_DEAD });
+    const company = reduce(makeState({ phase: "explore", areas: [area], party: [member(HERO, [T_ELIXIR]), member(HERO)], seed }), { type: "useArtifact", artifact: T_ELIXIR, target: 0 });
+    expect(company.state.gs).toBe(GS_PLAYING);
+    expect(company.state.phase).toBe("explore");
   });
 
   it("1: a poisoned drinker IS Balm-revivable this same turn — the house rule permits it (SC-11-15a)", () => {

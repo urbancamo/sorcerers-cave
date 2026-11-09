@@ -15,7 +15,7 @@ export const HAZARDS: Section = {
       p('The earthquake card is left lying on the rubble to mark what fell.'),
     ] },
     { id: 'hazard-medusa', title: 'Medusa', cards: cards('hazard', 'Medusa'), blocks: [
-      p('Her gaze sweeps the party; a die is rolled for each member, and a **1 or 2** turns that member **to stone**. A petrified member can do nothing until freed by the **Magic Staff** (a wizard wielding the staff is immune).'),
+      p('Her gaze sweeps the party; a die is rolled for each member, and a **1 or 2** turns that member **to stone**. A petrified member can do nothing until freed by the **Magic Staff** (a wizard wielding the staff is immune). The **Eye of God** renders her powerless while you hold it: no one is stoned (but it does not free anyone already turned to stone).'),
       p('Medusa **lurks for good**: her card stays on the chamber floor, and she rolls against the party *again every time you re-enter*. When she looms and you hold Lotus Dust, her card opens in the card panel and the bar offers the throw or proceeding. If her gaze petrifies your *whole* party, the expedition ends there.'),
     ] },
     { id: 'hazard-ghouls', title: 'Ghouls', cards: cards('hazard', 'Ghouls'), blocks: [
@@ -25,7 +25,7 @@ export const HAZARDS: Section = {
       note('info', 'House rule', 'Where the revised combat is on, the ghouls are a lasting hazard that fights **one round only**: one strength-2 ghoul for each creature in your party, matched one-on-one. A creature that loses its duel is slain, and any ghoul left standing then withdraws. There is no retreating from them. If the chamber also holds a Trap you fight the ghouls first and only then fall.', 'combatRevision'),
     ] },
     { id: 'hazard-mutiny', title: 'Mutiny', cards: cards('hazard', 'Mutiny'), blocks: [
-      p('Your befriended allies desert — reverting to strangers and dropping any treasure they carried back onto the floor. If your party is made up entirely of allies, one loyal soul remains. You then face the deserters as you would any group of strangers.'),
+      p('Your befriended allies desert — reverting to strangers and dropping any treasure they carried back onto the floor. If your party is made up entirely of allies, one loyal soul remains (and, having no original members left, the party names its leader). You then face the deserters as you would any group of strangers.'),
       p('Only allies are affected: a party of original adventurers is untouched, and the game says so. The Mutiny card is shown in a pop-up whether or not anyone deserted, then discarded.'),
     ] },
     { id: 'hazard-trap', title: 'Trap', cards: cards('hazard', 'Trap'), blocks: [
@@ -44,6 +44,7 @@ export const HAZARDS: Section = {
     { id: 'hazard-quarrel', title: 'Quarrel', variant: 'kit', cards: cards('hazard', 'Quarrel'), blocks: [
       p('The two members who would hit hardest in an ordinary fight — by strength, magic and artefacts combined — turn on each other for one round. Each rolls a die; the loser falls as a stranger\'s blow would, revivable by the **Healing Balm**.'),
       p('The **Wolf** and the **Lion** never take part. If no one else is left to fight, the card simply fizzles.'),
+      p('When several members are **equally strong** for the last place in the quarrel, you choose which of them takes part. Strength counts everything a member brings to a fight: artefacts the party holds, items worn, weapons wielded.'),
     ] },
     { id: 'hazard-spell', title: 'Spell', variant: 'kit', cards: cards('hazard', 'Spell'), blocks: [
       p('The last ordinary tunnel the party walked through — not a chamber, not the Gateway, never one already collapsed by an earthquake — is shuffled back into the large pack, and a fresh, sealed tile takes its place, to be discovered again as if for the first time. Any secret door it held vanishes with it.'),

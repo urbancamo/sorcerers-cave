@@ -189,6 +189,7 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "casualtyChosen": return `${creature(e.creatureId)} fell (rolled ${e.roll}${e.gotPreference ? ", choice honoured" : ""})`;
     case "crossedSpecial": return `crossed a special area (type ${e.special})`;
     case "treasureDropped": return `${e.count} heavy treasure sank into the pool`;
+    case "deepPoolDelay": return `the Giant made ${e.loads} trips across the pool (${e.turns} turn delay)`;
     case "heavyDownForFight": return `${e.count} heavy treasure cast down for the fight`;
     case "treasureReclaimed": return `recovered ${e.count} treasure from the pool`;
     case "artifactUsed": return `used ${treasure(e.artifact)}`;
@@ -198,7 +199,9 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "wardedOff": return `the Talisman warded off ${creature(e.creatureId)}`;
     case "ghoulsWarded": return "the Talisman warded off the Ghouls";
     case "ghoulsAttack": return `${e.count} Ghoul${e.count === 1 ? "" : "s"} fall on the party`;
-    case "medusaAverted": return "the Magic Staff turned Medusa's gaze aside";
+    case "medusaAverted": return e.by === "eye" ? "the Eye of God left Medusa powerless" : "the Magic Staff turned Medusa's gaze aside";
+    case "leaderChosen": return `${creature(e.creatureId)} was chosen as the party's new leader`;
+    case "quarrelLooms": return "a quarrel looms — the players chose who takes part";
     case "medusaLooms": return "Medusa looms — throw the Lotus Dust, or proceed";
     case "medusaSlept": return "the Lotus Dust put Medusa to sleep (two turns)";
     case "medusaAsleep": return "Medusa slept on — no gaze";
@@ -208,7 +211,7 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "statuePowerless": return "the guardian statue stood powerless";
     case "deathPrevented": return `the Ring made ${creature(e.creatureId)} invincible`;
     case "unicornGuards": return `a unicorn guards ${creature(e.creatureId)}`;
-    case "unicornDeparted": return `the unicorn departed from ${creature(e.creatureId)}`;
+    case "unicornDeparted": return e.last ? "the Unicorn, left alone without a Woman, turned indifferent and left: no one is left in the party" : "the Unicorn, left without a Woman, stayed behind to guard the area";
     case "carpetUsed": return `the Magic Carpet moved the party ${dir(e.dir)}`;
     case "dragonsLulled": return `the Charmed Flute lulled ${e.count} dragon(s)`;
     case "vipersLulled": return "the party crossed the Viper Pit while the vipers slept";
@@ -238,6 +241,7 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "quarrelFizzled": return "a quarrel fizzled — too few eligible combatants";
     case "spellRemap": return e.fizzled ? "the Spell fizzled — no eligible tile to remap" : "the Spell remapped a tile";
     case "thiefPalmed": return `the Thief palmed ${treasure(e.tid)}`;
+    case "thiefDetected": return "the strangers noticed the theft and turned hostile";
     case "apprenticeTurned": return `${e.count} Apprentice(s) turned when the Sorcerer fell` + (e.items.length ? `, dropping ${e.items.map(treasure).join(", ")}` : "");
     case "apprenticeStaysBehind": return `${e.count} Apprentice(s) stayed behind in the cave`;
     case "apprenticeWaits": return `${e.count} Apprentice(s) have lost their master — leave this area, or they will turn on the party`;
@@ -294,7 +298,7 @@ function scoreLinesHuman(state: GameState | null): string[] {
   }
   const b = scoreBreakdown(state);
   for (const m of b.members) {
-    if (m.counts) out.push(`  ${m.name}${m.dragonDoubled ? " (dragon-slayer ×2)" : ""} — ${m.creaturePoints}`);
+    if (m.counts) out.push(`  ${m.name}${m.dragonDoubled ? " (dragon-slayer, +10 per dragon)" : ""} — ${m.creaturePoints}`);
     else out.push(`  ${m.name} (${STATUS_WORD[m.status] ?? "lost"}) — scored nothing`);
     for (const t of m.treasures) {
       out.push(`      ${t.name}${t.kind === "artifact" ? " (artifact)" : ""} — ${m.counts ? t.points : 0}`);
@@ -328,7 +332,7 @@ function scoreLinesPrinter(state: GameState | null): string[] {
   }
   const b = scoreBreakdown(state);
   for (const m of b.members) {
-    if (m.counts) out.push(scoreRow(cr3(m.creatureId) + (m.dragonDoubled ? "  DRAGON-SLAYER X2" : ""), String(m.creaturePoints)));
+    if (m.counts) out.push(scoreRow(cr3(m.creatureId) + (m.dragonDoubled ? "  DRAGON-SLAYER" : ""), String(m.creaturePoints)));
     else out.push(scoreRow(cr3(m.creatureId) + "  " + (STATUS_WORD[m.status] ?? "lost").toUpperCase(), "SCORED NOTHING"));
     for (const t of m.treasures) out.push(scoreRow("    " + tr3(t.id) + (t.kind === "artifact" ? " ARTIFACT" : ""), String(m.counts ? t.points : 0)));
   }
@@ -510,6 +514,7 @@ export function eventCode(e: GameEvent): string | null {
     case "sorcererSpared": return "SOR SPR";
     case "partyTeleported": return `TEL L${e.level} ${e.treasureIds.length}`;
     case "treasureDropped": return `TDR ${e.count}`;
+    case "deepPoolDelay": return `DPD ${e.loads}`;
     case "heavyDownForFight": return `FDR ${e.count}`;
     case "treasureReclaimed": return `TRC ${e.count}`;
     case "droppedRetaken": return `RTK ${e.count}`;
@@ -534,6 +539,8 @@ export function eventCode(e: GameEvent): string | null {
     case "ghoulsWarded": return "WRD GHL";
     case "ghoulsAttack": return `GHL ${e.count}`;
     case "medusaAverted": return "MED AVD";
+    case "leaderChosen": return `LDR ${cr3(e.creatureId)}`;
+    case "quarrelLooms": return "QRL LOM";
     case "medusaLooms": return "MED LOM";
     case "medusaSlept": return "MED SLP";
     case "medusaAsleep": return "MED ZZZ";
@@ -574,6 +581,7 @@ export function eventCode(e: GameEvent): string | null {
     case "quarrelFizzled": return "QRL FIZ";
     case "spellRemap": return e.fizzled ? "RMP FIZ" : "RMP OK";
     case "thiefPalmed": return `PLM ${tr3(e.tid)}`;
+    case "thiefDetected": return "THD";
     case "apprenticeTurned": return `APR TRN ${e.count}`;
     case "apprenticeStaysBehind": return `APR STY ${e.count}`;
     case "apprenticeWaits": return `APR WAIT ${e.count}`;

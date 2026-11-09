@@ -209,6 +209,9 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
         if (n) out.push(n);
         break;
       }
+      case "deepPoolDelay":
+        out.push({ text: `The Giant needs ${e.loads} trips to carry the treasure across: ${plural(e.turns, "turn")} lost.`, tone: "neutral" });
+        break;
       case "treasureDropped":
         out.push({ text: `${plural(e.count, "heavy treasure")} sinks into the Deep Pool — reclaim it on the way back.`, tone: "bad" });
         break;
@@ -253,8 +256,13 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
         break;
       case "ghoulsAttack":
         break;   // announced by the fight surface itself (RevisedFightSurface), before the first roll
+      case "leaderChosen":
+        out.push({ text: `With no original adventurer left, the ${ALL_CREATURES[e.creatureId]?.name ?? "creature"} takes the lead — and counts as an original member from now on.`, tone: "neutral" });
+        break;
+      case "quarrelLooms":
+        break;   // the choice dialog announces it
       case "medusaAverted":
-        out.push({ text: "Medusa's gaze sweeps the party — but the Wizard's Magic Staff turns it aside; no one is stoned.", tone: "good" });
+        out.push({ text: e.by === "eye" ? "Medusa's gaze sweeps the party — but the Eye of God leaves her powerless; no one is stoned." : "Medusa's gaze sweeps the party — but the Wizard's Magic Staff turns it aside; no one is stoned.", tone: "good" });
         break;
       case "trapSprung": // the move-result trap indicator / confirm modal narrates an ordinary fall; these two add the WHY
         if (events.some((x) => x.type === "fightWon") && !e.guideLost && !e.deliberate) out.push({ text: "With the Ghouls gone, the floor gives way — the party plunges a level deeper!", tone: "bad" });   // the Trap is dealt with last, after a fight: no move indicator narrates this fall
@@ -297,7 +305,9 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
       case "unicornGuards":
         break;
       case "unicornDeparted":
-        out.push({ text: `The unicorn departs from ${name(e.creatureId)}.`, tone: "neutral" });
+        out.push(e.last
+          ? { text: "With no Woman left, the lone Unicorn turns indifferent and is no longer one of your party. No one is left: the party does not survive.", tone: "bad" }
+          : { text: "With no Woman left, the Unicorn leaves the party and stays behind to guard this place.", tone: "neutral" });
         break;
       case "chasmDescend":
         out.push({ text: "The party climbs down into the chasm.", tone: "neutral" });
@@ -383,6 +393,9 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
             ? { text: "A spell crackles through the cave… and finds nothing to grip.", tone: "neutral" }
             : { text: "A spell takes hold — the tunnel behind you folds in on itself and is elsewhere. Its secret doors are gone.", tone: "bad" },
         );
+        break;
+      case "thiefDetected":
+        out.push({ text: "The strangers realise they have been robbed — they turn hostile and will attack unless you leave.", tone: "bad" });
         break;
       case "thiefPalmed":
         out.push({ text: `The Thief palms the ${treasureName(e.tid)}.`, tone: "good" });

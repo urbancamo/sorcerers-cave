@@ -1,3 +1,4 @@
+import { potionEligible } from "./capabilities";
 import { GS_PLAYING, GS_QUIT, GS_ESCAPED, GS_DEAD, AF_DESTROYED, AF_BELL_SPENT, AF_WELL_SPENT, AF_UNRESOLVED, type GameState, type PartyMember, type PlacedArea } from "./state";
 import { tryMove, hasExit } from "./map";
 import { moveWithRedraw } from "./redraw";
@@ -16,7 +17,7 @@ import { C_SIBYL, SIBYL_CODE, examinableAreas, isGuardCode, sibylHere, sibylWait
 import { frontStrength } from "./combat";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import {
-  wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, markDied, healingBalmEligible, ringInvincible, usesArtifactsAs, canUseArtifact,
+  wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, orphanUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, markDied, healingBalmEligible, ringInvincible, usesArtifactsAs, canUseArtifact,
   hasLivingHuman, holyWaterTargets, HW_STATUE_BASE, HW_MEDUSA, HW_STRANGER_BASE, HW_PARKED_STATUE_BASE, isHumanOrPriestClass,
   eyePresent, slaySorcerer, revertApprenticesOnSorcererDeath, cursedRoll, activeCurses,
 } from "./effects";
@@ -197,7 +198,14 @@ function pullParkedDemon(state: GameState, area: PlacedArea): boolean {
 /** Settle the outcome once a round (and any casualty choices) is fully resolved: a Unicorn may
  *  depart, the party may be wiped, or the foes cleared (→ pickup / explore). */
 function finalizeRound(state: GameState): GameEvent[] {
-  const events = reconcileUnicorns(state); // a Unicorn departs if the last Woman fell (§ Unicorn)
+  // House rule R-17: a Unicorn left without a Woman keeps fighting to protect itself while it is engaged; in the revised combat, one a round
+  // leaves unmatched leaves the party at once and guards the chamber. At the end of the fight (and outside fights) `reduce` parks it.
+  const events: GameEvent[] = [];
+  const rev = state.fight?.rev;
+  if (rev && state.strangers.length > 0) {
+    const engaged = (i: number) => rev.matches.some((mt) => mt.sf.length > 0 && (mt.pf.includes(i) || mt.pb.includes(i)));
+    events.push(...orphanUnicorns(state, state.partyArea, (i) => !engaged(i)));
+  }
   const partyAlive = state.party.some((m) => m.status === 0 || m.status === 1);
   if (!partyAlive) {
     const sorcererEvents = settleFelledSorcerer(state); // (reads the fight, so before it is cleared)
@@ -398,7 +406,7 @@ function wakeGalleryStatues(state: GameState): GameEvent[] {
  *  throw-or-proceed decision is the player's (§Lotus Dust "Works on MEDUSA"). A Dwarf-only holder
  *  can't throw it, so the gaze simply proceeds — same as holding no Lotus Dust at all. */
 function medusaLooms(state: GameState): boolean {
-  if (!state.hazards.includes(HAZARD_MEDUSA) || hasStaffWizard(state)) return false;
+  if (!state.hazards.includes(HAZARD_MEDUSA) || hasStaffWizard(state) || eyeActive(state)) return false;
   const until = state.areas[state.partyArea]!.medusaAsleepUntil;
   if (until !== undefined && state.turn <= until) return false; // asleep — nothing to decide
   return state.party.some((m) => (m.status === 0 || m.status === 1) && m.treasure.includes(5) && isHumanOrPriestClass(m.creatureId));
@@ -412,7 +420,10 @@ function medusaLooms(state: GameState): boolean {
  *  fresh entry, yet a dragon it just drew is still genuinely new information the player hasn't seen
  *  (`resolveExtraDraw` passes `true` explicitly for that case). */
 function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[], announceLull = freshEntry): boolean {
-  const { events: hzEvents, fell, trapChoice, knownTrap, ghouls } = applyHazards(state);
+  const applied = applyHazards(state);
+  const { events: hzEvents, fell, trapChoice, knownTrap, quarrelAsk } = applied;
+  const ghouls = applied.ghouls || state.quarrelGhouls === true;   // (a resumed pass remembers the Ghouls that struck before the Quarrel paused it)
+  delete state.quarrelGhouls;
   events.push(...hzEvents);
   // A hazard may incapacitate the whole party (Medusa petrifies everyone, or Ghouls slay them) —
   // with no one left able to act, the expedition ends.
@@ -421,6 +432,13 @@ function finishChamber(state: GameState, freshEntry: boolean, events: GameEvent[
     state.phase = "gameOver";
     if (state.party.every((m) => m.status === 2)) events.push({ type: "petrifiedOut" }); // all turned to stone
     events.push({ type: "gameOver", gs: GS_DEAD });
+    return false;
+  }
+  // R-14: the Quarrel has equals to choose between — hold the entry here, with the hazards that follow it still to deal with.
+  if (quarrelAsk) {
+    state.phase = "quarrel";
+    state.quarrelPause = { freshEntry, announceLull, ...quarrelAsk };
+    if (ghouls) state.quarrelGhouls = true;
     return false;
   }
   // The Trap is dealt with last (Rules, "Hazard cards"): with the revised Ghouls in the chamber they are fought first, and the fall
@@ -711,7 +729,11 @@ function resolveAreaLoop(state: GameState): GameEvent[] {
     }
     // First visit by this (unused) doorway → eligible for surprise. A deliberate trap arrival (`trapRules`) is a
     // new route in its own right, so it qualifies even into a chamber the party has already visited.
-    const freshEntry = !state.areas[state.partyArea]!.visited || state.deliberateFall === true;
+    // R-28 (MSW 2026-11-08, Peter): a doorway nobody has used since the strangers took the area earns surprise even into a chamber the party has
+    // visited before. `doorsUsed` holds the edges walked so far; a one-way arrival or a fall is handled by `deliberateFall` / `fellThroughTrap`.
+    const arrived = state.partyArea, left = state.prev;
+    const unusedDoor = state.areas[arrived]!.visited && !state.fellThroughTrap && left !== arrived && !(state.doorsUsed ?? []).includes(Math.min(left, arrived) * 100000 + Math.max(left, arrived));
+    const freshEntry = !state.areas[arrived]!.visited || state.deliberateFall === true || unusedDoor;
     events.push(...enterChamber(state));
     events.push(...wakeGalleryStatues(state)); // Staff-Wizard cracks every Gallery statue awake (SC-EXT-11)
     events.push(...annihilateWithEye(state)); // the Eye destroys Spectres on sight (§ Eye of God)
@@ -755,10 +777,11 @@ function finishExtraDraw(state: GameState, events: GameEvent[], hadSurprise: boo
  * Mirrors the tail of the per-chamber body in `resolveAreaLoop` (Eye/Talisman on a fresh Spectre,
  * the Medusa pause, then `finishExtraDraw`'s hazards + phase contract).
  */
-function resolveExtraDraw(state: GameState, events: GameEvent[]): void {
+function resolveExtraDraw(state: GameState, events: GameEvent[], surprise = false): void {
   // Preserve any surprise already earned by this chamber's ORIGINAL fresh entry and not yet spent —
   // finishChamber(freshEntry=false) would otherwise force it to false unconditionally (SC-4-16 fix).
-  const hadSurprise = state.surpriseReady;
+  // R-29 (Peter, §Well): the party has surprise against a stranger crawling up the shaft; the Bell Rope gives none.
+  const hadSurprise = state.surpriseReady || surprise;
   events.push(...annihilateWithEye(state));
   events.push(...wardOffSpectres(state));
   if (medusaLooms(state)) {
@@ -833,7 +856,7 @@ function carpetMove(state: GameState, dir: number): void {
   state.partyArea = idx;
   state.level = targetLevel;
   state.fellThroughTrap = false; // carpet links both ways
-  delete state.deliberateFall;
+  state.deliberateFall = true; // R-28 (MSW 2026-11-08, Peter's "Determining Surprise Attack"): a route that cannot be walked back always earns surprise
   delete state.subLocation; // Precise Locations (§10.5): a real position change invalidates any jump override
 }
 
@@ -849,6 +872,7 @@ export function reduce(
     persistAndExplore(state);
   }
   let result = reduceCore(state, action);
+  // (First, so the trail, the Unicorn and the leader checks below see the party as it really ends up: the redo replaces the whole result.)
   // The revised combat's turncoat Apprentice (Peter, 14-OCT-2026): an action that takes the party out of the area where the Sorcerer was
   // slain parts company with her first, so she is never in the party for whatever it meets next. The action is replayed from the party
   // without her (same dice), and her leaving is reported ahead of its events.
@@ -857,6 +881,46 @@ export function reduce(
     const parted = partCompany(pre);
     const redo = reduceCore(pre, action);
     result = { state: redo.state, events: [...parted, ...redo.events] };
+    // Found by the soak (2026-11-08): the Apprentice was the last living member, so nobody is left — "that player is eliminated" (§Apprentice).
+    if (parted.length && result.state.gs === GS_PLAYING && !result.state.party.some((m) => m.status === 0 || m.status === 1)) {
+      result = partyWipedOut(result.state, result.events);
+    }
+  }
+  // The path the party walks (register R-12: the Spell takes the last tunnel on it). Recorded here, once, rather than at every place that moves the party.
+  if (result && result.state !== state && result.state.partyArea !== state.partyArea) {
+    result.state.trail = [...(state.trail ?? [state.partyArea]), result.state.partyArea].slice(-300);
+  }
+  // The doorways walked (R-28): a move, withdrawal or retreat uses the edge between the two areas, in either direction.
+  if (result && result.state !== state && result.state.partyArea !== state.partyArea && (action.type === "move" || action.type === "withdraw" || action.type === "retreat")) {
+    const key = Math.min(state.partyArea, result.state.partyArea) * 100000 + Math.max(state.partyArea, result.state.partyArea);
+    if (!(result.state.doorsUsed ?? []).includes(key)) result.state.doorsUsed = [...(result.state.doorsUsed ?? []), key];
+  }
+  // House rule R-17 (MSW, 2026-11-06): once no fight is going on, a Unicorn with no Woman left in the party becomes an indifferent
+  // stranger in the area (the fight's chamber, if the action ended a fight: a retreat leaves it behind).
+  if (result && result.state.phase !== "fight" && result.state.gs === GS_PLAYING && !hasWoman(result.state) && result.state.party.some((m) => m.creatureId === C_UNICORN && (m.status === 0 || m.status === 1))) {
+    const at = state.phase === "fight" ? state.partyArea : result.state.partyArea;
+    const settled = structuredClone(result.state);
+    const events = orphanUnicorns(settled, at);
+    if (events.length) {
+      result = { ...result, state: settled, events: [...result.events, ...events] };
+      // MSW, 2026-11-08: a lone Unicorn with no Woman turns indifferent and is no longer a member, so nobody is left: the party does not survive.
+      if (!settled.party.some((m) => m.status === 0 || m.status === 1)) result = { ...result, ...partyWipedOut(settled, result.events) };
+    }
+  }
+  // R-07/R-10 (MSW, 2026-11-06): when no original member is left the player picks a new leader from the allies, who counts as original from
+  // then on. A lone ally is simply promoted; several make the player choose (phase "leader"). Never in the middle of a fight or a pause.
+  if (result && !("seat" in result.state) && result.state.gs === GS_PLAYING && ["explore", "pickup", "encounter"].includes(result.state.phase)
+      && !result.state.party.some((m) => m.status === 0) && result.state.party.some((m) => m.status === 1)) {
+    const settled = structuredClone(result.state);
+    const allies = settled.party.map((m, i) => ({ m, i })).filter((x) => x.m.status === 1);
+    if (allies.length === 1) {
+      allies[0]!.m.status = 0;
+      result = { ...result, state: settled, events: [...result.events, { type: "leaderChosen", creatureId: allies[0]!.m.creatureId }] };
+    } else {
+      settled.leaderReturn = settled.phase;
+      settled.phase = "leader";
+      result = { ...result, state: settled };
+    }
   }
   // The vipers sleep only while the party stays at that pit: the moment it moves on, they wake.
   if (result?.state.vipersLulledArea !== undefined && result.state.partyArea !== result.state.vipersLulledArea) {
@@ -866,6 +930,16 @@ export function reduce(
   const midState = takeMidState();
   if (midState !== null) return { ...result, midState };
   return result;
+}
+
+/** The game ends with nobody left alive (the lone Unicorn leaving, the last Apprentice parting): wipe-out, fallen treasure swept to the floor. */
+function partyWipedOut(settled: GameState, events: GameEvent[]): { state: GameState; events: GameEvent[] } {
+  const over = structuredClone(settled);
+  over.gs = GS_DEAD;
+  over.phase = "gameOver";
+  over.fight = null;
+  const swept = sweepFallen(over, "contents");
+  return { state: over, events: [...events, ...swept, { type: "gameOver", gs: GS_DEAD }] };
 }
 
 function reduceCore(state: GameState, action: GameAction): { state: GameState; events: GameEvent[] } {
@@ -924,6 +998,8 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
     return { state: next, events };
   }
   if (waiting && action.type !== "quit") return revBlocked;
+  // The player's pick of a leader (R-07/R-10) or of the Quarrel's combatants (R-14) comes before anything else.
+  if (((state.phase === "leader" && action.type !== "chooseLeader") || (state.phase === "quarrel" && action.type !== "chooseQuarrel")) && action.type !== "quit") return revBlocked;
 
   switch (action.type) {
     case "quit":
@@ -1058,6 +1134,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
             if (origDead === undefined) delete from.deadDoors; else from.deadDoors = origDead;
             delete wade.subLocation;
             relocateDown(wade);
+            wade.deliberateFall = true; // R-28: the Whirlpool is a one-way route, which earns surprise
             return { state: wade, events: [...evs.filter((e) => e.type !== "deadEndCardSwapped" && e.type !== "deadEnd"), ...resolveArea(wade)] };
           }
           setMidState(state); // a safe wade too: its die is shown on the Whirlpool's tile, before the party moves on
@@ -1070,7 +1147,9 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         const wpTarget = targetCoord(action.dir, fl, fx, fy);
         const intoWhirlpool = (action.dir === DIR_UP || action.dir === DIR_DOWN)
           && res.state.areas.some((a) => a.coord === wpTarget && decodeArea(a.card).special === SPECIAL_WHIRLPOOL);
-        return { state: res.state, events: [...swapEvents, res.deadEnd ? (intoWhirlpool ? { type: "deadEnd", dir: action.dir, whirlpool: true } : { type: "deadEnd", dir: action.dir }) : { type: "blocked" }, ...(res.noViableExits ? [{ type: "deadEndNoViableExits" } as GameEvent] : [])] };
+        // R-31 (Peter, §Exploring the Cave): a dead end is marked (*), the end of the turn. A blocked move is not.
+        const after = res.deadEnd ? { ...res.state, turn: res.state.turn + 1 } : res.state;
+        return { state: after, events: [...swapEvents, res.deadEnd ? (intoWhirlpool ? { type: "deadEnd", dir: action.dir, whirlpool: true } : { type: "deadEnd", dir: action.dir }) : { type: "blocked" }, ...(res.noViableExits ? [{ type: "deadEndNoViableExits" } as GameEvent] : [])] };
       }
       const next = { ...res.state, turn: res.state.turn + 1 };
       next.fellThroughTrap = false; // a normal move reaches a reachable area (resolveArea re-sets it if a trap fires)
@@ -1115,6 +1194,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           next.partyArea = fromIdx;
           next.prev = oldPrev;
           relocateDown(next);
+          next.deliberateFall = true; // R-28: the Whirlpool is a one-way route, which earns surprise
           // The cancelled move takes its Dead End swap with it (the pack stays a valid permutation: the swap
           // was made in place), so the log must not narrate a swap that no longer shows on the map.
           const kept: GameEvent[] = events.filter((e) => e.type !== "deadEndCardSwapped");
@@ -1290,10 +1370,28 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // Extension kit (SC-EXT-19): a Thief-unlocked pickup (`settlePacifiedArea`) narrates each lift
       // ("The Thief palms the [item].") — captured before `takeTreasure` splices `next.treasures`.
       const liftedTid = next.treasures[action.ti];
+      // R-33: in a Thief-unlocked pickup only the Thief may steal, and only one treasure (below).
+      if (next.thiefPickup && next.party[action.mi]?.creatureId !== C_THIEF) return { state, events: [{ type: "blocked" }] };
       const lifted = takeTreasure(next, action.ti, action.mi);
       const events: GameEvent[] = lifted && next.thiefPickup && liftedTid !== undefined
         ? [{ type: "thiefPalmed", tid: liftedTid }]
         : [];
+      if (lifted && next.thiefPickup) {
+        // R-33 (Peter, §Thief): "The strangers immediately become hostile to your party and will attack on the following
+        // turn if you do not leave the area." The guards come back, the area is no longer pacified but hostile for good,
+        // and the party may leave this turn (the indifferent-leave window); testing or attacking starts the fight.
+        const area = next.areas[next.partyArea]!;
+        next.strangers = area.contents.filter(isGuardCode).map((c) => c - 100);
+        area.contents = area.contents.filter((c) => !isGuardCode(c));
+        next.pacifiedAreas = (next.pacifiedAreas ?? []).filter((a) => a !== next.partyArea);
+        if (!next.hostileAreas?.includes(next.partyArea)) next.hostileAreas = [...(next.hostileAreas ?? []), next.partyArea];
+        delete next.thiefPickup;
+        next.phase = "encounter";
+        next.surpriseReady = false;
+        next.indiffLeaveOpen = true;
+        events.push({ type: "thiefDetected" });
+        return { state: next, events };
+      }
       if (next.treasures.length === 0) persistAndExplore(next);
       return { state: next, events };
     }
@@ -1440,6 +1538,11 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
     case "test": {
       if (state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
       if (sibylWaiting(state)) return meetSibyl(state);
+      // R-33: strangers turned hostile by a theft attack when approached (the strangers have the surprise).
+      if (state.hostileAreas?.includes(state.partyArea) && state.strangers.length > 0) {
+        const hostile = structuredClone(state);
+        return { state: hostile, events: startFight(hostile, -1) };
+      }
       if ((state.indiffStreak ?? 0) >= 3) return { state, events: [{ type: "blocked" }] }; // permanently indifferent
       const next = structuredClone(state);
       next.surpriseReady = false; // approaching to test forfeits the chance of a surprise attack (§Surprise)
@@ -1532,6 +1635,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       }
       if (state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
+      if (next.hostileAreas?.includes(next.partyArea)) return { state: next, events: startFight(next, -1) }; // R-33: hostile after a theft
       // Surprise only on an immediate attack from a fresh, non-trap entry (§Surprise).
       return { state: next, events: startFight(next, next.surpriseReady ? 1 : 0) };
     }
@@ -1684,7 +1788,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       next.partyArea = action.area;
       next.level = unpackCoord(to.coord).level;
       next.fellThroughTrap = true; // magic leaves no way back: no withdrawing from the landing
-      delete next.deliberateFall;
+      next.deliberateFall = true; // R-28: a one-way route earns surprise
       delete next.subLocation;
       const events: GameEvent[] = [
         { type: "sorcererSpared" },
@@ -1699,6 +1803,34 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       if (state.phase !== "medusa") return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
       return { state: next, events: resumeFromMedusaPause(next) };
+    }
+
+    case "chooseQuarrel": {
+      // R-14: the tie between equals. Only legal in the `quarrel` pause; the members must be the right number of the tied candidates.
+      const pause = state.quarrelPause;
+      if (state.phase !== "quarrel" || !pause) return { state, events: [{ type: "blocked" }] };
+      const members = [...new Set(action.members)];
+      if (members.length !== pause.slots || !members.every((i) => pause.candidates.includes(i))) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      delete next.quarrelPause;
+      next.quarrelChosen = [...pause.fixed, ...members];
+      next.phase = "explore";
+      const events: GameEvent[] = [];
+      if (next.quarrelGhouls) next.quarrelGhouls = true;
+      if (finishChamber(next, pause.freshEntry, events, pause.announceLull)) events.push(...resolveAreaLoop(next));
+      delete next.quarrelChosen;
+      return { state: next, events };
+    }
+
+    case "chooseLeader": {
+      // R-07/R-10: only legal in the `leader` pause, and only for a living ally.
+      const cand = state.party[action.idx];
+      if (state.phase !== "leader" || !cand || cand.status !== 1) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      next.party[action.idx]!.status = 0;
+      next.phase = next.leaderReturn ?? "explore";
+      delete next.leaderReturn;
+      return { state: next, events: [{ type: "leaderChosen", creatureId: cand.creatureId }] };
     }
 
     case "avoidTrap":
@@ -1721,10 +1853,10 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       const ok: { state: GameState; events: GameEvent[] } = { state: next, events: [{ type: "artifactUsed", artifact: action.artifact }] };
 
       switch (action.artifact) {
-        case 8: { // Strength Potion — fight only, target a living Man/Woman/Hero
+        case 8: { // Strength Potion — fight only, target a living Man/Woman/Hero (or Thief)
           if (next.phase !== "fight" || action.target === undefined) return { state, events: [{ type: "blocked" }] };
           const tm = next.party[action.target];
-          const boostable = tm && (tm.status === 0 || tm.status === 1) && [0, 1, 5, 6].includes(tm.creatureId);
+          const boostable = tm && (tm.status === 0 || tm.status === 1) && potionEligible(tm.creatureId);
           if (!boostable) return { state, events: [{ type: "blocked" }] };
           tm.potionActive = true;
           consume();
@@ -1738,6 +1870,9 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           dm.status = 0;
           dm.diedTurn = undefined;
           dm.diedArea = undefined;
+          // The fall spilled the member's load, but a fallen member's `borne` list is not cleared (B-05); the revived one must not
+          // be listed as using what lies on the floor (B-06).
+          if (dm.borne) dm.borne = dm.borne.filter((t) => dm.treasure.includes(t));
           consume();
           return ok;
         }
@@ -1861,6 +1996,12 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
             type: "elixirDrunk", creatureId: drinker.creatureId, roll,
             outcome: roll === 1 ? "death" : roll <= 3 ? "nothing" : "strength",
           });
+          // The last living member poisoned: the expedition ends (invariant soak, B-02 — the game used to carry on with nobody alive).
+          if (!next.party.some((m) => m.status === 0 || m.status === 1)) {
+            next.gs = GS_DEAD;
+            next.phase = "gameOver";
+            events.push({ type: "gameOver", gs: GS_DEAD });
+          }
           return { state: next, events };
         }
         case 16: { // Holy Water — one use, target enumeration (design US-20, SC-EXT-24)
@@ -2008,6 +2149,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       persistAndExplore(next);
       const events: GameEvent[] = [{ type: "chasmDescend" }];
       relocateDown(next); // one-way, no mirrored stair-up — `fellThroughTrap` blocks withdraw below (SC-EXT-5)
+      next.deliberateFall = true; // R-28: the Chasm is a one-way route, which earns surprise
       events.push(...resolveArea(next));
       return { state: next, events };
     }
@@ -2027,7 +2169,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       drawSmallCards(next, 1, events); // exactly one code, appended onto whatever's already in the working set
       if (!hadCrypt && next.cryptCoord === next.areas[next.partyArea]!.coord) events.push({ type: "cryptParked" });
       next.noWithdrawTurn = next.turn; // blocks withdraw this turn only (SC-EXT-9)
-      resolveExtraDraw(next, events); // strangers/hazards resolve normally, same as any chamber draw
+      resolveExtraDraw(next, events, true); // strangers/hazards resolve normally; the Well gives surprise (R-29)
       return { state: next, events };
     }
 

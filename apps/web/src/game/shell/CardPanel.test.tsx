@@ -101,7 +101,7 @@ describe('CardPanel — awards', () => {
     render(<CardPanel selected={{ kind: 'award', award: slayer.awards[0]!, from: slayer }} onItem={() => {}} onMember={onMember} />);
     expect(screen.getByAltText('Dragon slain')).toBeInTheDocument();
     expect(screen.getByText(/2 slain by Wizard/)).toBeInTheDocument();
-    expect(screen.getByText(/doubled at scoring/)).toBeInTheDocument();
+    expect(screen.getByText(/10 more points at scoring/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /wizard/i }));
     expect(onMember).toHaveBeenCalledWith(slayer);
   });

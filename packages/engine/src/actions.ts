@@ -88,6 +88,8 @@ export type GameAction =
   | { type: "strangersNominate"; strategyId: string; strategyVersion: number; nominated: number; fallback?: { from: string; reason: string } }
   | { type: "spareSorcerer"; area: number }
   | { type: "slaySorcerer" }
+  | { type: "chooseLeader"; idx: number }          // R-07/R-10: no original member is left — this living ally becomes the party's leader, and counts as original from then on
+  | { type: "chooseQuarrel"; members: number[] }   // R-14: the Quarrel's tie between equals — the party members (indices) that fight
   | { type: "stay" }   // the revised combat: remain in the area after the Sorcerer's death instead of leaving, and so meet the turncoat Apprentice
   | { type: "testPlaceArea"; dir: number; special: number }
   | { type: "testSetChamber"; strangers: number[]; treasures: number[]; hazards: number[] }
@@ -179,6 +181,7 @@ export type GameEvent =
   | { type: "casualtyChosen"; creatureId: number; roll: number; gotPreference: boolean }
   | { type: "crossedSpecial"; special: number }
   | { type: "treasureDropped"; count: number }
+  | { type: "deepPoolDelay"; loads: number; turns: number } // R-30: a Giant had to make more than one trip
   | { type: "treasureReclaimed"; count: number }
   | { type: "artifactUsed"; artifact: number }
   | { type: "chestOpened"; result: number }
@@ -187,7 +190,7 @@ export type GameEvent =
   | { type: "wardedOff"; creatureId: number }
   | { type: "ghoulsAttack"; count: number } // the revised combat: the Ghouls fall on the party as a party of their own, one per creature
   | { type: "ghoulsWarded" } // a party member's Talisman turned the Ghouls away (card)
-  | { type: "medusaAverted" } // a Wizard's Magic Staff turned Medusa's gaze aside — no one stoned (card)
+  | { type: "medusaAverted"; by?: "eye" } // (`by: "eye"`: the Eye of God made her powerless) // a Wizard's Magic Staff turned Medusa's gaze aside — no one stoned (card)
   // The Medusa pause (§Lotus Dust "Works on MEDUSA"): the party entered her lair holding Lotus Dust,
   // so the hazards are held while the player decides to throw the dust at her or proceed.
   | { type: "medusaLooms" }
@@ -199,7 +202,9 @@ export type GameEvent =
   | { type: "statuePowerless" }
   | { type: "deathPrevented"; creatureId: number }
   | { type: "unicornGuards"; creatureId: number }
-  | { type: "unicornDeparted"; creatureId: number }
+  | { type: "leaderChosen"; creatureId: number }   // R-07/R-10: an ally became the party's leader (original)
+  | { type: "quarrelLooms" }                       // R-14: the Quarrel needs the player to choose between equals
+  | { type: "unicornDeparted"; creatureId: number; last?: true }
   | { type: "carpetUsed"; dir: number }
   | { type: "dragonsLulled"; count: number }
   | { type: "vipersLulled" }   // the crossing itself: the vipers sleep, so nobody rolls
@@ -299,6 +304,8 @@ export type GameEvent =
   // area's strangers would otherwise still guard. `tid` is the lifted treasure id (design Feedback:
   // "The Thief palms the [item]."); fires once per successful lift, never for an ordinary pickup.
   | { type: "thiefPalmed"; tid: number }
+  // R-33 (Peter, §Thief): the theft turns the strangers hostile; they attack on the next turn unless the party leaves.
+  | { type: "thiefDetected" }
   // Extension kit (SC-EXT-20, design US-14/Resolved-7): the Sorcerer's death instantly breaks
   // every Apprentice ally's loyalty — `count` how many turned (normally one), `items` the pooled
   // treasure ids dropped into the chamber floor (`revertApprenticesOnSorcererDeath`, effects.ts).

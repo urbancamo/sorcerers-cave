@@ -31,7 +31,7 @@ export const AF_UNRESOLVED = 16;
 // "trap" is the Dwarf's choice (`variants.trapRules`): guided past the trap, or fall through it on purpose.
 // "sorcerer" is the pause after the Sorcerer is defeated (`variants.sorcererTeleport`): slay him, or spare
 // him in return for a teleport to any discovered area (§The Sorcerer).
-export type GamePhase = "explore" | "medusa" | "trap" | "encounter" | "fight" | "pickup" | "sorcerer" | "gameOver";
+export type GamePhase = "explore" | "medusa" | "trap" | "encounter" | "fight" | "pickup" | "sorcerer" | "leader" | "quarrel" | "gameOver";
 
 // Member status: 0 original, 1 ally, 2 stone, 3 dead.
 export type MemberStatus = 0 | 1 | 2 | 3;
@@ -213,6 +213,9 @@ export interface GameState {
   level: number;
   prev: number; // previous area index
   prev2: number; // area two moves back (earthquake)
+  // Every area the party has stood in, oldest first, the current one last: the path the Spell looks back along (register R-12). Kept by `reduce`
+  // after each action; absent in games saved before it existed (the Spell then sees only `prev` and `prev2`).
+  trail?: number[];
   party: PartyMember[];
   largePack: number[];
   largeIdx: number;
@@ -279,6 +282,13 @@ export interface GameState {
   // while the party may still leave this area (the value); `stay` turns her on it, leaving parts company with her.
   apprenticeWatch?: number;
   trapPause?: { freshEntry: boolean; announceLull: boolean; extraDraw?: { hadSurprise?: boolean } };
+  // Solo only. The Quarrel's choice between equals (register R-14): the chamber entry waits in phase "quarrel" while the player picks
+  // `slots` of the tied `candidates` (party indices) to join the `fixed` ones; `hazards` holds the hazards still to be dealt with.
+  quarrelPause?: { freshEntry: boolean; announceLull: boolean; fixed: number[]; candidates: number[]; slots: number };
+  quarrelGhouls?: boolean; // the revised Ghouls struck before the Quarrel paused the pass; carried to the resume
+  quarrelChosen?: number[]; // the two party indices that quarrel, set by the player's choice and consumed by the Quarrel
+  // Solo only. R-07/R-10: with no original member left the player picks a new leader (phase "leader"); the phase to return to afterwards.
+  leaderReturn?: GamePhase;
   // Indifference (per party — NOT on the shared area, so it never affects other parties; §Encountering
   // Strangers, SC-4-18a, bug fix 2026-08-04). `indiffCounts` is the DURABLE count of indifferent
   // results this party has gotten from this area's strangers, keyed by area index — it persists
@@ -345,6 +355,8 @@ export interface GameState {
   // retreated-from chamber it is the party that gains it. Set right after the fall, cleared (`delete`, never
   // `= false`, SC-EXT-1) by every other relocation and by the next normal move; absent when the flag is off.
   deliberateFall?: boolean;
+  // The doorways the party has walked, as `min(areaA, areaB) * 100000 + max(...)` (R-28): a doorway not in the list earns surprise even into a visited chamber.
+  doorsUsed?: number[];
   // Extension kit (SC-EXT-9): the turn number `withdraw` is blocked for — set by a Well draw or a
   // Bell Rope 4-6 roll (design US-03/US-07), alongside `fellThroughTrap` on the same legality check.
   // `turn` only advances on `move`, so this self-invalidates once the party moves on — no explicit

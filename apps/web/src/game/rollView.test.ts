@@ -273,6 +273,16 @@ describe("rollFromEvents", () => {
     expect(view.message).toMatch(/slain/i);
     expect(view.tone).toBe("bad");
   });
+
+  it("explains a wipe-out caused by a lone Unicorn leaving after the last Woman fell", () => {
+    const events: GameEvent[] = [
+      { type: "combatRoll", party: "Woman", enemy: "Giant", partyRoll: 1, enemyRoll: 6, partyTotal: 3, enemyTotal: 13, result: "enemyWon" },
+      { type: "memberDied", creatureId: 6 },
+      { type: "unicornDeparted", creatureId: 13, last: true },
+      { type: "gameOver", gs: 2 },
+    ];
+    expect(rollFromEvents(events)!.message).toMatch(/Unicorn turned indifferent and left/);
+  });
 });
 
 describe("Quarrel waits for the player's roll", () => {

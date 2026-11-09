@@ -25,7 +25,7 @@ const member = (creatureId: number, treasure: number[] = []): PartyMember => ({ 
 function enteringB(contents: number[], party: PartyMember[], over: Partial<GameState> = {}): GameState {
   const A = { card: 2, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };
   const B = { card: 8 | 16, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents, flags: 0, indiffCount: 0 };
-  return makeState({ variants: ON, party, areas: [A, B], partyArea: 0, prev: 0, prev2: 0, level: 1, largePack: [5], largeIdx: 0, ...over });
+  return makeState({ variants: ON, party, areas: [A, B], partyArea: 0, prev: 0, prev2: 0, level: 1, largePack: [5], largeIdx: 0, doorsUsed: [1], ...over }); // (the doorway 0-1 has been walked, so no surprise even into a visited chamber, R-28)
 }
 const enter = (s: GameState) => reduce(s, { type: "move", dir: 2 });
 

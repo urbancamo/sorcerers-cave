@@ -334,7 +334,7 @@ describe("Extra draws never corrupt surprise, and still announce a freshly-drawn
     expect(attacked.events).toContainEqual({ type: "fightStarted", surprise: 1 }); // the earned edge still lands
   });
 
-  it("leaves surpriseReady false when it was false — a Well draw never grants surprise on its own", () => {
+  it("a Well draw grants the party surprise even when it had none (R-29, Peter: a stranger crawling up the shaft)", () => {
     const s = wellState({
       party: [member(HERO)],
       phase: "encounter",
@@ -344,9 +344,9 @@ describe("Extra draws never corrupt surprise, and still announce a freshly-drawn
     });
     const { state } = reduce(s, { type: "drawFromWell" });
 
-    expect(state.surpriseReady).toBe(false); // NOT upgraded false -> true by the extra draw
+    expect(state.surpriseReady).toBe(true);
     const attacked = reduce(state, { type: "attack" });
-    expect(attacked.events).toContainEqual({ type: "fightStarted", surprise: 0 });
+    expect(attacked.events).toContainEqual({ type: "fightStarted", surprise: 1 });
   });
 
   it("also preserves surpriseReady across a Bell Rope 'stir' draw (same shared resolveExtraDraw path)", () => {
