@@ -18,7 +18,9 @@ export interface ViewPartyMember {
   dragonCard: string | null;  // the Dragon creature's small-card art, drawn inverted once per kill
   carry: number;  // capacity (kg)
   load: number;   // carried heavy weight (kg)
-  fs: number; mp: number; charisma: boolean;
+  fs: number; mp: number; charisma: boolean; // the printed strength and magic
+  fsParts?: { label: string; n: number }[]; // each bonus now in effect on top of them (a wielded weapon, Dragon kills…); see game/figures.ts
+  mpParts?: { label: string; n: number }[];
   ally: boolean;      // befriended stranger (status 1), not an original recruit
   petrified: boolean; // turned to stone (status 2) — incapacitated until cured
   stoneArea: number | null; // when petrified, the area index it was left in (for the in-chamber display)

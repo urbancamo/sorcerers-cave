@@ -161,3 +161,33 @@ describe('ItemActions — the Scroll in revised combat', () => {
     expect(screen.queryByRole('button', { name: 'Drop here' })).toBeNull();
   });
 });
+
+describe('ItemActions — wielded or carried (Peter\'s report, ZYBP)', () => {
+  const witchWithStaff = () => carrying([18], 9, {}, true);
+
+  it('says plainly that a Staff is carried, not wielded, until it is wielded', () => {
+    show(witchWithStaff(), 9);
+    expect(screen.getByTestId('ia-state')).toHaveTextContent('Carried, not wielded');
+  });
+
+  it('says plainly that it is wielded once it is, beside the Stow button', () => {
+    const s = witchWithStaff();
+    s.party[0]!.borne = [9];
+    show(s, 9);
+    expect(screen.getByTestId('ia-state')).toHaveTextContent('Wielded');
+    expect(screen.getByRole('button', { name: /stow/i })).toBeInTheDocument();
+  });
+
+  it('says worn, not wielded, for the Ring', () => {
+    const s = carrying([0], 10);
+    s.party[0]!.borne = [10];
+    show(s, 10);
+    expect(screen.getByTestId('ia-state')).toHaveTextContent('Worn');
+  });
+
+  it('shows no state for an item that is neither wielded nor worn', () => {
+    show(carrying([0], T.chest), T.chest);
+    expect(screen.queryByTestId('ia-state')).toBeNull();
+  });
+});
+

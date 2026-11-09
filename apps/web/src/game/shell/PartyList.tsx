@@ -1,6 +1,7 @@
 import type { DragEvent, KeyboardEvent } from 'react';
 import type { ViewPartyMember } from '../../view/cave3d';
 import { carryRowHtml } from '../../view/rosterCarry';
+import { figureText, type Part } from '../figures';
 
 /** What a fight adds to a member's row: whether it is selected or already placed, its strength in a match, and how a tap or drag moves it. */
 export interface PartyRowFight {
@@ -24,10 +25,13 @@ export function PartyList({ members, onSelect, fight, onDragStart, expanded, onT
   onToggleExpand?: () => void;   // not offered in a fight, where this list is the working tray
   testId?: string;
 }) {
-  // Printed numbers only (artefact and surprise bonuses show in the fight itself). A stone member and the Sibyl add nothing to a fight.
+  // Printed numbers plus the bonuses in effect now (a wielded weapon, Dragon kills); the surprise bonus shows in the fight itself.
+  // A stone member and the Sibyl add nothing to a fight.
   const fighters = members.filter((m) => !m.petrified && !m.sibyl);
-  const totalFs = fighters.reduce((n, m) => n + m.fs, 0);
-  const totalMp = fighters.reduce((n, m) => n + m.mp, 0);
+  const total = (base: (m: ViewPartyMember) => number, parts: (m: ViewPartyMember) => Part[] | undefined) =>
+    fighters.reduce((n, m) => n + base(m) + (parts(m) ?? []).reduce((k, p) => k + p.n, 0), 0);
+  const totalFs = total((m) => m.fs, (m) => m.fsParts);
+  const totalMp = total((m) => m.mp, (m) => m.mpParts);
   return (
     <aside className={'scv-slot scv-slot-left scv-partylist' + (expanded ? ' expanded' : '')} data-testid={testId} aria-label="Party">
       <h2 className="scv-slot-hd">
@@ -64,7 +68,7 @@ export function PartyList({ members, onSelect, fight, onDragStart, expanded, onT
                   {f && <span className="scv-pl-fs" title="fighting strength">{f.strength}{f.caster ? ' ✦' : ''}</span>}
                 </div>
                 {expanded && !m.sibyl && (
-                  <div className="scv-pl-stats">Strength {m.fs}{m.mp > 0 && ` · Magic ${m.mp}`}{m.charisma && ' · Charisma'}</div>
+                  <div className="scv-pl-stats">Strength {figureText(m.fs, m.fsParts)}{m.mp > 0 && ` · Magic ${figureText(m.mp, m.mpParts)}`}{m.charisma && ' · Charisma'}</div>
                 )}
                 {f?.caption && <div className="scv-pl-cap">{f.caption}</div>}
                 {/* In a fight what a member carries is not what is being chosen, so the load and the thumbnails are left out. */}

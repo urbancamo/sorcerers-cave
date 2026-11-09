@@ -57,10 +57,16 @@ describe('CardPanel', () => {
     expect(onItem).toHaveBeenCalledWith(flute, member);
   });
 
+  it('shows the bonuses in effect against a member\'s strength and magic', () => {
+    const witch = { ...member, name: 'Witch', label: 'Witch', fs: 1, mp: 4, mpParts: [{ label: 'Magic Staff', n: 1 }], fsParts: [{ label: 'Dragon Slayer', n: 1 }] };
+    render(<CardPanel selected={{ kind: 'member', member: witch }} onItem={vi.fn()} onMember={noop} />);
+    expect(screen.getByText(/Strength 1 \+ 1 \(Dragon Slayer\) · magic 4 \+ 1 \(Magic Staff\)/)).toBeInTheDocument();
+  });
+
   it('shows an artifact with its carrier and a way back to the member', () => {
     const onMember = vi.fn();
     render(<CardPanel selected={{ kind: 'item', item: flute, from: member }} onItem={noop} onMember={onMember} />);
-    expect(screen.getByText(/carried by Wizard/)).toBeInTheDocument();
+    expect(screen.getByText(/held by Wizard/)).toBeInTheDocument();
     expect(screen.getByText(/Lulls Dragons/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /← Wizard/ }));
     expect(onMember).toHaveBeenCalledWith(member);

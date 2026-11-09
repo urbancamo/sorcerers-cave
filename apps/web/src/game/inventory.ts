@@ -30,14 +30,16 @@ export function artifactState(state: GameState, mi: number, tid: number, usable:
   const t = ALL_TREASURES[tid]!;
   if (m.status !== 0 && m.status !== 1) return { color: 'gray', tag: 'carrier cannot act' };
   if (t.kind === 'heavy' || tid === 11) return { color: 'gray', tag: 'treasure only' };
-  // The Staff adds magical power to a Priest (+1) and a Wizard (+2) just by being carried, so the label says how much; only the Wizard
-  // can also use its powers (ward off Medusa, wake the stone), so a Priest is told what it cannot do rather than "carrier cannot use".
+  // The Staff adds magical power to a Priest-class bearer (+1) and a Wizard-class one (+2) while it is wielded, so the label says how much;
+  // only the Wizard class can also use its powers (ward off Medusa, wake the stone), so the others are not told "carrier cannot use".
   const bonus = tid === T_MAGIC_STAFF ? staffBonus(m.creatureId) : 0;
   // Wielded or worn items work only while in use (wielding weapons): say so rather than imply the item is helping.
   if (bonus > 0 && !isBorne(m, tid)) return { color: 'yellow', tag: 'carried · not wielded' };
   if (bonus > 0) {
-    if (!canUseArtifact(m.creatureId, tid)) return { color: 'yellow', tag: `+${bonus} magic · cannot use against Medusa` };
-    return usable.has(tid) ? { color: 'green', tag: `+${bonus} magic · usable now` } : { color: 'yellow', tag: `+${bonus} magic · not usable now` };
+    // Say it is wielded first (Peter, ZYBP: a wielded Staff read as merely carried), then the magic it adds. A bearer who cannot use its
+    // powers (a Priest-class one) is told only that; the Medusa and petrified-member powers are a Wizard's and are in the manual.
+    if (!canUseArtifact(m.creatureId, tid)) return { color: 'yellow', tag: `wielded · +${bonus} magic` };
+    return usable.has(tid) ? { color: 'green', tag: `wielded · +${bonus} magic · usable now` } : { color: 'yellow', tag: `wielded · +${bonus} magic · not usable now` };
   }
   // Played at the Viper Pit, the Flute keeps the Vipers asleep until the party leaves; say so rather than "not usable now".
   if (tid === T_CHARMED_FLUTE && canUseArtifact(m.creatureId, tid) && state.vipersLulledArea === state.partyArea) {
@@ -66,4 +68,11 @@ export function inventoryRows(state: GameState): InventoryRow[] {
       const t = ALL_TREASURES[tid]!;
       return { mi, idx, tid, name: t.name, weight: t.weight, artifact: t.kind === 'artifact', carrier: labels[mi]!, ...artifactState(state, mi, tid, usable) };
     }));
+}
+
+/** Where a given item now sits: it joins the end of the receiver's list, so once that list has grown past `before` entries the item
+ *  is its last. Null until the move has gone through (or if it was refused), so the card panel can follow the item to its new holder. */
+export function givenItemAt(state: GameState, to: number, before: number): { mi: number; idx: number } | null {
+  const n = state.party[to]?.treasure.length ?? 0;
+  return n > before ? { mi: to, idx: n - 1 } : null;
 }

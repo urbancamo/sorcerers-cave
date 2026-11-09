@@ -50,6 +50,10 @@ export function ItemActions({ state, dispatch, mi, idx }: { state: GameState; di
         </label>
       )}
       {openChest && <button type="button" className="scv-enc-btn" onClick={() => dispatch(openChest)}>Open the Treasure Chest</button>}
+      {/* Say which it is: the card's own words are "held by", so the state needs stating (Peter, ZYBP: "is she wielding it or not?"). */}
+      {alive && BORNEABLE.includes(tid) && (
+        <p className="scv-ia-state" data-testid="ia-state">{isBorne(m, tid) ? (useVerbs(tid).state === 'worn' ? 'Worn' : 'Wielded') : `Carried, not ${useVerbs(tid).state}`}</p>
+      )}
       {/* Wield or wear: an item's effect applies only while it is in use. Nothing is put in use for you. */}
       {alive && canArm(state, mi) && BORNEABLE.includes(tid) && (() => {
         const inUse = isBorne(m, tid), v = useVerbs(tid), refusal = inUse ? null : wieldRefusal(m, tid);

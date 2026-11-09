@@ -15,7 +15,7 @@ export function MatchChips({ chips, side, testId }: { chips: MatchChip[]; side: 
       {shown.map((c, k) => (
         <span key={k} className={`scv-mod scv-mod-${side === "party" ? "party" : "enemy"}${c.roll ? " is-roll" : ""}`}
               title={c.roll ? "applied to the die roll" : c.value !== 0 ? "included in the strength" : undefined}>
-          {c.label}{c.value !== 0 ? ` ${c.value > 0 ? "+" : "−"}${Math.abs(c.value)}` : ""}
+          {c.label}{c.value !== 0 ? ` ${c.value > 0 ? "+" : "−"}${Math.abs(c.value)}${c.roll ? " on the die" : ""}` : ""}
         </span>
       ))}
       {hidden > 0 && <button type="button" className="scv-mod scv-mod-more" onClick={() => setAll(true)}>+{hidden} more</button>}

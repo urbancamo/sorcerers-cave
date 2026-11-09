@@ -35,13 +35,28 @@ describe('PartyList', () => {
     expect(screen.getByText('Strength 2 · Magic 2')).toBeInTheDocument();
   });
 
-  it('expanded, totals the printed strength and magic of those able to fight', () => {
+  it('expanded, totals the strength and magic of those able to fight', () => {
     render(<PartyList expanded onToggleExpand={() => {}}
                       members={[member({ fs: 5 }), member({ label: 'Priest', partyIndex: 1, fs: 2, mp: 2 }),
                                 member({ label: 'Man', partyIndex: 2, fs: 3, petrified: true }),
                                 member({ label: 'The Sibyl', partyIndex: 3, fs: 0, sibyl: true })]} />);
     // the petrified Man and the Sibyl add nothing
     expect(screen.getByTestId('pl-total')).toHaveTextContent('2 able to fight · strength 7 · magic 2');
+  });
+
+  it('expanded, shows each bonus in effect beside the printed number (Peter\'s report, ZYBP)', () => {
+    render(<PartyList expanded onToggleExpand={() => {}}
+                      members={[member({ label: 'Witch', name: 'Witch', sig: 'W', fs: 1, mp: 4, mpParts: [{ label: 'Magic Staff', n: 1 }] }),
+                                member({ partyIndex: 1, fs: 4, fsParts: [{ label: 'Magic Sword', n: 2 }, { label: 'Dragon Slayer', n: 2 }] })]} />);
+    expect(screen.getByText('Strength 1 · Magic 4 + 1 (Magic Staff)')).toBeInTheDocument();
+    expect(screen.getByText('Strength 4 + 2 (Magic Sword) + 2 (Dragon Slayer)')).toBeInTheDocument();
+  });
+
+  it('expanded, the total counts the bonuses in effect', () => {
+    render(<PartyList expanded onToggleExpand={() => {}}
+                      members={[member({ label: 'Witch', name: 'Witch', fs: 1, mp: 4, mpParts: [{ label: 'Magic Staff', n: 1 }] }),
+                                member({ partyIndex: 1, fs: 4, fsParts: [{ label: 'Magic Sword', n: 2 }] })]} />);
+    expect(screen.getByTestId('pl-total')).toHaveTextContent('2 able to fight · strength 7 · magic 5');
   });
 
   it('collapsed, shows neither the stats nor the total', () => {

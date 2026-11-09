@@ -21,7 +21,7 @@ export function InventoryPanel({ rows, selected, onSelect }: {
               <span className="scv-inv-glyph" aria-hidden="true">{GLYPH[r.color]}</span>
               <span className="scv-inv-main">
                 <span className="scv-inv-name">{r.name}</span>
-                <span className="scv-inv-sub">carried by {r.carrier}{r.weight > 0 ? ` · ${r.weight} kg` : ''}</span>
+                <span className="scv-inv-sub">held by {r.carrier}{r.weight > 0 ? ` · ${r.weight} kg` : ''}</span>
               </span>
               <span className="scv-inv-tag">{r.tag}</span>
             </button>

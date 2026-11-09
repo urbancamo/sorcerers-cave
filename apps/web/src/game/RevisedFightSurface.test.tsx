@@ -592,6 +592,43 @@ describe("RevisedFightSurface", () => {
     expect(screen.getByText(/took them by surprise|surprised you/i)).toBeInTheDocument();
   });
 
+  it("a badge counts the die bonus: the side with surprise shows its strength plus one, on the party and on the strangers", () => {
+    const badge = (surprise: 1 | -1 | 0, tid: string, foe: boolean) => {
+      const st: GameState = structuredClone(attacking([OGRE], { surpriseReady: true }));
+      st.fight!.surprise = surprise; st.fight!.round = 1; st.fight!.rev!.attacker = surprise < 0 ? "strangers" : "party";
+      st.fight!.rev!.matches = [{ pf: [0], pb: [], sf: [0], sb: [] }];
+      const { unmount } = render(<RevisedFightSurface state={st} dispatch={vi.fn()} cards={cards} />);
+      const n = Number(screen.getByTestId(tid).querySelector(foe ? ".scv-match-foes .scv-fc-badge" : ".scv-fc-badge")!.textContent);
+      unmount();
+      return n;
+    };
+    expect(badge(1, "rev-mfront-0", false)).toBe(badge(0, "rev-mfront-0", false) + 1);   // the party's surprise
+    const foe = (sp: 1 | -1 | 0) => {
+      const st: GameState = structuredClone(attacking([OGRE], { surpriseReady: true }));
+      st.fight!.surprise = sp; st.fight!.round = 1; st.fight!.rev!.attacker = sp < 0 ? "strangers" : "party";
+      st.fight!.rev!.matches = [{ pf: [0], pb: [], sf: [0], sb: [] }];
+      const { container, unmount } = render(<RevisedFightSurface state={st} dispatch={vi.fn()} cards={cards} />);
+      const n = Number(container.querySelector(".scv-match-foes .scv-fc-badge")!.textContent);
+      unmount();
+      return n;
+    };
+    // the tally between the sides counts it too, so a lone fighter's badge and its side of the tally agree
+    const tally = (sp: 1 | -1) => {
+      const st: GameState = structuredClone(attacking([OGRE], { surpriseReady: true }));
+      st.fight!.surprise = sp; st.fight!.round = 1; st.fight!.rev!.attacker = sp < 0 ? "strangers" : "party";
+      st.fight!.rev!.matches = [{ pf: [0], pb: [], sf: [0], sb: [] }];
+      const { container, unmount } = render(<RevisedFightSurface state={st} dispatch={vi.fn()} cards={cards} />);
+      const r = { me: container.querySelector(".scv-match-vs .me")!.textContent, them: container.querySelector(".scv-match-vs .them")!.textContent,
+        myBadge: container.querySelector(".scv-match-party .scv-fc-badge")!.textContent, foeBadge: container.querySelector(".scv-match-foes .scv-fc-badge")!.textContent };
+      unmount();
+      return r;
+    };
+    expect(tally(1).me).toBe(tally(1).myBadge);
+    expect(tally(-1).them).toBe(tally(-1).foeBadge);
+    expect(foe(-1)).toBe(foe(0) + 1);   // the strangers' surprise
+    expect(foe(1)).toBe(foe(0));        // and not when it is the party's
+  });
+
   it("offers help for the step it is waiting on, opening upward beside the actions", () => {
     render(<RevisedFightSurface state={attacking([OGRE])} dispatch={vi.fn()} cards={cards} />);
     fireEvent.click(screen.getByRole("button", { name: "Help with this step" }));
