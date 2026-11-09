@@ -1,8 +1,37 @@
 # Changelog
 
-Source of changes: `Consolidated-Rules-20260925-2.pdf` (Peter Vodden, PDF dated 26 Sep 2026), compared against the
-previous text of this file (a copy of `Expanded Consolidated Rules PV2026.md`). The comparison covered the text only;
-the figures and page images in the PDF were not compared.
+Source of changes: `Consolidated-Rules-20261005.pdf` (rules) and `Consolidated Rules Appendices 20261006.pdf` (reference
+tables), both from Peter Vodden, compared against the previous text of this file. The comparison covered the text and
+tables only; the figures and page images in the rules PDF were not compared.
+
+## 2026-11-09 — Aligned with Consolidated-Rules-20261005 and Appendices 20261006
+
+**Rule content**
+
+- **Woman Hero:** reaction line now reads **4-6 Friendly** (it was "3-6", which overlapped the Hostile range on 3). The
+  source now agrees with the way the game already played it, so the clarification note under Woman Hero is removed.
+- **Title:** the document is now headed "CONSOLIDATE RULES (including Expansion Set and additional inclusions 2026)".
+- The rest of the rules text (Basic Rules, Fights, Card Reference, Player Interaction, Options, Example) is word for word
+  the same as before. Clarifications and house-rule notes added to this file earlier are kept.
+
+**Addendum reference tables (from the Appendices PDF)**
+
+- **Who can use artefacts** is replaced by the PDF's two tables, one for allies and one for strangers, with a column for
+  every creature. Changes from the old grouped table:
+  - **Healing Balm** is now listed: Woman Hero, Woman and the magic users (Apprentice, Priest, Scholar, Witch, Wizard).
+  - **Magic Sword, Magic Axe and Strength Potion** are for the humans (Hero, Woman Hero, Man, Thief, Woman) only. The
+    Priest class (Apprentice, Priest, Scholar, Witch, Wizard) no longer appears for them, for allies or strangers. The
+    Dwarf still uses the Magic Axe.
+  - **Elixir** is for humans and magic users only; the inhuman allies (Dwarf, Ogre, Troll, Lion, Wolf, Giant, Unicorn)
+    are blank in the PDF.
+  - **Woman Hero, Giant and Unicorn** now have columns of their own.
+  - Strangers: Magic Staff for the Sorcerer and the magic users, The Ring for every human and magic user, the Sorcerer
+    and the Dwarf (the Sorcerer column is house rule note 4).
+- **Creatures table:** Woman Hero is in the **base** pack (it was listed under Ext).
+- **Not taken from the PDF:** the Appendices PDF's table shows Hero STR 6 / PHY 6 and Spectre STR 4 / MAG 4. The rules PDF's
+  own cards say Hero STR 5 and Spectre STR 5 (MAG 5), and the game plays them that way, so those two rows are kept at
+  5 / 5 and 5 / 5. Peter should confirm which is right.
+- The areas and treasure tables are unchanged.
 
 ## 2026-10-11 — Dwarfs and traps (clarifications only)
 
@@ -40,7 +69,7 @@ the figures and page images in the PDF were not compared.
 
 ---
 
-## THE SORCERER’S CAVE
+## CONSOLIDATE RULES (including Expansion Set and additional inclusions 2026)
 
 IN THE HEART OF A FOREST in a faraway land is the entrance to a vast underground labyrinth, the treasure house of an
 evil Sorcerer. During his long lifetime of wicked deeds this Sorcerer has gathered immense wealth: heaps of silver and
@@ -837,14 +866,12 @@ as long as it contains a woman.
 
 ### Woman. STR 2. CAP 25 kg. 5 vp. Reacts: 1-2 Hostile. 3-4 Indifferent. 5-6 Friendly.
 
-### Woman Hero. STR 4. CAP 50 kg. 10 vp. Reacts: 1-3 Hostile. 3-6 Friendly.
+### Woman Hero. STR 4. CAP 50 kg. 10 vp. Reacts: 1-3 Hostile. 4-6 Friendly.
 
 *“If there is a HERO in your party, add 1 to the die roll when testing STRANGERS.”*
 
 The presence in a party of two heroes does not double the bonus on die rolls when testing strangers. The woman-hero has
 all the capabilities of a woman and a hero.
-
-*[Clarification, not in the original text: the reaction line "1-3 Hostile. 3-6 Friendly" overlaps on 3. Played as 1-3 Hostile, 4-6 Friendly, the same as the Hero. Confirmed by Mark Wickens, 05-OCT-2026.]*
 
 ## PLAYER INTERACTION
 
@@ -1067,184 +1094,49 @@ of B2, at a secret door.
 
 ## ADDENDUM - REFERENCE TABLES
 
-### ARTEFACTS – WHO CAN USE?
+### WHO CAN USE ARTEFACTS - ALLIES
 
-<table>
-    <tr>
-        <td><b>Creature Class</b></td>
-        <td>Human</td>
-        <td>Priest</td>
-        <td>Inhuman</td>
-        <td>Inhuman</td>
-        <td>Human</td>
-        <td>Priest</td>
-        <td>Inhuman</td>
-        <td>Inhuman</td>
-    </tr>
-<tr>
-<td><b>Creature Role</b></td>
-<td>Ally</td>
-<td>Ally</td>
-<td>Ally</td>
-<td>Ally</td>
-<td>Stranger</td>
-<td>Stranger</td>
-<td>Stranger</td>
-<td>Stranger</td>
-</tr>
-    <tr>
-    <td><b>Creature Type</b></td>
-<td>Man<br>Woman<br>Thief<br>Hero</td>
-<td>Priest<br>Witch<br>Scholar<br>Wizard<br>Apprentice</td>
-<td>Ogre<br>Troll<br>Lion<br>Wolf</td>
-<td>Dwarf</td>
-<td>Man<br>Woman<br>Thief<br>Hero</td>
-<td>Priest<br>Witch<br>Scholar<br>Wizard<br>Apprentice<br>Sorcerer (#4)</td>
-<td>Ogre<br>Troll<br>Lion<br>Wolf</td>
-<td>Dwarf</td>
-</tr>
-<tr>
-    <td>Charmed Flute</td>
-<td>YES</td>
-<td>YES</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr><td>Eye of God</td>
-<td>YES</td>
-<td>YES</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr><td>Magic Carpet</td>
-<td></td>
-<td>YES</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr><td>Magic Staff</td>
-<td></td>
-<td>YES (#1)</td>
-<td></td>
-<td></td>
-<td></td>
-<td>YES</td>
-<td></td>
-<td></td>
-</tr>
-<tr><td>Magic Sword</td>
-<td>YES</td>
-<td>YES</td>
-<td></td>
-<td></td>
-<td>YES</td>
-<td>YES</td>
-<td></td>
-<td></td>
-</tr>
-<tr><td>Strength Potion</td>
-<td>YES</td>
-<td>YES</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr><td>Talisman</td>
-<td>YES</td>
-<td>YES</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr><td>The Ring</td>
-<td>YES</td>
-<td>YES</td>
-<td></td>
-<td></td>
-<td>YES</td>
-<td>YES</td>
-<td></td>
-<td>YES</td>
-</tr>
-<tr><td>Elixir (#3)</td>
-<td>YES</td>
-<td>YES</td>
-<td>YES</td>
-<td>YES</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr><td>Holy Water</td>
-<td>YES</td>
-<td>YES</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr><td>Lotus Dust</td>
-<td>YES</td>
-<td>YES</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr><td>Magic Axe</td>
-<td>YES</td>
-<td>YES</td>
-<td></td>
-<td>YES (#2)</td>
-<td>YES</td>
-<td>YES</td>
-<td></td>
-<td>YES (#2)</td>
-</tr>
-<tr><td>Magic Shield</td>
-<td>YES</td>
-<td></td>
-<td></td>
-<td></td>
-<td>YES</td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-<tr><td>Scroll</td>
-<td>YES</td>
-<td>YES</td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-<td></td>
-</tr>
-</table>
+Columns are grouped as in the source: **Heroic Human** (Hero, Woman Hero), **Human** (Man, Thief, Woman), **Magic User Human** (Apprentice, Priest, Scholar, Witch, Wizard) and **Inhuman** (Dwarf, Giant, Lion, Ogre, Troll, Unicorn, Wolf).
+
+| Item | Hero | Woman-Hero | Man | Thief | Woman | Apprentice | Priest | Scholar | Witch | Wizard | Dwarf | Giant | Lion | Ogre | Troll | Unicorn | Wolf |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Charmed Flute | y | y | y | y | y | y | y | y | y | y |  |  |  |  |  |  |  |
+| Elixir (#3) | y | y | y | y | y | y | y | y | y | y |  |  |  |  |  |  |  |
+| Eye of God | y | y | y | y | y | y | y | y | y | y |  |  |  |  |  |  |  |
+| Healing Balm |  | y |  |  | y | y | y | y | y | y |  |  |  |  |  |  |  |
+| Holy Water | y | y | y | y | y | y | y | y | y | y |  |  |  |  |  |  |  |
+| Lotus Dust | y | y | y | y | y | y | y | y | y | y |  |  |  |  |  |  |  |
+| Magic Axe (#2) | y | y | y | y | y |  |  |  |  |  | y |  |  |  |  |  |  |
+| Magic Carpet |  |  |  |  |  | y | y | y | y | y |  |  |  |  |  |  |  |
+| Magic Shield | y | y | y | y | y |  |  |  |  |  |  |  |  |  |  |  |  |
+| Magic Staff (#1) |  |  |  |  |  | y | y | y | y | y |  |  |  |  |  |  |  |
+| Magic Sword | y | y | y | y | y |  |  |  |  |  |  |  |  |  |  |  |  |
+| Scroll | y | y | y | y | y | y | y | y | y | y |  |  |  |  |  |  |  |
+| Strength Potion | y | y | y | y | y |  |  |  |  |  |  |  |  |  |  |  |  |
+| Talisman | y | y | y | y | y | y | y | y | y | y |  |  |  |  |  |  |  |
+| The Ring | y | y | y | y | y | y | y | y | y | y | y |  |  |  |  |  |  |
+
+### WHO CAN USE ARTEFACTS - STRANGERS
+
+Same groups; **Magic User** here also includes the Sorcerer.
+
+| Item | Hero | Woman-Hero | Man | Thief | Woman | Sorcerer (#4) | Apprentice | Priest | Scholar | Witch | Wizard | Dwarf | Giant | Lion | Ogre | Troll | Unicorn | Wolf |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| Charmed Flute |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| Elixir (#3) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| Eye of God |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| Healing Balm |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| Holy Water |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| Lotus Dust |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| Magic Axe (#2) | y | y | y | y | y |  |  |  |  |  |  | y |  |  |  |  |  |  |
+| Magic Carpet |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| Magic Shield | y | y | y | y | y |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| Magic Staff (#1) |  |  |  |  |  | y | y | y | y | y | y |  |  |  |  |  |  |  |
+| Magic Sword | y | y | y | y | y |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| Scroll |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| Strength Potion |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| Talisman |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| The Ring | y | y | y | y | y | y | y | y | y | y | y | y |  |  |  |  |  |  |
 
 **NOTES**
 
@@ -1271,7 +1163,7 @@ of B2, at a secret door.
 | Witch      | 5   | 1   | 4   | -   | 10 |            | 3         |
 | Ogre       | 5   | 5   |     | 100 | 5  | 3          |           |
 | Spectre    | 5   |     | 5   | -   | -  | 3          |           |
-| Woman Hero | 4   |     |     | 50  | 10 |            | 1         |
+| Woman Hero | 4   |     |     | 50  | 10 | 1          |           |
 | Priest     | 4   | 2   | 2   | 25  | 8  | 3          |           |
 | Troll      | 4   |     |     | 75  | 4  | 3          |           |
 | Unicorn    | 4   |     |     | -   | 4  | 1          |           |
