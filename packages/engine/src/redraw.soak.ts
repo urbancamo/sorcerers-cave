@@ -76,18 +76,22 @@ const special = (card: number) => (card >> 7) & 15;
 // ---------------------------------------------------------------------------------------------------------------
 // the independent oracle: "is there any way left to carry on exploring from `start`?"
 
-function oracleViable(s: GameState, start: number): boolean {
+/** The lateral doorway the party came in by (matters on a Whirlpool only), read from where it stood before. */
+function arrivalOf(s: GameState, start: number): number | undefined {
+  if (!(start === s.partyArea && !s.fellThroughTrap && s.prev !== s.partyArea)) return undefined;
+  const c = unpackCoord(s.areas[start]!.coord), p = unpackCoord(s.areas[s.prev]!.coord);
+  if (p.level !== c.level) return undefined;
+  return p.y < c.y ? DIR_N : p.y > c.y ? DIR_S : p.x < c.x ? DIR_W : p.x > c.x ? DIR_E : undefined;
+}
+
+function oracleViable(s: GameState, start: number, arrival?: number): boolean {
   const at = new Map<number, number>();
   s.areas.forEach((a, i) => at.set(a.coord, i));
   const packLeft = s.largeIdx < s.largePack.length;
   const open = (i: number) => s.areas[i]!.card & ~(s.areas[i]!.deadDoors ?? 0);
 
-  // arrival doorway of the starting tile (matters on a Whirlpool only): the lateral side the party came in by
-  let arrival0: number | undefined;
-  if (start === s.partyArea && !s.fellThroughTrap && s.prev !== s.partyArea) {
-    const c = unpackCoord(s.areas[start]!.coord), p = unpackCoord(s.areas[s.prev]!.coord);
-    if (p.level === c.level) arrival0 = p.y < c.y ? DIR_N : p.y > c.y ? DIR_S : p.x < c.x ? DIR_W : p.x > c.x ? DIR_E : undefined;
-  }
+  // arrival doorway of the starting tile (matters on a Whirlpool only): the lateral side the party came in by, unless the caller says otherwise
+  const arrival0 = arrival ?? arrivalOf(s, start);
 
   const seen = new Set<string>();
   const work: [number, number | undefined][] = [[start, arrival0]];
@@ -274,7 +278,10 @@ function moveCase(s0: GameState, dir: number, stubName: string, enter: Stub, whe
     const wb = structuredClone(S1);
     wb.areas.push({ card: drawn, coord: targetC, faceUp: false, visited: false, contents: [], flags: 0, indiffCount: 0 });
     closeDoor(wb.areas[wb.partyArea]!, dir);
-    needSwap = !oracleViable(wb, wb.partyArea);
+    // On a Whirlpool a dead-end attempt still wades the party to that ledge (reduce.ts, bug fix 2026-10-12), so the way on is searched from
+    // the new ledge: arriving by `dir`, the doorway opposite it is unusable.
+    const wades = special(party.card) === SPECIAL_WHIRLPOOL && LATERAL.includes(dir) && arrivalOf(S1, S1.partyArea) !== undefined && arrivalOf(S1, S1.partyArea) !== dir;
+    needSwap = !oracleViable(wb, wb.partyArea, wades ? dir : undefined);
   }
   const undrawn = S1.largePack.slice(S1.largeIdx);
   const strictCards = needSwap ? undrawn.filter((c) => connects(c, dir) && entryLeavesWay(c)) : [];
