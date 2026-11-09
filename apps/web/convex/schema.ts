@@ -80,6 +80,28 @@ export default defineSchema({
     strategyId: v.optional(v.string()),
     latencyMs: v.optional(v.number()),
   }).index("by_game", ["gameId", "seq"]).index("by_strategyId", ["strategyId"]),
+  // In-game bug reports. Stored first, then forwarded to a GitHub issue by `bugReport.createIssue`
+  // (spec .agent-os/specs/2026-11-09-bug-report-tool). `contact` stays here — the issue is public.
+  bugReports: defineTable({
+    ownerId: v.id("users"),
+    gameId: v.optional(v.id("games")),
+    // Denormalised at submit time so the row stays readable if the game is later removed.
+    code: v.optional(v.string()),
+    testMode: v.boolean(),
+    description: v.string(),
+    expected: v.optional(v.string()),
+    category: v.union(v.literal("rules"), v.literal("display"), v.literal("crash"), v.literal("other")),
+    contact: v.optional(v.string()),
+    client: v.object({ userAgent: v.string(), viewport: v.string(), build: v.string() }),
+    // pending: waiting for (or retrying) the GitHub call; created: issue exists; failed: gave up.
+    status: v.union(v.literal("pending"), v.literal("created"), v.literal("failed")),
+    attempts: v.number(),
+    issueNumber: v.optional(v.number()),
+    issueUrl: v.optional(v.string()),
+    lastError: v.optional(v.string()),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_owner_and_created", ["ownerId", "createdAt"]).index("by_status", ["status"]),
   // Global, shared leaderboard. `party` and `state` keep the full final snapshot so the
   // attributes behind a score can be inspected later.
   highScores: defineTable({

@@ -2383,3 +2383,104 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
 @keyframes scv-hazard-deal { from { opacity: 0; transform: translateY(-14px) rotate(-4deg) scale(.92); } to { opacity: 1; transform: none; } }
 @media (prefers-reduced-motion: reduce) { .scv-hazard-piece-art { animation: none; } }
 @media (max-width: 480px) { .scv-hazard-piece-art { height: min(32vh, 260px); } }
+
+/* Bug report form (BugReportModal.tsx): the shared dice-card shell, left-aligned as a form. Fields follow
+   DESIGN.md's recessed-field recipe; the select reuses .scv-enc-select's brass chevron and option colours. */
+.scv-dice-card.scv-bug {
+  align-items: stretch;
+  gap: 16px;
+  box-sizing: border-box;
+  width: min(520px, 92vw);
+  padding: 24px 26px;
+  text-align: left;
+}
+.scv-bug .scv-dice-title { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.scv-bug-form { display: flex; flex-direction: column; gap: 16px; margin: 0; }
+.scv-bug-field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.scv-bug-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; min-height: 18px; } /* fixed height so paired fields line up whether or not they carry a hint */
+/* Engraved label: the system's Label voice (uppercase, tracked sans), in Weathered Stone so it stays legible on the dark card. */
+.scv-bug-head label {
+  font-family: var(--ui);
+  font-size: 10.5px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--stone);
+}
+.scv-bug-hint { font-family: var(--ui); font-size: 11.5px; color: var(--stone); }
+.scv-bug-field textarea,
+.scv-bug-field input {
+  box-sizing: border-box;
+  width: 100%;
+  font-family: var(--ui);
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--cream);
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--line-strong);
+  border-radius: 9px;
+  padding: 10px 12px;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.scv-bug-field textarea { resize: vertical; min-height: 6.5em; }
+.scv-bug-field textarea.short { min-height: 4.5em; }
+.scv-bug-field textarea::placeholder,
+.scv-bug-field input::placeholder { color: var(--stone); opacity: 0.7; }
+.scv-bug-field textarea:hover,
+.scv-bug-field input:hover { border-color: var(--brass); }
+.scv-bug-field textarea:focus,
+.scv-bug-field input:focus {
+  outline: none;
+  border-color: var(--brass-bright);
+  box-shadow: 0 0 0 2px rgba(230, 197, 120, 0.3);
+}
+/* Same recessed field as the inputs; the chevron, appearance reset and option colours come from .scv-enc-select. */
+.scv-bug-field select.scv-bug-select {
+  box-sizing: border-box;
+  width: 100%;
+  max-width: none;
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1.45;
+  padding: 10px 34px 10px 12px;
+  border-radius: 9px;
+  border-color: var(--line-strong);
+  background-color: rgba(0, 0, 0, 0.25);
+  background-position: right 13px center;
+}
+.scv-bug-field select.scv-bug-select:hover { border-color: var(--brass); background-color: rgba(0, 0, 0, 0.25); }
+.scv-bug-field select.scv-bug-select:focus-visible { border-color: var(--brass-bright); box-shadow: 0 0 0 2px rgba(230, 197, 120, 0.3); }
+.scv-bug-pair { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 14px; }
+.scv-bug-note { margin: 0; font-family: var(--ui); font-size: 12px; line-height: 1.5; color: var(--stone); }
+.scv-bug-error {
+  margin: 0;
+  padding: 9px 12px;
+  font-family: var(--ui);
+  font-size: 13px;
+  line-height: 1.4;
+  color: #e86b5c; /* DESIGN.md's legible-on-dark tint of Old Wound Red */
+  background: rgba(168, 68, 58, 0.12);
+  border: 1px solid var(--crimson);
+  border-radius: 9px;
+}
+/* One brass action, a ghost beside it, both right-aligned. */
+.scv-bug-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 2px; }
+.scv-bug-actions .scv-primary { margin-top: 0; }
+.scv-bug-thanks { text-align: left; }
+.scv-bug-receipt { display: grid; gap: 12px; margin: 0; padding: 14px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+.scv-bug-receipt dt { font-family: var(--ui); font-size: 10.5px; font-weight: 600; letter-spacing: 0.14em; text-transform: uppercase; color: var(--stone); }
+.scv-bug-receipt dd { margin: 4px 0 0; font-family: var(--mono, ui-monospace, monospace); font-size: 12.5px; color: var(--cream); word-break: break-all; user-select: all; }
+.scv-bug-receipt dd.code { font-family: var(--display); font-size: 22px; font-weight: 700; letter-spacing: 0.3em; color: var(--brass-bright); }
+/* The help popover opens from the card's top-right corner, so anchor it to the button's right edge and let it fall leftward
+   inside the card (the card scrolls, which would clip a popover opening to the right). Phones keep their fixed bottom sheet. */
+@media (min-width: 641px) { .scv-bug .scv-hb-pop { left: auto; right: 0; } }
+/* iOS zooms a focused field under 16px, so lift the type on small screens. */
+@media (max-width: 720px) {
+  .scv-bug-field textarea, .scv-bug-field input, .scv-bug-field select.scv-bug-select { font-size: 16px; }
+}
+@media (max-width: 480px) {
+  .scv-dice-card.scv-bug { padding: 20px 18px; }
+  .scv-bug-pair { grid-template-columns: minmax(0, 1fr); }
+  .scv-bug-actions { flex-direction: column-reverse; }
+  .scv-bug-actions button { width: 100%; }
+}

@@ -75,3 +75,25 @@ describe('TitleBar — full screen', () => {
     expect(screen.queryByRole('button', { name: /full screen/i })).toBeNull();
   });
 });
+
+describe('TitleBar bug icon', () => {
+  it('is shown in an ordinary game and in test mode', () => {
+    bar();
+    expect(screen.getByRole('button', { name: 'Report a bug' })).toBeInTheDocument();
+  });
+
+  it('is still shown, beside the T icon, in test mode', () => {
+    bar({ testMode: true });
+    expect(screen.getByRole('button', { name: 'Report a bug' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Test panel' })).toBeInTheDocument();
+  });
+
+  it('calls onBug and is not disabled during a fight', () => {
+    const onBug = vi.fn();
+    bar({ onBug, inFight: true });
+    const b = screen.getByRole('button', { name: 'Report a bug' });
+    expect(b).not.toBeDisabled();
+    fireEvent.click(b);
+    expect(onBug).toHaveBeenCalledOnce();
+  });
+});

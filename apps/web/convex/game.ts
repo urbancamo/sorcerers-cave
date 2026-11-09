@@ -1,4 +1,5 @@
-import { mutation, query, type MutationCtx } from "./_generated/server";
+import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
+import type { Doc } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { nextSeq, park } from "./strangerDecision";
 import { getAuthUserId } from "@convex-dev/auth/server";
@@ -297,28 +298,34 @@ export const log = query({
     const callerId = await getAuthUserId(ctx);
     const game = await ctx.db.get(id);
     if (!game || game.ownerId !== callerId) return null; // owner-scoped (IDOR guard)
-    const rows = await ctx.db
-      .query("gameEvents")
-      .withIndex("by_game", (q) => q.eq("gameId", id))
-      .collect(); // index order = seq ascending
-    return {
-      game: {
-        code: game.code ?? null,
-        seed: game.seed ?? null,   // null for games created before initial conditions were persisted
-        picks: game.picks ?? null,
-        color: game.color ?? null,
-        status: game.status,
-        createdAt: game.createdAt,
-        variants: game.variants ?? undefined, // extensionKit (SC-EXT-29) — undefined ⇒ kit-off
-        // Test Mode (SC-Test-1): read from the persisted state (server-authoritative, same pattern
-        // highScores.ts's `save` uses for its own testMode check), NOT a top-level row column like
-        // `variants` — so replay() can thread it through exactly as variants already is.
-        testMode: (game.state as GameState).testMode ?? undefined,
-      },
-      moves: rows.map((r) => ({ seq: r.seq, action: r.action, events: r.events })),
-    };
+    return gameLog(ctx, game);
   },
 });
+
+/** Shape a game row and its recorded actions into the `log` bundle. Shared with `bugReport`, which
+ *  attaches the same bundle to a GitHub issue. The caller is responsible for the ownership check. */
+export async function gameLog(ctx: QueryCtx, game: Doc<"games">) {
+  const rows = await ctx.db
+    .query("gameEvents")
+    .withIndex("by_game", (q) => q.eq("gameId", game._id))
+    .collect(); // index order = seq ascending
+  return {
+    game: {
+      code: game.code ?? null,
+      seed: game.seed ?? null,   // null for games created before initial conditions were persisted
+      picks: game.picks ?? null,
+      color: game.color ?? null,
+      status: game.status,
+      createdAt: game.createdAt,
+      variants: game.variants ?? undefined, // extensionKit (SC-EXT-29) — undefined ⇒ kit-off
+      // Test Mode (SC-Test-1): read from the persisted state (server-authoritative, same pattern
+      // highScores.ts's `save` uses for its own testMode check), NOT a top-level row column like
+      // `variants` — so replay() can thread it through exactly as variants already is.
+      testMode: (game.state as GameState).testMode ?? undefined,
+    },
+    moves: rows.map((r) => ({ seq: r.seq, action: r.action, events: r.events })),
+  };
+}
 
 /** Replay bundle for any solo game by its four-letter code — deliberately SHAREABLE, not
  *  owner-scoped (spec §RB-6-3): anyone holding the code may replay the game, so unlike

@@ -13,6 +13,11 @@ export const PLAY: Section = {
     { id: 'game-code', title: 'Your game code', brief: 'Four letters that take you straight back to this exact game.', cards: [], blocks: [
       note('good', 'Your game code', 'Every game is stamped with a unique **four-letter code**, shown in Settings. Entering it under *Resume a game* on the title screen drops you back into the same game, right where you left off. Progress is saved after every move, so you do **not** need to press *Save* first — the code works at any time, even mid-turn.'),
     ] },
+    { id: 'bug-report', title: 'Reporting a bug', brief: 'The bug icon sends the developer a report with this game attached.', cards: [], screens: ['explore'], blocks: [
+      p('If something looks wrong — a rule that does not seem to work as printed, a stuck game, a display glitch — press the **bug icon** in the title bar. Say what happened and what you expected, and choose the nearest category. You can open it at any moment, even in the middle of a fight; nothing happens in the game while it is open.'),
+      p('Your report goes to the developer as an issue on GitHub, together with this game\'s moves, its game code and your browser details, so the game can be replayed to the exact point. **The issue is public**, so please leave out anything private. A contact address is optional and is never published.'),
+      note('info', 'Test Mode', 'Reports sent from a Test Mode game are marked as such, so they are not mistaken for something a player met in a real game.'),
+    ] },
     { id: 'controls', title: 'Controls', brief: 'Move with N E S W or the arrow keys, U and D for stairs, or click a glowing marker.', cards: [], screens: ['explore'], blocks: [
       list(
         '**N E S W** (or the arrow keys: ↑ North, → East, ↓ South, ← West) — move through a doorway.',
@@ -22,6 +27,7 @@ export const PLAY: Section = {
         '**Party / Inventory icons** — the party list, or the items the party carries. The ⤢ button on the Party heading widens the same list to show each member\'s card, printed strength, magic and charisma, and a total for those able to fight; ⤡ puts it back. The party list is open when the game begins, so you can see the party you chose; close it and it stays closed.',
         '**Click a map tile** — describe that area in the card panel; click the same tile (or card, party member or item) again to put the card away. Arriving at a special chamber (the Chasm, the Well, the Bell Rope and the like) shows it there for you, and the bar of choices along the bottom takes the chamber\'s name.',
         '**Card / Settings / Exit icons** — the card panel; game information with the Game log; and Exit, which saves the game or abandons the expedition.',
+        '**Bug icon** — report something that looks wrong, with this game attached (see *Reporting a bug*).',
         '**Full screen icon** — fills the browser window; press it again, or Esc, to leave. Not shown where the browser has no full screen (iPhone).',
         '**Abandon** (under the Exit icon) — abandon the expedition after a confirmation (the party is left behind; the score is still tallied).',
       ),
@@ -45,6 +51,7 @@ export const PLAY: Section = {
         '**Area cards** — click any tile you are not standing on and the card panel shows that area card, or the fog card for unexplored ground. It describes its kind and exits, a Demon lurking there, and any strangers you left behind.',
         '**Compass & prompt** — your orientation and a running description of what just happened.',
         '**Card panel (right)** — the card under focus, with what the manual says about it in its *Help* section. It opens by itself when a card appears on the floor.',
+        '**Bug icon** — opens the bug report form; it can be used at any time and does not affect the game.',
         '**Help (?)** — this panel: help for the screen you are on, and the whole manual to browse and search.',
       ),
     ] },

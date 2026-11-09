@@ -9,6 +9,8 @@
  */
 
 import type * as auth from "../auth.js";
+import type * as bugReport from "../bugReport.js";
+import type * as bugReportIssue from "../bugReportIssue.js";
 import type * as endpointClient from "../endpointClient.js";
 import type * as game from "../game.js";
 import type * as highScores from "../highScores.js";
@@ -24,6 +26,8 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   auth: typeof auth;
+  bugReport: typeof bugReport;
+  bugReportIssue: typeof bugReportIssue;
   endpointClient: typeof endpointClient;
   game: typeof game;
   highScores: typeof highScores;
