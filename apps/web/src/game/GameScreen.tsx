@@ -29,6 +29,7 @@ import { TeleportEffect } from "./TeleportEffect";
 import { DeadEndSwapBadge, announceDeadEndSwaps } from "./DeadEndSwapBadge";
 import { SaveGameModal } from "./SaveGameModal";
 import { GameLogModal } from "./GameLogModal";
+import { BugReportModal } from "./BugReportModal";
 import type { GameLog } from "./gameLog";
 import { MULTIPLAYER_ENABLED } from "./featureFlags";
 import { MultiplayerSetup } from "./MultiplayerSetup";
@@ -102,6 +103,7 @@ export default function GameScreen() {
   // Shows the save/restore code modal when set. `restored` distinguishes a plain save (dismiss ⇒
   // back to menu) from a just-forked Test Mode scenario (dismiss ⇒ keep playing the new game).
   const [savedCode, setSavedCode] = useState<{ code: string; restored: boolean } | null>(null);
+  const [bugOpen, setBugOpen] = useState(false); // the bug report form; it dispatches nothing, so it is safe to open mid-fight or mid-roll
   const [showLog, setShowLog] = useState(false); // shows the game-log download modal when true
   // The Sorcerer's teleport in flight: the area chosen. The effect plays first and the action is dispatched at its
   // peak, when the screen is black (see TeleportEffect).
@@ -411,7 +413,7 @@ export default function GameScreen() {
             if (at >= 0) pick({ kind: 'area', index: at, name: area.name, file, rot });
           },
         }} />
-      <TitleBar left={fightVisible ? (leftSlot === 'inventory' ? 'inventory' : 'party') : leftSlot} right={rightSlot} testMode={!!displayState.testMode} testOpen={testOpen} onTest={() => setTestOpen((o) => !o)}
+      <TitleBar left={fightVisible ? (leftSlot === 'inventory' ? 'inventory' : 'party') : leftSlot} right={rightSlot} testMode={!!displayState.testMode} testOpen={testOpen} onTest={() => setTestOpen((o) => !o)} bugOpen={bugOpen} onBug={() => setBugOpen((o) => !o)}
                 // In a fight the list is always showing: Party returns to it, Inventory swaps it out and back.
                 onLeft={(p) => setLeftSlot((cur) => (fightVisible && p === 'party' ? 'party' : toggleLeft(cur, p)))} onRight={(p) => setRightSlot((cur) => toggleRight(cur, p))} />
       {rightSlot === 'card' && selected && (
@@ -475,6 +477,7 @@ export default function GameScreen() {
           onCopyDebugBundle={handleCopyDebugBundle}
         />
       )}
+      {bugOpen && <BugReportModal gameId={gameId} onClose={() => setBugOpen(false)} />}
       {showLog && <GameLogModal gameId={gameId} onClose={() => setShowLog(false)} />}
     </div>
     </HelpProvider>

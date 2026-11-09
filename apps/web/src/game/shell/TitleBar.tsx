@@ -16,6 +16,7 @@ const GLYPHS = {
   settings: <Icon><circle cx="12" cy="12" r="3" /><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" /></Icon>,
   exit: <Icon><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><path d="M16 17l5-5-5-5M21 12H9" /></Icon>,
   help: <span className="scv-ic scv-ic-t" aria-hidden="true">?</span>,
+  bug: <Icon><path d="M8 9a4 4 0 0 1 8 0v5a4 4 0 0 1-8 0V9z" /><path d="M12 9v9M8 11H4M16 11h4M8 15H4M16 15h4M9.5 5.5L8 3M14.5 5.5L16 3" /></Icon>,
   fullscreen: <Icon><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5" /></Icon>,
   test: <span className="scv-ic scv-ic-t" aria-hidden="true">T</span>,
 };
@@ -28,6 +29,7 @@ const BRIEF: Partial<Record<keyof typeof GLYPHS, string>> = {
   settings: 'game code, level, turn, verbose descriptions and the Game log',
   exit: 'save the game, or abandon the expedition',
   help: 'help for this screen, and the whole manual',
+  bug: 'report something that looks wrong, with this game attached',
   fullscreen: 'fill the browser window',
 };
 
@@ -47,8 +49,8 @@ function FullscreenButton() {
   return <IconButton id="fullscreen" label={on ? 'Exit full screen' : 'Full screen'} active={on} onClick={toggle} />;
 }
 
-/** The thin title bar: left icons open the party list or the inventory, right icons the card panel, Settings and (test mode only) the test panel. */
-export function TitleBar({ left, right, testMode, testOpen, inFight, onLeft, onRight, onTest }: {
+/** The thin title bar: left icons open the party list or the inventory, right icons the card panel, Settings, the bug report form and (test mode only) the test panel. */
+export function TitleBar({ left, right, testMode, testOpen, inFight, bugOpen, onLeft, onRight, onTest, onBug }: {
   left: LeftSlot;
   right: RightSlot;
   testMode: boolean;
@@ -56,7 +58,9 @@ export function TitleBar({ left, right, testMode, testOpen, inFight, onLeft, onR
   inFight?: boolean; // the left slot is the combat list, so the party and inventory icons are off
   onLeft: (pressed: Exclude<LeftSlot, null>) => void;
   onRight: (pressed: Exclude<RightSlot, null>) => void;
+  bugOpen?: boolean; // the bug report form is showing; like the test panel it sits outside the slots
   onTest?: () => void;
+  onBug?: () => void;
 }) {
   return (
     <header className="scv-titlebar">
@@ -69,6 +73,7 @@ export function TitleBar({ left, right, testMode, testOpen, inFight, onLeft, onR
         <IconButton id="card" label="Card panel" active={right === 'card'} onClick={() => onRight('card')} />
         <IconButton id="settings" label="Settings" active={right === 'settings'} onClick={() => onRight('settings')} />
         <IconButton id="help" label="Help" active={right === 'help'} onClick={() => onRight('help')} />
+        <IconButton id="bug" label="Report a bug" active={!!bugOpen} onClick={() => onBug?.()} />
         <FullscreenButton />
         {testMode && <IconButton id="test" label="Test panel" active={!!testOpen} onClick={() => onTest?.()} />}
         <IconButton id="exit" label="Exit" active={right === 'exit'} onClick={() => onRight('exit')} />

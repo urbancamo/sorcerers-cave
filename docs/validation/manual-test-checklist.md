@@ -101,3 +101,13 @@ After the above, play these through without stopping at problems:
 ## Notes
 - Record failures with the game seed, party, variants and the action list (the share or export option) so the game can be replayed.
 - Anything that looks wrong but matches the book is a ruling question, not a bug: add it to `docs/validation/rulings-register.md`.
+
+## Bug report tool
+
+- [ ] The bug icon is in the title bar of a normal solo game and of a Test Mode game (beside the `T` icon).
+- [ ] Opening the form mid-fight and mid-dice-roll changes nothing in the game; Close returns to exactly where you were.
+- [ ] Send with a short description is disabled; with 10+ characters it sends and shows a reference and the game code.
+- [ ] From a Test Mode game, with `GITHUB_ISSUES_TOKEN` set, an issue appears in `urbancamo/sorcerers-cave` labelled `bug-report`, `category:*` and `test-mode`, with the game code and (for a short game) the log. Close it afterwards.
+- [ ] With the token removed, Send still confirms, and the `bugReports` row shows `failed` / `not configured`.
+- [ ] A sixth report within an hour is refused with "Too many reports".
+

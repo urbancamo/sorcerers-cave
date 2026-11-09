@@ -212,3 +212,26 @@ never anything that affects scoring or must be tamper-proof:
 
 Set it the ordinary Vite way — in `apps/web/.env.local` (`VITE_MULTIPLAYER=1`), not via
 `npx convex env set` (it's never read by any Convex function).
+
+## `GITHUB_ISSUES_TOKEN` and `GITHUB_ISSUES_REPO`
+
+Turn on **GitHub issue creation for bug reports** (spec `.agent-os/specs/2026-11-09-bug-report-tool`). The bug icon in the
+title bar always saves a report in Convex (`bugReports`); when the token is set, `convex/bugReport.ts` also files it as an issue,
+labelled `bug-report`, a `category:*` label, and `test-mode` for a Test Mode game. Without the token the report is kept with
+`status: failed` and `lastError: 'not configured'`, and nothing is sent to GitHub.
+
+- `GITHUB_ISSUES_TOKEN` — a fine-grained personal access token for the one repository, with **Issues: read and write** and
+  nothing else. It lives only on the Convex deployment (never a `VITE_` variable) and is never logged or stored in an error.
+- `GITHUB_ISSUES_REPO` — `owner/name`; defaults to `urbancamo/sorcerers-cave`.
+
+Labels to create once in the repository: `bug-report`, `test-mode`, `category:rules`, `category:display`, `category:crash`,
+`category:other`.
+
+```bash
+cd apps/web
+npx convex env set GITHUB_ISSUES_TOKEN <token>          # local dev
+npx convex env set GITHUB_ISSUES_TOKEN <token> --prod   # production
+```
+
+Local dev and production currently share one Convex backend, so a report filed while testing lands in the real repository too.
+File test reports from a Test Mode game (labelled `test-mode`) and close them afterwards.
