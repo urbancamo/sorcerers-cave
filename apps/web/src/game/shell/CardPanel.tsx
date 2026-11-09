@@ -4,6 +4,7 @@ import type { ViewItem, ViewPartyMember } from '../../view/cave3d';
 import { cardText } from '../../data/cardText';
 import type { Award } from '../awards';
 import { CardHelp } from './CardHelp';
+import { figureText } from '../figures';
 import { HelpButton } from '../../manual/HelpButton';
 
 /** What the right-hand card panel is showing. */
@@ -13,7 +14,7 @@ export type Selected =
   | { kind: 'recruit'; id: number; name: string; file: string | null; cost: number | null; points: number } // a creature on the party-selection screen
   | { kind: 'member'; member: ViewPartyMember }
   | { kind: 'award'; award: Award; from: ViewPartyMember } // a permanent mark a member has earned
-  | { kind: 'item'; item: ViewItem; from: ViewPartyMember; at?: { mi: number; idx: number } }; // `at` marks the row in the inventory
+  | { kind: 'item'; item: ViewItem; from: ViewPartyMember; at?: { mi: number; idx: number }; giving?: { to: number; before: number } }; // `at` marks the row in the inventory; `giving` follows the card to its new holder once a give goes through
 
 const CATEGORY_LABEL: Record<string, string> = { creature: 'Stranger', treasure: 'Treasure', artifact: 'Artifact', hazard: 'Hazard' };
 
@@ -92,7 +93,7 @@ export function CardPanel({ selected, onItem, onMember, onAward, onClose, action
         <h2 className="scv-slot-hd">Party member</h2>
         <Face file={m.card} name={m.label} />
         <div className="scv-cp-name">{m.label}</div>
-        {!m.sibyl && <div className="scv-cp-meta">Strength {m.fs}{m.mp > 0 ? ` · magic ${m.mp}` : ''} · load {m.load}/{m.carry} kg</div>}
+        {!m.sibyl && <div className="scv-cp-meta">Strength {figureText(m.fs, m.fsParts)}{m.mp > 0 ? ` · magic ${figureText(m.mp, m.mpParts)}` : ''} · load {m.load}/{m.carry} kg</div>}
         {(m.items.length > 0 || m.awards.length > 0) && (
           <div className="scv-cp-minis" aria-label="Carrying">
             {m.items.map((it, i) => (
@@ -123,7 +124,7 @@ export function CardPanel({ selected, onItem, onMember, onAward, onClose, action
         </h2>
         <Face file={item.file} name={item.name} />
         <div className="scv-cp-name">{item.name}</div>
-        <div className="scv-cp-meta">{item.weight > 0 ? `${item.weight} kg` : '0 kg'} · carried by {from.label}</div>
+        <div className="scv-cp-meta">{item.weight > 0 ? `${item.weight} kg` : '0 kg'} · held by {from.label}</div>
         {text && <p className="scv-cp-text">{text}</p>}
         {actions}
         <CardHelp category={item.artifact ? 'artifact' : 'treasure'} name={item.name} />

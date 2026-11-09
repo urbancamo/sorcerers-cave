@@ -11,7 +11,7 @@ describe('InventoryPanel', () => {
     render(<InventoryPanel rows={[row(), row({ idx: 1, name: 'Silver', weight: 25, color: 'gray', tag: 'treasure only', carrier: 'Dwarf' })]} selected={null} onSelect={() => {}} />);
     expect(screen.getByText('usable now')).toBeInTheDocument();
     expect(screen.getByText('treasure only')).toBeInTheDocument();
-    expect(screen.getByText(/carried by Dwarf · 25 kg/)).toBeInTheDocument();
+    expect(screen.getByText(/held by Dwarf · 25 kg/)).toBeInTheDocument();
   });
 
   it('selects an item for the card panel', () => {

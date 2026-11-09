@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { newGame, SPECIAL_VIPER_PIT, type GameState } from '@sorcerers-cave/engine';
-import { inventoryRows, artifactState } from './inventory';
+import { inventoryRows, artifactState, givenItemAt } from './inventory';
 
 const HERO = 0, PRIEST = 4, DWARF = 7, WIZARD = 8;
 const T = { silver: 0, staff: 9, sword: 3, carpet: 4, lotus: 5, flute: 12, shield: 20 };
@@ -38,19 +38,26 @@ describe('inventory', () => {
   });
 
   describe('the Magic Staff', () => {
-    it('shows a Priest the +1 magic it adds, and that it cannot be used against Medusa (not "carrier cannot use")', () => {
+    it('shows a Priest-class bearer that the Staff is wielded and the +1 magic it adds (not "carrier cannot use")', () => {
       const s = game([[PRIEST, [T.staff]]]);
       s.party[0]!.borne = [T.staff]; // wielded: only then does it add magic
       const [r] = inventoryRows(s);
-      expect(r).toMatchObject({ color: 'yellow', tag: '+1 magic · cannot use against Medusa' });
+      expect(r).toMatchObject({ color: 'yellow', tag: 'wielded · +1 magic' });
     });
 
     it('shows a Wizard the +2 magic it adds, and whether its powers can be used now', () => {
       const s = game([[WIZARD, [T.staff]]]);
       expect(artifactState(s, 0, T.staff, new Set())).toEqual({ color: 'yellow', tag: 'carried · not wielded' }); // carried: no magic, no powers
       s.party[0]!.borne = [T.staff];
-      expect(artifactState(s, 0, T.staff, new Set())).toEqual({ color: 'yellow', tag: '+2 magic · not usable now' });
-      expect(artifactState(s, 0, T.staff, new Set([T.staff]))).toEqual({ color: 'green', tag: '+2 magic · usable now' });
+      expect(artifactState(s, 0, T.staff, new Set())).toEqual({ color: 'yellow', tag: 'wielded · +2 magic · not usable now' });
+      expect(artifactState(s, 0, T.staff, new Set([T.staff]))).toEqual({ color: 'green', tag: 'wielded · +2 magic · usable now' });
+    });
+
+    it("tells a Witch who wields it that it is wielded, not carried (Peter's report, ZYBP)", () => {
+      const s = game([[18, [T.staff]]]);
+      expect(inventoryRows(s)[0]).toMatchObject({ color: 'yellow', tag: 'carried · not wielded' });
+      s.party[0]!.borne = [T.staff];
+      expect(inventoryRows(s)[0]).toMatchObject({ color: 'yellow', tag: 'wielded · +1 magic' });
     });
 
     it('still reads as no use to a class that gains nothing from it', () => {
@@ -121,5 +128,15 @@ describe('playing the Flute at the Viper Pit', () => {
     const s = game([[HERO, [T.flute]]], { phase: 'explore' });
     s.areas[s.partyArea]!.card = (SPECIAL_VIPER_PIT << 7) | 31;
     expect(useOptions(s, T.flute).map((o) => o.label)).toContain('lull the Vipers');
+  });
+});
+
+describe('givenItemAt', () => {
+  it('finds the item at the end of the receiver once it has arrived, and not before', () => {
+    const state = game([[HERO, [T.sword]], [WIZARD, [T.silver]]]);
+    const before = state.party[1]!.treasure.length;
+    expect(givenItemAt(state, 1, before)).toBeNull();
+    state.party[1]!.treasure.push(9);
+    expect(givenItemAt(state, 1, before)).toEqual({ mi: 1, idx: before });
   });
 });

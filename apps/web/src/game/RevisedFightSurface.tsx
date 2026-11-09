@@ -3,7 +3,7 @@ import { UnusedGearNote } from "./UnusedGearNote";
 // ALL_CREATURES/ALL_TREASURES (SC-EXT-29): a kit id or a Ghoul can stand in any fight.
 import {
   ALL_CREATURES, ALL_TREASURES, isCaster, legalActions, fightView, freeOf, matchStrength, partyContribution, matchModifiers, legalMoves, legalPairs, deployViolation, engageViolation, engageMovesViolation, redeployViolation,
-  type GameState, type GameAction, type UnitView,
+  type GameState, type GameAction, type UnitView, type MatchChip,
 } from "@sorcerers-cave/engine";
 import type { CardArt } from "../data/manifest";
 import { FightCard } from "./FightCard";
@@ -116,8 +116,8 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
     <FightCard key={`p${i}`} creatureId={state.party[i]!.creatureId} label={labels[i]} kind={partyUnits.get(i)?.caster ? "caster" : "ally"}
                strength={extra.strength ?? partyUnits.get(i)?.strength ?? 0} treasure={fightGear(state.party[i]!)} cards={cards} state={state} variantIdx={partyCopy.get(i)} {...extra} />
   );
-  const strangerCard = (s: number, extra: { onPick?: () => void; selected?: boolean; testId?: string; dim?: boolean; caption?: string } = {}) => (
-    <FightCard key={`s${s}`} creatureId={state.strangers[s]!} kind="foe" strength={strangerUnits.get(s)?.strength ?? 0}
+  const strangerCard = (s: number, extra: { onPick?: () => void; selected?: boolean; testId?: string; dim?: boolean; caption?: string; strength?: number } = {}) => (
+    <FightCard key={`s${s}`} creatureId={state.strangers[s]!} kind="foe" strength={extra.strength ?? strangerUnits.get(s)?.strength ?? 0}
                treasure={[...(fight.gear?.[s] ?? [])]} cards={cards} state={state} variantIdx={strangerCopy.get(s)} {...extra} />
   );
 
@@ -256,6 +256,9 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
   const leadRank = (ss: readonly number[]): number => Math.max(...ss.map((x) => ALL_CREATURES[state.strangers[x]!]?.leaderPri ?? 0));
   const leaderFirst = (ss: readonly number[]): number[] => [...ss].sort((a, b) =>
     (ALL_CREATURES[state.strangers[b]!]?.leaderPri ?? 0) - (ALL_CREATURES[state.strangers[a]!]?.leaderPri ?? 0) || a - b);
+  // What is added to a side's die in this match (surprise, the Ring, curses). It is fight-wide, so a badge counts it once: on the side's lead
+  // card and in the tally between the sides, which then show the strength that will actually be rolled against.
+  const dieBonus = (chips: MatchChip[], side: "party" | "strangers"): number => chips.filter((c) => c.roll && c.side === side).reduce((n, c) => n + c.value, 0);
   const renderMatch = (m: typeof rev.matches[number], mi: number) => {
     // the match as it will stand once the placements being made are confirmed: the tally and the chips both count them
     const aug = { ...m, pf: [...m.pf, ...addedTo(mi, false)], pb: [...m.pb, ...addedTo(mi, true)] };
@@ -269,17 +272,17 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
                   <span className="scv-match-slotlbl">✦ behind</span>
                   {m.sb.map((s) => strangerCard(s))}
                 </div>
-                <div className="scv-match-front">{leaderFirst(m.sf).reverse().map((s) => strangerCard(s))}</div>
+                <div className="scv-match-front">{leaderFirst(m.sf).reverse().map((s) => strangerCard(s, s === leaderFirst(m.sf)[0] ? { strength: (strangerUnits.get(s)?.strength ?? 0) + dieBonus(bd.chips, "strangers") } : {}))}</div>
               </div>
               <MatchChips chips={bd.chips} side="strangers" testId={`rev-mods-foe-${mi}`} />
             </div>
             <div className="scv-match-vs">
-              <span className="them">{total.strangers}</span><span className="x">vs</span><span className="me">{total.party}</span>
+              <span className="them">{total.strangers + dieBonus(bd.chips, "strangers")}</span><span className="x">vs</span><span className="me">{total.party + dieBonus(bd.chips, "party")}</span>
             </div>
             <div className="scv-match-party">
               <div className="scv-match-line">
                 <div className="scv-match-front" {...slotProps(mi, false, `rev-mfront-${mi}`)}>
-                  {m.pf.map((i) => partyCard(i, { strength: partyContribution(state, m, i, false) }))}
+                  {m.pf.map((i, k) => partyCard(i, { strength: partyContribution(state, m, i, false) + (k === 0 ? dieBonus(bd.chips, "party") : 0) }))}
                   {addedTo(mi, false).map((i) => partyCard(i, { testId: `rev-join-${i}`, caption: "joining — tap to undo", onPick: () => takeBack(i) }))}
                   {/* The front holds two positions, as in the battle plan: empty ones only fill it out, so a second fighter never widens the row. */}
                   {placing && Array.from({ length: Math.max(0, 2 - m.pf.length - addedTo(mi, false).length) }, (_, k) => (
@@ -315,7 +318,7 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
                   </div>
                   <div className="scv-match-front">
                     {strangerCard(s, {
-                      testId: `rev-foe-${s}`, dim: !front && !paired,
+                      testId: `rev-foe-${s}`, dim: !front && !paired, strength: (strangerUnits.get(s)?.strength ?? 0) + dieBonus(chips, "strangers"),
                       caption: front ? "in front" : rev.deployed.strangers.length ? "held back" : undefined,
                       onPick: target ? () => tapFoe(s) : undefined,
                     })}
@@ -324,8 +327,8 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
                 <MatchChips chips={chips} side="strangers" testId={`rev-mods-foe-${s}`} />
               </div>
               <div className="scv-match-vs">
-                <span className="them">{total.strangers}</span><span className="x">vs</span>
-                <span className="me">{total.party}</span>
+                <span className="them">{total.strangers + dieBonus(chips, "strangers")}</span><span className="x">vs</span>
+                <span className="me">{total.party + dieBonus(chips, "party")}</span>
               </div>
               <div className="scv-match-party">
                 <div className="scv-match-line">
@@ -334,7 +337,7 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
                        onKeyDown={target ? (e) => { if (e.key === "Enter") tapFoe(s); } : undefined}
                        onDragOver={target ? (e) => e.preventDefault() : undefined}
                        onDrop={target ? (e) => { e.preventDefault(); tapFoe(s, e.dataTransfer.getData("application/x-scv-member")); } : undefined}>
-                    {paired && partyCard(paired.party, { caption: "tap to take back" })}
+                    {paired && partyCard(paired.party, { caption: "tap to take back", strength: partyContribution(state, pm, paired.party, false) + dieBonus(chips, "party") })}
                     {paired && addedToFoe(s, false).map((i) => partyCard(i, { testId: `rev-join-${i}`, caption: "joining — tap to undo", onPick: () => takeBack(i) }))}
                     {paired && target && addedToFoe(s, false).length === 0 && <span className="scv-slot-empty">drop a creature</span>}
                     {!paired && <span className="scv-slot-empty">{target ? "pick a creature, then tap here" : "—"}</span>}

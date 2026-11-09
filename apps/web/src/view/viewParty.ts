@@ -2,6 +2,7 @@ import { ALL_CREATURES, ALL_TREASURES, FLAG_CHARISMA, type GameState } from "@so
 import { resolveCard, type CardArt } from "../data/manifest";
 import { memberLabels } from "../game/memberLabels";
 import { awardsOf } from "../game/awards";
+import { memberFigures } from "../game/figures";
 import type { ViewPartyMember } from "./cave3d";
 
 const isAlive = (status: number) => status === 0 || status === 1; // original or ally (not stone/dead)
@@ -28,6 +29,7 @@ export function viewParty(state: GameState, cards: CardArt[] = []): ViewPartyMem
       const art = resolveCard("treasure", tid, cards);
       return { name: t.name, file: art?.file ?? null, weight: t.weight, artifact: t.kind === "artifact" };
     });
+    const figures = memberFigures(state, origIdx);
     const load = m.treasure.reduce((sum, tid) => sum + ALL_TREASURES[tid]!.weight, 0);
     return {
       sig: c.name[0]!.toUpperCase(),
@@ -43,6 +45,8 @@ export function viewParty(state: GameState, cards: CardArt[] = []): ViewPartyMem
       load,
       fs: c.fs,
       mp: c.mp,
+      fsParts: figures.fsParts,
+      mpParts: figures.mpParts,
       charisma: (c.flags & FLAG_CHARISMA) !== 0,
       ally: m.status === 1,
       petrified: m.status === 2,

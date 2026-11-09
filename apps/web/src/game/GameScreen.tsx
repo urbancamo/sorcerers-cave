@@ -49,7 +49,7 @@ import { SibylNote } from "./shell/SibylNote";
 import { medusaSelection } from "./shell/medusaSelection";
 import { SibylLook } from "./SibylLook";
 import { memberLabels } from "./memberLabels";
-import { inventoryRows } from "./inventory";
+import { inventoryRows, givenItemAt } from "./inventory";
 import { viewParty } from "../view/viewParty";
 import { PartyList } from "./shell/PartyList";
 import { SettingsPanel } from "./shell/SettingsPanel";
@@ -166,6 +166,15 @@ export default function GameScreen() {
   const onShow = holding && heldState ? heldState : state;
   partyAreaNow.current = onShow?.partyArea ?? -1;
   useEffect(() => { if (selected?.kind === 'member' && selected.member.sibyl) sibylOpen.current.area = partyAreaNow.current; }, [selected]);
+  // Giving an item hands it to another member; keep its card open, now on its new holder, so it can be wielded straight away.
+  useEffect(() => {
+    if (selected?.kind !== 'item' || !selected.giving || !onShow) return;
+    const at = givenItemAt(onShow, selected.giving.to, selected.giving.before);
+    if (!at) return;
+    const from = viewParty(onShow, cards ?? []).find((v) => v.label === memberLabels(onShow.party)[at.mi]);
+    const item = from?.items[at.idx];
+    if (from && item) setSelected({ kind: 'item', item, from, at });
+  }, [selected, onShow, cards]);
   useOfferOnPickup(!!onShow && onShow.phase === 'pickup' && !holding && onShow.treasures.length > 0, `${onShow?.partyArea}:${onShow?.treasures.join(',')}`, () => {
     const piece = engine?.current.treasure[0];
     if (!piece) return;
@@ -420,7 +429,8 @@ export default function GameScreen() {
         <CardPanel selected={selected} floor={floorCards} onFloor={(card) => selected.kind === 'card' && setSelected({ kind: 'card', card, where: selected.where })} onAward={(award, from) => setSelected({ kind: 'award', award, from })} areaText={selected.kind === 'area' ? describeArea(displayState, selected.index, verbose) : undefined} onMember={(member) => setSelected({ kind: 'member', member })}
                    onItem={(item, from) => setSelected({ kind: 'item', item, from })}
                    actions={selected.kind === 'card' && !holding ? <><FloorTreasureActions state={displayState} dispatch={dispatchWithRolls} card={selected.card} /><SibylNote state={displayState} card={selected.card} /></>
-                   : selected.kind === 'item' && itemLive ? <ItemActions state={displayState} dispatch={dispatchWithRolls} mi={itemLive.mi} idx={itemLive.idx} />
+                   : selected.kind === 'item' && itemLive ? <ItemActions state={displayState} mi={itemLive.mi} idx={itemLive.idx}
+                       dispatch={(a) => { if (a.type === 'moveTreasure') setSelected({ ...selected, giving: { to: a.to, before: displayState.party[a.to]?.treasure.length ?? 0 } }); dispatchWithRolls(a); }} />
                    // The Sibyl's free look is reachable only from her own card, and never prompted.
                    : selected.kind === 'member' && selected.member.sibyl && sibylLooks.length > 0
                      ? <SibylLook state={displayState} actions={sibylLooks} dispatch={dispatchWithRolls} tools={{ pick: pickDestination, peek: (a) => caveApi.current?.peekTile(a) }} />

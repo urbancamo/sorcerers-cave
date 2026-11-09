@@ -124,4 +124,11 @@ describe("viewParty — elixir", () => {
     state.party[0]!.fsBonus = 2;
     expect(viewParty(state)[0]!.awards).toEqual([{ kind: "elixir", bonus: 2, title: "Elixir — +2 fighting strength, for ever" }]);
   });
+
+  it("carries the bonuses in effect, so a wielded Staff shows on the Witch's roster entry", () => {
+    const state = newGame(1, [5], { extensionKit: true });
+    state.party = [{ creatureId: 18, status: 0, dragonKills: 0, treasure: [9], borne: [9] }];
+    const [witch] = viewParty(state);
+    expect(witch).toMatchObject({ fs: 1, mp: 4, fsParts: [], mpParts: [{ label: "Magic Staff", n: 1 }] });
+  });
 });

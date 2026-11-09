@@ -11,9 +11,17 @@ describe("MatchChips", () => {
     const row = screen.getByTestId("p");
     expect(row).toHaveTextContent("Magic Sword · Man +1");
     expect(row).toHaveTextContent("Magic Shield · Wizard −3");
-    expect(screen.getByText("The Ring +1")).toHaveAttribute("title", "applied to the die roll");
+    expect(screen.getByText("The Ring +1 on the die")).toHaveAttribute("title", "applied to the die roll");
     expect(screen.getByText("Magic Sword · Man +1")).toHaveAttribute("title", "included in the strength");
     expect(row).not.toHaveTextContent("Ogre note");              // the strangers' chips belong under the strangers
+  });
+
+  it("says a surprise bonus goes on the die, for the strangers as well as the party", () => {
+    const chips = [chip("Surprise", 1, "party", true), chip("Surprise", 1, "strangers", true)];
+    const { rerender } = render(<MatchChips side="party" testId="p" chips={chips} />);
+    expect(screen.getByTestId("p")).toHaveTextContent("Surprise +1 on the die");
+    rerender(<MatchChips side="strangers" testId="p" chips={chips} />);
+    expect(screen.getByTestId("p")).toHaveTextContent("Surprise +1 on the die");
   });
 
   it("puts the match-wide notes (the Eye) on the party's side only, without a number", () => {
