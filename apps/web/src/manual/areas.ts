@@ -23,7 +23,7 @@ export const AREAS: Section = {
     ] },
     { id: 'area-chamber', title: 'Chambers and tunnels', cards: cards('area', 'Chamber', 'Tunnel'), blocks: [
       p('The first time you enter a **chamber** you draw small cards onto its floor, and the deeper you are the more the cave throws at you: 1 card on level 1, 2 on level 2, 3 on level 3, 4 on level 4 and deeper.'),
-      p('A doorway only leads somewhere if its edge matches the area beyond it. If it does not, you have found a **dead end**: that exit closes, but you may try another.'),
+      p('A doorway only leads somewhere if its edge matches the area beyond it. If it does not, you have found a **dead end**: that exit closes, but you may try another. Once you can see that a doorway leads nowhere (the area beyond is already on the map and has no matching doorway), the game stops offering it, so you never waste a turn on it.'),
     ] },
     { id: 'area-whirlpool', title: 'The Whirlpool', variant: 'kit', cards: cards('area', 'The Whirlpool'), blocks: [
       p('Enters like an ordinary chamber. Leave by any doorway but the one you came in by and the shallows roll a d6: **1–2** drags the party down a level; **3–6** and the crossing is safe.'),

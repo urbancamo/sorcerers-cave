@@ -34,7 +34,7 @@ export const PLAY: Section = {
     ] },
     { id: 'moving', title: 'Moving between areas', brief: 'A doorway only leads somewhere if its edge matches the area beyond it.', cards: [], screens: ['explore'], blocks: [
       p('Click a glowing doorway marker, or press **N / E / S / W**, to step that way. **U / D** climbs or descends a stairway.'),
-      p('A doorway only leads somewhere if its edge matches the area beyond it. If it does not, you have found a **dead end**: that exit closes, but you may try another.'),
+      p('A doorway only leads somewhere if its edge matches the area beyond it. If it does not, you have found a **dead end**: that exit closes, but you may try another. Once you can see that a doorway leads nowhere (the area beyond is already on the map and has no matching doorway), the game stops offering it, so you never waste a turn on it.'),
       p('The card you drew is shown face up for a few seconds, then fades to a grey **fog card** with a stub on each side you have tried it from, and stays that way. From then on you must remember what it was, until a party enters it from another side or the Sibyl shows it to you.'),
       p('If a dead end would leave your party with nowhere left to go, the game checks every tile you can still walk back to. If none has a way on, the card that made the dead end goes back into the pack at a random place and another is drawn for the same door. A small badge on the map marks a card that was swapped. A failed **retreat** is never rescued. If no way on is left at all you are told so and may play on, or quit.', 'forcedRedraw'),
       p('When you descend, the floor you came from is hidden automatically so it never blocks your view of where you now stand.'),
