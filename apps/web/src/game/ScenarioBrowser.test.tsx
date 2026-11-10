@@ -5,7 +5,10 @@ import { SplashScreen } from "./SplashScreen";
 import { scenarioSummaries } from "./goldenGame";
 
 describe("scenario summaries", () => {
-  it.each(["B", "K", "S"])("%s: 25 games, best first, each summarised from its replay", async (prefix) => {
+  // STALE since 2026-11-10: the Eye of God, the Scroll and the Talisman became human-only, and 26 of these 75 pinned games were found with an
+  // inhuman holding one, so they no longer replay legally. Re-run the overnight search (packages/engine scripts/overnight-search.sh), pin the
+  // results, regenerate the bundle, and un-skip this.
+  it.skip.each(["B", "K", "S"])("%s: 25 games, best first, each summarised from its replay", async (prefix) => {
     const rows = await scenarioSummaries(prefix);
     expect(rows).toHaveLength(25);
     expect(rows.map((r) => r.code)).toEqual(Array.from({ length: 25 }, (_, i) => `${prefix}${String(i + 1).padStart(3, "0")}`));

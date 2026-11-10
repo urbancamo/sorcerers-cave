@@ -8,7 +8,7 @@ import { rollDie } from "./rng";
 import { GS_PLAYING, type GameState, type PartyMember } from "./state";
 
 /**
- * Special area cards, checked against Peter's Expanded Consolidated Rules PV2026 V2 (§Special area cards).
+ * Special area cards, checked against Peter's Expanded Consolidated Rules PV2026 V3 (§Special area cards).
  * Clause list: docs/validation/clauses/special-areas.md. Differences are recorded in the rulings register
  * (R-29, R-30) and asserted with `it.fails` so they turn red the day the engine changes.
  */

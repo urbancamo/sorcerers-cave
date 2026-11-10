@@ -56,9 +56,9 @@ export const TREASURE: Section = {
     artefact('The Ring', 'ring', 'When worn by a Man, Woman, Priest, Wizard, Hero or Dwarf, adds 1 to the die rolls of your party. Also makes the bearer invincible on the fourth level or deeper.',
       'As written. It must be worn: the +1 applies while any member wears it; invincibility only on level 4+.'),
     artefact('Talisman', 'talisman', 'Wards off Zombies and Ghouls from the party displaying it. On the fourth level or deeper, also wards off Spectres.',
-      'It must be worn by any one living member to ward the whole party: Ghouls, and (on level 4+) Spectres. It also keeps the Harpies away. Zombies do not appear in this deck.'),
+      'It must be worn by one living **human or magic user** to ward the whole party: Ghouls, and (on level 4+) Spectres. It also keeps the Harpies away. An Ogre, Troll, Dwarf, Giant, Lion, Wolf or Unicorn may carry it, but wearing it does nothing. Zombies do not appear in this deck.'),
     artefact('Eye of God', 'eye', 'A gem which renders powerless all magic in the area, and annihilates Spectres and Zombies. Having taken it up, you must keep it; otherwise you will be cursed.',
-      'Nullifies magic and destroys Spectres; also stills the Lost Ruby statue. In a fight it covers the whole area: it switches off every artefact and magic bonus on *both* sides and stops the strangers arming themselves. The Sorcerer is the one exception (−2 only).', {}, [
+      'Nullifies magic and destroys Spectres; also stills the Lost Ruby statue. Only a **human or magic user** can use it: held by an Ogre, Troll, Dwarf, Giant, Lion, Wolf or Unicorn it does nothing (lying on the floor of a chamber it still counts). In a fight it covers the whole area: it switches off every artefact and magic bonus on *both* sides and stops the strangers arming themselves. The Sorcerer is the one exception (−2 only).', {}, [
         note('danger', 'Keep it or be cursed', 'Once taken up, the Eye must stay with the party. Passing it to another member is fine, but drop it, or lose it with its bearer, and a curse falls on the party: **−1 to every roll** (a roll outside a fight never drops below 1) and the −30 score penalty. Each further curse stacks. Slaying the Sorcerer lifts every curse.'),
       ]),
     artefact('Charmed Flute', 'flute', 'When played by a Man, Woman, Hero, Priest or Wizard, lulls Dragons and Vipers to sleep. Also opens secret doors. Sleeping creatures are protected by a curse.',
@@ -79,7 +79,7 @@ export const TREASURE: Section = {
     artefact('Magic Axe', 'axe', 'Adds 1 to the Strength of a MAN, WOMAN, or HERO; 3 to that of a DWARF. Also enables the bearer to fight a DEMON.',
       'As written — the Woman Hero gets +1, not +3. It must be wielded, and only one attacking weapon at a time. An active Eye of God silences the bonus, but any wielder may still stand against a Demon. Not used up.', { variant: 'kit' }),
     artefact('Scroll', 'scroll', 'On being read by any HUMAN, destroys all enemies in an area other than those with Magical Power. Any party using it is CURSED.',
-      'As written — no target picker, just a living human present. Anything with magical power 0 (Man, Woman, Ogre, Troll, Dwarf, Lion, Wolf, even a Dragon) falls; any caster, the Spectre and the Demon shrug it off. The curse lasts until the Sorcerer falls. Used up.', { variant: 'kit' }, [
+      'As written — no target picker, but it must be carried by a living **human or magic user** (an Ogre or Dwarf carrying it cannot read it). Anything with magical power 0 (Man, Woman, Ogre, Troll, Dwarf, Lion, Wolf, even a Dragon) falls; any caster, the Spectre and the Demon shrug it off. The curse lasts until the Sorcerer falls. Used up.', { variant: 'kit' }, [
         note('info', 'House rule', 'Under the revised combat it is read at the start of a round instead, and it is not used up.', 'combatRevision'),
       ]),
     artefact('Magic Shield', 'shield', 'When borne by a MAN, WOMAN, or HERO, nullifies the opponent\'s magical power. Reduces the power of SORCERER or APPRENTICE by 2.',

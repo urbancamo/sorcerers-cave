@@ -18,7 +18,7 @@ import { ALL_TREASURES } from "./data/treasures";
 import { inUse } from "./loot";
 import { rollDieForState } from "./rng";
 import { casterMP, frontStrength, isCaster, partyRollBonus } from "./combat";
-import { activeCurses, eyeForsakenByDeath, eyePresent, hasLivingHuman, markDied, ringInvincible, slaySorcerer } from "./effects";
+import { activeCurses, canUseArtifact, eyeForsakenByDeath, eyePresent, hasLivingHuman, markDied, ringInvincible, slaySorcerer } from "./effects";
 import { axeBonus, staffBonus, swordBonus } from "./capabilities";
 import {
   MAGIC_ONLY_IDS, enemyMP, enemyRollBonus, isShieldStalemate, living, magicOnlyBypass, matchShielded, shieldedMP, strangerFS, strangerInvincible,
@@ -371,7 +371,7 @@ export function initRevised(state: GameState): void {
 function scrollOffered(state: GameState): boolean {
   const fight = state.fight!;
   if (fight.rev!.attacker !== "party" || eyePresent(state) || state.scrollAreas?.includes(state.partyArea)) return false;
-  if (!livingParty(state).some((i) => state.party[i]!.treasure.includes(T_SCROLL)) || !hasLivingHuman(state)) return false;
+  if (!livingParty(state).some((i) => state.party[i]!.treasure.includes(T_SCROLL) && canUseArtifact(state.party[i]!.creatureId, T_SCROLL)) || !hasLivingHuman(state)) return false;
   return fight.round === 1 || state.strangers.some(destroyedByScroll);
 }
 

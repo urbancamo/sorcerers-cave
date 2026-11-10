@@ -22,8 +22,8 @@ tables only; the figures and page images in the rules PDF were not compared.
   - **Magic Sword, Magic Axe and Strength Potion** are for the humans (Hero, Woman Hero, Man, Thief, Woman) only. The
     Priest class (Apprentice, Priest, Scholar, Witch, Wizard) no longer appears for them, for allies or strangers. The
     Dwarf still uses the Magic Axe.
-  - **Elixir** is for humans and magic users only; the inhuman allies (Dwarf, Ogre, Troll, Lion, Wolf, Giant, Unicorn)
-    are blank in the PDF.
+  - **Elixir:** the PDF lists humans and magic users only. **Kept as a house rule: any creature may drink it** (MSW,
+    2026-11-10; Addendum note #3), so the inhuman allies are marked in this file although the PDF leaves them blank.
   - **Woman Hero, Giant and Unicorn** now have columns of their own.
   - Strangers: Magic Staff for the Sorcerer and the magic users, The Ring for every human and magic user, the Sorcerer
     and the Dwarf (the Sorcerer column is house rule note 4).
@@ -1101,7 +1101,7 @@ Columns are grouped as in the source: **Heroic Human** (Hero, Woman Hero), **Hum
 | Item | Hero | Woman-Hero | Man | Thief | Woman | Apprentice | Priest | Scholar | Witch | Wizard | Dwarf | Giant | Lion | Ogre | Troll | Unicorn | Wolf |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Charmed Flute | y | y | y | y | y | y | y | y | y | y |  |  |  |  |  |  |  |
-| Elixir (#3) | y | y | y | y | y | y | y | y | y | y |  |  |  |  |  |  |  |
+| Elixir (#3) | y | y | y | y | y | y | y | y | y | y | y | y | y | y | y | y | y |
 | Eye of God | y | y | y | y | y | y | y | y | y | y |  |  |  |  |  |  |  |
 | Healing Balm |  | y |  |  | y | y | y | y | y | y |  |  |  |  |  |  |  |
 | Holy Water | y | y | y | y | y | y | y | y | y | y |  |  |  |  |  |  |  |

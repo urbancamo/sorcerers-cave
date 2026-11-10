@@ -96,7 +96,7 @@ function artifactActions(state: GameState): GameAction[] {
   }
   // Extension kit (SC-EXT-25, design US-21/Resolved-10): the Scroll needs a living human present
   // and strangers to burn, in encounter or fight — no target/picker (any human reads it).
-  if ((state.phase === "encounter" || state.phase === "fight") && !state.variants?.combatRevision && has(19, () => true) &&
+  if ((state.phase === "encounter" || state.phase === "fight") && !state.variants?.combatRevision && has(19, (id) => canUseArtifact(id, 19)) &&
       state.strangers.length > 0 && hasLivingHuman(state)) {
     actions.push({ type: "useArtifact", artifact: 19 });
   }

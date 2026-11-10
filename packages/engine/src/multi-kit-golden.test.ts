@@ -344,8 +344,11 @@ describe("MP-kit golden firewall — kit-on multiplayer behaviour is frozen", ()
     expect(d!.subSeat).toBe(1);
     expect(d!.subParty).toContainEqual(expect.objectContaining({ creatureId: 5, status: 3 }));
     for (const m of d!.subParty) expect(m.mpTag).toBeUndefined();     // came home, loan record gone
-    for (const m of d!.commanderParty) expect(m.mpTag).toBeUndefined(); // …and left none behind
-    expect(d!.commanderParty.map((m) => m.creatureId)).toEqual(ownPicks);
+    // …and left no loan behind. (A creature the union RECRUITED on the way, tagged `recruit:<union>`, is not a loan; the scripted
+    // game picks one up since the Eye, the Scroll and the Talisman became human-only, 2026-11-10, so it is set aside here.)
+    const kept = d!.commanderParty.filter((m) => !m.mpTag?.startsWith("recruit:"));
+    for (const m of kept) expect(m.mpTag).toBeUndefined();
+    expect(kept.map((m) => m.creatureId)).toEqual(ownPicks);
   });
 
   // Kit-OFF byte-identity spot-check (SC-EXT-1's guarantee, carried through the WHOLE harness

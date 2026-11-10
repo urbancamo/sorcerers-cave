@@ -10,7 +10,7 @@ import { findLeader } from "./reaction";
  * (§Encountering Strangers). The ORACLE is the rulebook text. Known differences are in DIFFERENCES / `it.fails` and the
  * rulings register. Clause list: docs/validation/clauses/creatures.md.
  */
-const text = readFileSync("../../docs/rules/Expanded Consolidated Rules PV2026 V2.md", "utf8");
+const text = readFileSync("../../docs/rules/Expanded Consolidated Rules PV2026 V3.md", "utf8");
 const NAME: Record<string, string> = { "Woman Hero": "W-Hero", "The Sorcerer": "Sorcerer", Sybil: "Sibyl" };
 
 interface Book { name: string; str: number; mag?: number; cap?: number; vp?: number; hostile: number; indiff: number; friendly: number }

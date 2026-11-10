@@ -79,6 +79,9 @@ export function canUseArtifact(creatureId: number, artifact: number): boolean {
     case 6: return creatureId === 6 || creatureId === 1 || usesArtifactsAs(creatureId, 4) || usesArtifactsAs(creatureId, 8); // Healing Balm: Woman/W-Hero/Priest/Wizard
     case 9: return usesArtifactsAs(creatureId, 8); // Magic Staff reanimation: Wizard
     case 12: return creatureId === 0 || creatureId === 1 || usesArtifactsAs(creatureId, 4) || usesArtifactsAs(creatureId, 5) || creatureId === 6 || usesArtifactsAs(creatureId, 8); // Charmed Flute: Hero/W-Hero/Priest/Man/Woman/Wizard
+    // The Talisman, the Eye of God and the Scroll: humans and magic users only (Peter's Appendices 20261006; MSW 2026-11-10). An inhuman
+    // (Dwarf, Giant, Lion, Ogre, Troll, Unicorn, Wolf) may carry one, but it does nothing in its hands.
+    case 7: case 13: case 19: return isHumanOrPriestClass(creatureId);
     default: return true;
   }
 }
@@ -87,13 +90,14 @@ function living(m: PartyMember): boolean {
   return m.status === 0 || m.status === 1;
 }
 
+/** Does a living member who can use `treasureId` hold it? (The Eye is for humans and magic users only: an Ogre holding it does nothing.) */
 function partyHolds(state: GameState, treasureId: number): boolean {
-  return state.party.some((m) => living(m) && m.treasure.includes(treasureId));
+  return state.party.some((m) => living(m) && m.treasure.includes(treasureId) && canUseArtifact(m.creatureId, treasureId));
 }
 
 /** Does any living member have the item in use (wielded or worn)? The Talisman's ward is the party's, but only while it is worn. */
 function partyUses(state: GameState, treasureId: number): boolean {
-  return state.party.some((m) => living(m) && inUse(m, treasureId));
+  return state.party.some((m) => living(m) && inUse(m, treasureId) && canUseArtifact(m.creatureId, treasureId));
 }
 
 /**

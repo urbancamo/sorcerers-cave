@@ -8,7 +8,7 @@ import { smallPackExtension, smallPackSibyl, smallPackTemplate } from "./data/sm
 // Engine rules validation, pilot (docs/requirements/engine-rules-validation/plan.md): the party-selection table ("Making up the exploring
 // parties") and the creature card distribution ("CREATURES - by STR, VP - CARD DISTRIBUTION") of Consolidated Rules V2, parsed from the
 // markdown and compared with the engine. The book is the oracle.
-const text: string = readFileSync("../../docs/rules/Expanded Consolidated Rules PV2026 V2.md", "utf8");
+const text: string = readFileSync("../../docs/rules/Expanded Consolidated Rules PV2026 V3.md", "utf8");
 const rowsOf = (from: string, to: string): string[][] => {
   const a = text.indexOf(from), b = text.indexOf(to, a + 1);
   return text.slice(a, b).split("\n").filter((l) => l.startsWith("|") && !l.startsWith("|--") && !/^\|\s*(Type|Creature)\s/.test(l)).map((l) => l.split("|").slice(1, -1).map((c) => c.trim()));
