@@ -11,12 +11,12 @@ import type { GameState, PartyMember } from "./state";
 // Peter's Appendices 20261006 ("Who can use artefacts"): the Eye of God, the Scroll and the Talisman are for humans and magic users
 // only (MSW, 2026-11-10). An inhuman (Dwarf, Giant, Lion, Ogre, Troll, Unicorn, Wolf) may still carry one, but it does nothing there.
 const HERO = 0, OGRE = 2, TROLL = 3, MAN = 5, DWARF = 7, GIANT = 12, LION = 16, WOLF = 20, UNICORN = 13, PRIEST = 4, WITCH = 18;
-const TALISMAN = 7, EYE = 13, SCROLL = 19;
+const TALISMAN = 7, EYE = 13, SCROLL = 19, ELIXIR = 15;
 const INHUMAN = [DWARF, GIANT, LION, OGRE, TROLL, UNICORN, WOLF];
 const member = (creatureId: number, treasure: number[] = [], borne?: number[]): PartyMember => ({ creatureId, status: 0, dragonKills: 0, treasure, ...(borne ? { borne } : {}) });
 
 describe("canUseArtifact for the Eye, the Scroll and the Talisman", () => {
-  it.each([EYE, SCROLL, TALISMAN])("item %i: humans and magic users yes, inhumans no", (item) => {
+  it.each([EYE, SCROLL, TALISMAN, ELIXIR])("item %i: humans and magic users yes, inhumans no", (item) => {
     for (const id of [HERO, MAN, PRIEST, WITCH]) expect(canUseArtifact(id, item)).toBe(true);
     for (const id of INHUMAN) expect(canUseArtifact(id, item)).toBe(false);
   });
@@ -67,5 +67,20 @@ describe("the Scroll", () => {
   it("in the revised combat, the Scroll step is offered only when a human carries it", () => {
     expect(revised(MAN).fight!.pending).toMatchObject({ by: "party", kind: "scroll" });
     expect(revised(OGRE).fight!.pending?.kind).not.toBe("scroll");
+  });
+});
+
+describe("the Elixir", () => {
+  const drinkers = (party: PartyMember[]) => legalActions(makeState({ phase: "explore", party })).flatMap((a) => (a.type === "useArtifact" && a.artifact === ELIXIR ? [a.target] : []));
+  it("is offered to a human carrier for each human or magic-user drinker, and not for an inhuman one", () => {
+    expect(drinkers([member(HERO, [ELIXIR]), member(OGRE), member(PRIEST)])).toEqual([0, 2]);
+  });
+  it.each(INHUMAN)("is not offered when only an inhuman carries it (creature %i)", (id) => {
+    expect(drinkers([member(id, [ELIXIR]), member(HERO)])).toEqual([]);
+  });
+  it("the reducer refuses an inhuman drinker, and lets a human drink", () => {
+    const s = makeState({ phase: "explore", party: [member(HERO, [ELIXIR]), member(OGRE)] });
+    expect(reduce(s, { type: "useArtifact", artifact: ELIXIR, target: 1 }).events).toEqual([{ type: "blocked" }]);
+    expect(reduce(s, { type: "useArtifact", artifact: ELIXIR, target: 0 }).events).toContainEqual({ type: "artifactUsed", artifact: ELIXIR });
   });
 });

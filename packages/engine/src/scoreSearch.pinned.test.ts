@@ -18,7 +18,7 @@ const run = (g: { seed: number; picks: number[]; variants: object; actions: unkn
   return { frames, end: frames[frames.length - 1]!.state };
 };
 
-// STALE since 2026-11-10: the Eye of God, the Scroll and the Talisman became human-only (Peter's Appendices 20261006; MSW), and these pinned
+// STALE since 2026-11-10: the Eye of God, the Elixir, the Scroll and the Talisman became human-only (Peter's Appendices 20261006; MSW), and these pinned
 // games were found by a search that let an inhuman (an Ogre, a Dwarf...) hold or wear them, so they no longer replay. The reducer is
 // unchanged in how it refuses an action, so the fix is to re-run the overnight search (scripts/overnight-search.sh), pin the new results,
 // and remove the skips below.
@@ -76,7 +76,7 @@ describe.each(RULESETS)("score search: the top-25 scenarios, rules: %s", (rules)
   });
   const STALE: Record<string, number[]> = {
     base: [14, 16, 18, 22],
-    kit: [2, 3, 11, 12, 17, 18, 20, 24, 25],
+    kit: [2, 3, 11, 12, 13, 14, 17, 18, 20, 24, 25],
     "kit+sibyl": [1, 2, 3, 4, 6, 8, 9, 13, 14, 15, 16, 17, 20],
   };
   const live = games.filter((g) => !STALE[rules]!.includes(g.rank)), stale = games.filter((g) => STALE[rules]!.includes(g.rank));

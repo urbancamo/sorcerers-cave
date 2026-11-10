@@ -99,6 +99,9 @@ describe("canUseArtifact — class eligibility shared by findBearer, artifactAct
 
   it("an artifact with no class gate is open to everyone", () => {
     expect(canUseArtifact(DWARF, 8)).toBe(true); // Strength Potion: the target list gates it, not the bearer
-    expect(canUseArtifact(DWARF, 15)).toBe(true); // Elixir
+  });
+  it("the Elixir, like the Eye, Scroll and Talisman, is for humans and magic users only (MSW 2026-11-10)", () => {
+    expect(canUseArtifact(DWARF, 15)).toBe(false);
+    expect(canUseArtifact(5, 15)).toBe(true);
   });
 });

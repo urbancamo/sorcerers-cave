@@ -14,7 +14,7 @@ const actions = golden.actions as GameAction[];
 const frames = replay(golden.seed, golden.picks, actions, golden.variants);
 const end = frames[frames.length - 1]!.state;
 
-// STALE since 2026-11-10: the Eye of God, the Scroll and the Talisman became human-only (Peter's Appendices 20261006; MSW), and these pinned
+// STALE since 2026-11-10: the Eye of God, the Elixir, the Scroll and the Talisman became human-only (Peter's Appendices 20261006; MSW), and these pinned
 // games were found by a search that let an inhuman (an Ogre, a Dwarf...) hold or wear them, so they no longer replay. The reducer is
 // unchanged in how it refuses an action, so the fix is to re-run the overnight search (scripts/overnight-search.sh), pin the new results,
 // and remove the skips below.

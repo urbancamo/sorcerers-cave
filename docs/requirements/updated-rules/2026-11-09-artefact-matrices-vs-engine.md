@@ -8,7 +8,7 @@
 
 ## Result
 
-**The engine agrees with both matrices for every item that has a class gate, and differs for three items that have none (Eye of God, Scroll, Talisman). The fourth, the Elixir, was settled on 2026-11-10: any creature may drink it, which is what the engine does.** No engine
+**The engine agrees with both matrices for every item that has a class gate, and, since 2026-11-10, for the four items that had none (Eye of God, Elixir, Scroll, Talisman): all four are now human and magic user only, as in Peter's tables.** The sections below record how it stood before the change. No engine
 code was changed. Each cell of both tables (15 items by 17 ally creatures, and by 18 stranger creatures including the Sorcerer) was
 computed from the engine's own predicates and compared with the PDF.
 
@@ -24,7 +24,7 @@ computed from the engine's own predicates and compared with the PDF.
 | Strength Potion | humans | same (`potionEligible`) | matches |
 | Magic Staff | magic users (Apprentice, Priest, Scholar, Witch, Wizard) | same (`staffBonus > 0`) | matches, incl. the Sorcerer |
 | The Ring | humans + magic users + Dwarf | same (`ringEligible`) | matches, incl. the Sorcerer and the Dwarf |
-| Elixir | humans + magic users in the PDF; **any creature by ruling** | any member (agrees with the ruling) | matches (strangers bear none) |
+| Elixir | humans + magic users | **humans and magic users only since 2026-11-10** (was any member) | matches (strangers bear none) |
 | **Eye of God** | humans + magic users | **any bearer** | matches |
 | **Scroll** | humans + magic users | **any bearer** (needs a living human in the party) | matches |
 | **Talisman** | humans + magic users | **any bearer** | matches |
@@ -56,8 +56,9 @@ not something this PDF created. Only the **Elixir** is a change in the rules.
 
 ## Decision
 
-- **Elixir (MSW, 2026-11-10): any creature may drink it.** The engine already does this (`reduce.ts` case 15, SC-EXT-22), so no code
-  change. The rules file shows the Elixir row as usable by every ally, noted as house rule #3 (the PDF leaves the inhuman allies blank).
+- **Elixir (MSW, 2026-11-10): humans and magic users only** (an earlier ruling the same day said "any creature"; overruled). A human or
+  magic user must carry it, and only a human or magic user can drink it: `canUseArtifact` case 15, the offer list in `selectors.ts` and
+  the target check in `reduce.ts` (SC-EXT-22, SC-11-51). House-rule note #3 is withdrawn in the rules file.
 - **Healing Balm (MSW, 2026-11-10): a Wizard, a Priest or a Woman may use it.** Read by class, as the PDF and the engine already do:
   Wizard class (Wizard, Apprentice), Priest class (Priest, Scholar, Witch) and Woman class (Woman, Woman Hero, who has all of a woman's
   capabilities). Hero, Man and Thief cannot. The rules file, the PDF and `canUseArtifact` (`effects.ts`) all agree, so nothing changes.
@@ -81,4 +82,4 @@ not something this PDF created. Only the **Elixir** is a change in the rules.
   `scoreSearch.pinned.test.ts`, `goldenSearch.pinned.test.ts`, `ScenarioBrowser.test.tsx` and `goldenGame.test.ts`. They need the
   overnight search re-run and the results re-pinned. Until then, those 26 scenarios in the in-game scenario browser will not replay
   legally.
-- **Unchanged:** the Elixir (any creature), and the loose "Wield" offer for an ineligible creature.
+- **Unchanged:** the loose "Wield" offer for an ineligible creature.

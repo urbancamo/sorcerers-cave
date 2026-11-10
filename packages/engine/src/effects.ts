@@ -79,9 +79,9 @@ export function canUseArtifact(creatureId: number, artifact: number): boolean {
     case 6: return creatureId === 6 || creatureId === 1 || usesArtifactsAs(creatureId, 4) || usesArtifactsAs(creatureId, 8); // Healing Balm: Woman/W-Hero/Priest/Wizard
     case 9: return usesArtifactsAs(creatureId, 8); // Magic Staff reanimation: Wizard
     case 12: return creatureId === 0 || creatureId === 1 || usesArtifactsAs(creatureId, 4) || usesArtifactsAs(creatureId, 5) || creatureId === 6 || usesArtifactsAs(creatureId, 8); // Charmed Flute: Hero/W-Hero/Priest/Man/Woman/Wizard
-    // The Talisman, the Eye of God and the Scroll: humans and magic users only (Peter's Appendices 20261006; MSW 2026-11-10). An inhuman
+    // The Talisman, the Eye of God, the Elixir and the Scroll: humans and magic users only (Peter's Appendices 20261006; MSW 2026-11-10). An inhuman
     // (Dwarf, Giant, Lion, Ogre, Troll, Unicorn, Wolf) may carry one, but it does nothing in its hands.
-    case 7: case 13: case 19: return isHumanOrPriestClass(creatureId);
+    case 7: case 13: case 15: case 19: return isHumanOrPriestClass(creatureId);
     default: return true;
   }
 }
