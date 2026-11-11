@@ -110,22 +110,20 @@ function hasThief(state: GameState): boolean {
  * indifferent test locks the area in (`test` case) and on every later re-entry (`finishChamber`).
  * Base behaviour: the guards and the treasure they watch both park back onto the floor and the party
  * returns to explore, unable to loot. With a living Thief ally present, treasure actually here to
- * lift, AND the area pacified by INDIFFERENCE specifically — design US-17's literal wording, "in any
- * area pacified by indifference where treasure lies under the strangers' watch" — the Thief slips
+ * lift — design US-17's wording, "in any area pacified by indifference where treasure lies under the
+ * strangers' watch" — the Thief slips
  * past the guards instead: they still park — unengaged, no fight offered or required — but the
  * treasure stays in the live pickup working set and the phase goes straight to `pickup`,
  * `thiefPickup` marking the session so `takeTreasure` can narrate each lift ("The Thief palms the
- * [item]."). Review fix (SC-EXT-19): a Unicorn-guarded area (`state.unicornGuardAreas`) is EXCLUDED
- * from this unlock even though it shares the same `pacifiedAreas` re-entry gate — a friendly Unicorn
- * standing guard is not "indifference," and this exclusion applies identically whether the area was
- * JUST pacified this turn or is being re-entered later. Any other working-set leftovers
+ * [item]."). (Until 2026-11-11 a Unicorn-guarded area was excluded from this unlock, a friendly Unicorn
+ * standing guard being "not indifference"; Peter's feedback #13 makes the womanless Unicorn indifferent, so the exclusion and the
+ * `unicornGuardAreas` field are gone.) Any other working-set leftovers
  * (`sleeping`/`statues`/`lulled`/`fightDrops`) are simply left live in state rather than flushed here
  * — harmless, since nothing else touches them before the eventual real `persistAndExplore`
  * (pickup's end, or `leaveTreasure`) merges them back exactly as it always does.
  */
 function settlePacifiedArea(state: GameState): void {
-  const unicornGuarded = state.unicornGuardAreas?.includes(state.partyArea) ?? false;
-  if (hasThief(state) && state.treasures.length > 0 && !unicornGuarded) {
+  if (hasThief(state) && state.treasures.length > 0) {
     const area = state.areas[state.partyArea]!;
     area.contents = [...area.contents, ...state.strangers.map((id) => 100 + id)];
     state.strangers = [];
@@ -1551,7 +1549,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // outcome qualifies (indifferent, count still <3). `delete`, not `= false` — an always-present
       // key would change every tested state's hash even when closed (SC-EXT-1 byte-identity).
       delete next.indiffLeaveOpen;
-      const { outcome, roll: rollValue } = rollReaction(next);
+      const { outcome: rolled, roll: rollValue } = rollReaction(next);
       // `certain` (bug fix 2026-08-02): the Unicorn's hostileMax/indiffMax (0/0) make `outcome`
       // "friendly" no matter what the die shows — the roll above still genuinely advanced the seed
       // (or, under Test Mode, still returned a representative display value), but the UI has
@@ -1559,6 +1557,11 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // `forcedReactionRoll` just used, not re-derived independently.
       const leaderId = next.strangers[findLeader(next.strangers)];
       const certain = leaderId === C_UNICORN;
+      // A Unicorn met with no Woman in the party cannot join, and is INDIFFERENT rather than "friendly but staying to guard" (Peter's Book Errors
+      // Feedback #13: "the Unicorn becomes indifferent, and guards the treasure"; MSW 2026-11-11, option 1 of GitHub issues #37 and #38). It then
+      // follows the ordinary indifference rules: three indifferent tests pacify the area, and a Thief may steal one treasure, whereupon the
+      // strangers turn hostile (R-33). `certain` means the Unicorn leads, i.e. the whole group is Unicorns.
+      const outcome = certain && !hasWoman(next) ? "indifferent" : rolled;
       const events: GameEvent[] = [{ type: "reaction", outcome, roll: rollValue, ...(certain ? { certain: true as const } : {}) }];
       if (outcome === "friendly") {
         const womanPresent = hasWoman(next);
@@ -1572,15 +1575,10 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         if (guardPool.length > 0) {
           next.strangers = guardPool;
           for (const id of guardPool) events.push({ type: "unicornGuards", creatureId: id });
-          // The womanless Unicorn guards the area for THIS party (per-party): pass through, no loot.
+          // Only reachable in a MIXED group (a friendly leader and a Unicorn): the others join, the womanless Unicorn stays and guards the
+          // area for THIS party (per-party), pacified like any indifferent guard. A group of Unicorns alone is indifferent (above).
           if (!next.pacifiedAreas?.includes(next.partyArea)) {
             next.pacifiedAreas = [...(next.pacifiedAreas ?? []), next.partyArea];
-          }
-          // Review fix (SC-EXT-19): mark this specifically as a Unicorn-guard pacification, NOT
-          // indifference — the Thief's pickup-unlock (`settlePacifiedArea`) must never fire here,
-          // on this turn or any later re-entry, per design US-17's literal "pacified by indifference".
-          if (!next.unicornGuardAreas?.includes(next.partyArea)) {
-            next.unicornGuardAreas = [...(next.unicornGuardAreas ?? []), next.partyArea];
           }
           persistAndExplore(next); // the party moves on, leaving the Unicorn (and guarded treasure) behind
         } else {

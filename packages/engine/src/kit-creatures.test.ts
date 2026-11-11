@@ -398,36 +398,29 @@ describe("Thief pickup — unlocks guarded treasure in an indifference-pacified 
     expect(legalActions(state).some((a) => a.type === "takeTreasure")).toBe(false);
   });
 
-  it("a womanless Unicorn's guard is NEVER Thief-unlockable on the settle turn (review fix — design says 'pacified BY INDIFFERENCE')", () => {
-    // The Unicorn (13) is always friendly (hostileMax/indiffMax both 0) and, with no Woman/W-Hero
-    // present, stays behind guarding rather than joining — a pacification by a FRIENDLY reaction,
-    // not indifference, so the Thief must never unlock it even though `pacifiedAreas` is set exactly
-    // the same way.
+  it("a womanless Unicorn is INDIFFERENT, not a friendly guard (Peter's feedback #13; GitHub #37): no join, no unicornGuards, normal indifference count", () => {
     const s = makeState({
       phase: "encounter", strangers: [13], treasures: [1], seed: 1,
-      party: [member(THIEF)], // no Woman/W-Hero — the Unicorn won't join
+      party: [member(THIEF)], // no Woman/W-Hero — the Unicorn cannot join
       areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
     });
     const { state, events } = reduce(s, { type: "test" });
-    expect(events).toContainEqual(expect.objectContaining({ type: "unicornGuards", creatureId: 13 }));
-    expect(state.pacifiedAreas).toContain(0);
-    expect(state.unicornGuardAreas).toContain(0); // marked as the Unicorn cause, not indifference
-    expect(state.phase).toBe("explore"); // NOT unlocked to pickup despite the Thief
-    expect(state.thiefPickup).toBeUndefined();
-    expect(legalActions(state).some((a) => a.type === "takeTreasure")).toBe(false);
+    expect(events).toContainEqual(expect.objectContaining({ type: "reaction", outcome: "indifferent" }));
+    expect(events.some((e) => e.type === "unicornGuards")).toBe(false);
+    expect(state.party.map((m) => m.creatureId)).not.toContain(13);
+    expect(state.strangers).toEqual([13]); // still there, guarding, until the third indifferent test
   });
 
-  it("a womanless Unicorn's guard is NEVER Thief-unlockable on RE-ENTRY either (review fix, US-17/SC-EXT-19)", () => {
+  it("a Thief may steal from a pacified womanless-Unicorn guard on re-entry, like any indifferent guard (GitHub #38)", () => {
     const A = { card: 2, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };
     const B = { card: 31, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents: [100 + 13, 200 + 1], flags: 0, indiffCount: 0 };
     const s = makeState({
       phase: "explore", areas: [A, B], partyArea: 0, prev: 0,
-      party: [member(THIEF)], pacifiedAreas: [1], unicornGuardAreas: [1],
+      party: [member(THIEF)], pacifiedAreas: [1],
     });
     const { state } = reduce(s, { type: "move", dir: DIR_E });
-    expect(state.phase).toBe("explore"); // still guarded — the generic pacifiedAreas gate alone must not unlock it
-    expect(state.thiefPickup).toBeUndefined();
-    expect(legalActions(state).some((a) => a.type === "takeTreasure")).toBe(false);
+    expect(state.phase).toBe("pickup");
+    expect(state.thiefPickup).toBe(true);
   });
 
   it("a Thief ally present does NOT unlock an ordinary post-fight pickup (only indifference-pacified guarding is relaxed)", () => {
