@@ -402,6 +402,19 @@ describe("Spell — remap-on-draw: splice into the pack, replace the cell face-d
     expect(events).toContainEqual({ type: "spellRemap", fizzled: false });
   });
 
+  it("clears a neighbour's dead-door mark facing the replaced tile, so a passage the new card opens is not stuck shut (game HXIH)", () => {
+    // Area 2 sits south of the tunnel and had its north door marked dead (bit 1) because the OLD card had no way through.
+    const neighbour = { card: CHAMBER_CARD, coord: packCoord(1, 50, 51), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0, deadDoors: 1 | 2 };
+    const s = spellState({});
+    s.areas.push(neighbour);
+    applyHazards(s);
+    expect(s.areas[2]!.deadDoors).toBe(2); // only the north mark went; its east mark faces something else
+    const alone = spellState({});
+    alone.areas.push({ ...neighbour, deadDoors: 1 });
+    applyHazards(alone);
+    expect(alone.areas[2]!.deadDoors).toBeUndefined();
+  });
+
   it("places the new cell UNEXPLORED (AF_UNRESOLVED, visited:false, empty contents), with the old tile's secret door/mirrored stairs gone", () => {
     const s = spellState({
       areas: [
