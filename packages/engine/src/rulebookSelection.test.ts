@@ -8,7 +8,7 @@ import { smallPackExtension, smallPackSibyl, smallPackTemplate } from "./data/sm
 // Engine rules validation, pilot (docs/requirements/engine-rules-validation/plan.md): the party-selection table ("Making up the exploring
 // parties") and the creature card distribution ("CREATURES - by STR, VP - CARD DISTRIBUTION") of Consolidated Rules V2, parsed from the
 // markdown and compared with the engine. The book is the oracle.
-const text: string = readFileSync("../../docs/rules/Expanded Consolidated Rules PV2026 V2.md", "utf8");
+const text: string = readFileSync("../../docs/rules/Expanded Consolidated Rules PV2026 V3.md", "utf8");
 const rowsOf = (from: string, to: string): string[][] => {
   const a = text.indexOf(from), b = text.indexOf(to, a + 1);
   return text.slice(a, b).split("\n").filter((l) => l.startsWith("|") && !l.startsWith("|--") && !/^\|\s*(Type|Creature)\s/.test(l)).map((l) => l.split("|").slice(1, -1).map((c) => c.trim()));
@@ -31,6 +31,7 @@ describe("rulebook tables: party selection ('Making up the exploring parties')",
     it(`${r[0]}: selection value ${r[6]} and ${r[4]} in the pack (Extension Kit on)`, () => {
       const id = idOf(r[0]!);
       expect(selectionCost(id, { extensionKit: true }), `${r[0]} selection value`).toBe(Number(r[6]));
+      if (id < 8) expect(selectionCost(id), `${r[0]} selection value, base game (Ogre 4 and Troll 3 in both, Peter 2026-11-10)`).toBe(Number(r[6]));
       expect(startingStock({ extensionKit: true })[id], `${r[0]} number available`).toBe(Number(r[4]));
     });
   }
@@ -41,12 +42,9 @@ describe("rulebook tables: creature card distribution", () => {
   const count = (cards: number[], id: number) => cards.filter((c) => c === 100 + id).length;
   const base = smallPackTemplate(), kit = base.concat(smallPackExtension());
   it("parses the creature distribution table", () => expect(rows.length).toBeGreaterThanOrEqual(22));
-  // Register R-18 / R-19 (MSW, 2026-11-06): the book's distribution table differs from the engine's small pack for these two, and the engine
-  // is right. Each is pinned to the engine's own counts so a NEW difference still fails.
-  const DEVIATION: Record<string, { base: number; kit: number; why: string }> = {
-    Demon: { base: 0, kit: 1, why: "the Demon is Extension Kit only; the table's base-game 1 is wrong (R-18)" },
-    "Woman Hero": { base: 1, kit: 0, why: "the Woman Hero is in the base game; the table's kit-only entry is wrong (R-19)" },
-  };
+  // Register R-18 / R-19 (MSW, 2026-11-06) recorded two differences between the book's distribution table and the engine's small pack (the Demon's
+  // base-game card, the Woman Hero's pack). Peter's Appendices 20261110 corrected both, so the table is now the plain oracle for every row.
+  const DEVIATION: Record<string, { base: number; kit: number; why: string }> = {};
   for (const r of rows) {
     const name = r[0]!;
     if (name === "Sybil") continue; // checked below

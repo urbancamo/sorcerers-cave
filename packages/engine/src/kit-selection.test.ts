@@ -25,10 +25,11 @@ describe("validatePicks — kit-off (byte-identity, SC-EXT-1)", () => {
   it("rejects every other kit-only creature (Lion 16, Scholar 17, Thief 19, Wolf 20) kit-off", () => {
     for (const id of [16, 17, 19, 20]) expect(validatePicks([id])).toBe(false);
   });
-  it("keeps Ogre at 5 and Troll at 4 (no kit-on discount) kit-off", () => {
-    expect(validatePicks([2, 7])).toBe(true); // Ogre 5 + Dwarf 1 = 6
-    expect(validatePicks([3, 7])).toBe(true); // Troll 4 + Dwarf 1 = 5
-    expect(validatePicks([2, 2])).toBe(false); // 5 + 5 = 10 > 6 kit-off (no discount)
+  it("Ogre 4 and Troll 3 kit-off too (Peter, Book Errors Feedback #4, 2026-11-10)", () => {
+    expect(validatePicks([2, 6])).toBe(true); // Ogre 4 + Woman 2 = 6 (was 7 before)
+    expect(validatePicks([3, 5])).toBe(true); // Troll 3 + Man 3 = 6: the rulebook's own example, "a troll and a man"
+    expect(validatePicks([4, 7, 7])).toBe(true); // Priest 4 + two Dwarfs = 6: its other example
+    expect(validatePicks([2, 2])).toBe(false); // 4 + 4 = 8 > 6
   });
 });
 
@@ -48,11 +49,11 @@ describe("validatePicks — kit-on (SC-EXT-29)", () => {
     expect(validatePicks([14], KIT)).toBe(false);
     expect(validatePicks([15], KIT)).toBe(false);
   });
-  it("applies the Ogre 5→4 / Troll 4→3 kit-on revision", () => {
+  it("Ogre 4 and Troll 3 in both games", () => {
     expect(validatePicks([2, 20], KIT)).toBe(true); // Ogre (4 kit-on) + Wolf (1) = 5
     expect(validatePicks([2, 20])).toBe(false); // same picks kit-off: Wolf unselectable
     expect(validatePicks([3, 3], KIT)).toBe(true); // two Trolls, 3+3=6 kit-on only
-    expect(validatePicks([3, 3])).toBe(false); // 4+4=8 > 6 kit-off
+    expect(validatePicks([3, 3])).toBe(true); // 3+3=6: the Troll costs 3 in the base game too (Peter, Book Errors Feedback #4, 2026-11-10)
   });
   it("honours kit stock limits — Witch×3, Lion/Scholar/Thief/Wolf×1", () => {
     expect(validatePicks([16, 16], KIT)).toBe(false); // only 1 Lion in stock

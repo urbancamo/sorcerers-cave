@@ -1,8 +1,44 @@
 # Changelog
 
-Source of changes: `Consolidated-Rules-20261005.pdf` (rules) and `Consolidated Rules Appendices 20261006.pdf` (reference
-tables), both from Peter Vodden, compared against the previous text of this file. The comparison covered the text and
-tables only; the figures and page images in the rules PDF were not compared.
+Source of changes: `Consolidated-Rules-20261110.pdf` and `Consolidated-Rules-Appendices-20261110.pdf` (Peter Vodden), with his
+`20261109 Book Errors Feedback.pdf`, compared against the previous text of this file.
+
+## 2026-11-11 — Aligned with Consolidated-Rules-20261110 and Appendices 20261110
+
+**Rule content**
+
+- **Party selection example** now reads "a troll and a man, or a priest and two dwarves" (it was "a priest and a woman, or a troll
+  and two dwarves"). Peter's feedback #4: the **selection values Ogre 4 and Troll 3 apply to the base game as well as the
+  extension** (they are the revised values, by T.P. Donnelly, after the first edition).
+- **Magic Staff** card now reads "increases the magical power of a PRIEST by 1, or WIZARD by 2" (feedback #8: the card is right).
+
+**Addendum reference tables (Appendices 20261110)**
+
+- **Who can use artefacts** is now a three-letter key instead of ticks: **U** can carry and use (bear, wield, wear, display, administer),
+  **C** can carry but not use, **T** can be the target of the artefact's effect. This replaces the "y" tables of 20261006, whose blank
+  cells I had read as "may not carry". They only meant "may not use". The differences that matter:
+  - **Eye of God**: carried by anyone who can carry it (C for every creature that can; it works by being carried).
+  - **Scroll, Talisman, Charmed Flute, Holy Water, Lotus Dust, Ring, Magic Carpet, Magic Staff, ...**: Dwarf, Giant, Ogre and Troll can carry
+    them (C), but only the U creatures can use them.
+  - **Elixir**: a human or magic user (U) administers it; **every** creature of the party, including Lion, Unicorn and Wolf, can be its
+    recipient (T). The old house-rule note #3 is withdrawn.
+  - **Healing Balm**: U for Woman Hero, Woman and the magic users; Hero, Man, Thief and the inhumans can only be its target (T).
+  - **Strength Potion**: U/T for Hero, Woman Hero, Man, Thief and Woman; the magic users and the inhumans can carry it (C), not drink it.
+  - **Ring**: U for the humans, the magic users and the Dwarf; Giant, Ogre and Troll carry it (C).
+  - Lion, Unicorn and Wolf cannot carry any artefact (blank), except that they can be the target of the Elixir and the Healing Balm.
+  - A note was added: strangers do not carry artefacts from place to place, but may use those that they are guarding in some
+    circumstances.
+- **Creatures table**: Demon is **Extension only** (feedback #2). The appendix now agrees with the cards on Hero (STR 5) and Spectre (5), and has
+  Woman Hero in the base pack, so the "not taken from the PDF" note of the last revision no longer applies. A selection-value column was
+  added in the PDF; the selection table in this file already carries the same values.
+
+**Peter's feedback (20261109), for the record**
+
+- #1, #3, #5, #9, #10, #14-#18, #20 confirmed. #6 ("may use" / "may carry" / "may wield" / "be the target of") is answered by the U/C/T key above;
+  Peter will draft clarification notes for the next Appendices. #7 Strength Potion drinkers: Hero, Woman Hero, Man, Thief, Woman.
+- #11: **mutineers join the strangers in the area and their treasure and artefacts join the pile on the floor they guard; deserters are
+  removed from the game together with what they were carrying.** #12: the Talisman has to be wielded/displayed to take effect.
+- #13 (Unicorn without a Woman) is confirmed, with open questions (see the validation register).
 
 ## 2026-11-09 — Aligned with Consolidated-Rules-20261005 and Appendices 20261006
 
@@ -22,8 +58,8 @@ tables only; the figures and page images in the rules PDF were not compared.
   - **Magic Sword, Magic Axe and Strength Potion** are for the humans (Hero, Woman Hero, Man, Thief, Woman) only. The
     Priest class (Apprentice, Priest, Scholar, Witch, Wizard) no longer appears for them, for allies or strangers. The
     Dwarf still uses the Magic Axe.
-  - **Elixir** is for humans and magic users only; the inhuman allies (Dwarf, Ogre, Troll, Lion, Wolf, Giant, Unicorn)
-    are blank in the PDF.
+  - **Elixir** is for humans and magic users only, as in the PDF (MSW, 2026-11-10, after first ruling "any creature"); the inhuman
+    allies (Dwarf, Giant, Lion, Ogre, Troll, Unicorn, Wolf) are blank. The old house-rule note #3 is withdrawn.
   - **Woman Hero, Giant and Unicorn** now have columns of their own.
   - Strangers: Magic Staff for the Sorcerer and the magic users, The Ring for every human and magic user, the Sorcerer
     and the Dwarf (the Sorcerer column is house rule note 4).
@@ -152,7 +188,7 @@ slaying the Sorcerer.
 Players roll the die to determine order of play. The player who has first choice of an exploring party is the last to
 move, and vice versa. Each player makes up his exploring party by choosing one or more creatures from the small pack,
 ignoring reaction tables. Referring to the table below, a player may select available creatures with a total selection
-value of 6; e.g. a priest and a woman, or a troll and two dwarves.
+value of 6; e.g. a troll and a man, or a priest and two dwarves.
 
 | Type       | Magical  Power | Fighting Strength | Carries (kg) | Number in Pack | Other Characteristics                                    | Selection Value |
 |------------|----------------|-------------------|--------------|----------------|----------------------------------------------------------|-----------------|
@@ -696,7 +732,7 @@ neither it nor the shield bearer will be killed.
 
 ### Magic staff. 15 vp.
 
-*“Artefact. Increases the magical power of a PRIEST or WIZARD by 2. In the hands of a WIZARD, reanimates creatures
+*“Artefact. Increases the magical power of a PRIEST by 1, or WIZARD by 2. In the hands of a WIZARD, reanimates creatures
 turned to STONE, and wards off MEDUSA.”*
 
 If warded off, Medusa ceases to have any effect until the staff and wizard leave the area.
@@ -1100,21 +1136,27 @@ Columns are grouped as in the source: **Heroic Human** (Hero, Woman Hero), **Hum
 
 | Item | Hero | Woman-Hero | Man | Thief | Woman | Apprentice | Priest | Scholar | Witch | Wizard | Dwarf | Giant | Lion | Ogre | Troll | Unicorn | Wolf |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| Charmed Flute | y | y | y | y | y | y | y | y | y | y |  |  |  |  |  |  |  |
-| Elixir (#3) | y | y | y | y | y | y | y | y | y | y |  |  |  |  |  |  |  |
-| Eye of God | y | y | y | y | y | y | y | y | y | y |  |  |  |  |  |  |  |
-| Healing Balm |  | y |  |  | y | y | y | y | y | y |  |  |  |  |  |  |  |
-| Holy Water | y | y | y | y | y | y | y | y | y | y |  |  |  |  |  |  |  |
-| Lotus Dust | y | y | y | y | y | y | y | y | y | y |  |  |  |  |  |  |  |
-| Magic Axe (#2) | y | y | y | y | y |  |  |  |  |  | y |  |  |  |  |  |  |
-| Magic Carpet |  |  |  |  |  | y | y | y | y | y |  |  |  |  |  |  |  |
-| Magic Shield | y | y | y | y | y |  |  |  |  |  |  |  |  |  |  |  |  |
-| Magic Staff (#1) |  |  |  |  |  | y | y | y | y | y |  |  |  |  |  |  |  |
-| Magic Sword | y | y | y | y | y |  |  |  |  |  |  |  |  |  |  |  |  |
-| Scroll | y | y | y | y | y | y | y | y | y | y |  |  |  |  |  |  |  |
-| Strength Potion | y | y | y | y | y |  |  |  |  |  |  |  |  |  |  |  |  |
-| Talisman | y | y | y | y | y | y | y | y | y | y |  |  |  |  |  |  |  |
-| The Ring | y | y | y | y | y | y | y | y | y | y | y |  |  |  |  |  |  |
+| Charmed Flute | U | U | U | U | U | U | U | U | U | U | C | C |  | C | C |  |  |
+| Elixir | U T | U T | U T | U T | U T | U T | U T | U T | U T | U T | C T | C T | T | C T | C T | T | T |
+| Eye of God | C | C | C | C | C | C | C | C | C | C | C | C |  | C | C |  |  |
+| Healing Balm | T | U T | T | T | U T | U T | U T | U T | U T | U T | C T | C T | T | C T | C T | T | T |
+| Holy Water | U | U | U | U | U | U | U | U | U | U | C | C |  | C | C |  |  |
+| Lotus Dust | U | U | U | U | U | U | U | U | U | U | C | C |  | C | C |  |  |
+| Magic Axe (#2) | U | U | U | U | U | C | C | C | C | C | U | C |  | C | C |  |  |
+| Magic Carpet | C | C | C | C | C | U | U | U | U | U | C | C |  | C | C |  |  |
+| Magic Shield | U | U | U | U | U | C | C | C | C | C | C | C |  | C | C |  |  |
+| Magic Staff (#1) | C | C | C | C | C | U | U | U | U | U | C | C |  | C | C |  |  |
+| Magic Sword | U | U | U | U | U | C | C | C | C | C | C | C |  | C | C |  |  |
+| Scroll | U | U | U | U | U | U | U | U | U | U | C | C |  | C | C |  |  |
+| Strength Potion | U T | U T | U T | U T | U T | C | C | C | C | C | C | C |  | C | C |  |  |
+| Talisman | U | U | U | U | U | U | U | U | U | U | C | C |  | C | C |  |  |
+| The Ring | U | U | U | U | U | U | U | U | U | U | U | C |  | C | C |  |  |
+
+“**U**” = Can carry and/or use the artefact: i.e. can carry the artefact unused, but can also bear/wield, wear, display, administer, or otherwise activate the artefact as a requisite for generating its effects or bonuses if necessary.
+
+“**C**” = Can carry the artefact, but may not use it themselves. Note that some artefacts (Eye of God) generate effects or bonuses simply by being carried, and do not need to be activated.
+
+“**T**” = can be the target/recipient of the artefact's effect, provided there is one in the party who can use the artefact.
 
 ### WHO CAN USE ARTEFACTS - STRANGERS
 
@@ -1123,20 +1165,22 @@ Same groups; **Magic User** here also includes the Sorcerer.
 | Item | Hero | Woman-Hero | Man | Thief | Woman | Sorcerer (#4) | Apprentice | Priest | Scholar | Witch | Wizard | Dwarf | Giant | Lion | Ogre | Troll | Unicorn | Wolf |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|---|
 | Charmed Flute |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| Elixir (#3) |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| Elixir |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | Eye of God |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | Healing Balm |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | Holy Water |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | Lotus Dust |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| Magic Axe (#2) | y | y | y | y | y |  |  |  |  |  |  | y |  |  |  |  |  |  |
+| Magic Axe (#2) | U | U | U | U | U |  |  |  |  |  |  | U |  |  |  |  |  |  |
 | Magic Carpet |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| Magic Shield | y | y | y | y | y |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| Magic Staff (#1) |  |  |  |  |  | y | y | y | y | y | y |  |  |  |  |  |  |  |
-| Magic Sword | y | y | y | y | y |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| Magic Shield | U | U | U | U | U |  |  |  |  |  |  |  |  |  |  |  |  |  |
+| Magic Staff (#1) |  |  |  |  |  | U | U | U | U | U | U |  |  |  |  |  |  |  |
+| Magic Sword | U | U | U | U | U |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | Scroll |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | Strength Potion |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
 | Talisman |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |  |
-| The Ring | y | y | y | y | y | y | y | y | y | y | y | y |  |  |  |  |  |  |
+| The Ring | U | U | U | U | U | U | U | U | U | U | U | U |  |  |  |  |  |  |
+
+Note that strangers do not carry artefacts from place to place, but may use those that they are guarding in some circumstances.
 
 **NOTES**
 
@@ -1144,7 +1188,7 @@ Same groups; **Magic User** here also includes the Sorcerer.
 
 **(#2)** Dwarf gains additional powers.
 
-**(#3)** House rule: Although rules read “any creature”, Strangers have no way to make that type of decision.
+**(#3)** Withdrawn (MSW, 2026-11-11). It recorded a house reading of the Elixir card (“any creature may drink it”); Peter's Appendices 20261110 now settle it: a human or magic user (U) administers the Elixir, and any creature of the party can be its recipient (T). The number is kept so that note #4 keeps its number.
 
 **(#4)** House rule: **the Sorcerer uses artefacts as a Wizard.** This is not in the original rules or on the Sorcerer card, which are silent on the point. It is adopted because the Apprentice already uses artefacts as a Wizard (so it would be odd for the Apprentice to be able to bear a Magic Staff or The Ring while the Sorcerer could not), and because the Sorcerer is the most powerful magic user in the game, with magical power of the same kind as a Wizard’s but stronger. The Sorcerer therefore has access to every artefact a Wizard can use, in the same way. Referred to from the Sorcerer, Magic Staff and The Ring entries and from the table above. *(Proposed by Peter Vodden, 03-OCT-2026; recorded here as an addendum, not as a change to the rules text, by decision of Mark Wickens, 04-OCT-2026.)*
 
@@ -1157,7 +1201,7 @@ Same groups; **Magic User** here also includes the Sorcerer.
 | Apprentice | 9   | 2   | 7   | -   | -  |            | 1         |
 | Wizard     | 7   | 2   | 5   | -   | 15 | 3          |           |
 | Giant      | 7   | 7   |     | 150 | 7  | 3          |           |
-| Demon      | 6   |     | 6   | -   | -  | 1          | 1         |
+| Demon      | 6   |     | 6   | -   | -  |            | 1         |
 | Dragon     | 6   | 6   |     | -   | -  | 3          |           |
 | Hero       | 5   | 5   |     | 75  | 10 | 1          |           |
 | Witch      | 5   | 1   | 4   | -   | 10 |            | 3         |

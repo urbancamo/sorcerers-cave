@@ -33,8 +33,8 @@ describe("PartyDraft — extension kit parity (SC-EXT-29)", () => {
     };
     render(<PartyDraft gameId={gameId} proj={proj} />);
     expect(screen.queryByRole("button", { name: /add witch/i })).toBeNull();
-    expect(costOf(/^Ogre$/).getByText(/cost 5 ·/)).toBeInTheDocument();
-    expect(costOf(/^Troll$/).getByText(/cost 4 ·/)).toBeInTheDocument();
+    expect(costOf(/^Ogre$/).getByText(/cost 4 ·/)).toBeInTheDocument(); // Ogre 4 and Troll 3 in both games (Peter, 2026-11-10)
+    expect(costOf(/^Troll$/).getByText(/cost 3 ·/)).toBeInTheDocument();
   });
 
   it("kit-on: your turn offers Witch/Scholar/Thief/Lion/Wolf at their official costs", () => {

@@ -7,8 +7,8 @@ import { beamSearch, candidateActions, heuristic, homeDistance, legalParties, wa
 const KIT = { extensionKit: true, sibyl: true };
 
 describe("goldenSearch: the look-ahead search that finds the golden game", () => {
-  it("legalParties lists exactly the drafts the engine accepts (31 base, 120 with the kit)", () => {
-    expect(legalParties()).toHaveLength(31);
+  it("legalParties lists exactly the drafts the engine accepts (37 base, 120 with the kit)", () => {
+    expect(legalParties()).toHaveLength(37); // 31 before the Ogre and Troll became 4 and 3 in the base game too (Peter, 2026-11-10)
     const kit = legalParties(KIT);
     expect(kit).toHaveLength(120);
     for (const party of kit) {

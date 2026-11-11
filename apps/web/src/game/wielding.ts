@@ -1,4 +1,4 @@
-import { ALL_CREATURES, ALL_TREASURES, BORNEABLE, WORN, axeBonus, isBorne, ringEligible, shieldEligible, staffBonus, swordBonus, wieldConflict, type GameState, type PartyMember } from '@sorcerers-cave/engine';
+import { ALL_CREATURES, ALL_TREASURES, BORNEABLE, WORN, axeBonus, canUseArtifact, isBorne, ringEligible, shieldEligible, staffBonus, swordBonus, wieldConflict, type GameState, type PartyMember } from '@sorcerers-cave/engine';
 
 // Wielding weapons (docs/requirements/2026-11-05-wielding-weapons-spec.md): a Sword, Axe, Staff or Shield is wielded; the Ring and the
 // Talisman are worn. An item's effect applies only while it is in use, so the party panel and the item card say which it is.
@@ -21,7 +21,7 @@ const WOULD_HELP: Record<number, (creatureId: number) => boolean> = {
   9: (c) => staffBonus(c) > 0,
   20: (c) => shieldEligible(c),
   10: (c) => ringEligible(c),
-  7: () => true,
+  7: (c) => canUseArtifact(c, 7), // the Talisman is for humans and magic users only
 };
 
 /** A fight is about to be fought (or is under way) with gear that would help sitting unused: "Magic Sword (Hero) carried, not wielded".

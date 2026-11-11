@@ -61,7 +61,7 @@ describe("a Spectre from the chest meets the Eye and the Talisman like any other
   });
 
   it("the Eye, held by any living member, destroys it on sight: no fight, nothing slain", () => {
-    const rolls = spectreRolls([member(5, [14]), member(2, [T_EYE])]); // the Eye is NOT on the chest's bearer
+    const rolls = spectreRolls([member(5, [14]), member(0, [T_EYE])]); // the Eye is NOT on the chest's bearer
     expect(rolls.length).toBeGreaterThan(0);
     for (const { state, events } of rolls) {
       expect(events).toContainEqual({ type: "annihilated", creatureId: 9 });
@@ -73,8 +73,8 @@ describe("a Spectre from the chest meets the Eye and the Talisman like any other
     }
   });
 
-  it("the Eye on the chest's own bearer works too (the DOFO case: the Ogre held both)", () => {
-    const rolls = spectreRolls([member(2, [14, T_EYE])]);
+  it("the Eye on the chest's own bearer works too (the DOFO case: one bearer held both)", () => {
+    const rolls = spectreRolls([member(5, [14, T_EYE])]);
     expect(rolls.length).toBeGreaterThan(0);
     for (const { state, events } of rolls) {
       expect(events).toContainEqual({ type: "annihilated", creatureId: 9 });
@@ -82,6 +82,12 @@ describe("a Spectre from the chest meets the Eye and the Talisman like any other
       expect(state.party[0]!.treasure).toContain(T_EYE); // still carrying it, no curse for keeping it
       expect(state.curses).toBe(0);
     }
+  });
+
+  it("an Ogre holding the Eye protects the party all the same: the Eye works by being carried (C for the Ogre in Peter's Appendices 20261110)", () => {
+    const rolls = spectreRolls([member(2, [14, T_EYE])]);
+    expect(rolls.length).toBeGreaterThan(0);
+    for (const { state, events } of rolls) { expect(events).toContainEqual({ type: "annihilated", creatureId: 9 }); expect(state.phase).toBe("explore"); }
   });
 
   it("the Talisman drives it off on level 4 or deeper, but not above", () => {

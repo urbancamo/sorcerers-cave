@@ -9,8 +9,8 @@ game is an ordinary list of actions that `replay()` plays back on the real engin
 |---|---|---|
 | `best-score-search.json` | The single highest-scoring escaped game found, plus the search budget. **This is replay code `K001`.** | `scoreSearch.search.ts` |
 | `top-score-games.json` | The 25 best *distinct* games (different draft or seed) of **each** rule set (base, kit, kit + Sibyl), 75 in all, best first within a rule set, each with its full action list. | `scoreSearch.search.ts` |
-| `golden-search.json` | An earlier, goal-driven game: Extension Kit + Sibyl on, Sorcerer slain, escaped (score 341). | `goldenSearch.search.ts` |
-| `search-index.json` | **Every** search of the run that reached the surface (6,574 of them), best first: item number, score, rules, draft, seed, whether it killed the Sorcerer first. No moves (they are rebuilt, below). About 200 KB. | the merge |
+| `golden-search.json` | An earlier, goal-driven game: Extension Kit + Sibyl on, Sorcerer slain, escaped (score 341). Found on the earlier rules; it no longer replays and is not re-pinned by the overnight run (its three tests are skipped until `goldenSearch.search.ts` is run again). | `goldenSearch.search.ts` |
+| `search-index.json` | **Every** search of the run that reached the surface (4,930 of them), best first: item number, score, rules, draft, seed, whether it killed the Sorcerer first. No moves (they are rebuilt, below). About 200 KB. | the merge |
 | `docs/testing/search-scenario-tables.md` | Generated: the run's provenance and budget, and a table of all 75 games. | `scripts/pin-results.sh` |
 | `apps/web/src/data/scenario-games.json` | All 75 games keyed by replay code (`B001`…`S025`), generated from `top-score-games.json` by the conformance-vectors test. | `vitest -u` |
 
@@ -31,8 +31,8 @@ deterministic and any item can be reproduced from its number and the salt.
 
 The full record of the run that produced the current fixtures (start time, machine, salt, engine commit, budget, the items each
 shard got through, and every pinned game with its item number) is in the generated
-[`search-scenario-tables.md`](search-scenario-tables.md). In short: 12 shards for 7 hours, salt 1, 111,268 searches, 6,574 of
-which escaped, 3.1 billion states, 84 CPU-hours.
+[`search-scenario-tables.md`](search-scenario-tables.md). In short: 10 shards for 7 hours, salt 1, 84,391 searches, 4,930 of
+which escaped, 2.3 billion states, 70 CPU-hours. (Re-run on 2026-11-11 on the rules of Peter's 20261110 documents; best scores: base 380, Extension Kit 473, kit + Sibyl 448.)
 
 ## Replay codes
 
@@ -43,7 +43,7 @@ the best score found. Real game codes are always four letters A–Z, so a code w
 scenario writes nothing to the backend. The data is loaded on demand so the main bundle doesn't carry it.
 
 The 75 games, with their codes, scores, drafts, seeds, item numbers and outcomes, are in
-[`search-scenario-tables.md`](search-scenario-tables.md). Patterns in the current set: 72 of 75 slay the Sorcerer; the Sibyl features
+[`search-scenario-tables.md`](search-scenario-tables.md). Patterns in the current set: 55 of the 75 come from searches that let the party leave only once the Sorcerer was dead; the Sibyl features
 in few of them; the best games finish with a very large party, because they recruit heavily on the way.
 
 ## Reproducing a run
@@ -112,8 +112,11 @@ Sorcerer, treasure carried) without hand-building one.
 A rule change can invalidate stored games: their replays diverge, `scoreSearch.pinned.test.ts` and the web scenario tests fail, and
 the codes should be re-found. To do another overnight run:
 
-1. `packages/engine/scripts/overnight-search.sh [hours] [shards]` (defaults 7 and 12; resumable; stays awake with `caffeinate`; it writes
-   `search-out-score/run.json`). Use `SEARCH_SALT=2 …` for an independent run, and move `search-out-score/` aside first for a fresh one.
+1. `packages/engine/scripts/overnight-search.sh [hours] [shards]` (defaults 7 and 12; stays awake with `caffeinate`; it writes
+   `search-out-score/run.json`). Use `SEARCH_SALT=2 …` for an independent run. After an earlier run (the engine rules may have changed),
+   start with `FRESH=1`, which archives `search-out-score/` first. The run is restartable: `overnight-search.sh stop | status | resume`.
+   A resume carries on to the original end time and refuses if the engine source changed since the run began (the results would mix
+   two rule sets); a shard killed mid-write loses only its torn last line.
 2. When it finishes, `packages/engine/scripts/pin-results.sh`. It merges the shards (replaying candidates best-first on the engine, keeping
    only games that really escape with the recorded score, and re-deriving the moves of any candidate its shard did not keep), writes
    `best-score-search.json`, `top-score-games.json` (top 25 per rule set), `search-index.json` and the generated tables, regenerates the web bundle

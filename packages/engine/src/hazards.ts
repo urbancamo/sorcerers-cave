@@ -16,7 +16,7 @@ import { AF_DESTROYED, AF_UNRESOLVED, type GameState, type PartyMember } from ".
 import type { GameEvent } from "./actions";
 import { stageMidStateOnce } from "./midState";
 import { frontStrength, partyRollBonus } from "./combat";
-import { eyeActive, eyeForsakenByDeath, markDied, ringInvincible, usesArtifactsAs, cursedRoll } from "./effects";
+import { eyeActive, eyeForsakenByDeath, markDied, ringInvincible, usesArtifactsAs, cursedRoll, canUseArtifact } from "./effects";
 import { spillCarried, sweepFallen } from "./loot";
 import { stashOrDeliver } from "./chamber";
 
@@ -43,7 +43,7 @@ export function hasLivingDwarf(state: GameState): boolean {
 }
 
 function livingHolds(state: GameState, treasureId: number): boolean {
-  return living(state).some((m) => inUse(m, treasureId)); // the Talisman wards only while worn
+  return living(state).some((m) => inUse(m, treasureId) && canUseArtifact(m.creatureId, treasureId)); // the Talisman wards only while worn, and only by a human or magic user
 }
 
 /** Any living member holds ANY artifact (kind==="artifact", base or kit, SC-EXT-2) — Harpies' park

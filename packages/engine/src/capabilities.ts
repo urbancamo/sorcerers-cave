@@ -3,7 +3,7 @@
 // Scholar and Apprentice existed, so the creature card must be consulted too: Thief uses artefacts as
 // a Man, Witch and Scholar as a Priest, Apprentice as a Wizard, and the Woman-Hero "has all the
 // capabilities of a woman and a hero". The Sorcerer using artefacts as a Wizard is a HOUSE RULE (not in
-// the original rules; Addendum note #4 of docs/rules/Expanded Consolidated Rules PV2026 V2.md).
+// the original rules; Addendum note #4 of docs/rules/Expanded Consolidated Rules PV2026 V3.md).
 // Peter's response of 03-OCT-2026, docs/requirements/combat/2026-10-03-combat-revision-technical-spec.md §4.4.2.
 
 type CapabilityClass = "hero" | "man" | "woman" | "priest" | "wizard" | "dwarf";

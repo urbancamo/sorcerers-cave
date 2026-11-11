@@ -2,8 +2,8 @@
 import { readFileSync } from "node:fs";
 import { describe, expect, it } from "vitest";
 import { ALL_CREATURES } from "./data/creatures";
-import { canUseArtifact, eyeActive, hasLivingHuman } from "./effects";
-import { swordBonus, axeBonus, staffBonus, shieldEligible, ringEligible } from "./capabilities";
+import { canUseArtifact, eyeActive } from "./effects";
+import { swordBonus, axeBonus, staffBonus, shieldEligible, ringEligible, potionEligible } from "./capabilities";
 import { makeState, inUseGear } from "./testkit";
 import { reduce } from "./reduce";
 import { rollDie } from "./rng";
@@ -11,102 +11,114 @@ import { activeCurses, ringInvincible, talismanWardsSpectres, annihilateWithEye 
 import { casterMP, frontStrength } from "./combat";
 import { packCoord } from "./coords";
 import { legalActions } from "./selectors";
+import { canCarry } from "./pickup";
+import { ALL_TREASURES } from "./data/treasures";
 
-// Engine rules validation, artefacts and curses (docs/validation/clauses/artefacts.md). The ORACLE is the rulebook's own table
-// "ARTEFACTS - WHO CAN USE?" (Addendum), parsed from the markdown and compared with what the engine lets each creature do.
-// Every cell of the ally columns is checked; the stranger columns are checked for the five items the engine can give a stranger
-// (Sword, Staff, Ring, Axe, Shield). A cell where the engine differs from the book is listed in DIFFERENCES with its register entry; it
-// is asserted to STILL differ, so it turns red the moment someone changes the engine and the entry must be revisited.
-const text: string = readFileSync("../../docs/rules/Expanded Consolidated Rules PV2026 V2.md", "utf8");
-const tbl = text.slice(text.indexOf("### ARTEFACTS – WHO CAN USE?"), text.indexOf("**NOTES**"));
-const rows = [...tbl.matchAll(/<tr>([\s\S]*?)<\/tr>/g)].map((m) => [...m[1]!.matchAll(/<td>([\s\S]*?)<\/td>/g)].map((c) => c[1]!.replace(/<\/?b>/g, "").trim()));
-const columns = rows[2]!.slice(1).map((c) => c.replace(/\(#\d\)/g, "").split("<br>").map((s) => s.trim()).filter(Boolean));
-const cid = (name: string) => ALL_CREATURES.find((c) => c.name === name)!.id;
+// Engine rules validation, artefacts and curses (docs/validation/clauses/artefacts.md). The ORACLE is the rulebook's own pair of tables
+// "WHO CAN USE ARTEFACTS - ALLIES / STRANGERS" (Peter's Appendices 20261110, Addendum of the rules file), parsed from the markdown and
+// compared with what the engine lets each creature do. Each cell is a set of letters: U = can carry and use (bear, wield, wear, display,
+// administer), C = can carry but not use, T = can be the target of the effect. Every cell of the ally table is checked three ways (use, carry,
+// target); the stranger table is checked (use only) for the five items the engine can give a stranger (Sword, Staff, Ring, Axe, Shield). A cell
+// where the engine differs from the book is listed in DIFFERENCES with its register entry; it is asserted to STILL differ, so it turns red the
+// moment someone changes the engine and the entry must be revisited. The Eye of God has no U: it works by being CARRIED (its C column).
+const text: string = readFileSync("../../docs/rules/Expanded Consolidated Rules PV2026 V3.md", "utf8");
+/** A markdown table under `heading`: its header names (marker notes like "(#4)" removed) and its rows (item, then one cell per creature). */
+function table(heading: string): { names: string[]; rows: string[][] } {
+  const lines = text.slice(text.indexOf(heading)).split("\n").slice(1);
+  const body: string[][] = [];
+  let started = false;
+  for (const l of lines) {
+    if (!l.startsWith("|")) { if (started) break; continue; }
+    started = true;
+    body.push(l.split("|").slice(1, -1).map((c) => c.trim()));
+  }
+  const [head, , ...rows] = body;
+  return { names: head!.slice(1).map((n) => n.replace(/\(#\d\)/g, "").trim()), rows: rows.map((r) => [r[0]!.replace(/\(#\d\)/g, "").trim(), ...r.slice(1)]) };
+}
+const allies = table("### WHO CAN USE ARTEFACTS - ALLIES"), strangersTbl = table("### WHO CAN USE ARTEFACTS - STRANGERS");
+const rows = allies.rows;
+const ENGINE_NAME: Record<string, string> = { "Woman-Hero": "W-Hero" };
+const cid = (name: string) => ALL_CREATURES.find((c) => c.name === (ENGINE_NAME[name] ?? name))!.id;
 const mem = (creatureId: number, treasure: number[]) => ({ creatureId, status: 1 as const, dragonKills: 0, treasure });
 const has = (actions: { type: string; artifact?: number }[], artifact: number) => actions.some((a) => a.type === "useArtifact" && a.artifact === artifact);
 
-/** What the engine lets a creature of this id do with the artefact, as the table means it. */
+/** What the engine lets a creature of this id USE ("U") of the artefact, as the table means it. */
 const probe: Record<string, (c: number) => boolean> = {
   "Charmed Flute": (c) => canUseArtifact(c, 12),
-  "Eye of God": (c) => eyeActive(makeState({ party: [mem(c, [13])] })),
+  "Healing Balm": (c) => canUseArtifact(c, 6),
   "Magic Carpet": (c) => canUseArtifact(c, 4),
   "Magic Staff": (c) => staffBonus(c) > 0 || canUseArtifact(c, 9),
   "Magic Sword": (c) => swordBonus(c) > 0,
-  "Strength Potion": (c) => has(legalActions(makeState({ phase: "fight", strangers: [2], fight: { surprise: -1, round: 1, focus: 0 } as never, party: [mem(c, [8])] })), 8),
-  "Talisman": (c) => makeState({ party: [mem(c, [7])] }).party[0]!.treasure.includes(7), // passive: the engine ties it to no creature
+  // the holder administers it to a Hero in the fight: only a holder who can use it (a Hero, Woman Hero, Man, Thief or Woman) may
+  "Strength Potion": (c) => has(legalActions(makeState({ phase: "fight", strangers: [2], fight: { surprise: -1, round: 1, focus: 0 } as never, party: [mem(c, [8]), mem(0, [])] })), 8),
+  "Talisman": (c) => talismanWardsSpectres(makeState({ level: 4, party: [{ ...mem(c, [7]), borne: [7] }] })),
   "The Ring": (c) => ringEligible(c),
-  "Elixir (#3)": (c) => has(legalActions(makeState({ party: [mem(c, [15])] })), 15),
+  "Elixir": (c) => has(legalActions(makeState({ party: [mem(c, [15])] })), 15),
   "Holy Water": (c) => canUseArtifact(c, 16),
   "Lotus Dust": (c) => canUseArtifact(c, 5),
   "Magic Axe": (c) => axeBonus(c) > 0,
   "Magic Shield": (c) => shieldEligible(c),
-  "Scroll": (c) => hasLivingHuman(makeState({ party: [mem(c, [19])] })),
+  "Scroll": (c) => canUseArtifact(c, 19),
+};
+const tid = (item: string): number => ALL_TREASURES.find((t) => t.name === item)!.id;
+/** Can a member of this creature carry the artefact at all? (The Lion, Unicorn and Wolf carry none.) */
+const carries = (c: number, item: string): boolean => canCarry(mem(c, []), tid(item));
+/** Is a member of this creature a legal TARGET of the artefact (only the Elixir, the Healing Balm and the Strength Potion have targets)? */
+const targets: Record<string, (c: number) => boolean> = {
+  Elixir: (c) => has(legalActions(makeState({ party: [mem(8, [15]), mem(c, [])] })), 15) && legalActions(makeState({ party: [mem(8, [15]), mem(c, [])] })).some((a) => a.type === "useArtifact" && a.artifact === 15 && (a as { target?: number }).target === 1),
+  "Healing Balm": (c) => {
+    const dead = { creatureId: c, status: 3 as const, dragonKills: 0, treasure: [] as number[], diedTurn: 1, diedArea: 0 };
+    const r = reduce(makeState({ phase: "explore", areas: [{ card: 31, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [] as number[], flags: 0, indiffCount: 0 }], party: [{ ...mem(8, [6]), borne: [] }, dead, mem(6, [])] }), { type: "useArtifact", artifact: 6, target: 1 }); // a Woman is there so a revived Unicorn stays
+    return r.state.party[1]?.status === 0;
+  },
+  "Strength Potion": (c) => potionEligible(c),
 };
 const STRANGER_ITEMS = new Set(["Magic Sword", "Magic Staff", "The Ring", "Magic Axe", "Magic Shield"]);
 
-/** Cells where the engine differs from the book. key = "<artefact>|<ally|stranger>|<creature>". */
+/** Cells where the engine differs from the book. key = "<artefact>|<ally|stranger>|<creature>|<check>". */
+const BALM_Q = "the Healing Balm row gives the Hero, Man and Thief only a T (target): no U and no C, so by the key they may not even carry it. Every other non-user human has a C, and the Hero-class card text says nothing against carrying, so this looks like a missing C. The engine lets them carry it. Question for Peter (docs/validation/rulings-register.md R-34)";
 const DIFFERENCES: Record<string, string> = {
-  "Eye of God|ally|Ogre": "R-21 (ruled keep, MSW 2026-11-08): any holder counts; the book table says only Human and Priest creatures",
-  "Eye of God|ally|Troll": "R-21 (ruled keep, MSW 2026-11-08): any holder counts; the book table says only Human and Priest creatures",
-  "Eye of God|ally|Lion": "R-21 (ruled keep, MSW 2026-11-08): any holder counts; the book table says only Human and Priest creatures",
-  "Eye of God|ally|Wolf": "R-21 (ruled keep, MSW 2026-11-08): any holder counts; the book table says only Human and Priest creatures",
-  "Eye of God|ally|Dwarf": "R-21 (ruled keep, MSW 2026-11-08): any holder counts; the book table says only Human and Priest creatures",
-  "Magic Sword|ally|Priest": "R-22 (ruled keep): the book table lets the Priest class use it; the card gives them no bonus and the engine none",
-  "Magic Sword|ally|Witch": "R-22 (ruled keep): the book table lets the Priest class use it; the card gives them no bonus and the engine none",
-  "Magic Sword|ally|Scholar": "R-22 (ruled keep): the book table lets the Priest class use it; the card gives them no bonus and the engine none",
-  "Magic Sword|ally|Wizard": "R-22 (ruled keep): the book table lets the Priest class use it; the card gives them no bonus and the engine none",
-  "Magic Sword|ally|Apprentice": "R-22 (ruled keep): the book table lets the Priest class use it; the card gives them no bonus and the engine none",
-  "Magic Sword|stranger|Priest": "R-22 (ruled keep): the book table lets the Priest class use it; the card gives them no bonus and the engine none",
-  "Magic Sword|stranger|Witch": "R-22 (ruled keep): the book table lets the Priest class use it; the card gives them no bonus and the engine none",
-  "Magic Sword|stranger|Scholar": "R-22 (ruled keep): the book table lets the Priest class use it; the card gives them no bonus and the engine none",
-  "Magic Sword|stranger|Wizard": "R-22 (ruled keep): the book table lets the Priest class use it; the card gives them no bonus and the engine none",
-  "Magic Sword|stranger|Apprentice": "R-22 (ruled keep): the book table lets the Priest class use it; the card gives them no bonus and the engine none",
-  "Magic Sword|stranger|Sorcerer": "R-22 (ruled keep): the book table lets the Priest class use it; the card gives them no bonus and the engine none",
-  "Strength Potion|ally|Priest": "R-23 (ruled: add the Thief, done; the priests stay out as the card): the book table lets the Priest class use it",
-  "Strength Potion|ally|Witch": "R-23 (ruled: add the Thief, done; the priests stay out as the card): the book table lets the Priest class use it",
-  "Strength Potion|ally|Scholar": "R-23 (ruled: add the Thief, done; the priests stay out as the card): the book table lets the Priest class use it",
-  "Strength Potion|ally|Wizard": "R-23 (ruled: add the Thief, done; the priests stay out as the card): the book table lets the Priest class use it",
-  "Strength Potion|ally|Apprentice": "R-23 (ruled: add the Thief, done; the priests stay out as the card): the book table lets the Priest class use it",
-  "Talisman|ally|Ogre": "R-21 (ruled keep, MSW 2026-11-08): any holder counts; the book table says only Human and Priest creatures",
-  "Talisman|ally|Troll": "R-21 (ruled keep, MSW 2026-11-08): any holder counts; the book table says only Human and Priest creatures",
-  "Talisman|ally|Lion": "R-21 (ruled keep, MSW 2026-11-08): any holder counts; the book table says only Human and Priest creatures",
-  "Talisman|ally|Wolf": "R-21 (ruled keep, MSW 2026-11-08): any holder counts; the book table says only Human and Priest creatures",
-  "Talisman|ally|Dwarf": "R-21 (ruled keep, MSW 2026-11-08): any holder counts; the book table says only Human and Priest creatures",
-  "The Ring|ally|Dwarf": "R-24 (ruled keep, a table typo): the table leaves the allied Dwarf blank, the card and the stranger column allow it",
-  "Magic Axe|ally|Priest": "R-22 (ruled keep): the book table lets the Priest class use it; the card gives them no bonus and the engine none",
-  "Magic Axe|ally|Witch": "R-22 (ruled keep): the book table lets the Priest class use it; the card gives them no bonus and the engine none",
-  "Magic Axe|ally|Scholar": "R-22 (ruled keep): the book table lets the Priest class use it; the card gives them no bonus and the engine none",
-  "Magic Axe|ally|Wizard": "R-22 (ruled keep): the book table lets the Priest class use it; the card gives them no bonus and the engine none",
-  "Magic Axe|ally|Apprentice": "R-22 (ruled keep): the book table lets the Priest class use it; the card gives them no bonus and the engine none",
-  "Magic Axe|stranger|Priest": "R-22 (ruled keep): the book table lets the Priest class use it; the card gives them no bonus and the engine none",
-  "Magic Axe|stranger|Witch": "R-22 (ruled keep): the book table lets the Priest class use it; the card gives them no bonus and the engine none",
-  "Magic Axe|stranger|Scholar": "R-22 (ruled keep): the book table lets the Priest class use it; the card gives them no bonus and the engine none",
-  "Magic Axe|stranger|Wizard": "R-22 (ruled keep): the book table lets the Priest class use it; the card gives them no bonus and the engine none",
-  "Magic Axe|stranger|Apprentice": "R-22 (ruled keep): the book table lets the Priest class use it; the card gives them no bonus and the engine none",
-  "Magic Axe|stranger|Sorcerer": "R-22 (ruled keep): the book table lets the Priest class use it; the card gives them no bonus and the engine none",
+  "Healing Balm|ally|Hero|carry": BALM_Q,
+  "Healing Balm|ally|Man|carry": BALM_Q,
+  "Healing Balm|ally|Thief|carry": BALM_Q,
 };
 
-interface Cell { key: string; artefact: string; role: string; creature: string; book: boolean }
+interface Cell { key: string; artefact: string; role: string; creature: string; letters: string; check: "use" | "carry" | "target" | "carried effect"; book: boolean }
 const cells: Cell[] = [];
-for (const r of rows.slice(3)) {
-  r.slice(1).forEach((cell, col) => {
-    const role = col < 4 ? "ally" : "stranger";
-    if (role === "stranger" && !STRANGER_ITEMS.has(r[0]!)) return;
-    for (const creature of columns[col]!) cells.push({ key: `${r[0]}|${role}|${creature}`, artefact: r[0]!, role, creature, book: /YES/.test(cell) });
-  });
+for (const [role, t] of [["ally", allies], ["stranger", strangersTbl]] as const) {
+  for (const r of t.rows) {
+    if (role === "stranger" && !STRANGER_ITEMS.has(r[0]!)) continue;
+    r.slice(1).forEach((cell, col) => {
+      const base = { artefact: r[0]!, role, creature: t.names[col]!, letters: cell };
+      const has = (l: string) => cell.includes(l);
+      if (r[0] === "Eye of God") cells.push({ ...base, key: `${r[0]}|${role}|${t.names[col]}|carried effect`, check: "carried effect", book: has("U") || has("C") });
+      else if (probe[r[0]!]) cells.push({ ...base, key: `${r[0]}|${role}|${t.names[col]}|use`, check: "use", book: has("U") });
+      if (role === "ally") {
+        cells.push({ ...base, key: `${r[0]}|${role}|${t.names[col]}|carry`, check: "carry", book: has("U") || has("C") });
+        if (targets[r[0]!]) cells.push({ ...base, key: `${r[0]}|${role}|${t.names[col]}|target`, check: "target", book: has("T") });
+      }
+    });
+  }
 }
 
-describe("rulebook table: ARTEFACTS - WHO CAN USE?", () => {
-  it("parses the table it is checking (guards the parser itself)", () => {
-    expect(rows.length).toBe(17);
+describe("rulebook table: WHO CAN USE ARTEFACTS (allies and strangers; U carry+use, C carry only, T target)", () => {
+  it("parses the tables it is checking (guards the parser itself)", () => {
+    expect(allies.names.length).toBe(17);
+    expect(strangersTbl.names.length).toBe(18);
+    expect(rows.length).toBe(15);
+    expect(rows.every((r) => r.slice(1).every((c) => /^(|U|C|T|U T|C T)$/.test(c)))).toBe(true);
     expect(Object.keys(probe).every((a) => rows.some((r) => r[0] === a))).toBe(true);
-    expect(cells.length).toBeGreaterThan(150);
+    expect(cells.length).toBeGreaterThan(500);
   });
 
   for (const c of cells) {
     const known = DIFFERENCES[c.key];
-    const engine = (): boolean => probe[c.artefact]!(cid(c.creature));
-    (known ? it.fails : it)(`${c.artefact}: ${c.role} ${c.creature} ${c.book ? "can" : "cannot"} use it${known ? ` — KNOWN DIFFERENCE: ${known}` : ""}`, () => {
+    const engine = (): boolean => c.check === "use" ? probe[c.artefact]!(cid(c.creature))
+      : c.check === "carry" ? carries(cid(c.creature), c.artefact)
+      : c.check === "target" ? targets[c.artefact]!(cid(c.creature))
+      : carries(cid(c.creature), "Eye of God") && eyeActive(makeState({ party: [mem(cid(c.creature), [13])] })); // a creature that cannot carry it cannot hold it
+    const what = { use: "use it", carry: "carry it", target: "be its target", "carried effect": "make it work by carrying it" }[c.check];
+    (known ? it.fails : it)(`${c.artefact}: ${c.role} ${c.creature} ${c.book ? "can" : "cannot"} ${what} ("${c.letters}")${known ? ` — KNOWN DIFFERENCE: ${known}` : ""}`, () => {
       expect(engine(), `${c.key}`).toBe(c.book);
     });
   }

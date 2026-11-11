@@ -98,7 +98,15 @@ describe("canUseArtifact — class eligibility shared by findBearer, artifactAct
   });
 
   it("an artifact with no class gate is open to everyone", () => {
-    expect(canUseArtifact(DWARF, 8)).toBe(true); // Strength Potion: the target list gates it, not the bearer
-    expect(canUseArtifact(DWARF, 15)).toBe(true); // Elixir
+    expect(canUseArtifact(DWARF, 3)).toBe(true); // Magic Sword: the bonus roster gates the effect, not the bearer
+  });
+  it("the Strength Potion is administered by a Hero, Woman Hero, Man, Thief or Woman only (U in Peter's Appendices 20261110)", () => {
+    expect(canUseArtifact(DWARF, 8)).toBe(false);
+    expect(canUseArtifact(5, 8)).toBe(true);
+    expect(canUseArtifact(PRIEST, 8)).toBe(false);
+  });
+  it("the Elixir, like the Scroll and the Talisman, is used by humans and magic users only; the Eye works by being carried (Peter's Appendices 20261110)", () => {
+    expect(canUseArtifact(DWARF, 15)).toBe(false);
+    expect(canUseArtifact(5, 15)).toBe(true);
   });
 });

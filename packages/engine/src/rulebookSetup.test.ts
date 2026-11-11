@@ -11,7 +11,7 @@ import { selectionCost, startingStock } from "./data/creatures";
  * parties). The ORACLE is the rulebook's table, parsed here. Clause list: docs/validation/clauses/setup.md.
  */
 // @ts-ignore
-const text: string = readFileSync("../../docs/rules/Expanded Consolidated Rules PV2026 V2.md", "utf8");
+const text: string = readFileSync("../../docs/rules/Expanded Consolidated Rules PV2026 V3.md", "utf8");
 const start = text.indexOf("| Type       | Magical");
 const lines = text.slice(start).split("\n").slice(2);
 const rows = lines.slice(0, lines.findIndex((l) => !l.startsWith("|"))).map((l) => l.split("|").slice(1, -1).map((c) => c.trim()));

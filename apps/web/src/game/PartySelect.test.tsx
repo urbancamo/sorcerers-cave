@@ -91,8 +91,8 @@ describe("PartySelect — extension kit toggle (SC-EXT-29, design US-01/§1.3)",
     expect(screen.getByText(/adds 30 area tiles and 30 cards to the decks/i)).toBeInTheDocument();
     // Kit starters are not offered yet.
     expect(screen.queryByRole("button", { name: /add witch/i })).toBeNull();
-    // Base Ogre shows its base cost.
-    expect(costOf(/^Ogre$/).getByText(/cost 5 · 0\/3/)).toBeInTheDocument();
+    // Ogre shows cost 4, the same as with the kit on (Peter, 2026-11-10).
+    expect(costOf(/^Ogre$/).getByText(/cost 4 · 0\/3/)).toBeInTheDocument();
   });
 
   it("turning the kit on extends the roster with the five kit starters at official costs/stock", () => {
@@ -148,7 +148,7 @@ describe("PartySelect — extension kit toggle (SC-EXT-29, design US-01/§1.3)",
     fireEvent.click(screen.getByRole("button", { name: /add witch/i }));
     fireEvent.click(toggle); // off again
     expect(screen.queryByRole("button", { name: /add witch/i })).toBeNull();
-    expect(costOf(/^Ogre$/).getByText(/cost 5 · 0\/3/)).toBeInTheDocument(); // back to base cost
+    expect(costOf(/^Ogre$/).getByText(/cost 4 · 0\/3/)).toBeInTheDocument(); // unchanged
     fireEvent.click(screen.getByRole("button", { name: /add hero/i }));
     fireEvent.click(screen.getByRole("button", { name: /^Enter the cave/i }));
     expect(onConfirm).toHaveBeenCalledWith([0], "yellow"); // no trailing variants arg — byte-identical call shape

@@ -449,13 +449,13 @@ describe("Scroll (US-21, SC-EXT-25)", () => {
     expect(state.phase).toBe("explore");
   });
 
-  it("needs no reader selection — any living human anywhere in the party satisfies the gate (Resolved-10)", () => {
+  it("needs no reader selection — a human carrying it satisfies the gate, however many inhumans are about (Resolved-10; humans and magic users only, MSW 2026-11-10)", () => {
     const s = makeState({
       phase: "encounter",
       areas: [area],
       partyArea: 0,
       strangers: [MAN],
-      party: [member(OGRE, [T_SCROLL]), member(HERO)], // the Ogre carries it; the Hero is simply present
+      party: [member(HERO, [T_SCROLL]), member(OGRE)], // the Hero carries it; an Ogre is simply present
     });
     const { events } = reduce(s, { type: "useArtifact", artifact: T_SCROLL });
     expect(events).toContainEqual({ type: "artifactUsed", artifact: T_SCROLL });

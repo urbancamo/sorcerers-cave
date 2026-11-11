@@ -68,7 +68,7 @@ describe("Magic Axe (US-24, SC-EXT-26)", () => {
   });
 
   it("is nullified by an active Eye of God", () => {
-    const s = makeState({ party: [member(DWARF, [T_AXE, T_EYE])] });
+    const s = makeState({ party: [member(DWARF, [T_AXE]), member(0, [T_EYE])] }); // the Eye is held by a Hero: an inhuman could not use it
     expect(frontStrength(s.party[0]!, s)).toBe(1); // Dwarf FS 1 only — the +3 is powerless
   });
 

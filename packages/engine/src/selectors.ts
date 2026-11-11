@@ -71,7 +71,7 @@ function artifactActions(state: GameState): GameAction[] {
   const actions: GameAction[] = [];
 
   if (state.phase === "fight") {
-    if (has(8, () => true)) { // Strength Potion -> each boostable living member
+    if (has(8, potionEligible)) { // Strength Potion -> each boostable living member
       living(state).forEach(({ m, idx }) => {
         if (potionEligible(m.creatureId)) actions.push({ type: "useArtifact", artifact: 8, target: idx });
       });
@@ -80,8 +80,9 @@ function artifactActions(state: GameState): GameAction[] {
   // Extension kit (SC-EXT-22, design US-19): the Elixir is usable ANY time the party is not
   // mid-fight — offered in every phase `artifactActions` is called from except "fight" (medusa's
   // pause offers no artifactActions at all, unlike Lotus Dust, so it's excluded there too, same as
-  // every other artifact here). "Any creature" may drink it — one action per living member.
-  if (state.phase !== "fight" && has(15, () => true)) {
+  // every other artifact here). A human or magic user must carry it ("U" in Peter's Appendices 20261110) and gives it to ANY living member
+  // of the party ("T"): one action per living member as the recipient.
+  if (state.phase !== "fight" && has(15, (id) => canUseArtifact(id, 15))) {
     living(state).forEach(({ idx }) => actions.push({ type: "useArtifact", artifact: 15, target: idx }));
   }
   // Extension kit (SC-EXT-24, design US-20): Holy Water's target picker — `holyWaterTargets`
@@ -96,7 +97,7 @@ function artifactActions(state: GameState): GameAction[] {
   }
   // Extension kit (SC-EXT-25, design US-21/Resolved-10): the Scroll needs a living human present
   // and strangers to burn, in encounter or fight — no target/picker (any human reads it).
-  if ((state.phase === "encounter" || state.phase === "fight") && !state.variants?.combatRevision && has(19, () => true) &&
+  if ((state.phase === "encounter" || state.phase === "fight") && !state.variants?.combatRevision && has(19, (id) => canUseArtifact(id, 19)) &&
       state.strangers.length > 0 && hasLivingHuman(state)) {
     actions.push({ type: "useArtifact", artifact: 19 });
   }

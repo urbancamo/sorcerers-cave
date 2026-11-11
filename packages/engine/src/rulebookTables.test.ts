@@ -5,13 +5,13 @@ import { ALL_CREATURES } from "./data/creatures";
 import { ALL_TREASURES } from "./data/treasures";
 
 // Engine rules validation, pilot (docs/requirements/engine-rules-validation/plan.md). The ORACLE here is the rulebook, not the engine:
-// the creature and treasure card entries of Peter's Expanded Consolidated Rules PV2026 V2 are parsed from its markdown and compared with
+// the creature and treasure card entries of Peter's Expanded Consolidated Rules PV2026 V3 are parsed from its markdown and compared with
 // `data/creatures.ts` and `data/treasures.ts`. The engine spec's SC rows were written from the code, so they cannot catch a table typo
 // (the Dragon table, card 41, the Idol's weight were all found late that way); this does.
 //
 // Where the engine departs from the book on purpose, the departure is listed in DEVIATIONS below with its reason, so a NEW difference
 // fails the test and a documented one cannot be mistaken for a bug.
-const RULES = "../../docs/rules/Expanded Consolidated Rules PV2026 V2.md";
+const RULES = "../../docs/rules/Expanded Consolidated Rules PV2026 V3.md";
 const text: string = readFileSync(RULES, "utf8");
 const section = (from: string, to: string) => text.slice(text.indexOf(from), text.indexOf(to));
 const headings = (body: string) => body.split("\n").filter((l) => l.startsWith("### "));

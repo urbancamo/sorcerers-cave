@@ -172,7 +172,7 @@ describe("applyHazards (spec §7.2)", () => {
   it("the Talisman wards off Ghouls — no harm, no hazard fired (card)", () => {
     const s = makeState({
       party: [
-        { creatureId: 7, status: 0, dragonKills: 0, treasure: [7], borne: [7] }, // Dwarf wearing the Talisman (id 7)
+        { creatureId: 5, status: 0, dragonKills: 0, treasure: [7], borne: [7] }, // Man wearing the Talisman (id 7): humans and magic users only
         { creatureId: 7, status: 0, dragonKills: 0, treasure: [] },  // a weak Dwarf the Ghouls would slay
       ],
       hazards: [HAZARD_GHOULS],

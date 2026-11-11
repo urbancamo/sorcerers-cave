@@ -1969,10 +1969,10 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           if (next.phase !== "encounter" || !next.strangers.includes(10)) return { state, events: [{ type: "blocked" }] };
           return { state: next, events: lullDragons(next) };
         }
-        case 15: { // Elixir — usable ANY time the party is not mid-fight; ANY living member may drink (design US-19, SC-EXT-22)
+        case 15: { // Elixir — usable ANY time the party is not mid-fight; a human or magic user (the bearer) gives it to any living member (design US-19, SC-EXT-22; Peter's Appendices 20261110)
           if (next.phase === "fight" || action.target === undefined) return { state, events: [{ type: "blocked" }] };
           const drinker = next.party[action.target];
-          if (!drinker || (drinker.status !== 0 && drinker.status !== 1)) return { state, events: [{ type: "blocked" }] };
+          if (!drinker || (drinker.status !== 0 && drinker.status !== 1) ) return { state, events: [{ type: "blocked" }] };
           consume(); // consumed on use, whatever the outcome
           const roll = cursedRoll(next);
           const events: GameEvent[] = [{ type: "artifactUsed", artifact: 15 }];

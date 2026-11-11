@@ -50,7 +50,7 @@ describe("the revised Ghouls fight", () => {
   });
 
   it("is still warded off by the Talisman", () => {
-    const r = enteringGhouls([member(DWARF, [TALISMAN]), member(MAN)]);
+    const r = enteringGhouls([member(MAN, [TALISMAN]), member(DWARF)]);   // a human wears it: the Talisman is for humans and magic users only
     expect(r.events).toContainEqual({ type: "ghoulsWarded" });
     expect(r.state.phase).not.toBe("fight");
   });

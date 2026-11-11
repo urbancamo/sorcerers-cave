@@ -64,6 +64,7 @@ docs/requirements/**/*.pdf
 # generated search output and local design-tool state
 /packages/engine/search-out/
 /packages/engine/search-out-score/
+/packages/engine/search-out-score.*/
 /.impeccable/
 /packages/engine/soak-out-r0/
 /packages/engine/soak-out-r1/
