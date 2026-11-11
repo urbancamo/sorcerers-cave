@@ -1,5 +1,7 @@
 # The Sorcerer's Cave: points in the rulebook that need your attention
 
+> **Answered** by Peter on 2026-11-09 (`docs/rules/20261109 Book Errors Feedback.pdf`); the outcomes, and the engine changes that followed, are in `rulings-register.md` (R-34 to R-40).
+
 Peter,
 
 While checking the game engine line by line against *Expanded Consolidated Rules PV2026 V2*, we found a few places where the book disagrees with itself or with the cards, and a few where it says nothing. Mark has ruled on each for the game as it stands. We would like you to confirm them or correct the book.

@@ -5,7 +5,7 @@
 
 | RC id | Clause (book) | Status | Test | Register |
 |---|---|---|---|---|
-| RC-AR-T | The table "WHO CAN USE?": 14 artefacts x creature types x ally/stranger (273 cells checked; strangers only for Sword, Staff, Ring, Axe, Shield, the items the engine gives them) | Peter's Appendices 20261006 now the oracle (two tables, allies and strangers): R-21 overturned 2026-11-10 (Eye, Scroll, Talisman human-only, SC-11-51); the table itself dropped the Priest class from Sword/Axe/Potion (R-22/23) and added the allied Dwarf's Ring (R-24); 376 cells checked, no differences | one test per cell | R-21, R-22, R-23, R-24 |
+| RC-AR-T | The tables "WHO CAN USE ARTEFACTS", U / C / T: 15 artefacts x creature types, checked three ways for allies (use, carry, target; the Eye's carried effect) and for use only for strangers (Sword, Staff, Ring, Axe, Shield) — 682 checks | Peter's Appendices 20261110 now the oracle (two tables, allies and strangers): R-21 overturned 2026-11-10 (Eye, Scroll, Talisman human-only, SC-11-51); the table itself dropped the Priest class from Sword/Axe/Potion (R-22/23) and added the allied Dwarf's Ring (R-24); 376 cells checked, no differences | one test per cell | R-21, R-22, R-23, R-24 |
 | RC-AR-EL | Elixir: 1 poison kills, 2-3 nothing, 4-6 permanently +2 strength | Verified | Elixir x6 | |
 | RC-AR-CH | Chest: 1 curse, 2 Spectre attacks, 3 sand, 4 silver 20, 5 gold 40, 6 gems 80 | Verified | Chest x6 | |
 | RC-AR-CU | A curse subtracts one from all die rolls; cumulative; no effect once the Sorcerer is dead | Verified (the "never below 1" outside fights is Peter's 2026-11-04 ruling) | curses x2 | |

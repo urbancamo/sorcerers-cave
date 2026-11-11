@@ -1,5 +1,7 @@
 # Artefact matrices (Appendices 20261006) against the engine
 
+> **Superseded 2026-11-11** by `2026-11-11-rebaseline-20261110.md`. This report read the 20261006 ticks as "may carry and use". Peter's 20261110 tables show they meant only "may use" (the new U / C / T key), which overturns the Eye, Elixir, Scroll and Talisman changes described below.
+
 > Created: 2026-11-09
 > Source: `docs/rules/Consolidated Rules Appendices 20261006.pdf` (the "Who can use artefacts" allies and strangers tables),
 > carried into `docs/rules/Expanded Consolidated Rules PV2026 V3.md`
