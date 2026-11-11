@@ -59,9 +59,7 @@ describe("rollFromEvents", () => {
       { type: "strangersJoined", count: 1 },
     ])).toBeNull();
     expect(rollFromEvents([
-      { type: "reaction", outcome: "friendly", roll: 5, certain: true },
-      { type: "strangersJoined", count: 0 },
-      { type: "unicornGuards", creatureId: 13 },
+      { type: "reaction", outcome: "indifferent", roll: 5, certain: true },
     ])).toBeNull();
   });
 

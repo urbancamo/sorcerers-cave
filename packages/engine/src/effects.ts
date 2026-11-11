@@ -301,7 +301,7 @@ function reindexAfterRemoval(state: GameState, gone: number): void {
 
 /** House rule for the Unicorn (MSW, 2026-11-06, register R-17): with no Woman left it does not simply vanish. It leaves the party and
  *  stays at `areaIdx` as an indifferent stranger guarding the area, the same state as a Womanless Unicorn met in a chamber (it is left in
- *  the area's contents and the area is marked pacified and Unicorn-guarded for this party). `only` picks which Unicorns go (by party
+ *  the area's contents and the area is marked pacified for this party, so a Thief may steal from it like from any indifferent guard). `only` picks which Unicorns go (by party
  *  index); omit it for all of them. Never leaves the party empty. */
 export function orphanUnicorns(state: GameState, areaIdx: number, only?: (partyIdx: number) => boolean): GameEvent[] {
   if (hasWoman(state)) return [];
@@ -316,7 +316,6 @@ export function orphanUnicorns(state: GameState, areaIdx: number, only?: (partyI
     if (area) {
       area.contents.push(100 + C_UNICORN);
       if (!state.pacifiedAreas?.includes(areaIdx)) state.pacifiedAreas = [...(state.pacifiedAreas ?? []), areaIdx];
-      if (!state.unicornGuardAreas?.includes(areaIdx)) state.unicornGuardAreas = [...(state.unicornGuardAreas ?? []), areaIdx];
     }
     events.push(last ? { type: "unicornDeparted", creatureId: C_UNICORN, last: true } : { type: "unicornDeparted", creatureId: C_UNICORN }, { type: "unicornGuards", creatureId: C_UNICORN });
   }

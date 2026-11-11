@@ -52,15 +52,13 @@ describe("eventNotices exhaustiveness (base hardening)", () => {
     expect(out[0]!.tone).toBe("good");
   });
 
-  it("narrates a `certain` reaction in plain text instead of a dice overlay (bug fix 2026-08-02) — guard case", () => {
+  it("narrates a womanless Unicorn as indifferent, still guarding the treasure (GitHub #37)", () => {
     const out = eventNotices([
-      { type: "reaction", outcome: "friendly", roll: 5, certain: true },
-      { type: "strangersJoined", count: 0 },
-      { type: "unicornGuards", creatureId: 13 },
+      { type: "reaction", outcome: "indifferent", roll: 5, certain: true },
     ]);
     expect(out).toHaveLength(1);
-    expect(out[0]!.text).toMatch(/guard the chamber/i);
-    expect(out[0]!.tone).toBe("good");
+    expect(out[0]!.text).toMatch(/Indifferent.*continues to guard the treasure/i);
+    expect(out[0]!.tone).toBe("neutral");
   });
 
   it("stays silent for a non-certain reaction — the dice overlay (rollView.ts) already covers it", () => {

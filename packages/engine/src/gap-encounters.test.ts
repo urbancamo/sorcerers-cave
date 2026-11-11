@@ -60,13 +60,11 @@ describe("reaction — friendly join edge cases (spec §8.5)", () => {
     });
     const partyLen = s.party.length;
     const { state, events } = reduce(s, { type: "test" });
-    expect(events).toContainEqual(expect.objectContaining({ type: "reaction", outcome: "friendly" }));
-    expect(events).toContainEqual({ type: "unicornGuards", creatureId: 13 });
+    expect(events).toContainEqual(expect.objectContaining({ type: "reaction", outcome: "indifferent" }));
+    expect(events.some((e) => e.type === "unicornGuards")).toBe(false);
     expect(events).not.toContainEqual(expect.objectContaining({ type: "strangersJoined", count: 1 }));
     expect(state.party.length).toBe(partyLen); // the Unicorn did NOT join
     expect(state.party.some((m) => m.creatureId === 13)).toBe(false);
-    expect(state.pacifiedAreas).toContain(state.partyArea); // the area is pacified for this party
-    expect(state.phase).toBe("explore"); // free to move on, leaving the guard behind
   });
 });
 

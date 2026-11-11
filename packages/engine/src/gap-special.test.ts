@@ -96,12 +96,10 @@ describe("Viper Pit — a total wipe ends the game (spec §10.1)", () => {
 });
 
 describe("Reactions — a womanless Unicorn pacifies the area (spec §10.4)", () => {
-  it("SC-10.4-5: a friendly Unicorn with no Woman in the party does not join; the area is pacified with an unicornGuards event", () => {
-    // A Unicorn always reacts friendly (hostileMax/indiffMax = 0). With no Woman present it declines
-    // to join and guards the area, pacifying it for this party (reduce.ts:461-468).
+  it("SC-10.4-5: a Unicorn with no Woman in the party cannot join and is indifferent (no unicornGuards event); three indifferent tests pacify the area", () => {
     const s = makeState({
       phase: "encounter",
-      party: [member(HERO)], // no Woman / W-Hero, so the Unicorn will not join
+      party: [member(HERO)], // no Woman / W-Hero, so the Unicorn cannot join
       strangers: [UNICORN],
       partyArea: 0,
       indiffStreak: 0,
@@ -109,11 +107,9 @@ describe("Reactions — a womanless Unicorn pacifies the area (spec §10.4)", ()
     const { state, events } = reduce(s, { type: "test" });
 
     expect(state.party.some((m) => m.creatureId === UNICORN)).toBe(false); // it did not join
-    expect(events).toContainEqual({ type: "unicornGuards", creatureId: UNICORN });
-    expect(state.pacifiedAreas).toContain(0);
-    // persistAndExplore parks the guarding Unicorn onto the tile (as 100+id) and clears the working set.
-    expect(state.strangers).toEqual([]);
-    expect(state.areas[0]!.contents).toContain(100 + UNICORN); // the Unicorn stays behind guarding
-    expect(state.phase).toBe("explore"); // the party moves on
+    expect(events).toContainEqual(expect.objectContaining({ type: "reaction", outcome: "indifferent" }));
+    expect(events.some((e) => e.type === "unicornGuards")).toBe(false);
+    expect(state.strangers).toEqual([UNICORN]); // still guarding until the third indifferent test
   });
+
 });

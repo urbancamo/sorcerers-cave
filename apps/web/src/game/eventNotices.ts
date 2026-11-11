@@ -107,6 +107,16 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
         // reactionView exactly. A non-certain reaction stays silent — rollView.ts's own single-die
         // overlay already covers it (see the silent group below).
         if (!e.certain) break;
+        // A womanless Unicorn is indifferent (Peter's feedback #13): it cannot join and keeps guarding the treasure.
+        if (e.outcome === "indifferent") {
+          out.push({
+            text: events.some((ev) => ev.type === "pacified")
+              ? "Indifferent again — the Unicorn now ignores you for good and continues to guard the treasure."
+              : "Indifferent — the Unicorn continues to guard the treasure. You may leave by any doorway, or test it again.",
+            tone: "neutral",
+          });
+          break;
+        }
         const joined = events.find((ev) => ev.type === "strangersJoined")?.count ?? 0;
         const guarded = events.some((ev) => ev.type === "unicornGuards");
         out.push({

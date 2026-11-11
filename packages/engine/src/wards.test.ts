@@ -165,14 +165,12 @@ describe("Unicorn loyalty to a Woman (§ Unicorn)", () => {
     expect(state.strangers).toEqual([]);
   });
 
-  it("a Womanless party leaves the Unicorn guarding the area", () => {
-    // Hero (id 0) only — no Woman → Unicorn stays behind guarding.
+  it("a Womanless party meets an INDIFFERENT Unicorn that cannot join (Peter's feedback #13)", () => {
+    // Hero (id 0) only — no Woman → the Unicorn cannot join and is indifferent, guarding the treasure.
     const { state, events } = reduce(unicornEncounter([member(0)]), { type: "test" });
-    expect(events).toContainEqual(expect.objectContaining({ type: "reaction", outcome: "friendly" }));
-    expect(events).toContainEqual({ type: "unicornGuards", creatureId: 13 });
+    expect(events).toContainEqual(expect.objectContaining({ type: "reaction", outcome: "indifferent" }));
+    expect(events.some((e) => e.type === "unicornGuards")).toBe(false);
     expect(state.party.map((m) => m.creatureId)).not.toContain(13); // did NOT join
-    expect(state.phase).toBe("explore"); // party moves on
-    expect(state.pacifiedAreas).toContain(state.partyArea); // guarded for this party (per-party, re-entry skips it)
   });
 
   it("R-17: a Unicorn ally stays in the fight after the last Woman falls (it fights to protect itself); it leaves when the fight is over", () => {

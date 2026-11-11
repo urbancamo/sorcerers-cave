@@ -18,7 +18,6 @@ describe("an orphaned Unicorn (R-17)", () => {
     expect(state.party.map((x) => x.creatureId)).toEqual([6, 5]);
     expect(state.areas[0]!.contents).toContain(100 + 13);
     expect(state.pacifiedAreas).toContain(0);
-    expect(state.unicornGuardAreas).toContain(0);
     expect(events).toContainEqual({ type: "unicornGuards", creatureId: 13 });
   });
 
