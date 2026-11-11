@@ -451,7 +451,7 @@ describe("Shared kit content across seats (SC-EXT-32)", () => {
 // SC-EXT-36: choosePartyFor threads mp.variants into validatePicks. Before this fix, `validatePicks`
 // was called with no third argument (multi.ts:309), so ANY kit id (14-20) was rejected as
 // unselectable regardless of the game's own `mp.variants.extensionKit` flag, and the kit-on
-// Ogre/Troll cost revision (5→4 / 4→3, SC-EXT-29's KIT_COST_OVERRIDES) never applied to MP drafts
+// Ogre/Troll cost revision (5→4 / 4→3, then a kit-only override; since 2026-11-11 it is the base cost too) never applied to MP drafts
 // either — even though `gameState`'s `draft.remaining` (Task 7) already displays kit ids as
 // draftable with real stock. Currently unreachable in production (no UI sets the flag on an MP
 // game yet — that's Task 8), but this MUST be fixed first so a kit-on lobby toggle doesn't ship an
@@ -472,7 +472,7 @@ describe("choosePartyFor threads mp.variants into validatePicks (SC-EXT-36)", ()
     const first = mp0.pickOrder[0]!;
     // Ogre(id 2) + Woman(id 6): totals 6 (= PARTY_BUDGET) only if the Ogre costs 4 (kit-on
     // override); at the base cost of 5 this would total 7 and be rejected — so ACCEPTED here
-    // pins the KIT_COST_OVERRIDES threading specifically, not just "kit ids selectable at all".
+    // pins the Ogre cost specifically, not just "kit ids selectable at all".
     const r = choosePartyFor(mp0, first, [2, 6]);
     expect(r.ok).toBe(true);
     expect(r.state.parties[first]!.party.map((m) => m.creatureId)).toEqual([2, 6]);

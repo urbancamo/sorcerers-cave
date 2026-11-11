@@ -18,10 +18,10 @@ const run = (g: { seed: number; picks: number[]; variants: object; actions: unkn
   return { frames, end: frames[frames.length - 1]!.state };
 };
 
-// STALE since 2026-11-10: the Eye of God, the Elixir, the Scroll and the Talisman became human-only (Peter's Appendices 20261006; MSW), and these pinned
-// games were found by a search that let an inhuman (an Ogre, a Dwarf...) hold or wear them, so they no longer replay. The reducer is
-// unchanged in how it refuses an action, so the fix is to re-run the overnight search (scripts/overnight-search.sh), pin the new results,
-// and remove the skips below.
+// STALE since 2026-11-10 / 2026-11-11: the engine was re-baselined on Peter's rules of 20261110 (the artefact U/C/T key: the Talisman, Scroll, Elixir and
+// Strength Potion are used by their U creatures only, the Lion, Unicorn and Wolf carry no artefact; the Ogre costs 4 and the Troll 3 in the base game
+// too), and these pinned games were found on the earlier rules, so they no longer replay. Re-run the overnight search
+// (FRESH=1 scripts/overnight-search.sh), pin the new results (scripts/pin-results.sh), and remove the skips below.
 describe("score search: the best game (K001)", () => {
   const { frames, end } = run(best);
   it.skip("replays move for move, ends on the surface with a living party, and scores what was recorded", () => {
@@ -75,9 +75,9 @@ describe.each(RULESETS)("score search: the top-25 scenarios, rules: %s", (rules)
     }
   });
   const STALE: Record<string, number[]> = {
-    base: [14, 16, 18, 22],
-    kit: [2, 3, 11, 12, 13, 14, 17, 18, 20, 24, 25],
-    "kit+sibyl": [1, 2, 3, 4, 6, 8, 9, 13, 14, 15, 16, 17, 20],
+    base: [1, 2, 5, 14, 16, 18, 22],
+    kit: [1, 2, 3, 11, 12, 13, 14, 15, 17, 18, 19, 20, 24, 25],
+    "kit+sibyl": [1, 2, 3, 4, 6, 7, 8, 9, 12, 13, 14, 15, 16, 17, 20, 25],
   };
   const live = games.filter((g) => !STALE[rules]!.includes(g.rank)), stale = games.filter((g) => STALE[rules]!.includes(g.rank));
   it.skip.each(stale.map((g) => [g.rank, g.score, g] as const))("#%i (score %i) is stale: re-run the search", () => {});

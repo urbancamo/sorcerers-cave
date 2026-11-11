@@ -13,8 +13,13 @@ export function carriedWeight(member: PartyMember): number {
   return member.treasure.reduce((sum, tid) => sum + ALL_TREASURES[tid]!.weight, 0);
 }
 
-/** Can the member take treasure `tid` without exceeding its carry capacity? */
+// The Unicorn, the Lion and the Wolf carry no artefact at all (Peter's Appendices 20261110: blank in every artefact row but for being the target of
+// the Elixir and the Healing Balm; the Lion card: "Does not carry or use any artefact"). Artefacts weigh nothing, so capacity alone never stopped them.
+const NO_ARTEFACTS = new Set([13, 16, 20]);
+
+/** Can the member take treasure `tid` without exceeding its carry capacity (and, for an artefact, is it a creature that carries them)? */
 export function canCarry(member: PartyMember, tid: number): boolean {
+  if (ALL_TREASURES[tid]!.kind === "artifact" && NO_ARTEFACTS.has(member.creatureId)) return false;
   const capacity = CREATURES[member.creatureId]!.carry;
   return carriedWeight(member) + ALL_TREASURES[tid]!.weight <= capacity;
 }

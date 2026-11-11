@@ -84,10 +84,10 @@ describe("a Spectre from the chest meets the Eye and the Talisman like any other
     }
   });
 
-  it("an Ogre holding the Eye does not protect the party: the Eye is for humans and magic users only (MSW 2026-11-10)", () => {
+  it("an Ogre holding the Eye protects the party all the same: the Eye works by being carried (C for the Ogre in Peter's Appendices 20261110)", () => {
     const rolls = spectreRolls([member(2, [14, T_EYE])]);
     expect(rolls.length).toBeGreaterThan(0);
-    for (const { state } of rolls) { expect(state.phase).toBe("fight"); expect(state.strangers).toEqual([9]); }
+    for (const { state, events } of rolls) { expect(events).toContainEqual({ type: "annihilated", creatureId: 9 }); expect(state.phase).toBe("explore"); }
   });
 
   it("the Talisman drives it off on level 4 or deeper, but not above", () => {

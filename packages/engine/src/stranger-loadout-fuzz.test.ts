@@ -81,7 +81,7 @@ describe("stranger loadout — invariants over many played games", () => {
         const after = artifactCensus(state);
         // Artefacts only ever enter play via a chamber draw, so the census may rise but never by duplication from
         // a loadout/drop/retreat step: a step that draws nothing must leave it unchanged or lower (consumed/vanished).
-        if (!r.events.some((e) => e.type === "drewChamber" || e.type === "chestOpened" || e.type === "strangersJoined")) {
+        if (!r.events.some((e) => e.type === "drewChamber" || e.type === "wellDraw" || e.type === "chestOpened" || e.type === "strangersJoined")) {
           after.forEach((n, i) => expect(n, `seed ${seed} step ${step} (${action!.type}): artefact ${FIGHT_ARTIFACTS[i]} duplicated`).toBeLessThanOrEqual(before[i]!));
         }
       }

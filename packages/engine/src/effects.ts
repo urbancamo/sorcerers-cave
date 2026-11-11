@@ -1,6 +1,6 @@
 import { ALL_CREATURES as CREATURES, FLAG_BEFRIENDS_UNICORN, FLAG_HUMAN } from "./data/creatures";
 import { HAZARD_MEDUSA } from "./data/hazards";
-import { shieldEligible } from "./capabilities";
+import { potionEligible, shieldEligible } from "./capabilities";
 import { inUse } from "./loot";
 import { rollDieForState } from "./rng";
 import { removeStranger, addStranger } from "./strangerGear";
@@ -77,11 +77,13 @@ export function canUseArtifact(creatureId: number, artifact: number): boolean {
     case 4: return usesArtifactsAs(creatureId, 4) || usesArtifactsAs(creatureId, 8); // Magic Carpet: Priest/Wizard
     case 5: case 16: return isHumanOrPriestClass(creatureId); // Lotus Dust, Holy Water: Human/Priest
     case 6: return creatureId === 6 || creatureId === 1 || usesArtifactsAs(creatureId, 4) || usesArtifactsAs(creatureId, 8); // Healing Balm: Woman/W-Hero/Priest/Wizard
+    case 8: return potionEligible(creatureId); // Strength Potion: administered by Hero, Woman Hero, Man, Thief or Woman ("U" in Peter's Appendices 20261110)
     case 9: return usesArtifactsAs(creatureId, 8); // Magic Staff reanimation: Wizard
     case 12: return creatureId === 0 || creatureId === 1 || usesArtifactsAs(creatureId, 4) || usesArtifactsAs(creatureId, 5) || creatureId === 6 || usesArtifactsAs(creatureId, 8); // Charmed Flute: Hero/W-Hero/Priest/Man/Woman/Wizard
-    // The Talisman, the Eye of God, the Elixir and the Scroll: humans and magic users only (Peter's Appendices 20261006; MSW 2026-11-10). An inhuman
-    // (Dwarf, Giant, Lion, Ogre, Troll, Unicorn, Wolf) may carry one, but it does nothing in its hands.
-    case 7: case 13: case 15: case 19: return isHumanOrPriestClass(creatureId);
+    // The Talisman, the Elixir and the Scroll are USED (worn, administered, read) by humans and magic users only ("U" in Peter's Appendices
+    // 20261110). A Dwarf, Giant, Ogre or Troll may CARRY one ("C"), but it does nothing in its hands. The Eye of God is not here: it works
+    // by being carried, so every creature that can carry it counts (its "C" column).
+    case 7: case 15: case 19: return isHumanOrPriestClass(creatureId);
     default: return true;
   }
 }
@@ -90,9 +92,9 @@ function living(m: PartyMember): boolean {
   return m.status === 0 || m.status === 1;
 }
 
-/** Does a living member who can use `treasureId` hold it? (The Eye is for humans and magic users only: an Ogre holding it does nothing.) */
+/** Does a living member hold `treasureId`? (The Eye works by being carried, by anyone who can carry it.) */
 function partyHolds(state: GameState, treasureId: number): boolean {
-  return state.party.some((m) => living(m) && m.treasure.includes(treasureId) && canUseArtifact(m.creatureId, treasureId));
+  return state.party.some((m) => living(m) && m.treasure.includes(treasureId));
 }
 
 /** Does any living member have the item in use (wielded or worn)? The Talisman's ward is the party's, but only while it is worn. */

@@ -25,7 +25,7 @@ export const PARTY: Section = {
       p('Tick the **Extension kit** box before you set out — solo, or as the host in a multiplayer lobby — and the decks grow by 30 tiles and 30 small cards for that game only. Leave it unticked and none of it applies.'),
       list(
         'Five new creatures join the roster: the **Witch**, **Scholar**, **Thief**, **Lion** and **Wolf**.',
-        'The **Ogre** drops to cost 4 and the **Troll** to cost 3, and the Woman and Dwarf stocks rise from 3 to 4.',
+        'The Woman and Dwarf stocks rise from 3 to 4. (The **Ogre** costs 4 and the **Troll** 3 in every game.)',
         'Switching the kit keeps the picks you have made; only kit-only creatures are dropped when it goes off, and costs and stock update.',
         'Scores for kit games go in their own high-score tables.',
       ),

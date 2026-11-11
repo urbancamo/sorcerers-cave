@@ -3,7 +3,7 @@
 exports[`MP-kit golden firewall — kit-on multiplayer behaviour is frozen > seed 7660 kit-on 2-seat game (union → dissolve) plays back identically 1`] = `
 {
   "final": {
-    "areas": 30,
+    "areas": 29,
     "phase": "finished",
     "seats": [
       {
@@ -17,7 +17,7 @@ exports[`MP-kit golden firewall — kit-on multiplayer behaviour is frozen > see
       },
       {
         "alive": 0,
-        "area": 29,
+        "area": 11,
         "kills": 0,
         "level": 2,
         "score": 0,
@@ -25,8 +25,8 @@ exports[`MP-kit golden firewall — kit-on multiplayer behaviour is frozen > see
         "status": "wiped",
       },
     ],
-    "stateHash": "5af40c64",
-    "turnCount": 56,
+    "stateHash": "0507974e",
+    "turnCount": 53,
     "unions": 1,
   },
   "narrative": [
@@ -73,7 +73,7 @@ exports[`MP-kit golden firewall — kit-on multiplayer behaviour is frozen > see
     "#36 s0 move:1 => moved,drewChamber",
     "#37 s0 move:2 => moved,drewChamber",
     "#38 s0 test => reaction,strangersJoined",
-    "#39 s0 take:1>3 => -",
+    "#39 s0 take:1>1 => -",
     "#40 s0 take:0>3 => -",
     "#41 s0 union:dissolve => -",
     "#42 s0 move:1 => moved,demonSpawned,drewChamber,cryptParked",
@@ -81,7 +81,7 @@ exports[`MP-kit golden firewall — kit-on multiplayer behaviour is frozen > see
     "#44 s1 move:4 => moved,drewChamber",
     "#45 s0 move:3 => deadEnd",
     "#46 s1 move:2 => moved,drewChamber,demonUnfolds,fightStarted",
-    "#47 s1 use:5>0 => artifactUsed",
+    "#47 s1 use:16>3000 => artifactUsed,holyWaterFoeDestroyed",
     "#48 s0 move:4 => moved",
     "#49 s1 move:4 => moved,drewChamber",
     "#50 s0 move:3 => moved",
@@ -105,14 +105,8 @@ exports[`MP-kit golden firewall — kit-on multiplayer behaviour is frozen > see
     "#68 s1 move:1 => moved,drewChamber",
     "#69 s1 move:3 => moved,drewChamber",
     "#70 s1 move:5 => moved,drewChamber",
-    "#71 s1 use:16>3000 => artifactUsed,holyWaterFoeDestroyed",
-    "#72 s1 leaveTreasure => -",
-    "#73 s1 move:6 => moved,drewChamber",
-    "#74 s1 move:5 => moved,drewChamber",
-    "#75 s1 leaveTreasure => -",
-    "#76 s1 move:1 => moved,drewChamber",
-    "#77 s1 test => reaction,fightStarted",
-    "#78 s1 fight:1v0 => combatRoll,memberDied,itemsSpilled,gameOver",
+    "#71 s1 test => reaction,fightStarted",
+    "#72 s1 fight:1v0 => combatRoll,memberDied,itemsSpilled,gameOver",
   ],
 }
 `;

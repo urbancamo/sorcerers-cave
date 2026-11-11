@@ -71,7 +71,7 @@ function artifactActions(state: GameState): GameAction[] {
   const actions: GameAction[] = [];
 
   if (state.phase === "fight") {
-    if (has(8, () => true)) { // Strength Potion -> each boostable living member
+    if (has(8, potionEligible)) { // Strength Potion -> each boostable living member
       living(state).forEach(({ m, idx }) => {
         if (potionEligible(m.creatureId)) actions.push({ type: "useArtifact", artifact: 8, target: idx });
       });
@@ -80,10 +80,10 @@ function artifactActions(state: GameState): GameAction[] {
   // Extension kit (SC-EXT-22, design US-19): the Elixir is usable ANY time the party is not
   // mid-fight — offered in every phase `artifactActions` is called from except "fight" (medusa's
   // pause offers no artifactActions at all, unlike Lotus Dust, so it's excluded there too, same as
-  // every other artifact here). Humans and magic users only (Peter's Appendices 20261006; MSW 2026-11-10, replacing "any creature"):
-  // a human or magic user must carry it, and one action per living human or magic-user member as the drinker.
+  // every other artifact here). A human or magic user must carry it ("U" in Peter's Appendices 20261110) and gives it to ANY living member
+  // of the party ("T"): one action per living member as the recipient.
   if (state.phase !== "fight" && has(15, (id) => canUseArtifact(id, 15))) {
-    living(state).forEach(({ m, idx }) => { if (canUseArtifact(m.creatureId, 15)) actions.push({ type: "useArtifact", artifact: 15, target: idx }); });
+    living(state).forEach(({ idx }) => actions.push({ type: "useArtifact", artifact: 15, target: idx }));
   }
   // Extension kit (SC-EXT-24, design US-20): Holy Water's target picker — `holyWaterTargets`
   // (effects.ts) is the SAME function `reduce.ts`'s case 16 validates a chosen target against, so

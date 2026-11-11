@@ -20,7 +20,6 @@ import {
   STARTING_STOCK,
   KIT_CREATURES,
   KIT_STARTING_STOCK,
-  KIT_COST_OVERRIDES,
   selectionCost,
   startingStock,
   FLAG_HUMAN,
@@ -88,23 +87,22 @@ describe("extension-kit data tables (SC-EXT-2)", () => {
     expect(HAZARD_NAMES).toHaveLength(5);
   });
 
-  it("KIT_STARTING_STOCK / KIT_COST_OVERRIDES match the design table verbatim", () => {
+  it("KIT_STARTING_STOCK matches the design table verbatim", () => {
     expect(KIT_STARTING_STOCK).toEqual({ 16: 1, 17: 1, 18: 3, 19: 1, 20: 1, 6: 1, 7: 1 });
-    expect(KIT_COST_OVERRIDES).toEqual({ 2: 4, 3: 3 });
   });
 });
 
 describe("selection helpers (SC-EXT-2, variant-aware)", () => {
-  it("selectionCost returns base costs unchanged when the kit is off", () => {
-    expect(selectionCost(2)).toBe(5); // Ogre, base
-    expect(selectionCost(3)).toBe(4); // Troll, base
+  it("selectionCost: Ogre 4 and Troll 3 with the kit off (Peter, Book Errors Feedback #4, 2026-11-10: the revised values apply to the base game too)", () => {
+    expect(selectionCost(2)).toBe(4); // Ogre
+    expect(selectionCost(3)).toBe(3); // Troll
   });
 
-  it("selectionCost applies the Ogre/Troll kit-on revision, and resolves kit creature costs", () => {
+  it("selectionCost: the same Ogre and Troll costs with the kit on, and kit creature costs resolve", () => {
     const kit = { extensionKit: true };
-    expect(selectionCost(2, kit)).toBe(4); // Ogre 5→4
-    expect(selectionCost(3, kit)).toBe(3); // Troll 4→3
-    expect(selectionCost(18, kit)).toBe(5); // Witch (unaffected by the override map)
+    expect(selectionCost(2, kit)).toBe(4); // Ogre
+    expect(selectionCost(3, kit)).toBe(3); // Troll
+    expect(selectionCost(18, kit)).toBe(5); // Witch
     expect(selectionCost(14, kit)).toBeNull(); // Apprentice: never selectable
   });
 

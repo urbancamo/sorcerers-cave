@@ -22,8 +22,8 @@ export interface Creature {
 export const CREATURES: readonly Creature[] = [
   { id: 0, name: "Hero", fs: 5, mp: 0, carry: 75, cost: 6, points: 10, flags: FLAG_HUMAN | FLAG_CHARISMA, hostileMax: 3, indiffMax: 3, leaderPri: 13 },
   { id: 1, name: "W-Hero", fs: 4, mp: 0, carry: 50, cost: 5, points: 10, flags: FLAG_HUMAN | FLAG_CHARISMA | FLAG_BEFRIENDS_UNICORN, hostileMax: 3, indiffMax: 3, leaderPri: 13 },
-  { id: 2, name: "Ogre", fs: 5, mp: 0, carry: 100, cost: 5, points: 5, flags: FLAG_INHUMAN, hostileMax: 4, indiffMax: 5, leaderPri: 5 },
-  { id: 3, name: "Troll", fs: 4, mp: 0, carry: 75, cost: 4, points: 4, flags: FLAG_INHUMAN, hostileMax: 3, indiffMax: 4, leaderPri: 4 },
+  { id: 2, name: "Ogre", fs: 5, mp: 0, carry: 100, cost: 4, points: 5, flags: FLAG_INHUMAN, hostileMax: 4, indiffMax: 5, leaderPri: 5 },
+  { id: 3, name: "Troll", fs: 4, mp: 0, carry: 75, cost: 3, points: 4, flags: FLAG_INHUMAN, hostileMax: 3, indiffMax: 4, leaderPri: 4 },
   { id: 4, name: "Priest", fs: 2, mp: 2, carry: 25, cost: 4, points: 8, flags: FLAG_HUMAN, hostileMax: 1, indiffMax: 4, leaderPri: 12 },
   { id: 5, name: "Man", fs: 3, mp: 0, carry: 50, cost: 3, points: 5, flags: FLAG_HUMAN, hostileMax: 2, indiffMax: 4, leaderPri: 10 },
   { id: 6, name: "Woman", fs: 2, mp: 0, carry: 25, cost: 2, points: 5, flags: FLAG_HUMAN | FLAG_BEFRIENDS_UNICORN, hostileMax: 2, indiffMax: 4, leaderPri: 9 },
@@ -87,14 +87,14 @@ export const KIT_STARTING_STOCK: Readonly<Record<number, number>> = {
   6: 1, 7: 1,                        // +1 Woman, +1 Dwarf (kit copies) → 4 each
 };
 
-// Ogre 5→4, Troll 4→3 — kit-on ONLY (MSW ruling); the base game keeps 5/4.
-export const KIT_COST_OVERRIDES: Readonly<Record<number, number>> = { 2: 4, 3: 3 };
+// Ogre 4 and Troll 3 in BOTH games (Peter Vodden, Book Errors Feedback 2026-11-09 #4: the revised values, by T.P. Donnelly, after the first edition).
+// Until 2026-11-11 the base game kept the first-edition 5/4 and only the Extension Kit used 4/3 (an override table that no longer exists).
 
 /** Extension kit creature ids start here (spec §1.3); used to gate kit-only selection off in
  *  kit-off games — see `selectionCost` below. */
 const KIT_ID_MIN = 14;
 
-/** Selection cost for `id`, honouring the kit-on Ogre/Troll revision. Returns null for
+/** Selection cost for `id`. Returns null for
  *  never-selectable creatures (Apprentice, Demon, and every base id with `cost: null`), AND for
  *  every kit creature id (14-20) when the kit is off (SC-EXT-29) — `ALL_CREATURES` resolves a real
  *  cost for e.g. the Witch regardless of variant (other subsystems need her stats unconditionally,
@@ -102,10 +102,6 @@ const KIT_ID_MIN = 14;
  *  Demon's own null costs. Called by `setup.ts`'s `validatePicks` and the PartySelect UI. */
 export function selectionCost(id: number, variants?: { extensionKit?: boolean }): number | null {
   if (id >= KIT_ID_MIN && !variants?.extensionKit) return null;
-  if (variants?.extensionKit) {
-    const override = KIT_COST_OVERRIDES[id];
-    if (override !== undefined) return override;
-  }
   return ALL_CREATURES[id]?.cost ?? null;
 }
 

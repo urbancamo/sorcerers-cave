@@ -55,7 +55,7 @@ BEGIN MOVES
   49 TAKE 0 1                 -> TRN 25 LVL 4 ARA 15 PH EXP GS 0 SEED 581246122 EV -
   50 MOVE 1                   -> TRN 26 LVL 4 ARA 18 PH ENC GS 0 SEED 581246122 EV moved,drewChamber,hazardFired,medusaAverted
   51 TEST                     -> TRN 26 LVL 4 ARA 18 PH PKP GS 0 SEED 1686450331 EV reaction,strangersJoined
-  52 TAKE 0 1                 -> TRN 26 LVL 4 ARA 18 PH EXP GS 0 SEED 1686450331 EV -
+  52 TAKE 0 2                 -> TRN 26 LVL 4 ARA 18 PH EXP GS 0 SEED 1686450331 EV -
   53 MOVE 2                   -> TRN 27 LVL 4 ARA 19 PH EXP GS 0 SEED 1686450331 EV moved
   54 MOVE 1                   -> TRN 28 LVL 4 ARA 20 PH EXP GS 0 SEED 1686450331 EV moved
   55 MOVE 5                   -> TRN 29 LVL 3 ARA 21 PH EXP GS 0 SEED 1686450331 EV moved
@@ -103,7 +103,7 @@ BEGIN MOVES
   97 MOVE 4                   -> TRN 64 LVL 5 ARA 42 PH ENC GS 0 SEED 1368245220 EV crossedSpecial,treasureDropped,treasureDropped,moved,drewChamber
   98 TEST                     -> TRN 64 LVL 5 ARA 42 PH FGT GS 0 SEED 1365512269 EV reaction,fightStarted
   99 FIGHT 0>0;1>1;2>2;3>3    -> TRN 64 LVL 5 ARA 42 PH FGT GS 0 SEED 1253047301 EV combatRoll,strangerKilled,combatRoll,memberDied,combatRoll,memberDied,combatRoll,strangerKilled
- 100 FIGHT 0>0;3>1            -> TRN 64 LVL 5 ARA 42 PH END GS 2 SEED 674845569 EV combatRoll,memberDied,eyeForsaken,combatRoll,memberDied,itemsSpilled,itemsSpilled,gameOver
+ 100 FIGHT 0>0;3>1            -> TRN 64 LVL 5 ARA 42 PH END GS 2 SEED 674845569 EV combatRoll,memberDied,eyeForsaken,combatRoll,memberDied,itemsSpilled,itemsSpilled,itemsSpilled,gameOver
 END MOVES 100
 FINAL GS 2 PH END TRN 64 LVL 5 AREAS 43 LARGEIDX 42 SMALLIDX 35 SEED 674845569 SCORE 0
 STATE CURSES 1 BONUS 0 SORCKILLED 0 STRANGERS 11,12 TREASURES - HAZARDS -
