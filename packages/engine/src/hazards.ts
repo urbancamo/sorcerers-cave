@@ -11,7 +11,9 @@ import {
 } from "./data/hazards";
 import { SPECIAL_GATEWAY } from "./data/areaCards";
 import { decodeArea, decodeOpen } from "./decode";
-import { packCoord, unpackCoord } from "./coords";
+import { DIR_N, DIR_E, DIR_S, DIR_W, packCoord, targetCoord, unpackCoord } from "./coords";
+import { doorBit } from "./map";
+import { oppositeDir } from "./subLocation";
 import { AF_DESTROYED, AF_UNRESOLVED, type GameState, type PartyMember } from "./state";
 import type { GameEvent } from "./actions";
 import { stageMidStateOnce } from "./midState";
@@ -411,6 +413,15 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
           card: drawn, coord: prevArea.coord, faceUp: true, visited: false,
           contents: [], flags: AF_UNRESOLVED, indiffCount: 0,
         };
+        // A doorway a neighbour marked dead (`deadDoors`) because it did not match the OLD card may match the new one, so clear every
+        // neighbour's mark facing the replaced tile; `tryMove` closes it again at once if the new card still does not connect.
+        for (const dir of [DIR_N, DIR_E, DIR_S, DIR_W]) {
+          const nb = state.areas.find((o) => o.coord === targetCoord(dir, gone.level, gone.x, gone.y));
+          if (nb?.deadDoors) {
+            nb.deadDoors &= ~doorBit(oppositeDir(dir));
+            if (!nb.deadDoors) delete nb.deadDoors;
+          }
+        }
         events.push({ type: "spellRemap", fizzled: false });
         break;
       }
