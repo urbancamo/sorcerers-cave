@@ -112,8 +112,11 @@ Sorcerer, treasure carried) without hand-building one.
 A rule change can invalidate stored games: their replays diverge, `scoreSearch.pinned.test.ts` and the web scenario tests fail, and
 the codes should be re-found. To do another overnight run:
 
-1. `packages/engine/scripts/overnight-search.sh [hours] [shards]` (defaults 7 and 12; resumable; stays awake with `caffeinate`; it writes
-   `search-out-score/run.json`). Use `SEARCH_SALT=2 …` for an independent run, and move `search-out-score/` aside first for a fresh one.
+1. `packages/engine/scripts/overnight-search.sh [hours] [shards]` (defaults 7 and 12; stays awake with `caffeinate`; it writes
+   `search-out-score/run.json`). Use `SEARCH_SALT=2 …` for an independent run. After an earlier run (the engine rules may have changed),
+   start with `FRESH=1`, which archives `search-out-score/` first. The run is restartable: `overnight-search.sh stop | status | resume`.
+   A resume carries on to the original end time and refuses if the engine source changed since the run began (the results would mix
+   two rule sets); a shard killed mid-write loses only its torn last line.
 2. When it finishes, `packages/engine/scripts/pin-results.sh`. It merges the shards (replaying candidates best-first on the engine, keeping
    only games that really escape with the recorded score, and re-deriving the moves of any candidate its shard did not keep), writes
    `best-score-search.json`, `top-score-games.json` (top 25 per rule set), `search-index.json` and the generated tables, regenerates the web bundle

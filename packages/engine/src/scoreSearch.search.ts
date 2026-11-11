@@ -131,18 +131,24 @@ describe.skipIf(!!process.env.SEARCH_MERGE || REBUILD)("score search: one shard,
   it("searches its work items", () => {
     const shard = env("SEARCH_SHARD", 0);
     const shards = env("SEARCH_SHARDS", 1);
-    const deadline = Date.now() + env("SEARCH_HOURS", 7) * 3_600_000;
+    // SEARCH_DEADLINE (epoch ms, set by the launcher and kept in run.json) makes a restarted run stop when the ORIGINAL run would have.
+    const deadline = process.env.SEARCH_DEADLINE ? Number(process.env.SEARCH_DEADLINE) : Date.now() + env("SEARCH_HOURS", 7) * 3_600_000;
     if (!existsSync(OUT)) mkdirSync(OUT, { recursive: true });
     const file = `${OUT}/shard-${shard}.jsonl`;
     // Resume: the next item is the first of this shard's after the last one already recorded.
     let best = -1;
     let next = shard;
     if (existsSync(file)) {
-      for (const line of readFileSync(file, "utf8").split("\n").filter(Boolean)) {
-        const row = JSON.parse(line) as Row;
+      const text = readFileSync(file, "utf8");
+      for (const line of text.split("\n").filter(Boolean)) {
+        // A shard killed mid-write leaves a torn last line: ignore it (its item is simply searched again).
+        let row: Row;
+        try { row = JSON.parse(line) as Row; } catch { continue; }
         next = Math.max(next, row.i + shards);
         best = Math.max(best, row.score);
       }
+      // Never append onto a torn line.
+      if (text && !text.endsWith("\n")) appendFileSync(file, "\n");
     }
     let done = 0;
     for (let i = next; Date.now() < deadline; i += shards) {
@@ -173,7 +179,7 @@ describe.skipIf(!process.env.SEARCH_MERGE)("score search: merge the shards into 
     const dir = process.env.SEARCH_MERGE!;
     const rows: Row[] = readdirSync(dir)
       .filter((f: string) => f.endsWith(".jsonl"))
-      .flatMap((f: string) => readFileSync(`${dir}/${f}`, "utf8").split("\n").filter(Boolean).map((l: string) => JSON.parse(l) as Row));
+      .flatMap((f: string) => readFileSync(`${dir}/${f}`, "utf8").split("\n").filter(Boolean).flatMap((l: string) => { try { return [JSON.parse(l) as Row]; } catch { return []; } }));   // a torn last line (a killed shard) is skipped
     expect(rows.length).toBeGreaterThan(0);
     // The search's own bookkeeping is not the authority: replay each candidate on the engine, best first, and keep only games that
     // really end on the surface with the score recorded. The first per rule set is pinned as that set's best; the first TOP_N distinct
