@@ -41,10 +41,7 @@ describe("scenario replay codes", () => {
   // If a rules change makes the stored actions drift, this fails — re-run the engine's offline search (see
   // docs/testing/search-scenarios.md), pin its result and regenerate the bundle with the conformance vectors
   // (`pnpm --filter engine exec vitest run -u src/conformance-vectors.test.ts`).
-  // STALE since 2026-11-10: the Eye of God, the Scroll and the Talisman became human-only, and 26 of these 75 pinned games were found with an
-  // inhuman holding one, so they no longer replay legally. Re-run the overnight search (packages/engine scripts/overnight-search.sh), pin the
-  // results, regenerate the bundle, and un-skip this.
-  it.skip.each([["B", "base", {}], ["K", "kit", { extensionKit: true }], ["S", "kit + Sibyl", { extensionKit: true, sibyl: true }]] as const)(
+  it.each([["B", "base", {}], ["K", "kit", { extensionKit: true }], ["S", "kit + Sibyl", { extensionKit: true, sibyl: true }]] as const)(
     "all 25 %s codes (%s) replay with every action legal, ending on the surface, best first",
     async (prefix, _name, variants) => {
       let last = Infinity;
