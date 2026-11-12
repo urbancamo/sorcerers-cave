@@ -434,6 +434,35 @@ describe("Spell — remap-on-draw: splice into the pack, replace the cell face-d
     expect(cell.secretDoor).toBeUndefined();
   });
 
+  it("erases a stair that was only mirrored onto the tile at the far end of the vanished tunnel's stairway, card bit included (game DNNW, #43)", () => {
+    // Level 1 tunnel with a stair UP (card bit 32); the level-0 tile above it is a chamber that had a stair DOWN (64) mirrored on to link them.
+    const above = { card: CHAMBER_CARD | 64, coord: packCoord(0, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0, mirroredStairs: 64, secretDoor: 1 };
+    const s = spellState({
+      areas: [
+        { card: TUNNEL_CARD | 32, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+        { card: CHAMBER_CARD, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+        above,
+      ],
+    });
+    applyHazards(s);
+    expect(s.areas[2]!.card).toBe(CHAMBER_CARD); // the mirrored stair is gone from the card, so the tile matches its printed art again
+    expect(s.areas[2]!.mirroredStairs).toBeUndefined();
+    expect(s.areas[2]!.secretDoor).toBeUndefined();
+  });
+
+  it("keeps a stair the tile above PRINTS when the vanished tunnel's stairway disappears", () => {
+    const printed = { card: CHAMBER_CARD | 64, coord: packCoord(0, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 };
+    const s = spellState({
+      areas: [
+        { card: TUNNEL_CARD | 32, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+        { card: CHAMBER_CARD, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+        printed,
+      ],
+    });
+    applyHazards(s);
+    expect(s.areas[2]!.card).toBe(CHAMBER_CARD | 64);
+  });
+
   it("resolves with a normal entry beat (a real chamber draw) the next time the party steps on it, clearing AF_UNRESOLVED", () => {
     const s = spellState({ smallPack: [], smallIdx: 0 });
     applyHazards(s); // area 0 is now the freshly-drawn CHAMBER_CARD, unresolved
