@@ -21,5 +21,5 @@ export const PARTY_SCRIPT: CoachStep[] = [
     { anchor: { kind: 'selector', selector: '.scv-cards' } }),
   ui('whero', 'Step 2 of 12', 'Choose the Woman-Hero', 'Press + under the W-Hero card (the Woman-Hero): a strong fighter, and the key to befriending a Unicorn.', 'whero', '[aria-label="add W-Hero"]'),
   ui('dwarf', 'Step 2 of 12', 'Choose the Dwarf', 'Press + under the Dwarf. The Dwarf is a modest fighter, but cheap, and he can guide a party safely past a trap.', 'dwarf', '[aria-label="add Dwarf"]'),
-  ui('start', 'Step 2 of 12', 'Enter the cave', 'That is the whole 6-point budget. Press "Enter the cave" to start.', 'start', '[data-tutorial-action="start"]'),
+  ui('start', 'Step 2 of 12', 'Enter the cave', 'That is the whole 6-point budget. Scroll down, then press "Enter the cave" to start.', 'start', '[data-tutorial-action="start"]'),
 ];
