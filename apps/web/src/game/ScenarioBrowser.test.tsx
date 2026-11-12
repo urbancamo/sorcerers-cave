@@ -5,8 +5,7 @@ import { SplashScreen } from "./SplashScreen";
 import { scenarioSummaries } from "./goldenGame";
 
 describe("scenario summaries", () => {
-  // Skipped until the next overnight re-pin: four pinned games met a womanless Unicorn, now indifferent (2026-11-11, GitHub #37/#38).
-  it.skip.each(["B", "K", "S"])("%s: 25 games, best first, each summarised from its replay", async (prefix) => {
+  it.each(["B", "K", "S"])("%s: 25 games, best first, each summarised from its replay", async (prefix) => {
     const rows = await scenarioSummaries(prefix);
     expect(rows).toHaveLength(25);
     expect(rows.map((r) => r.code)).toEqual(Array.from({ length: 25 }, (_, i) => `${prefix}${String(i + 1).padStart(3, "0")}`));
@@ -18,8 +17,8 @@ describe("scenario summaries", () => {
       expect(r.draft.length).toBeGreaterThan(0);
     }
   });
-  it("K001 is the top Extension Kit game (473 under the 20261110 rules)", async () => {
-    expect((await scenarioSummaries("K"))[0]).toMatchObject({ code: "K001", score: 473 });
+  it("K001 is the top Extension Kit game (460 under the 20261110 rules)", async () => {
+    expect((await scenarioSummaries("K"))[0]).toMatchObject({ code: "K001", score: 460 });
   });
 });
 
@@ -31,7 +30,7 @@ describe("ScenarioBrowserModal", () => {
     expect(within(table).getByText("B001")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: /extension kit/i }));
     await waitFor(() => expect(within(screen.getByTestId("scenario-table")).getByText("K001")).toBeInTheDocument());
-    expect(within(screen.getByTestId("scenario-table")).getByText("473")).toBeInTheDocument();
+    expect(within(screen.getByTestId("scenario-table")).getByText("460")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: /sibyl/i }));
     await waitFor(() => expect(within(screen.getByTestId("scenario-table")).getByText("S001")).toBeInTheDocument());
   });

@@ -10,7 +10,7 @@ game is an ordinary list of actions that `replay()` plays back on the real engin
 | `best-score-search.json` | The single highest-scoring escaped game found, plus the search budget. **This is replay code `K001`.** | `scoreSearch.search.ts` |
 | `top-score-games.json` | The 25 best *distinct* games (different draft or seed) of **each** rule set (base, kit, kit + Sibyl), 75 in all, best first within a rule set, each with its full action list. | `scoreSearch.search.ts` |
 | `golden-search.json` | An earlier, goal-driven game: Extension Kit + Sibyl on, Sorcerer slain, escaped (score 341). Found on the earlier rules; it no longer replays and is not re-pinned by the overnight run (its three tests are skipped until `goldenSearch.search.ts` is run again). | `goldenSearch.search.ts` |
-| `search-index.json` | **Every** search of the run that reached the surface (4,930 of them), best first: item number, score, rules, draft, seed, whether it killed the Sorcerer first. No moves (they are rebuilt, below). About 200 KB. | the merge |
+| `search-index.json` | **Every** search of the run that reached the surface (4,844 of them), best first: item number, score, rules, draft, seed, whether it killed the Sorcerer first. No moves (they are rebuilt, below). About 200 KB. | the merge |
 | `docs/testing/search-scenario-tables.md` | Generated: the run's provenance and budget, and a table of all 75 games. | `scripts/pin-results.sh` |
 | `apps/web/src/data/scenario-games.json` | All 75 games keyed by replay code (`B001`…`S025`), generated from `top-score-games.json` by the conformance-vectors test. | `vitest -u` |
 
@@ -31,8 +31,8 @@ deterministic and any item can be reproduced from its number and the salt.
 
 The full record of the run that produced the current fixtures (start time, machine, salt, engine commit, budget, the items each
 shard got through, and every pinned game with its item number) is in the generated
-[`search-scenario-tables.md`](search-scenario-tables.md). In short: 10 shards for 7 hours, salt 1, 84,391 searches, 4,930 of
-which escaped, 2.3 billion states, 70 CPU-hours. (Re-run on 2026-11-11 on the rules of Peter's 20261110 documents; best scores: base 380, Extension Kit 473, kit + Sibyl 448.)
+[`search-scenario-tables.md`](search-scenario-tables.md). In short: 10 shards for 7 hours, salt 1, 82,873 searches, 4,844 of
+which escaped, 2.3 billion states, 70 CPU-hours (run started 2026-11-11 22:44 UTC on engine `6afea79`, the 20261110 rules with the Unicorn and Spell fixes; best scores: base 380, Extension Kit 460, kit + Sibyl 448.)
 
 ## Replay codes
 

@@ -67,11 +67,7 @@ describe.each(RULESETS)("score search: the top-25 scenarios, rules: %s", (rules)
       expect(!!(g.variants as { sibyl?: boolean }).sibyl).toBe(rules === "kit+sibyl");
     }
   });
-  // These four games met a womanless Unicorn, which became indifferent on 2026-11-11 (GitHub #37/#38), so they no longer replay; the next
-  // overnight run re-pins them.
-  const STALE = new Set(["base#19", "kit#16", "kit+sibyl#19", "kit+sibyl#7"]);
   it.each(games.map((g) => [g.rank, g.score, g] as const))("#%i (score %i) replays legally, escapes and scores as recorded", (_rank, _score, g) => {
-    if (STALE.has(`${rules}#${_rank}`)) return;
     expect(validatePicks(g.picks, g.variants)).toBeTruthy();
     const { frames, end } = run(g);
     expect(frames.filter((f) => f.events.some((e) => e.type === "blocked"))).toEqual([]);
