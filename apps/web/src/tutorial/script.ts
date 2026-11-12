@@ -91,5 +91,5 @@ export const TUTORIAL_SCRIPT: CoachStep[] = [
   act('ring', T(11), 'Take the Ring', 'And finally, the Witch\'s Magic Ring: give it to the Woman Hero too.', 25),
 
   info('end', T(12), 'You are on your way',
-    'That is the whole loop: explore, test strangers, fight when the odds are good, withdraw when they are not, and carry the treasure home to the Gateway. A tutorial game is never scored. Press Finish to leave the tutorial; the full manual is behind the Help button.', { free: true }),
+    'That is the whole loop: explore, test strangers, fight when the odds are good, withdraw when they are not, and carry the treasure home to the Gateway. Press Finish to leave the tutorial; the full manual is behind the Help button.', { free: true }),
 ];
