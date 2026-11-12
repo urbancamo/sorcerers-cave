@@ -33,8 +33,8 @@ function anchorBox(step: CoachStep, cave: CaveApi | null): Box | null {
 }
 
 /**
- * The coach: a card that says what to do, a spotlight on where, and a shield over the rest of the screen so a wrong press cannot
- * happen. The shield is the visible half of the lock; the dispatch gate in the local session is the real one.
+ * The coach: a card that says what to do and a brass ring on where. The map is left undimmed and free to turn and zoom; the dispatch
+ * gate in the local session is what stops a wrong move, and says so in the card.
  */
 export function TutorialCoach({ step, index, total, cave, hint, onContinue, onBack, onSkip, onDemo }: {
   step: CoachStep;
@@ -79,23 +79,8 @@ export function TutorialCoach({ step, index, total, cave, hint, onContinue, onBa
 
   const acting = step.kind === 'act';
   const free = !!step.free;
-  const shields: Box[] = [];
-  if (!free) {
-    const W = window.innerWidth, H = window.innerHeight;
-    if (acting && !box) {
-      // nothing to spotlight (the control lives in a panel): the dispatch gate alone holds the lock
-    } else if (acting && box) {
-      shields.push({ x: 0, y: 0, w: W, h: Math.max(0, box.y) }, { x: 0, y: box.y + box.h, w: W, h: Math.max(0, H - box.y - box.h) },
-                   { x: 0, y: box.y, w: Math.max(0, box.x), h: box.h }, { x: box.x + box.w, y: box.y, w: Math.max(0, W - box.x - box.w), h: box.h });
-    } else {
-      shields.push({ x: 0, y: 0, w: W, h: H });
-    }
-  }
   return (
     <div className="scv-tut" data-testid="tutorial-coach">
-      {shields.map((b, i) => (
-        <div key={i} className="scv-tut-shield" style={{ left: b.x, top: b.y, width: b.w, height: b.h }} />
-      ))}
       {box && !free && <div className="scv-tut-ring" style={{ left: box.x, top: box.y, width: box.w, height: box.h }} />}
       <section ref={cardRef} className={'scv-tut-card' + (pos ? ' moved' : '')} role="dialog" aria-label="Tutorial" aria-live="polite"
                style={pos ? { left: clamp(pos).x, top: clamp(pos).y } : undefined}>
