@@ -4,6 +4,7 @@ import { loadManifest, resolveCard } from "../data/manifest";
 import { HighScoresModal } from "./HighScores";
 import { HelpModal } from "../manual/HelpModal";
 import { markNudgeSeen, nudgeSeen } from "../manual/nudge";
+import { inProgress, loadProgress, saveProgress } from "../tutorial/progress";
 import { isScenarioCode } from "./goldenGame";
 import { ScenarioBrowserModal } from "./ScenarioBrowser";
 
@@ -24,7 +25,7 @@ export function SplashScreen({
 }: {
   onStartSolitaire: () => void;
   /** The guided tutorial game (a local, in-memory game; no sign-in needed). */
-  onStartTutorial?: () => void;
+  onStartTutorial?: (resume: boolean) => void;
   /** Test Mode (§Test Mode) — present only when the page was opened with a ?test= param. */
   onStartTestGame?: () => void;
   /** Save/restore a test scenario (2026-09-11): fork a Test Mode game by its code into a new,
@@ -44,6 +45,10 @@ export function SplashScreen({
   const [files, setFiles] = useState<string[]>([]);
   const [showScores, setShowScores] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
+  const [tutProgress, setTutProgress] = useState(loadProgress);
+  // First visit on this device (the tutorial never offered): suggest it, in place of the how-to-play nudge.
+  const [tutNudge, setTutNudge] = useState(() => !!onStartTutorial && loadProgress() === null);
+  const dismissTutNudge = () => { saveProgress({ status: 'skipped' }); setTutProgress({ status: 'skipped' }); setTutNudge(false); };
   const [nudge, setNudge] = useState(() => !nudgeSeen()); // first visit on this device: offer the how-to-play help once
   const openHelp = () => { markNudgeSeen(); setNudge(false); setShowHelp(true); };
   const [resumeCode, setResumeCode] = useState("");
@@ -145,7 +150,14 @@ export function SplashScreen({
       </blockquote>
 
       <section className="scv-panel scv-start">
-        {nudge && (
+        {tutNudge && (
+          <div className="scv-nudge" role="note" data-testid="tutorial-nudge">
+            <span>New to the cave? Learn to play in a short guided game.</span>
+            <button type="button" className="scv-primary" onClick={() => { saveProgress({ status: 'step', step: 0, cursor: 0 }); onStartTutorial!(false); }}>Play the tutorial</button>
+            <button type="button" className="scv-nudge-x" aria-label="Dismiss" onClick={dismissTutNudge}>×</button>
+          </div>
+        )}
+        {nudge && !tutNudge && (
           <div className="scv-nudge" role="note" data-testid="howto-nudge">
             <span>New to the cave? Read how to play.</span>
             <button type="button" className="scv-primary" onClick={openHelp}>How to play</button>
@@ -154,7 +166,12 @@ export function SplashScreen({
         )}
         <h2 className="scv-hd">Start new game</h2>
         <button className="scv-primary" onClick={onStartSolitaire}>Start Solitaire Game</button>
-        {onStartTutorial && <button className="scv-primary" data-testid="start-tutorial" onClick={onStartTutorial}>Tutorial</button>}
+        {onStartTutorial && (inProgress(tutProgress)
+          ? <>
+              <button className="scv-primary" data-testid="continue-tutorial" onClick={() => onStartTutorial(true)}>Continue Tutorial</button>
+              <button className="scv-ghost" data-testid="restart-tutorial" onClick={() => { saveProgress({ status: 'step', step: 0, cursor: 0 }); onStartTutorial(false); }}>Start Tutorial over</button>
+            </>
+          : <button className="scv-primary" data-testid="start-tutorial" onClick={() => { saveProgress({ status: 'step', step: 0, cursor: 0 }); onStartTutorial(false); }}>Tutorial</button>)}
         {onStartTestGame && (
           <button className="scv-primary" data-testid="start-test-game" onClick={onStartTestGame}>
             Start Test Game

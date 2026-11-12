@@ -10,6 +10,11 @@ export const PLAY: Section = {
       p('The cave is built one card at a time as you explore. Behind every doorway may lie an empty tunnel, a chamber heavy with gold, a sleeping dragon, or a trap that drops you into the dark below. Nothing is fixed until you turn it over.'),
       p('Your **score** is the worth of everyone who walks back out into the daylight, plus the treasure they carry. A party wiped out underground scores nothing, so the art is knowing when to press deeper and when to turn for home.'),
     ] },
+    { id: 'tutorial', title: 'The tutorial', brief: 'A short guided game that teaches the basics, step by step.', cards: [], screens: ['explore'], blocks: [
+      p('The **Tutorial** button on the title screen starts a short, guided game of the real Sorcerer\'s Cave. A card tells you what each step is about and the control to use is ringed in green; the guide waits for you to do it before going on. Only the move it is asking for is accepted, so you cannot go wrong, and a hint says what to press if you try something else.'),
+      p('It takes you through exploring, strangers and their reactions, a trap, treasure and artefacts, stairs and a secret door, and two fights. It is a fixed game with a fixed outcome: nothing in it is scored or saved to your games, and you can look around freely while you follow it. **Drag the guide\'s card** by its heading to put it where it suits you.'),
+      p('The first time you visit, the title screen suggests the tutorial. Leave it half-way and **Continue Tutorial** takes you back to the same step; *Start Tutorial over* begins again. *Skip tutorial* on the card leaves it at any time.'),
+    ] },
     { id: 'game-code', title: 'Your game code', brief: 'Four letters that take you straight back to this exact game.', cards: [], blocks: [
       note('good', 'Your game code', 'Every game is stamped with a unique **four-letter code**, shown in Settings. Entering it under *Resume a game* on the title screen drops you back into the same game, right where you left off. Progress is saved after every move, so you do **not** need to press *Save* first — the code works at any time, even mid-turn.'),
     ] },

@@ -1,5 +1,7 @@
 import type { GameAction } from "./actions";
+import { reduce } from "./reduce";
 import { newGame } from "./setup";
+import { driveStrangers } from "./strangerDriver";
 import type { GameState } from "./state";
 
 // The tutorial game (docs/requirements/tutorial, Peter's "Tutorial Game Script"): one fixed, hand-stacked kit game that
@@ -119,3 +121,14 @@ export const TUTORIAL_ROUTE: TutorialBeat[] = [
   { step: 11, play: { type: "retakeDropped" } },
   { step: 11, play: { type: "takeTreasure", ti: 0, mi: 0 } },
 ];
+
+/** The tutorial game after the player's first `cursor` route actions: how a returning player resumes. The route is deterministic
+ *  (stacked packs, forced dice), so replaying it rebuilds exactly the state they left; each action is followed by the stranger driver, as live. */
+export function tutorialAt(cursor: number): GameState {
+  let state = tutorialGame();
+  for (const beat of TUTORIAL_ROUTE.slice(0, cursor)) {
+    for (const hidden of beat.before ?? []) state = reduce(state, hidden).state;
+    state = driveStrangers(reduce(state, beat.play).state).state;
+  }
+  return state;
+}

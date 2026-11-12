@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { driveStrangers } from "./strangerDriver";
 import { reduce } from "./reduce";
 import { scoreBreakdown } from "./score";
-import { TUTORIAL_PICKS, TUTORIAL_ROUTE, tutorialGame } from "./tutorial";
+import { TUTORIAL_PICKS, TUTORIAL_ROUTE, tutorialAt, tutorialGame } from "./tutorial";
 import type { GameEvent } from "./actions";
 import type { GameState } from "./state";
 
@@ -89,5 +89,21 @@ describe("the tutorial game", () => {
 
   it("never reaches the score table (Test Mode)", () => {
     expect(scoreBreakdown(play().state).total).toBeGreaterThan(0);
+  });
+
+  it("resumes anywhere: tutorialAt(n) is the state after n route actions (0 is the fresh game, all of them the finished route)", () => {
+    expect(tutorialAt(0)).toEqual(tutorialGame());
+    expect(tutorialAt(TUTORIAL_ROUTE.length)).toEqual(play().state);
+    const mid = tutorialAt(10);
+    expect(mid.level).toBe(2);
+    // and the route carries on legally from there
+    let state = mid;
+    for (const beat of TUTORIAL_ROUTE.slice(10)) {
+      for (const hidden of beat.before ?? []) state = reduce(state, hidden).state;
+      const r = reduce(state, beat.play);
+      expect(r.events.some((e) => e.type === "blocked"), JSON.stringify(beat)).toBe(false);
+      state = driveStrangers(r.state).state;
+    }
+    expect(state).toEqual(play().state);
   });
 });

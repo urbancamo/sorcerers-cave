@@ -3,11 +3,12 @@ import { useConvex, useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { api } from "../../convex/_generated/api";
-import { GS_PLAYING, HAZARD_TRAP, legalActions, tutorialGame, unpackCoord, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
+import { GS_PLAYING, HAZARD_TRAP, legalActions, tutorialAt, unpackCoord, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
 import { useCaveGame } from "./useCaveGame";
 import { useLocalGame } from "./useLocalGame";
 import { TutorialCoach } from "../tutorial/TutorialCoach";
 import { TUTORIAL_SCRIPT } from "../tutorial/script";
+import { inProgress, loadProgress, saveProgress } from "../tutorial/progress";
 import { initialTutorial, matchesBeat, tutorialReduce, wantedBeat, type TutorialEvent } from "../tutorial/runner";
 import { CaveCanvas, type CaveApi } from "../view/CaveCanvas";
 import { SplashScreen } from "./SplashScreen";
@@ -70,7 +71,7 @@ import { toggleLeft, toggleRight, type LeftSlot, type RightSlot } from "./shell/
 import { useOpenPartyOnce } from "./shell/useOpenPartyOnce";
 
 // `local` plays the tutorial: the same game UI over an in-memory engine (no sign-in, saving, logging or Convex game at all).
-export default function GameScreen({ local = false, onLocalExit, onStartTutorial }: { local?: boolean; onLocalExit?: () => void; onStartTutorial?: () => void } = {}) {
+export default function GameScreen({ local = false, resume = false, onLocalExit, onStartTutorial }: { local?: boolean; resume?: boolean; onLocalExit?: () => void; onStartTutorial?: (resume: boolean) => void } = {}) {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const { signIn } = useAuthActions();
   const newGame = useMutation(api.game.newGame);
@@ -147,7 +148,11 @@ export default function GameScreen({ local = false, onLocalExit, onStartTutorial
   const canActRef = useRef(() => !presentingRef.current);
   // Both session hooks run on every render (hooks cannot be conditional); the one not in use is idle (null id / no game).
   // The tutorial's step machine and its lock: only the action the coach is asking for gets through (see tutorial/runner.ts).
-  const [tut, setTut] = useState(initialTutorial);
+  // A returning player picks up where they left off: the saved step, and the game rebuilt by replaying the route to that point.
+  const [resumeFrom] = useState(() => { const p = local && resume ? loadProgress() : null; return inProgress(p) ? p : null; });
+  const makeTutorial = useCallback(() => tutorialAt(resumeFrom?.cursor ?? 0), [resumeFrom]);
+  const [tut, setTut] = useState(() => (resumeFrom ? { step: resumeFrom.step, cursor: resumeFrom.cursor } : initialTutorial));
+  useEffect(() => { if (local) saveProgress({ status: 'step', step: tut.step, cursor: tut.cursor }); }, [local, tut]);
   const tutRef = useRef(tut);
   const [tutHint, setTutHint] = useState<string | null>(null);
   const tutSend = useCallback((e: TutorialEvent) => { tutRef.current = tutorialReduce(TUTORIAL_SCRIPT, tutRef.current, e); setTut(tutRef.current); setTutHint(null); }, []);
@@ -167,7 +172,7 @@ export default function GameScreen({ local = false, onLocalExit, onStartTutorial
     return () => document.removeEventListener('click', onClick, true);
   }, [local, tutSend]);
   const convexSession = useCaveGame(local ? null : gameId, onMoveResolved, canActRef.current);
-  const localSession = useLocalGame(local ? tutorialGame : null, onMoveResolved, canActRef.current, tutGate);
+  const localSession = useLocalGame(local ? makeTutorial : null, onMoveResolved, canActRef.current, tutGate);
   const { engine, loading, state, color, code, dispatch, present } = local ? localSession : convexSession;
   // Presentation hold (see useDispatchWithRolls): the pre-action snapshot stays on screen —
   // canvas, panels, everything — until the die roll completes. getSnapshot reads a ref so the
@@ -524,10 +529,10 @@ export default function GameScreen({ local = false, onLocalExit, onStartTutorial
       )}
       {local && TUTORIAL_SCRIPT[tut.step] && !overlay && !notices && (
         <TutorialCoach step={TUTORIAL_SCRIPT[tut.step]!} index={tut.step} total={TUTORIAL_SCRIPT.length} cave={caveApi.current} hint={tutHint}
-                       onContinue={() => (TUTORIAL_SCRIPT[tut.step]!.free ? onLocalExit?.() : tutSend({ type: 'continue' }))}
+                       onContinue={() => (TUTORIAL_SCRIPT[tut.step]!.free ? (saveProgress({ status: 'done' }), onLocalExit?.()) : tutSend({ type: 'continue' }))}
                        onDemo={() => void handleReplay('K001')}
                        onBack={tut.step > 0 && TUTORIAL_SCRIPT[tut.step - 1]!.kind === 'info' ? () => tutSend({ type: 'back' }) : undefined}
-                       onSkip={() => onLocalExit?.()} />
+                       onSkip={() => { saveProgress({ status: 'skipped' }); onLocalExit?.(); }} />
       )}
       {bugOpen && gameId && <BugReportModal gameId={gameId} screenshot={bugShot} onClose={() => setBugOpen(false)} />}
       {showLog && gameId && <GameLogModal gameId={gameId} onClose={() => setShowLog(false)} />}
