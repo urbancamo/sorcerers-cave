@@ -371,9 +371,13 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
           <div key={t.id} className={"scv-mp-toast" + (t.tone === "you" ? " you" : t.tone === "chat" ? " chat" : "")}>{t.text}</div>
         ))}
       </div>
-      {yourTurn && <EncounterPanel state={state} dispatch={dispatchWithRolls} />}
       {fightVisible && cards && <FightSurface state={state} dispatch={dispatchWithRolls} cards={cards} />}
-      {yourTurn && <ExplorePanel state={state} dispatch={dispatchWithRolls} />}
+      {yourTurn && (
+        <div className="scv-enc-dock">
+          <EncounterPanel state={state} dispatch={dispatchWithRolls} />
+          <ExplorePanel state={state} dispatch={dispatchWithRolls} />
+        </div>
+      )}
       {showParty && <PartyPanel state={state} dispatch={dispatch} onClose={() => setShowParty(false)} />}
       {roll && <DiceRoll title={roll.title} lanes={roll.lanes} message={roll.message} tone={roll.tone} stakes={roll.stakes} hazard={roll.hazard} cards={cards ?? []} onContinue={() => setRoll(null)} />}
       {notices && <NoticeModal notices={notices} cards={cards ?? []} onClose={() => setNotices(null)} />}

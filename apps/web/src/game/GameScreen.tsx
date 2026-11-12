@@ -439,11 +439,14 @@ export default function GameScreen() {
       {rightSlot === 'help' && <HelpPanel screens={helpScreens} flags={displayState.variants} />}
       {rightSlot === 'settings' && <SettingsPanel verbose={verbose} onVerbose={(on) => { setVerbose(on); writeVerbose(on); }} autoRoll={autoRoll} onAutoRoll={(on) => { setAutoRoll(on); writeAutoRoll(on); }} state={displayState} code={code ?? undefined} kitActive={!!displayState.variants?.extensionKit} onLog={() => setShowLog(true)} />}
       {rightSlot === 'exit' && <ExitPanel onSave={handleSave} onAbandon={() => engine.quit()} />}
-      <EncounterPanel state={displayState} dispatch={dispatchWithRolls} leaveOnMove />
+      {/* The encounter/treasure bar and the explore actions bar can both be showing (a pickup with the crypt to enter); the dock stacks them. */}
+      <div className="scv-enc-dock">
+        <EncounterPanel state={displayState} dispatch={dispatchWithRolls} leaveOnMove />
+        <ExplorePanel state={displayState} dispatch={dispatchWithRolls} />
+      </div>
       {fightVisible && cards && <FightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
       {fightVisible && cards && <RevisedFightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} inventory={leftSlot === 'inventory' ? inventoryPanel : undefined}
                                                   onMember={(member) => pick({ kind: 'member', member })} />}
-      <ExplorePanel state={displayState} dispatch={dispatchWithRolls} />
       {displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} onSave={handleSave} open={testOpen} />}
       {displayState.testMode && <DeadEndSwapBadge />}
       {!fightVisible && leftSlot === 'party' && (
