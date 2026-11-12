@@ -126,6 +126,52 @@ describe('bugReport.submit', () => {
   });
 });
 
+describe('bugReport screenshot', () => {
+  const store = (t: ReturnType<typeof convexTest>, size: number, type: string) =>
+    t.run((ctx) => ctx.storage.store(new Blob([new Uint8Array(size)], { type })));
+
+  test('generateUploadUrl needs a signed-in caller', async () => {
+    const t = convexTest(schema, modules);
+    await expect(t.mutation(api.bugReport.generateUploadUrl, {})).rejects.toThrow(/sign-in/i);
+    const { as } = await asUser(t);
+    expect(typeof (await as.mutation(api.bugReport.generateUploadUrl, {}))).toBe('string');
+  });
+
+  test('keeps an image and links it from the issue body', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ number: 7, html_url: 'https://github.com/x/y/issues/7' }), { status: 201 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const screenshotId = await store(t, 100, 'image/jpeg');
+    const { ref } = await as.mutation(api.bugReport.submit, report({ screenshotId }));
+    await t.action(internal.bugReport.createIssue, { id: ref as never });
+    const body = JSON.parse(fetchMock.mock.calls[0]![1].body).body as string;
+    expect(body).toMatch(/### Screenshot\n\n!\[Screenshot of the game window\]\(https?:\/\/\S+\)/);
+  });
+
+  test('a report without one has no Screenshot section', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ number: 8, html_url: 'u' }), { status: 201 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const { ref } = await as.mutation(api.bugReport.submit, report());
+    await t.action(internal.bugReport.createIssue, { id: ref as never });
+    expect(JSON.parse(fetchMock.mock.calls[0]![1].body).body).not.toContain('### Screenshot');
+  });
+
+  test('drops, and deletes, a file that is too large — the report still goes through', async () => {
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    // (convex-test records no content type, so the type check itself is not exercised here)
+    for (const [size, type] of [[11 * 1024 * 1024, 'image/jpeg']] as const) {
+      const screenshotId = await store(t, size, type);
+      const { ref } = await as.mutation(api.bugReport.submit, report({ screenshotId }));
+      expect((await t.run((ctx) => ctx.db.get(ref as never))) as { screenshotId?: string }).not.toHaveProperty('screenshotId', screenshotId);
+      expect(await t.run((ctx) => ctx.db.system.get('_storage', screenshotId))).toBeNull();
+    }
+  });
+});
+
 describe('bugReport.createIssue', () => {
   const ok = () => new Response(JSON.stringify({ number: 42, html_url: 'https://github.com/urbancamo/sorcerers-cave/issues/42' }), { status: 201 });
 

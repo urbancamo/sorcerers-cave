@@ -224,6 +224,11 @@ labelled `bug-report`, a `category:*` label, and `test-mode` for a Test Mode gam
   nothing else. It lives only on the Convex deployment (never a `VITE_` variable) and is never logged or stored in an error.
 - `GITHUB_ISSUES_REPO` — `owner/name`; defaults to `urbancamo/sorcerers-cave`.
 
+Bug reports can carry a **screenshot** of the game window (native resolution JPEG, attached by default, the player can untick it).
+It is uploaded to Convex file storage (`bugReport.generateUploadUrl`, image files up to 10 MB) and the issue body links to
+that storage URL, so no extra GitHub permission is needed. The URL is public to anyone holding the link; the file stays in
+Convex storage with the report row (`bugReports.screenshotId`).
+
 Labels to create once in the repository: `bug-report`, `test-mode`, `category:rules`, `category:display`, `category:crash`,
 `category:other`.
 
