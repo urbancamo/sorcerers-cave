@@ -80,7 +80,7 @@ export const TUTORIAL_SCRIPT: CoachStep[] = [
   act('roll', T(10), 'Roll the round', 'Put the Dwarf in the front line against the Troll, then roll the round.', 19, button('redeploy')),
   info('won', T(10), 'Victory',
     'The party wins. The loser of a round is lost; the gems are yours. Take them: the winners may now pick up what the Troll guarded.'),
-  act('gems', T(10), 'Take the gems', 'Give the gems to one of the party.', 20),
+  act('gems', T(10), 'Take the gems', 'The gems are on the card panel. Give them to the Woman Hero: the guide needs her to carry them for the next fight.', 20),
   act('east-tomb', T(10), 'Go east', 'East, into the Tomb of Kings.', 21, exit('E')),
 
   info('tomb', T(11), 'The Tomb of Kings',
@@ -88,7 +88,7 @@ export const TUTORIAL_SCRIPT: CoachStep[] = [
   act('attack', T(11), 'Attack the Witch', 'Press "Attack": striking first gives the party its surprise bonus.', 22, button('attack')),
   act('engage', T(11), 'Join the battle', 'Bring the Priest into support behind the Dwarf, then roll the round.', 23, button('engage')),
   act('retake', T(11), 'Retake what was dropped', 'Fighters put heavy treasure down to fight. Pick it up again.', 24, button('retakeDropped')),
-  act('ring', T(11), 'Take the Ring', 'And finally, the Witch\'s Magic Ring.', 25),
+  act('ring', T(11), 'Take the Ring', 'And finally, the Witch\'s Magic Ring: give it to the Woman Hero too.', 25),
 
   info('end', T(12), 'You are on your way',
     'That is the whole loop: explore, test strangers, fight when the odds are good, withdraw when they are not, and carry the treasure home to the Gateway. A tutorial game is never scored. Press Finish to leave the tutorial; the full manual is behind the Help button.', { free: true }),
