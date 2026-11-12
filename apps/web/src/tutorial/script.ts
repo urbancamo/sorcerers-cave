@@ -10,7 +10,7 @@ const info = (id: string, eyebrow: string, title: string, body: string, extra: P
 const ui = (id: string, eyebrow: string, title: string, body: string, event: string, anchor?: CoachStep['anchor']): CoachStep =>
   ({ id, kind: 'ui', eyebrow, title, body, event, anchor });
 const exit = (dir: 'N' | 'E' | 'S' | 'W' | 'U' | 'D'): CoachStep['anchor'] => ({ kind: 'exit', dir });
-const button = (action: string): CoachStep['anchor'] => ({ kind: 'selector', selector: `[data-tutorial-action="${action}"]` });
+const button = (action: string, prefer?: string): CoachStep['anchor'] => ({ kind: 'selector', selector: `[data-tutorial-action="${action}"]`, prefer: prefer && `[data-tutorial-action="${prefer}"]:not([disabled])` });
 const T = (n: number) => `Step ${n} of 12`;
 
 export const TUTORIAL_SCRIPT: CoachStep[] = [
@@ -76,8 +76,8 @@ export const TUTORIAL_SCRIPT: CoachStep[] = [
   act('test-troll', T(10), 'Test its reaction', 'Press "Test reaction".', 17, button('test')),
   info('fight', T(10), 'The fight',
     'A fight is rounds of dice. Each side adds its fighters\' strength (plus any magic) to one roll of the die. The Troll scores 4 + 1 + its die; your party, with the Axe, 4 + 4 + its die. Deploy the Woman Hero and the Dwarf to the front line; the Priest stays behind.'),
-  act('deploy', T(10), 'Deploy the front line', 'Your fighters stand in the front line; the rest wait behind. Pick the Woman Hero and the Dwarf from the party panel: click one, then the other, to select both at once. Then drag them onto the green front-line area, or just click that area, and press "Stand in the front line" to confirm. The Priest stays behind.', 18, button('frontline')),
-  act('roll', T(10), 'Roll the round', 'Put the Dwarf in the front line against the Troll, then roll the round.', 19),
+  act('deploy', T(10), 'Deploy the front line', 'Your fighters stand in the front line; the rest wait behind. Pick the Woman Hero and the Dwarf from the party panel: click one, then the other, to select both at once. Then drag them onto the green front-line area, or just click that area, and press "Stand in the front line" to confirm. The Priest stays behind.', 18, button('frontline', 'deploy')),
+  act('roll', T(10), 'Roll the round', 'Put the Dwarf in the front line against the Troll, then roll the round.', 19, button('redeploy')),
   info('won', T(10), 'Victory',
     'The party wins. The loser of a round is lost; the gems are yours. Take them: the winners may now pick up what the Troll guarded.'),
   act('gems', T(10), 'Take the gems', 'Give the gems to one of the party.', 20),
@@ -86,7 +86,7 @@ export const TUTORIAL_SCRIPT: CoachStep[] = [
   info('tomb', T(11), 'The Tomb of Kings',
     'A special chamber, with an Earthquake (another hazard) and a Witch guarding a Magic Ring. Look at the cards on the card panel to read what each does. The Earthquake blocks the way back, so there is no withdrawing from this one.'),
   act('attack', T(11), 'Attack the Witch', 'Press "Attack": striking first gives the party its surprise bonus.', 22, button('attack')),
-  act('engage', T(11), 'Join the battle', 'Bring the Priest into support behind the Dwarf, then roll the round.', 23),
+  act('engage', T(11), 'Join the battle', 'Bring the Priest into support behind the Dwarf, then roll the round.', 23, button('engage')),
   act('retake', T(11), 'Retake what was dropped', 'Fighters put heavy treasure down to fight. Pick it up again.', 24, button('retakeDropped')),
   act('ring', T(11), 'Take the Ring', 'And finally, the Witch\'s Magic Ring.', 25),
 

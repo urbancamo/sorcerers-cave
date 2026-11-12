@@ -486,20 +486,20 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
       <div className="scv-fight-actions">
         {stepTopics.length > 0 && <HelpButton topics={stepTopics} label="Help with this step" up />}
         {mine?.kind === "deploy" && !forcedDeploy && (
-          <button className="scv-fight-btn primary" disabled={deployBad !== null} onClick={() => dispatch({ type: "deploy", creatures: usedChosen })}>
+          <button className="scv-fight-btn primary" data-tutorial-action="deploy" disabled={deployBad !== null} onClick={() => dispatch({ type: "deploy", creatures: usedChosen })}>
             Stand in the front line
           </button>
         )}
         {mine?.kind === "engage" && (
           <>
-            <button className="scv-fight-btn primary" disabled={engageBad !== null} onClick={() => dispatch({ type: "engage", pairs: usedPairs, moves: usedMoves })}>Roll the Round ⚔</button>
+            <button className="scv-fight-btn primary" data-tutorial-action="engage" disabled={engageBad !== null} onClick={() => dispatch({ type: "engage", pairs: usedPairs, moves: usedMoves })}>Roll the Round ⚔</button>
             {!forcedPairs && <button className="scv-fight-btn ghost" onClick={() => { setPairs([]); setPlaced([]); setPicked(null); }}>Undo pairings</button>}
             {forcedPairs && usedMoves.length > 0 && <button className="scv-fight-btn ghost" onClick={() => { setPlaced([]); setPicked(null); }}>Undo placements</button>}
           </>
         )}
         {mine?.kind === "redeploy" && (
           <>
-            <button className="scv-fight-btn primary" disabled={redeployBad !== null} onClick={() => dispatch({ type: "redeploy", moves: usedMoves })}>Roll the Round ⚔</button>
+            <button className="scv-fight-btn primary" data-tutorial-action="redeploy" disabled={redeployBad !== null} onClick={() => dispatch({ type: "redeploy", moves: usedMoves })}>Roll the Round ⚔</button>
             {usedMoves.length > 0 && <button className="scv-fight-btn ghost" onClick={() => { setPlaced([]); setPicked(null); }}>Undo moves</button>}
           </>
         )}

@@ -26,7 +26,7 @@ function anchorBox(step: CoachStep, cave: CaveApi | null): Box | null {
     const p = cave?.markerScreenPos(a.dir);
     return p ? { x: p.x - 36, y: p.y - 36, w: 72, h: 72 } : null;
   }
-  const el = document.querySelector(a.selector);
+  const el = (a.prefer && document.querySelector(a.prefer)) || document.querySelector(a.selector);
   if (!el) return null;
   const r = el.getBoundingClientRect();
   return { x: r.left - 6, y: r.top - 6, w: r.width + 12, h: r.height + 12 };

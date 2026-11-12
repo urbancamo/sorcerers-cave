@@ -5,7 +5,7 @@ import { TUTORIAL_ROUTE, type GameAction, type TutorialBeat } from '@sorcerers-c
 
 export type Anchor =
   | { kind: 'exit'; dir: 'N' | 'E' | 'S' | 'W' | 'U' | 'D' } // an exit marker in the 3D view
-  | { kind: 'selector'; selector: string }; // a piece of the page's own UI
+  | { kind: 'selector'; selector: string; prefer?: string }; // a piece of the page's own UI; `prefer` is looked for first (e.g. an enabled confirm button)
 
 export interface CoachStep {
   id: string;
@@ -60,8 +60,8 @@ export function wantedBeat(script: CoachStep[], s: TutorialState): TutorialBeat 
   return step && step.kind === 'act' && s.cursor < (step.until ?? 0) ? (TUTORIAL_ROUTE[s.cursor] ?? null) : null;
 }
 
-// Key order must not matter: the views build their actions their own way.
-const canon = (v: unknown): unknown => Array.isArray(v) ? v.map(canon) : v && typeof v === 'object'
+// Key order and list order must not matter (the party may be selected in either order): the views build their actions their own way.
+const canon = (v: unknown): unknown => Array.isArray(v) ? v.map(canon).sort((a, b) => JSON.stringify(a).localeCompare(JSON.stringify(b))) : v && typeof v === 'object'
   ? Object.fromEntries(Object.entries(v as Record<string, unknown>).filter(([, x]) => x !== undefined).sort(([a], [b]) => a.localeCompare(b)).map(([k, x]) => [k, canon(x)])) : v;
 const same = (a: GameAction, b: GameAction) => JSON.stringify(canon(a)) === JSON.stringify(canon(b));
 
