@@ -202,7 +202,7 @@ export function EncounterPanel({ state, dispatch, leaveOnMove = false }: { state
       {/* One-tap shortcut first: give every fighter back the heavy treasure it dropped to fight. */}
       {retake && (
         <div className="scv-enc-actions">
-          <button className="scv-enc-btn" onClick={() => dispatch(retake!)}>{label(retake, state)}</button>
+          <button className="scv-enc-btn" data-tutorial-action="retakeDropped" onClick={() => dispatch(retake!)}>{label(retake, state)}</button>
         </div>
       )}
 
