@@ -14,10 +14,8 @@ const button = (action: string, prefer?: string): CoachStep['anchor'] => ({ kind
 const T = (n: number) => `Step ${n} of 12`;
 
 export const TUTORIAL_SCRIPT: CoachStep[] = [
-  info('intro', T(1), 'Welcome to the cave',
-    'The Sorcerer\'s Cave is a solo game: you lead a party down through the levels of a cave, gather treasure, and try to bring it out alive. This short guide plays one small game for you, step by step. It is the real game, and the guide only tells you what to press.', { demo: true }),
   info('welcome', T(2), 'Your party',
-    'You lead a Woman Hero and a Dwarf, chosen for you so you can start at once. Their strengths are on the party list, which you can open with the Party button.',
+    'You lead the Woman-Hero and the Dwarf you chose. Their strengths, magic and what they carry are on the party list, which you open with the Party button.',
     { anchor: { kind: 'selector', selector: '[aria-label="Party"]' } }),
   info('gateway', T(3), 'The Gateway',
     'You start at the Gateway, the way in and, at the end, the way out. The cave is unexplored: every tile is laid face down as you find it. The brass arrows mark the ways you can go.'),

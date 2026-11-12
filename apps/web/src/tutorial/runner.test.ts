@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { TUTORIAL_ROUTE } from '@sorcerers-cave/engine';
 import { initialTutorial, matchesBeat, tutorialReduce, wantedBeat, type CoachStep, type TutorialState } from './runner';
 import { TUTORIAL_SCRIPT } from './script';
+import { PARTY_SCRIPT } from './partyScript';
 
 const script: CoachStep[] = [
   { id: 'a', kind: 'info', eyebrow: '', title: '', body: '' },
@@ -9,6 +10,25 @@ const script: CoachStep[] = [
   { id: 'c', kind: 'info', eyebrow: '', title: '', body: '' },
 ];
 const run = (events: Parameters<typeof tutorialReduce>[2][], from: TutorialState = initialTutorial) => events.reduce((s, e) => tutorialReduce(script, s, e), from);
+
+describe('the new-game steps', () => {
+  const send = (s: TutorialState, ...names: string[]) => names.reduce((st, name) => tutorialReduce(PARTY_SCRIPT, st, { type: 'ui', name }), s);
+  const toKit = () => { let s = initialTutorial; while (PARTY_SCRIPT[s.step]!.kind === 'info') s = tutorialReduce(PARTY_SCRIPT, s, { type: 'continue' }); return s; };
+  it('reads the cards through to the first thing the player must do, which is the kit switch', () => {
+    expect(PARTY_SCRIPT[toKit().step]!.event).toBe('kit');
+  });
+  it('follows the choices in order, and a choice made early is not lost when its turn comes', () => {
+    let s = toKit();
+    expect(send(s, 'whero', 'dwarf').step).toBe(s.step); // not yet: the kit comes first
+    s = send(s, 'kit');
+    expect(PARTY_SCRIPT[s.step]!.kind).toBe('info'); // the creature cards
+    s = tutorialReduce(PARTY_SCRIPT, s, { type: 'continue' });
+    expect(PARTY_SCRIPT[s.step]!.event).toBe('whero');
+    s = send(s, 'whero', 'dwarf');
+    expect(PARTY_SCRIPT[s.step]!.event).toBe('start');
+    expect(send(s, 'start').step).toBe(PARTY_SCRIPT.length);
+  });
+});
 
 describe('tutorial runner: ui steps', () => {
   const ui: CoachStep[] = [

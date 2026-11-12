@@ -7,6 +7,7 @@ import { GS_PLAYING, HAZARD_TRAP, legalActions, tutorialAt, unpackCoord, type Ga
 import { useCaveGame } from "./useCaveGame";
 import { useLocalGame } from "./useLocalGame";
 import { TutorialCoach } from "../tutorial/TutorialCoach";
+import { TutorialParty } from "../tutorial/TutorialParty";
 import { TUTORIAL_SCRIPT } from "../tutorial/script";
 import { inProgress, loadProgress, saveProgress } from "../tutorial/progress";
 import { initialTutorial, matchesBeat, tutorialReduce, wantedBeat, type TutorialEvent } from "../tutorial/runner";
@@ -151,6 +152,7 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
   // A returning player picks up where they left off: the saved step, and the game rebuilt by replaying the route to that point.
   const [resumeFrom] = useState(() => { const p = local && resume ? loadProgress() : null; return inProgress(p) ? p : null; });
   const makeTutorial = useCallback(() => tutorialAt(resumeFrom?.cursor ?? 0), [resumeFrom]);
+  const [partyDone, setPartyDone] = useState(() => resumeFrom !== null); // the tutorial's new-game screen is behind a player who resumes
   const [tut, setTut] = useState(() => (resumeFrom ? { step: resumeFrom.step, cursor: resumeFrom.cursor } : initialTutorial));
   useEffect(() => { if (local) saveProgress({ status: 'step', step: tut.step, cursor: tut.cursor }); }, [local, tut]);
   const tutRef = useRef(tut);
@@ -339,6 +341,10 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
     return <ReplayView bundle={replayBundle} onExit={() => setReplayBundle(null)} />;
   }
 
+  // The tutorial begins on the new-game screen, as a real game does.
+  if (local && !partyDone) {
+    return <TutorialParty onDone={() => setPartyDone(true)} onSkip={() => { saveProgress({ status: 'skipped' }); onLocalExit?.(); }} onExit={() => onLocalExit?.()} onDemo={() => void handleReplay('K001')} />;
+  }
   if (!local && !started) {
     return (
       <SplashScreen
