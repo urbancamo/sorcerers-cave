@@ -103,7 +103,7 @@ export function ReplayView({ bundle, onExit, demo }: {
       {demo
         ? <div className="scv-demo-banner" role="status">{demo.heading}</div>
         : <div className="scv-spectate-banner">Replay <b>{bundle.game.code ?? ""}</b> — viewing only</div>}
-      <button className="scv-mp-standings" onClick={onExit}>{demo ? demo.exitLabel : "← Exit Replay"}</button>
+      <button className={"scv-mp-standings" + (demo && i === last ? " scv-demo-done" : "")} onClick={onExit}>{demo ? demo.exitLabel : "← Exit Replay"}</button>
 
       <div className="scv-replay-transport" data-testid="replay-transport">
         {demo && (() => {
