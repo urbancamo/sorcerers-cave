@@ -44,6 +44,9 @@ export const TUTORIAL_SCRIPT: CoachStep[] = [
   ui('home', T(6), 'Home view', 'When you have looked around, press the Home button. It locks the view back onto the tile the party stands on, so you never lose them.', 'home', { kind: 'selector', selector: '#snapBtn' }),
   act('west-priest', T(6), 'Explore west', 'Go west, into the chamber beyond.', 8, exit('W')),
 
+  info('card-panel', T(7), 'The Card panel',
+    'Every card in the game can be read here. When you reach a chamber, the cards on its floor open on the Card panel; click a card, a tile or a party member to look at it, and click it again to tidy the panel away. It shows the card\'s strengths and abilities, with notes from the manual, and the choices you can make with it.',
+    { anchor: { kind: 'selector', selector: '[aria-label="Card panel"]' } }),
   info('priest', T(7), 'A Priest and a Magic Axe',
     'A Priest, and a Magic Axe beside her. Strangers are not always enemies: test their reaction to find out whether they are friendly, indifferent or hostile.'),
   act('test-priest', T(7), 'Test her reaction', 'Press "Test reaction".', 9, button('test')),
