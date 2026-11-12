@@ -166,10 +166,14 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
     tutSend({ type: 'played' });
     return beat.before ?? [];
   }, [tutSend]);
-  // The Home button is the camera's, not a game action: the tutorial just notices it being pressed.
+  // The Home button and the party list's expand arrow are not game actions: the tutorial just notices them being pressed.
   useEffect(() => {
     if (!local) return;
-    const onClick = (e: MouseEvent) => { if ((e.target as Element | null)?.closest?.('#snapBtn')) tutSend({ type: 'ui', name: 'home' }); };
+    const onClick = (e: MouseEvent) => {
+      const el = e.target as Element | null;
+      if (el?.closest?.('#snapBtn')) tutSend({ type: 'ui', name: 'home' });
+      else if (el?.closest?.('.scv-pl-expand')) tutSend({ type: 'ui', name: 'party-expand' });
+    };
     document.addEventListener('click', onClick, true);
     return () => document.removeEventListener('click', onClick, true);
   }, [local, tutSend]);
