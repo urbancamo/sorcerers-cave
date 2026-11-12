@@ -1281,5 +1281,12 @@ export async function boot({ mount, engine: eng, tiles: tileMap, deadEnd, party:
     renderer.dispose();
     renderer.domElement.remove();
   }
-  return { dispose, refresh, setParty, setOtherParties, focusArea, frameArea, setPicker, peekTile, snapOnArrival:()=>{homeOnArrival=true;} };
+  // Where an exit marker (dir N/E/S/W/U/D) sits on screen, in client pixels, or null when there is none (the tutorial's spotlight).
+  function markerScreenPos(dir){
+    const m=exitMarkers.find(x=>x.userData.move===dir); if(!m) return null;
+    const v=m.getWorldPosition(new THREE.Vector3()); v.y+=0.3; v.project(camera);
+    const r=renderer.domElement.getBoundingClientRect();
+    return { x:r.left+(v.x+1)/2*r.width, y:r.top+(1-v.y)/2*r.height };
+  }
+  return { dispose, refresh, setParty, setOtherParties, focusArea, frameArea, setPicker, peekTile, markerScreenPos, snapOnArrival:()=>{homeOnArrival=true;} };
 }

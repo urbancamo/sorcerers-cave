@@ -2511,3 +2511,17 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
 .scv-bug-shot img { display: block; width: 100%; height: auto; cursor: zoom-in; border: 1px solid var(--line); border-radius: 6px; background: rgba(0, 0, 0, 0.25); }
 .scv-bug-check { display: flex; align-items: center; gap: 8px; font-family: var(--ui); font-size: 13px; color: var(--cream); cursor: pointer; }
 .scv-bug-check input { width: auto; accent-color: var(--brass); }
+
+/* Tutorial coach: a card, a brass spotlight ring and a shield over everything but the spotlit control */
+.scv-tut { position: fixed; inset: 0; z-index: 70; pointer-events: none; }
+.scv-tut-shield { position: fixed; background: rgba(7, 7, 9, 0.62); pointer-events: auto; }
+.scv-tut-ring { position: fixed; border: 2px solid var(--brass-bright); border-radius: 14px; box-shadow: 0 0 18px rgba(230, 197, 120, 0.55); pointer-events: none; }
+.scv-tut-card { position: fixed; left: 50%; bottom: 28px; transform: translateX(-50%); width: min(440px, calc(100vw - 32px)); padding: 16px 18px 12px; background: var(--panel); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: 0 10px 40px rgba(7, 7, 9, 0.7); pointer-events: auto; }
+.scv-tut-eyebrow { margin: 0 0 4px; font: 600 11px var(--ui); letter-spacing: 0.14em; text-transform: uppercase; color: var(--brass); }
+.scv-tut-title { margin: 0 0 6px; font: 600 20px var(--display); color: var(--cream); }
+.scv-tut-body { margin: 0; font: 17px/1.4 var(--body); color: var(--parchment); }
+.scv-tut-hint { margin: 8px 0 0; font: 14px var(--ui); color: var(--brass-bright); }
+.scv-tut-actions { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 12px; }
+.scv-tut-skip { margin-right: auto; }
+.scv-tut-count { margin: 6px 0 0; text-align: right; font: 11px var(--ui); color: var(--stone-dim); }
+@media (max-width: 720px) { .scv-tut-card { bottom: 0; left: 0; transform: none; width: 100%; border-radius: 10px 10px 0 0; } }

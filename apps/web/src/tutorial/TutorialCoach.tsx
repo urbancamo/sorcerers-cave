@@ -1,0 +1,80 @@
+import { useEffect, useState } from 'react';
+import type { CaveApi } from '../view/CaveCanvas';
+import type { CoachStep } from './runner';
+
+interface Box { x: number; y: number; w: number; h: number }
+
+// Where the step's anchor is on screen now: an exit marker (projected from the 3D view) or an element of the page.
+function anchorBox(step: CoachStep, cave: CaveApi | null): Box | null {
+  const a = step.anchor;
+  if (!a) return null;
+  if (a.kind === 'exit') {
+    const p = cave?.markerScreenPos(a.dir);
+    return p ? { x: p.x - 36, y: p.y - 36, w: 72, h: 72 } : null;
+  }
+  const el = document.querySelector(a.selector);
+  if (!el) return null;
+  const r = el.getBoundingClientRect();
+  return { x: r.left - 6, y: r.top - 6, w: r.width + 12, h: r.height + 12 };
+}
+
+/**
+ * The coach: a card that says what to do, a spotlight on where, and a shield over the rest of the screen so a wrong press cannot
+ * happen. The shield is the visible half of the lock; the dispatch gate in the local session is the real one.
+ */
+export function TutorialCoach({ step, index, total, cave, hint, onContinue, onBack, onSkip }: {
+  step: CoachStep;
+  index: number;
+  total: number;
+  cave: CaveApi | null;
+  hint: string | null;
+  onContinue: () => void;
+  onBack?: () => void;
+  onSkip: () => void;
+}) {
+  const [box, setBox] = useState<Box | null>(null);
+  // Markers bob and the camera glides, so follow the anchor every frame (state only changes when it has moved).
+  useEffect(() => {
+    let raf = 0;
+    const tick = () => {
+      const next = anchorBox(step, cave);
+      setBox((cur) => (cur && next && Math.abs(cur.x - next.x) < 1 && Math.abs(cur.y - next.y) < 1 && cur.w === next.w ? cur : next));
+      raf = requestAnimationFrame(tick);
+    };
+    tick();
+    return () => cancelAnimationFrame(raf);
+  }, [step, cave]);
+
+  const acting = step.kind === 'act';
+  const free = !!step.free;
+  const shields: Box[] = [];
+  if (!free) {
+    const W = window.innerWidth, H = window.innerHeight;
+    if (acting && box) {
+      shields.push({ x: 0, y: 0, w: W, h: Math.max(0, box.y) }, { x: 0, y: box.y + box.h, w: W, h: Math.max(0, H - box.y - box.h) },
+                   { x: 0, y: box.y, w: Math.max(0, box.x), h: box.h }, { x: box.x + box.w, y: box.y, w: Math.max(0, W - box.x - box.w), h: box.h });
+    } else {
+      shields.push({ x: 0, y: 0, w: W, h: H });
+    }
+  }
+  return (
+    <div className="scv-tut" data-testid="tutorial-coach">
+      {shields.map((b, i) => (
+        <div key={i} className="scv-tut-shield" style={{ left: b.x, top: b.y, width: b.w, height: b.h }} />
+      ))}
+      {box && !free && <div className="scv-tut-ring" style={{ left: box.x, top: box.y, width: box.w, height: box.h }} />}
+      <section className="scv-tut-card" role="dialog" aria-label="Tutorial" aria-live="polite">
+        <p className="scv-tut-eyebrow">{step.eyebrow}</p>
+        <h2 className="scv-tut-title">{step.title}</h2>
+        <p className="scv-tut-body">{step.body}</p>
+        {hint && <p className="scv-tut-hint" role="status">{hint}</p>}
+        <div className="scv-tut-actions">
+          {onBack && <button type="button" className="scv-ghost" onClick={onBack}>Back</button>}
+          <button type="button" className="scv-ghost scv-tut-skip" onClick={onSkip}>Skip tutorial</button>
+          {!acting && <button type="button" className="scv-primary" onClick={onContinue}>{free ? 'Done' : 'Continue'}</button>}
+        </div>
+        <p className="scv-tut-count">{index + 1} / {total}</p>
+      </section>
+    </div>
+  );
+}

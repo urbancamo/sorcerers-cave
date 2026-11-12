@@ -6,6 +6,9 @@ import { api } from "../../convex/_generated/api";
 import { GS_PLAYING, HAZARD_TRAP, legalActions, tutorialGame, unpackCoord, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
 import { useCaveGame } from "./useCaveGame";
 import { useLocalGame } from "./useLocalGame";
+import { TutorialCoach } from "../tutorial/TutorialCoach";
+import { TUTORIAL_SCRIPT } from "../tutorial/script";
+import { initialTutorial, matchesBeat, tutorialReduce, wantedBeat, type TutorialEvent } from "../tutorial/runner";
 import { CaveCanvas, type CaveApi } from "../view/CaveCanvas";
 import { SplashScreen } from "./SplashScreen";
 import { PartySelect } from "./PartySelect";
@@ -143,8 +146,20 @@ export default function GameScreen({ local = false, onLocalExit, onStartTutorial
   const presentingRef = useRef(false);
   const canActRef = useRef(() => !presentingRef.current);
   // Both session hooks run on every render (hooks cannot be conditional); the one not in use is idle (null id / no game).
+  // The tutorial's step machine and its lock: only the action the coach is asking for gets through (see tutorial/runner.ts).
+  const [tut, setTut] = useState(initialTutorial);
+  const tutRef = useRef(tut);
+  const [tutHint, setTutHint] = useState<string | null>(null);
+  const tutSend = useCallback((e: TutorialEvent) => { tutRef.current = tutorialReduce(TUTORIAL_SCRIPT, tutRef.current, e); setTut(tutRef.current); setTutHint(null); }, []);
+  const tutGate = useCallback((a: GameAction): GameAction[] | null => {
+    if (TUTORIAL_SCRIPT[tutRef.current.step]?.free) return [];
+    const beat = wantedBeat(TUTORIAL_SCRIPT, tutRef.current);
+    if (!beat || !matchesBeat(beat, a)) { setTutHint(beat ? 'Not that one: follow the highlighted control.' : 'Press Continue first.'); return null; }
+    tutSend({ type: 'played' });
+    return beat.before ?? [];
+  }, [tutSend]);
   const convexSession = useCaveGame(local ? null : gameId, onMoveResolved, canActRef.current);
-  const localSession = useLocalGame(local ? tutorialGame : null, onMoveResolved, canActRef.current);
+  const localSession = useLocalGame(local ? tutorialGame : null, onMoveResolved, canActRef.current, tutGate);
   const { engine, loading, state, color, code, dispatch, present } = local ? localSession : convexSession;
   // Presentation hold (see useDispatchWithRolls): the pre-action snapshot stays on screen —
   // canvas, panels, everything — until the die roll completes. getSnapshot reads a ref so the
@@ -498,6 +513,12 @@ export default function GameScreen({ local = false, onLocalExit, onStartTutorial
           onViewReplay={() => { const c = savedCode.code; setSavedCode(null); void handleReplay(c); }}
           onCopyDebugBundle={handleCopyDebugBundle}
         />
+      )}
+      {local && TUTORIAL_SCRIPT[tut.step] && !overlay && !notices && (
+        <TutorialCoach step={TUTORIAL_SCRIPT[tut.step]!} index={tut.step} total={TUTORIAL_SCRIPT.length} cave={caveApi.current} hint={tutHint}
+                       onContinue={() => tutSend({ type: 'continue' })}
+                       onBack={tut.step > 0 && TUTORIAL_SCRIPT[tut.step - 1]!.kind === 'info' ? () => tutSend({ type: 'back' }) : undefined}
+                       onSkip={() => onLocalExit?.()} />
       )}
       {bugOpen && gameId && <BugReportModal gameId={gameId} screenshot={bugShot} onClose={() => setBugOpen(false)} />}
       {showLog && gameId && <GameLogModal gameId={gameId} onClose={() => setShowLog(false)} />}

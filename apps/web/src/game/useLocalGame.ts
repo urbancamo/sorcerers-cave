@@ -14,6 +14,8 @@ export function useLocalGame(
   make: (() => GameState) | null,
   onResolved?: (events: GameEvent[], midState?: GameState) => void,
   canAct?: () => boolean,
+  // The tutorial's lock: returns the hidden set-up actions to apply first, or null to refuse the action.
+  gate?: (action: GameAction) => GameAction[] | null,
 ) {
   const [art, setArt] = useState<ArtTables | null>(null);
   const [state, setState] = useState<GameState | null>(null);
@@ -24,6 +26,8 @@ export function useLocalGame(
   onResolvedRef.current = onResolved;
   const canActRef = useRef(canAct);
   canActRef.current = canAct;
+  const gateRef = useRef(gate);
+  gateRef.current = gate;
   const makeRef = useRef(make);
   makeRef.current = make;
   const active = make !== null;
@@ -41,7 +45,10 @@ export function useLocalGame(
   const apply = (action: GameAction) => {
     const cur = stateRef.current;
     if (!cur) return null;
-    const reduced = reduce(cur, action);
+    const before = gateRef.current ? gateRef.current(action) : [];
+    if (before === null) return { state: cur, events: [] as GameEvent[], midState: undefined };
+    const prepared = before.reduce((s, b) => reduce(s, b).state, cur); // forced reactions and dice, never shown
+    const reduced = reduce(prepared, action);
     const driven = driveStrangers(reduced.state);
     stateRef.current = driven.state;
     setState(driven.state);

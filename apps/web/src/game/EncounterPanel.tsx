@@ -237,7 +237,7 @@ export function EncounterPanel({ state, dispatch, leaveOnMove = false }: { state
       {simple.length > 0 && (
         <div className="scv-enc-actions">
           {simple.map((a, i) => (
-            <button key={i} className="scv-enc-btn" onClick={() => dispatch(a)}>
+            <button key={i} className="scv-enc-btn" data-tutorial-action={a.type} onClick={() => dispatch(a)}>
               {label(a, state)}
             </button>
           ))}
