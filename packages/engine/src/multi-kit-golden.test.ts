@@ -22,7 +22,9 @@ import type { GameAction, GameEvent, GameState, PartyMember } from "./index";
  * NEITHER `solo-golden.test.ts`'s nor `kit-golden.test.ts`'s own fixtures — solo and solo-kit stay
  * frozen (INV-2).
  *
- * SEED / PARTIES: seed 7660, seat 0 = [2, 7] (Ogre, Dwarf), seat 1 = [5, 17] (Man, Scholar) —
+ * SEED / PARTIES: seed 7774 (re-swept 2026-11-12 from 7660, same party-pair, seeds 7600-9599 scanned for a natural finish with the same cross-owner Quarrel and
+ * a dead loaned Man returned at the dissolve: the Spell now erases a mirrored stair, issue #43, which sent 7660's seat 0 wandering to the step cap; 7774 and 8000 qualified),
+ * originally seed 7660, seat 0 = [2, 7] (Ogre, Dwarf), seat 1 = [5, 17] (Man, Scholar) —
  * originally seed 215 (chosen by a scratchpad seed sweep, not committed, that scored 16,800 seed ×
  * party-pair runs); re-swept to seed 93917 (bug fix 2026-08-03, same party-pair, ~150,000 candidate
  * seeds scored) after the Whirlpool/Well/Bell Rope stopped drawing a small-pack card on fresh
@@ -296,7 +298,7 @@ function run(
 }
 
 // Seed × seat parties chosen by a scratchpad seed sweep — see the header doc comment.
-const SEED = 7660;
+const SEED = 7774;
 const PICKS = [[2, 7], [5, 17]];
 // The kit-OFF identity spot-check runs the same harness on a base-only draft (Ogre+Dwarf,
 // Man+Woman). Its own seed is picked purely for LENGTH — seed 215's base cave wipes both parties
@@ -328,7 +330,7 @@ describe("MP-kit golden firewall — kit-on multiplayer behaviour is frozen", ()
     // strongest of the roster; under a union that roster is the COMBINED force).
     const q = probes.unionQuarrel;
     expect(q).not.toBeNull();
-    expect(q!.step).toBe(4);
+    expect(q!.step).toBe(11);
     expect(q!.unionLive).toBe(true);
     expect(q!.event).toMatchObject({ type: "quarrel", aId: 2, bId: 5, loserId: 5 });
     expect(ownPicks).toContain(q!.event.aId);       // duellist A is the commander's own
@@ -340,7 +342,7 @@ describe("MP-kit golden firewall — kit-on multiplayer behaviour is frozen", ()
     // ends the loan naturally", would have returned him at step 12 and is contradicted here.)
     const d = probes.dissolve;
     expect(d).not.toBeNull();
-    expect(d!.step).toBe(41);   // 41 → 40 when the EWD deck card (AREA_CARDS[41], SC-3-3, 18-OCT-2026) shifted this scripted game by a step; back to 41 when a revealed dead end stopped being offered (SC-6.1-12)
+    expect(d!.step).toBe(40);   // seed 7774 (2026-11-12): 41 on seed 7660 -- 41 → 40 when the EWD deck card (AREA_CARDS[41], SC-3-3, 18-OCT-2026) shifted this scripted game by a step; back to 41 when a revealed dead end stopped being offered (SC-6.1-12)
     expect(d!.subSeat).toBe(1);
     expect(d!.subParty).toContainEqual(expect.objectContaining({ creatureId: 5, status: 3 }));
     for (const m of d!.subParty) expect(m.mpTag).toBeUndefined();     // came home, loan record gone
