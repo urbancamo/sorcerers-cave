@@ -69,5 +69,13 @@ const same = (a: GameAction, b: GameAction) => JSON.stringify(canon(a)) === JSON
 export function matchesBeat(beat: TutorialBeat, action: GameAction): boolean {
   const want = beat.play;
   if (want.type === 'move' && action.type === 'move') return want.dir === action.dir;
+  // An attack: what the script needs is WHO fights in front and who supports from behind, not which front fighter was paired with the foe.
+  if (want.type === 'engage' && action.type === 'engage') {
+    const lines = (a: typeof want) => ({
+      front: [...a.pairs.map((p) => p.party), ...(a.moves ?? []).filter((m) => !m.back).map((m) => m.creature)].sort(),
+      back: (a.moves ?? []).filter((m) => m.back).map((m) => m.creature).sort(),
+    });
+    return same(lines(want) as never, lines(action) as never);
+  }
   return same(want, action);
 }

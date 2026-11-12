@@ -154,6 +154,7 @@ export default function GameScreen({ local = false, onLocalExit, onStartTutorial
   const tutGate = useCallback((a: GameAction): GameAction[] | null => {
     if (TUTORIAL_SCRIPT[tutRef.current.step]?.free) return [];
     const beat = wantedBeat(TUTORIAL_SCRIPT, tutRef.current);
+    if (beat && !matchesBeat(beat, a)) console.debug('[tutorial] refused', JSON.stringify(a), 'wanted', JSON.stringify(beat.play));
     if (!beat || !matchesBeat(beat, a)) { setTutHint(beat ? 'Not that one: follow the highlighted control.' : TUTORIAL_SCRIPT[tutRef.current.step]?.kind === 'ui' ? 'Press the highlighted button first.' : 'Press Continue first.'); return null; }
     tutSend({ type: 'played' });
     return beat.before ?? [];
