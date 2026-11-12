@@ -26,7 +26,9 @@ export const TUTORIAL_SCRIPT: CoachStep[] = [
   info('spectre', T(5), 'A Spectre',
     'A chamber, and a Spectre in it. Chambers hold strangers and treasure; this one is too dangerous to fight yet. You can always withdraw: the party steps back to where it came from.'),
   act('withdraw', T(5), 'Withdraw', 'Press Withdraw.', 3, button('withdraw')),
-  act('back-to-gateway', T(5), 'Back to the Gateway, then west', 'Head south to the Gateway, then west, then north again, to find another way.', 6, exit('S')),
+  act('south', T(5), 'Back to the Gateway', 'Head south, back to the Gateway.', 4, exit('S')),
+  act('west', T(5), 'Explore west', 'From the Gateway, try the way west.', 5, exit('W')),
+  act('north-trap', T(5), 'Then north', 'A tunnel again: carry on north.', 6, exit('N')),
 
   info('hazard', T(6), 'A hazard',
     'Some cards are hazards: dangers that strike the moment they are met, and are not strangers you can bargain with. This one is a Trap. A Dwarf can guide the party safely past, or you can drop through on purpose, one way, and arrive with the advantage of surprise.'),
@@ -34,7 +36,7 @@ export const TUTORIAL_SCRIPT: CoachStep[] = [
   info('level-two', T(6), 'Level 2',
     'You are now on level 2, deeper in the cave. Use the orbit button to look around, and the level selector to see another level. Deeper chambers hold more cards, so more danger, and more treasure.',
     { anchor: { kind: 'selector', selector: '#levelGrp' } }),
-  act('west', T(6), 'Explore west', 'Go west, into the chamber beyond.', 8, exit('W')),
+  act('west-priest', T(6), 'Explore west', 'Go west, into the chamber beyond.', 8, exit('W')),
 
   info('priest', T(7), 'A Priest and a Magic Axe',
     'A Priest, and a Magic Axe beside her. Strangers are not always enemies: test their reaction to find out whether they are friendly, indifferent or hostile.'),
