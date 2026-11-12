@@ -68,7 +68,18 @@ export function TutorialCoach({ step, index, total, cave, hint, onContinue, onBa
   // Markers bob and the camera glides, so follow the anchor every frame (state only changes when it has moved).
   useEffect(() => {
     let raf = 0;
+    let scrolled = false;
     const tick = () => {
+      // A control below the fold (the party screen's "Enter the cave") is brought into view once, as its step comes up.
+      const a = step.anchor;
+      if (!scrolled && a?.kind === 'selector') {
+        const el = (a.prefer && document.querySelector(a.prefer)) || document.querySelector(a.selector);
+        if (el) {
+          scrolled = true;
+          const r = el.getBoundingClientRect();
+          if (r.top < 0 || r.bottom > window.innerHeight) el.scrollIntoView({ block: 'center', behavior: 'smooth' });
+        }
+      }
       const next = anchorBox(step, cave);
       setBox((cur) => (cur && next && Math.abs(cur.x - next.x) < 1 && Math.abs(cur.y - next.y) < 1 && cur.w === next.w ? cur : next));
       raf = requestAnimationFrame(tick);
