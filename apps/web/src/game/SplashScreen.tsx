@@ -14,6 +14,7 @@ const REPO_URL = "https://github.com/urbancamo/sorcerers-cave";
 
 export function SplashScreen({
   onStartSolitaire,
+  onStartTutorial,
   onStartTestGame,
   onRestoreTestScenario,
   onResume,
@@ -22,6 +23,8 @@ export function SplashScreen({
   onJoinMultiplayer,
 }: {
   onStartSolitaire: () => void;
+  /** The guided tutorial game (a local, in-memory game; no sign-in needed). */
+  onStartTutorial?: () => void;
   /** Test Mode (§Test Mode) — present only when the page was opened with a ?test= param. */
   onStartTestGame?: () => void;
   /** Save/restore a test scenario (2026-09-11): fork a Test Mode game by its code into a new,
@@ -151,6 +154,7 @@ export function SplashScreen({
         )}
         <h2 className="scv-hd">Start new game</h2>
         <button className="scv-primary" onClick={onStartSolitaire}>Start Solitaire Game</button>
+        {onStartTutorial && <button className="scv-primary" data-testid="start-tutorial" onClick={onStartTutorial}>Tutorial</button>}
         {onStartTestGame && (
           <button className="scv-primary" data-testid="start-test-game" onClick={onStartTestGame}>
             Start Test Game
