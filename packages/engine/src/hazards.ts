@@ -399,6 +399,9 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
           const other = state.areas.find((o) => o.coord === packCoord(gone.level + dl, gone.x, gone.y));
           if (!other) continue;
           delete other.secretDoor;
+          // A stair that was only MIRRORED onto that tile to link it to the vanished tunnel is erased with it: take the bit off the card
+          // too, or the tile is left claiming a printed stair (and, drawn that way, matches no art: game DNNW, issue #43).
+          if ((other.mirroredStairs ?? 0) & bit) other.card &= ~bit;
           if (other.mirroredStairs) other.mirroredStairs &= ~bit;
           if (!other.mirroredStairs) delete other.mirroredStairs;
         }
