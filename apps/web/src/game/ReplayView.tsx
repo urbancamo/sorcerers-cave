@@ -48,9 +48,9 @@ export function ReplayView({ bundle, onExit, demo }: {
   useEffect(() => {
     if (!playing) return;
     if (i >= last) { setPlaying(false); return; } // the end stops playback by itself
-    const t = setTimeout(() => setI(i + 1), 1000);
+    const t = setTimeout(() => setI(i + 1), demo ? 1500 : 1000); // a demo is watched to be read: half as fast again
     return () => clearTimeout(t);
-  }, [playing, i, last]);
+  }, [playing, i, last, demo]);
 
   // Left/Right arrows mirror Previous/Next. Form controls are skipped so the position slider keeps
   // its own native arrow handling (otherwise it would step twice), and modified arrows are left
@@ -101,7 +101,7 @@ export function ReplayView({ bundle, onExit, demo }: {
     <div className="relative h-screen w-screen">
       <CaveCanvas key={`replay:${bundle.game.code}`} onReady={(api) => { caveApi.current = api; }} engine={adapterRef.current} state={frame.state} color={color} multiplayer />
       {demo
-        ? <div className="scv-spectate-banner">{demo.heading}</div>
+        ? <div className="scv-demo-banner" role="status">{demo.heading}</div>
         : <div className="scv-spectate-banner">Replay <b>{bundle.game.code ?? ""}</b> — viewing only</div>}
       <button className="scv-mp-standings" onClick={onExit}>{demo ? demo.exitLabel : "← Exit Replay"}</button>
       {demo && (() => {
