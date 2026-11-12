@@ -25,22 +25,35 @@ export async function captureGameWindow(): Promise<Blob | null> {
     ctx.fillStyle = page && page !== 'rgba(0, 0, 0, 0)' ? page : '#000';
     ctx.fillRect(0, 0, out.width, out.height);
 
+    let drew = false;
     for (const c of document.querySelectorAll('canvas')) {
       const r = c.getBoundingClientRect();
       if (r.width === 0 || r.height === 0 || getComputedStyle(c).display === 'none') continue;
       ctx.drawImage(c, r.left * dpr, r.top * dpr, r.width * dpr, r.height * dpr);
+      drew = true;
     }
 
-    const layer = await toCanvas(document.body, {
-      pixelRatio: dpr,
-      width: w,
-      height: h,
-      style: { background: 'transparent' },
-      filter: (node) => {
-        if (!(node instanceof HTMLElement)) return true;
-        return !(node instanceof HTMLCanvasElement) && node.id !== 'bg' && node.dataset.testid !== 'bug-modal';
-      },
-    });
+    // `main.scv-shell` paints an opaque gradient that, on the live page, sits BELOW the cave canvas but,
+    // in this layering, would sit above it. Switch it off for the capture only when a canvas was drawn.
+    const shell = drew ? document.querySelector<HTMLElement>('main.scv-shell') : null;
+    const shellImage = shell?.style.backgroundImage ?? '';
+    if (shell) shell.style.backgroundImage = 'none';
+
+    let layer: HTMLCanvasElement;
+    try {
+      layer = await toCanvas(document.body, {
+        pixelRatio: dpr,
+        width: w,
+        height: h,
+        style: { background: 'transparent' },
+        filter: (node) => {
+          if (!(node instanceof HTMLElement)) return true;
+          return !(node instanceof HTMLCanvasElement) && node.id !== 'bg' && node.dataset.testid !== 'bug-modal';
+        },
+      });
+    } finally {
+      if (shell) shell.style.backgroundImage = shellImage;
+    }
     ctx.drawImage(layer, 0, 0, out.width, out.height);
     return await new Promise<Blob | null>((resolve) => out.toBlob(resolve, 'image/jpeg', 0.92));
   } catch {

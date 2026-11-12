@@ -127,7 +127,7 @@ export function BugReportModal({ gameId, screenshot = null, onClose }: { gameId:
             </div>
             {shot !== null && (
               <div className="scv-bug-shot" data-testid="bug-shot">
-                {shotUrl ? <img src={shotUrl} alt="Screenshot of the game window, as it was when you pressed the bug button" /> : <span className="scv-bug-hint">Capturing the game window…</span>}
+                {shotUrl ? <img src={shotUrl} title="Open full size" onClick={() => window.open(shotUrl, '_blank')} alt="Screenshot of the game window, as it was when you pressed the bug button" /> : <span className="scv-bug-hint">Capturing the game window…</span>}
                 <label className="scv-bug-check">
                   <input type="checkbox" checked={attach} onChange={(e) => setAttach(e.target.checked)} />
                   Attach this screenshot
