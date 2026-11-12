@@ -2514,7 +2514,9 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
 
 /* Tutorial coach: a card and a brass ring on the control to use; nothing dims the map */
 .scv-tut { position: fixed; inset: 0; z-index: 70; pointer-events: none; }
-.scv-tut-ring { position: fixed; border: 2px solid var(--brass-bright); border-radius: 14px; box-shadow: 0 0 18px rgba(230, 197, 120, 0.55); pointer-events: none; }
+.scv-tut-ring { position: fixed; border: 3px solid var(--party-green); border-radius: 14px; box-shadow: 0 0 20px rgba(91, 191, 99, 0.75), inset 0 0 12px rgba(91, 191, 99, 0.35); pointer-events: none; animation: scv-tut-pulse 1.4s ease-in-out infinite; }
+@keyframes scv-tut-pulse { 50% { box-shadow: 0 0 32px rgba(91, 191, 99, 0.95), inset 0 0 16px rgba(91, 191, 99, 0.5); } }
+@media (prefers-reduced-motion: reduce) { .scv-tut-ring { animation: none; } }
 .scv-tut-card { position: fixed; left: 50%; top: 56px; transform: translateX(-50%); width: min(440px, calc(100vw - 32px)); padding: 16px 18px 12px; background: var(--panel); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: 0 10px 40px rgba(7, 7, 9, 0.7); pointer-events: auto; }
 .scv-tut-eyebrow { margin: 0 0 4px; font: 600 11px var(--ui); letter-spacing: 0.14em; text-transform: uppercase; color: var(--brass); }
 .scv-tut-title { margin: 0 0 6px; font: 600 20px var(--display); color: var(--cream); }
