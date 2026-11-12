@@ -22,6 +22,8 @@ export interface CoachStep {
   free?: boolean;
   /** the card offers a short recorded demo game */
   demo?: boolean;
+  /** Continue puts the camera back on the party first (after the player has been free to move it) */
+  resetView?: boolean;
 }
 
 export interface TutorialState {

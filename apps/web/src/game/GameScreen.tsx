@@ -539,7 +539,7 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
       )}
       {local && TUTORIAL_SCRIPT[tut.step] && !overlay && !notices && (
         <TutorialCoach step={TUTORIAL_SCRIPT[tut.step]!} index={tut.step} total={TUTORIAL_SCRIPT.length} cave={caveApi.current} hint={tutHint}
-                       onContinue={() => (TUTORIAL_SCRIPT[tut.step]!.free ? (saveProgress({ status: 'done' }), onLocalExit?.()) : tutSend({ type: 'continue' }))}
+                       onContinue={() => (TUTORIAL_SCRIPT[tut.step]!.free ? (saveProgress({ status: 'done' }), onLocalExit?.()) : (TUTORIAL_SCRIPT[tut.step]!.resetView && document.getElementById('snapBtn')?.click(), tutSend({ type: 'continue' })))}
                        onDemo={() => void handleReplay('K001')}
                        onBack={tut.step > 0 && TUTORIAL_SCRIPT[tut.step - 1]!.kind === 'info' ? () => tutSend({ type: 'back' }) : undefined}
                        onSkip={() => { saveProgress({ status: 'skipped' }); onLocalExit?.(); }} />
