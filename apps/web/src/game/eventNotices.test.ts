@@ -245,6 +245,17 @@ describe("eventNotices", () => {
     expect(stash.tone).toBe("good");
   });
 
+  it("a theft delivered to a Lair elsewhere says the artifacts lie in the lair, not that the hoard glitters 'here' (issue #45)", () => {
+    const out = eventNotices([
+      { type: "lairStash", treasureIds: [1] },
+      { type: "harpiesSteal", treasureIds: [1], cursed: false },
+    ]);
+    expect(out.map((n) => n.text)).toEqual([
+      expect.stringMatching(/Harpies swoop!.*wheel away toward their lair/),
+      "The stolen artifacts now lie in the harpies' lair.",
+    ]);
+  });
+
   it("special-areas revision 2026-08-08: reports treasure fallen through from a Chasm/Whirlpool above", () => {
     const delivered = eventNotices([{ type: "pendingDropDelivered", treasureIds: [1] }])[0]!;
     expect(delivered.text).toMatch(/fallen through from above/i);
