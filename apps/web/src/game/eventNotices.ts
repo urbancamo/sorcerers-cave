@@ -156,6 +156,7 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
       case "testReactionQueued":
       case "testDieQueued":
       case "testAllDiceQueued":
+      case "testDiceQueued":
       case "testOverridesCleared":
         break;
       case "strangerEquipped":

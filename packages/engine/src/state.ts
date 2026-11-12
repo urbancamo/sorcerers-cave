@@ -429,4 +429,7 @@ export interface GameState {
   // turn-increment sites) or `testClearOverrides` clears it explicitly. `testNextDie` takes priority
   // over this when both happen to be armed (rollDieForState checks it first).
   testAllDiceRoll?: number;
+  // Armed by `testForceDice`: raw d6 values consumed one per `rollDieForState` call, first in first out, until empty
+  // (after `testNextDie`, before `testAllDiceRoll`). Appended to if armed again. Not consumed by reaction rolls.
+  testDiceQueue?: number[];
 }

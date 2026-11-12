@@ -2296,6 +2296,14 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       return { state: next, events: [{ type: "testAllDiceQueued", value: action.value }] };
     }
 
+    case "testForceDice": {
+      if (!state.testMode) return { state, events: [{ type: "blocked" }] };
+      if (action.values.length === 0 || action.values.some((v) => !Number.isInteger(v) || v < 1 || v > 6)) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      next.testDiceQueue = [...(next.testDiceQueue ?? []), ...action.values];
+      return { state: next, events: [{ type: "testDiceQueued", values: action.values }] };
+    }
+
     case "testClearOverrides": {
       if (!state.testMode) return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
@@ -2304,6 +2312,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       delete next.testNextReaction;
       delete next.testNextDie;
       delete next.testAllDiceRoll;
+      delete next.testDiceQueue;
       return { state: next, events: [{ type: "testOverridesCleared" }] };
     }
   }

@@ -266,6 +266,7 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "testReactionQueued": return `test mode: next reaction forced to ${e.outcome}`;
     case "testDieQueued": return `test mode: next die roll forced to ${e.value}`;
     case "testAllDiceQueued": return `test mode: all die rolls forced to ${e.value} until end of turn`;
+    case "testDiceQueued": return `test mode: next die rolls forced to ${e.values.join(", ")}`;
     case "testOverridesCleared": return "test mode: overrides cleared";
     default: return (e as { type: string }).type;
   }
@@ -606,6 +607,7 @@ export function eventCode(e: GameEvent): string | null {
     case "testReactionQueued": return `TST R ${e.outcome.slice(0, 3).toUpperCase()}`;
     case "testDieQueued": return `TST D ${e.value}`;
     case "testAllDiceQueued": return `TST AD ${e.value}`;
+    case "testDiceQueued": return `TST DQ ${e.values.join("")}`;
     case "testOverridesCleared": return "TST X";
     default: return (e as { type: string }).type.slice(0, 3).toUpperCase();
   }
