@@ -22,15 +22,20 @@ export interface ReplayBundle {
  * state is drawn by the SAME adapter + cave view as live play, bound read-only (canAct false) so
  * no movement or action affordances are offered: this can never advance a real game.
  */
-export function ReplayView({ bundle, onExit }: { bundle: ReplayBundle; onExit: () => void }) {
+export function ReplayView({ bundle, onExit, demo }: {
+  bundle: ReplayBundle;
+  onExit: () => void;
+  /** The tutorial's demo: a short opening of the game, played from the start with a caption beside the moves it explains. */
+  demo?: { frames: number; captions: Record<number, string>; heading: string; exitLabel: string };
+}) {
   // bundle.replayable is guaranteed by the caller (an unreplayable code never opens the viewer).
   const frames = useMemo(
     // `bundle.game.variants` (SC-EXT-29): a kit-on game's decks only reconstruct exactly when the
     // flag rides along with seed/picks — absent (old/kit-off codes) behaves exactly as before.
     // `bundle.game.testMode` (SC-Test-1) mirrors the same threading, so a test-mode game's queued
     // overrides replay as their real effect instead of being spuriously rejected.
-    () => replay(bundle.game.seed!, bundle.game.picks!, bundle.moves.map((m) => m.action), bundle.game.variants, bundle.game.testMode),
-    [bundle],
+    () => replay(bundle.game.seed!, bundle.game.picks!, bundle.moves.map((m) => m.action), bundle.game.variants, bundle.game.testMode).slice(0, demo ? demo.frames + 1 : undefined),
+    [bundle, demo],
   );
   const last = frames.length - 1;
   const [i, setI] = useState(0);
@@ -39,7 +44,7 @@ export function ReplayView({ bundle, onExit }: { bundle: ReplayBundle; onExit: (
   // Auto-play (RB-4-6): advance one frame per second until stopped or the timeline ends.
   // One timeout per frame (not an interval) so a manual jump mid-play simply re-arms from there.
   // 1000 ms comfortably clears the renderer's 550 ms token-move animation between steps.
-  const [playing, setPlaying] = useState(false);
+  const [playing, setPlaying] = useState(!!demo); // a demo plays itself
   useEffect(() => {
     if (!playing) return;
     if (i >= last) { setPlaying(false); return; } // the end stops playback by itself
@@ -95,8 +100,15 @@ export function ReplayView({ bundle, onExit }: { bundle: ReplayBundle; onExit: (
   return (
     <div className="relative h-screen w-screen">
       <CaveCanvas key={`replay:${bundle.game.code}`} onReady={(api) => { caveApi.current = api; }} engine={adapterRef.current} state={frame.state} color={color} multiplayer />
-      <div className="scv-spectate-banner">Replay <b>{bundle.game.code ?? ""}</b> — viewing only</div>
-      <button className="scv-mp-standings" onClick={onExit}>← Exit Replay</button>
+      {demo
+        ? <div className="scv-spectate-banner">{demo.heading}</div>
+        : <div className="scv-spectate-banner">Replay <b>{bundle.game.code ?? ""}</b> — viewing only</div>}
+      <button className="scv-mp-standings" onClick={onExit}>{demo ? demo.exitLabel : "← Exit Replay"}</button>
+      {demo && (() => {
+        // The caption for the latest explained move stays up until the next one.
+        const at = Math.max(...Object.keys(demo.captions).map(Number).filter((k) => k <= i), -1);
+        return at >= 0 ? <aside className="scv-demo-caption" role="note" data-testid="demo-caption">{demo.captions[at]}</aside> : null;
+      })()}
 
       <div className="scv-replay-transport" data-testid="replay-transport">
         <div className="scv-replay-row">

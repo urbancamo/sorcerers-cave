@@ -8,6 +8,7 @@ import { useCaveGame } from "./useCaveGame";
 import { useLocalGame } from "./useLocalGame";
 import { TutorialCoach } from "../tutorial/TutorialCoach";
 import { TutorialParty } from "../tutorial/TutorialParty";
+import { DEMO_CAPTIONS, DEMO_CODE, DEMO_FRAMES } from "../tutorial/demo";
 import { TUTORIAL_SCRIPT } from "../tutorial/script";
 import { inProgress, loadProgress, saveProgress } from "../tutorial/progress";
 import { initialTutorial, matchesBeat, tutorialReduce, wantedBeat, type TutorialEvent } from "../tutorial/runner";
@@ -309,6 +310,7 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
   // a replay is a fixed record) and open the read-only viewer, or explain why we can't.
   const convex = useConvex();
   const [replayBundle, setReplayBundle] = useState<ReplayBundle | null>(null);
+  const [showDemo, setShowDemo] = useState(false); // the replay on screen is the tutorial's captioned demo, not a player's replay
   const handleReplay = useCallback(async (code: string): Promise<string | null> => {
     // The bundled searched games (codes like K001, no backend involved) are checked before Convex.
     const golden = await goldenBundle(code);
@@ -350,12 +352,13 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
   // The read-only replay viewer — entered from the splash or a high-score detail (this check
   // precedes every game surface, so it also overlays the game-over screen; never a live game).
   if (replayBundle) {
-    return <ReplayView bundle={replayBundle} onExit={() => setReplayBundle(null)} />;
+    return <ReplayView bundle={replayBundle} onExit={() => { setReplayBundle(null); setShowDemo(false); }}
+                       demo={showDemo ? { frames: DEMO_FRAMES, captions: DEMO_CAPTIONS, heading: 'Demo: a game in progress', exitLabel: 'Back to the tutorial' } : undefined} />;
   }
 
   // The tutorial begins on the new-game screen, as a real game does.
   if (local && !partyDone) {
-    return <TutorialParty onDone={() => setPartyDone(true)} onSkip={() => { saveProgress({ status: 'skipped' }); onLocalExit?.(); }} onExit={() => onLocalExit?.()} onDemo={() => void handleReplay('K001')} />;
+    return <TutorialParty onDone={() => setPartyDone(true)} onSkip={() => { saveProgress({ status: 'skipped' }); onLocalExit?.(); }} onExit={() => onLocalExit?.()} onDemo={() => { setShowDemo(true); void handleReplay(DEMO_CODE); }} />;
   }
   if (!local && !started) {
     return (
@@ -548,7 +551,7 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
       {local && TUTORIAL_SCRIPT[tut.step] && !overlay && !notices && (
         <TutorialCoach step={TUTORIAL_SCRIPT[tut.step]!} index={tut.step} total={TUTORIAL_SCRIPT.length} cave={caveApi.current} hint={tutHint}
                        onContinue={() => (TUTORIAL_SCRIPT[tut.step]!.free ? (saveProgress({ status: 'done' }), onLocalExit?.()) : (TUTORIAL_SCRIPT[tut.step]!.resetView && document.getElementById('snapBtn')?.click(), tutSend({ type: 'continue' })))}
-                       onDemo={() => void handleReplay('K001')}
+                       onDemo={() => { setShowDemo(true); void handleReplay(DEMO_CODE); }}
                        onBack={tut.step > 0 && TUTORIAL_SCRIPT[tut.step - 1]!.kind === 'info' ? () => tutSend({ type: 'back' }) : undefined}
                        onSkip={() => { saveProgress({ status: 'skipped' }); onLocalExit?.(); }} />
       )}

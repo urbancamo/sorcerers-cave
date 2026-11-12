@@ -2532,3 +2532,6 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
 .scv-tut-dots { color: var(--stone-dim); font-size: 14px; line-height: 1; }
 .scv-tut-card.moved { transform: none; }
 @media (max-width: 720px) { .scv-tut-card.moved { width: min(440px, calc(100vw - 32px)); border-radius: 10px; } }
+
+/* The tutorial's demo game: a caption card over the replay, above the transport */
+.scv-demo-caption { position: fixed; left: 50%; top: 56px; transform: translateX(-50%); z-index: 20; width: min(520px, calc(100vw - 32px)); padding: 12px 16px; background: var(--panel); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: 0 10px 40px rgba(7, 7, 9, 0.7); color: var(--parchment); font: 17px/1.4 var(--body); }
