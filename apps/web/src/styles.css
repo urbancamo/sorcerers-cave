@@ -2525,3 +2525,9 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
 .scv-tut-skip { margin-right: auto; }
 .scv-tut-count { margin: 6px 0 0; text-align: right; font: 11px var(--ui); color: var(--stone-dim); }
 @media (max-width: 720px) { .scv-tut-card { top: 44px; left: 0; transform: none; width: 100%; border-radius: 0 0 10px 10px; } } /* the top, so it never covers the action dock at the bottom */
+.scv-tut-grip { display: flex; align-items: center; gap: 8px; margin: -6px -8px 4px; padding: 6px 8px; cursor: grab; touch-action: none; user-select: none; }
+.scv-tut-grip:active { cursor: grabbing; }
+.scv-tut-grip .scv-tut-eyebrow { margin: 0; }
+.scv-tut-dots { color: var(--stone-dim); font-size: 14px; line-height: 1; }
+.scv-tut-card.moved { transform: none; }
+@media (max-width: 720px) { .scv-tut-card.moved { width: min(440px, calc(100vw - 32px)); border-radius: 10px; } }
