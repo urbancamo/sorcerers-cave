@@ -1,14 +1,19 @@
-import { BORNEABLE, canArm, canCarry, isBorne, legalActions, type GameAction, type GameState } from '@sorcerers-cave/engine';
+import { BORNEABLE, canArm, canCarry, canUseArtifact, isBorne, legalActions, type GameAction, type GameState } from '@sorcerers-cave/engine';
 import { memberLabel } from '../memberLabels';
 import { ConfirmButton, ConfirmPicker } from '../ConfirmButton';
 import { useOptions, ELIXIR_CONFIRM, SCROLL_CONFIRM } from '../artifactUse';
 import { useVerbs, wieldRefusal } from '../wielding';
+import { ACTIVE } from '../inventory';
 
 const T_CHEST = 14;
 const T_ELIXIR = 15;
 const T_SCROLL = 19;
 
-/** The actions an item's own card offers: use (with its picker), wield or stow, open the Chest, give to another member, drop. Nothing here suggests when to use an item; it only shows what can be done. */
+// Why an item its carrier could use is greyed out (the Scroll has its own fight window, so it is left out). The Balm and the Staff say what they need;
+// everything else says only that it is not usable now, as the inventory row does.
+const NOT_USABLE_REASON: Record<number, string> = { 6: 'Nobody has fallen here this turn.', 9: 'Nobody is turned to stone here.' };
+
+/** The actions an item's own card offers: use (with its picker), wield or stow, open the Chest, pass to another member, drop. Nothing here suggests when to use an item; it only shows what can be done. */
 export function ItemActions({ state, dispatch, mi, idx }: { state: GameState; dispatch: (a: GameAction) => void; mi: number; idx: number }) {
   const m = state.party[mi];
   const tid = m?.treasure[idx];
@@ -49,6 +54,14 @@ export function ItemActions({ state, dispatch, mi, idx }: { state: GameState; di
           </select>
         </label>
       )}
+      {/* An item the carrier could use but cannot just now: show the control greyed out with the reason, so a card that talks about reviving is not left
+          with only a "pass it on" list that looks like the way to use it. */}
+      {manage && ACTIVE.has(tid) && tid !== T_SCROLL && uses.length === 0 && canUseArtifact(m.creatureId, tid) && (
+        <>
+          <button type="button" className="scv-enc-btn ghost" disabled title={NOT_USABLE_REASON[tid] ?? 'Not usable now.'}>Use…</button>
+          <p className="scv-enc-note" data-testid="ia-not-usable">{NOT_USABLE_REASON[tid] ?? 'Not usable now.'}</p>
+        </>
+      )}
       {openChest && <button type="button" className="scv-enc-btn" onClick={() => dispatch(openChest)}>Open the Treasure Chest</button>}
       {/* Say which it is: the card's own words are "held by", so the state needs stating (Peter, ZYBP: "is she wielding it or not?"). */}
       {alive && BORNEABLE.includes(tid) && (
@@ -69,16 +82,16 @@ export function ItemActions({ state, dispatch, mi, idx }: { state: GameState; di
       })()}
       {manage && heirs.length > 0 && (
         <label className="scv-enc-row">
-          <span className="scv-enc-row-nm">Give to</span>
-          <select className="scv-enc-select" aria-label="Give to" value="" onChange={(e) => { if (e.target.value !== '') dispatch({ type: 'moveTreasure', from: mi, to: Number(e.target.value), idx }); }}>
-            <option value="">Choose a member…</option>
+          <span className="scv-enc-row-nm">Pass to</span>
+          <select className="scv-enc-select" aria-label="Pass to" value="" onChange={(e) => { if (e.target.value !== '') dispatch({ type: 'moveTreasure', from: mi, to: Number(e.target.value), idx }); }}>
+            <option value="">Choose who carries it…</option>
             {heirs.map((oi) => <option key={oi} value={oi}>{memberLabel(state.party, oi)}</option>)}
           </select>
         </label>
       )}
       {/* Nobody can take it: show the control disabled, so the player can see why giving is not on offer rather than wonder where it went. */}
       {manage && heirs.length === 0 && state.party.length > 1 && (
-        <button type="button" className="scv-enc-btn ghost" disabled title="Move item to a party member that can carry it.">Give to…</button>
+        <button type="button" className="scv-enc-btn ghost" disabled title="Move item to a party member that can carry it.">Pass to…</button>
       )}
       {/* "Drop here" is right wherever the party stands: a tunnel, a Precise-Locations special, a chamber. */}
       {manage && <button type="button" className="scv-enc-btn ghost" onClick={() => dispatch({ type: 'dropTreasure', mi, idx })}>Drop here</button>}

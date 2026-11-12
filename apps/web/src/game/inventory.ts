@@ -4,7 +4,7 @@ import { memberLabels } from './memberLabels';
 import { useVerbs } from './wielding';
 // Draft classification for the inventory (docs/requirements/ui-review, "Artifact classification"); it still needs a
 // rules review. Active artifacts need a player action; passive ones work by being carried or wielded.
-const ACTIVE = new Set([4, 5, 6, 8, 9, 12, 15, 16, 19]);
+export const ACTIVE = new Set([4, 5, 6, 8, 9, 12, 15, 16, 19]);
 const T_CHARMED_FLUTE = 12;
 const T_MAGIC_SHIELD = 20;
 const T_MAGIC_STAFF = 9;

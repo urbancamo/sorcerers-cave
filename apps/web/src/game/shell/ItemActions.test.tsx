@@ -19,6 +19,23 @@ const show = (s: GameState, item: number, dispatch = vi.fn()) => {
 };
 
 describe('ItemActions — use', () => {
+  it('shows the Healing Balm greyed out, with the reason, when nobody has fallen here this turn (issue #46)', () => {
+    const s = newGame(1, [6, 5]); // Woman + Man, both alive
+    s.party[0]!.treasure.push(T.balm);
+    show(s, T.balm);
+    const use = screen.getByRole('button', { name: 'Use…' });
+    expect(use).toBeDisabled();
+    expect(screen.getByTestId('ia-not-usable')).toHaveTextContent('Nobody has fallen here this turn.');
+    // the way to hand it to someone is a separate, plainly named control that revives no one
+    expect(screen.getByLabelText('Pass to')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Give to')).toBeNull();
+  });
+
+  it('shows no greyed-out Use for an item its carrier cannot use at all', () => {
+    show(carrying([5], T.balm), T.balm); // a Man cannot use the Balm
+    expect(screen.queryByRole('button', { name: 'Use…' })).toBeNull();
+  });
+
   it('opens a carried Treasure Chest', () => {
     const d = show(carrying([0], T.chest), T.chest);
     fireEvent.click(screen.getByRole('button', { name: /open the treasure chest/i }));
@@ -101,27 +118,27 @@ describe('ItemActions — wield, give, drop', () => {
     expect(screen.getByRole('button', { name: 'Stow (carry)' })).toBeInTheDocument();
   });
 
-  it('gives an item to another member who can carry it', () => {
+  it('passes an item to another member who can carry it', () => {
     const s = carrying([5, 6], T.sword);
     const d = show(s, T.sword);
-    fireEvent.change(screen.getByLabelText('Give to'), { target: { value: '1' } });
+    fireEvent.change(screen.getByLabelText('Pass to'), { target: { value: '1' } });
     expect(d).toHaveBeenCalledWith({ type: 'moveTreasure', from: 0, to: 1, idx: idxOf(s, T.sword) });
   });
 
-  it('shows Give to disabled, with the reason, when no member can carry the item', () => {
+  it('shows Pass to disabled, with the reason, when no member can carry the item', () => {
     // Two Dwarves: each is at capacity once the other's silver is added, so nobody can take a second 25 kg load.
     const s = carrying([7, 7], T.silver);
     s.party[1]!.treasure.push(T.silver);
     show(s, T.silver);
-    const give = screen.getByRole('button', { name: 'Give to…' });
+    const give = screen.getByRole('button', { name: 'Pass to…' });
     expect(give).toBeDisabled();
     expect(give).toHaveAttribute('title', 'Move item to a party member that can carry it.');
-    expect(screen.queryByLabelText('Give to')).toBeNull();
+    expect(screen.queryByLabelText('Pass to')).toBeNull();
   });
 
-  it('has nothing to give to in a one-member party, so shows no Give to at all', () => {
+  it('has nothing to give to in a one-member party, so shows no Pass to at all', () => {
     show(carrying([0], T.sword), T.sword);
-    expect(screen.queryByRole('button', { name: 'Give to…' })).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Pass to…' })).toBeNull();
   });
 
   it('drops an item where the party stands', () => {
@@ -134,8 +151,8 @@ describe('ItemActions — wield, give, drop', () => {
   it('offers no moving, wielding or dropping in a fight', () => {
     show(carrying([5, 6], T.sword, { phase: 'fight' }), T.sword);
     expect(screen.queryByRole('button', { name: 'Wield' })).toBeNull();
-    expect(screen.queryByLabelText('Give to')).toBeNull();
-    expect(screen.queryByRole('button', { name: 'Give to…' })).toBeNull();
+    expect(screen.queryByLabelText('Pass to')).toBeNull();
+    expect(screen.queryByRole('button', { name: 'Pass to…' })).toBeNull();
     expect(screen.queryByRole('button', { name: 'Drop here' })).toBeNull();
   });
 });
