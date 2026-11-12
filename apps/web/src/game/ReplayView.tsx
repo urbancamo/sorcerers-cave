@@ -49,8 +49,8 @@ export function ReplayView({ bundle, onExit, demo }: {
   useEffect(() => {
     if (!playing) return;
     if (i >= last) { setPlaying(false); return; } // the end stops playback by itself
-    // A demo is watched to be read: five seconds a move, after fifteen to take in the opening caption and the screen when it opens.
-    const wait = !demo ? 1000 : introPending.current ? 15000 : 5000;
+    // A demo is watched to be read: seven seconds a move, after fifteen to take in the opening caption and the screen when it opens.
+    const wait = !demo ? 1000 : introPending.current ? 15000 : 7000;
     const t = setTimeout(() => { introPending.current = false; setI(i + 1); }, wait);
     return () => clearTimeout(t);
   }, [playing, i, last, demo]);
