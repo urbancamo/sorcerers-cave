@@ -48,7 +48,7 @@ const C_THIEF = 19; // extension-kit creature — a living Thief ally unlocks gu
                      // indifference-pacified area (design US-17, SC-EXT-19)
 const T_CRYPT = 21; // extension-kit treasure — the crypt's find converts to this ordinary treasure (SC-EXT-13)
 const C_APPRENTICE = 14; // extension-kit creature — never leaves the cave (design US-14, SC-EXT-20)
-const C_DEMON = 15; // extension-kit creature — forces immediate hostile combat on sight (design US-13, SC-EXT-21)
+const C_DEMON = 15; // extension-kit creature — appears in the area the party just left and is met there like any stranger: 1-5 hostile, 6 indifferent (design US-13, SC-EXT-21)
 const C_SORCERER = 11; // Holy Water's WEAKEN mode target, alongside the Apprentice (design US-20, SC-EXT-24)
 const C_UNICORN = 13; // hostileMax 0 / indiffMax 0 — always friendly regardless of the roll (§ Unicorn, bug fix 2026-08-02)
 
@@ -163,33 +163,31 @@ function beginRevised(state: GameState): GameEvent[] {
   return state.fight.pending ? [] : advanceRevised(state);   // a pending loadout decision starts the rounds when it is answered
 }
 
-/** Extension kit (SC-EXT-21, design US-13): a Demon present in `state.strangers` forces an
- *  immediate hostile fight — no reaction test, "like always-hostile" (unlike `hostileAreas`,
- *  which applies only once THIS party has already retreated from THIS area before). Fires
- *  identically whether the party just stepped onto its area (a fresh move/carpet/relocateDown
- *  entry, or a later revisit) or fled back INTO it (`withdraw`). Returns true when it fired —
- *  callers skip their own ordinary phase resolution for this entry. */
-function ambushIfDemon(state: GameState, events: GameEvent[]): boolean {
-  if (!state.strangers.includes(C_DEMON)) return false;
-  events.push({ type: "demonUnfolds" });
-  events.push(...startFight(state, -1));
-  return true;
+/** Extension kit (SC-EXT-21, design US-13): a Demon in `state.strangers` is met like any other stranger: the party tests it, and the leader's table
+ *  decides (Demon 1-5 hostile, 6 indifferent; Peter's rules, R-02). It used to force combat with no reaction test (changed 2026-11-12, GitHub #54,
+ *  MSW). A Demon joins whoever is already in the area, and one that arrives where the party had made peace with the strangers is a newcomer the
+ *  party has not met: the area stops being pacified and its indifference count starts again. */
+function unpacifyForDemon(state: GameState): void {
+  if (!state.strangers.includes(C_DEMON) || !state.pacifiedAreas?.includes(state.partyArea)) return;
+  state.pacifiedAreas = state.pacifiedAreas.filter((i) => i !== state.partyArea);
+  state.areas[state.partyArea]!.indiffCount = 0;
 }
 
 /** Extension kit (SC-EXT-21, fix round): pull a Demon marker parked on `area`'s own persisted
  *  `contents` (by an earlier draw made elsewhere, design US-13) into the LIVE `state.strangers`
  *  working set, for every entry path that never runs `enterChamber`'s own reload cycle — a plain
- *  tunnel/Gateway, or a Deep Pool/Viper Pit special (both return from `resolveAreaLoop` before
- *  ever reaching the generic tunnel branch, so each needs this same pull-in at its own entry
- *  point). Mutates `area.contents` and `state.strangers`; returns true when one was found, so the
- *  caller can immediately follow with `ambushIfDemon` (entry-ambush fires BEFORE any of the
- *  special's own crossing/pool logic — that logic only ever runs when the party later LEAVES,
- *  which can't happen until they've survived arriving). */
-function pullParkedDemon(state: GameState, area: PlacedArea): boolean {
+ *  tunnel/Gateway, or a Deep Pool/Viper Pit special (both return from `resolveAreaLoop` before the
+ *  generic tunnel branch, so each needs this same pull-in at its own entry point) — and open the
+ *  encounter with it (or the fight at once if the party retreated from this area before, §Retreat).
+ *  Returns true when one was found, so the caller returns without its own phase resolution. */
+function meetParkedDemon(state: GameState, area: PlacedArea, events: GameEvent[]): boolean {
   const demonIdx = area.contents.indexOf(100 + C_DEMON);
   if (demonIdx < 0) return false;
   area.contents.splice(demonIdx, 1);
   state.strangers = [C_DEMON];
+  unpacifyForDemon(state);
+  if (state.hostileAreas?.includes(state.partyArea)) events.push(...startFight(state, -1));
+  else { state.phase = "encounter"; state.surpriseReady = false; } // an old doorway into a tile the party has stood on: no surprise
   return true;
 }
 
@@ -487,8 +485,8 @@ function settlePacifiedWithSibyl(state: GameState): void {
   state.surpriseReady = false;
 }
 
-/** The tail of a chamber entry once its hazards are done and the party is still here: Flute lull, Demon
- *  ambush, a pacified area, then the phase the chamber's contents call for. Shared by the uninterrupted path
+/** The tail of a chamber entry once its hazards are done and the party is still here: Flute lull, a Demon
+ *  newcomer unpacifying its area, a pacified area, then the phase the chamber's contents call for. Shared by the uninterrupted path
  *  (`finishChamber`) and the resume from the Dwarf's trap choice. */
 function settleChamber(state: GameState, freshEntry: boolean, events: GameEvent[], announceLull: boolean): void {
   // The revised combat's Ghouls (Peter, 14-OCT-2026): a party of strength-2 creatures, one per creature of the party, fought by the round
@@ -509,14 +507,9 @@ function settleChamber(state: GameState, freshEntry: boolean, events: GameEvent[
   }
   // The Charmed Flute no longer lulls Dragons by itself on entry (UI review 2026-10-30, "no auto-use of artifacts"):
   // the player plays it from the encounter (`useArtifact` 12, see `lullDragons`). Dragons parked awake stay awake.
-  // Extension kit (SC-EXT-21): a Demon is always hostile — including one parked into an area the
-  // party had already permanently pacified (by an earlier draw made elsewhere while they were away,
-  // same as the `withdraw` case below, reduce.ts:642). This check must run BEFORE the pacifiedAreas
-  // branch: otherwise `settlePacifiedArea` would silently re-park the Demon right back onto the tile
-  // (or, with a Thief, slip it into a live pickup) every single re-entry, forever suppressing it.
-  if (ambushIfDemon(state, events)) {
-    return;
-  }
+  // Extension kit (SC-EXT-21): a Demon parked into an area the party had already pacified is a newcomer, so the area is no longer pacified
+  // (otherwise `settlePacifiedArea` would re-park it unmet every re-entry). It is then met like any stranger below.
+  unpacifyForDemon(state);
   // Permanently indifferent to this party (§Reactions): the party may walk freely through (any exit)
   // — so park the guards to the tile and go to explore for full traversal — but it may also still
   // CHOOSE to attack them (selectors offers an Attack action; the guarded treasure stays out of reach
@@ -670,10 +663,10 @@ function resolveAreaLoop(state: GameState): GameEvent[] {
       const area = state.areas[state.partyArea]!;
       // Extension kit (SC-EXT-21, fix round): a Demon may be lurking here even though Deep Pool
       // is a non-chamber special that returns before the generic tunnel branch below — pull a
-      // parked marker in and ambush FIRST, ahead of the pool's own treasure-reclaim/telegraph
+      // parked marker in and meet it FIRST, ahead of the pool's own treasure-reclaim/telegraph
       // logic (that logic only matters once the party has survived arriving; the pool's own
       // CROSSING effects, elsewhere, only fire when the party later LEAVES by a fresh doorway).
-      if (pullParkedDemon(state, area)) { ambushIfDemon(state, events); return events; }
+      if (meetParkedDemon(state, area, events)) return events;
       // Treasure cast into a Deep Pool is recoverable only by a Giant (§Deep Pool) — the auto-
       // dropped pile first, else a deliberate `dropTreasure` cast into THIS sub-location (§10.5).
       // Shared with the stationary `reclaimTreasure` action (bug fix 2026-08-02) so the two paths
@@ -687,7 +680,7 @@ function resolveAreaLoop(state: GameState): GameEvent[] {
       // Extension kit (SC-EXT-21, fix round): same Demon pull-in as Deep Pool above — the Viper
       // Pit is likewise a non-chamber special that returns before the generic tunnel branch.
       const area = state.areas[state.partyArea]!;
-      if (pullParkedDemon(state, area)) { ambushIfDemon(state, events); return events; }
+      if (meetParkedDemon(state, area, events)) return events;
       // Precise Locations (§10.5): treasure cast into the Viper Pit is recoverable only by a party
       // with the Charmed Flute (Peter's notes; mirrors Deep Pool's Giant-only gate, §10.2). Once
       // eligible, ordinary capacity-gated pickup rules decide who actually carries it out.
@@ -712,9 +705,9 @@ function resolveAreaLoop(state: GameState): GameEvent[] {
       const area = state.areas[state.partyArea]!;
       // Extension kit (SC-EXT-21): a Demon may be lurking here (parked by an earlier draw
       // elsewhere, design US-13) even though this tile is an ordinary tunnel/Gateway, which never
-      // runs `enterChamber`'s reload cycle — pull it into the live working set here so the ambush
-      // still fires (a tunnel can never otherwise hold a "stranger").
-      if (pullParkedDemon(state, area)) { ambushIfDemon(state, events); return events; }
+      // runs `enterChamber`'s reload cycle — pull it into the live working set here so the party meets it
+      // (a tunnel can never otherwise hold a "stranger").
+      if (meetParkedDemon(state, area, events)) return events;
       const floor = area.contents.filter((c) => c >= 200 && c < 300);
       if (floor.length > 0) {
         state.treasures = floor.map((c) => c - 200);
@@ -1291,7 +1284,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // Gap C's leave window (re-entering "must in the same turn either test the strangers again or
       // attack them"), triggers an on-sight fight for a `hostileAreas` tile, reveals a Spell-remapped
       // tile, and frees stoned members via a Wizard+Staff — all for free, since every tile type is
-      // now handled uniformly (the Demon pull-in/ambush included — `resolveAreaLoop`'s own branches
+      // now handled uniformly (the Demon pull-in included — `resolveAreaLoop`'s own branches
       // already cover it identically for a tunnel/chamber/Deep-Pool/Viper-Pit destination).
       const events = resolveArea(next);
       return { state: next, events };

@@ -57,8 +57,8 @@ function reload(state: GameState, code: number): void {
  * Extension kit (SC-EXT-21, design US-13/Resolved-6): a freshly-drawn Demon never joins the
  * chamber it was drawn in — it materializes as a hostile lurker in the area the party just LEFT
  * (`prev`), parked as an ordinary `100+id` content code so it surfaces normally the next time
- * that area is (re-)entered or withdrawn into (`reduce.ts`'s `ambushIfDemon` then forces the
- * fight — no reaction test). An earthquake-collapsed `prev` can't host it: it "claws at fallen
+ * that area is (re-)entered or withdrawn into (`reduce.ts`'s `meetParkedDemon` / `settleChamber` then meet it like any
+ * stranger: a reaction test, Demon 1-5 hostile, 6 indifferent). An earthquake-collapsed `prev` can't host it: it "claws at fallen
  * rock… and disperses" — discarded outright, no state change beyond the notice. `state.prev` is
  * always a valid area index from `newGame` onward (it starts equal to the party's own position,
  * the Gateway, before any move has happened) — the design's "materialize in the current area"

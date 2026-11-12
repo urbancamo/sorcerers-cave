@@ -17,8 +17,8 @@ describe("scenario summaries", () => {
       expect(r.draft.length).toBeGreaterThan(0);
     }
   });
-  it("K001 is the top Extension Kit game (460 under the 20261110 rules)", async () => {
-    expect((await scenarioSummaries("K"))[0]).toMatchObject({ code: "K001", score: 460 });
+  it("K001 is the top Extension Kit game (484 under the 20261110 rules with the Demon tested)", async () => {
+    expect((await scenarioSummaries("K"))[0]).toMatchObject({ code: "K001", score: 484 });
   });
 });
 
@@ -30,7 +30,7 @@ describe("ScenarioBrowserModal", () => {
     expect(within(table).getByText("B001")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: /extension kit/i }));
     await waitFor(() => expect(within(screen.getByTestId("scenario-table")).getByText("K001")).toBeInTheDocument());
-    expect(within(screen.getByTestId("scenario-table")).getByText("460")).toBeInTheDocument();
+    expect(within(screen.getByTestId("scenario-table")).getByText("484")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("tab", { name: /sibyl/i }));
     await waitFor(() => expect(within(screen.getByTestId("scenario-table")).getByText("S001")).toBeInTheDocument());
   });

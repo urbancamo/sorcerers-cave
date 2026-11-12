@@ -243,95 +243,75 @@ describe("A drawn Demon never joins the chamber — it materializes into prev (U
   });
 });
 
-describe("Entering (or withdrawing into) the Demon's area forces an ambush (US-13, SC-EXT-21)", () => {
-  it("forces a hostile fight on entry into a CHAMBER holding a parked Demon — no reaction test", () => {
-    const s = demonState({
-      party: [member(HERO)],
-      areas: [
-        { card: START_CARD, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
-        { card: PLAIN_CHAMBER, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents: [100 + DEMON], flags: 0, indiffCount: 0 },
-      ],
-    });
-    const { state, events } = reduce(s, { type: "move", dir: DIR_E });
+describe("Entering (or withdrawing into) the Demon's area is an ordinary encounter (US-13, SC-EXT-21; ruling R-02: follow the book)", () => {
+  const AREAS = (card: number, contents: number[] = [100 + DEMON]) => [
+    { card: START_CARD, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+    { card, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents, flags: 0, indiffCount: 0 },
+  ];
+  const DEEP_POOL_CARD = (SPECIAL_DEEP_POOL << 7) | 31;
+  const VIPER_PIT_CARD = (SPECIAL_VIPER_PIT << 7) | 31;
 
-    expect(state.phase).toBe("fight");
+  // The Demon is "joining any strangers who may be there": it is met, then tested like any stranger.
+  const expectEncounter = (card: number) => {
+    const s = demonState({ party: [member(HERO)], areas: AREAS(card) });
+    const { state, events } = reduce(s, { type: "move", dir: DIR_E });
+    expect(state.phase).toBe("encounter");
     expect(state.strangers).toEqual([DEMON]);
-    expect(events).toContainEqual({ type: "demonUnfolds" });
+    expect(events.some((e) => e.type === "fightStarted")).toBe(false);
+    expect(events.some((e) => e.type === "reaction")).toBe(false); // not rolled until the party tests
+    return { state, events };
+  };
+
+  it("a parked Demon in a CHAMBER is met as a stranger to be tested — no automatic fight", () => {
+    expectEncounter(PLAIN_CHAMBER);
   });
 
-  it("forces the SAME ambush entering a plain TUNNEL holding a parked Demon", () => {
-    const s = demonState({
-      party: [member(HERO)],
-      areas: [
-        { card: START_CARD, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
-        { card: PLAIN_WEST_TUNNEL, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents: [100 + DEMON], flags: 0, indiffCount: 0 },
-      ],
-    });
-    const { state, events } = reduce(s, { type: "move", dir: DIR_E });
-
-    expect(state.phase).toBe("fight");
-    expect(state.strangers).toEqual([DEMON]);
-    expect(events).toContainEqual({ type: "demonUnfolds" });
+  it("the same entering a plain TUNNEL", () => {
+    expectEncounter(PLAIN_WEST_TUNNEL);
   });
 
-  it("forces the SAME ambush entering a Deep Pool tile holding a parked Demon (fix round)", () => {
-    // Deep Pool/Viper Pit branches return BEFORE the generic tunnel branch's demon pull-in — a
-    // Demon parked on one of these specific tile types (e.g. materialized behind a pool the party
-    // crossed) must still ambush on ordinary entry, exactly like a tunnel or chamber.
-    const DEEP_POOL_CARD = (SPECIAL_DEEP_POOL << 7) | 31;
-    const s = demonState({
-      party: [member(HERO)],
-      areas: [
-        { card: START_CARD, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
-        { card: DEEP_POOL_CARD, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents: [100 + DEMON], flags: 0, indiffCount: 0 },
-      ],
-    });
-    const { state, events } = reduce(s, { type: "move", dir: DIR_E });
-
-    expect(state.phase).toBe("fight");
-    expect(state.strangers).toEqual([DEMON]);
-    expect(events).toContainEqual({ type: "demonUnfolds" });
-    // The ambush supersedes the pool's own entry telegraph — no "enteredSpecial" for this visit.
+  it("the same entering a Deep Pool tile (the Demon supersedes the pool's entry telegraph)", () => {
+    const { events } = expectEncounter(DEEP_POOL_CARD);
     expect(events.some((e) => e.type === "enteredSpecial")).toBe(false);
   });
 
-  it("forces the SAME ambush entering a Viper Pit tile holding a parked Demon (fix round)", () => {
-    const VIPER_PIT_CARD = (SPECIAL_VIPER_PIT << 7) | 31;
-    const s = demonState({
-      party: [member(HERO)],
-      areas: [
-        { card: START_CARD, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
-        { card: VIPER_PIT_CARD, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents: [100 + DEMON], flags: 0, indiffCount: 0 },
-      ],
-    });
-    const { state, events } = reduce(s, { type: "move", dir: DIR_E });
-
-    expect(state.phase).toBe("fight");
-    expect(state.strangers).toEqual([DEMON]);
-    expect(events).toContainEqual({ type: "demonUnfolds" });
+  it("the same entering a Viper Pit tile", () => {
+    const { events } = expectEncounter(VIPER_PIT_CARD);
     expect(events.some((e) => e.type === "enteredSpecial")).toBe(false);
   });
 
-  it("the Deep Pool behaves normally again once the Demon there is gone (fix round)", () => {
-    // No parked marker (the demon was already killed in an earlier visit) — an ordinary entry.
-    const DEEP_POOL_CARD = (SPECIAL_DEEP_POOL << 7) | 31;
-    const s = demonState({
-      party: [member(HERO)],
-      areas: [
-        { card: START_CARD, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
-        { card: DEEP_POOL_CARD, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
-      ],
-    });
+  it("the Deep Pool behaves normally again once the Demon there is gone", () => {
+    const s = demonState({ party: [member(HERO)], areas: AREAS(DEEP_POOL_CARD, []) });
     const { state, events } = reduce(s, { type: "move", dir: DIR_E });
-
     expect(state.phase).toBe("explore");
     expect(state.strangers).toEqual([]);
     expect(events).toContainEqual({ type: "enteredSpecial", special: SPECIAL_DEEP_POOL });
   });
 
-  it("forces the ambush when the party WITHDRAWS back into a Demon-holding area", () => {
-    // The party stands in an ordinary encounter (a Man, not yet tested) whose prev area already
-    // holds a parked Demon from an earlier draw elsewhere.
+  it("testing the Demon: 1-5 is hostile (a fight), 6 is indifferent (it is left alone)", () => {
+    const seen = new Set<string>();
+    for (let seed = 1; seed <= 200 && seen.size < 2; seed++) {
+      // A plain Man: the Hero's charisma (+1 to the roll) would blur the 1-5 / 6 bands.
+      const s = demonState({ party: [member(MAN)], areas: AREAS(PLAIN_CHAMBER), seed });
+      const met = reduce(s, { type: "move", dir: DIR_E }).state;
+      const { state, events } = reduce(met, { type: "test" });
+      const r = events.find((e) => e.type === "reaction") as Extract<GameEvent, { type: "reaction" }>;
+      expect(r.outcome).toBe(r.roll <= 5 ? "hostile" : "indifferent"); // never friendly
+      if (r.outcome === "hostile") expect(state.phase).toBe("fight");
+      else expect(state.phase).not.toBe("fight");
+      seen.add(r.outcome);
+    }
+    expect([...seen].sort()).toEqual(["hostile", "indifferent"]);
+  });
+
+  it("an area where the Demon is met hostile-by-history (hostileAreas) goes straight to the fight", () => {
+    const s = demonState({ party: [member(HERO)], areas: AREAS(PLAIN_CHAMBER), hostileAreas: [1] });
+    const { state } = reduce(s, { type: "move", dir: DIR_E });
+    expect(state.phase).toBe("fight");
+    expect(state.strangers).toEqual([DEMON]);
+  });
+
+  it("withdrawing back into a Demon-holding area meets it as a stranger too", () => {
     const s = makeState({
       phase: "encounter",
       partyArea: 1,
@@ -344,16 +324,15 @@ describe("Entering (or withdrawing into) the Demon's area forces an ambush (US-1
       strangers: [MAN],
     });
     const { state, events } = reduce(s, { type: "withdraw" });
-
     expect(state.partyArea).toBe(0);
-    expect(state.phase).toBe("fight");
+    expect(state.phase).toBe("encounter");
     expect(state.strangers).toEqual([DEMON]);
-    expect(events).toContainEqual({ type: "demonUnfolds" });
+    expect(events.some((e) => e.type === "fightStarted")).toBe(false);
   });
 });
 
-describe("A Demon parked in an already-pacified area still ambushes on ordinary entry (review fix, SC-EXT-21)", () => {
-  it("forces the fight instead of settlePacifiedArea silently re-parking it", () => {
+describe("A Demon parked in an already-pacified area un-pacifies it (SC-EXT-21)", () => {
+  it("is met as a stranger instead of settlePacifiedArea silently re-parking it", () => {
     const s = demonState({
       party: [member(HERO)],
       pacifiedAreas: [1],
@@ -362,16 +341,14 @@ describe("A Demon parked in an already-pacified area still ambushes on ordinary 
         { card: PLAIN_CHAMBER, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents: [100 + DEMON], flags: 0, indiffCount: 0 },
       ],
     });
-    const { state, events } = reduce(s, { type: "move", dir: DIR_E });
-
-    expect(state.phase).toBe("fight");
+    const { state } = reduce(s, { type: "move", dir: DIR_E });
+    expect(state.phase).toBe("encounter");
     expect(state.strangers).toEqual([DEMON]);
-    expect(events).toContainEqual({ type: "demonUnfolds" });
-    // Never reaches settlePacifiedArea's re-park — the Demon isn't swallowed back onto the tile.
+    expect(state.pacifiedAreas).not.toContain(1);
     expect(state.areas[1]!.contents).not.toContainEqual(100 + DEMON);
   });
 
-  it("pacified re-park behaves exactly as before when there's no Demon to ambush", () => {
+  it("pacified re-park behaves exactly as before when there's no Demon", () => {
     const s = demonState({
       party: [member(HERO)],
       pacifiedAreas: [1],
@@ -380,12 +357,10 @@ describe("A Demon parked in an already-pacified area still ambushes on ordinary 
         { card: PLAIN_CHAMBER, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents: [100 + MAN], flags: 0, indiffCount: 0 },
       ],
     });
-    const { state, events } = reduce(s, { type: "move", dir: DIR_E });
-
-    expect(state.phase).toBe("explore"); // ordinary indifference re-park — unaffected by the hoist
+    const { state } = reduce(s, { type: "move", dir: DIR_E });
+    expect(state.phase).toBe("explore");
     expect(state.strangers).toEqual([]);
     expect(state.areas[1]!.contents).toContainEqual(100 + MAN);
-    expect(events.some((e) => e.type === "demonUnfolds")).toBe(false);
   });
 });
 
