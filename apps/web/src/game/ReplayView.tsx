@@ -104,13 +104,13 @@ export function ReplayView({ bundle, onExit, demo }: {
         ? <div className="scv-demo-banner" role="status">{demo.heading}</div>
         : <div className="scv-spectate-banner">Replay <b>{bundle.game.code ?? ""}</b> — viewing only</div>}
       <button className="scv-mp-standings" onClick={onExit}>{demo ? demo.exitLabel : "← Exit Replay"}</button>
-      {demo && (() => {
-        // The caption for the latest explained move stays up until the next one.
-        const at = Math.max(...Object.keys(demo.captions).map(Number).filter((k) => k <= i), -1);
-        return at >= 0 ? <aside className="scv-demo-caption" role="note" data-testid="demo-caption">{demo.captions[at]}</aside> : null;
-      })()}
 
       <div className="scv-replay-transport" data-testid="replay-transport">
+        {demo && (() => {
+          // The caption for the latest explained move stays up until the next one.
+          const at = Math.max(...Object.keys(demo.captions).map(Number).filter((k) => k <= i), -1);
+          return at >= 0 ? <aside className="scv-demo-caption" role="note" data-testid="demo-caption">{demo.captions[at]}</aside> : null;
+        })()}
         <div className="scv-replay-row">
           <button className="scv-primary" onClick={() => jump(0)} disabled={i === 0} aria-label="first move">⏮ First</button>
           <button className="scv-primary" onClick={() => jump(i - 1)} disabled={i === 0} aria-label="previous move">◀ Previous</button>

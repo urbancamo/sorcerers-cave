@@ -2534,7 +2534,7 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
 @media (max-width: 720px) { .scv-tut-card.moved { width: min(440px, calc(100vw - 32px)); border-radius: 10px; } }
 
 /* The tutorial's demo game: a caption card over the replay, above the transport */
-.scv-demo-caption { position: fixed; left: 50%; top: 56px; transform: translateX(-50%); z-index: 20; width: min(520px, calc(100vw - 32px)); padding: 12px 16px; background: var(--panel); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: 0 10px 40px rgba(7, 7, 9, 0.7); color: var(--parchment); font: 17px/1.4 var(--body); }
+.scv-demo-caption { position: absolute; left: 0; right: 0; bottom: calc(100% + 10px); padding: 12px 16px; background: var(--panel); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: 0 10px 40px rgba(7, 7, 9, 0.7); color: var(--parchment); font: 17px/1.4 var(--body); }
 /* The demo's label sits under the Back button, in brass so it reads as the thing being watched; the caption keeps the top centre to itself */
 .scv-demo-banner { position: fixed; top: 52px; right: 14px; z-index: 60; padding: 6px 12px; border-radius: 9px; border: 1px solid var(--brass); background: rgba(201, 161, 78, 0.18); color: var(--brass-bright); font: 600 12px var(--ui); letter-spacing: 0.06em; text-transform: uppercase; box-shadow: 0 0 14px rgba(201, 161, 78, 0.35); }
-@media (max-width: 720px) { .scv-demo-banner { top: 96px; } .scv-demo-caption { top: 136px; } }
+@media (max-width: 720px) { .scv-demo-banner { top: 96px; } }
