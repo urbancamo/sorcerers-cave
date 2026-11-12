@@ -36,10 +36,17 @@ describe('tutorial runner', () => {
     expect(matchesBeat(beat, { type: 'move', dir: 2 })).toBe(false);
     expect(matchesBeat(beat, { type: 'withdraw' })).toBe(false);
   });
-  it('the shipped script ends exactly where the route has taken the party to the trap chamber (route step 6 starts at the trap)', () => {
-    const last = TUTORIAL_SCRIPT.filter((s) => s.kind === 'act').at(-1)!;
-    expect(last.until).toBe(6);
-    expect(TUTORIAL_ROUTE[5]!.step).toBe(5);
-    expect(TUTORIAL_ROUTE[6]!.step).toBe(6);
+  it('the shipped script plays the whole route: act cards count up through it, in order, ending on the free closing card', () => {
+    const acts = TUTORIAL_SCRIPT.filter((s) => s.kind === 'act').map((s) => s.until!);
+    expect([...acts].sort((x, y) => x - y)).toEqual(acts);
+    expect(acts.at(-1)).toBe(TUTORIAL_ROUTE.length);
+    expect(TUTORIAL_SCRIPT.at(-1)!.free).toBe(true);
+    let s = initialTutorial;
+    for (let i = 0; i < 200 && s.step < TUTORIAL_SCRIPT.length - 1; i++) s = tutorialReduce(TUTORIAL_SCRIPT, s, wantedBeat(TUTORIAL_SCRIPT, s) ? { type: 'played' } : { type: 'continue' });
+    expect(s).toEqual({ step: TUTORIAL_SCRIPT.length - 1, cursor: TUTORIAL_ROUTE.length });
+  });
+  it('compares actions whatever order the view built their fields in', () => {
+    const beat = TUTORIAL_ROUTE.find((b) => b.play.type === 'redeploy')!;
+    expect(matchesBeat(beat, JSON.parse(JSON.stringify({ moves: [{ back: false, match: 0, creature: 1 }], type: 'redeploy' })))).toBe(true);
   });
 });

@@ -18,6 +18,8 @@ export interface CoachStep {
   anchor?: Anchor;
   /** the player may play freely while this card is up (the end of the guide) */
   free?: boolean;
+  /** the card offers a short recorded demo game */
+  demo?: boolean;
 }
 
 export interface TutorialState {
@@ -54,7 +56,10 @@ export function wantedBeat(script: CoachStep[], s: TutorialState): TutorialBeat 
   return step && step.kind === 'act' && s.cursor < (step.until ?? 0) ? (TUTORIAL_ROUTE[s.cursor] ?? null) : null;
 }
 
-const same = (a: GameAction, b: GameAction) => JSON.stringify(a) === JSON.stringify(b);
+// Key order must not matter: the views build their actions their own way.
+const canon = (v: unknown): unknown => Array.isArray(v) ? v.map(canon) : v && typeof v === 'object'
+  ? Object.fromEntries(Object.entries(v as Record<string, unknown>).filter(([, x]) => x !== undefined).sort(([a], [b]) => a.localeCompare(b)).map(([k, x]) => [k, canon(x)])) : v;
+const same = (a: GameAction, b: GameAction) => JSON.stringify(canon(a)) === JSON.stringify(canon(b));
 
 /** Does the player's action match the wanted one? Extra fields the view adds to a move are ignored for moves. */
 export function matchesBeat(beat: TutorialBeat, action: GameAction): boolean {

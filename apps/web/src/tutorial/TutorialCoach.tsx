@@ -22,7 +22,7 @@ function anchorBox(step: CoachStep, cave: CaveApi | null): Box | null {
  * The coach: a card that says what to do, a spotlight on where, and a shield over the rest of the screen so a wrong press cannot
  * happen. The shield is the visible half of the lock; the dispatch gate in the local session is the real one.
  */
-export function TutorialCoach({ step, index, total, cave, hint, onContinue, onBack, onSkip }: {
+export function TutorialCoach({ step, index, total, cave, hint, onContinue, onBack, onSkip, onDemo }: {
   step: CoachStep;
   index: number;
   total: number;
@@ -31,6 +31,7 @@ export function TutorialCoach({ step, index, total, cave, hint, onContinue, onBa
   onContinue: () => void;
   onBack?: () => void;
   onSkip: () => void;
+  onDemo?: () => void;
 }) {
   const [box, setBox] = useState<Box | null>(null);
   // Markers bob and the camera glides, so follow the anchor every frame (state only changes when it has moved).
@@ -50,7 +51,9 @@ export function TutorialCoach({ step, index, total, cave, hint, onContinue, onBa
   const shields: Box[] = [];
   if (!free) {
     const W = window.innerWidth, H = window.innerHeight;
-    if (acting && box) {
+    if (acting && !box) {
+      // nothing to spotlight (the control lives in a panel): the dispatch gate alone holds the lock
+    } else if (acting && box) {
       shields.push({ x: 0, y: 0, w: W, h: Math.max(0, box.y) }, { x: 0, y: box.y + box.h, w: W, h: Math.max(0, H - box.y - box.h) },
                    { x: 0, y: box.y, w: Math.max(0, box.x), h: box.h }, { x: box.x + box.w, y: box.y, w: Math.max(0, W - box.x - box.w), h: box.h });
     } else {
@@ -67,11 +70,12 @@ export function TutorialCoach({ step, index, total, cave, hint, onContinue, onBa
         <p className="scv-tut-eyebrow">{step.eyebrow}</p>
         <h2 className="scv-tut-title">{step.title}</h2>
         <p className="scv-tut-body">{step.body}</p>
+        {step.demo && onDemo && <p><button type="button" className="scv-ghost" onClick={onDemo}>Watch a demo game first</button></p>}
         {hint && <p className="scv-tut-hint" role="status">{hint}</p>}
         <div className="scv-tut-actions">
           {onBack && <button type="button" className="scv-ghost" onClick={onBack}>Back</button>}
           <button type="button" className="scv-ghost scv-tut-skip" onClick={onSkip}>Skip tutorial</button>
-          {!acting && <button type="button" className="scv-primary" onClick={onContinue}>{free ? 'Done' : 'Continue'}</button>}
+          {!acting && <button type="button" className="scv-primary" onClick={onContinue}>{free ? 'Finish' : 'Continue'}</button>}
         </div>
         <p className="scv-tut-count">{index + 1} / {total}</p>
       </section>

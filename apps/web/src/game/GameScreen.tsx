@@ -322,7 +322,7 @@ export default function GameScreen({ local = false, onLocalExit, onStartTutorial
 
   // The read-only replay viewer — entered from the splash or a high-score detail (this check
   // precedes every game surface, so it also overlays the game-over screen; never a live game).
-  if (replayBundle && !local) {
+  if (replayBundle) {
     return <ReplayView bundle={replayBundle} onExit={() => setReplayBundle(null)} />;
   }
 
@@ -516,7 +516,8 @@ export default function GameScreen({ local = false, onLocalExit, onStartTutorial
       )}
       {local && TUTORIAL_SCRIPT[tut.step] && !overlay && !notices && (
         <TutorialCoach step={TUTORIAL_SCRIPT[tut.step]!} index={tut.step} total={TUTORIAL_SCRIPT.length} cave={caveApi.current} hint={tutHint}
-                       onContinue={() => tutSend({ type: 'continue' })}
+                       onContinue={() => (TUTORIAL_SCRIPT[tut.step]!.free ? onLocalExit?.() : tutSend({ type: 'continue' }))}
+                       onDemo={() => void handleReplay('K001')}
                        onBack={tut.step > 0 && TUTORIAL_SCRIPT[tut.step - 1]!.kind === 'info' ? () => tutSend({ type: 'back' }) : undefined}
                        onSkip={() => onLocalExit?.()} />
       )}
