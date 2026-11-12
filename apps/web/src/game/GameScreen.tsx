@@ -154,10 +154,17 @@ export default function GameScreen({ local = false, onLocalExit, onStartTutorial
   const tutGate = useCallback((a: GameAction): GameAction[] | null => {
     if (TUTORIAL_SCRIPT[tutRef.current.step]?.free) return [];
     const beat = wantedBeat(TUTORIAL_SCRIPT, tutRef.current);
-    if (!beat || !matchesBeat(beat, a)) { setTutHint(beat ? 'Not that one: follow the highlighted control.' : 'Press Continue first.'); return null; }
+    if (!beat || !matchesBeat(beat, a)) { setTutHint(beat ? 'Not that one: follow the highlighted control.' : TUTORIAL_SCRIPT[tutRef.current.step]?.kind === 'ui' ? 'Press the highlighted button first.' : 'Press Continue first.'); return null; }
     tutSend({ type: 'played' });
     return beat.before ?? [];
   }, [tutSend]);
+  // The Home button is the camera's, not a game action: the tutorial just notices it being pressed.
+  useEffect(() => {
+    if (!local) return;
+    const onClick = (e: MouseEvent) => { if ((e.target as Element | null)?.closest?.('#snapBtn')) tutSend({ type: 'ui', name: 'home' }); };
+    document.addEventListener('click', onClick, true);
+    return () => document.removeEventListener('click', onClick, true);
+  }, [local, tutSend]);
   const convexSession = useCaveGame(local ? null : gameId, onMoveResolved, canActRef.current);
   const localSession = useLocalGame(local ? tutorialGame : null, onMoveResolved, canActRef.current, tutGate);
   const { engine, loading, state, color, code, dispatch, present } = local ? localSession : convexSession;

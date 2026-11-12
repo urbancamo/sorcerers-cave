@@ -77,7 +77,7 @@ export function TutorialCoach({ step, index, total, cave, hint, onContinue, onBa
     return () => cancelAnimationFrame(raf);
   }, [step, cave]);
 
-  const acting = step.kind === 'act';
+  const acting = step.kind !== 'info'; // act and ui cards wait for the player, so they have no Continue
   const free = !!step.free;
   return (
     <div className="scv-tut" data-testid="tutorial-coach">

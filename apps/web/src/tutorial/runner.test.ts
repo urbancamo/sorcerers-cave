@@ -10,6 +10,19 @@ const script: CoachStep[] = [
 ];
 const run = (events: Parameters<typeof tutorialReduce>[2][], from: TutorialState = initialTutorial) => events.reduce((s, e) => tutorialReduce(script, s, e), from);
 
+describe('tutorial runner: ui steps', () => {
+  const ui: CoachStep[] = [
+    { id: 'u', kind: 'ui', event: 'home', eyebrow: '', title: '', body: '' },
+    { id: 'a', kind: 'act', until: 1, eyebrow: '', title: '', body: '' },
+  ];
+  it('waits for its own UI event: Continue and other events do nothing, and no game action is wanted', () => {
+    expect(tutorialReduce(ui, initialTutorial, { type: 'continue' }).step).toBe(0);
+    expect(tutorialReduce(ui, initialTutorial, { type: 'ui', name: 'other' }).step).toBe(0);
+    expect(wantedBeat(ui, initialTutorial)).toBeNull();
+    expect(tutorialReduce(ui, initialTutorial, { type: 'ui', name: 'home' }).step).toBe(1);
+  });
+});
+
 describe('tutorial runner', () => {
   it('waits for Continue on an info card, then for the actions of an act card', () => {
     expect(run([{ type: 'played' }])).toEqual({ step: 0, cursor: 1 }); // an action does not skip a card
@@ -42,7 +55,10 @@ describe('tutorial runner', () => {
     expect(acts.at(-1)).toBe(TUTORIAL_ROUTE.length);
     expect(TUTORIAL_SCRIPT.at(-1)!.free).toBe(true);
     let s = initialTutorial;
-    for (let i = 0; i < 200 && s.step < TUTORIAL_SCRIPT.length - 1; i++) s = tutorialReduce(TUTORIAL_SCRIPT, s, wantedBeat(TUTORIAL_SCRIPT, s) ? { type: 'played' } : { type: 'continue' });
+    for (let i = 0; i < 200 && s.step < TUTORIAL_SCRIPT.length - 1; i++) {
+      const cur = TUTORIAL_SCRIPT[s.step]!;
+      s = tutorialReduce(TUTORIAL_SCRIPT, s, cur.kind === 'ui' ? { type: 'ui', name: cur.event! } : wantedBeat(TUTORIAL_SCRIPT, s) ? { type: 'played' } : { type: 'continue' });
+    }
     expect(s).toEqual({ step: TUTORIAL_SCRIPT.length - 1, cursor: TUTORIAL_ROUTE.length });
   });
   it('compares actions whatever order the view built their fields in', () => {

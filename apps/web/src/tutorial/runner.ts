@@ -12,9 +12,11 @@ export interface CoachStep {
   eyebrow: string;
   title: string;
   body: string;
-  kind: 'info' | 'act';
+  kind: 'info' | 'act' | 'ui'; // ui: waits for the player to press a control that is not a game action (the Home button)
   /** act steps: the route cursor at which this step is done */
   until?: number;
+  /** ui steps: the name of the UI event that completes the step */
+  event?: string;
   anchor?: Anchor;
   /** the player may play freely while this card is up (the end of the guide) */
   free?: boolean;
@@ -27,7 +29,7 @@ export interface TutorialState {
   cursor: number; // how many TUTORIAL_ROUTE actions the player has made
 }
 
-export type TutorialEvent = { type: 'continue' } | { type: 'back' } | { type: 'played' };
+export type TutorialEvent = { type: 'continue' } | { type: 'back' } | { type: 'played' } | { type: 'ui'; name: string };
 
 export const initialTutorial: TutorialState = { step: 0, cursor: 0 };
 
@@ -47,6 +49,8 @@ export function tutorialReduce(script: CoachStep[], s: TutorialState, e: Tutoria
       return s.step > 0 && script[s.step - 1]!.kind === 'info' ? { ...s, step: s.step - 1 } : s;
     case 'played':
       return settle(script, { ...s, cursor: s.cursor + 1 });
+    case 'ui':
+      return script[s.step]?.kind === 'ui' && script[s.step]!.event === e.name ? settle(script, { ...s, step: s.step + 1 }) : s;
   }
 }
 

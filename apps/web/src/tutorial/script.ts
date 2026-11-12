@@ -7,6 +7,8 @@ const act = (id: string, eyebrow: string, title: string, body: string, until: nu
   ({ id, kind: 'act', eyebrow, title, body, until, anchor });
 const info = (id: string, eyebrow: string, title: string, body: string, extra: Partial<CoachStep> = {}): CoachStep =>
   ({ id, kind: 'info', eyebrow, title, body, ...extra });
+const ui = (id: string, eyebrow: string, title: string, body: string, event: string, anchor?: CoachStep['anchor']): CoachStep =>
+  ({ id, kind: 'ui', eyebrow, title, body, event, anchor });
 const exit = (dir: 'N' | 'E' | 'S' | 'W' | 'U' | 'D'): CoachStep['anchor'] => ({ kind: 'exit', dir });
 const button = (action: string): CoachStep['anchor'] => ({ kind: 'selector', selector: `[data-tutorial-action="${action}"]` });
 const T = (n: number) => `Step ${n} of 12`;
@@ -34,8 +36,9 @@ export const TUTORIAL_SCRIPT: CoachStep[] = [
     'Some cards are hazards: dangers that strike the moment they are met, and are not strangers you can bargain with. This one is a Trap. A Dwarf can guide the party safely past, or you can drop through on purpose, one way, and arrive with the advantage of surprise.'),
   act('fall', T(6), 'Fall through the trap', 'The party is going down. Choose "Fall through the trap".', 7, button('fallThroughTrap')),
   info('level-two', T(6), 'Level 2',
-    'You are now on level 2, deeper in the cave. Use the orbit button to look around, and the level selector to see another level. Deeper chambers hold more cards, so more danger, and more treasure.',
+    'You are now on level 2, deeper in the cave. Try the orbit button to look around freely, and the level selector to see another level. Deeper chambers hold more cards, so more danger, and more treasure.',
     { anchor: { kind: 'selector', selector: '#levelGrp' } }),
+  ui('home', T(6), 'Home view', 'When you have looked around, press the Home button. It locks the view back onto the tile the party stands on, so you never lose them.', 'home', { kind: 'selector', selector: '#snapBtn' }),
   act('west-priest', T(6), 'Explore west', 'Go west, into the chamber beyond.', 8, exit('W')),
 
   info('priest', T(7), 'A Priest and a Magic Axe',
