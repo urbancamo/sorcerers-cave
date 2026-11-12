@@ -127,6 +127,7 @@ function encodeAction(a: GameAction): string {
     case "testForceReaction": return `TESTFORCEREACTION ${a.outcome.toUpperCase()}`;
     case "testForceDie": return `TESTFORCEDIE ${a.value}`;
     case "testForceAllDice": return `TESTFORCEALLDICE ${a.value}`;
+    case "testForceDice": return `TESTFORCEDICE ${a.values.join(",")}`;
     case "testClearOverrides": return "TESTCLEAROVERRIDES";
   }
 }

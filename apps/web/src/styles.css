@@ -2511,3 +2511,33 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
 .scv-bug-shot img { display: block; width: 100%; height: auto; cursor: zoom-in; border: 1px solid var(--line); border-radius: 6px; background: rgba(0, 0, 0, 0.25); }
 .scv-bug-check { display: flex; align-items: center; gap: 8px; font-family: var(--ui); font-size: 13px; color: var(--cream); cursor: pointer; }
 .scv-bug-check input { width: auto; accent-color: var(--brass); }
+
+/* Tutorial coach: a card and a brass ring on the control to use; nothing dims the map */
+.scv-tut { position: fixed; inset: 0; z-index: 70; pointer-events: none; }
+.scv-tut-ring { position: fixed; border: 3px solid var(--party-green); border-radius: 14px; box-shadow: 0 0 20px rgba(91, 191, 99, 0.75), inset 0 0 12px rgba(91, 191, 99, 0.35); pointer-events: none; animation: scv-tut-pulse 1.4s ease-in-out infinite; }
+@keyframes scv-tut-pulse { 50% { box-shadow: 0 0 32px rgba(91, 191, 99, 0.95), inset 0 0 16px rgba(91, 191, 99, 0.5); } }
+@media (prefers-reduced-motion: reduce) { .scv-tut-ring { animation: none; } }
+.scv-tut-card { position: fixed; left: 50%; top: 56px; transform: translateX(-50%); width: min(440px, calc(100vw - 32px)); padding: 16px 18px 12px; background: var(--panel); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: 0 10px 40px rgba(7, 7, 9, 0.7); pointer-events: auto; }
+.scv-tut-eyebrow { margin: 0 0 4px; font: 600 11px var(--ui); letter-spacing: 0.14em; text-transform: uppercase; color: var(--brass); }
+.scv-tut-title { margin: 0 0 6px; font: 600 20px var(--display); color: var(--cream); }
+.scv-tut-body { margin: 0; font: 17px/1.4 var(--body); color: var(--parchment); }
+.scv-tut-hint { margin: 8px 0 0; font: 14px var(--ui); color: var(--brass-bright); }
+.scv-tut-actions { display: flex; gap: 8px; align-items: center; justify-content: flex-end; margin-top: 12px; }
+.scv-tut-skip { margin-right: auto; }
+.scv-tut-count { margin: 6px 0 0; text-align: right; font: 11px var(--ui); color: var(--stone-dim); }
+@media (max-width: 720px) { .scv-tut-card { top: 44px; left: 0; transform: none; width: 100%; border-radius: 0 0 10px 10px; } } /* the top, so it never covers the action dock at the bottom */
+.scv-tut-grip { display: flex; align-items: center; gap: 8px; margin: -6px -8px 4px; padding: 6px 8px; cursor: grab; touch-action: none; user-select: none; }
+.scv-tut-grip:active { cursor: grabbing; }
+.scv-tut-grip .scv-tut-eyebrow { margin: 0; }
+.scv-tut-dots { color: var(--stone-dim); font-size: 14px; line-height: 1; }
+.scv-tut-card.moved { transform: none; }
+@media (max-width: 720px) { .scv-tut-card.moved { width: min(440px, calc(100vw - 32px)); border-radius: 10px; } }
+
+/* The tutorial's demo game: a caption card over the replay, above the transport */
+.scv-demo-caption { position: absolute; left: 0; right: 0; bottom: calc(100% + 10px); padding: 12px 16px; background: var(--panel); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: 0 10px 40px rgba(7, 7, 9, 0.7); color: var(--parchment); font: 17px/1.4 var(--body); }
+/* The demo's label sits under the Back button, in brass so it reads as the thing being watched; the caption keeps the top centre to itself */
+.scv-demo-banner { position: fixed; top: 52px; right: 14px; z-index: 60; padding: 6px 12px; border-radius: 9px; border: 1px solid var(--brass); background: rgba(201, 161, 78, 0.18); color: var(--brass-bright); font: 600 12px var(--ui); letter-spacing: 0.06em; text-transform: uppercase; box-shadow: 0 0 14px rgba(201, 161, 78, 0.35); }
+@media (max-width: 720px) { .scv-demo-banner { top: 96px; } }
+/* When the demo has played out, the way back to the tutorial is ringed in green, as the tutorial's own next control is, until it is pressed */
+.scv-mp-standings.scv-demo-done { border: 2px solid var(--party-green); color: var(--cream); box-shadow: 0 0 20px rgba(91, 191, 99, 0.75), inset 0 0 10px rgba(91, 191, 99, 0.35); animation: scv-tut-pulse 1.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) { .scv-mp-standings.scv-demo-done { animation: none; } }

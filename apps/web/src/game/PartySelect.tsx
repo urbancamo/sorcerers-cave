@@ -35,6 +35,7 @@ export function PartySelect({
   sibylToggle = false,
   variants: fixedVariants,
   testMode = false,
+  onChange,
 }: {
   onConfirm: (picks: number[], color: PartyColor, variants?: { extensionKit?: boolean; sibyl?: boolean }) => void;
   /** Solo only: return to the title screen without starting. The MP draft passes no handler —
@@ -53,6 +54,8 @@ export function PartySelect({
   /** Test Mode only (docs/requirements/test-mode/2026-09-13-test-mode-party-selection.md): lifts
    *  the budget and per-creature stock ceilings so a scripted scenario can seat any party. */
   testMode?: boolean;
+  /** Told of every change to the chosen creatures and the kit switch (the tutorial follows the player's choices through it). */
+  onChange?: (picks: number[], kit: boolean) => void;
 }) {
   const [counts, setCounts] = useState<Record<number, number>>({});
   const [kit, setKit] = useState(false);
@@ -123,6 +126,8 @@ export function PartySelect({
   const picks = Object.entries(counts).flatMap(([id, n]) => Array(n).fill(Number(id)) as number[]);
   const total = picks.reduce((s, id) => s + (selectionCost(id, variants) ?? 0), 0);
   const valid = validatePicks(picks, variants, testMode);
+  const picksKey = picks.join(',');
+  useEffect(() => { onChange?.(picks, kitOn); }, [picksKey, kitOn]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const set = (id: number, delta: number) =>
     setCounts((c) => ({ ...c, [id]: Math.max(0, Math.min(cap(id), (c[id] ?? 0) + delta)) }));
@@ -139,7 +144,7 @@ export function PartySelect({
       )}
       {kitToggle && (
         <div className="scv-kit-row">
-          <label className="scv-kit-toggle">
+          <label className="scv-kit-toggle" data-tutorial-action="kit">
             <input type="checkbox" checked={kit} onChange={toggleKit} />
             Extension kit
             <span className="scv-muted">Adds 30 area tiles and 30 cards to the decks.</span>
@@ -208,6 +213,7 @@ export function PartySelect({
       )}
       <button
         className="scv-primary"
+        data-tutorial-action="start"
         disabled={!valid}
         // Kit-off calls `onConfirm` with exactly the pre-kit two-argument shape (no trailing
         // `undefined`) — byte-identical call signature (SC-EXT-1) for every existing caller.

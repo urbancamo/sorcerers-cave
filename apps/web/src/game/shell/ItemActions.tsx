@@ -72,7 +72,7 @@ export function ItemActions({ state, dispatch, mi, idx }: { state: GameState; di
         const inUse = isBorne(m, tid), v = useVerbs(tid), refusal = inUse ? null : wieldRefusal(m, tid);
         return (
           <>
-            <button type="button" className="scv-enc-btn" disabled={refusal !== null} title={refusal ?? undefined}
+            <button type="button" className="scv-enc-btn" data-tutorial-action="setBorne" disabled={refusal !== null} title={refusal ?? undefined}
                     onClick={() => dispatch({ type: 'setBorne', mi, idx, borne: !inUse })}>
               {inUse ? `${v.off} (carry)` : v.on}
             </button>
@@ -83,7 +83,7 @@ export function ItemActions({ state, dispatch, mi, idx }: { state: GameState; di
       {manage && heirs.length > 0 && (
         <label className="scv-enc-row">
           <span className="scv-enc-row-nm">Pass to</span>
-          <select className="scv-enc-select" aria-label="Pass to" value="" onChange={(e) => { if (e.target.value !== '') dispatch({ type: 'moveTreasure', from: mi, to: Number(e.target.value), idx }); }}>
+          <select className="scv-enc-select" aria-label="Pass to" data-tutorial-action="moveTreasure" value="" onChange={(e) => { if (e.target.value !== '') dispatch({ type: 'moveTreasure', from: mi, to: Number(e.target.value), idx }); }}>
             <option value="">Choose who carries it…</option>
             {heirs.map((oi) => <option key={oi} value={oi}>{memberLabel(state.party, oi)}</option>)}
           </select>

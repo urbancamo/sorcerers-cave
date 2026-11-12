@@ -3,8 +3,15 @@ import { useConvex, useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { api } from "../../convex/_generated/api";
-import { GS_PLAYING, HAZARD_TRAP, legalActions, unpackCoord, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
+import { GS_PLAYING, HAZARD_TRAP, legalActions, tutorialAt, unpackCoord, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
 import { useCaveGame } from "./useCaveGame";
+import { useLocalGame } from "./useLocalGame";
+import { TutorialCoach } from "../tutorial/TutorialCoach";
+import { TutorialParty } from "../tutorial/TutorialParty";
+import { DEMO_CAPTIONS, DEMO_CODE, DEMO_FRAMES } from "../tutorial/demo";
+import { TUTORIAL_SCRIPT } from "../tutorial/script";
+import { inProgress, loadProgress, saveProgress } from "../tutorial/progress";
+import { initialTutorial, matchesBeat, tutorialReduce, wantedBeat, type TutorialEvent } from "../tutorial/runner";
 import { CaveCanvas, type CaveApi } from "../view/CaveCanvas";
 import { SplashScreen } from "./SplashScreen";
 import { PartySelect } from "./PartySelect";
@@ -65,7 +72,8 @@ import type { HelpScreen } from "../manual";
 import { toggleLeft, toggleRight, type LeftSlot, type RightSlot } from "./shell/shellState";
 import { useOpenPartyOnce } from "./shell/useOpenPartyOnce";
 
-export default function GameScreen() {
+// `local` plays the tutorial: the same game UI over an in-memory engine (no sign-in, saving, logging or Convex game at all).
+export default function GameScreen({ local = false, resume = false, onLocalExit, onStartTutorial }: { local?: boolean; resume?: boolean; onLocalExit?: () => void; onStartTutorial?: (resume: boolean) => void } = {}) {
   const { isAuthenticated, isLoading } = useConvexAuth();
   const { signIn } = useAuthActions();
   const newGame = useMutation(api.game.newGame);
@@ -75,6 +83,7 @@ export default function GameScreen() {
   const restoreTestScenario = useMutation(api.game.restoreTestScenario);
   const saveScore = useMutation(api.highScores.save);
   const [gameId, setGameId] = useState<Id<"games"> | null>(null);
+  const gameKey: string | null = local ? 'tutorial' : gameId; // identifies the game on screen (a Convex id, or the local tutorial)
   const [wantTestGame, setWantTestGame] = useState(false); // Test Mode: PartySelect confirms into startTestGame instead
   const testSecret = getTestSecret();
   const [started, setStarted] = useState(false); // dismissed the splash
@@ -84,7 +93,7 @@ export default function GameScreen() {
   // The Exit menu goes as soon as the player presses anything else (its own panel and its title-bar icon aside).
   const closeExit = useCallback(() => setRightSlot((cur) => (cur === 'exit' ? null : cur)), []);
   useDismissOutside(rightSlot === 'exit', '[aria-label="Exit"]', closeExit);
-  useOpenPartyOnce(gameId, setLeftSlot); // the chosen party is on screen from the first step into the Gateway
+  useOpenPartyOnce(gameKey, setLeftSlot); // the chosen party is on screen from the first step into the Gateway
   const [testOpen, setTestOpen] = useState(true); // the floating test panel (only exists in Test Mode), open by default, independent of the slots
   const [partyExpanded, setPartyExpanded] = useState(false); // the party list widened to show strength, magic and charisma
   const [selected, setSelected] = useState<Selected | null>(null); // what the card panel shows
@@ -139,7 +148,41 @@ export default function GameScreen() {
   // reason as onHoldMoveRef: useCaveGame runs before useDispatchWithRolls owns this state.
   const presentingRef = useRef(false);
   const canActRef = useRef(() => !presentingRef.current);
-  const { engine, loading, state, color, code, dispatch, present } = useCaveGame(gameId, onMoveResolved, canActRef.current);
+  // Both session hooks run on every render (hooks cannot be conditional); the one not in use is idle (null id / no game).
+  // The tutorial's step machine and its lock: only the action the coach is asking for gets through (see tutorial/runner.ts).
+  // A returning player picks up where they left off: the saved step, and the game rebuilt by replaying the route to that point.
+  const [resumeFrom] = useState(() => { const p = local && resume ? loadProgress() : null; return inProgress(p) ? p : null; });
+  const makeTutorial = useCallback(() => tutorialAt(resumeFrom?.cursor ?? 0), [resumeFrom]);
+  const [partyDone, setPartyDone] = useState(() => resumeFrom !== null); // the tutorial's new-game screen is behind a player who resumes
+  const [tut, setTut] = useState(() => (resumeFrom ? { step: resumeFrom.step, cursor: resumeFrom.cursor } : initialTutorial));
+  useEffect(() => { if (local) saveProgress({ status: 'step', step: tut.step, cursor: tut.cursor }); }, [local, tut]);
+  const tutRef = useRef(tut);
+  const [tutHint, setTutHint] = useState<string | null>(null);
+  const tutSend = useCallback((e: TutorialEvent) => { tutRef.current = tutorialReduce(TUTORIAL_SCRIPT, tutRef.current, e); setTut(tutRef.current); setTutHint(null); }, []);
+  const tutGate = useCallback((a: GameAction): GameAction[] | null => {
+    if (TUTORIAL_SCRIPT[tutRef.current.step]?.free) return [];
+    const beat = wantedBeat(TUTORIAL_SCRIPT, tutRef.current);
+    if (beat && !matchesBeat(beat, a)) console.debug('[tutorial] refused', JSON.stringify(a), 'wanted', JSON.stringify(beat.play));
+    if (!beat || !matchesBeat(beat, a)) { setTutHint(beat ? 'Not that one: follow the highlighted control.' : TUTORIAL_SCRIPT[tutRef.current.step]?.kind === 'ui' ? 'Press the highlighted button first.' : 'Press Continue first.'); return null; }
+    tutSend({ type: 'played' });
+    return beat.before ?? [];
+  }, [tutSend]);
+  // The Home button and the party list's expand arrow are not game actions: the tutorial just notices them being pressed.
+  useEffect(() => {
+    if (!local) return;
+    const onClick = (e: MouseEvent) => {
+      const el = e.target as Element | null;
+      if (el?.closest?.('#snapBtn')) tutSend({ type: 'ui', name: 'home' });
+      else if (el?.closest?.('.scv-pl-expand')) tutSend({ type: 'ui', name: 'party-expand' });
+    };
+    document.addEventListener('click', onClick, true);
+    return () => document.removeEventListener('click', onClick, true);
+  }, [local, tutSend]);
+  // Step 11 asks the player to read the Witch's and the Ring's cards on the card panel: notice each one being shown.
+  const cardsSeen = useRef(new Set<string>());
+  const convexSession = useCaveGame(local ? null : gameId, onMoveResolved, canActRef.current);
+  const localSession = useLocalGame(local ? makeTutorial : null, onMoveResolved, canActRef.current, tutGate);
+  const { engine, loading, state, color, code, dispatch, present } = local ? localSession : convexSession;
   // Presentation hold (see useDispatchWithRolls): the pre-action snapshot stays on screen —
   // canvas, panels, everything — until the die roll completes. getSnapshot reads a ref so the
   // capture always sees the freshest authoritative state without re-creating the callback.
@@ -163,6 +206,12 @@ export default function GameScreen() {
   presentingRef.current = holding || !!roll || !!notices;
   const cards = useManifestCards();
   const caveApi = useRef<CaveApi | null>(null);
+  useEffect(() => {
+    if (!local || selected?.kind !== 'card') return;
+    if (/witch/i.test(selected.card.name)) cardsSeen.current.add('witch');
+    if (/\bring\b/i.test(selected.card.name)) cardsSeen.current.add('ring');
+    if (cardsSeen.current.size === 2) tutSend({ type: 'ui', name: 'cards-seen' });
+  }, [local, selected, tutSend]);
   // Treasure on offer: put the first piece on the card panel, where its "Give to" choices are, and re-offer as pieces are taken.
   // (Declared here, before the early returns, because it is a hook; `state` can still be null at this point.)
   const onShow = holding && heldState ? heldState : state;
@@ -217,7 +266,7 @@ export default function GameScreen() {
   }, [onShow?.phase === 'medusa', onShow?.partyArea, holding]);
   const gameOver = !!state && state.gs !== GS_PLAYING;
   // The finished game's move log, for the post-game .txt / .log downloads (fetched only at game over).
-  const gameLog = useQuery(api.game.log, gameOver && gameId ? { id: gameId } : "skip") as GameLog | null | undefined;
+  const gameLog = useQuery(api.game.log, gameOver && gameId && !local ? { id: gameId } : "skip") as GameLog | null | undefined;
 
   // Return to the splash screen, clearing all in-game overlays and the current game binding.
   const goHome = useCallback(() => {
@@ -261,6 +310,7 @@ export default function GameScreen() {
   // a replay is a fixed record) and open the read-only viewer, or explain why we can't.
   const convex = useConvex();
   const [replayBundle, setReplayBundle] = useState<ReplayBundle | null>(null);
+  const [showDemo, setShowDemo] = useState(false); // the replay on screen is the tutorial's captioned demo, not a player's replay
   const handleReplay = useCallback(async (code: string): Promise<string | null> => {
     // The bundled searched games (codes like K001, no backend involved) are checked before Convex.
     const golden = await goldenBundle(code);
@@ -280,13 +330,13 @@ export default function GameScreen() {
     await navigator.clipboard?.writeText(JSON.stringify(log));
   }, [convex, gameId]);
 
-  useEffect(() => { if (!isLoading && !isAuthenticated) void signIn("anonymous"); }, [isLoading, isAuthenticated, signIn]);
+  useEffect(() => { if (!local && !isLoading && !isAuthenticated) void signIn("anonymous"); }, [local, isLoading, isAuthenticated, signIn]);
 
-  if (isLoading) return <p>Connecting…</p>;
-  if (!isAuthenticated) return <p>Signing in…</p>;
+  if (!local && isLoading) return <p>Connecting…</p>;
+  if (!local && !isAuthenticated) return <p>Signing in…</p>;
 
   // Multiplayer (flag-gated): create/join setup, then the reactive lobby.
-  if (mp) {
+  if (mp && !local) {
     if (mp.view === "lobby") {
       return <MultiplayerLobby code={mp.code} onExit={() => setMp(null)} />;
     }
@@ -302,13 +352,19 @@ export default function GameScreen() {
   // The read-only replay viewer — entered from the splash or a high-score detail (this check
   // precedes every game surface, so it also overlays the game-over screen; never a live game).
   if (replayBundle) {
-    return <ReplayView bundle={replayBundle} onExit={() => setReplayBundle(null)} />;
+    return <ReplayView bundle={replayBundle} onExit={() => { setReplayBundle(null); setShowDemo(false); }}
+                       demo={showDemo ? { frames: DEMO_FRAMES, captions: DEMO_CAPTIONS, heading: 'Demo: a game in progress', exitLabel: 'Back to the tutorial' } : undefined} />;
   }
 
-  if (!started) {
+  // The tutorial begins on the new-game screen, as a real game does.
+  if (local && !partyDone) {
+    return <TutorialParty onDone={() => setPartyDone(true)} onSkip={() => { saveProgress({ status: 'skipped' }); onLocalExit?.(); }} onExit={() => onLocalExit?.()} onDemo={() => { setShowDemo(true); void handleReplay(DEMO_CODE); }} />;
+  }
+  if (!local && !started) {
     return (
       <SplashScreen
         onStartSolitaire={() => setStarted(true)}
+        onStartTutorial={onStartTutorial}
         onStartTestGame={testSecret ? () => { setWantTestGame(true); setStarted(true); } : undefined}
         onRestoreTestScenario={testSecret ? handleRestoreTestScenario : undefined}
         onResume={handleResume}
@@ -318,7 +374,7 @@ export default function GameScreen() {
       />
     );
   }
-  if (!gameId) {
+  if (!local && !gameId) {
     return (
       <PartySelect
         kitToggle
@@ -368,8 +424,8 @@ export default function GameScreen() {
         <GameOverScreen
           state={displayState}
           // Return to the splash screen (the home / high-scores entry), not straight to party select.
-          onNewGame={() => { clearRoll(); clearNotices(); setGameId(null); setStarted(false); setWantTestGame(false); }}
-          onSaveScore={displayState.testMode ? undefined : (name) => saveScore({ gameId, name })}
+          onNewGame={() => { if (local) { onLocalExit?.(); return; } clearRoll(); clearNotices(); setGameId(null); setStarted(false); setWantTestGame(false); }}
+          onSaveScore={displayState.testMode || !gameId ? undefined : (name) => saveScore({ gameId, name })}
           log={gameLog ?? null}
           code={code ?? gameLog?.game.code ?? null}
           onReplay={handleReplay}
@@ -405,7 +461,7 @@ export default function GameScreen() {
   return (
     <HelpProvider variants={displayState.variants}>
     <div className="relative h-screen w-screen scv-shell-root">
-      <CaveCanvas key={gameId} onReady={(api) => { caveApi.current = api; }} engine={engine} state={displayState} canAct={!presentingRef.current} color={color} code={code ?? undefined}
+      <CaveCanvas key={gameKey} onReady={(api) => { caveApi.current = api; }} engine={engine} state={displayState} canAct={!presentingRef.current} color={color} code={code ?? undefined}
         // A card on the floor opens the card panel unless Settings or the test panel holds the slot; a click on a card or
         // party member always takes the slot. No card on the floor closes it again.
         shell={{
@@ -424,7 +480,7 @@ export default function GameScreen() {
             if (at >= 0) pick({ kind: 'area', index: at, name: area.name, file, rot });
           },
         }} />
-      <TitleBar left={fightVisible ? (leftSlot === 'inventory' ? 'inventory' : 'party') : leftSlot} right={rightSlot} testMode={!!displayState.testMode} testOpen={testOpen} onTest={() => setTestOpen((o) => !o)} bugOpen={bugOpen} onBug={() => { if (!bugOpen) setBugShot(captureGameWindow()); setBugOpen((o) => !o); }}
+      <TitleBar left={fightVisible ? (leftSlot === 'inventory' ? 'inventory' : 'party') : leftSlot} right={rightSlot} testMode={!local && !!displayState.testMode} testOpen={testOpen} onTest={() => setTestOpen((o) => !o)} bugOpen={bugOpen} onBug={() => { if (!bugOpen) setBugShot(captureGameWindow()); setBugOpen((o) => !o); }}
                 // In a fight the list is always showing: Party returns to it, Inventory swaps it out and back.
                 onLeft={(p) => setLeftSlot((cur) => (fightVisible && p === 'party' ? 'party' : toggleLeft(cur, p)))} onRight={(p) => setRightSlot((cur) => toggleRight(cur, p))} />
       {rightSlot === 'card' && selected && (
@@ -440,7 +496,7 @@ export default function GameScreen() {
       )}
       {rightSlot === 'help' && <HelpPanel screens={helpScreens} flags={displayState.variants} />}
       {rightSlot === 'settings' && <SettingsPanel verbose={verbose} onVerbose={(on) => { setVerbose(on); writeVerbose(on); }} autoRoll={autoRoll} onAutoRoll={(on) => { setAutoRoll(on); writeAutoRoll(on); }} state={displayState} code={code ?? undefined} kitActive={!!displayState.variants?.extensionKit} onLog={() => setShowLog(true)} />}
-      {rightSlot === 'exit' && <ExitPanel onSave={handleSave} onAbandon={() => engine.quit()} />}
+      {rightSlot === 'exit' && <ExitPanel onSave={local ? undefined : handleSave} onAbandon={() => (local ? onLocalExit?.() : engine.quit())} />}
       {/* The encounter/treasure bar and the explore actions bar can both be showing (a pickup with the crypt to enter); the dock stacks them. */}
       <div className="scv-enc-dock">
         <EncounterPanel state={displayState} dispatch={dispatchWithRolls} leaveOnMove />
@@ -449,8 +505,8 @@ export default function GameScreen() {
       {fightVisible && cards && <FightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
       {fightVisible && cards && <RevisedFightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} inventory={leftSlot === 'inventory' ? inventoryPanel : undefined}
                                                   onMember={(member) => pick({ kind: 'member', member })} />}
-      {displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} onSave={handleSave} open={testOpen} />}
-      {displayState.testMode && <DeadEndSwapBadge />}
+      {!local && displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} onSave={handleSave} open={testOpen} />}
+      {!local && displayState.testMode && <DeadEndSwapBadge />}
       {!fightVisible && leftSlot === 'party' && (
         <PartyList members={viewParty(displayState, cards ?? [])} expanded={partyExpanded} onToggleExpand={() => setPartyExpanded((e) => !e)}
                    onSelect={(member) => pick({ kind: 'member', member })} />
@@ -492,8 +548,15 @@ export default function GameScreen() {
           onCopyDebugBundle={handleCopyDebugBundle}
         />
       )}
-      {bugOpen && <BugReportModal gameId={gameId} screenshot={bugShot} onClose={() => setBugOpen(false)} />}
-      {showLog && <GameLogModal gameId={gameId} onClose={() => setShowLog(false)} />}
+      {local && TUTORIAL_SCRIPT[tut.step] && !overlay && !notices && (
+        <TutorialCoach step={TUTORIAL_SCRIPT[tut.step]!} index={tut.step} total={TUTORIAL_SCRIPT.length} cave={caveApi.current} hint={tutHint}
+                       onContinue={() => (TUTORIAL_SCRIPT[tut.step]!.free ? (saveProgress({ status: 'done' }), onLocalExit?.()) : (TUTORIAL_SCRIPT[tut.step]!.resetView && document.getElementById('snapBtn')?.click(), tutSend({ type: 'continue' })))}
+                       onDemo={() => { setShowDemo(true); void handleReplay(DEMO_CODE); }}
+                       onBack={tut.step > 0 && TUTORIAL_SCRIPT[tut.step - 1]!.kind === 'info' ? () => tutSend({ type: 'back' }) : undefined}
+                       onSkip={() => { saveProgress({ status: 'skipped' }); onLocalExit?.(); }} />
+      )}
+      {bugOpen && gameId && <BugReportModal gameId={gameId} screenshot={bugShot} onClose={() => setBugOpen(false)} />}
+      {showLog && gameId && <GameLogModal gameId={gameId} onClose={() => setShowLog(false)} />}
     </div>
     </HelpProvider>
   );

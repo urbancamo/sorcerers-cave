@@ -446,7 +446,7 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
           Matches already in play come first, then every stranger not yet in one (a pairing under way shows in its row). */}
       <div className="scv-rev-board">
         {mine?.kind === "deploy" && !forcedDeploy && (
-          <div className={"scv-match-front scv-rev-frontline is-target"} data-testid="rev-frontline" onClick={frontSelected}
+          <div className={"scv-match-front scv-rev-frontline is-target"} data-testid="rev-frontline" data-tutorial-action="frontline" onClick={frontSelected}
                onDragOver={(e) => e.preventDefault()} onDrop={(e) => { e.preventDefault(); dropFront(e.dataTransfer.getData("application/x-scv-member")); }}>
             <span className="scv-match-slotlbl">⚔ your front line (at least {mine.min})</span>
             {usedChosen.map((i) => partyCard(i, { testId: `rev-front-${i}`, caption: "tap to take back", onPick: () => tapFree(i) }))}
@@ -486,20 +486,20 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
       <div className="scv-fight-actions">
         {stepTopics.length > 0 && <HelpButton topics={stepTopics} label="Help with this step" up />}
         {mine?.kind === "deploy" && !forcedDeploy && (
-          <button className="scv-fight-btn primary" disabled={deployBad !== null} onClick={() => dispatch({ type: "deploy", creatures: usedChosen })}>
+          <button className="scv-fight-btn primary" data-tutorial-action="deploy" disabled={deployBad !== null} onClick={() => dispatch({ type: "deploy", creatures: usedChosen })}>
             Stand in the front line
           </button>
         )}
         {mine?.kind === "engage" && (
           <>
-            <button className="scv-fight-btn primary" disabled={engageBad !== null} onClick={() => dispatch({ type: "engage", pairs: usedPairs, moves: usedMoves })}>Roll the Round ⚔</button>
+            <button className="scv-fight-btn primary" data-tutorial-action="engage" disabled={engageBad !== null} onClick={() => dispatch({ type: "engage", pairs: usedPairs, moves: usedMoves })}>Roll the Round ⚔</button>
             {!forcedPairs && <button className="scv-fight-btn ghost" onClick={() => { setPairs([]); setPlaced([]); setPicked(null); }}>Undo pairings</button>}
             {forcedPairs && usedMoves.length > 0 && <button className="scv-fight-btn ghost" onClick={() => { setPlaced([]); setPicked(null); }}>Undo placements</button>}
           </>
         )}
         {mine?.kind === "redeploy" && (
           <>
-            <button className="scv-fight-btn primary" disabled={redeployBad !== null} onClick={() => dispatch({ type: "redeploy", moves: usedMoves })}>Roll the Round ⚔</button>
+            <button className="scv-fight-btn primary" data-tutorial-action="redeploy" disabled={redeployBad !== null} onClick={() => dispatch({ type: "redeploy", moves: usedMoves })}>Roll the Round ⚔</button>
             {usedMoves.length > 0 && <button className="scv-fight-btn ghost" onClick={() => { setPlaced([]); setPicked(null); }}>Undo moves</button>}
           </>
         )}

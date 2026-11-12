@@ -49,6 +49,11 @@ export function rollDieForState(state: GameState): number {
       delete state.testNextDie;
       return value;
     }
+    if (state.testDiceQueue && state.testDiceQueue.length > 0) {
+      const value = state.testDiceQueue.shift()!;
+      if (state.testDiceQueue.length === 0) delete state.testDiceQueue;
+      return value;
+    }
     if (state.testAllDiceRoll !== undefined) {
       return state.testAllDiceRoll;
     }

@@ -544,6 +544,23 @@ describe("Next Roll Selector — testForceDie/testForceAllDice action gating (SC
     expect(events).toEqual([{ type: "testAllDiceQueued", value: 6 }]);
   });
 
+  it("testForceDice queues values consumed one per roll in order, then the dice are real again", () => {
+    const s = newGame(1, [0], undefined, true);
+    const { state, events } = reduce(s, { type: "testForceDice", values: [3, 4] });
+    expect(state.testDiceQueue).toEqual([3, 4]);
+    expect(events).toEqual([{ type: "testDiceQueued", values: [3, 4] }]);
+    expect([rollDieForState(state), rollDieForState(state), state.testDiceQueue]).toEqual([3, 4, undefined]);
+    const seed = state.seed;
+    rollDieForState(state);
+    expect(state.seed).not.toBe(seed); // the queue is empty: a real roll advances the seed
+  });
+
+  it("testForceDice is blocked outside Test Mode and rejects an empty or out-of-range queue", () => {
+    expect(reduce(newGame(1, [0]), { type: "testForceDice", values: [3] }).events).toEqual([{ type: "blocked" }]);
+    const t = newGame(1, [0], undefined, true);
+    for (const values of [[], [0], [7], [2.5]]) expect(reduce(t, { type: "testForceDice", values }).events).toEqual([{ type: "blocked" }]);
+  });
+
   it("rejects an out-of-range value (0 or 7) for either action even on a test game", () => {
     const s = newGame(1, [0], undefined, true);
     expect(reduce(s, { type: "testForceDie", value: 0 }).events).toEqual([{ type: "blocked" }]);

@@ -202,7 +202,7 @@ export function EncounterPanel({ state, dispatch, leaveOnMove = false }: { state
       {/* One-tap shortcut first: give every fighter back the heavy treasure it dropped to fight. */}
       {retake && (
         <div className="scv-enc-actions">
-          <button className="scv-enc-btn" onClick={() => dispatch(retake!)}>{label(retake, state)}</button>
+          <button className="scv-enc-btn" data-tutorial-action="retakeDropped" onClick={() => dispatch(retake!)}>{label(retake, state)}</button>
         </div>
       )}
 
@@ -237,7 +237,7 @@ export function EncounterPanel({ state, dispatch, leaveOnMove = false }: { state
       {simple.length > 0 && (
         <div className="scv-enc-actions">
           {simple.map((a, i) => (
-            <button key={i} className="scv-enc-btn" onClick={() => dispatch(a)}>
+            <button key={i} className="scv-enc-btn" data-tutorial-action={a.type} onClick={() => dispatch(a)}>
               {label(a, state)}
             </button>
           ))}

@@ -99,6 +99,9 @@ export type GameAction =
   // `testForceReaction` for rolls that aren't a reaction at all (combat, hazards, special areas).
   | { type: "testForceDie"; value: number }
   | { type: "testForceAllDice"; value: number }
+  // A queue of raw d6 values, consumed one per `rollDieForState` call in order (a fight round rolls two dice). Used by the tutorial
+  // (tutorial.ts) so its scripted fights come out as written; never legal outside Test Mode.
+  | { type: "testForceDice"; values: number[] }
   | { type: "testClearOverrides" };
 
 // What happened — the reducer is the only producer; the UI never infers game facts.
@@ -397,4 +400,5 @@ export type GameEvent =
   | { type: "testReactionQueued"; outcome: "friendly" | "indifferent" | "hostile" }
   | { type: "testDieQueued"; value: number }
   | { type: "testAllDiceQueued"; value: number }
+  | { type: "testDiceQueued"; values: number[] }
   | { type: "testOverridesCleared" };
