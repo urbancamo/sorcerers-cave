@@ -86,7 +86,7 @@ export const TUTORIAL_SCRIPT: CoachStep[] = [
   info('tomb', T(11), 'The Tomb of Kings',
     'A special chamber, with an Earthquake (another hazard) and a Witch guarding a Magic Ring. Look at the cards on the card panel to read what each does. The Earthquake blocks the way back, so there is no withdrawing from this one.'),
   act('attack', T(11), 'Attack the Witch', 'Press "Attack": striking first gives the party its surprise bonus.', 22, button('attack')),
-  act('engage', T(11), 'Join the battle', 'Bring the Priest into support behind the Dwarf, then roll the round.', 23, button('engage')),
+  act('engage', T(11), 'Join the battle', 'Build the battle line in three moves. First pair a fighter with the Witch: click the Dwarf in the party list, then click the Witch (or drag him onto her). Next add the Woman Hero beside him in the same way, so two fighters stand in front. Then place the Priest in the slot marked "behind": a magic user adds her magic from the back. When all three are placed, press "Roll the Round".', 23, button('engage')),
   act('retake', T(11), 'Retake what was dropped', 'Fighters put heavy treasure down to fight. Pick it up again.', 24, button('retakeDropped')),
   act('ring', T(11), 'Take the Ring', 'And finally, the Witch\'s Magic Ring: give it to the Woman Hero too.', 25),
 
