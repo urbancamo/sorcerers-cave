@@ -16,6 +16,9 @@ import { buildBody, buildLabels, buildTitle, retryDelayMs, type Category, type I
 const DEFAULT_REPO = 'urbancamo/sorcerers-cave';
 const HOUR = 60 * 60 * 1000;
 const MAX_PER_HOUR = 5;
+// The screenshot is sent at the window's native resolution (a large retina window is a few MB); this is the server's ceiling.
+const MAX_SCREENSHOT_BYTES = 10 * 1024 * 1024;
+const SCREENSHOT_TYPES = ['image/jpeg', 'image/png'];
 // Control characters other than tab and newline.
 const CONTROL = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/;
 
@@ -32,6 +35,15 @@ function text(value: string | undefined, name: string, min: number, max: number)
   return t;
 }
 
+/** A one-time URL for uploading the bug-report screenshot straight to Convex file storage. */
+export const generateUploadUrl = mutation({
+  args: {},
+  handler: async (ctx) => {
+    if (!(await getAuthUserId(ctx))) return reject('Sign-in required.');
+    return await ctx.storage.generateUploadUrl();
+  },
+});
+
 /** File a bug report. The game context (code, test mode) is read from the stored game, never trusted from the client. */
 export const submit = mutation({
   args: {
@@ -41,6 +53,7 @@ export const submit = mutation({
     category: categoryValidator,
     contact: v.optional(v.string()),
     client: v.object({ userAgent: v.string(), viewport: v.string(), build: v.string() }),
+    screenshotId: v.optional(v.id('_storage')),
   },
   handler: async (ctx, args) => {
     const ownerId = await getAuthUserId(ctx);
@@ -53,6 +66,17 @@ export const submit = mutation({
       viewport: text(args.client.viewport, 'Viewport', 0, 30) ?? '',
       build: text(args.client.build, 'Build', 0, 40) ?? '',
     };
+
+    // Only an image of a sane size is kept (the type is the upload's Content-Type header, which the client always sets). Anything else is deleted and the report goes ahead without it
+    // (rejecting would roll the delete back, and would cost the player their report over a picture).
+    let screenshotId = args.screenshotId;
+    if (screenshotId) {
+      const file = await ctx.db.system.get('_storage', screenshotId);
+      if (!file || file.size > MAX_SCREENSHOT_BYTES || (file.contentType !== undefined && !SCREENSHOT_TYPES.includes(file.contentType))) {
+        if (file) await ctx.storage.delete(screenshotId);
+        screenshotId = undefined;
+      }
+    }
 
     let code: string | undefined;
     let testMode = false;
@@ -71,7 +95,7 @@ export const submit = mutation({
     if (recent.length >= MAX_PER_HOUR) reject('Too many reports; please try again later.');
 
     const id = await ctx.db.insert('bugReports', {
-      ownerId, gameId: args.gameId, code, testMode, description, expected, category: args.category, contact, client,
+      ownerId, gameId: args.gameId, code, testMode, description, expected, category: args.category, contact, client, screenshotId,
       status: 'pending', attempts: 0, createdAt: now, updatedAt: now,
     });
     await ctx.scheduler.runAfter(0, internal.bugReport.createIssue, { id });
@@ -134,10 +158,11 @@ export const createIssue = internalAction({
       return null;
     }
     const repo = process.env.GITHUB_ISSUES_REPO || DEFAULT_REPO;
+    const screenshotUrl = report.screenshotId ? (await ctx.storage.getUrl(report.screenshotId)) ?? undefined : undefined;
     const input: IssueInput = {
       ref: report.code ? `${id} (${report.code})` : id,
       description: report.description, expected: report.expected, category: report.category as Category,
-      testMode: report.testMode, client: report.client, game: data.game, log: data.log,
+      testMode: report.testMode, client: report.client, game: data.game, log: data.log, screenshotUrl,
     };
 
     const attempt = report.attempts + 1;

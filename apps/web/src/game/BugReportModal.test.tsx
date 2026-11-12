@@ -3,14 +3,17 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ConvexError } from 'convex/values';
 import { BugReportModal } from './BugReportModal';
 
-vi.mock('../../convex/_generated/api', () => ({ api: { bugReport: { submit: 'bugReport:submit' } } }));
-const { submitMock } = vi.hoisted(() => ({ submitMock: vi.fn() }));
-vi.mock('convex/react', () => ({ useMutation: () => submitMock }));
+vi.mock('../../convex/_generated/api', () => ({ api: { bugReport: { submit: 'bugReport:submit', generateUploadUrl: 'bugReport:generateUploadUrl' } } }));
+const { submitMock, uploadUrlMock } = vi.hoisted(() => ({ submitMock: vi.fn(), uploadUrlMock: vi.fn() }));
+vi.mock('convex/react', () => ({ useMutation: (ref: string) => (ref === 'bugReport:generateUploadUrl' ? uploadUrlMock : submitMock) }));
 
 const GAME = 'game1' as never;
 const type = (label: RegExp, value: string) => fireEvent.change(screen.getByLabelText(label), { target: { value } });
 
 beforeEach(() => {
+  uploadUrlMock.mockReset();
+  uploadUrlMock.mockResolvedValue('https://upload.example/u1');
+  vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: () => 'blob:shot', revokeObjectURL: () => {} }));
   submitMock.mockReset();
   submitMock.mockResolvedValue({ ref: 'ref123', code: 'ABCD' });
 });
@@ -92,5 +95,53 @@ describe('BugReportModal', () => {
     fireEvent.click(screen.getByRole('button', { name: /^close$/i }));
     expect(onClose).toHaveBeenCalledOnce();
     expect(submitMock).not.toHaveBeenCalled();
+  });
+
+  describe('screenshot', () => {
+    const SHOT = new Blob(['x'], { type: 'image/jpeg' });
+    const fetchMock = vi.fn();
+    beforeEach(() => {
+      fetchMock.mockReset();
+      fetchMock.mockResolvedValue({ ok: true, json: async () => ({ storageId: 'stor1' }) });
+      vi.stubGlobal('fetch', fetchMock);
+    });
+    const fill = () => type(/what happened/i, 'The Dragon did not wake up');
+    const send = () => fireEvent.click(screen.getByRole('button', { name: /send report/i }));
+
+    it('shows the screenshot attached by default and uploads it with the report', async () => {
+      render(<BugReportModal gameId={GAME} screenshot={Promise.resolve(SHOT)} onClose={() => {}} />);
+      const box = (await screen.findByLabelText(/attach this screenshot/i)) as HTMLInputElement;
+      expect(box.checked).toBe(true);
+      fill(); send();
+      await waitFor(() => expect(submitMock).toHaveBeenCalledOnce());
+      expect(fetchMock).toHaveBeenCalledWith('https://upload.example/u1', expect.objectContaining({ method: 'POST', body: SHOT }));
+      expect(submitMock.mock.calls[0]![0].screenshotId).toBe('stor1');
+    });
+
+    it('sends no screenshot when the player unticks it', async () => {
+      render(<BugReportModal gameId={GAME} screenshot={Promise.resolve(SHOT)} onClose={() => {}} />);
+      fireEvent.click(await screen.findByLabelText(/attach this screenshot/i));
+      fill(); send();
+      await waitFor(() => expect(submitMock).toHaveBeenCalledOnce());
+      expect(fetchMock).not.toHaveBeenCalled();
+      expect(submitMock.mock.calls[0]![0].screenshotId).toBeUndefined();
+    });
+
+    it('leaves the section out when no screenshot could be taken', async () => {
+      render(<BugReportModal gameId={GAME} screenshot={Promise.resolve(null)} onClose={() => {}} />);
+      await waitFor(() => expect(screen.queryByTestId('bug-shot')).toBeNull());
+      fill(); send();
+      await waitFor(() => expect(submitMock).toHaveBeenCalledOnce());
+      expect(submitMock.mock.calls[0]![0].screenshotId).toBeUndefined();
+    });
+
+    it('still sends the report when the upload fails', async () => {
+      fetchMock.mockRejectedValue(new Error('offline'));
+      render(<BugReportModal gameId={GAME} screenshot={Promise.resolve(SHOT)} onClose={() => {}} />);
+      await screen.findByLabelText(/attach this screenshot/i);
+      fill(); send();
+      await waitFor(() => expect(submitMock).toHaveBeenCalledOnce());
+      expect(submitMock.mock.calls[0]![0].screenshotId).toBeUndefined();
+    });
   });
 });

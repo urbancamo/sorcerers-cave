@@ -1199,7 +1199,7 @@ export async function boot({ mount, engine: eng, tiles: tileMap, deadEnd, party:
   engine=eng; startLevel=eng.startLevel; tiles=tileMap; deadEndArt=deadEnd||(()=>null); PARTY=partyArr; TILE_D=TILE_W/tileAR; partyColorHex=partyColor; isMultiplayer=!!multiplayer;
 
   /* ---- renderer / scene / camera ---- */
-  renderer=new THREE.WebGLRenderer({antialias:true,alpha:true});
+  renderer=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true}) /* kept so a bug-report screenshot can read the cave */;
   renderer.setPixelRatio(Math.min(devicePixelRatio,2));
   renderer.setSize(innerWidth,innerHeight);
   renderer.outputColorSpace=THREE.SRGBColorSpace;

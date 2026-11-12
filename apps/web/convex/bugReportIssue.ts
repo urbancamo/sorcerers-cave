@@ -17,6 +17,8 @@ export interface IssueInput {
   // Read from the stored game on the server, never from the client.
   game: { code?: string | null; status: string; level: number; turn: number; x: number; y: number; color?: string | null; variants?: Record<string, unknown> } | null;
   log: unknown;
+  // Public URL of the attached screenshot (Convex storage), if the player kept it attached.
+  screenshotUrl?: string;
 }
 
 const ZWSP = '​';
@@ -61,6 +63,7 @@ export function buildBody(input: IssueInput): string {
     '### What happened',
     quote(input.description),
     ...(input.expected ? ['### What was expected', quote(input.expected)] : []),
+    ...(input.screenshotUrl ? ['### Screenshot', `![Screenshot of the game window](${input.screenshotUrl})`] : []),
     '### Context',
     '| | |\n|---|---|\n' + rows.map(([k, v]) => `| ${k} | ${cell(v)} |`).join('\n'),
     '### How to reproduce',

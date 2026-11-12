@@ -93,6 +93,8 @@ export default defineSchema({
     category: v.union(v.literal("rules"), v.literal("display"), v.literal("crash"), v.literal("other")),
     contact: v.optional(v.string()),
     client: v.object({ userAgent: v.string(), viewport: v.string(), build: v.string() }),
+    // The game-window screenshot the player chose to attach (Convex file storage); linked from the issue body.
+    screenshotId: v.optional(v.id("_storage")),
     // pending: waiting for (or retrying) the GitHub call; created: issue exists; failed: gave up.
     status: v.union(v.literal("pending"), v.literal("created"), v.literal("failed")),
     attempts: v.number(),
