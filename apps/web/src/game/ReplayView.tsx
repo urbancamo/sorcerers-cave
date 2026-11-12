@@ -45,10 +45,13 @@ export function ReplayView({ bundle, onExit, demo }: {
   // One timeout per frame (not an interval) so a manual jump mid-play simply re-arms from there.
   // 1000 ms comfortably clears the renderer's 550 ms token-move animation between steps.
   const [playing, setPlaying] = useState(!!demo); // a demo plays itself
+  const introPending = useRef(!!demo); // the demo's opening pause, taken once
   useEffect(() => {
     if (!playing) return;
     if (i >= last) { setPlaying(false); return; } // the end stops playback by itself
-    const t = setTimeout(() => setI(i + 1), demo ? 3000 : 1000); // a demo is watched to be read: three seconds a move
+    // A demo is watched to be read: five seconds a move, after fifteen to take in the opening caption and the screen when it opens.
+    const wait = !demo ? 1000 : introPending.current ? 15000 : 5000;
+    const t = setTimeout(() => { introPending.current = false; setI(i + 1); }, wait);
     return () => clearTimeout(t);
   }, [playing, i, last, demo]);
 
