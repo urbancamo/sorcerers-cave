@@ -11,7 +11,7 @@
 | ID | Topic | Book says | Engine does | Options | Recommendation | Decider | Status |
 |---|---|---|---|---|---|---|---|
 | R-01 | Woman Hero reaction line | Prints "1-3 Hostile. 3-6 Friendly" (3 appears twice) | Treats it as 1-3 Hostile, 4-6 Friendly | a) keep the engine's reading; b) another reading Peter intends | a) it is a misprint; confirm the intended bands and correct the book | Peter | **Ruled: misprint; the engine reading is right. Closed, no change** |
-| R-02 | Demon reactions | 1-5 Hostile, 6 Indifferent | Every roll hostile | a) follow book; b) keep | a) follow the book | Peter/MSW | **Ruled: follow the book. FIXED 2026-11-06** (re-pin of the searched games still pending) |
+| R-02 | Demon reactions | 1-5 Hostile, 6 Indifferent | Every roll hostile | a) follow book; b) keep | a) follow the book | Peter/MSW | **Ruled: follow the book. FIXED 2026-11-06** (re-pin of the searched games still pending). **Addendum 2026-11-12 (issue #54):** the reaction was still bypassed by the Demon's forced ambush on re-entry; now the Demon is met as a stranger and tested (1-5 hostile, 6 indifferent) — SC-EXT-21 |
 | R-03 | Lion reactions | 1-4 Hostile, 5-6 Friendly | 5 is Indifferent | a) book; b) keep | a) book | Peter/MSW | **Ruled: follow the book. FIXED 2026-11-06** (re-pin of the searched games still pending) |
 | R-04 | Scholar reactions | 1-2 Hostile, 3-4 Indifferent, 5-6 Friendly | Only 1 Hostile | a) book; b) keep | a) book | Peter/MSW | **Ruled: follow the book. FIXED 2026-11-06** (re-pin of the searched games still pending) |
 | R-05 | Witch reactions | 1-2 Hostile, 3-5 Indifferent, 6 Friendly | 5 is Friendly | a) book; b) keep | a) book | Peter/MSW | **Ruled: follow the book. FIXED 2026-11-06** (re-pin of the searched games still pending) |

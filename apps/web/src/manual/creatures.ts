@@ -120,7 +120,7 @@ export const CREATURES: Section = {
       p('Under the revised combat she does not turn at once: she stays at your side while you decide. **Leave the area** (by any route) and she is left behind, harmless; **stay** and she turns, and she and every stranger in the area attack you *with surprise*.', 'combatRevision'),
     ] },
     { id: 'creature-demon', title: 'The Demon', variant: 'kit', cards: cards('creature', 'Demon'), blocks: [
-      p('The Demon never takes a seat among a chamber\'s ordinary strangers. Drawn from the small pack, it steps into whichever area the party has just left and waits there, springing the instant they return — no reaction test, just a fight.'),
+      p('The Demon never takes a seat among a chamber\'s ordinary strangers. Drawn from the small pack, it steps into whichever area the party has just left and waits there. Return to it (or retreat into it) and you meet it like any stranger: on a roll of 1-5 it is hostile and you fight, but on a six it is indifferent and lets you be. It is never friendly.'),
       p('Only magic reaches it, and so, in any hand at all, does the **Magic Axe**. Without either, it cuts down the party\'s strongest member. **Holy Water** destroys it. Win, and it collapses to ash.'),
     ] },
     { id: 'creature-witch', title: 'Witch', brief: 'Uses artefacts as a Priest; strong magic.', variant: 'kit', cards: cards('creature', 'Witch'), blocks: [

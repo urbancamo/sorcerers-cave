@@ -11,7 +11,7 @@
   7,
   7
  ],
- "score": 460,
+ "score": 484,
  "item": 24309,
  "search": {
   "weights": {
@@ -1227,6 +1227,131 @@
    "dir": 5
   },
   {
+   "type": "move",
+   "dir": 1
+  },
+  {
+   "type": "withdraw"
+  },
+  {
+   "type": "move",
+   "dir": 2
+  },
+  {
+   "type": "move",
+   "dir": 3
+  },
+  {
+   "type": "withdraw"
+  },
+  {
+   "type": "move",
+   "dir": 4
+  },
+  {
+   "type": "drawFromWell"
+  },
+  {
+   "type": "move",
+   "dir": 1
+  },
+  {
+   "type": "withdraw"
+  },
+  {
+   "type": "move",
+   "dir": 2
+  },
+  {
+   "type": "test"
+  },
+  {
+   "type": "resolveRound",
+   "matches": [
+    {
+     "front": [
+      1
+     ],
+     "backers": [],
+     "strangers": [
+      0
+     ]
+    }
+   ]
+  },
+  {
+   "type": "resolveRound",
+   "matches": [
+    {
+     "front": [
+      1
+     ],
+     "backers": [],
+     "strangers": [
+      0
+     ]
+    }
+   ]
+  },
+  {
+   "type": "takeTreasure",
+   "ti": 0,
+   "mi": 1
+  },
+  {
+   "type": "move",
+   "dir": 1
+  },
+  {
+   "type": "test"
+  },
+  {
+   "type": "move",
+   "dir": 4
+  },
+  {
+   "type": "test"
+  },
+  {
+   "type": "move",
+   "dir": 1
+  },
+  {
+   "type": "move",
+   "dir": 2
+  },
+  {
+   "type": "move",
+   "dir": 3
+  },
+  {
+   "type": "move",
+   "dir": 3
+  },
+  {
+   "type": "move",
+   "dir": 6
+  },
+  {
+   "type": "move",
+   "dir": 1
+  },
+  {
+   "type": "move",
+   "dir": 4
+  },
+  {
+   "type": "test"
+  },
+  {
+   "type": "move",
+   "dir": 2
+  },
+  {
+   "type": "move",
+   "dir": 5
+  },
+  {
    "type": "exitCave"
   }
  ],
@@ -1318,7 +1443,7 @@
    {
     "rules": "kit",
     "searches": 23684,
-    "best": 460
+    "best": 484
    },
    {
     "rules": "kit+sibyl",

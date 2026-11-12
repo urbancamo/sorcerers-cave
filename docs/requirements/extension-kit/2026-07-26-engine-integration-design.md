@@ -401,12 +401,12 @@ US-19..25 artifacts · US-26 duplicates · US-27 plain tiles.
   the previous tile gains a lurking-demon marker. Notice: "Something vast and wrong now waits on
   your back-trail."
 - **Interaction:** None at draw time. Thereafter, entering (or withdrawing into) the demon's
-  area forces an encounter: **only magical power can touch it** — members with mp > 0, plus a
+  area is an ordinary stranger encounter (amended 2026-11-12, ruling R-02 / issue #54: the party tests it — 1-5 hostile, 6 indifferent, never friendly — rather than being forced into a fight): **only magical power can touch it** — members with mp > 0, plus a
   **Magic Axe** bearer (US-24). The FightSurface's Spectre-style doom banner shows when the
   party cannot legally engage it; an unfightable, unengaged Demon follows Spectre rules
   (slays the strongest — confirmed).
 - **Dice:** Standard fight dice when engaged.
-- **Feedback:** Entering its area: "The Demon unfolds from the shadows." Kill: "The Demon
+- **Feedback:** Kill: "The Demon
   collapses into ash." Doom: the banner names why nobody can fight it.
 - **Aftermath:** While it waits on the back-trail, `withdraw` leads into a demon fight — the
   card turns retreat into a threat, exactly its board-game role. The Demon has **no fighting

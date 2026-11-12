@@ -233,7 +233,7 @@ describe("Shared kit content across seats (SC-EXT-32)", () => {
     expect(recovered.events.some((e) => e.type === "lairStash")).toBe(false); // B never had a stash queued
   });
 
-  it("a Demon spawned by seat A's own draw ambushes seat B entering the area it spawned into (US-13)", () => {
+  it("a Demon spawned by seat A's own draw is met by seat B entering the area it spawned into (US-13, R-02)", () => {
     const PLAIN_CHAMBER = 31;
     const mp: MpGameState = {
       ...playing(
@@ -258,11 +258,10 @@ describe("Shared kit content across seats (SC-EXT-32)", () => {
     expect(spawned.state.parties[0]!.strangers).toEqual([]); // never a live stranger for A
     expect(spawned.state.parties[0]!.phase).toBe("explore"); // nothing else drawn — turn passes
 
-    // Seat B — who never saw A's draw — walks east into that SAME tile and is ambushed: pure
+    // Seat B — who never saw A's draw — walks east into that SAME tile and meets it as a stranger to test: pure
     // composition through the shared `cave.areas` contents.
     const ambushed = mpReduce(spawned.state, 1, { type: "move", dir: DIR_E });
-    expect(ambushed.events).toContainEqual({ type: "demonUnfolds" });
-    expect(ambushed.state.parties[1]!.phase).toBe("fight");
+    expect(ambushed.state.parties[1]!.phase).toBe("encounter"); // tested like any stranger, no forced fight
     expect(ambushed.state.parties[1]!.strangers).toEqual([C_DEMON]);
     expect(ambushed.state.cave.areas[0]!.contents).not.toContainEqual(100 + C_DEMON); // pulled off the shared tile
   });

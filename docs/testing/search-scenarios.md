@@ -32,7 +32,7 @@ deterministic and any item can be reproduced from its number and the salt.
 The full record of the run that produced the current fixtures (start time, machine, salt, engine commit, budget, the items each
 shard got through, and every pinned game with its item number) is in the generated
 [`search-scenario-tables.md`](search-scenario-tables.md). In short: 10 shards for 7 hours, salt 1, 82,873 searches, 4,844 of
-which escaped, 2.3 billion states, 70 CPU-hours (run started 2026-11-11 22:44 UTC on engine `6afea79`, the 20261110 rules with the Unicorn and Spell fixes; best scores: base 380, Extension Kit 460, kit + Sibyl 448.) After the Spell fix for issue #43 the pinned top-25 lists were re-merged from the same run's candidates on the fixed engine, which replaced the games that no longer replayed.
+which escaped, 2.3 billion states, 70 CPU-hours (run started 2026-11-11 22:44 UTC on engine `6afea79`, the 20261110 rules with the Unicorn and Spell fixes; best scores: base 380, Extension Kit 460, kit + Sibyl 448; K001 is now 484, see below.) After the Spell fix for issue #43 the pinned top-25 lists were re-merged from the same run's candidates on the fixed engine, which replaced the games that no longer replayed. After the Demon became a tested stranger (issue #54, R-02) the lists were re-merged again, and K001 was re-run on the new engine with its recorded settings, which now finds 484 (was 460); other items were not re-searched, so their scores are those found on the earlier engine and may now be beatable.
 
 ## Replay codes
 
