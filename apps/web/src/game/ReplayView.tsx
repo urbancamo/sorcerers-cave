@@ -48,7 +48,7 @@ export function ReplayView({ bundle, onExit, demo }: {
   useEffect(() => {
     if (!playing) return;
     if (i >= last) { setPlaying(false); return; } // the end stops playback by itself
-    const t = setTimeout(() => setI(i + 1), demo ? 1500 : 1000); // a demo is watched to be read: half as fast again
+    const t = setTimeout(() => setI(i + 1), demo ? 3000 : 1000); // a demo is watched to be read: three seconds a move
     return () => clearTimeout(t);
   }, [playing, i, last, demo]);
 
