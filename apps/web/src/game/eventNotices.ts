@@ -30,8 +30,10 @@ const treasureName = (tid: number): string => ALL_TREASURES[tid]?.name ?? "an it
 const itemList = (ids: number[]): string => ids.map(treasureName).join(", ");
 const plural = (n: number, s: string) => `${n} ${s}${n === 1 ? "" : "s"}`;
 const DIR_WORD: Record<number, string> = { 1: "north", 2: "east", 3: "south", 4: "west", 5: "up the stair", 6: "down the stair" };
-// US-04 Feedback, verbatim — shared by the `lairStash` and `harpiesSteal` cases (ordering fix, T9 minor).
+// US-04 Feedback, verbatim — said where the party stands IN the Lair (the `lairStash` case). A theft delivered to a Lair elsewhere on the
+// map reads LAIR_DELIVERED_TEXT instead: "here" and "among the bones" would put the party in the Lair (issue #45).
 const LAIR_STASH_TEXT: Notice = { text: "The harpies' hoard glitters among the bones — the stolen artifacts are here.", tone: "good" };
+const LAIR_DELIVERED_TEXT: Notice = { text: "The stolen artifacts now lie in the harpies' lair.", tone: "neutral" };
 
 /** A short notice for a fired hazard's effect. Mutiny and Trap are surfaced elsewhere
  *  (the `mutinied` event and the trap confirm modal), so they produce nothing here. */
@@ -346,8 +348,8 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
         // `stashOrDeliver` (chamber.ts) emits `lairStash` BEFORE `harpiesSteal` in the hazard's own
         // event batch — pushing this text in natural iteration order would read "the hoard glitters"
         // ahead of "Harpies swoop!", backwards (the theft should read first). When a companion
-        // `harpiesSteal` fires in the SAME batch, its own case (below) pushes this exact line itself,
-        // right after the theft text, so skip it here to avoid a duplicate in the wrong order. Fires
+        // `harpiesSteal` fires in the SAME batch, its own case (below) narrates the delivery itself
+        // (LAIR_DELIVERED_TEXT: the party is not in the Lair), right after the theft text, so skip it here. Fires
         // normally when the Lair is entered/placed independently of a theft (design US-04).
         if (!events.some((ev) => ev.type === "harpiesSteal")) {
           out.push(LAIR_STASH_TEXT);
@@ -385,7 +387,7 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
         });
         // Ordering fix (T9 minor, see the `lairStash` case above): the delivery line belongs right
         // after the theft line, not wherever `lairStash` happens to sit in the raw event order.
-        if (lairStashed) out.push(LAIR_STASH_TEXT);
+        if (lairStashed) out.push(LAIR_DELIVERED_TEXT);
         if (e.cursed) out.push({ text: "The Eye of God is torn away — its curse descends upon you.", tone: "bad" });
         break;
       }

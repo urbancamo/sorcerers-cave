@@ -346,7 +346,9 @@ US-19..25 artifacts · US-26 duplicates · US-27 plain tiles.
   Talisman.)
 - **Dice:** none.
 - **Feedback:** "Harpies swoop! They snatch [list] and wheel away toward their lair." If the
-  Lair is not yet on the map: "…toward a lair you have not yet found."
+  Lair is not yet on the map: "…toward a lair you have not yet found." If it is on the map, the next
+  line reads "The stolen artifacts now lie in the harpies' lair." (the hoard-glitters line is only for
+  standing in the Lair; issue #45, 2026-11-12).
 - **Aftermath:** All party-held artifacts (borne and carried, from every member) move to the
   Lair's floor if placed, else into the pending `harpyStash` that lands when the Lair appears
   (US-04). The harpies card then leaves the game. Curse note: the **Eye of God** carried off by
