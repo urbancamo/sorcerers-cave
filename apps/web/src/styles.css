@@ -304,6 +304,26 @@
   color: var(--parchment);
   font-family: var(--ui);
 }
+/* The encounter/treasure bar and the explore actions bar share one fixed spot; the dock stacks them instead of letting them overlap. */
+.scv-enc-dock {
+  position: fixed;
+  left: 50%;
+  bottom: 84px;
+  transform: translateX(-50%);
+  z-index: 50;
+  max-width: 94vw;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  pointer-events: none;
+}
+.scv-enc-dock > .scv-enc {
+  position: static;
+  transform: none;
+  max-width: 100%;
+  pointer-events: auto;
+}
 .scv-enc-hd {
   font-family: var(--display);
   font-size: 13px;
@@ -2130,6 +2150,8 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 /* ===== Mobile: dock action panels to the bottom as full-width sheets ===== */
 @media (max-width: 720px) {
   /* encounter + fight: full-width bottom sheets that scroll instead of clipping */
+  .scv-enc-dock { left: 0; right: 0; bottom: 0; transform: none; width: 100%; max-width: 100%; gap: 0; }
+  .scv-enc-dock > .scv-enc { width: 100%; }
   .scv-enc, .scv-fight {
     left: 0; right: 0; bottom: 0; transform: none;
     width: 100%; max-width: 100%;
@@ -2374,7 +2396,7 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
    (multiplayer's older HUD keeps both centred). */
 @media (min-width: 721px) {
   #hud.shell .dock { left: 14px; transform: none; }
-  .scv-shell-root .scv-enc { bottom: 24px; max-width: max(360px, calc(100vw - 680px)); }
+  .scv-shell-root .scv-enc-dock { bottom: 24px; max-width: max(360px, calc(100vw - 680px)); }
 }
 
 /* Set piece for a once-only hazard (Mutiny, Desertion, Quarrel, Spell, Harpies): the drawn card above its dice or aftermath. */
