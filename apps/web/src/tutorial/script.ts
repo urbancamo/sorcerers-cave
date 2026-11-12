@@ -98,7 +98,10 @@ export const TUTORIAL_SCRIPT: CoachStep[] = [
   act('east-tomb', T(10), 'Go east', 'East, into the Tomb of Kings.', 21, exit('E')),
 
   info('tomb', T(11), 'The Tomb of Kings',
-    'A special chamber, with an Earthquake (another hazard) and a Witch guarding a Magic Ring. Look at the cards on the card panel to read what each does. The Earthquake blocks the way back, so there is no withdrawing from this one.'),
+    'A special chamber, with an Earthquake (another hazard) and a Witch guarding a Magic Ring. The Earthquake blocks the way back, so there is no withdrawing from this one.'),
+  ui('look', T(11), 'Take a closer look', 'Before you act, study what is here. The strip of small cards at the top of the card panel is every card in the chamber: click the Witch and the Ring, one after the other, to read each one.', 'cards-seen', { kind: 'selector', selector: '.scv-cp-minis' }),
+  info('assess', T(11), 'Weighing it up',
+    'The Ring is a high-value artefact, and its guardian, a Witch, is a strong magic user who will very likely be hostile. Walking up to test her would hand her the first blow. The better plan is a surprise attack: a party that strikes first gets a bonus to its roll.'),
   act('attack', T(11), 'Attack the Witch', 'Press "Attack": striking first gives the party its surprise bonus.', 22, button('attack')),
   act('engage', T(11), 'Join the battle', 'Build the battle line in three moves. First pair a fighter with the Witch: click the Dwarf in the party list, then click the Witch (or drag him onto her). Next add the Woman Hero beside him in the same way, so two fighters stand in front. Then place the Priest in the slot marked "behind": a magic user adds her magic from the back. When all three are placed, press "Roll the Round".', 23, button('engage')),
   act('retake', T(11), 'Retake what was dropped', 'Fighters put heavy treasure down to fight. Pick it up again.', 24, button('retakeDropped')),

@@ -177,6 +177,8 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
     document.addEventListener('click', onClick, true);
     return () => document.removeEventListener('click', onClick, true);
   }, [local, tutSend]);
+  // Step 11 asks the player to read the Witch's and the Ring's cards on the card panel: notice each one being shown.
+  const cardsSeen = useRef(new Set<string>());
   const convexSession = useCaveGame(local ? null : gameId, onMoveResolved, canActRef.current);
   const localSession = useLocalGame(local ? makeTutorial : null, onMoveResolved, canActRef.current, tutGate);
   const { engine, loading, state, color, code, dispatch, present } = local ? localSession : convexSession;
@@ -203,6 +205,12 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
   presentingRef.current = holding || !!roll || !!notices;
   const cards = useManifestCards();
   const caveApi = useRef<CaveApi | null>(null);
+  useEffect(() => {
+    if (!local || selected?.kind !== 'card') return;
+    if (/witch/i.test(selected.card.name)) cardsSeen.current.add('witch');
+    if (/\bring\b/i.test(selected.card.name)) cardsSeen.current.add('ring');
+    if (cardsSeen.current.size === 2) tutSend({ type: 'ui', name: 'cards-seen' });
+  }, [local, selected, tutSend]);
   // Treasure on offer: put the first piece on the card panel, where its "Give to" choices are, and re-offer as pieces are taken.
   // (Declared here, before the early returns, because it is a hook; `state` can still be null at this point.)
   const onShow = holding && heldState ? heldState : state;
