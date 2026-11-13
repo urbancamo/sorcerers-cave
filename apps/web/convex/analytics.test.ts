@@ -68,6 +68,16 @@ describe("history", () => {
     const p2 = await as.query(api.analytics.history, { paginationOpts: { numItems: 2, cursor: p1.continueCursor } });
     expect(p2.page.map((r) => r.outcome)).toEqual(["escaped"]);
   });
+  test("leaves multiplayer games out unless Multiplayer is switched on", async () => {
+    const t = convexTest(schema, modules);
+    const { c } = await seed(t);
+    await t.run(async (ctx) => { await ctx.db.insert("gameStats", stat(c, { mode: "multi", finishedAt: 4000 })); });
+    const { as } = await asUser(t, ["ANALYTICS"]);
+    const args = { paginationOpts: { numItems: 10, cursor: null } };
+    expect((await as.query(api.analytics.history, args)).page.map((r) => r.mode)).toEqual(["solo", "solo", "solo"]);
+    await t.run(async (ctx) => { await ctx.db.insert("systemSettings", { multiplayerEnabled: true }); });
+    expect((await as.query(api.analytics.history, args)).page.map((r) => r.mode)).toEqual(["multi", "solo", "solo", "solo"]);
+  });
   test("filters by outcome", async () => {
     const t = convexTest(schema, modules);
     await seed(t);
@@ -78,9 +88,35 @@ describe("history", () => {
 });
 
 describe("liveGames", () => {
+  test("leaves multiplayer games out unless Multiplayer is switched on", async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("games", { state: { turn: 2 }, status: "active", code: "SOLO", createdAt: 0, updatedAt: 5000 });
+      await ctx.db.insert("games", { state: { turnCount: 2, parties: [{}] }, status: "active", mode: "multi", lobby: "started", code: "MULT", createdAt: 0, updatedAt: 6000 });
+    });
+    const { as } = await asUser(t, ["ANALYTICS"]);
+    expect((await as.query(api.analytics.liveGames, { since: 0 })).map((g) => g.code)).toEqual(["SOLO"]);
+    await t.run(async (ctx) => { await ctx.db.insert("systemSettings", { multiplayerEnabled: false }); });
+    expect((await as.query(api.analytics.liveGames, { since: 0 })).map((g) => g.code)).toEqual(["SOLO"]);
+    await t.run(async (ctx) => { const r = await ctx.db.query("systemSettings").first(); await ctx.db.patch(r!._id, { multiplayerEnabled: true }); });
+    expect((await as.query(api.analytics.liveGames, { since: 0 })).map((g) => g.code)).toEqual(["MULT", "SOLO"]);
+  });
+
+  test("a saved game drops off the list until it moves again", async () => {
+    const t = convexTest(schema, modules);
+    await t.run(async (ctx) => {
+      await ctx.db.insert("games", { state: { turn: 2 }, status: "active", code: "SAVD", createdAt: 0, updatedAt: 5000, savedAt: 5000 });
+      await ctx.db.insert("games", { state: { turn: 3 }, status: "active", code: "MOVD", createdAt: 0, updatedAt: 6000, savedAt: 5000 }); // played on after saving
+      await ctx.db.insert("games", { state: { turn: 4 }, status: "active", code: "NEVR", createdAt: 0, updatedAt: 4000 });
+    });
+    const { as } = await asUser(t, ["ANALYTICS"]);
+    expect((await as.query(api.analytics.liveGames, { since: 0 })).map((g) => g.code)).toEqual(["MOVD", "NEVR"]);
+  });
+
   test("lists active games touched since the cut-off, newest first, flagging test games, without the state", async () => {
     const t = convexTest(schema, modules);
     await t.run(async (ctx) => {
+      await ctx.db.insert("systemSettings", { multiplayerEnabled: true });
       await ctx.db.insert("games", { state: { turn: 9, level: 3, party: [{}, {}, {}] }, status: "active", code: "LIVE", createdAt: 0, updatedAt: 5000 });
       await ctx.db.insert("games", { state: { testMode: true, turn: 1, level: 1, party: [{}] }, status: "active", code: "TEST", createdAt: 0, updatedAt: 6000 });
       await ctx.db.insert("games", { state: { turn: 1 }, status: "active", code: "OLDD", createdAt: 0, updatedAt: 100 }); // before the cut-off
@@ -94,5 +130,7 @@ describe("liveGames", () => {
     expect(live[1]).toMatchObject({ turn: 9, level: 3, partySize: 3, testMode: false });
     expect(live[2]).toMatchObject({ mode: "multi", turn: 12, parties: 2, lobby: "started" });
     expect(live[0]).not.toHaveProperty("state");
+    expect(live[2]).toMatchObject({ score: null, area: null, activity: null }); // multiplayer: no single score or area
+    expect(live[1]).toMatchObject({ score: null, area: null, activity: null }); // partial state in this fixture
   });
 });

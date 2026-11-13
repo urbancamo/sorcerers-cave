@@ -218,7 +218,8 @@ export const save = mutation({
     if (!game || game.ownerId !== callerId) throw new Error("Forbidden");
     let code = game.code;
     if (!code) code = await uniqueCode(ctx); // back-fill a code for games created before this feature
-    await ctx.db.patch(id, { code, updatedAt: Date.now() });
+    const now = Date.now();
+    await ctx.db.patch(id, { code, updatedAt: now, savedAt: now });
     return code;
   },
 });

@@ -92,15 +92,19 @@ describe("Live games", () => {
   });
   it("lists games with test games flagged", () => {
     live = [
-      { id: "1", code: "LIVE", mode: "solo", lobby: null, testMode: false, turn: 9, level: 3, partySize: 3, parties: null, extensionKit: true, createdAt: 0, updatedAt: Date.now() },
-      { id: "2", code: "TEST", mode: "solo", lobby: null, testMode: true, turn: 1, level: 1, partySize: 1, parties: null, extensionKit: false, createdAt: 0, updatedAt: Date.now() },
-      { id: "3", code: "MULT", mode: "multi", lobby: "started", testMode: false, turn: 12, level: null, partySize: null, parties: 2, extensionKit: false, createdAt: 0, updatedAt: Date.now() },
+      { id: "1", code: "LIVE", mode: "solo", lobby: null, testMode: false, turn: 9, level: 3, partySize: 3, score: 85, area: "Tunnel NE", activity: "Combat", parties: null, extensionKit: true, createdAt: 0, updatedAt: Date.now() },
+      { id: "2", code: "TEST", mode: "solo", lobby: null, testMode: true, turn: 1, level: 1, partySize: 1, score: 20, area: "Gateway", activity: "Exploring", parties: null, extensionKit: false, createdAt: 0, updatedAt: Date.now() },
+      { id: "3", code: "MULT", mode: "multi", lobby: "started", testMode: false, turn: 12, level: null, partySize: null, score: null, area: null, activity: null, parties: 2, extensionKit: false, createdAt: 0, updatedAt: Date.now() },
     ];
     open();
     const rows = within(screen.getByTestId("live-games")).getAllByRole("row").slice(1);
     expect(rows).toHaveLength(3);
     expect(rows[0]).toHaveTextContent("LIVE");
     expect(rows[0]).toHaveTextContent("Extension kit");
+    expect(rows[0]).toHaveTextContent("85");
+    expect(rows[0]).toHaveTextContent("Tunnel NE");
+    expect(rows[0]).toHaveTextContent("Combat");
+    expect(rows[1]).toHaveTextContent("Exploring");
     expect(rows[1]).toHaveTextContent("test");
     expect(rows[2]).toHaveTextContent("2 parties");
   });
@@ -123,6 +127,19 @@ describe("History", () => {
     expect(rows[1]).toHaveTextContent("2 at the end");
     expect(within(rows[0]!).getByRole("button", { name: "Replay" })).toBeInTheDocument();
     expect(within(rows[1]!).queryByRole("button", { name: "Replay" })).toBeNull(); // no code, or not solo
+  });
+
+  it("sorts by any column, toggling direction on a second click", () => {
+    history = { results: [stat({ _id: "a", score: 50, code: "BBBB" }), stat({ _id: "b", score: 200, code: "AAAA" }), stat({ _id: "c", score: 120, code: "CCCC" })], status: "Exhausted", loadMore: vi.fn() };
+    open();
+    const codes = () => within(screen.getByTestId("history")).getAllByRole("row").slice(1).map((r) => within(r).getAllByRole("cell")[1]!.textContent);
+    fireEvent.click(screen.getByRole("button", { name: /^Score/ }));
+    expect(codes()).toEqual(["AAAA", "CCCC", "BBBB"]); // numbers start biggest-first
+    fireEvent.click(screen.getByRole("button", { name: /^Score/ }));
+    expect(codes()).toEqual(["BBBB", "CCCC", "AAAA"]);
+    fireEvent.click(screen.getByRole("button", { name: /^Code/ }));
+    expect(codes()).toEqual(["AAAA", "BBBB", "CCCC"]); // text starts A to Z
+    expect(screen.getByRole("columnheader", { name: /^Code/ })).toHaveAttribute("aria-sort", "ascending");
   });
 
   it("the outcome filter narrows the query", () => {

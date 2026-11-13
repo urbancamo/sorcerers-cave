@@ -52,3 +52,24 @@ describe("aggregate", () => {
     expect(a.variants).toEqual({ base: 1, extensionKit: 1, sibyl: 1 });
   });
 });
+
+describe("area and live figures", () => {
+  test("areaLabel names specials, tunnels and chambers", async () => {
+    const { areaLabel } = await import("./analyticsLib");
+    expect(areaLabel(1183)).toBe("Whirlpool");
+    expect(areaLabel(3)).toBe("Tunnel NE");
+    expect(areaLabel(31)).toBe("Chamber NESW");
+  });
+
+  test("liveFigures scores a full state, labels where it is and what it is doing, and tolerates junk", async () => {
+    const { liveFigures } = await import("./analyticsLib");
+    const { newGame, scoreGame } = await import("@sorcerers-cave/engine");
+    const state = newGame(1, [4, 6]);
+    const f = liveFigures(state);
+    expect(f.score).toBe(scoreGame(state));
+    expect(f.area).toMatch(/^(Chamber|Tunnel|Gateway)/);
+    expect(f.activity).toBe("Exploring");
+    expect(liveFigures({ phase: "fight" }).activity).toBe("Combat");
+    expect(liveFigures(null)).toEqual({ score: null, area: null, activity: null });
+  });
+});
