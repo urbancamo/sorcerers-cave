@@ -2337,6 +2337,7 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 .scv-rev .scv-match-bg{min-width:90px;}
 /* The box is as wide as the cards in it (one slot when empty). Its title is pinned inside the top edge and wraps onto a second line when the box is narrow. */
 .scv-rev .scv-rev-frontline{min-width:170px;padding-top:44px;}
+.scv-rev .scv-rev-frontline > .scv-match-slotlbl{white-space:normal;}   /* the long title wraps; only the short "behind" labels are kept on one line */
 /* Responsive: the front line sits beside the pairing rows while they have 600px, and above them when they do not (the board then scrolls). */
 .scv-rev > .scv-rev-board{flex-wrap:wrap;overflow:hidden auto;align-content:flex-start;}
 .scv-rev-board > .scv-fight-strangers{flex:1 1 600px;}
