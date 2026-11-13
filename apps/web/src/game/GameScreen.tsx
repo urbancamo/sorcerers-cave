@@ -270,7 +270,7 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
   // Return to the splash screen, clearing all in-game overlays and the current game binding.
   const goHome = useCallback(() => {
     clearRoll(); clearNotices(); setSavedCode(null); setPartyExpanded(false); setLeftSlot(null); setRightSlot(null); setSelected(null); setTestOpen(false);
-    setGameId(null); setStarted(false); setWantTestGame(false);
+    setGameId(null); setStarted(false);
   }, [clearRoll, clearNotices]);
 
   // Save from the HUD (or the Test Mode panel): the state is already authoritative in Convex, so
@@ -402,7 +402,7 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
         <GameOverScreen
           state={displayState}
           // Return to the splash screen (the home / high-scores entry), not straight to party select.
-          onNewGame={() => { if (local) { onLocalExit?.(); return; } clearRoll(); clearNotices(); setGameId(null); setStarted(false); setWantTestGame(false); }}
+          onNewGame={() => { if (local) { onLocalExit?.(); return; } clearRoll(); clearNotices(); setGameId(null); setStarted(false); }}
           onSaveScore={displayState.testMode || !gameId ? undefined : (name) => saveScore({ gameId, name })}
           log={gameLog ?? null}
           code={code ?? gameLog?.game.code ?? null}

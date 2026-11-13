@@ -8,7 +8,8 @@ export const DAYS = 30;
 const DAY_MS = 86_400_000;
 
 const tally = (counts: Map<number, number>, key: number) => counts.set(key, (counts.get(key) ?? 0) + 1);
-const sorted = (m: Map<number, number>, k: string) => [...m.entries()].sort((a, b) => a[0] - b[0]).map(([key, count]) => ({ [k]: key, count }));
+const sorted = <K extends string>(m: Map<number, number>, k: K) =>
+  [...m.entries()].sort((a, b) => a[0] - b[0]).map(([key, count]) => ({ [k]: key, count }) as Record<K, number> & { count: number });
 
 /** Everything the analytics charts show, from a window of recorded games. Pure, so it is tested without a database. */
 export function aggregate(rows: Row[], now: number) {
@@ -50,7 +51,7 @@ export function aggregate(rows: Row[], now: number) {
     n: rows.length,
     outcomes,
     escapedScore: { mean: mean(scores), median, max: scores.length ? scores[scores.length - 1]! : null, meanTurns: mean(turns) },
-    scoreHistogram: sorted(buckets, "from").map((b) => ({ from: b.from as number, to: (b.from as number) + SCORE_BUCKET, count: b.count })),
+    scoreHistogram: sorted(buckets, "from").map((b) => ({ from: b.from, to: b.from + SCORE_BUCKET, count: b.count })),
     perDay: days,
     deepest: sorted(deepest, "level"),
     dragonKills: sorted(dragons, "kills"),
