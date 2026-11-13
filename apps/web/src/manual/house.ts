@@ -55,7 +55,7 @@ export const HOUSE: Section = {
         '**A look before the dice**, then **the matches are fought**.',
       ),
       p('The Ring and curses add to or take from your dice as usual, and the first round carries the surprise bonus. A match you lose costs you its front line, with the same choice of who falls when two stood together. A match you win removes the foe.'),
-      note('info', 'Provisional', 'These are Peter\'s reformulated fighting rules and parts are still provisional. A game played with the revised combat cannot be recorded on the leaderboard.'),
+      note('info', 'Provisional', 'These are Peter\'s reformulated fighting rules and parts are still provisional.'),
     ] },
     { id: 'rc-scroll', title: 'The Scroll', brief: 'Read it before a round to destroy the non-magical, or take +1 to surprise. It is not used up.', requires: 'combatRevision', cards: [], screens: ['fight-revised'], blocks: [
       p('If your party **attacks**, carries the Scroll with a human present, has no Eye of God, and has not used it in this area before, the fight waits before each round for you to read it, if you wish. Open the Scroll\'s card (from the party list or Inventory) and choose:'),

@@ -72,7 +72,7 @@ Any value other than the literal string `1` (including unset) is treated as off.
 
 ## `REVISED_COMBAT_ENABLED`
 
-Turns on **the revised combat** (`variants.combatRevision`; Peter's reformulated fighting rules, `docs/rules/fighting-rules-reformulated-20261014.md`,
+**On by default** (since 2026-11-13); set it to `0` to turn it off. It is **the revised combat** (`variants.combatRevision`; Peter's reformulated fighting rules, `docs/rules/fighting-rules-reformulated-20261014.md`,
 engine spec SC-9.7-1 to SC-9.7-17, SC-7.2-21, SC-EXT-42). A fight is no longer one battle plan: it is played round by round on a
 formation screen. The defender deploys, the attacker pairs its free creatures against that front line, either side may then send
 extra creatures into a match, and the matches are fought; a tied or unwinnable match persists into the next round, and the fight ends
@@ -81,18 +81,17 @@ Spectre (one round only), the Ghouls (a stranger party of their own) and the App
 Sorcerer's death). Solo games only. Without it (or with it switched off) fights are played exactly as before.
 
 Like `FORCED_REDRAW_ENABLED` it is **never player-selectable and never sent by the client**; it is folded into a new game's
-`variants` in `convex/game.ts`. A game keeps the value it was created with. These rules are still provisional, so **a game played
-with it cannot be recorded on the leaderboard** (`highScores.save` refuses it). The strangers' side is played by the level named by
+`variants` in `convex/game.ts`. A game keeps the value it was created with. Games played with it **can** be recorded on the leaderboard. The strangers' side is played by the level named by
 `STRANGER_STRATEGY` (`standard` when unset).
 
 ```bash
 cd apps/web
-npx convex env set REVISED_COMBAT_ENABLED 1        # local dev
-npx convex env set REVISED_COMBAT_ENABLED 1 --prod # production
-npx convex env remove REVISED_COMBAT_ENABLED [--prod]
+npx convex env set REVISED_COMBAT_ENABLED 0        # turn it off, local dev (back to the old battle plan)
+npx convex env set REVISED_COMBAT_ENABLED 0 --prod # turn it off, production
+npx convex env remove REVISED_COMBAT_ENABLED [--prod]   # back to the default (on)
 ```
 
-Any value other than the literal string `1` (including unset) is treated as off.
+Only the literal string `0` turns it off; unset, `1` or anything else leaves it on.
 
 ## `TRAP_RULES_ENABLED`
 

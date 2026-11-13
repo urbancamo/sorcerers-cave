@@ -98,7 +98,8 @@ const variantsValidator = v.object({ extensionKit: v.optional(v.boolean()), siby
 // avoids it).
 //
 // The revised combat (`variants.combatRevision`, solo only; Peter's reformulated fighting rules) comes from
-// `REVISED_COMBAT_ENABLED`, off by default: a fight is then played round by round with a formation screen instead of the battle plan.
+// `REVISED_COMBAT_ENABLED`, on by default since 2026-11-13: a fight is played round by round with a formation screen instead of the
+// battle plan. Setting it to the literal string `0` turns it off (the old battle plan); a game keeps the value it was created with.
 //
 // The strangers' strategy (`variants.strangerLevel`, solo only; pluggable stranger combat spec) comes from
 // `STRANGER_STRATEGY`, a registered strategy id. Unset, or an id no strategy is registered under, ⇒ not stamped ⇒ the
@@ -109,7 +110,7 @@ function withForcedRedraw(variants: { extensionKit?: boolean; sibyl?: boolean } 
   if (process.env.FORCED_REDRAW_ENABLED === "1") out = { ...out, forcedRedraw: true };
   if (process.env.SORCERER_TELEPORT_ENABLED === "1") out = { ...out, sorcererTeleport: true };
   if (process.env.TRAP_RULES_ENABLED === "1") out = { ...out, trapRules: true };
-  if (process.env.REVISED_COMBAT_ENABLED === "1") out = { ...out, combatRevision: true };
+  if (process.env.REVISED_COMBAT_ENABLED !== "0") out = { ...out, combatRevision: true };
   const strategy = process.env.STRANGER_STRATEGY;
   if (strategy && hasStrategy(strategy)) out = { ...out, strangerLevel: strategy };
   return out;
