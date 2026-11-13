@@ -3,6 +3,7 @@ import { useQuery } from 'convex/react';
 import { ALL_CREATURES } from '@sorcerers-cave/engine';
 import { api } from '../../../convex/_generated/api';
 import { ReplayView } from '../../game/ReplayView';
+import { Tabs } from '../Tabs';
 import { useReplayBundle } from '../useReplayBundle';
 import { Bars, Columns, type Item } from './charts';
 import { History } from './History';
@@ -65,15 +66,10 @@ export function AnalyticsTab() {
   const { bundle, open, close } = useReplayBundle();
   if (bundle) return <ReplayView bundle={bundle} onExit={close} />;
   return (
-    <div className="scv-an">
-      <nav className="scv-hs-tabs scv-admin-tabs" role="tablist" aria-label="Analytics views">
-        {SUBS.map((x) => (
-          <button key={x.id} role="tab" aria-selected={sub === x.id} className={`scv-hs-tab${sub === x.id ? ' scv-hs-tab-on' : ''}`} onClick={() => setSub(x.id)}>{x.label}</button>
-        ))}
-      </nav>
+    <Tabs tabs={SUBS} value={sub} onChange={setSub} label="Analytics views" variant="sub">
       {sub === 'overview' && <Overview />}
       {sub === 'live' && <LiveGames />}
       {sub === 'history' && <History onReplay={open} />}
-    </div>
+    </Tabs>
   );
 }

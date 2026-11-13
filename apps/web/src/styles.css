@@ -2556,9 +2556,6 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
 .scv-admin-card { display: flex; flex-direction: column; gap: 12px; padding: 18px; }
 .scv-admin-card .scv-admin-note { margin: 0; }
 .scv-admin-card .scv-primary, .scv-admin-card .scv-ghost { align-self: flex-start; }
-.scv-admin-tabs { flex-wrap: wrap; }
-.scv-admin-tabs .scv-hs-tab { flex: 0 1 auto; min-width: 110px; }
-.scv-admin .scv-hs-tab-on { color: var(--void); }
 .scv-admin-testing { display: grid; gap: 14px; }
 .scv-admin-testing > * { min-width: 0; }
 /* The game's panels carry fixed widths (460px; the party chooser 720px, its row 1040px). In the admin area they fill their container instead. */
@@ -2604,3 +2601,22 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
 .scv-an-out-escaped::before { background: var(--out-escaped); }
 .scv-an-out-dead::before { background: var(--out-dead); }
 .scv-an-out-quit::before { background: var(--out-quit); }
+
+/* ---- Tab pane: tabs joined to the pane they control (admin) ---- */
+.scv-tabs { --pane: #0e0e13; display: flex; flex-direction: column; min-width: 0; }
+.scv-tabs-list { display: flex; flex-wrap: wrap; gap: 2px; padding: 0 6px; border-bottom: 1px solid var(--line-strong); }
+.scv-tab { margin-bottom: -1px; padding: 10px 18px; font-family: var(--ui); font-size: 13.5px; letter-spacing: .03em; cursor: pointer;
+  color: var(--stone); background: transparent; border: 1px solid transparent; border-bottom: 0; border-radius: 10px 10px 0 0;
+  transition: color .15s, background .15s; }
+.scv-tab:hover { color: var(--cream); background: rgba(232, 219, 187, 0.05); }
+.scv-tab:focus-visible { outline: 2px solid var(--brass-bright); outline-offset: -2px; }
+.scv-tab[aria-selected="true"] { color: var(--cream); font-weight: 600; background: var(--pane); border-color: var(--line-strong);
+  box-shadow: inset 0 2px 0 var(--brass); padding-bottom: 11px; }
+.scv-tabs-pane { padding: 18px; background: var(--pane); border: 1px solid var(--line-strong); border-top: 0; border-radius: 0 0 12px 12px; min-width: 0; }
+.scv-tabs-pane:focus-visible { outline: 2px solid var(--brass-bright); outline-offset: 2px; }
+/* A tab pane inside a pane: lighter, underline-style tabs over a flat body. */
+.scv-tabs-sub .scv-tabs-list { padding: 0; }
+.scv-tabs-sub .scv-tab { padding: 8px 14px; font-size: 13px; border: 0; border-radius: 0; margin-bottom: -1px; border-bottom: 2px solid transparent; }
+.scv-tabs-sub .scv-tab[aria-selected="true"] { background: transparent; box-shadow: none; border-bottom-color: var(--brass); padding-bottom: 8px; }
+.scv-tabs-sub .scv-tabs-pane { padding: 16px 0 0; background: transparent; border: 0; border-radius: 0; }
+@media (max-width: 480px) { .scv-tab { padding: 9px 12px; } .scv-tabs-pane { padding: 12px; } }
