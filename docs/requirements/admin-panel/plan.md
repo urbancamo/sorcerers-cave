@@ -43,7 +43,7 @@ Games hold a large inline `state` blob and only `by_owner`/`by_code` indexes, so
 - New plain table **`gameStats`**: one row per finished solo game or multiplayer party. Fields: `gameId`, `mode`
   (solo/multi), `outcome` (escaped/dead/quit), `score`, `turn`, `deepestLevel`, `areas`, `dragonKills`, `membersLost`,
   `picks`, `variants`, `testMode`, `players`, `finishedAt`. Indexes `by_finishedAt`, `by_outcome_and_finishedAt`,
-  `by_gameId`. Test games are stamped and excluded from analytics by default.
+  `by_gameId`. Test Mode games are never recorded (so the "include test games" filter in section 5 is dropped; live games still flag them).
 - Written where status flips to finished (`applyAction`, `game.ts` ~269-270, using `scoreGame`/`scoreBreakdown`) and in
   multiplayer `recordTerminals` (~564-590), since multi `games.status` never flips. Idempotent on `gameId`.
 - **Backfill** internal mutation over existing finished games (follow `highScores.backfillMaxDepth`).
@@ -71,7 +71,7 @@ Games hold a large inline `state` blob and only `by_owner`/`by_code` indexes, so
 
 ## 5. Game Analytics tab
 
-Three sections, a header filter (Solo / Multi / All, include test games off by default):
+Three sections, a header filter (Solo / Multi / All):
 1. **Overview panel**: stat tiles (games played, escape rate, death rate, quit rate, average and median score, average
    deepest level) and hand-rolled inline-SVG charts (no chart library): outcome split (stacked bar), score distribution
    (histogram), games per day (bars), deepest-level reach (funnel), party composition and variant uptake (ranked bars),

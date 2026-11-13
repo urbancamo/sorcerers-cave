@@ -9,11 +9,14 @@
  */
 
 import type * as admin from "../admin.js";
+import type * as analytics from "../analytics.js";
+import type * as analyticsLib from "../analyticsLib.js";
 import type * as auth from "../auth.js";
 import type * as bugReport from "../bugReport.js";
 import type * as bugReportIssue from "../bugReportIssue.js";
 import type * as endpointClient from "../endpointClient.js";
 import type * as game from "../game.js";
+import type * as gameStats from "../gameStats.js";
 import type * as highScores from "../highScores.js";
 import type * as http from "../http.js";
 import type * as multiplayer from "../multiplayer.js";
@@ -28,11 +31,14 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
+  analytics: typeof analytics;
+  analyticsLib: typeof analyticsLib;
   auth: typeof auth;
   bugReport: typeof bugReport;
   bugReportIssue: typeof bugReportIssue;
   endpointClient: typeof endpointClient;
   game: typeof game;
+  gameStats: typeof gameStats;
   highScores: typeof highScores;
   http: typeof http;
   multiplayer: typeof multiplayer;

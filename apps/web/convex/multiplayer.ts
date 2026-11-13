@@ -5,6 +5,7 @@ import type { Id, Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
 import { uniqueCode } from "./game";
 import { deepestLevel } from "./highScores";
+import { recordStat, statsFromState } from "./gameStats";
 import { buildMpGame, choosePartyFor, mpReduce, partyView, fogFilter, distantFights, zombiePostSweep, repairTurnFlow, mpScore, occupants, areaInteractionMask, expireTrade, expirePvp, expireUnionProposal, pvpView, PVP_WINDOW_MS, CREATURES, TREASURES, KIT_CREATURES, PARTY_BUDGET, type MpGameState, type MpAction, type PartyState, type GameEvent } from "@sorcerers-cave/engine";
 
 // Permissive action shape; the engine (mpReduce) enforces semantics. Includes the lobby-level endTurn.
@@ -582,6 +583,8 @@ async function recordTerminals(
       seatCount: after.parties.length,
       maxDepth: deepestLevel(view),
     });
+    const stat = statsFromState(view, score, { gameId, seat: p.seat, mode: "multi", seatCount: after.parties.length, finishedAt: now });
+    if (stat) await recordStat(ctx, stat);
     const verb = OUTCOME_VERB[p.status] ?? "finished";
     if (row) await postAction(ctx, gameId, p.seat, p.name, row.color, `${verb} (score ${score})`, now);
   }

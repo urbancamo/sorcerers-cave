@@ -4,6 +4,7 @@ import { v } from "convex/values";
 import { nextSeq, park } from "./strangerDecision";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { requireRole } from "./roles";
+import { recordSoloFinish } from "./gameStats";
 import {
   newGame as createGameState,
   validatePicks,
@@ -264,6 +265,7 @@ export const applyAction = mutation({
     if (driven.awaiting && !awaitingRequest(state)) state = await park(ctx, id, state, seq + rows.length);
     const status = state.gs === GS_PLAYING ? "active" : "finished";
     await ctx.db.patch(id, { state, status, updatedAt: Date.now() });
+    if (status === "finished") await recordSoloFinish(ctx, game, state);
 
     for (const r of rows) await ctx.db.insert("gameEvents", { gameId: id, seq: seq++, action: r.action, events: r.events });
     // midState (SC-4-43): the pre-relocation presentation snapshot — never persisted,

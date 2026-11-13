@@ -9,6 +9,7 @@ import { internal } from "./_generated/api";
 import type { Id } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { askEndpoint, type Job } from "./endpointClient";
+import { recordSoloFinish } from "./gameStats";
 import {
   applyStrangerDecision, awaitingRequest, driveStrangers, getStrategy, markAwaiting, pendingContext, GS_PLAYING,
   type GameState,
@@ -81,6 +82,7 @@ export const commit = internalMutation({
     let next = driven.state;
     if (driven.awaiting && !awaitingRequest(next)) next = await park(ctx, gameId, next, seq + rows.length);
     await ctx.db.patch(gameId, { state: next, status: next.gs === GS_PLAYING ? "active" : "finished", updatedAt: Date.now() });
+    if (next.gs !== GS_PLAYING) await recordSoloFinish(ctx, game, next);
     for (const r of rows) await ctx.db.insert("gameEvents", { gameId, seq: seq++, ...r });
     return { committed: true };
   },

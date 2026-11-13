@@ -1,0 +1,61 @@
+import type { Doc } from "./_generated/dataModel";
+
+type Row = Pick<Doc<"gameStats">, "mode" | "outcome" | "score" | "turn" | "deepestLevel" | "dragonKills" | "membersLost" | "picks" | "extensionKit" | "sibyl" | "finishedAt">;
+type Outcomes = { escaped: number; dead: number; quit: number };
+
+export const SCORE_BUCKET = 50;
+export const DAYS = 30;
+const DAY_MS = 86_400_000;
+
+const tally = (counts: Map<number, number>, key: number) => counts.set(key, (counts.get(key) ?? 0) + 1);
+const sorted = (m: Map<number, number>, k: string) => [...m.entries()].sort((a, b) => a[0] - b[0]).map(([key, count]) => ({ [k]: key, count }));
+
+/** Everything the analytics charts show, from a window of recorded games. Pure, so it is tested without a database. */
+export function aggregate(rows: Row[], now: number) {
+  const outcomes: Record<"solo" | "multi", Outcomes> = { solo: { escaped: 0, dead: 0, quit: 0 }, multi: { escaped: 0, dead: 0, quit: 0 } };
+  const scores: number[] = [];
+  const turns: number[] = [];
+  const buckets = new Map<number, number>();
+  const deepest = new Map<number, number>(), dragons = new Map<number, number>(), lost = new Map<number, number>(), creatures = new Map<number, number>();
+  const variants = { base: 0, extensionKit: 0, sibyl: 0 };
+  const today = Math.floor(now / DAY_MS);
+  const perDay = new Map<number, Outcomes>();
+  for (const r of rows) {
+    outcomes[r.mode][r.outcome]++;
+    tally(deepest, r.deepestLevel);
+    tally(dragons, r.dragonKills);
+    tally(lost, r.membersLost);
+    for (const c of r.picks ?? []) tally(creatures, c);
+    if (r.sibyl) variants.sibyl++; else if (r.extensionKit) variants.extensionKit++; else variants.base++;
+    if (r.outcome === "escaped") {
+      scores.push(r.score);
+      turns.push(r.turn);
+      tally(buckets, Math.floor(r.score / SCORE_BUCKET) * SCORE_BUCKET);
+    }
+    const day = Math.floor(r.finishedAt / DAY_MS);
+    if (today - day < DAYS && day <= today) {
+      const d = perDay.get(day) ?? { escaped: 0, dead: 0, quit: 0 };
+      d[r.outcome]++;
+      perDay.set(day, d);
+    }
+  }
+  scores.sort((a, b) => a - b);
+  const mean = (xs: number[]) => (xs.length ? Math.round((xs.reduce((a, b) => a + b, 0) / xs.length) * 10) / 10 : null);
+  const median = scores.length ? (scores.length % 2 ? scores[(scores.length - 1) / 2]! : (scores[scores.length / 2 - 1]! + scores[scores.length / 2]!) / 2) : null;
+  const days = Array.from({ length: DAYS }, (_, i) => {
+    const day = today - (DAYS - 1 - i);
+    return { day: new Date(day * DAY_MS).toISOString().slice(0, 10), ...(perDay.get(day) ?? { escaped: 0, dead: 0, quit: 0 }) };
+  });
+  return {
+    n: rows.length,
+    outcomes,
+    escapedScore: { mean: mean(scores), median, max: scores.length ? scores[scores.length - 1]! : null, meanTurns: mean(turns) },
+    scoreHistogram: sorted(buckets, "from").map((b) => ({ from: b.from as number, to: (b.from as number) + SCORE_BUCKET, count: b.count })),
+    perDay: days,
+    deepest: sorted(deepest, "level"),
+    dragonKills: sorted(dragons, "kills"),
+    membersLost: sorted(lost, "lost"),
+    creatures: sorted(creatures, "id").sort((a, b) => b.count - a.count),
+    variants,
+  };
+}

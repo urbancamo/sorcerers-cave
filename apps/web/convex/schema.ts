@@ -57,7 +57,41 @@ export default defineSchema({
     updatedAt: v.number(),
   })
     .index("by_owner", ["ownerId"])
-    .index("by_code", ["code"]),
+    .index("by_code", ["code"])
+    // Live-game lookups for the admin analytics: active games, newest activity first, without reading every game.
+    .index("by_status_and_updatedAt", ["status", "updatedAt"]),
+  // Analytics summary, one row per finished solo game or per finished multiplayer party (seat). Written when a game
+  // reaches a terminal state, so the admin panel never has to read the big `games.state` blobs. Test Mode games are
+  // never recorded. Unlike `highScores` (escaped solo games only) this holds deaths and quits too.
+  gameStats: defineTable({
+    gameId: v.id("games"),
+    seat: v.number(), // 0 for a solo game
+    mode: v.union(v.literal("solo"), v.literal("multi")),
+    outcome: v.union(v.literal("escaped"), v.literal("dead"), v.literal("quit")),
+    score: v.number(),
+    turn: v.number(),
+    deepestLevel: v.number(),
+    areas: v.number(),
+    dragonKills: v.number(),
+    membersLost: v.number(), // party members dead or turned to stone
+    partySize: v.number(), // members at the end, including any recruited
+    picks: v.optional(v.array(v.number())), // the starting party (solo only)
+    extensionKit: v.boolean(),
+    sibyl: v.boolean(),
+    seatCount: v.optional(v.number()), // multiplayer: parties in the cave
+    finishedAt: v.number(), // approximate for rows backfilled from before this table existed
+  })
+    .index("by_finishedAt", ["finishedAt"])
+    .index("by_outcome_and_finishedAt", ["outcome", "finishedAt"])
+    .index("by_game_and_seat", ["gameId", "seat"]),
+  // Running totals over every recorded game (one row, key "all"), kept in step with gameStats so headline figures
+  // never need a table scan.
+  gameStatsTotals: defineTable({
+    key: v.literal("all"),
+    games: v.number(), solo: v.number(), multi: v.number(),
+    escaped: v.number(), dead: v.number(), quit: v.number(),
+    escapedScoreSum: v.number(),
+  }).index("by_key", ["key"]),
   // Multiplayer seats — one row per player in a multi game (Phase 1).
   players: defineTable({
     gameId: v.id("games"),
