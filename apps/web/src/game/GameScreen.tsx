@@ -383,7 +383,7 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
         onBack={() => { setStarted(false); setWantTestGame(false); }}
         onConfirm={async (picks, color, variants) => {
           const id = wantTestGame && testSecret
-            ? await startTestGame({ secret: testSecret, seed: Date.now(), picks, color, variants })
+            ? await startTestGame({ seed: Date.now(), picks, color, variants })
             : await newGame({ seed: Date.now(), picks, color, variants });
           setGameId(id);
         }}

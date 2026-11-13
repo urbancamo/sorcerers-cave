@@ -8,6 +8,7 @@
  * @module
  */
 
+import type * as admin from "../admin.js";
 import type * as auth from "../auth.js";
 import type * as bugReport from "../bugReport.js";
 import type * as bugReportIssue from "../bugReportIssue.js";
@@ -16,6 +17,7 @@ import type * as game from "../game.js";
 import type * as highScores from "../highScores.js";
 import type * as http from "../http.js";
 import type * as multiplayer from "../multiplayer.js";
+import type * as roles from "../roles.js";
 import type * as strangerDecision from "../strangerDecision.js";
 
 import type {
@@ -25,6 +27,7 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  admin: typeof admin;
   auth: typeof auth;
   bugReport: typeof bugReport;
   bugReportIssue: typeof bugReportIssue;
@@ -33,6 +36,7 @@ declare const fullApi: ApiFromModules<{
   highScores: typeof highScores;
   http: typeof http;
   multiplayer: typeof multiplayer;
+  roles: typeof roles;
   strangerDecision: typeof strangerDecision;
 }>;
 

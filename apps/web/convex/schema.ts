@@ -2,8 +2,20 @@ import { defineSchema, defineTable } from "convex/server";
 import { v } from "convex/values";
 import { authTables } from "@convex-dev/auth/server";
 
+// RBAC roles for the hidden admin panel (/login). SYSTEM implies every other role (see roles.ts).
+// Roles are only ever written by the internal seed in admin.ts, never from a client argument.
+export const roleValidator = v.union(v.literal("SYSTEM"), v.literal("USER"), v.literal("ANALYTICS"), v.literal("TEST"));
+
 export default defineSchema({
   ...authTables,
+  // The auth library's users table plus `roles` (optional so anonymous players and old rows validate).
+  // Its `email` and `phone` indexes must be kept: the library's account lookups use them.
+  users: defineTable({
+    ...authTables.users.validator.fields,
+    roles: v.optional(v.array(roleValidator)),
+  })
+    .index("email", ["email"])
+    .index("phone", ["phone"]),
   games: defineTable({
     ownerId: v.optional(v.id("users")),
     // Short, human-typable resume handle: four uppercase letters, unique across games. Optional so

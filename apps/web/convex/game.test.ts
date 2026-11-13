@@ -8,10 +8,12 @@ const modules = import.meta.glob("./**/*.*s");
 
 // Authenticate the convex-test client as a fresh anonymous user (no JWT available in tests).
 // getAuthUserId parses the user id from the subject's first `|`-segment.
-export async function asUser(t: ReturnType<typeof convexTest>) {
-  const userId = await t.run((ctx) => ctx.db.insert("users", {}));
+export async function asUser(t: ReturnType<typeof convexTest>, roles?: ("SYSTEM" | "USER" | "ANALYTICS" | "TEST")[]) {
+  const userId = await t.run((ctx) => ctx.db.insert("users", roles ? { roles } : {}));
   return { as: t.withIdentity({ subject: `${userId}|session` }), userId };
 }
+// A signed-in admin holding the TEST role (Test Mode is gated on it, not on a secret).
+export const asTester = (t: ReturnType<typeof convexTest>) => asUser(t, ["TEST"]);
 
 test("newGame builds and persists a real engine GameState", async () => {
   const t = convexTest(schema, modules);
@@ -42,7 +44,7 @@ test("newGame rejects an illegal party selection", async () => {
 
 // ---------------------------------------------------------------------------
 // Dead End rule (§6.3.2, "forced redraw"): server-stamped from a Convex-only env var, never
-// accepted from the client — mirrors the TEST_MODE_SECRET pattern (never a VITE_-prefixed name).
+// accepted from the client — mirrors the Test Mode pattern (never a VITE_-prefixed name).
 // ---------------------------------------------------------------------------
 describe("forcedRedraw (leaderboard-affecting, so never client-settable)", () => {
   const ORIGINAL = process.env.FORCED_REDRAW_ENABLED;
@@ -73,14 +75,12 @@ describe("forcedRedraw (leaderboard-affecting, so never client-settable)", () =>
 
   test("startTestGame: FORCED_REDRAW_ENABLED=1 also stamps a test-mode game", async () => {
     process.env.FORCED_REDRAW_ENABLED = "1";
-    process.env.TEST_MODE_SECRET = "correct-uuid";
     const t = convexTest(schema, modules);
-    const { as } = await asUser(t);
-    const id = await as.mutation(api.game.startTestGame, { secret: "correct-uuid", seed: 1, picks: [0] });
+    const { as } = await asTester(t);
+    const id = await as.mutation(api.game.startTestGame, { seed: 1, picks: [0] });
     const game = await as.query(api.game.get, { id });
     expect(game?.state.variants?.forcedRedraw).toBe(true);
     expect(game?.state.testMode).toBe(true); // unaffected — the two flags are independent
-    delete process.env.TEST_MODE_SECRET;
   });
 });
 
@@ -567,44 +567,39 @@ test("replayByCode log replays to the stored final state", async () => {
 // Test Mode: startTestGame
 // ---------------------------------------------------------------------------
 describe("startTestGame", () => {
-  const ORIGINAL_SECRET = process.env.TEST_MODE_SECRET;
-  beforeEach(() => { process.env.TEST_MODE_SECRET = "correct-uuid"; });
-  // Assigning `undefined` to a process.env property does NOT delete it in Node — it coerces to the
-  // literal (truthy) string "undefined". Since TEST_MODE_SECRET is unset in any normal dev/CI
-  // environment, ORIGINAL_SECRET is undefined here, so restoring must delete the key rather than
-  // assign undefined, or every afterEach would leave the env polluted with "undefined".
-  afterEach(() => {
-    if (ORIGINAL_SECRET === undefined) delete process.env.TEST_MODE_SECRET;
-    else process.env.TEST_MODE_SECRET = ORIGINAL_SECRET;
-  });
-
-  test("creates a testMode:true game when the secret matches", async () => {
+  test("creates a testMode:true game for a TEST-role user", async () => {
     const t = convexTest(schema, modules);
-    const { as } = await asUser(t);
-    const id = await as.mutation(api.game.startTestGame, { secret: "correct-uuid", seed: 1, picks: [0] });
+    const { as } = await asTester(t);
+    const id = await as.mutation(api.game.startTestGame, { seed: 1, picks: [0] });
     const game = await as.query(api.game.get, { id });
     expect(game?.state.testMode).toBe(true);
   });
 
-  test("rejects a wrong secret and creates no game", async () => {
+  test("refuses a user with no roles (an ordinary player) and creates no game", async () => {
     const t = convexTest(schema, modules);
     const { as } = await asUser(t);
-    await expect(as.mutation(api.game.startTestGame, { secret: "wrong", seed: 1, picks: [0] })).rejects.toThrow();
+    await expect(as.mutation(api.game.startTestGame, { seed: 1, picks: [0] })).rejects.toThrow("Forbidden");
     const mine = await as.query(api.game.listMine, {});
     expect(mine).toHaveLength(0);
   });
 
-  test("fails closed when TEST_MODE_SECRET is not configured", async () => {
-    delete process.env.TEST_MODE_SECRET;
+  test("refuses a user holding only other roles", async () => {
     const t = convexTest(schema, modules);
-    const { as } = await asUser(t);
-    await expect(as.mutation(api.game.startTestGame, { secret: "anything", seed: 1, picks: [0] })).rejects.toThrow();
+    const { as } = await asUser(t, ["ANALYTICS", "USER"]);
+    await expect(as.mutation(api.game.startTestGame, { seed: 1, picks: [0] })).rejects.toThrow("Forbidden");
+  });
+
+  test("SYSTEM implies TEST", async () => {
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t, ["SYSTEM"]);
+    const id = await as.mutation(api.game.startTestGame, { seed: 1, picks: [0] });
+    expect((await as.query(api.game.get, { id }))?.state.testMode).toBe(true);
   });
 
   test("applyAction accepts testForceDie/testForceAllDice's value field (arg validator, SC-Test-10)", async () => {
     const t = convexTest(schema, modules);
-    const { as } = await asUser(t);
-    const id = await as.mutation(api.game.startTestGame, { secret: "correct-uuid", seed: 7, picks: [0] });
+    const { as } = await asTester(t);
+    const id = await as.mutation(api.game.startTestGame, { seed: 7, picks: [0] });
     // Regression: the hand-maintained actionValidator was never updated for the Next Roll Selector
     // (SC-Test-10) — every real testForceDie/testForceAllDice dispatch was silently rejected
     // server-side with an ArgumentValidationError on the extra `value` field, even though the engine
@@ -625,16 +620,16 @@ describe("startTestGame", () => {
 
   test("requires authentication", async () => {
     const t = convexTest(schema, modules);
-    await expect(t.mutation(api.game.startTestGame, { secret: "correct-uuid", seed: 1, picks: [0] })).rejects.toThrow();
+    await expect(t.mutation(api.game.startTestGame, { seed: 1, picks: [0] })).rejects.toThrow("Unauthenticated");
   });
 
   // Test Mode party selection (docs/requirements/test-mode/2026-09-13-test-mode-party-selection.md):
   // no budget or per-creature stock ceiling — a scripted scenario can seat any party.
   test("allows an over-budget, over-stock party (Test Mode has no party limits)", async () => {
     const t = convexTest(schema, modules);
-    const { as } = await asUser(t);
+    const { as } = await asTester(t);
     const picks = [0, 0, 4, 4]; // two Heroes + two Priests: over stock and over the 6-point budget
-    const id = await as.mutation(api.game.startTestGame, { secret: "correct-uuid", seed: 1, picks });
+    const id = await as.mutation(api.game.startTestGame, { seed: 1, picks });
     const game = await as.query(api.game.get, { id });
     expect(game?.state.party.map((m: { creatureId: number }) => m.creatureId)).toEqual(picks);
   });
@@ -644,22 +639,15 @@ describe("startTestGame", () => {
 // Test Mode: restoreTestScenario (save/restore a test scenario for bug reports)
 // ---------------------------------------------------------------------------
 describe("restoreTestScenario", () => {
-  const ORIGINAL_SECRET = process.env.TEST_MODE_SECRET;
-  beforeEach(() => { process.env.TEST_MODE_SECRET = "correct-uuid"; });
-  afterEach(() => {
-    if (ORIGINAL_SECRET === undefined) delete process.env.TEST_MODE_SECRET;
-    else process.env.TEST_MODE_SECRET = ORIGINAL_SECRET;
-  });
-
   test("forks a test-mode game into a new, differently-owned game with a new code", async () => {
     const t = convexTest(schema, modules);
-    const owner = await asUser(t);
-    const id = await owner.as.mutation(api.game.startTestGame, { secret: "correct-uuid", seed: 1, picks: [0] });
+    const owner = await asTester(t);
+    const id = await owner.as.mutation(api.game.startTestGame, { seed: 1, picks: [0] });
     await owner.as.mutation(api.game.applyAction, { id, action: { type: "testForceReaction", outcome: "friendly" } });
     const code = await owner.as.mutation(api.game.save, { id });
 
     // Deliberately a DIFFERENT user — restoring is open-by-code, not owner-scoped (unlike resumeByCode).
-    const other = await asUser(t);
+    const other = await asTester(t);
     const restored = await other.as.mutation(api.game.restoreTestScenario, { code });
     expect(restored.code).not.toBe(code);
 
@@ -682,14 +670,14 @@ describe("restoreTestScenario", () => {
     const id = await owner.as.mutation(api.game.newGame, { seed: 1, picks: [0] });
     const code = await owner.as.mutation(api.game.save, { id });
 
-    const other = await asUser(t);
-    await expect(other.as.mutation(api.game.restoreTestScenario, { code })).rejects.toThrow();
+    const other = await asTester(t);
+    await expect(other.as.mutation(api.game.restoreTestScenario, { code })).rejects.toThrow("Only a Test Mode scenario");
   });
 
   test("rejects an unknown code", async () => {
     const t = convexTest(schema, modules);
-    const { as } = await asUser(t);
-    await expect(as.mutation(api.game.restoreTestScenario, { code: "ZZZZ" })).rejects.toThrow();
+    const { as } = await asTester(t);
+    await expect(as.mutation(api.game.restoreTestScenario, { code: "ZZZZ" })).rejects.toThrow("No game with that code");
   });
 
   test("rejects a multiplayer game", async () => {
@@ -701,13 +689,22 @@ describe("restoreTestScenario", () => {
         status: "active", createdAt: 0, updatedAt: 0,
       }),
     );
-    const other = await asUser(t);
-    await expect(other.as.mutation(api.game.restoreTestScenario, { code: "MPMP" })).rejects.toThrow();
+    const other = await asTester(t);
+    await expect(other.as.mutation(api.game.restoreTestScenario, { code: "MPMP" })).rejects.toThrow("Multiplayer");
   });
 
   test("requires authentication", async () => {
     const t = convexTest(schema, modules);
-    await expect(t.mutation(api.game.restoreTestScenario, { code: "ABCD" })).rejects.toThrow();
+    await expect(t.mutation(api.game.restoreTestScenario, { code: "ABCD" })).rejects.toThrow("Unauthenticated");
+  });
+
+  test("refuses a user without the TEST role, even for a real scenario code", async () => {
+    const t = convexTest(schema, modules);
+    const owner = await asTester(t);
+    const id = await owner.as.mutation(api.game.startTestGame, { seed: 1, picks: [0] });
+    const code = await owner.as.mutation(api.game.save, { id });
+    const player = await asUser(t);
+    await expect(player.as.mutation(api.game.restoreTestScenario, { code })).rejects.toThrow("Forbidden");
   });
 });
 
@@ -717,17 +714,10 @@ describe("restoreTestScenario", () => {
 // treatment: surfaced on the log/replayByCode bundles and passed as replay()'s 5th argument.
 // ---------------------------------------------------------------------------
 describe("log/replayByCode surface testMode, and replay() reproduces a test-mode game's overrides", () => {
-  const ORIGINAL_SECRET = process.env.TEST_MODE_SECRET;
-  beforeEach(() => { process.env.TEST_MODE_SECRET = "correct-uuid"; });
-  afterEach(() => {
-    if (ORIGINAL_SECRET === undefined) delete process.env.TEST_MODE_SECRET;
-    else process.env.TEST_MODE_SECRET = ORIGINAL_SECRET;
-  });
-
   test("bundle.game.testMode is true for a test-mode game, and replay() reproduces the queued override", async () => {
     const t = convexTest(schema, modules);
-    const { as } = await asUser(t);
-    const id = await as.mutation(api.game.startTestGame, { secret: "correct-uuid", seed: 1, picks: [0] });
+    const { as } = await asTester(t);
+    const id = await as.mutation(api.game.startTestGame, { seed: 1, picks: [0] });
     // testForceReaction needs no particular phase (only the testMode gate) — arming testNextReaction
     // is exactly the divergence a testMode-blind replay would silently drop (it would come back
     // `blocked`, leaving testNextReaction unset, instead of arming it).
