@@ -1995,11 +1995,11 @@
 /* Both boxes reserve the same 22px at the top for the bg slot's "✦ behind" label (absolutely
    positioned there, out of flow) — front has no label but keeps the same reserved space, so a card
    in either box starts at the identical Y, whether it's the primary/secondary line or the magic user. */
-.scv-match-front { min-height: 178px; min-width: 254px; display: flex; gap: 10px; align-items: flex-start; justify-content: center; padding: 22px 6px 6px; border: 1px dashed var(--line); border-radius: 9px; }
-.scv-match-bg { min-height: 178px; min-width: 104px; position: relative; display: flex; flex-direction: column; gap: 6px; align-items: center; justify-content: flex-start; padding: 22px 8px 8px; border: 1px dashed var(--arcane); border-radius: 9px; background: rgba(95,143,138,.06); }
+.scv-match-front { position: relative; min-height: 178px; min-width: 254px; display: flex; gap: 10px; align-items: flex-start; justify-content: center; padding: 22px 16px 6px 6px; border: 1px dashed var(--line); border-radius: 9px; }
+.scv-match-bg { min-height: 178px; min-width: 104px; position: relative; display: flex; flex-direction: column; gap: 6px; align-items: center; justify-content: flex-start; padding: 22px 16px 8px 8px; border: 1px dashed var(--arcane); border-radius: 9px; background: rgba(95,143,138,.06); }
 .scv-match-front:focus-visible, .scv-match-bg:focus-visible { outline: 2px solid var(--brass-bright); }
 .scv-match-hint { font-family: var(--body); font-style: italic; font-size: 12px; color: var(--stone-dim); }
-.scv-match-slotlbl { position: absolute; top: 7px; left: 8px; right: 8px; text-align: center; font-family: var(--ui); font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--arcane); }
+.scv-match-slotlbl { white-space: nowrap; position: absolute; top: 7px; left: 8px; right: 8px; text-align: center; font-family: var(--ui); font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--arcane); }
 /* an empty front slot — a card-sized "drop a fighter" placeholder (always two, so a 2nd is invitingly open) */
 .scv-slot-empty { width: 116px; aspect-ratio: 63 / 88; display: flex; align-items: center; justify-content: center; padding: 6px; border: 1px dashed var(--line); border-radius: 8px; font-family: var(--body); font-style: italic; font-size: 12px; color: var(--stone-dim); text-align: center; }
 /* per-matchup modifier chips (artefact bonuses, curse, surprise) — sit under the party members */
@@ -2171,7 +2171,7 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
   /* fight matchups: let cards shrink and wrap so two fit across a phone */
   .scv-match { gap: 10px; padding: 8px 10px; }
   .scv-match-front { min-width: 0; min-height: 0; }
-  .scv-match-bg { min-width: 0; min-height: 0; }
+  .scv-match-bg { min-width: 76px; min-height: 0; }   /* narrow enough for a phone, but wide enough that its "behind" label does not wrap over the hint beneath */
   .scv-match-foes { max-width: 100%; }
   .scv-fc, .scv-fc-frame, .scv-fc-art { width: 92px; }
   .scv-slot-empty { width: 92px; }
@@ -2324,7 +2324,8 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 .scv-slot{z-index:58;}
 .scv-fight.scv-rev.with-list{left:309px;} /* the party panel is 283px wide from 14px, plus a gap */
 /* An open right-hand panel (card, settings, test) is 283px wide from 14px; the dialog ends left of it. */
-body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
+/* Only in a wide window: below 1300px an open panel floats over the dialog instead (it is closed when a fight starts; AutoHideRightPanels), so the pairing area keeps the room. */
+@media (min-width:1301px){ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;} }
 /* Revised fights put the party on the left, beside the party panel, and the strangers on the right; the fronts stay next to the "vs". */
 .scv-rev .scv-match,.scv-rev .scv-match-line{flex-direction:row-reverse;}
 /* The panels either side narrow the dialog, so a match stays on one row (party | vs | strangers) and the board scrolls sideways
@@ -2334,7 +2335,29 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
 .scv-rev .scv-match-line{gap:8px;}
 .scv-rev .scv-match-front{min-width:150px;}
 .scv-rev .scv-match-bg{min-width:90px;}
-.scv-rev .scv-rev-frontline{min-width:200px;}
+/* The box is as wide as the cards in it (one slot when empty). Its title is pinned inside the top edge and wraps onto a second line when the box is narrow. */
+.scv-rev .scv-rev-frontline{min-width:170px;padding-top:44px;}
+.scv-rev .scv-rev-frontline > .scv-match-slotlbl{white-space:normal;}   /* the long title wraps; only the short "behind" labels are kept on one line */
+/* Responsive: the front line sits beside the pairing rows while they have 600px, and above them when they do not (the board then scrolls). */
+.scv-rev > .scv-rev-board{flex-wrap:wrap;overflow:hidden auto;align-content:flex-start;}
+.scv-rev-board > .scv-fight-strangers{flex:1 1 600px;}
+/* Narrower windows: smaller cards, and below that a pairing wraps (its party side drops under the foes) instead of running off to the left,
+   where the right-to-left row cannot be scrolled to. */
+@media (max-width:960px){
+  .scv-rev .scv-fc,.scv-rev .scv-fc-frame,.scv-rev .scv-fc-art,.scv-rev .scv-slot-empty{width:92px;}
+  .scv-rev .scv-fc-relic{width:34px;}
+  .scv-rev .scv-match-front{min-width:0;}
+}
+@media (max-width:860px){
+  .scv-rev .scv-match{flex-direction:column-reverse;align-items:center;gap:8px;}   /* party on top, then the tally, then the foes */
+  .scv-rev .scv-match-line{flex-wrap:wrap;justify-content:center;}
+  .scv-rev .scv-fight-top{flex-wrap:wrap;row-gap:6px;}
+  .scv-fight.scv-rev .scv-rev-frontline{max-width:100%;}   /* on its own row now, so it may use all of it (the 46% cap further down would otherwise win) */
+}
+/* A pairing row is as wide as its cards, beside the front line, not stretched across the board with its cards pushed to the far side
+   (which left a wide blank on the left that changed size whenever the front line did). */
+.scv-rev .scv-fight-strangers{align-items:flex-start;}
+.scv-rev .scv-match{width:fit-content;max-width:100%;}
 .scv-rev-board > .scv-fight-strangers{overflow-x:auto;}
 
 /* A big front line wraps onto further rows inside its box instead of running off to the right; the stranger rows keep the rest. */

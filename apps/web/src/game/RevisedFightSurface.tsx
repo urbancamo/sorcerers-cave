@@ -29,7 +29,7 @@ type Pair = { party: number; stranger: number };
 type Placement = { creature: number; back: boolean; mi?: number; foe?: number };
 type Retreat = Extract<GameAction, { type: "retreat" }>;
 
-export function RevisedFightSurface({ state, dispatch, cards, onMember, inventory }: { state: GameState; dispatch: (a: GameAction) => void; cards: CardArt[]; onMember?: (m: ViewPartyMember) => void; inventory?: ReactNode }) {
+export function RevisedFightSurface({ state, dispatch, cards, onMember, inventory, listHidden }: { state: GameState; dispatch: (a: GameAction) => void; cards: CardArt[]; onMember?: (m: ViewPartyMember) => void; inventory?: ReactNode; listHidden?: boolean }) {
   const fight = state.fight, rev = fight?.rev;
   const [refusal, setRefusal] = useState<string | null>(null);   // why the last placement was refused, in the player's words
   const [picked, setPicked] = useState<number | null>(null);   // a party creature tapped, waiting for its foe
@@ -410,8 +410,8 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
 
   return (
     <>
-    {partyPanel}
-    <div key="fight" className={`scv-fight scv-rev with-list${restored ? " scv-rev-restore" : ""}`} data-testid="rev-fight">
+    {!listHidden && partyPanel}
+    <div key="fight" className={`scv-fight scv-rev${listHidden ? "" : " with-list"}${restored ? " scv-rev-restore" : ""}`} data-testid="rev-fight">
       {introDue && (
         <div className="scv-ghouls" role="dialog" aria-label="Ghouls attack" data-testid="ghouls-intro">
           <div className="scv-ghouls-mist" aria-hidden="true" />
@@ -470,6 +470,7 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
 
       {free.length === 0 && inMatch.size === 0 && <span className="scv-fight-hint">no creature is free</span>}
 
+      {listHidden && (mine?.kind === "deploy" || mine?.kind === "engage" || mine?.kind === "redeploy") && <p className="scv-fight-reason" role="status" data-testid="rev-list-hidden">The party list is hidden: press Party in the title bar to choose creatures.</p>}
       {deciding && <p className="scv-fight-reason scv-fight-deciding" role="status">The strangers are deciding…</p>}
       {forcedDeploy && <p className="scv-fight-reason scv-fight-deciding" role="status">The strangers are drawing up their line…</p>}
       {autoPairs && !introDue && <p className="scv-fight-reason scv-fight-deciding" role="status">The Ghouls close in — each of your creatures faces one…</p>}
