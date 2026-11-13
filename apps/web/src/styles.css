@@ -2560,6 +2560,12 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
 .scv-admin-tabs .scv-hs-tab { flex: 0 1 auto; min-width: 110px; }
 .scv-admin .scv-hs-tab-on { color: var(--void); }
 .scv-admin-testing { display: grid; gap: 14px; }
+.scv-admin-testing > * { min-width: 0; }
+/* The game's panels carry fixed widths (460px; the party chooser 720px, its row 1040px). In the admin area they fill their container instead. */
+.scv-admin .scv-panel { width: auto; max-width: 100%; box-sizing: border-box; }
+.scv-admin .scv-party-row { width: 100%; }
+.scv-admin .scv-party { width: min(720px, 100%); }
+.scv-admin-login .scv-panel { width: 100%; }
 @media (min-width: 720px) { .scv-admin-testing { grid-template-columns: repeat(3, 1fr); } }
 
 /* ---- Game Analytics ---- */
