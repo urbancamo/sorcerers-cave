@@ -881,6 +881,10 @@
 
 /* ---- the Sorcerer's terms: slay him, or spare him for a teleport (SorcererTerms.tsx) ---------------- */
 .scv-tp-card { max-width: min(92vw, 560px); text-align: center; }
+/* The trap choice sits over the chamber the player is deciding about, so the backdrop is only lightly dimmed (still blocking) and the card can be dragged aside by its heading. */
+.scv-tp-overlay { background: rgba(7, 7, 9, 0.2); backdrop-filter: none; }
+.scv-tp-grip { cursor: grab; touch-action: none; user-select: none; }
+.scv-tp-grip:active { cursor: grabbing; }
 .scv-tp-text {
   margin: 0;
   font-family: var(--body);
