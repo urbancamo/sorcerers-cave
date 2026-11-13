@@ -27,5 +27,5 @@ export default function AdminApp() {
       </main>
     );
   }
-  return <AdminShell roles={me.roles} username={me.username ?? ''} />;
+  return <AdminShell roles={me.roles} username={me.username ?? ''} userId={me.userId} />;
 }

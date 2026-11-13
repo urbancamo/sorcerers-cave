@@ -12,13 +12,33 @@ created from the command line, with the roles they hold:
 | Role | Opens |
 |---|---|
 | `SYSTEM` | everything (implies every other role); System tab (not built yet) |
-| `USER` | Users tab (not built yet) |
+| `USER` | Users tab |
 | `ANALYTICS` | Game Analytics tab |
 | `TEST` | Testing tab, and Test Mode in the game |
+
+The first `SYSTEM` account is created from the command line; after that, accounts are added from the Users tab (below).
 
 Roles live on the `users` row and are written only by the internal seed functions in `convex/admin.ts`. Commands, and how to
 remove the old `TEST_MODE_SECRET`, are in [`OPTIONS.md`](OPTIONS.md#admin-accounts-and-test-mode-access). Every admin query and
 mutation checks the role on the server (`convex/roles.ts`); the tabs hidden in the UI are a convenience, not the protection.
+
+## Users
+
+The Users tab (`USER` role) lists the login accounts, lets you add and delete users, and edit their roles.
+
+- **Add a user:** enter a username (3 to 40 letters, digits, dot, dash or underscore) and tick their roles. The app makes a link of the form
+  `/invite/<uuid>`, shown **once**, for you to copy and send. The person opens it and chooses their own password (at least 10 characters);
+  nothing is emailed. The link works once and expires after 7 days. Until it is used the user appears under *Waiting for a password*,
+  where **New link** replaces the link (the old one stops working) and **Cancel invite** removes it. The login is created when the
+  password is set, with the roles chosen at invite time. They then sign in at `/login`.
+- **Edit roles:** inline, per user. At least one role is required. You cannot change your own roles.
+- **Delete:** two presses. It removes the login, its sessions and refresh tokens, so they cannot sign in again. Their games and recorded
+  statistics are kept. You cannot delete yourself.
+- **SYSTEM is guarded:** only a `SYSTEM` user can grant or remove `SYSTEM`, invite someone with it, or delete or manage a `SYSTEM` user, so a
+  `USER` admin cannot promote themselves.
+- **Security of the link:** the token is a random UUID and only its SHA-256 hash is stored (table `invites`), so a copy of the database does not
+  yield working links. The set-password page and its two functions (`invites:check`, `invites:redeem`) are the only unauthenticated entry
+  points; they succeed only with a valid, unexpired token.
 
 ## Game Analytics
 
@@ -51,4 +71,4 @@ See [`TEST-MODE.md`](TEST-MODE.md).
 
 ## Deferred
 
-Moving to Convex Auth 2.0 (it has no usable anonymous sign-in yet, which the players rely on), and the System and Users tabs.
+Moving to Convex Auth 2.0 (it has no usable anonymous sign-in yet, which the players rely on), and the System tab. Password change and recovery are not built: an admin can issue a new set-password link only for a user who has not set one yet (to reset a password, delete the user and invite them again, or use `admin:setPassword` from the CLI).

@@ -9,6 +9,7 @@
  */
 
 import type * as admin from "../admin.js";
+import type * as adminUsers from "../adminUsers.js";
 import type * as analytics from "../analytics.js";
 import type * as analyticsLib from "../analyticsLib.js";
 import type * as auth from "../auth.js";
@@ -19,7 +20,10 @@ import type * as game from "../game.js";
 import type * as gameStats from "../gameStats.js";
 import type * as highScores from "../highScores.js";
 import type * as http from "../http.js";
+import type * as inviteToken from "../inviteToken.js";
+import type * as invites from "../invites.js";
 import type * as multiplayer from "../multiplayer.js";
+import type * as passwords from "../passwords.js";
 import type * as roles from "../roles.js";
 import type * as strangerDecision from "../strangerDecision.js";
 
@@ -31,6 +35,7 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
+  adminUsers: typeof adminUsers;
   analytics: typeof analytics;
   analyticsLib: typeof analyticsLib;
   auth: typeof auth;
@@ -41,7 +46,10 @@ declare const fullApi: ApiFromModules<{
   gameStats: typeof gameStats;
   highScores: typeof highScores;
   http: typeof http;
+  inviteToken: typeof inviteToken;
+  invites: typeof invites;
   multiplayer: typeof multiplayer;
+  passwords: typeof passwords;
   roles: typeof roles;
   strangerDecision: typeof strangerDecision;
 }>;

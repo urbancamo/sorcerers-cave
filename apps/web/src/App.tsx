@@ -1,12 +1,15 @@
 import { useState } from "react";
 import GameScreen from "./game/GameScreen";
 import AdminApp from "./admin/AdminApp";
+import InviteApp from "./admin/InviteApp";
 
 // The admin area lives at unpublished URLs; there is no router, so the path is checked once per load
 // (the admin links navigate with a full page load, which also gives GameScreen a clean mount).
 const isAdminPath = (p: string) => p === "/login" || p === "/admin" || p.startsWith("/admin/");
 
 export default function App() {
+  const invite = /^\/invite\/([^/]+)\/?$/.exec(window.location.pathname); // an invited admin choosing a password
+  if (invite) return <InviteApp token={decodeURIComponent(invite[1]!)} />;
   if (isAdminPath(window.location.pathname)) return <AdminApp />;
   const [tutorial, setTutorial] = useState<{ resume: boolean } | null>(null); // the tutorial is a local game: a separate GameScreen with no backend game
   return (
