@@ -1,4 +1,4 @@
-import { render, screen, fireEvent, waitFor } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const signIn = vi.fn();
@@ -9,11 +9,12 @@ let me: { roles: string[]; username: string | null } | undefined;
 vi.mock("@convex-dev/auth/react", () => ({ useAuthActions: () => ({ signIn, signOut }) }));
 vi.mock("convex/react", () => ({
   useConvexAuth: () => auth,
-  useQuery: (_ref: unknown, args: unknown) => (args === "skip" ? undefined : me),
+  useQuery: (ref: unknown, args: unknown) => (args === "skip" || ref !== "roles.me" ? undefined : me),
+  usePaginatedQuery: () => ({ results: [], status: "Exhausted", loadMore: vi.fn() }),
   useMutation: () => vi.fn(),
   useConvex: () => ({ query: vi.fn() }),
 }));
-vi.mock("../../convex/_generated/api", () => ({ api: { roles: { me: "roles.me" }, game: { startTestGame: "s", restoreTestScenario: "r", replayByCode: "p" } } }));
+vi.mock("../../convex/_generated/api", () => ({ api: { roles: { me: "roles.me" }, analytics: { summary: "a.summary", history: "a.history", liveGames: "a.live" }, game: { startTestGame: "s", restoreTestScenario: "r", replayByCode: "p" } } }));
 vi.mock("../game/PartySelect", () => ({ PartySelect: () => <div>party select</div> }));
 vi.mock("../game/ScenarioBrowser", () => ({ ScenarioBrowserModal: () => <div>scenario browser</div> }));
 vi.mock("../game/ReplayView", () => ({ ReplayView: () => <div>replay</div> }));
@@ -70,7 +71,7 @@ describe("AdminApp gating", () => {
   it("SYSTEM (expanded by the server to all four roles) sees every tab", () => {
     me = { roles: ["SYSTEM", "USER", "ANALYTICS", "TEST"], username: "root" };
     render(<AdminApp />);
-    expect(screen.getAllByRole("tab").map((t) => t.textContent)).toEqual(["Game Analytics", "Testing", "Users", "System"]);
+    expect(within(screen.getByRole("tablist", { name: "Admin sections" })).getAllByRole("tab").map((t) => t.textContent)).toEqual(["Game Analytics", "Testing", "Users", "System"]);
   });
 });
 

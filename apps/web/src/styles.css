@@ -2560,3 +2560,38 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
 .scv-admin .scv-hs-tab-on { color: var(--void); }
 .scv-admin-testing { display: grid; gap: 14px; }
 @media (min-width: 720px) { .scv-admin-testing { grid-template-columns: repeat(3, 1fr); } }
+
+/* ---- Game Analytics ---- */
+/* Outcome colours: blue / red-orange / violet, checked for colour-blind separation against the panel surface (never red against green). */
+.scv-admin { --out-escaped: #4a8fd6; --out-dead: #d0624a; --out-quit: #9a7ad6; }
+.scv-an-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.scv-an-tile { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+.scv-an-tile-label { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--stone); }
+.scv-an-tile strong { font-size: 26px; font-weight: 600; color: var(--cream); font-variant-numeric: tabular-nums; }
+.scv-an-tile-sub { font-size: 12px; color: var(--stone-dim); }
+.scv-an-grid2 { display: grid; gap: 14px; }
+@media (min-width: 900px) { .scv-an-grid2 { grid-template-columns: 1fr 1fr; } }
+.scv-an-chart { margin: 0; padding: 14px 14px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+.scv-an-chart h3 { margin: 0; font-family: var(--display); font-weight: 500; font-size: 15px; color: var(--cream); }
+.scv-an-chart figcaption p { margin: 2px 0 8px; font-size: 12px; color: var(--stone); }
+.scv-an-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 6px; padding: 0; list-style: none; font-size: 12px; color: var(--stone); }
+.scv-an-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+.scv-an-plot { position: relative; }
+.scv-an-plot svg { display: block; width: 100%; height: auto; overflow: visible; }
+.scv-an-grid { stroke: var(--line); stroke-width: 1; }
+.scv-an-axis { font-family: var(--ui); font-size: 10.5px; fill: var(--stone); }
+.scv-an-value { font-family: var(--ui); font-size: 11px; fill: var(--parchment); font-variant-numeric: tabular-nums; }
+.scv-an-tip { position: absolute; z-index: 2; pointer-events: none; padding: 5px 9px; font-size: 12px; white-space: nowrap; color: var(--cream);
+  background: var(--void); border: 1px solid var(--line-strong); border-radius: 7px; }
+.scv-an-table { margin-top: 8px; font-size: 12px; color: var(--stone); }
+.scv-an-table summary { cursor: pointer; }
+.scv-an-scroll { overflow-x: auto; }
+.scv-an-history { display: flex; flex-direction: column; gap: 12px; }
+.scv-an-filter { max-width: 200px; }
+.scv-an-party { max-width: 220px; }
+.scv-an-tag { margin-left: 6px; padding: 1px 6px; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; border: 1px solid var(--brass); border-radius: 6px; color: var(--brass-bright); }
+.scv-an-out { display: inline-flex; align-items: center; gap: 6px; }
+.scv-an-out::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--stone); }
+.scv-an-out-escaped::before { background: var(--out-escaped); }
+.scv-an-out-dead::before { background: var(--out-dead); }
+.scv-an-out-quit::before { background: var(--out-quit); }

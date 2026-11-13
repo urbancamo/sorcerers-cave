@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { useConvex, useMutation } from 'convex/react';
+import { useMutation } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { PartySelect } from '../game/PartySelect';
 import { ScenarioBrowserModal } from '../game/ScenarioBrowser';
-import { ReplayView, type ReplayBundle } from '../game/ReplayView';
-import { goldenBundle } from '../game/goldenGame';
+import { ReplayView } from '../game/ReplayView';
+import { useReplayBundle } from './useReplayBundle';
 import { setTestGameHandoff } from '../game/testHandoff';
 
 // Opens the game screen on the given game. A full navigation, so GameScreen mounts fresh and reads the handoff.
@@ -14,13 +14,12 @@ const openGame = (id: string) => { setTestGameHandoff(id); window.location.assig
 export function TestingTab() {
   const startTestGame = useMutation(api.game.startTestGame);
   const restoreTestScenario = useMutation(api.game.restoreTestScenario);
-  const convex = useConvex();
   const [picking, setPicking] = useState(false);
   const [code, setCode] = useState('');
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [browsing, setBrowsing] = useState(false);
-  const [bundle, setBundle] = useState<ReplayBundle | null>(null);
+  const { bundle, open: replay, close } = useReplayBundle();
 
   const restore = async () => {
     const c = code.trim().toUpperCase();
@@ -36,17 +35,7 @@ export function TestingTab() {
     }
   };
 
-  const replay = async (c: string): Promise<string | null> => {
-    const golden = await goldenBundle(c);
-    if (golden) { setBundle(golden); return null; }
-    const found = (await convex.query(api.game.replayByCode, { code: c })) as ReplayBundle | null;
-    if (!found) return 'No replayable game found with that code.';
-    if (!found.replayable) return 'This game predates full logging and cannot be replayed.';
-    setBundle(found);
-    return null;
-  };
-
-  if (bundle) return <ReplayView bundle={bundle} onExit={() => setBundle(null)} />;
+  if (bundle) return <ReplayView bundle={bundle} onExit={close} />;
   if (picking) {
     return (
       <PartySelect

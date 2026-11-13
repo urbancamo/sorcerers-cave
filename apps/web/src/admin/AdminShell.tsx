@@ -1,6 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react';
 import { useAuthActions } from '@convex-dev/auth/react';
 import { TestingTab } from './TestingTab';
+import { AnalyticsTab } from './analytics/AnalyticsTab';
 
 export type Role = 'SYSTEM' | 'USER' | 'ANALYTICS' | 'TEST';
 
@@ -19,7 +20,7 @@ function Soon({ what }: { what: string }) {
 function panel(role: Role): ReactNode {
   switch (role) {
     case 'TEST': return <TestingTab />;
-    case 'ANALYTICS': return <Soon what="Game analytics" />;
+    case 'ANALYTICS': return <AnalyticsTab />;
     case 'USER': return <Soon what="User administration" />;
     case 'SYSTEM': return <Soon what="System administration" />;
   }
