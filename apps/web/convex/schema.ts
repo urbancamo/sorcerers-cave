@@ -28,6 +28,8 @@ export default defineSchema({
     picks: v.optional(v.array(v.number())),
     state: v.any(), // serialized engine GameState (engine owns the shape; Milestone B)
     status: v.union(v.literal("active"), v.literal("finished")),
+    // When the player last saved ("put it away"); the admin Live games list hides a game until it moves again (updatedAt passes this).
+    savedAt: v.optional(v.number()),
     // party marker colour (optional for games created before colours existed); multiplayer will
     // use this to reserve colours already taken in a shared game.
     color: v.optional(v.union(v.literal("green"), v.literal("blue"), v.literal("yellow"), v.literal("red"))),

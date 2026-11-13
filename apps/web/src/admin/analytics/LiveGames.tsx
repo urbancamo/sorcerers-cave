@@ -16,7 +16,7 @@ export function LiveGames() {
   return (
     <div className="scv-an-scroll">
       <table className="scv-hs-table" data-testid="live-games">
-        <thead><tr><th>Code</th><th>Mode</th><th className="scv-hs-num">Party</th><th className="scv-hs-num">Level</th><th className="scv-hs-num">Turn</th><th>Rules</th><th>Last move</th></tr></thead>
+        <thead><tr><th>Code</th><th>Mode</th><th className="scv-hs-num">Party</th><th className="scv-hs-num">Level</th><th className="scv-hs-num">Turn</th><th className="scv-hs-num">Score</th><th>Area</th><th>Doing</th><th>Rules</th><th>Last move</th></tr></thead>
         <tbody>
           {games.map((g) => (
             <tr key={g.id}>
@@ -25,6 +25,9 @@ export function LiveGames() {
               <td className="scv-hs-num">{g.mode === 'multi' ? `${g.parties ?? 0} parties` : g.partySize ?? '–'}</td>
               <td className="scv-hs-num">{g.level ?? '–'}</td>
               <td className="scv-hs-num">{g.turn ?? '–'}</td>
+              <td className="scv-hs-num">{g.score ?? '–'}</td>
+              <td>{g.area ?? '–'}</td>
+              <td>{g.activity ? <span className={g.activity === 'Combat' ? 'scv-an-out scv-an-out-dead' : undefined}>{g.activity}</span> : '–'}</td>
               <td>{g.extensionKit ? 'Extension kit' : 'Base'}</td>
               <td>{ago(g.updatedAt, now)}</td>
             </tr>

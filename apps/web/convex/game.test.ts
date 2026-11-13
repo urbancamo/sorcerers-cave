@@ -279,6 +279,8 @@ test("save returns the game's resume code", async () => {
   expect(code).toMatch(/^[A-Z]{4}$/);
   const game = await as.query(api.game.get, { id });
   expect(game?.code).toBe(code);
+  const row = await t.run((ctx) => ctx.db.get(id));
+  expect(row?.savedAt).toBe(row?.updatedAt); // marks it as put away for the admin Live games list
 });
 
 test("resumeByCode restores the owner's saved game (and normalises input)", async () => {

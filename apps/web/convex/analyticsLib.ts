@@ -1,3 +1,4 @@
+import { decodeArea, scoreGame, type GameState } from "@sorcerers-cave/engine";
 import type { Doc } from "./_generated/dataModel";
 
 type Row = Pick<Doc<"gameStats">, "mode" | "outcome" | "score" | "turn" | "deepestLevel" | "dragonKills" | "membersLost" | "picks" | "extensionKit" | "sibyl" | "finishedAt">;
@@ -58,5 +59,37 @@ export function aggregate(rows: Row[], now: number) {
     membersLost: sorted(lost, "lost"),
     creatures: sorted(creatures, "id").sort((a, b) => b.count - a.count),
     variants,
+  };
+}
+
+const SPECIAL_NAME: Record<number, string> = {
+  1: "Gateway", 2: "Deep Pool", 3: "Viper Pit", 4: "Tomb", 5: "Great Hall", 6: "Chasm", 7: "Bell Rope", 8: "Lair", 9: "Whirlpool", 10: "Gallery", 11: "Well",
+};
+
+/** Short name for an area card: a special area by name, otherwise "Chamber" or "Tunnel" with its exits and stairs, e.g. "Tunnel NE", "Chamber NESW ↑". */
+export function areaLabel(card: number): string {
+  const a = decodeArea(card);
+  if (a.special && SPECIAL_NAME[a.special]) return SPECIAL_NAME[a.special]!;
+  const exits = (a.n ? "N" : "") + (a.e ? "E" : "") + (a.s ? "S" : "") + (a.w ? "W" : "");
+  return `${a.chamber ? "Chamber" : "Tunnel"} ${exits}${a.stairUp ? " ↑" : ""}${a.stairDown ? " ↓" : ""}`.trim();
+}
+
+const PHASE_LABEL: Record<string, string> = {
+  explore: "Exploring", fight: "Combat", encounter: "Encounter", medusa: "Medusa", trap: "Trap", pickup: "Looting",
+  sorcerer: "Sorcerer", leader: "Choosing leader", quarrel: "Quarrel", gameOver: "Game over",
+};
+
+/** What the Live games table shows from a solo game's saved state: its score so far, where the party is, and what it is doing.
+ *  Null fields when the state is not a full solo state. Never throws: one odd game must not break the whole table. */
+export function liveFigures(state: unknown): { score: number | null; area: string | null; activity: string | null } {
+  const s = state as Partial<GameState> | null;
+  if (!s) return { score: null, area: null, activity: null };
+  let score: number | null = null;
+  try { if (s.party?.length && s.gs !== undefined) score = scoreGame(s as GameState); } catch { /* partial state */ }
+  const card = s.areas?.[s.partyArea ?? -1]?.card;
+  return {
+    score,
+    area: card === undefined ? null : areaLabel(card),
+    activity: s.phase ? PHASE_LABEL[s.phase] ?? s.phase : null,
   };
 }
