@@ -38,6 +38,19 @@ describe("RevisedFightSurface", () => {
     expect(screen.getByTestId("rev-mback-0").querySelector(".scv-fc-badge")).toHaveTextContent(/^2$/);
   });
 
+  it("with the party list put away the dialog takes its room, and says how to choose creatures; with it showing, neither", () => {
+    const s = attacking([OGRE]);
+    const shown = render(<RevisedFightSurface state={s} dispatch={vi.fn()} cards={cards} />);
+    expect(screen.getByTestId("rev-tray")).toBeInTheDocument();
+    expect(screen.getByTestId("rev-fight")).toHaveClass("with-list");
+    expect(screen.queryByTestId("rev-list-hidden")).toBeNull();
+    shown.unmount();
+    render(<RevisedFightSurface state={s} dispatch={vi.fn()} cards={cards} listHidden />);
+    expect(screen.queryByTestId("rev-tray")).toBeNull();
+    expect(screen.getByTestId("rev-fight")).not.toHaveClass("with-list");
+    expect(screen.getByTestId("rev-list-hidden")).toHaveTextContent(/press party/i);
+  });
+
   it("renders nothing outside a revised fight, and the battle-plan surface steps aside for one", () => {
     const legacy: GameState = { ...newGame(1, [5]), phase: "fight", fight: { surprise: 0, round: 1, focus: 0 }, strangers: [OGRE] };
     const { container } = render(<RevisedFightSurface state={legacy} dispatch={vi.fn()} cards={cards} />);

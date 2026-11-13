@@ -67,7 +67,7 @@ export const HOUSE: Section = {
       p('Either way the party is cursed, and the Scroll cannot be read again in the same area. Nothing prompts you to read it: press *Begin the fight* to go on without it.'),
     ] },
     { id: 'rc-front-line', title: 'The front line', brief: 'The defender chooses which free creatures stand in front.', requires: 'combatRevision', cards: [], screens: ['fight-revised'], blocks: [
-      p('If you defend, select the creatures you want in the party list on the left (as many as you like), then drag any one of them into the front-line box, or tap the box, to move them all at once. Choose at least the number asked, and confirm.'),
+      p('If you defend, select the creatures you want in the party list on the left (as many as you like; if you have put the list away, press Party in the title bar to bring it back), then drag any one of them into the front-line box, or tap the box, to move them all at once. Choose at least the number asked, and confirm.'),
       p('When you must put *every* free creature in front there is nothing to choose, so the game does it for you.'),
     ] },
     { id: 'rc-pairing', title: 'Pairings and spares', brief: 'Tap a fighter, then the foe it will face; nothing is final until you roll.', requires: 'combatRevision', cards: [], screens: ['fight-revised'], blocks: [

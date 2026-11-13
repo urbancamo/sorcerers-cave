@@ -28,6 +28,7 @@ import { rollFromEvents, type RollView } from "./rollView";
 import { eventNotices, type Notice } from "./eventNotices";
 import { useDispatchWithRolls } from "./useDispatchWithRolls";
 import { showFightSurface } from "./fightGate";
+import { AutoHideRightPanels } from "./shell/AutoHideRightPanels";
 import { NoticeModal } from "./NoticeModal";
 import { FeatCelebration } from "./FeatCelebration";
 import { SorcererTerms, type DestinationPicker } from "./SorcererTerms";
@@ -89,6 +90,10 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
   const [rightSlot, setRightSlot] = useState<RightSlot>(null);
   // The Exit menu goes as soon as the player presses anything else (its own panel and its title-bar icon aside).
   const closeExit = useCallback(() => setRightSlot((cur) => (cur === 'exit' ? null : cur)), []);
+  const hideRight = useCallback(() => setRightSlot(null), []);
+  // In a fight the left list (party, or inventory in its place) can be put away so the dialog widens; it is back at the start of the next fight.
+  const [fightListHidden, setFightListHidden] = useState(false);
+  const showFightList = useCallback(() => setFightListHidden(false), []);
   useDismissOutside(rightSlot === 'exit', '[aria-label="Exit"]', closeExit);
   useOpenPartyOnce(gameKey, setLeftSlot); // the chosen party is on screen from the first step into the Gateway
   const [testOpen, setTestOpen] = useState(true); // the floating test panel (only exists in Test Mode), open by default, independent of the slots
@@ -458,9 +463,14 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
             if (at >= 0) pick({ kind: 'area', index: at, name: area.name, file, rot });
           },
         }} />
-      <TitleBar left={fightVisible ? (leftSlot === 'inventory' ? 'inventory' : 'party') : leftSlot} right={rightSlot} testMode={!local && !!displayState.testMode} testOpen={testOpen} onTest={() => setTestOpen((o) => !o)} bugOpen={bugOpen} onBug={() => { if (!bugOpen) setBugShot(captureGameWindow()); setBugOpen((o) => !o); }}
+      <TitleBar left={fightVisible ? (fightListHidden ? null : leftSlot === 'inventory' ? 'inventory' : 'party') : leftSlot} right={rightSlot} testMode={!local && !!displayState.testMode} testOpen={testOpen} onTest={() => setTestOpen((o) => !o)} bugOpen={bugOpen} onBug={() => { if (!bugOpen) setBugShot(captureGameWindow()); setBugOpen((o) => !o); }}
                 // In a fight the list is always showing: Party returns to it, Inventory swaps it out and back.
-                onLeft={(p) => setLeftSlot((cur) => (fightVisible && p === 'party' ? 'party' : toggleLeft(cur, p)))} onRight={(p) => setRightSlot((cur) => toggleRight(cur, p))} />
+                onLeft={(p) => {
+                  if (!fightVisible) { setLeftSlot((cur) => toggleLeft(cur, p)); return; }
+                  // In a fight the icon of the list that is showing puts it away; the other icon (or either, once it is away) brings it back.
+                  const showing = fightListHidden ? null : leftSlot === 'inventory' ? 'inventory' : 'party';
+                  if (showing === p) setFightListHidden(true); else { setFightListHidden(false); setLeftSlot(p); }
+                }} onRight={(p) => setRightSlot((cur) => toggleRight(cur, p))} />
       {rightSlot === 'card' && selected && (
         <CardPanel selected={selected} floor={floorCards} onFloor={(card) => selected.kind === 'card' && setSelected({ kind: 'card', card, where: selected.where })} onAward={(award, from) => setSelected({ kind: 'award', award, from })} areaText={selected.kind === 'area' ? describeArea(displayState, selected.index, verbose) : undefined} onMember={(member) => setSelected({ kind: 'member', member })}
                    onItem={(item, from) => setSelected({ kind: 'item', item, from })}
@@ -480,8 +490,9 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
         <EncounterPanel state={displayState} dispatch={dispatchWithRolls} leaveOnMove />
         <ExplorePanel state={displayState} dispatch={dispatchWithRolls} />
       </div>
+      <AutoHideRightPanels fighting={fightVisible} hide={hideRight} onStart={showFightList} />
       {fightVisible && cards && <FightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
-      {fightVisible && cards && <RevisedFightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} inventory={leftSlot === 'inventory' ? inventoryPanel : undefined}
+      {fightVisible && cards && <RevisedFightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} inventory={leftSlot === 'inventory' ? inventoryPanel : undefined} listHidden={fightListHidden}
                                                   onMember={(member) => pick({ kind: 'member', member })} />}
       {!local && displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} onSave={handleSave} open={testOpen} />}
       {!local && displayState.testMode && <DeadEndSwapBadge />}
