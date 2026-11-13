@@ -39,7 +39,6 @@ import { GameLogModal } from "./GameLogModal";
 import { BugReportModal } from "./BugReportModal";
 import { captureGameWindow } from "./screenshot";
 import type { GameLog } from "./gameLog";
-import { MULTIPLAYER_ENABLED } from "./featureFlags";
 import { MultiplayerSetup } from "./MultiplayerSetup";
 import { MultiplayerLobby } from "./MultiplayerLobby";
 import { ReplayView, type ReplayBundle } from "./ReplayView";
@@ -263,6 +262,8 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
     if (medusa) { setSelected(medusa); setRightSlot((cur) => cur ?? 'card'); }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once per pause, not on every state change
   }, [onShow?.phase === 'medusa', onShow?.partyArea, holding]);
+  // Whether the welcome page offers Multiplayer is a site option a SYSTEM user sets in the admin panel (default OFF; shown only once it is known to be ON).
+  const multiplayerEnabled = useQuery(api.settings.get)?.multiplayerEnabled === true;
   const gameOver = !!state && state.gs !== GS_PLAYING;
   // The finished game's move log, for the post-game .txt / .log downloads (fetched only at game over).
   const gameLog = useQuery(api.game.log, gameOver && gameId && !local ? { id: gameId } : "skip") as GameLog | null | undefined;
@@ -351,8 +352,8 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
         onStartTutorial={onStartTutorial}
         onResume={handleResume}
         onReplay={handleReplay}
-        onStartMultiplayer={MULTIPLAYER_ENABLED ? () => setMp({ view: "create" }) : undefined}
-        onJoinMultiplayer={MULTIPLAYER_ENABLED ? () => setMp({ view: "join" }) : undefined}
+        onStartMultiplayer={multiplayerEnabled ? () => setMp({ view: "create" }) : undefined}
+        onJoinMultiplayer={multiplayerEnabled ? () => setMp({ view: "join" }) : undefined}
       />
     );
   }

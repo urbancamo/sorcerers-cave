@@ -36,7 +36,7 @@ extracted from the physical game (`packages/assets`).
 
 - Played in the browser; anonymous auth (no account setup friction).
 - Solo play and server-authoritative multiplayer (Convex backend); multiplayer is
-  live in production as of 2026-06-17 (`VITE_MULTIPLAYER=1`).
+  live in production as of 2026-06-17; since then a SYSTEM admin switches it on or off for the whole site (admin panel, System tab; default off).
 - Sessions revolve around one expedition: recruit, descend through the Gateway,
   explore level by level, escape (or die), then score on the global leaderboard.
 - Movement is available via 3D exit markers and N/E/S/W/U/D keyboard keys.

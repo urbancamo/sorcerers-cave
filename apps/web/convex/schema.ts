@@ -165,6 +165,12 @@ export default defineSchema({
   }).index("by_owner_and_created", ["ownerId", "createdAt"]).index("by_status", ["status"]),
   // Global, shared leaderboard. `party` and `state` keep the full final snapshot so the
   // attributes behind a score can be inspected later.
+  // Site-wide options a SYSTEM user sets in the admin panel's System tab. One row, found with `.first()`; an option left unset
+  // (or no row at all) reads as its default. New options are added here as further optional fields.
+  systemSettings: defineTable({
+    // Is Multiplayer mode offered on the welcome page? Absent or false: no (the default).
+    multiplayerEnabled: v.optional(v.boolean()),
+  }),
   highScores: defineTable({
     gameId: v.id("games"),
     ownerId: v.optional(v.id("users")),

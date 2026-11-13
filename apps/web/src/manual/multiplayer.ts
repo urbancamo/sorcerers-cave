@@ -6,6 +6,7 @@ export const MULTIPLAYER: Section = {
   id: 'multiplayer', numeral: 'XII', title: 'Multiplayer Games',
   topics: [
     { id: 'mp-overview', title: 'Multiplayer at a glance', brief: 'Up to four parties race the same cave, each from their own browser.', cards: [], screens: ['mp-play'], blocks: [
+      note('info', 'Switched on by the site', 'Multiplayer is switched on or off for the whole site by its administrators. If the welcome page shows no multiplayer options, it is off for now.'),
       p('Up to four parties race the same cave at once, taking turns from their own browsers — first to the richest haul out wins. The cave is **shared**: it grows as everyone explores, and you see the other parties as small coloured tokens on the map where they stand.'),
     ] },
     { id: 'mp-create-join', title: 'Creating and joining a game', brief: 'The host creates a game and shares its four-letter code; others join with it.', cards: [], screens: ['mp-setup'], blocks: [

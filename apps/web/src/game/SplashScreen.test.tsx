@@ -8,8 +8,8 @@ describe("SplashScreen", () => {
     expect(screen.getByRole("heading", { name: /the sorcerer.s cave/i })).toBeInTheDocument();
     expect(screen.getByText(/descent to the underworld is easy/i)).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /start solitaire game/i })).toBeEnabled();
-    expect(screen.getByRole("button", { name: /start multiplayer game/i })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /join multiplayer game/i })).toBeDisabled();
+    // Multiplayer is not offered at all unless the site option is on (the System tab).
+    expect(screen.queryByRole("button", { name: /multiplayer game/i })).toBeNull();
   });
 
   it("starts a solitaire game when chosen", () => {
@@ -47,7 +47,7 @@ describe("SplashScreen", () => {
     expect(btn).toBeEnabled();
   });
 
-  it("enables the multiplayer buttons only when their handlers are provided", () => {
+  it("shows the multiplayer buttons only when their handlers are provided", () => {
     const onStartMp = vi.fn(); const onJoinMp = vi.fn();
     render(<SplashScreen onStartSolitaire={() => {}} onStartMultiplayer={onStartMp} onJoinMultiplayer={onJoinMp} />);
     const startMp = screen.getByRole("button", { name: /start multiplayer game/i });
@@ -110,7 +110,7 @@ describe("SplashScreen", () => {
   });
 
   it("lists 'Replay a game' below the multiplayer entries (start-panel order)", () => {
-    render(<SplashScreen onStartSolitaire={() => {}} />);
+    render(<SplashScreen onStartSolitaire={() => {}} onStartMultiplayer={() => {}} onJoinMultiplayer={() => {}} />);
     const join = screen.getByRole("button", { name: "Join Multiplayer Game" });
     const replay = screen.getByTestId("replay");
     // compareDocumentPosition: FOLLOWING (4) means `replay` comes after `join` in the DOM.

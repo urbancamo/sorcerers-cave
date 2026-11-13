@@ -2622,6 +2622,27 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
 @media (max-width: 480px) { .scv-tab { padding: 9px 12px; } .scv-tabs-pane { padding: 12px; } }
 
 /* ---- Users tab and invite page ---- */
+/* System tab: one form of site options, a switch, a guard dialog, and Save / Cancel at the foot */
+.scv-sys { display: flex; flex-direction: column; gap: 16px; max-width: 640px; }
+.scv-sys-option { margin: 0; border: 1px solid var(--line-strong); }
+.scv-sys-legend { padding: 0 6px; font: 600 11px var(--ui); letter-spacing: .14em; text-transform: uppercase; color: var(--brass); }
+.scv-sys-option .scv-admin-note { margin: 4px 0 14px; }
+.scv-sys-pending { margin: 12px 0 0; font-size: 13.5px; color: var(--brass-bright); }
+.scv-sys-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; justify-content: flex-end; padding-top: 12px; border-top: 1px solid var(--line); }
+.scv-sys-actions p { margin: 0 auto 0 0; font-size: 14px; }
+.scv-sys-ok { color: var(--party-green); }
+.scv-switch { display: inline-flex; align-items: center; gap: 12px; padding: 4px 0; background: none; border: 0; cursor: pointer; font: 15px var(--ui); color: var(--parchment); }
+.scv-switch-track { position: relative; width: 46px; height: 26px; border-radius: 13px; background: var(--line-strong); border: 1px solid var(--line-strong); transition: background .15s; flex: none; }
+.scv-switch-knob { position: absolute; top: 2px; left: 2px; width: 20px; height: 20px; border-radius: 50%; background: var(--cream); transition: transform .15s; }
+.scv-switch[aria-checked="true"] .scv-switch-track { background: var(--party-green); border-color: var(--party-green); }
+.scv-switch[aria-checked="true"] .scv-switch-knob { transform: translateX(20px); }
+.scv-switch:focus-visible .scv-switch-track { outline: 2px solid var(--brass-bright); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { .scv-switch-track, .scv-switch-knob { transition: none; } }
+.scv-guard-backdrop { position: fixed; inset: 0; z-index: 90; display: flex; align-items: center; justify-content: center; padding: 16px; background: rgba(7, 7, 9, 0.7); }
+.scv-guard { width: min(440px, 100%); padding: 20px 22px 16px; box-shadow: 0 10px 40px rgba(7, 7, 9, 0.7); }
+.scv-guard-title { margin: 0 0 8px; font: 600 20px var(--display); color: var(--cream); }
+.scv-guard-body p { margin: 0; font: 16px/1.45 var(--body); color: var(--parchment); }
+.scv-guard-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 18px; }
 .scv-users { display: flex; flex-direction: column; gap: 14px; }
 .scv-users-roles { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0; padding: 0; border: 0; font-size: 13.5px; color: var(--parchment); }
 .scv-users-roles legend { padding: 0; margin-bottom: 4px; font-size: 10.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--stone); }

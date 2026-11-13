@@ -69,6 +69,17 @@ The tab starts a Test Mode game with any party, forks a saved scenario by code, 
 restoring opens the normal game screen on that game (its id is passed in `sessionStorage`; the server still checks ownership).
 See [`TEST-MODE.md`](TEST-MODE.md).
 
+## System
+
+Site-wide options, for the SYSTEM role. The tab is one form: a change is confirmed in a guard dialog, held as a draft, and only
+written when **Save modified options** is pressed (**Cancel** throws the draft away). Options live in the single-row
+`systemSettings` table (`convex/settings.ts`): `settings.get` is public, because the welcome page reads it before anyone signs in,
+and `settings.setOptions` needs SYSTEM. An option never set reads as its default.
+
+- **Multiplayer mode** (`multiplayerEnabled`, default **OFF**): when ON, the welcome page shows *Start Multiplayer Game* and *Join
+  Multiplayer Game*; when OFF it does not show them at all. It replaces the old `VITE_MULTIPLAYER` build flag. It controls what the
+  welcome page offers; games and lobbies already under way are not touched.
+
 ## Deferred
 
-Moving to Convex Auth 2.0 (it has no usable anonymous sign-in yet, which the players rely on), and the System tab. Password change and recovery are not built: an admin can issue a new set-password link only for a user who has not set one yet (to reset a password, delete the user and invite them again, or use `admin:setPassword` from the CLI).
+Moving to Convex Auth 2.0 (it has no usable anonymous sign-in yet, which the players rely on). Password change and recovery are not built: an admin can issue a new set-password link only for a user who has not set one yet (to reset a password, delete the user and invite them again, or use `admin:setPassword` from the CLI).

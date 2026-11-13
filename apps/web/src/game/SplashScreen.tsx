@@ -27,7 +27,7 @@ export function SplashScreen({
   /** Replay a (any player's) solo game by code — resolves null when the viewer opened, or an
    *  explanatory message (not found / predates logging / multiplayer) to surface here (§RB-3-3). */
   onReplay?: (code: string) => Promise<string | null>;
-  // Multiplayer entry points — undefined (disabled) unless the feature flag is on.
+  // Multiplayer entry points — undefined (not shown at all) unless the System tab's Multiplayer option is ON.
   onStartMultiplayer?: () => void;
   onJoinMultiplayer?: () => void;
 }) {
@@ -172,22 +172,16 @@ export function SplashScreen({
           {resumeErr && <p className="scv-resume-err" role="alert">{resumeErr}</p>}
         </div>
 
-        <button
-          className="scv-primary"
-          disabled={!onStartMultiplayer}
-          title={onStartMultiplayer ? undefined : "Coming soon"}
-          onClick={onStartMultiplayer}
-        >
-          Start Multiplayer Game
-        </button>
-        <button
-          className="scv-primary"
-          disabled={!onJoinMultiplayer}
-          title={onJoinMultiplayer ? undefined : "Coming soon"}
-          onClick={onJoinMultiplayer}
-        >
-          Join Multiplayer Game
-        </button>
+        {onStartMultiplayer && (
+          <button className="scv-primary" onClick={onStartMultiplayer}>
+            Start Multiplayer Game
+          </button>
+        )}
+        {onJoinMultiplayer && (
+          <button className="scv-primary" onClick={onJoinMultiplayer}>
+            Join Multiplayer Game
+          </button>
+        )}
 
         {/* Replay-by-code (§RB-3-1): visually parallel to Resume; any player's solo game code works.
             Sits below the multiplayer entries (MSW, 2026-07-28). */}
