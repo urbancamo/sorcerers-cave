@@ -81,10 +81,10 @@ describe('tutorial runner', () => {
     }
     expect(s).toEqual({ step: TUTORIAL_SCRIPT.length - 1, cursor: TUTORIAL_ROUTE.length });
   });
-  it('treats the deployment as a set: the Dwarf picked before the Woman Hero is the same deployment', () => {
+  it('treats the deployment as a set: the party picked in any order is the same deployment', () => {
     const beat = TUTORIAL_ROUTE.find((b) => b.play.type === 'deploy')!;
-    expect(matchesBeat(beat, { type: 'deploy', creatures: [1, 0] })).toBe(true);
-    expect(matchesBeat(beat, { type: 'deploy', creatures: [0, 1, 2] })).toBe(false);
+    expect(matchesBeat(beat, { type: 'deploy', creatures: [2, 0, 1] })).toBe(true);
+    expect(matchesBeat(beat, { type: 'deploy', creatures: [0, 1] })).toBe(false); // the Priest fights too
   });
   it('an attack is judged by who stands in front and who behind, not by which front fighter is paired', () => {
     const beat = TUTORIAL_ROUTE.find((b) => b.play.type === 'engage')!;
@@ -95,6 +95,6 @@ describe('tutorial runner', () => {
   });
   it('compares actions whatever order the view built their fields in', () => {
     const beat = TUTORIAL_ROUTE.find((b) => b.play.type === 'redeploy')!;
-    expect(matchesBeat(beat, JSON.parse(JSON.stringify({ moves: [{ back: false, match: 0, creature: 1 }], type: 'redeploy' })))).toBe(true);
+    expect(matchesBeat(beat, JSON.parse(JSON.stringify({ moves: [{ back: true, match: 0, creature: 2 }, { back: false, match: 0, creature: 1 }], type: 'redeploy' })))).toBe(true);
   });
 });

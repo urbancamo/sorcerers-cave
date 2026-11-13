@@ -2526,21 +2526,14 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
 .scv-tut-skip { margin-right: auto; }
 .scv-tut-count { margin: 6px 0 0; text-align: right; font: 11px var(--ui); color: var(--stone-dim); }
 @media (max-width: 720px) { .scv-tut-card { top: 44px; left: 0; transform: none; width: 100%; border-radius: 0 0 10px 10px; } } /* the top, so it never covers the action dock at the bottom */
-.scv-tut-grip { display: flex; align-items: center; gap: 8px; margin: -6px -8px 4px; padding: 6px 8px; cursor: grab; touch-action: none; user-select: none; }
+/* The drag bar is a shade lighter than the card, so it reads as something to take hold of */
+.scv-tut-grip { display: flex; align-items: center; gap: 8px; margin: -16px -18px 10px; padding: 8px 18px; cursor: grab; touch-action: none; user-select: none; background: color-mix(in srgb, var(--cream) 9%, transparent); border-bottom: 1px solid var(--line); border-radius: 10px 10px 0 0; }
 .scv-tut-grip:active { cursor: grabbing; }
 .scv-tut-grip .scv-tut-eyebrow { margin: 0; }
 .scv-tut-dots { color: var(--stone-dim); font-size: 14px; line-height: 1; }
 .scv-tut-card.moved { transform: none; }
 @media (max-width: 720px) { .scv-tut-card.moved { width: min(440px, calc(100vw - 32px)); border-radius: 10px; } }
 
-/* The tutorial's demo game: a caption card over the replay, above the transport */
-.scv-demo-caption { position: absolute; left: 0; right: 0; bottom: calc(100% + 10px); padding: 12px 16px; background: var(--panel); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: 0 10px 40px rgba(7, 7, 9, 0.7); color: var(--parchment); font: 17px/1.4 var(--body); }
-/* The demo's label sits under the Back button, in brass so it reads as the thing being watched; the caption keeps the top centre to itself */
-.scv-demo-banner { position: fixed; top: 52px; right: 14px; z-index: 60; padding: 6px 12px; border-radius: 9px; border: 1px solid var(--brass); background: rgba(201, 161, 78, 0.18); color: var(--brass-bright); font: 600 12px var(--ui); letter-spacing: 0.06em; text-transform: uppercase; box-shadow: 0 0 14px rgba(201, 161, 78, 0.35); }
-@media (max-width: 720px) { .scv-demo-banner { top: 96px; } }
-/* When the demo has played out, the way back to the tutorial is ringed in green, as the tutorial's own next control is, until it is pressed */
-.scv-mp-standings.scv-demo-done { border: 2px solid var(--party-green); color: var(--cream); box-shadow: 0 0 20px rgba(91, 191, 99, 0.75), inset 0 0 10px rgba(91, 191, 99, 0.35); animation: scv-tut-pulse 1.4s ease-in-out infinite; }
-@media (prefers-reduced-motion: reduce) { .scv-mp-standings.scv-demo-done { animation: none; } }
 
 /* ---- Admin area (/login, /admin): its own scroll container, since the game shell is a fixed, non-scrolling 100vh ---- */
 .scv-admin { position: fixed; inset: 0; overflow-y: auto; box-sizing: border-box; padding: 20px 16px 40px;

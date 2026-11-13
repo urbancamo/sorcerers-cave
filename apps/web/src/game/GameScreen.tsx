@@ -3,12 +3,11 @@ import { useConvex, useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { api } from "../../convex/_generated/api";
-import { GS_PLAYING, HAZARD_TRAP, legalActions, tutorialAt, unpackCoord, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
+import { GS_PLAYING, HAZARD_TRAP, legalActions, scoreGame, tutorialAt, unpackCoord, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
 import { useCaveGame } from "./useCaveGame";
 import { useLocalGame } from "./useLocalGame";
 import { TutorialCoach } from "../tutorial/TutorialCoach";
 import { TutorialParty } from "../tutorial/TutorialParty";
-import { DEMO_CAPTIONS, DEMO_CODE, DEMO_FRAMES } from "../tutorial/demo";
 import { TUTORIAL_SCRIPT } from "../tutorial/script";
 import { inProgress, loadProgress, saveProgress } from "../tutorial/progress";
 import { initialTutorial, matchesBeat, tutorialReduce, wantedBeat, type TutorialEvent } from "../tutorial/runner";
@@ -162,7 +161,9 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
     if (TUTORIAL_SCRIPT[tutRef.current.step]?.free) return [];
     const beat = wantedBeat(TUTORIAL_SCRIPT, tutRef.current);
     if (beat && !matchesBeat(beat, a)) console.debug('[tutorial] refused', JSON.stringify(a), 'wanted', JSON.stringify(beat.play));
-    if (!beat || !matchesBeat(beat, a)) { setTutHint(beat ? 'Not that one: follow the highlighted control.' : TUTORIAL_SCRIPT[tutRef.current.step]?.kind === 'ui' ? 'Press the highlighted button first.' : 'Press Continue first.'); return null; }
+    // The right button with the wrong party picked is a different mistake from the wrong button, so it is told apart.
+    const wrongParty = beat?.play.type === 'deploy' && a.type === 'deploy';
+    if (!beat || !matchesBeat(beat, a)) { setTutHint(wrongParty ? 'Put all three forward: the Woman Hero, the Dwarf and the Priest. Select the one that is missing, then press the button again.' : beat ? 'Not that one: follow the highlighted control.' : TUTORIAL_SCRIPT[tutRef.current.step]?.kind === 'ui' ? 'Press the highlighted button first.' : 'Press Continue first.'); return null; }
     tutSend({ type: 'played' });
     return beat.before ?? [];
   }, [tutSend]);
@@ -294,7 +295,6 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
   // a replay is a fixed record) and open the read-only viewer, or explain why we can't.
   const convex = useConvex();
   const [replayBundle, setReplayBundle] = useState<ReplayBundle | null>(null);
-  const [showDemo, setShowDemo] = useState(false); // the replay on screen is the tutorial's captioned demo, not a player's replay
   const handleReplay = useCallback(async (code: string): Promise<string | null> => {
     // The bundled searched games (codes like K001, no backend involved) are checked before Convex.
     const golden = await goldenBundle(code);
@@ -336,13 +336,12 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
   // The read-only replay viewer — entered from the splash or a high-score detail (this check
   // precedes every game surface, so it also overlays the game-over screen; never a live game).
   if (replayBundle) {
-    return <ReplayView bundle={replayBundle} onExit={() => { setReplayBundle(null); setShowDemo(false); }}
-                       demo={showDemo ? { frames: DEMO_FRAMES, captions: DEMO_CAPTIONS, heading: 'Demo: a game in progress', exitLabel: 'Back to the tutorial' } : undefined} />;
+    return <ReplayView bundle={replayBundle} onExit={() => setReplayBundle(null)} />;
   }
 
   // The tutorial begins on the new-game screen, as a real game does.
   if (local && !partyDone) {
-    return <TutorialParty onDone={() => setPartyDone(true)} onSkip={() => { saveProgress({ status: 'skipped' }); onLocalExit?.(); }} onExit={() => onLocalExit?.()} onDemo={() => { setShowDemo(true); void handleReplay(DEMO_CODE); }} />;
+    return <TutorialParty onDone={() => setPartyDone(true)} onSkip={() => { saveProgress({ status: 'skipped' }); onLocalExit?.(); }} onExit={() => onLocalExit?.()} />;
   }
   if (!local && !started) {
     return (
@@ -527,9 +526,8 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
         />
       )}
       {local && TUTORIAL_SCRIPT[tut.step] && !overlay && !notices && (
-        <TutorialCoach step={TUTORIAL_SCRIPT[tut.step]!} index={tut.step} total={TUTORIAL_SCRIPT.length} cave={caveApi.current} hint={tutHint}
+        <TutorialCoach step={TUTORIAL_SCRIPT[tut.step]!} index={tut.step} total={TUTORIAL_SCRIPT.length} cave={caveApi.current} hint={tutHint} score={state ? scoreGame(state) : 0}
                        onContinue={() => (TUTORIAL_SCRIPT[tut.step]!.free ? (saveProgress({ status: 'done' }), onLocalExit?.()) : (TUTORIAL_SCRIPT[tut.step]!.resetView && document.getElementById('snapBtn')?.click(), tutSend({ type: 'continue' })))}
-                       onDemo={() => { setShowDemo(true); void handleReplay(DEMO_CODE); }}
                        onBack={tut.step > 0 && TUTORIAL_SCRIPT[tut.step - 1]!.kind === 'info' ? () => tutSend({ type: 'back' }) : undefined}
                        onSkip={() => { saveProgress({ status: 'skipped' }); onLocalExit?.(); }} />
       )}
