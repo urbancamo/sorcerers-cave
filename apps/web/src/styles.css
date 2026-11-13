@@ -2556,7 +2556,8 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
 .scv-admin-card { display: flex; flex-direction: column; gap: 12px; padding: 18px; }
 .scv-admin-card .scv-admin-note { margin: 0; }
 .scv-admin-card .scv-primary, .scv-admin-card .scv-ghost { align-self: flex-start; }
-.scv-admin-tabs .scv-hs-tab { flex: 0 1 auto; min-width: 120px; }
+.scv-admin-tabs { flex-wrap: wrap; }
+.scv-admin-tabs .scv-hs-tab { flex: 0 1 auto; min-width: 110px; }
 .scv-admin .scv-hs-tab-on { color: var(--void); }
 .scv-admin-testing { display: grid; gap: 14px; }
 @media (min-width: 720px) { .scv-admin-testing { grid-template-columns: repeat(3, 1fr); } }
@@ -2576,8 +2577,10 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
 .scv-an-chart figcaption p { margin: 2px 0 8px; font-size: 12px; color: var(--stone); }
 .scv-an-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 6px; padding: 0; list-style: none; font-size: 12px; color: var(--stone); }
 .scv-an-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+/* On a phone the chart keeps a readable size and scrolls sideways inside its card rather than shrinking its text to nothing. */
 .scv-an-plot { position: relative; }
-.scv-an-plot svg { display: block; width: 100%; height: auto; overflow: visible; }
+.scv-an-svgbox { overflow-x: auto; }
+.scv-an-svgbox svg { display: block; width: 100%; min-width: 460px; height: auto; }
 .scv-an-grid { stroke: var(--line); stroke-width: 1; }
 .scv-an-axis { font-family: var(--ui); font-size: 10.5px; fill: var(--stone); }
 .scv-an-value { font-family: var(--ui); font-size: 11px; fill: var(--parchment); font-variant-numeric: tabular-nums; }

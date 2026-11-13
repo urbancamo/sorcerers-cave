@@ -24,7 +24,7 @@ function Frame({ title, sub, items, legend, children, tip }: {
         <ul className="scv-an-legend">{legend.map((l) => <li key={l.key}><i style={{ background: l.color }} />{l.label}</li>)}</ul>
       )}
       <div className="scv-an-plot">
-        {children}
+        <div className="scv-an-svgbox">{children}</div>
         {tip && <div className="scv-an-tip" style={{ left: tip.x, top: tip.y }} role="status">{tip.text}</div>}
       </div>
       <details className="scv-an-table">
