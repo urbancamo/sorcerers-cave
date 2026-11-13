@@ -25,6 +25,7 @@ import type * as invites from "../invites.js";
 import type * as multiplayer from "../multiplayer.js";
 import type * as passwords from "../passwords.js";
 import type * as roles from "../roles.js";
+import type * as settings from "../settings.js";
 import type * as strangerDecision from "../strangerDecision.js";
 
 import type {
@@ -51,6 +52,7 @@ declare const fullApi: ApiFromModules<{
   multiplayer: typeof multiplayer;
   passwords: typeof passwords;
   roles: typeof roles;
+  settings: typeof settings;
   strangerDecision: typeof strangerDecision;
 }>;
 

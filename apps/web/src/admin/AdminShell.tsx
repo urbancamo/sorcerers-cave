@@ -4,6 +4,7 @@ import { Tabs } from './Tabs';
 import { TestingTab } from './TestingTab';
 import { AnalyticsTab } from './analytics/AnalyticsTab';
 import { UsersTab } from './UsersTab';
+import { SystemTab } from './SystemTab';
 
 export type Role = 'SYSTEM' | 'USER' | 'ANALYTICS' | 'TEST';
 
@@ -15,16 +16,12 @@ const TABS: { id: Role; label: string }[] = [
   { id: 'SYSTEM', label: 'System' },
 ];
 
-function Soon({ what }: { what: string }) {
-  return <p className="scv-admin-note">{what} is not built yet.</p>;
-}
-
 function panel(role: Role, roles: Role[], userId: string | null): ReactNode {
   switch (role) {
     case 'TEST': return <TestingTab />;
     case 'ANALYTICS': return <AnalyticsTab />;
     case 'USER': return <UsersTab roles={roles} selfId={userId} />;
-    case 'SYSTEM': return <Soon what="System administration" />;
+    case 'SYSTEM': return <SystemTab />;
   }
 }
 

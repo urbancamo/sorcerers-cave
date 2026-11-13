@@ -201,19 +201,11 @@ needs its **own** keypair — never share the local dev keys with production. Se
 set a fresh keypair; there's nothing project-specific to configure beyond following Convex's own
 `@convex-dev/auth` setup for a new deployment.
 
-## Client-side flags are not server options
+## Multiplayer mode is a site option, not an environment variable
 
-A `VITE_`-prefixed variable in `apps/web/src/game/featureFlags.ts` also gates behaviour, but it's a
-**different trust model entirely** — anything `VITE_`-prefixed is bundled into the client
-JavaScript and readable by anyone in browser devtools, so it only ever gates what the UI *offers*,
-never anything that affects scoring or must be tamper-proof:
-
-- **`VITE_MULTIPLAYER`** — shows/hides the multiplayer entry points on the splash screen. On
-  automatically in local dev (`import.meta.env.DEV`); off in any built/deployed bundle unless set to
-  `1`. Must stay unset in production until multiplayer is approved for release.
-
-Set it the ordinary Vite way — in `apps/web/.env.local` (`VITE_MULTIPLAYER=1`), not via
-`npx convex env set` (it's never read by any Convex function).
+Multiplayer is **not** an environment option any more: whether the welcome page offers it is the **Multiplayer mode** switch on the
+admin panel's System tab (default OFF), stored in Convex (`systemSettings`). See [`ADMIN.md`](ADMIN.md). The old `VITE_MULTIPLAYER`
+build flag is gone and has no effect.
 
 ## `GITHUB_ISSUES_TOKEN` and `GITHUB_ISSUES_REPO`
 
