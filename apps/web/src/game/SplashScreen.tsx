@@ -6,7 +6,6 @@ import { HelpModal } from "../manual/HelpModal";
 import { markNudgeSeen, nudgeSeen } from "../manual/nudge";
 import { inProgress, loadProgress, saveProgress } from "../tutorial/progress";
 import { isScenarioCode } from "./goldenGame";
-import { ScenarioBrowserModal } from "./ScenarioBrowser";
 
 // The eight recruitable creatures (ids 0–7) make the decorative fan.
 const FAN_IDS = CREATURES.filter((c) => c.cost !== null).map((c) => c.id);
@@ -16,8 +15,6 @@ const REPO_URL = "https://github.com/urbancamo/sorcerers-cave";
 export function SplashScreen({
   onStartSolitaire,
   onStartTutorial,
-  onStartTestGame,
-  onRestoreTestScenario,
   onResume,
   onReplay,
   onStartMultiplayer,
@@ -26,14 +23,6 @@ export function SplashScreen({
   onStartSolitaire: () => void;
   /** The guided tutorial game (a local, in-memory game; no sign-in needed). */
   onStartTutorial?: (resume: boolean) => void;
-  /** Test Mode (§Test Mode) — present only when the page was opened with a ?test= param. */
-  onStartTestGame?: () => void;
-  /** Save/restore a test scenario (2026-09-11): fork a Test Mode game by its code into a new,
-   *  independently-owned game (with its own new code) and drop straight into it. Open by code
-   *  like `onReplay`, not owner-scoped like `onResume` — a scenario is restored precisely so its
-   *  code can be shared in a bug report and forked by someone else. Resolves null on success
-   *  (the caller has already navigated into the new game), or an explanatory message otherwise. */
-  onRestoreTestScenario?: (code: string) => Promise<string | null>;
   onResume?: (code: string) => Promise<boolean>;
   /** Replay a (any player's) solo game by code — resolves null when the viewer opened, or an
    *  explanatory message (not found / predates logging / multiplayer) to surface here (§RB-3-3). */
@@ -57,10 +46,6 @@ export function SplashScreen({
   const [replayCode, setReplayCode] = useState("");
   const [replayErr, setReplayErr] = useState<string | null>(null);
   const [replaying, setReplaying] = useState(false);
-  const [showScenarios, setShowScenarios] = useState(false);
-  const [restoreCode, setRestoreCode] = useState("");
-  const [restoreErr, setRestoreErr] = useState<string | null>(null);
-  const [restoring, setRestoring] = useState(false);
 
   const submitResume = async () => {
     const code = resumeCode.trim().toUpperCase();
@@ -71,17 +56,6 @@ export function SplashScreen({
     const ok = await onResume(code);
     setResuming(false);
     if (!ok) setResumeErr("No game found with that code.");
-  };
-
-  const submitRestore = async () => {
-    const code = restoreCode.trim().toUpperCase();
-    if (!/^[A-Z]{4}$/.test(code)) { setRestoreErr("Enter a four-letter game code."); return; }
-    if (!onRestoreTestScenario) return;
-    setRestoring(true);
-    setRestoreErr(null);
-    const err = await onRestoreTestScenario(code);
-    setRestoring(false);
-    if (err) setRestoreErr(err);
   };
 
   const submitReplay = async () => {
@@ -172,43 +146,6 @@ export function SplashScreen({
               <button className="scv-ghost" data-testid="restart-tutorial" onClick={() => { saveProgress({ status: 'step', step: 0, cursor: 0 }); onStartTutorial(false); }}>Start Tutorial over</button>
             </>
           : <button className="scv-primary" data-testid="start-tutorial" onClick={() => { saveProgress({ status: 'step', step: 0, cursor: 0 }); onStartTutorial(false); }}>Tutorial</button>)}
-        {onStartTestGame && (
-          <button className="scv-primary" data-testid="start-test-game" onClick={onStartTestGame}>
-            Start Test Game
-          </button>
-        )}
-
-        {/* Save/restore a test scenario (2026-09-11): visually parallel to Resume/Replay below, but
-            gated behind the same test-secret unlock as "Start Test Game" — restoring only makes
-            sense once Test Mode itself is available. */}
-        {onStartTestGame && onRestoreTestScenario && (
-          <div className="scv-resume" data-testid="restore-test-scenario">
-            <label className="scv-resume-label" htmlFor="scv-restore-code">Restore a test scenario</label>
-            <div className="scv-resume-row">
-              <input
-                id="scv-restore-code"
-                className="scv-resume-input"
-                value={restoreCode}
-                onChange={(e) => { setRestoreCode(e.target.value.toUpperCase().slice(0, 4)); setRestoreErr(null); }}
-                onKeyDown={(e) => { if (e.key === "Enter") void submitRestore(); }}
-                maxLength={4}
-                placeholder="ABCD"
-                aria-label="four-letter test scenario code"
-                autoCapitalize="characters"
-                spellCheck={false}
-              />
-              <button
-                className="scv-primary"
-                onClick={() => void submitRestore()}
-                disabled={restoring || restoreCode.trim().length !== 4}
-              >
-                {restoring ? "Restoring…" : "Restore"}
-              </button>
-            </div>
-            {restoreErr && <p className="scv-resume-err" role="alert">{restoreErr}</p>}
-          </div>
-        )}
-
         <div className="scv-resume" data-testid="resume">
           <label className="scv-resume-label" htmlFor="scv-resume-code">Resume a game</label>
           <div className="scv-resume-row">
@@ -276,12 +213,6 @@ export function SplashScreen({
             >
               {replaying ? "Loading…" : "Replay"}
             </button>
-            {/* Test Mode only: browse the 75 searched games (B001…S025) instead of typing a code. */}
-            {onStartTestGame && (
-              <button className="scv-primary scv-sc-btn" data-testid="scenario-browser" title="Browse the scenario games" aria-label="Browse scenario games" onClick={() => setShowScenarios(true)}>
-                List
-              </button>
-            )}
           </div>
           {replayErr && <p className="scv-resume-err" role="alert">{replayErr}</p>}
         </div>
@@ -290,7 +221,6 @@ export function SplashScreen({
       </section>
 
       {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
-      {showScenarios && <ScenarioBrowserModal onClose={() => setShowScenarios(false)} onOpen={onReplay} />}
       {showScores && <HighScoresModal onClose={() => setShowScores(false)} onReplay={onReplay} />}
 
       <footer className="scv-attrib">

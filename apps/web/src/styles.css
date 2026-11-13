@@ -2541,3 +2541,82 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
 /* When the demo has played out, the way back to the tutorial is ringed in green, as the tutorial's own next control is, until it is pressed */
 .scv-mp-standings.scv-demo-done { border: 2px solid var(--party-green); color: var(--cream); box-shadow: 0 0 20px rgba(91, 191, 99, 0.75), inset 0 0 10px rgba(91, 191, 99, 0.35); animation: scv-tut-pulse 1.4s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .scv-mp-standings.scv-demo-done { animation: none; } }
+
+/* ---- Admin area (/login, /admin): its own scroll container, since the game shell is a fixed, non-scrolling 100vh ---- */
+.scv-admin { position: fixed; inset: 0; overflow-y: auto; box-sizing: border-box; padding: 20px 16px 40px;
+  background: var(--void); color: var(--parchment); font-family: var(--ui); }
+.scv-admin > * { max-width: 920px; margin-left: auto; margin-right: auto; }
+.scv-admin-login { display: flex; align-items: center; justify-content: center; }
+.scv-admin-login > * { width: 100%; max-width: 380px; margin: 0; }
+.scv-admin-bar { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.scv-admin-title { font-family: var(--display); font-size: 22px; font-weight: 500; color: var(--cream); margin: 0; flex: 1; }
+.scv-admin-user { font-size: 13px; color: var(--stone); }
+.scv-admin-h2 { font-family: var(--display); font-size: 16px; font-weight: 500; color: var(--cream); margin: 0 0 4px; }
+.scv-admin-note { color: var(--stone); font-size: 14px; line-height: 1.5; margin: 0 0 12px; }
+.scv-admin-card { display: flex; flex-direction: column; gap: 12px; padding: 18px; }
+.scv-admin-card .scv-admin-note { margin: 0; }
+.scv-admin-card .scv-primary, .scv-admin-card .scv-ghost { align-self: flex-start; }
+.scv-admin-testing { display: grid; gap: 14px; }
+.scv-admin-testing > * { min-width: 0; }
+/* The game's panels carry fixed widths (460px; the party chooser 720px, its row 1040px). In the admin area they fill their container instead. */
+.scv-admin .scv-panel { width: auto; max-width: 100%; box-sizing: border-box; }
+.scv-admin .scv-party-row { width: 100%; }
+.scv-admin .scv-party { width: min(720px, 100%); }
+.scv-admin-login .scv-panel { width: 100%; }
+@media (min-width: 720px) { .scv-admin-testing { grid-template-columns: repeat(3, 1fr); } }
+
+/* ---- Game Analytics ---- */
+/* Outcome colours: blue / red-orange / violet, checked for colour-blind separation against the panel surface (never red against green). */
+.scv-admin { --out-escaped: #4a8fd6; --out-dead: #d0624a; --out-quit: #9a7ad6; }
+.scv-an-tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; margin-bottom: 12px; }
+.scv-an-tile { display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+.scv-an-tile-label { font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--stone); }
+.scv-an-tile strong { font-size: 26px; font-weight: 600; color: var(--cream); font-variant-numeric: tabular-nums; }
+.scv-an-tile-sub { font-size: 12px; color: var(--stone-dim); }
+.scv-an-grid2 { display: grid; gap: 14px; }
+@media (min-width: 900px) { .scv-an-grid2 { grid-template-columns: 1fr 1fr; } }
+.scv-an-chart { margin: 0; padding: 14px 14px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; min-width: 0; }
+.scv-an-chart h3 { margin: 0; font-family: var(--display); font-weight: 500; font-size: 15px; color: var(--cream); }
+.scv-an-chart figcaption p { margin: 2px 0 8px; font-size: 12px; color: var(--stone); }
+.scv-an-legend { display: flex; flex-wrap: wrap; gap: 4px 14px; margin: 0 0 6px; padding: 0; list-style: none; font-size: 12px; color: var(--stone); }
+.scv-an-legend i { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; vertical-align: -1px; }
+/* On a phone the chart keeps a readable size and scrolls sideways inside its card rather than shrinking its text to nothing. */
+.scv-an-plot { position: relative; }
+.scv-an-svgbox { overflow-x: auto; }
+.scv-an-svgbox svg { display: block; width: 100%; min-width: 460px; height: auto; }
+.scv-an-grid { stroke: var(--line); stroke-width: 1; }
+.scv-an-axis { font-family: var(--ui); font-size: 10.5px; fill: var(--stone); }
+.scv-an-value { font-family: var(--ui); font-size: 11px; fill: var(--parchment); font-variant-numeric: tabular-nums; }
+.scv-an-tip { position: absolute; z-index: 2; pointer-events: none; padding: 5px 9px; font-size: 12px; white-space: nowrap; color: var(--cream);
+  background: var(--void); border: 1px solid var(--line-strong); border-radius: 7px; }
+.scv-an-table { margin-top: 8px; font-size: 12px; color: var(--stone); }
+.scv-an-table summary { cursor: pointer; }
+.scv-an-scroll { overflow-x: auto; }
+.scv-an-history { display: flex; flex-direction: column; gap: 12px; }
+.scv-an-filter { max-width: 200px; }
+.scv-an-party { max-width: 220px; }
+.scv-an-tag { margin-left: 6px; padding: 1px 6px; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; border: 1px solid var(--brass); border-radius: 6px; color: var(--brass-bright); }
+.scv-an-out { display: inline-flex; align-items: center; gap: 6px; }
+.scv-an-out::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--stone); }
+.scv-an-out-escaped::before { background: var(--out-escaped); }
+.scv-an-out-dead::before { background: var(--out-dead); }
+.scv-an-out-quit::before { background: var(--out-quit); }
+
+/* ---- Tab pane: tabs joined to the pane they control (admin) ---- */
+.scv-tabs { --pane: #0e0e13; display: flex; flex-direction: column; min-width: 0; }
+.scv-tabs-list { display: flex; flex-wrap: wrap; gap: 2px; padding: 0 6px; border-bottom: 1px solid var(--line-strong); }
+.scv-tab { margin-bottom: -1px; padding: 10px 18px; font-family: var(--ui); font-size: 13.5px; letter-spacing: .03em; cursor: pointer;
+  color: var(--stone); background: transparent; border: 1px solid transparent; border-bottom: 0; border-radius: 10px 10px 0 0;
+  transition: color .15s, background .15s; }
+.scv-tab:hover { color: var(--cream); background: rgba(232, 219, 187, 0.05); }
+.scv-tab:focus-visible { outline: 2px solid var(--brass-bright); outline-offset: -2px; }
+.scv-tab[aria-selected="true"] { color: var(--cream); font-weight: 600; background: var(--pane); border-color: var(--line-strong);
+  box-shadow: inset 0 2px 0 var(--brass); padding-bottom: 11px; }
+.scv-tabs-pane { padding: 18px; background: var(--pane); border: 1px solid var(--line-strong); border-top: 0; border-radius: 0 0 12px 12px; min-width: 0; }
+.scv-tabs-pane:focus-visible { outline: 2px solid var(--brass-bright); outline-offset: 2px; }
+/* A tab pane inside a pane: lighter, underline-style tabs over a flat body. */
+.scv-tabs-sub .scv-tabs-list { padding: 0; }
+.scv-tabs-sub .scv-tab { padding: 8px 14px; font-size: 13px; border: 0; border-radius: 0; margin-bottom: -1px; border-bottom: 2px solid transparent; }
+.scv-tabs-sub .scv-tab[aria-selected="true"] { background: transparent; box-shadow: none; border-bottom-color: var(--brass); padding-bottom: 8px; }
+.scv-tabs-sub .scv-tabs-pane { padding: 16px 0 0; background: transparent; border: 0; border-radius: 0; }
+@media (max-width: 480px) { .scv-tab { padding: 9px 12px; } .scv-tabs-pane { padding: 12px; } }

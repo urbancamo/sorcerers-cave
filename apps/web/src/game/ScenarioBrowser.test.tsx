@@ -1,7 +1,6 @@
 import { render, screen, fireEvent, waitFor, within } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { ScenarioBrowserModal } from "./ScenarioBrowser";
-import { SplashScreen } from "./SplashScreen";
 import { scenarioSummaries } from "./goldenGame";
 
 describe("scenario summaries", () => {
@@ -41,16 +40,5 @@ describe("ScenarioBrowserModal", () => {
     fireEvent.click(await screen.findByText("B003"));
     await waitFor(() => expect(onOpen).toHaveBeenCalledWith("B003"));
     expect(await screen.findByRole("alert")).toHaveTextContent("nope");
-  });
-});
-
-describe("the splash screen's Scenarios button", () => {
-  it("appears only in Test Mode, next to Replay, and opens the browser", async () => {
-    const { unmount } = render(<SplashScreen onStartSolitaire={() => {}} />);
-    expect(screen.queryByTestId("scenario-browser")).toBeNull();
-    unmount();
-    render(<SplashScreen onStartSolitaire={() => {}} onStartTestGame={() => {}} />);
-    fireEvent.click(screen.getByTestId("scenario-browser"));
-    expect(await screen.findByTestId("scenario-table")).toBeInTheDocument();
   });
 });

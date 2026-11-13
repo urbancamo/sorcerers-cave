@@ -5,20 +5,16 @@ chamber/tunnel shape, not just the special areas), a chamber's contents, or a fo
 outcome, then play the scenario out through the normal solo UI. Full spec: `docs/specs/engine-spec.md`
 (§Test Mode, `SC-Test-1`..`SC-Test-10`).
 
-It is gated behind a magic-string secret so it can never be reached from a real game:
+It is gated behind the `TEST` role so it can never be reached from a real game:
 
-- The client reads the secret from the URL's `?test=` query param (`src/game/testMode.ts`) and
-  remembers it in `sessionStorage` for the rest of the tab's session.
-- The secret is **never validated client-side**. It's sent to Convex's `startTestGame` mutation
-  (`convex/game.ts`), which compares it against the `TEST_MODE_SECRET` environment variable on the
-  Convex deployment itself — never a `VITE_`-prefixed variable, so it is never bundled into the
-  client build and never visible in browser devtools/source.
-- If `TEST_MODE_SECRET` is unset on a deployment, every `startTestGame` call on that deployment
-  fails closed — there's no way to accidentally leave Test Mode reachable.
-
-Once the secret is configured and you load the app with the matching `?test=` param, the splash
-screen shows a **"Start Test Game"** option; picking a party through it starts a game with
-`testMode: true` and shows the in-game Test Mode control panel.
+- Sign in at `/login` with an account holding the `TEST` role (or `SYSTEM`); create one with
+  `admin:seedUser` (see [`OPTIONS.md`](OPTIONS.md#admin-accounts-and-test-mode-access)).
+- The **Testing** tab of the admin panel (`/admin`) starts a test game, restores a scenario by code, and browses the
+  scenario games. Starting or restoring opens the normal game screen on that game, with the in-game Test Mode
+  control panel. The main screen offers none of this.
+- The check is server-side: `startTestGame` and `restoreTestScenario` (`convex/game.ts`) require the role
+  (`convex/roles.ts`), and the in-game test actions only work on a game whose own `testMode` is true. Anonymous
+  players have no roles, so they are always refused.
 
 ## Placing any area tile (2026-09-11)
 
@@ -80,8 +76,7 @@ whatever reproduces the bug), you can hand it off as a four-letter code:
   - **Copy debug bundle** — copies the game's full `{ game, moves }` log as JSON to your clipboard.
     This is the most direct artifact to paste into a bug report or hand to an AI reader — it's the
     exact seed/picks/variants plus every action and event, not just a snapshot.
-- **Restore:** on the splash screen (only shown once Test Mode is unlocked via `?test=`), enter a
-  code under **"Restore a test scenario"**. This works for ANY Test Mode game's code, not just ones
+- **Restore:** in the admin Testing tab, enter a code under **"Restore a scenario"** (needs the `TEST` role). This works for ANY Test Mode game's code, not just ones
   you created — restoring **forks** it into a brand-new game you own, with its own new code, rather
   than resuming the original row. That's deliberate: you (or whoever you handed the code to) can
   replay and continue the same scenario as many times as needed without one attempt clobbering
@@ -92,52 +87,8 @@ is rejected) — see `docs/requirements/test-mode/2026-09-11-save-restore-test-s
 why that's the safe boundary, and `apps/web/convex/game.ts`'s `restoreTestScenario` mutation for the
 implementation.
 
-## Configuring locally
+## Configuring access
 
-The secret lives on your **local Convex dev deployment** (the one `npx convex dev` / `pnpm convex`
-targets, from `CONVEX_DEPLOYMENT` in `apps/web/.env.local`) — it is deployment config, not a
-project file, so it's never checked into git.
-
-```bash
-cd apps/web
-npx convex env set TEST_MODE_SECRET <your-secret-uuid>
-```
-
-Any string works, but a UUID (e.g. `uuidgen` on macOS/Linux) is a sane default — it just needs to
-be hard to guess. Check what's currently set with:
-
-```bash
-npx convex env get TEST_MODE_SECRET
-```
-
-Then, with `pnpm dev` running, visit:
-
-```
-http://localhost:5173/?test=<your-secret-uuid>
-```
-
-## Configuring in Convex prod
-
-Production's Convex functions are deployed as part of the Vercel build (`vercel.json`'s
-`buildCommand` runs `npx convex deploy`), but environment variables are **not** part of that
-deploy — they live on the prod deployment itself and are set once, out of band, the same way as
-locally but with `--prod`:
-
-```bash
-cd apps/web
-npx convex env set TEST_MODE_SECRET <your-secret-uuid> --prod
-npx convex env get TEST_MODE_SECRET --prod   # verify
-```
-
-You can use the same secret value as your local dev deployment for convenience, or a different one
-per environment — the two are independent. Once set, Test Mode works on the production site the
-same way: visit `https://<your-prod-domain>/?test=<your-secret-uuid>`.
-
-## Rotating or disabling
-
-- **Rotate:** re-run `npx convex env set TEST_MODE_SECRET <new-uuid>` (add `--prod` for
-  production) and share the new URL with whoever needs it — the old value stops working
-  immediately.
-- **Disable:** `npx convex env remove TEST_MODE_SECRET` (add `--prod` for production). Every
-  `startTestGame` call then fails closed, and the splash screen's "Start Test Game" option
-  disappears for anyone without a cached (now-invalid) secret.
+Create an admin account with the `TEST` role (or `SYSTEM`) as described in
+[`OPTIONS.md`](OPTIONS.md#admin-accounts-and-test-mode-access), for your local dev deployment and, separately, for
+production (`--prod`). There is no secret and no `?test=` URL any more.

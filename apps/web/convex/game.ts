@@ -3,6 +3,8 @@ import type { Doc } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { nextSeq, park } from "./strangerDecision";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { requireRole } from "./roles";
+import { recordSoloFinish } from "./gameStats";
 import {
   newGame as createGameState,
   validatePicks,
@@ -84,7 +86,7 @@ const variantsValidator = v.object({ extensionKit: v.optional(v.boolean()), siby
 // and changes scoring difficulty, so it must NOT be client-settable — `variantsValidator` above
 // deliberately has no key for it, so a client literally cannot send one. Instead it's folded in
 // server-side from a Convex-only env var (never `VITE_`-prefixed, so never bundled into the client),
-// mirroring `TEST_MODE_SECRET`'s own established reasoning below. Absent env var ⇒ byte-identical
+// mirroring the other server-only switches. Absent env var ⇒ byte-identical
 // to before this existed.
 //
 // The Sorcerer's terms (`variants.sorcererTeleport`, solo only) are folded in the same way from
@@ -133,18 +135,14 @@ export const newGame = mutation({
 });
 
 /**
- * Start a new TEST-MODE game (§Test Mode): identical to `newGame`, except the caller must supply
- * the magic-string secret (compared against the Convex-only `TEST_MODE_SECRET` env var — never a
- * `VITE_`-prefixed variable, so it is never bundled into the client) and the resulting game carries
- * `state.testMode: true`. Fails closed: an unconfigured secret rejects every attempt.
+ * Start a new TEST-MODE game (§Test Mode): identical to `newGame`, except the caller must hold the
+ * `TEST` role (admin panel RBAC; `SYSTEM` implies it) and the resulting game carries
+ * `state.testMode: true`. Anonymous players have no roles, so they are always refused.
  */
 export const startTestGame = mutation({
-  args: { secret: v.string(), seed: v.number(), picks: v.array(v.number()), color: v.optional(colorValidator), variants: v.optional(variantsValidator) },
-  handler: async (ctx, { secret, seed, picks, color, variants }) => {
-    const ownerId = await getAuthUserId(ctx);
-    if (!ownerId) throw new Error("Unauthenticated");
-    const expected = process.env.TEST_MODE_SECRET;
-    if (!expected || secret !== expected) throw new Error("Invalid test mode secret");
+  args: { seed: v.number(), picks: v.array(v.number()), color: v.optional(colorValidator), variants: v.optional(variantsValidator) },
+  handler: async (ctx, { seed, picks, color, variants }) => {
+    const ownerId = await requireRole(ctx, "TEST");
     // Test Mode party selection: no budget/stock ceiling — a scripted scenario can seat any party.
     if (!validatePicks(picks, variants, true)) throw new Error("Invalid party selection");
     const effectiveVariants = withForcedRedraw(variants);
@@ -177,8 +175,7 @@ export const startTestGame = mutation({
 export const restoreTestScenario = mutation({
   args: { code: v.string() },
   handler: async (ctx, { code }) => {
-    const callerId = await getAuthUserId(ctx);
-    if (!callerId) throw new Error("Unauthenticated");
+    const callerId = await requireRole(ctx, "TEST");
     const normalized = code.trim().toUpperCase();
     const source = await ctx.db.query("games").withIndex("by_code", (q) => q.eq("code", normalized)).first();
     if (!source) throw new Error("No game with that code");
@@ -268,6 +265,7 @@ export const applyAction = mutation({
     if (driven.awaiting && !awaitingRequest(state)) state = await park(ctx, id, state, seq + rows.length);
     const status = state.gs === GS_PLAYING ? "active" : "finished";
     await ctx.db.patch(id, { state, status, updatedAt: Date.now() });
+    if (status === "finished") await recordSoloFinish(ctx, game, state);
 
     for (const r of rows) await ctx.db.insert("gameEvents", { gameId: id, seq: seq++, action: r.action, events: r.events });
     // midState (SC-4-43): the pre-relocation presentation snapshot — never persisted,

@@ -36,7 +36,7 @@ which escaped, 2.3 billion states, 70 CPU-hours (run started 2026-11-11 22:44 UT
 
 ## Replay codes
 
-Each scenario opens in the replay viewer: in Test Mode (`?test=`) the **List** button next to **Replay** on the splash screen browses
+Each scenario opens in the replay viewer: the **Scenario games** panel of the admin Testing tab (`/admin`, `TEST` role) browses
 all 75 with a summary of each; anyone can type a code into the **Replay a game** box. A code is a rules prefix and a three-digit rank
 within that rule set: `B001`–`B025` for the base game, `K001`–`K025` for the Extension Kit, `S001`–`S025` for kit + Sibyl. `K001` is
 the best score found. Real game codes are always four letters A–Z, so a code with digits can never clash with one. Opening a

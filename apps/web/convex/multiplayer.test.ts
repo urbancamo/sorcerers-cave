@@ -261,6 +261,12 @@ test("a finished party is recorded to the multiplayer high-score table, kept apa
   expect(rows[0]!.gameCode).toMatch(/^[A-Z]{4}$/);
   expect(typeof rows[0]!.score).toBe("number");
 
+  // The analytics summary gets one row for that party, keyed by its seat, and the totals move with it.
+  const stats = await t.run((ctx) => ctx.db.query("gameStats").collect());
+  expect(stats).toHaveLength(1);
+  expect(stats[0]).toMatchObject({ gameId, seat: current, mode: "multi", outcome: "quit", seatCount: 2 });
+  expect(await t.run((ctx) => ctx.db.query("gameStatsTotals").first())).toMatchObject({ games: 1, multi: 1, quit: 1 });
+
   // The per-party score is also surfaced in the finished-game projection.
   const finishedParty = (await userBySeat[0]!.query(api.multiplayer.gameState, { gameId }))!
     .parties.find((p) => p.seat === current);
