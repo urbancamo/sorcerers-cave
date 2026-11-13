@@ -84,6 +84,19 @@ export default defineSchema({
     .index("by_finishedAt", ["finishedAt"])
     .index("by_outcome_and_finishedAt", ["outcome", "finishedAt"])
     .index("by_game_and_seat", ["gameId", "seat"]),
+  // Admin users who have been invited but have not set a password yet. The user row and login are created when the
+  // invite is redeemed (convex/invites.ts), so a pending user is only a row here. Only a hash of the link's token is
+  // stored: the link itself is shown to the admin once, when it is issued.
+  invites: defineTable({
+    username: v.string(),
+    roles: v.array(roleValidator),
+    tokenHash: v.string(),
+    expiresAt: v.number(),
+    createdAt: v.number(),
+    createdBy: v.id("users"),
+  })
+    .index("by_tokenHash", ["tokenHash"])
+    .index("by_username", ["username"]),
   // Running totals over every recorded game (one row, key "all"), kept in step with gameStats so headline figures
   // never need a table scan.
   gameStatsTotals: defineTable({

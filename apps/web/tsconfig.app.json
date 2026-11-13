@@ -6,5 +6,6 @@
     "noEmit": true,
     "composite": true
   },
-  "include": ["src", "convex/strangerDecision.ts", "convex/endpointClient.ts", "convex/game.ts", "convex/bugReport.ts", "convex/bugReportIssue.ts", "convex/auth.ts", "convex/roles.ts", "convex/gameStats.ts", "convex/highScores.ts", "convex/analyticsLib.ts"]
+  "include": ["src", "convex/*.ts"],
+  "exclude": ["convex/*.test.ts"]
 }

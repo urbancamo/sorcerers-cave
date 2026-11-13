@@ -25,6 +25,6 @@ export const me = query({
     const userId = await getAuthUserId(ctx);
     const user = userId ? await ctx.db.get(userId) : null;
     const all: Role[] = ["SYSTEM", "USER", "ANALYTICS", "TEST"];
-    return { roles: all.filter((r) => hasRole(user, r)), username: user?.email ?? null };
+    return { roles: all.filter((r) => hasRole(user, r)), username: user?.email ?? null, userId: user?._id ?? null };
   },
 });

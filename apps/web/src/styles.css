@@ -2620,3 +2620,17 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
 .scv-tabs-sub .scv-tab[aria-selected="true"] { background: transparent; box-shadow: none; border-bottom-color: var(--brass); padding-bottom: 8px; }
 .scv-tabs-sub .scv-tabs-pane { padding: 16px 0 0; background: transparent; border: 0; border-radius: 0; }
 @media (max-width: 480px) { .scv-tab { padding: 9px 12px; } .scv-tabs-pane { padding: 12px; } }
+
+/* ---- Users tab and invite page ---- */
+.scv-users { display: flex; flex-direction: column; gap: 14px; }
+.scv-users-roles { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0; padding: 0; border: 0; font-size: 13.5px; color: var(--parchment); }
+.scv-users-roles legend { padding: 0; margin-bottom: 4px; font-size: 10.5px; font-weight: 600; letter-spacing: .14em; text-transform: uppercase; color: var(--stone); }
+.scv-users-roles label { display: inline-flex; align-items: center; gap: 6px; cursor: pointer; }
+.scv-users-locked { opacity: .5; cursor: not-allowed !important; }
+.scv-users-actions { white-space: nowrap; text-align: right; }
+.scv-users-actions > *, .scv-users-confirm { margin-left: 6px; }
+.scv-users-confirm { display: inline-flex; gap: 6px; }
+.scv-users-linkrow { display: flex; gap: 8px; }
+.scv-users-linkrow input { flex: 1; min-width: 0; box-sizing: border-box; padding: 9px 11px; font-family: var(--ui); font-size: 13px; color: var(--cream);
+  background: rgba(0, 0, 0, 0.25); border: 1px solid var(--brass); border-radius: 9px; }
+.scv-admin-link { display: inline-block; text-align: center; text-decoration: none; align-self: flex-start; }

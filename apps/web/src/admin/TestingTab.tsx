@@ -5,6 +5,7 @@ import { PartySelect } from '../game/PartySelect';
 import { ScenarioBrowserModal } from '../game/ScenarioBrowser';
 import { ReplayView } from '../game/ReplayView';
 import { useReplayBundle } from './useReplayBundle';
+import { errorText } from './errorText';
 import { setTestGameHandoff } from '../game/testHandoff';
 
 // Opens the game screen on the given game. A full navigation, so GameScreen mounts fresh and reads the handoff.
@@ -30,7 +31,7 @@ export function TestingTab() {
       const restored = await restoreTestScenario({ code: c });
       openGame(restored.id);
     } catch (e) {
-      setErr(e instanceof Error ? e.message.replace(/^.*Uncaught Error: /s, '') : 'Could not restore that scenario.');
+      setErr(errorText(e, 'Could not restore that scenario.'));
       setBusy(false);
     }
   };

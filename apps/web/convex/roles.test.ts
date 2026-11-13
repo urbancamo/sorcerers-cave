@@ -26,7 +26,7 @@ describe("hasRole", () => {
 describe("roles.me", () => {
   test("signed out ⇒ no roles", async () => {
     const t = convexTest(schema, modules);
-    expect(await t.query(api.roles.me, {})).toEqual({ roles: [], username: null });
+    expect(await t.query(api.roles.me, {})).toEqual({ roles: [], username: null, userId: null });
   });
   test("an anonymous player has no roles", async () => {
     const t = convexTest(schema, modules);
