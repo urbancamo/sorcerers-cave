@@ -16,7 +16,10 @@ export function LoginForm() {
     try {
       // The password provider keys accounts on `email`; here it holds the username.
       await signIn('password', { flow: 'signIn', email: username, password });
-      if (window.location.pathname === '/login') window.history.replaceState(null, '', '/admin');
+      // A full load rather than an in-place update: the role query must start fresh under the new session
+      // (left alone, it kept showing the anonymous answer until a refresh). The token is already stored.
+      window.location.assign('/admin');
+      return;
     } catch {
       setError('Sign-in failed. Check the username and password.'); // one message for every failure: no hints
     }

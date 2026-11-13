@@ -21,7 +21,10 @@ vi.mock("../game/goldenGame", () => ({ goldenBundle: vi.fn() }));
 
 import AdminApp from "./AdminApp";
 
+const assign = vi.fn();
 beforeEach(() => {
+  vi.stubGlobal("location", { ...window.location, assign });
+  assign.mockReset();
   signIn.mockReset();
   signOut.mockReset();
   auth.isLoading = false;
@@ -81,6 +84,7 @@ describe("LoginForm", () => {
     fireEvent.change(screen.getByLabelText("Password"), { target: { value: "hunter22" } });
     fireEvent.click(screen.getByRole("button", { name: "Sign in" }));
     await waitFor(() => expect(signIn).toHaveBeenCalledWith("password", { flow: "signIn", email: "mark", password: "hunter22" }));
+    await waitFor(() => expect(assign).toHaveBeenCalledWith("/admin")); // a fresh load, so the roles query starts clean
   });
 
   it("shows one generic message on any failure", async () => {
