@@ -252,14 +252,14 @@ test("save rejects a test-mode game", async () => {
   await expect(as.mutation(api.highScores.save, { gameId, name: "Tester" })).rejects.toThrow();
 });
 
-test("save rejects a game played with the revised combat (provisional rules are not ranked)", async () => {
+test("save accepts a game played with the revised combat (it is the default rule set)", async () => {
   const t = convexTest(schema, modules);
   const { as, userId } = await asUser(t);
   const gameId = await t.run((ctx) => {
-    const state = { gs: GS_ESCAPED, variants: { combatRevision: true }, party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }] };
+    const state = { gs: GS_ESCAPED, variants: { combatRevision: true }, areas: [], party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }] };
     return ctx.db.insert("games", { ownerId: userId, state, status: "finished", createdAt: 0, updatedAt: 0 });
   });
-  await expect(as.mutation(api.highScores.save, { gameId, name: "Reviser" })).rejects.toThrow(/revised combat/);
+  await expect(as.mutation(api.highScores.save, { gameId, name: "Reviser" })).resolves.toBeTruthy();
 });
 
 // --- Sibyl (SC-SIB-9): a third leaderboard key, mode × extensionKit × sibyl ---------------------

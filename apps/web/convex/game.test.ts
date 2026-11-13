@@ -832,16 +832,26 @@ describe("strangerLevel (the strangers' strategy)", () => {
   });
 });
 
-// The revised combat (`variants.combatRevision`, Peter's reformulated fighting rules): server-stamped like forcedRedraw, off by default.
-describe("combatRevision (server-stamped, off by default)", () => {
+// The revised combat (`variants.combatRevision`, Peter's reformulated fighting rules): server-stamped like forcedRedraw, on by default
+// (only the string "0" turns it off; the test project sets "0" so the other tests keep the original battle plan).
+describe("combatRevision (server-stamped, on by default)", () => {
   const ORIGINAL = process.env.REVISED_COMBAT_ENABLED;
   afterEach(() => {
     if (ORIGINAL === undefined) delete process.env.REVISED_COMBAT_ENABLED;
     else process.env.REVISED_COMBAT_ENABLED = ORIGINAL;
   });
 
-  test("unset ⇒ no combatRevision key on the stored game", async () => {
+  test("unset ⇒ every new game gets combatRevision:true (the default)", async () => {
     delete process.env.REVISED_COMBAT_ENABLED;
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const game = await as.query(api.game.get, { id: await as.mutation(api.game.newGame, { seed: 1, picks: [0] }) });
+    expect(game?.state.variants?.combatRevision).toBe(true);
+    expect(game?.variants?.combatRevision).toBe(true);
+  });
+
+  test("REVISED_COMBAT_ENABLED=0 ⇒ no combatRevision key on the stored game (the original battle plan)", async () => {
+    process.env.REVISED_COMBAT_ENABLED = "0";
     const t = convexTest(schema, modules);
     const { as } = await asUser(t);
     const game = await as.query(api.game.get, { id: await as.mutation(api.game.newGame, { seed: 1, picks: [0] }) });
