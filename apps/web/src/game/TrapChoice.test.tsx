@@ -51,4 +51,17 @@ describe("TrapChoice — several traps, several Dwarves (n Dwarves guide past n 
     expect(screen.getByText(/a trap lies in this chamber/i)).toBeInTheDocument();
     expect(screen.getAllByRole("button").filter((b) => b.className.includes("scv-primary")).map((b) => b.textContent)).toEqual(["Guided past the trap", "Fall through the trap"]);
   });
+
+  it("can be dragged aside by its heading, and put back by double-clicking it", () => {
+    render(<TrapChoice dispatch={vi.fn()} />);
+    const card = screen.getByTestId("trap-choice").firstElementChild as HTMLElement;
+    const grip = screen.getByText(/a trap lies in this chamber/i);
+    expect(card.style.transform).toBe("translate(0px, 0px)");
+    fireEvent.pointerDown(grip, { clientX: 100, clientY: 100 });
+    fireEvent(window, new MouseEvent("pointermove", { clientX: 160, clientY: 130 }));
+    fireEvent(window, new MouseEvent("pointerup"));
+    expect(card.style.transform).toBe("translate(60px, 30px)");
+    fireEvent.doubleClick(grip);
+    expect(card.style.transform).toBe("translate(0px, 0px)");
+  });
 });

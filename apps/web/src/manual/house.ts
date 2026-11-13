@@ -39,6 +39,7 @@ export const HOUSE: Section = {
       list(
         'A drawn trap **stays in its chamber** after it fires or is avoided, and meets you again whenever you return.',
         'When the traps in a chamber resolve for a party whose living **Dwarves** can cover every one of them, play pauses and asks: **Guided past the trap**, or **Fall through the trap**. Falling drops the whole party one level, one way, as any trap does, but it counts as *deliberate*.',
+        'The question box can be **dragged aside by its heading** (double-click the heading to put it back), so you can look at the chamber while you decide.',
         'A **deliberate fall gains surprise** (+1 in the first round, if you attack at once) on the chamber below — even one you have visited, and even one whose strangers you once retreated from, in which case it is *your* party that has surprise. So does a party that knowingly walks back into a trap chamber without a Dwarf and falls again. A trap drawn on this very entry is a surprise to you, and earns none.',
         '**One Dwarf, one trap.** A party with *n* Dwarves can pass *n* traps in a chamber. With more traps than Dwarves the party falls; that is not a choice, so it earns no surprise.',
         '**If a Dwarf is lost** and the party is left with fewer Dwarves than there are traps, the first time it tries to leave (by a doorway, stairway, withdrawal or retreat) it falls, and that fall is an accident with no surprise. Leaving by Magic Carpet, by the Sorcerer\'s teleport or down the Chasm does not trigger it.',
