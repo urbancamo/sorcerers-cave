@@ -25,10 +25,11 @@ function play(upToStep = 99) {
 }
 
 describe("the tutorial game", () => {
-  it("is a kit game with Woman-Hero and Dwarf, the trap rule and the revised combat, in Test Mode", () => {
+  it("is a kit game with Woman-Hero and Dwarf and the revised combat (not the optional trap rule), in Test Mode", () => {
     const s = tutorialGame();
     expect(s.party.map((m) => m.creatureId)).toEqual([...TUTORIAL_PICKS]);
-    expect(s.variants).toMatchObject({ extensionKit: true, trapRules: true, combatRevision: true });
+    expect(s.variants).toMatchObject({ extensionKit: true, combatRevision: true });
+    expect(s.variants.trapRules).toBeFalsy(); // the Dwarf just guides the party past the Trap
     expect(s.testMode).toBe(true);
     expect(s.areas).toHaveLength(1); // just the Gateway
   });
@@ -44,12 +45,19 @@ describe("the tutorial game", () => {
     expect(state.party).toHaveLength(3); // the Priest joined
   });
 
-  it("meets a Spectre, withdraws, and the trap drops the party to level 2", () => {
-    const { events } = play(6);
-    expect(events.map((e) => e.type)).toEqual(expect.arrayContaining(["drewChamber", "trapLooms", "trapSprung"]));
-    const { state } = play(4);
-    expect(state.strangers).toEqual([9]); // the Spectre
-    expect(play(6).state.level).toBe(2);
+  it("meets a Spectre, withdraws, and the Dwarf guides the party past the Trap", () => {
+    const { events } = play(5);
+    expect(events.map((e) => e.type)).toEqual(expect.arrayContaining(["drewChamber", "hazardFired", "trapAvoided"]));
+    expect(events.some((e) => e.type === "trapSprung")).toBe(false);
+    expect(play(4).state.strangers).toEqual([9]); // the Spectre
+    expect(play(5).state.level).toBe(1);
+  });
+
+  it("wades into the Whirlpool, is dragged down, and lands on level 2", () => {
+    const { events, state } = play(6);
+    expect(events.find((e) => e.type === "whirlpoolRoll")).toMatchObject({ roll: 1, dragged: true });
+    expect(events.some((e) => e.type === "trapSprung")).toBe(false);
+    expect(state.level).toBe(2);
   });
 
   it("recruits the Priest, and the Dwarf ends up wielding the Magic Axe", () => {
@@ -66,15 +74,15 @@ describe("the tutorial game", () => {
     expect(state.level).toBe(2);
   });
 
-  it("beats the Troll 11 to 9 (party 4+4+3, Troll 4+1 surprise+4)", () => {
+  it("beats the Troll 13 to 9 (party Hero 4 + Dwarf 1 + Axe 3 + Priest 2 + die 3, Troll 4+1 surprise+4)", () => {
     const rolls = play(10).events.filter((e): e is Extract<GameEvent, { type: "combatRoll" }> => e.type === "combatRoll");
     expect(rolls).toHaveLength(1);
-    expect(rolls[0]).toMatchObject({ enemy: "Troll", partyRoll: 3, enemyRoll: 4, partyTotal: 11, enemyTotal: 9, result: "partyWon" });
+    expect(rolls[0]).toMatchObject({ enemy: "Troll", partyRoll: 3, enemyRoll: 4, partyTotal: 13, enemyTotal: 9, result: "partyWon" });
   });
 
-  it("beats the Witch 12 to 11 (Priest in support, surprise, and the Ring she wields)", () => {
+  it("beats the Witch 13 to 12 (Priest in support, surprise, and the Ring she wields)", () => {
     const rolls = play(11).events.filter((e): e is Extract<GameEvent, { type: "combatRoll" }> => e.type === "combatRoll");
-    expect(rolls[1]).toMatchObject({ enemy: "Witch", partyRoll: 1, enemyRoll: 5, partyTotal: 12, enemyTotal: 11, result: "partyWon" });
+    expect(rolls[1]).toMatchObject({ enemy: "Witch", partyRoll: 2, enemyRoll: 6, partyTotal: 13, enemyTotal: 12, result: "partyWon" });
   });
 
   it("ends in the Tomb of Kings with the Earthquake behind: the way back is gone", () => {

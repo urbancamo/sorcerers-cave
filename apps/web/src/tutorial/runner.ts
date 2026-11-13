@@ -20,11 +20,12 @@ export interface CoachStep {
   anchor?: Anchor;
   /** the player may play freely while this card is up (the end of the guide) */
   free?: boolean;
-  /** the card offers a short recorded demo game */
-  demo?: boolean;
   /** Continue puts the camera back on the party first (after the player has been free to move it) */
   resetView?: boolean;
 }
+
+/** How many numbered steps the guide has ("Step 3 of 13"); the cards of a step share its number. */
+export const TUTORIAL_STEPS = 13;
 
 export interface TutorialState {
   step: number; // index into the script; === script.length when the script is over

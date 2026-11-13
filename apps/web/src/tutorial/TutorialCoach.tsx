@@ -36,7 +36,7 @@ function anchorBox(step: CoachStep, cave: CaveApi | null): Box | null {
  * The coach: a card that says what to do and a brass ring on where. The map is left undimmed and free to turn and zoom; the dispatch
  * gate in the local session is what stops a wrong move, and says so in the card.
  */
-export function TutorialCoach({ step, index, total, cave, hint, onContinue, onBack, onSkip, onDemo }: {
+export function TutorialCoach({ step, index, total, cave, hint, onContinue, onBack, onSkip, score }: {
   step: CoachStep;
   index: number;
   total: number;
@@ -45,7 +45,8 @@ export function TutorialCoach({ step, index, total, cave, hint, onContinue, onBa
   onContinue: () => void;
   onBack?: () => void;
   onSkip: () => void;
-  onDemo?: () => void;
+  /** the party's score so far: the closing card says it (its text has {score}) */
+  score?: number;
 }) {
   const [box, setBox] = useState<Box | null>(null);
   const [pos, setPos] = useState(loadPos); // null: the default place (top centre)
@@ -101,8 +102,7 @@ export function TutorialCoach({ step, index, total, cave, hint, onContinue, onBa
           <p className="scv-tut-eyebrow">{step.eyebrow}</p>
         </div>
         <h2 className="scv-tut-title">{step.title}</h2>
-        <p className="scv-tut-body">{step.body}</p>
-        {step.demo && onDemo && <p><button type="button" className="scv-ghost" onClick={onDemo}>Watch a demo game first</button></p>}
+        <p className="scv-tut-body">{step.body.replace('{score}', String(score ?? 0))}</p>
         {hint && <p className="scv-tut-hint" role="status">{hint}</p>}
         <div className="scv-tut-actions">
           {onBack && <button type="button" className="scv-ghost" onClick={onBack}>Back</button>}

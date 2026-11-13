@@ -5,7 +5,7 @@ import { PARTY_SCRIPT } from './partyScript';
 import { initialTutorial, tutorialReduce, type TutorialEvent } from './runner';
 
 /** The tutorial's new-game screen: the real party chooser with the coach beside it, waiting for the player's own choices. */
-export function TutorialParty({ onDone, onSkip, onExit, onDemo }: { onDone: () => void; onSkip: () => void; onExit: () => void; onDemo: () => void }) {
+export function TutorialParty({ onDone, onSkip, onExit }: { onDone: () => void; onSkip: () => void; onExit: () => void }) {
   const [tut, setTut] = useState(initialTutorial);
   const tutRef = useRef(tut);
   const [hint, setHint] = useState<string | null>(null);
@@ -31,7 +31,7 @@ export function TutorialParty({ onDone, onSkip, onExit, onDemo }: { onDone: () =
         <TutorialCoach step={step} index={tut.step} total={PARTY_SCRIPT.length} cave={null} hint={hint}
                        onContinue={() => send({ type: 'continue' })}
                        onBack={tut.step > 0 && PARTY_SCRIPT[tut.step - 1]!.kind === 'info' ? () => send({ type: 'back' }) : undefined}
-                       onSkip={onSkip} onDemo={onDemo} />
+                       onSkip={onSkip} />
       )}
     </>
   );

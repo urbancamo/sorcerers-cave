@@ -19,6 +19,10 @@ describe('tutorial progress', () => {
     saveProgress(null);
     expect(loadProgress()).toBeNull();
   });
+  it('ignores a step saved by an earlier script', () => {
+    store.set('scv.tutorial.state', JSON.stringify({ status: 'step', step: 9, cursor: 5 }));
+    expect(loadProgress()).toBeNull();
+  });
   it('treats damaged storage as never offered', () => {
     store.set('scv.tutorial.state', '{nope');
     expect(loadProgress()).toBeNull();
