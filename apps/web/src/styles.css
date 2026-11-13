@@ -2541,3 +2541,22 @@ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;}
 /* When the demo has played out, the way back to the tutorial is ringed in green, as the tutorial's own next control is, until it is pressed */
 .scv-mp-standings.scv-demo-done { border: 2px solid var(--party-green); color: var(--cream); box-shadow: 0 0 20px rgba(91, 191, 99, 0.75), inset 0 0 10px rgba(91, 191, 99, 0.35); animation: scv-tut-pulse 1.4s ease-in-out infinite; }
 @media (prefers-reduced-motion: reduce) { .scv-mp-standings.scv-demo-done { animation: none; } }
+
+/* ---- Admin area (/login, /admin): its own scroll container, since the game shell is a fixed, non-scrolling 100vh ---- */
+.scv-admin { position: fixed; inset: 0; overflow-y: auto; box-sizing: border-box; padding: 20px 16px 40px;
+  background: var(--void); color: var(--parchment); font-family: var(--ui); }
+.scv-admin > * { max-width: 920px; margin-left: auto; margin-right: auto; }
+.scv-admin-login { display: flex; align-items: center; justify-content: center; }
+.scv-admin-login > * { width: 100%; max-width: 380px; margin: 0; }
+.scv-admin-bar { display: flex; align-items: center; gap: 14px; margin-bottom: 14px; }
+.scv-admin-title { font-family: var(--display); font-size: 22px; font-weight: 500; color: var(--cream); margin: 0; flex: 1; }
+.scv-admin-user { font-size: 13px; color: var(--stone); }
+.scv-admin-h2 { font-family: var(--display); font-size: 16px; font-weight: 500; color: var(--cream); margin: 0 0 4px; }
+.scv-admin-note { color: var(--stone); font-size: 14px; line-height: 1.5; margin: 0 0 12px; }
+.scv-admin-card { display: flex; flex-direction: column; gap: 12px; padding: 18px; }
+.scv-admin-card .scv-admin-note { margin: 0; }
+.scv-admin-card .scv-primary, .scv-admin-card .scv-ghost { align-self: flex-start; }
+.scv-admin-tabs .scv-hs-tab { flex: 0 1 auto; min-width: 120px; }
+.scv-admin .scv-hs-tab-on { color: var(--void); }
+.scv-admin-testing { display: grid; gap: 14px; }
+@media (min-width: 720px) { .scv-admin-testing { grid-template-columns: repeat(3, 1fr); } }

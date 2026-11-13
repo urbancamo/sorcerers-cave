@@ -170,20 +170,23 @@ cd apps/web
 npx convex run strangerDecision:report '{"strategyId":"ext-easy"}'
 ```
 
-## `TEST_MODE_SECRET`
+## Admin accounts and Test Mode access
 
-Gates **Test Mode**, the QA harness for scripting a scenario (forced draws, forced reactions, forced
-dice) and playing it out through the normal solo UI. Unset ⇒ Test Mode is unreachable on that
-deployment (fails closed). Full setup, rotation, and usage instructions live in
-[`TEST-MODE.md`](TEST-MODE.md#configuring-locally) — the short version:
+Test Mode used to be unlocked by a `TEST_MODE_SECRET` env var and a `?test=` URL. It is now gated by the `TEST` role on a
+signed-in admin account (`SYSTEM` implies every role). **`TEST_MODE_SECRET` is no longer read: remove it from each
+deployment** (`npx convex env remove TEST_MODE_SECRET`, add `--prod` for production).
+
+Admin accounts are created from the CLI only (public sign-up is closed), then sign in at `/login`:
 
 ```bash
 cd apps/web
-npx convex env set TEST_MODE_SECRET <a-hard-to-guess-string>        # local dev
-npx convex env set TEST_MODE_SECRET <a-hard-to-guess-string> --prod # production
+npx convex run admin:seedUser '{"username":"alice","password":"<a-long-password>","roles":["SYSTEM"]}'          # local dev
+npx convex run admin:seedUser '{"username":"alice","password":"<a-long-password>","roles":["TEST"]}' --prod     # production
+npx convex run admin:setPassword '{"username":"alice","password":"<new-password>"}'                             # change a password
 ```
 
-then visit `http://localhost:5173/?test=<that-string>` (or your prod domain, for the `--prod` value).
+Roles are `SYSTEM`, `USER`, `ANALYTICS`, `TEST`. Re-running `seedUser` with a different role list updates the roles.
+See [`TEST-MODE.md`](TEST-MODE.md) for using Test Mode.
 
 ## `CONVEX_SITE_URL`
 
@@ -193,7 +196,7 @@ it isn't mistaken for a missing option if you go looking for it in `npx convex e
 
 ## Auth signing keys (`JWT_PRIVATE_KEY`, `JWKS`)
 
-Required by `@convex-dev/auth` for anonymous-session signing. Each deployment (local dev and prod)
+Required by `@convex-dev/auth` for anonymous-session and admin password-session signing. Each deployment (local dev and prod)
 needs its **own** keypair — never share the local dev keys with production. See the root
 [`README.md`](../README.md#deployment-vercel--convex) ("Auth keys on prod") for how to generate and
 set a fresh keypair; there's nothing project-specific to configure beyond following Convex's own

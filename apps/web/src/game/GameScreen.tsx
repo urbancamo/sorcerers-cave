@@ -44,7 +44,7 @@ import { MultiplayerSetup } from "./MultiplayerSetup";
 import { MultiplayerLobby } from "./MultiplayerLobby";
 import { ReplayView, type ReplayBundle } from "./ReplayView";
 import { goldenBundle } from "./goldenGame";
-import { getTestSecret } from "./testMode";
+import { clearTestGameHandoff, peekTestGameHandoff } from "./testHandoff";
 import { TestControlsPanel } from "./TestControlsPanel";
 import { TitleBar } from "./shell/TitleBar";
 import { CardPanel, type Selected } from "./shell/CardPanel";
@@ -77,16 +77,15 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
   const { isAuthenticated, isLoading } = useConvexAuth();
   const { signIn } = useAuthActions();
   const newGame = useMutation(api.game.newGame);
-  const startTestGame = useMutation(api.game.startTestGame);
   const saveGame = useMutation(api.game.save);
   const resumeByCode = useMutation(api.game.resumeByCode);
-  const restoreTestScenario = useMutation(api.game.restoreTestScenario);
   const saveScore = useMutation(api.highScores.save);
-  const [gameId, setGameId] = useState<Id<"games"> | null>(null);
+  // The admin Testing tab starts or forks a Test Mode game, then lands here with its id left in sessionStorage.
+  const [handoff] = useState(() => (local ? null : (peekTestGameHandoff() as Id<"games"> | null)));
+  useEffect(() => { clearTestGameHandoff(); }, []);
+  const [gameId, setGameId] = useState<Id<"games"> | null>(handoff);
   const gameKey: string | null = local ? 'tutorial' : gameId; // identifies the game on screen (a Convex id, or the local tutorial)
-  const [wantTestGame, setWantTestGame] = useState(false); // Test Mode: PartySelect confirms into startTestGame instead
-  const testSecret = getTestSecret();
-  const [started, setStarted] = useState(false); // dismissed the splash
+  const [started, setStarted] = useState(handoff !== null); // dismissed the splash
   // Thin shell slots (title bar icons). Inventory shows the party-and-treasure panel until the inventory list replaces it.
   const [leftSlot, setLeftSlot] = useState<LeftSlot>(null);
   const [rightSlot, setRightSlot] = useState<RightSlot>(null);
@@ -290,21 +289,6 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
     return true;
   }, [resumeByCode]);
 
-  // Restore a Test Mode scenario from the splash by code (save/restore, 2026-09-11): fork it into
-  // a new, independently-owned game, drop into it, and show the NEW code so it can be shared again.
-  // Mirrors handleReplay's string|null convention (multiple distinct failure reasons to surface),
-  // not handleResume's boolean one — restoreTestScenario throws with a specific message on failure.
-  const handleRestoreTestScenario = useCallback(async (code: string): Promise<string | null> => {
-    try {
-      const restored = await restoreTestScenario({ code });
-      setGameId(restored.id);
-      setStarted(true);
-      setSavedCode({ code: restored.code, restored: true });
-      return null;
-    } catch (e) {
-      return e instanceof Error ? e.message : "Could not restore that scenario.";
-    }
-  }, [restoreTestScenario]);
 
   // Replay from the splash by code (§RB-3-3): fetch the shareable bundle once (no subscription —
   // a replay is a fixed record) and open the read-only viewer, or explain why we can't.
@@ -365,8 +349,6 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
       <SplashScreen
         onStartSolitaire={() => setStarted(true)}
         onStartTutorial={onStartTutorial}
-        onStartTestGame={testSecret ? () => { setWantTestGame(true); setStarted(true); } : undefined}
-        onRestoreTestScenario={testSecret ? handleRestoreTestScenario : undefined}
         onResume={handleResume}
         onReplay={handleReplay}
         onStartMultiplayer={MULTIPLAYER_ENABLED ? () => setMp({ view: "create" }) : undefined}
@@ -379,13 +361,9 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
       <PartySelect
         kitToggle
         sibylToggle
-        testMode={wantTestGame && !!testSecret}
-        onBack={() => { setStarted(false); setWantTestGame(false); }}
+        onBack={() => setStarted(false)}
         onConfirm={async (picks, color, variants) => {
-          const id = wantTestGame && testSecret
-            ? await startTestGame({ seed: Date.now(), picks, color, variants })
-            : await newGame({ seed: Date.now(), picks, color, variants });
-          setGameId(id);
+          setGameId(await newGame({ seed: Date.now(), picks, color, variants }));
         }}
       />
     );
