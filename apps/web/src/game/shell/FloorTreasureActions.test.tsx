@@ -36,11 +36,22 @@ describe('FloorTreasureActions — what the treasure card on the floor offers', 
     expect(d).toHaveBeenCalledWith(expect.objectContaining({ type: 'takeTreasure', ti: 1 }));
   });
 
-  it('offers the guarded Lost Ruby as one drop-down of who wrests it from the statue, until it is freed (SC-11-47)', () => {
+  it("offers the guarded Ruby on the Lost Ruby Statue's card in a game that fights the Statue, and nothing once it is freed", () => {
+    const d = vi.fn();
+    const stateWith = (over: object) => pickup([5, 6], [11], { variants: { combatRevision: true, statueFight: true }, ...over });
+    const statue = { category: 'creature' as const, entityId: '23' };
+    const { unmount } = render(<FloorTreasureActions state={stateWith({})} dispatch={d} card={statue} />);
+    fireEvent.change(screen.getByRole('combobox', { name: /take the lost ruby/i }), { target: { value: '1' } });
+    expect(d).toHaveBeenCalledWith(expect.objectContaining({ type: 'takeTreasure', ti: 0, mi: 1 }));
+    unmount();
+    render(<FloorTreasureActions state={stateWith({ rubyFreed: true })} dispatch={d} card={statue} />);
+    expect(screen.queryByRole('combobox')).toBeNull();
+  });
+  it('offers the guarded Lost Ruby as one drop-down of who takes it, until it is freed (SC-11-47)', () => {
     const d = vi.fn();
     const { unmount } = render(<FloorTreasureActions state={pickup([5, 6], [11])} dispatch={d} card={card(11)} />);
-    expect(screen.queryByRole('button', { name: /wrests it/i })).toBeNull();
-    const list = screen.getByRole('combobox', { name: /wrest the lost ruby/i });
+    expect(screen.queryByRole('button', { name: /who takes it/i })).toBeNull();
+    const list = screen.getByRole('combobox', { name: /take the lost ruby/i });
     expect(list.querySelectorAll('option').length).toBeGreaterThan(2); // the prompt, then each member who can try
     fireEvent.change(list, { target: { value: '1' } });
     expect(d).toHaveBeenCalledWith(expect.objectContaining({ type: 'takeTreasure', ti: 0, mi: 1 }));

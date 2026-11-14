@@ -4,7 +4,7 @@ import { resolve } from "node:path";
 import type { AssetManifest } from "@sorcerers-cave/assets";
 import { newGame, packCoord, type GameState, type PlacedArea } from "@sorcerers-cave/engine";
 import { parseManifest, type TileArt, type CardArt } from "../data/manifest";
-import { projectArea, encodeWorkingSet, areaKey, tileForCard, laneCards, type ArtTables } from "./projection";
+import { projectArea, encodeWorkingSet, areaKey, tileForCard, laneCards, withStatueForRuby, type ArtTables } from "./projection";
 
 let art: ArtTables;
 beforeAll(() => {
@@ -275,5 +275,17 @@ describe("laneCards: the leader comes first", () => {
     const { strangers, treasure } = laneCards([100, 101, 200, 201], art.cards);   // Hero and W-Hero rank equally
     expect(strangers.map((c) => c.entityId)).toEqual(["0", "1"]);
     expect(treasure.map((c) => c.entityId)).toEqual(["0", "1"]);
+  });
+});
+
+describe("the guarded Lost Ruby (GitHub #59)", () => {
+  const base = { rubyFreed: undefined } as unknown as import("@sorcerers-cave/engine").GameState;
+  it("is shown as the Lost Ruby Statue creature card, not as a treasure, until the Statue is beaten", () => {
+    const guarded = { ...base, variants: { combatRevision: true, statueFight: true } } as typeof base;
+    expect(withStatueForRuby([211, 205], guarded)).toEqual([123, 205]);
+    expect(withStatueForRuby([211], { ...guarded, rubyFreed: true })).toEqual([211]);
+  });
+  it("keeps its own treasure card in a game without the Statue fight", () => {
+    expect(withStatueForRuby([211], { ...base, variants: { combatRevision: true } } as typeof base)).toEqual([211]);
   });
 });

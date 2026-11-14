@@ -267,6 +267,12 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
       case "ghoulsWarded":
         out.push({ text: "The party's Talisman wards off the Ghouls — they slink away unfought.", tone: "good" });
         break;
+      case "statueAttacks":
+        out.push({ text: e.returning ? "The Statue strikes the returning party — there is no retreat." : "The Statue comes alive and falls on the whole party.", tone: "bad" });
+        break;
+      case "statueDestroyed":
+        out.push({ text: "The Statue is destroyed. The Lost Ruby is free.", tone: "good" });
+        break;
       case "ghoulsAttack":
         break;   // announced by the fight surface itself (RevisedFightSurface), before the first roll
       case "leaderChosen":
@@ -306,7 +312,7 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
         out.push({ text: `The Eye of God annihilates ${name(e.creatureId)}!`, tone: "good" });
         break;
       case "statuePowerless":
-        out.push({ text: "The guardian statue stands powerless before you.", tone: "good" });
+        out.push({ text: "The Eye of God holds the Statue powerless — the Lost Ruby may be taken freely.", tone: "good" });
         break;
       case "deathPrevented":
         out.push({ text: `The Ring renders ${name(e.creatureId)} invincible — the blow fails!`, tone: "good" });

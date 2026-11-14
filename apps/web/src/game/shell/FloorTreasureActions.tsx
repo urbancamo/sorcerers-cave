@@ -1,4 +1,4 @@
-import { ALL_CREATURES, carriedWeight, legalActions, type GameAction, type GameState } from '@sorcerers-cave/engine';
+import { ALL_CREATURES, C_STATUE, carriedWeight, eyeActive, legalActions, type GameAction, type GameState } from '@sorcerers-cave/engine';
 import type { Card } from '../../view/ports';
 import { memberLabel } from '../memberLabels';
 import { uncarryableNotes } from '../uncarryableNotes';
@@ -15,8 +15,12 @@ const CRYPT_CONFIRM = 'Enter? A trap here cannot be avoided.';
  * Nobody has to take anything: the party can simply walk on.
  */
 export function FloorTreasureActions({ state, dispatch, card }: { state: GameState; dispatch: (a: GameAction) => void; card: Pick<Card, 'category' | 'entityId'> }) {
-  if (card.category !== 'treasure' && card.category !== 'artifact') return null;
-  const tid = Number(card.entityId);
+  // The Lost Ruby is set in the Statue's forehead (Peter, GitHub #59): while the Statue guards it the Ruby has no card of its own and is
+  // taken from the Lost Ruby Statue's card, which stands on the floor in its place (see `withStatueForRuby`).
+  const onStatue = card.category === 'creature' && Number(card.entityId) === C_STATUE;
+  if (!onStatue && card.category !== 'treasure' && card.category !== 'artifact') return null;
+  if (onStatue && (state.phase !== 'pickup' || state.rubyFreed)) return null;
+  const tid = onStatue ? T_LOST_RUBY : Number(card.entityId);
   // The sealed crypt is shown as the Crypt/Gems card; its one action lives on that card (SC-EXT-13).
   if (tid === T_CRYPT) {
     const enter = legalActions(state).find((a) => a.type === 'enterCrypt');
@@ -40,17 +44,20 @@ export function FloorTreasureActions({ state, dispatch, card }: { state: GameSta
     const base = memberLabel(state.party, mi);
     return c.carry > 0 ? `${base} (${carriedWeight(m)}/${c.carry}kg)` : base;
   };
-  // The Lost Ruby sits in a strength-8 statue that must be beaten; once freed (SC-11-47) it is ordinary treasure.
+  // The Lost Ruby sits in a strength-8 Statue, which the party fights if a member reaches for it; once freed (SC-11-47) it is ordinary treasure.
+  // Nothing warns the player (Peter, GitHub #59), so the choice reads as an ordinary take, except that a held Eye of God is named for its power.
   const guarded = tid === T_LOST_RUBY && !state.rubyFreed;
   const reason = takers.length === 0 ? uncarryableNotes(state, [tid])[0] ?? 'No one can carry this.' : null;
   return (
     <div className="scv-ia" data-testid="floor-treasure-actions">
-      <div><HelpButton topics={['pickup-capacity']} label="Help with picking up treasure" /></div>
+      <div>{onStatue
+        ? <HelpButton topics={['house-ruby-statue']} label="Help with the Lost Ruby Statue" />
+        : <HelpButton topics={['pickup-capacity']} label="Help with picking up treasure" />}</div>
       {guarded && takers.length > 0 ? (
-        // One list instead of a button per member: each choice risks the member's life against the statue, so it is a deliberate pick.
-        <select className="scv-enc-select" aria-label="Who will wrest the Lost Ruby from the statue" value=""
+        // One list instead of a button per member: it is a deliberate pick, as the one who reaches for the Ruby is the one named.
+        <select className="scv-enc-select" aria-label="Who will take the Lost Ruby" value=""
                 onChange={(e) => { if (e.target.value !== '') dispatch({ type: 'takeTreasure', ti, mi: Number(e.target.value) }); }}>
-          <option value="">Who wrests it from the statue?</option>
+          <option value="">{eyeActive(state) ? 'Who takes it? The Eye of God holds the Statue powerless' : 'Who takes it?'}</option>
           {takers.map((mi) => <option key={mi} value={mi}>{who(mi)}</option>)}
         </select>
       ) : takers.map((mi) => (

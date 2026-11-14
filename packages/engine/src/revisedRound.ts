@@ -84,6 +84,7 @@ function candidatesOf(state: GameState, side: Side): number[] {
 
 const isMagicOnly = (state: GameState, s: number): boolean => MAGIC_ONLY_IDS.includes(state.strangers[s]!);
 
+
 /** May party member `p` be matched against stranger `s`? A Spectre or Demon can only be fought with magic (or its enabling artefact). */
 export function canPair(state: GameState, p: number, s: number): boolean {
   if (!isMagicOnly(state, s)) return true;
@@ -268,7 +269,7 @@ export function matchModifiers(state: GameState, m: RevMatch): MatchBreakdown {
   }
   for (const i of m.pb) { const mp = casterMP(state.party[i]!, state); if (mp > 0) magicChips(i, mp, "Behind"); }
   // A stranger's live Magic Shield turns the party's magic aside, front and behind.
-  if (partyMagicOff) add("party", `Magic Shield · ${CREATURES[state.strangers[shieldedFoe]!]!.name}`, -partyMagic);
+  if (partyMagicOff) add("party", `Magic Shield · ${CREATURES[state.strangers[shieldedFoe!]!]!.name}`, -partyMagic);
 
   // The strangers: the front line's strength and every caster's magic, front or behind.
   let strangerBase = 0;
@@ -358,7 +359,7 @@ export function fightView(state: GameState): FightView {
 export function initRevised(state: GameState): void {
   const fight = state.fight!;
   fight.rev = {
-    attacker: fight.surprise < 0 ? "strangers" : "party", matches: [], deployed: { party: [], strangers: [] },
+    attacker: fight.surprise < 0 || fight.statue ? "strangers" : "party", matches: [], deployed: { party: [], strangers: [] },
     step: "scroll", surplusTurn: 0, progress: false, cursor: 0, killed: [],
   };
 }
@@ -549,7 +550,7 @@ export function advance(state: GameState): GameEvent[] {
           }
           // A round from the second on in which the party has had nothing to decide (every creature is already in a match) would be
           // fought on the spot, with no chance to retreat first. Pause on an empty redeploy: fight on, or retreat.
-          const retreatOpen = !state.fellThroughTrap && !fight.retreatBlocked && !fight.ghouls;   // there is no retreat from the Ghouls
+          const retreatOpen = !state.fellThroughTrap && !fight.retreatBlocked && !fight.ghouls && !fight.statue?.noRetreat;   // there is no retreat from the Ghouls
           if (fight.round >= 2 && !rev.partyActed && retreatOpen && livingParty(state).length > 0 && rev.matches.length > 0) {
             rev.partyActed = true;
             fight.pending = { by: "party", kind: "redeploy" };

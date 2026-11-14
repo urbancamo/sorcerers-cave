@@ -4,7 +4,7 @@ import {
 } from "@sorcerers-cave/engine";
 import { whirlpoolMove } from "./whirlpoolMove";
 import type { CaveEngine, Area, StateSnapshot, Move, MoveEvent, Dir } from "./ports";
-import { projectArea, encodeWorkingSet, areaKey, laneCards, type ArtTables } from "./projection";
+import { projectArea, encodeWorkingSet, areaKey, laneCards, withStatueForRuby, type ArtTables } from "./projection";
 import { eventNotices } from "../game/eventNotices";
 
 const DIR_TO_NUM: Record<Dir, number> = { N: 1, E: 2, S: 3, W: 4, U: 5, D: 6 };
@@ -171,7 +171,7 @@ export function createCaveAdapter(initial: GameState, art: ArtTables, opts: Adap
           ...drew.treasures.map((id) => 200 + id),
           ...drew.hazards.map((id) => 300 + id),
         ];
-        const drawn = laneCards(codes, art.cards);
+        const drawn = laneCards(withStatueForRuby(codes, next), art.cards);
         const wasVisited = before.areas.find((a) => a.coord === arrived.coord)?.visited ?? false;
         ev.chamber = { draws: [...drawn.strangers, ...drawn.treasure, ...drawn.hazards], firstVisit: !wasVisited };
       }

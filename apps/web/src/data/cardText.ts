@@ -16,7 +16,7 @@ const ARTIFACT_TEXT: Record<string, string> = {
   'Lotus Dust': 'Puts one stranger to sleep for good (no effect on a Spectre). A sleeping stranger no longer blocks you. Used up.',
   'Healing Balm': 'Revives a member who fell this turn in this very area. Used at rest or while gathering treasure after the fight. Used up.',
   'Magic Carpet': 'Carries the party one area in a chosen direction, then is left behind. It must be carried by a Priest or Wizard.',
-  'Lost Ruby': 'Guarded by a statue of strength 8. Win the wrestle, or still the statue with the Eye of God, to take it.',
+  'Lost Ruby': 'Guarded by a statue of strength 8. Reach for it and the Statue attacks the whole party; beat it, or still it with the Eye of God, to take the Ruby.',
   'Elixir': 'A kit artifact. See the Extension Kit section of the manual.',
   'Holy Water': 'A kit artifact, used by a Human or Priest. See the Extension Kit section of the manual.',
   'Scroll': 'A kit artifact, used in an encounter. See the Extension Kit section of the manual.',

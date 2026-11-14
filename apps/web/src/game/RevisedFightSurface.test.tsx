@@ -30,6 +30,18 @@ const reaching = (kind: "redeploy" | "engage" | "deploy"): GameState => {
 };
 
 describe("RevisedFightSurface", () => {
+  it("keeps a front-line creature the Statue did not pair on show, not only the one it fought (GitHub #73)", () => {
+    // A Hero and a Priest stand in front against the lone Statue; it pairs with one, and the other is a spare that must still be shown.
+    const g: GameState = { ...newGame(1, [0, 0, 4], undefined, true), variants: { combatRevision: true, statueFight: true }, phase: "pickup", strangers: [], treasures: [11] };
+    let s = reduce(g, { type: "takeTreasure", ti: 0, mi: 0 }).state;
+    s = driveStrangers(reduce(s, { type: "deploy", creatures: [0, 2] }).state).state;
+    expect(s.fight!.pending).toMatchObject({ by: "party", kind: "redeploy" });
+    const paired = s.fight!.rev!.matches.flatMap((m) => m.pf), spare = [0, 2].find((i) => !paired.includes(i))!;
+    render(<RevisedFightSurface state={s} dispatch={vi.fn()} cards={cards} />);
+    expect(screen.getByTestId("rev-spares")).toBeInTheDocument();
+    expect(screen.getByTestId(`rev-spare-${spare}`)).toBeInTheDocument();
+  });
+
   it("a Priest standing behind the line wears a badge of just its magic (2), not its printed strength", () => {
     const priestParty = [5, 4].map((creatureId) => ({ creatureId, status: 0 as const, dragonKills: 0, treasure: [] }));
     const s: GameState = structuredClone(attacking([OGRE], { party: priestParty }));

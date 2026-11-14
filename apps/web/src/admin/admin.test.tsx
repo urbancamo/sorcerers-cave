@@ -68,6 +68,13 @@ describe("AdminApp gating", () => {
     expect(screen.getByTestId("start-test-game")).toBeInTheDocument();
   });
 
+  it("the Testing tab's New Game button goes to the welcome page", () => {
+    me = { roles: ["TEST"], username: "tess" };
+    render(<AdminApp />);
+    fireEvent.click(screen.getByRole("button", { name: "New Game" }));
+    expect(assign).toHaveBeenCalledWith("/");
+  });
+
   it("SYSTEM (expanded by the server to all four roles) sees every tab", () => {
     me = { roles: ["SYSTEM", "USER", "ANALYTICS", "TEST"], username: "root" };
     render(<AdminApp />);

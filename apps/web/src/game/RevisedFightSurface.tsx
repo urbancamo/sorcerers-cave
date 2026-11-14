@@ -249,6 +249,8 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
   const bonus = view.partyDieBonus;
   const inMatch = new Set(rev.matches.flatMap((m) => [...m.pf, ...m.pb]));
   const foeInMatch = new Set(rev.matches.flatMap((m) => [...m.sf, ...m.sb]));
+  // The party's own front line (when it defends) that no match has taken up yet, and no placement has sent into one.
+  const spares = rev.attacker === "strangers" ? rev.deployed.party.filter((i) => !inMatch.has(i) && !usedMoves.some((x) => x.creature === i)) : [];
   const idleFoes = view.strangers.map((u) => u.index).filter((s) => !foeInMatch.has(s));
 
   // Rows run strongest-leader first (top), and within a row the leader stands right-most, beside the "vs": the leader is the stranger of
@@ -451,6 +453,18 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
             <span className="scv-match-slotlbl">⚔ your front line (at least {mine.min})</span>
             {usedChosen.map((i) => partyCard(i, { testId: `rev-front-${i}`, caption: "tap to take back", onPick: () => tapFree(i) }))}
             {usedChosen.length < mine.min && <span className="scv-slot-empty">{sel.length > 0 ? `tap here to move the ${sel.length} selected` : "select creatures, then drag or tap here"}</span>}
+          </div>
+        )}
+        {/* A creature the player stood in the front line that the attacker did not pair is a spare: it stays visible in the front line
+            (GitHub #73), where it can be sent into a match or behind one, instead of vanishing from the board until it is placed. */}
+        {mine?.kind !== "deploy" && spares.length > 0 && (
+          <div className="scv-match-front scv-rev-frontline" data-testid="rev-spares">
+            <span className="scv-match-slotlbl">⚔ your front line — not paired</span>
+            {spares.map((i) => partyCard(i, {
+              testId: `rev-spare-${i}`, selected: picked === i,
+              caption: mine?.kind === "redeploy" && allMoves.some((m) => m.creature === i) ? "tap, then choose a match" : "in front",
+              onPick: mine?.kind === "redeploy" && allMoves.some((m) => m.creature === i) ? () => setPicked(picked === i ? null : i) : undefined,
+            }))}
           </div>
         )}
         <div className="scv-fight-strangers" data-testid="rev-matches">

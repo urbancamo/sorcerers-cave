@@ -12,6 +12,16 @@ describe("SplashScreen", () => {
     expect(screen.queryByRole("button", { name: /multiplayer game/i })).toBeNull();
   });
 
+  it("shows an Admin button only when it is given a way to open the admin view", () => {
+    const { unmount } = render(<SplashScreen onStartSolitaire={() => {}} />);
+    expect(screen.queryByRole("button", { name: /^admin$/i })).toBeNull();
+    unmount();
+    const onAdmin = vi.fn();
+    render(<SplashScreen onStartSolitaire={() => {}} onAdmin={onAdmin} />);
+    fireEvent.click(screen.getByRole("button", { name: /^admin$/i }));
+    expect(onAdmin).toHaveBeenCalledOnce();
+  });
+
   it("starts a solitaire game when chosen", () => {
     const onStart = vi.fn();
     render(<SplashScreen onStartSolitaire={onStart} />);

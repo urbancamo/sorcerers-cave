@@ -61,8 +61,8 @@ export function featsFromEvents(events: GameEvent[]): FeatView[] {
           id: "ruby-wrested", title: "The Lost Ruby!", motion: "rise",
           card: { category: "treasure", entityId: LOST_RUBY, name: "Lost Ruby" },
           headline: powerless
-            ? "The Lost Ruby is yours — the statue stands powerless before you!"
-            : "You wrest the Lost Ruby from the guardian statue!",
+            ? "The Lost Ruby is yours — the Eye of God held the Statue powerless!"
+            : "You have beaten the Statue and taken the Lost Ruby!",
           detail: `A jewel of great price — +${ALL_TREASURES[LOST_RUBY]!.points} points.`,
         });
         break;

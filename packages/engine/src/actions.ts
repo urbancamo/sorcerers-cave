@@ -203,6 +203,8 @@ export type GameEvent =
   | { type: "droppedRetaken"; count: number } // fighters reclaimed the heavy treasure they dropped to fight
   | { type: "annihilated"; creatureId: number }
   | { type: "statuePowerless" }
+  | { type: "statueAttacks"; returning: boolean } // the revised combat: the Lost Ruby's Statue fights the whole party (`returning`: it struck on re-entry)
+  | { type: "statueDestroyed" } // the Statue is beaten: the Ruby is free
   | { type: "deathPrevented"; creatureId: number }
   | { type: "unicornGuards"; creatureId: number }
   | { type: "leaderChosen"; creatureId: number }   // R-07/R-10: an ally became the party's leader (original)

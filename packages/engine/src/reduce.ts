@@ -32,7 +32,7 @@ import {
 // Extension kit (SC-EXT-17): aliases `ALL_CREATURES` — `strongestStranger`'s fight-focus pick and
 // the Lost-Ruby wrestler's combat-roll name both index by an actual creatureId that may already be
 // a kit id (14-20); byte-identical for ids 0-13.
-import { ALL_CREATURES as CREATURES, CREATURES as BASE_CREATURES, C_GHOUL } from "./data/creatures";
+import { ALL_CREATURES as CREATURES, CREATURES as BASE_CREATURES, C_GHOUL, C_STATUE } from "./data/creatures";
 import { TREASURES as BASE_TREASURES } from "./data/treasures";
 import { applyAllocations, equipStrangers, loadoutViolation } from "./strangerEquip";
 import { removeStranger, addStranger, dropAllGear } from "./strangerGear";
@@ -163,6 +163,21 @@ function beginRevised(state: GameState): GameEvent[] {
   return state.fight.pending ? [] : advanceRevised(state);   // a pending loadout decision starts the rounds when it is answered
 }
 
+/** The Lost Ruby's Statue (Peter, 13-NOV-2026, GitHub #59) falls on the whole party as a creature of its own, by the revised round engine: no
+ *  surprise either way, and the Statue is the attacker. `taker` is the member who reached for the Ruby; a `returning` party (the Statue was
+ *  aroused here before) may not retreat. The chamber's treasure waits in `state.treasures` as for any fight. */
+/** Does this game fight the Lost Ruby's Statue as a party (GitHub #59)? Only games stamped `statueFight` on the revised combat; older ones keep the wrestle. */
+const statueFightOn = (state: GameState): boolean => !!state.variants?.combatRevision && !!state.variants.statueFight;
+
+function startStatueFight(state: GameState, taker: number | undefined, returning: boolean): GameEvent[] {
+  state.strangers = [C_STATUE];
+  state.fight = { surprise: 0, round: 1, focus: 0, statue: { ...(taker !== undefined ? { taker } : {}), ...(returning ? { noRetreat: true as const } : {}) } };
+  state.phase = "fight";
+  state.surpriseReady = false;
+  state.fightDrops = [];
+  return [{ type: "statueAttacks", returning }, { type: "fightStarted", surprise: 0 }, ...beginRevised(state)];
+}
+
 /** Extension kit (SC-EXT-21, design US-13): a Demon in `state.strangers` is met like any other stranger: the party tests it, and the leader's table
  *  decides (Demon 1-5 hostile, 6 indifferent; Peter's rules, R-02). It used to force combat with no reaction test (changed 2026-11-12, GitHub #54,
  *  MSW). A Demon joins whoever is already in the area, and one that arrives where the party had made peace with the strangers is a newcomer the
@@ -227,10 +242,23 @@ function finalizeRound(state: GameState): GameEvent[] {
     events.push(...sweepFallen(state, "working"));
     const felled = state.fight?.sorcererFelled === true;
     const ghouls = state.fight?.ghouls;
+    const statueFight = state.fight?.statue;
     state.fight = null;
     state.party.forEach((m) => { m.potionActive = false; });
     events.push({ type: "fightWon" });
-    if (ghouls) {   // the Ghouls are beaten (they lurk on, for the next party): the chamber's own strangers are met now
+    if (statueFight) {   // the Statue is destroyed: the Ruby is free, and goes to the member who reached for it
+      delete state.statueAroused;
+      state.rubyFreed = true;
+      events.push({ type: "statueDestroyed" });
+      const taker = statueFight.taker !== undefined ? state.party[statueFight.taker] : undefined;
+      const ti = state.treasures.indexOf(11);
+      if (taker && (taker.status === 0 || taker.status === 1) && ti >= 0) {
+        taker.treasure.push(11);
+        state.treasures.splice(ti, 1);
+        events.push({ type: "rubyTaken" });
+      }
+      afterFight(state, events);
+    } else if (ghouls) {   // the Ghouls are beaten (they lurk on, for the next party): the chamber's own strangers are met now
       state.strangers = ghouls.aside;
       const trap = ghouls.trap;
       if (trap?.fell) {   // the Trap, dealt with last, now springs
@@ -503,6 +531,13 @@ function settleChamber(state: GameState, freshEntry: boolean, events: GameEvent[
     state.surpriseReady = false;
     state.fightDrops = [];
     events.push({ type: "ghoulsAttack", count }, { type: "fightStarted", surprise: 0 }, ...beginRevised(state));
+    return;
+  }
+  // The Lost Ruby's Statue (Peter, 13-NOV-2026, GitHub #59): a party that retreated from it and comes back is struck at once, with no
+  // retreat and no surprise — unless the Eye stills it. (Only the revised combat has the fight; the classic wrestle is by attempt only.)
+  if (state.statueAroused === state.partyArea && statueFightOn(state) && !state.rubyFreed && state.treasures.includes(11)
+      && state.strangers.length === 0 && !eyeActive(state)) {
+    events.push(...startStatueFight(state, undefined, true));
     return;
   }
   // The Charmed Flute no longer lulls Dragons by itself on entry (UI review 2026-10-30, "no auto-use of artifacts"):
@@ -1304,6 +1339,12 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         const fighter = next.party[action.mi];
         if (!fighter || !(fighter.status === 0 || fighter.status === 1)) return { state, events: [{ type: "blocked" }] };
         const events: GameEvent[] = [];
+        // The revised combat (Peter, 13-NOV-2026, GitHub #59): reaching for the Ruby brings the Statue down on the WHOLE party, fought on the
+        // formation screen with no surprise (the Eye, which stills it, is handled below as before).
+        if (statueFightOn(next) && !eyeActive(next)) {
+          events.push(...startStatueFight(next, action.mi, false));
+          return { state: next, events };
+        }
         if (eyeActive(next)) { // the Eye stills the statue: take the Ruby with no fight
           fighter.treasure.push(11);
           next.treasures.splice(action.ti, 1);
@@ -1676,6 +1717,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       if (state.phase !== "fight") return { state, events: [{ type: "blocked" }] };
       if (state.fellThroughTrap) return { state, events: [{ type: "blocked" }] }; // no way back up a trap
       if (state.fight?.ghouls) return { state, events: [{ type: "blocked" }] };   // the Ghouls are a hazard: no retreat from them
+      if (state.fight?.statue?.noRetreat) return { state, events: [{ type: "blocked" }] };   // the Statue struck a returning party: no retreat
       // A party may retreat only after at least one round has been fought (§Retreat).
       if (!state.fight || state.fight.round <= 1) return { state, events: [{ type: "blocked" }] };
       // A party may retreat by ANY doorway or stairway — even an unexplored one (§Retreat). Attempt
@@ -1708,6 +1750,8 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       }
       dropAllGear(res.state);
       const fled = res.state.areas[fromIdx]!;
+      // The Statue is not a stranger to leave parked: it stays guarding the Ruby, aroused, and strikes the next party in.
+      if (res.state.fight?.statue) { res.state.statueAroused = fromIdx; res.state.strangers = res.state.strangers.filter((id) => id !== C_STATUE); }
       fled.contents = [
         ...fled.contents,
         ...res.state.strangers.map((id) => 100 + id),

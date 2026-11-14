@@ -78,7 +78,9 @@ formation screen. The defender deploys, the attacker pairs its free creatures ag
 extra creatures into a match, and the matches are fought; a tied or unwinnable match persists into the next round, and the fight ends
 when no match can be decided. It also changes the Scroll (a choice at the start of each round, not a one-off artefact use), the chest
 Spectre (one round only), the Ghouls (a stranger party of their own) and the Apprentice (she turns only if you stay after the
-Sorcerer's death). Solo games only. Without it (or with it switched off) fights are played exactly as before.
+Sorcerer's death), and the Lost Ruby's Statue (`variants.statueFight`, stamped on new games with it, GitHub #59: reaching for the Ruby
+brings the Statue down on the whole party, SC-11-52 to SC-11-55; a game started without the stamp keeps the old single-roll resolution).
+Solo games only. Without it (or with it switched off) fights are played exactly as before.
 
 Like `FORCED_REDRAW_ENABLED` it is **never player-selectable and never sent by the client**; it is folded into a new game's
 `variants` in `convex/game.ts`. A game keeps the value it was created with. Games played with it **can** be recorded on the leaderboard. The strangers' side is played by the level named by

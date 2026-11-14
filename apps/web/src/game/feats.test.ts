@@ -37,15 +37,15 @@ describe("featsFromEvents", () => {
   });
 
   describe("Lost Ruby", () => {
-    it("celebrates wresting it from the statue: the Ruby card rises, with its points", () => {
+    it("celebrates beating the Statue: the Ruby card rises, with its points", () => {
       const [f] = featsFromEvents([ev({ type: "rubyTaken" })]);
       expect(f).toMatchObject({ id: "ruby-wrested", title: "The Lost Ruby!", motion: "rise", card: { category: "treasure", entityId: 11 } });
-      expect(f!.headline).toBe("You wrest the Lost Ruby from the guardian statue!");
+      expect(f!.headline).toBe("You have beaten the Statue and taken the Lost Ruby!");
       expect(f!.detail).toMatch(/\+20 points/);
     });
     it("words it differently when the Eye stills the statue", () => {
       const [f] = featsFromEvents([ev({ type: "rubyTaken" }), ev({ type: "statuePowerless" })]);
-      expect(f!.headline).toBe("The Lost Ruby is yours — the statue stands powerless before you!");
+      expect(f!.headline).toBe("The Lost Ruby is yours — the Eye of God held the Statue powerless!");
     });
   });
 

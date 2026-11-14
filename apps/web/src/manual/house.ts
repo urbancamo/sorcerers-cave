@@ -7,12 +7,13 @@ import type { Section } from './types';
 export const HOUSE: Section = {
   id: 'house', numeral: 'XV', title: 'House Rules',
   topics: [
-    { id: 'house-overview', title: 'House rules in this game', brief: 'The optional rules this game is being played with.', requires: ['forcedRedraw', 'sorcererTeleport', 'trapRules', 'combatRevision'], cards: [], screens: ['explore'], blocks: [
+    { id: 'house-overview', title: 'House rules in this game', brief: 'The optional rules this game is being played with.', requires: ['forcedRedraw', 'sorcererTeleport', 'trapRules', 'combatRevision', 'statueFight'], cards: [], screens: ['explore'], blocks: [
       p('A game keeps the rules it was started with. These optional rules are in force in this one:'),
       p('**The Dead End rule** — a dead end that would box the party in is swapped for another card.', 'forcedRedraw'),
       p('**The Sorcerer\'s terms** — a beaten Sorcerer may be spared in return for a teleport.', 'sorcererTeleport'),
       p('**Standing traps and the Dwarf\'s choice** — traps stay in their chamber, and a Dwarf lets you fall on purpose.', 'trapRules'),
       p('**The revised combat** — fights are played round by round on a formation screen.', 'combatRevision'),
+      p('**The Lost Ruby\'s Statue** — reaching for the Ruby brings the Statue down on the whole party.', 'statueFight'),
       p('Everything else in the manual applies unchanged.'),
     ] },
     { id: 'house-dead-end', title: 'The Dead End rule', brief: 'A dead end that would leave the party boxed in is swapped for another card.', requires: 'forcedRedraw', cards: [], screens: ['explore'], blocks: [
@@ -45,6 +46,17 @@ export const HOUSE: Section = {
         '**If a Dwarf is lost** and the party is left with fewer Dwarves than there are traps, the first time it tries to leave (by a doorway, stairway, withdrawal or retreat) it falls, and that fall is an accident with no surprise. Leaving by Magic Carpet, by the Sorcerer\'s teleport or down the Chasm does not trigger it.',
       ),
       note('danger', 'No way back', 'There is no withdrawing or retreating back up after any trap fall.'),
+    ] },
+    { id: 'house-ruby-statue', title: 'The Lost Ruby\'s Statue', brief: 'Reach for the Ruby and the Statue attacks the whole party; flee and it waits for you.', requires: 'statueFight', cards: [{ category: 'treasure', name: 'Lost Ruby' }, { category: 'creature', name: 'Lost Ruby Statue' }], screens: ['fight-revised'], blocks: [
+      p('The Lost Ruby is guarded by a stone **Statue of strength 8**. Nothing warns you and nothing forces you: once the room is clear the Ruby is just treasure on offer, and you may leave it and walk away.'),
+      list(
+        'Choosing a member to take it (**Who takes it?**, on the Ruby\'s card) wakes the Statue. It attacks the **whole party** on the formation screen, as the attacker, and **neither side has surprise**.',
+        'It is an ordinary fight against a **physical** foe. The Statue\'s strength is of magical origin but entirely physical, like a Magic Sword\'s bonus. Put fighters in your front line and magic users behind in support, or magic users in front counting their full strength, as in any fight. Weapons, artefacts, the Ring and curses count as usual.',
+        '**Beat it** and the Statue is destroyed; the Ruby goes to the member who reached for it, and is ordinary treasure from then on.',
+        '**Retreat** (once a round has been fought, as in any fight) and the Statue stays, **aroused**, guarding the Ruby where you left it.',
+        'A party that **comes back** to an aroused Statue is struck at once, with **no retreat and no surprise**. The fight is to the end: the Statue destroyed, or the party gone.',
+      ),
+      note('info', 'The Eye of God', 'The Statue\'s strength is of magical origin, so the Eye of God\'s power — it switches off all magic and artefact bonuses — leaves it powerless. While the Eye is carried the Ruby is taken with no fight, though a member must still reach for it.'),
     ] },
     { id: 'rc-overview', title: 'The revised combat', brief: 'Rounds on a formation screen, with a fresh set of choices each round.', requires: 'combatRevision', cards: [], screens: ['fight-revised'], blocks: [
       p('A fight is played as a series of **rounds**, and each round the game asks you for a few decisions in turn. Whoever started the fight is the **attacker** and stays so; the other side is the **defender**.'),

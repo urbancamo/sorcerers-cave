@@ -19,6 +19,7 @@ export function SplashScreen({
   onReplay,
   onStartMultiplayer,
   onJoinMultiplayer,
+  onAdmin,
 }: {
   onStartSolitaire: () => void;
   /** The guided tutorial game (a local, in-memory game; no sign-in needed). */
@@ -30,6 +31,8 @@ export function SplashScreen({
   // Multiplayer entry points — undefined (not shown at all) unless the System tab's Multiplayer option is ON.
   onStartMultiplayer?: () => void;
   onJoinMultiplayer?: () => void;
+  /** Only given to a signed-in admin user: shows an Admin button, top right, that opens the admin view. */
+  onAdmin?: () => void;
 }) {
   const [files, setFiles] = useState<string[]>([]);
   const [showScores, setShowScores] = useState(false);
@@ -86,6 +89,7 @@ export function SplashScreen({
 
   return (
     <div className="scv-splash" data-testid="splash">
+      {onAdmin && <button type="button" className="scv-ghost scv-splash-admin" onClick={onAdmin}>Admin</button>}
       <h1 className="scv-splash-title">The Sorcerer&rsquo;s Cave</h1>
       <p className="scv-splash-fanline">
         An unofficial, non-commercial fan adaptation of <em>The Sorcerer&rsquo;s Cave</em>.
