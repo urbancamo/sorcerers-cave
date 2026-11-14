@@ -66,7 +66,7 @@ export function PartyPanel({
 
   const move = (to: number) => { if (sel) { dispatch({ type: "moveTreasure", from: sel.mi, to, idx: sel.idx }); setSel(null); } };
   const drop = () => { if (sel) { dispatch({ type: "dropTreasure", mi: sel.mi, idx: sel.idx }); setSel(null); } };
-  const imgOf = (cat: "creature" | "treasure", id: number) => resolveCard(cat, id, cards)?.file ?? null;
+  const imgOf = (cat: "creature" | "treasure" | "award", id: number) => resolveCard(cat, id, cards)?.file ?? null;
   // Each member's copy-index among same-creature members (by original party order) → its own card art,
   // so two Men in the party show different illustrations rather than both showing the first Man card.
   const copyIdx = new Map<number, number>(); // original index -> nth copy of that creatureId
@@ -165,14 +165,14 @@ export function PartyPanel({
                       </button>
                     );
                   })}
-                  {/* Earned awards (awards.ts — the compressed roster draws the same list): one inverted Dragon
-                      card per dragon felled single-handed (the boxed game's upside-down dragon card), and a
+                  {/* Earned awards (awards.ts — the compressed roster draws the same list): one Dragonslayer (+1)
+                      card per dragon felled single-handed, and a
                       "+N" chip for the Elixir's permanent strength. */}
                   {awards.map((a) => {
                     if (a.kind === "elixir") {
                       return <span key="elixir" className="scv-pp-item award-fs" title={a.title}>+{a.bonus}</span>;
                     }
-                    const dimg = imgOf("creature", 10); // the Dragon card
+                    const dimg = imgOf("award", 1); // the Dragonslayer card
                     return Array.from({ length: a.count }).map((_, k) => (
                       <span
                         key={`dragon-${k}`}
@@ -181,7 +181,7 @@ export function PartyPanel({
                         onMouseEnter={() => setPreview(dimg)}
                         onMouseLeave={() => setPreview((p) => (p === dimg ? null : p))}
                       >
-                        {dimg ? <img src={dimg} alt="Dragon slain" /> : <span className="ph">🐉</span>}
+                        {dimg ? <img src={dimg} alt="Dragonslayer" /> : <span className="ph">🐉</span>}
                       </span>
                     ));
                   })}

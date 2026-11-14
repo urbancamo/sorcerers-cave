@@ -73,7 +73,7 @@ export function CardPanel({ selected, onItem, onMember, onAward, onClose, action
           <button type="button" className="scv-cp-back" onClick={() => onMember(from)}>← {from.label}</button>
         </h2>
         {slayer && from.dragonCard
-          ? <img className="scv-cp-face scv-cp-slain" src={from.dragonCard} alt="Dragon slain" />
+          ? <img className="scv-cp-face scv-cp-slain" src={from.dragonCard} alt="Dragonslayer" />
           : <div className="scv-cp-face scv-cp-blank">{slayer ? 'Dragon slain' : `+${award.kind === 'elixir' ? award.bonus : 0}`}</div>}
         <div className="scv-cp-name">{slayer ? 'Dragon-slayer' : 'Elixir'}</div>
         <div className="scv-cp-meta">{slayer ? `${award.count} slain by ${from.label}` : `drunk by ${from.label}`}</div>
@@ -103,7 +103,7 @@ export function CardPanel({ selected, onItem, onMember, onAward, onClose, action
             ))}
             {m.awards.map((a, i) => (
               <button key={`award-${i}`} type="button" className={'scv-cp-mini' + (a.kind === 'dragon-slayer' ? ' scv-cp-slain' : '')} title={a.title} onClick={() => onAward?.(a, m)}>
-                {a.kind === 'dragon-slayer' && m.dragonCard ? <img src={m.dragonCard} alt="Dragon slain" /> : <span>{a.kind === 'elixir' ? `+${a.bonus}` : '🐉'}</span>}
+                {a.kind === 'dragon-slayer' && m.dragonCard ? <img src={m.dragonCard} alt="Dragonslayer" /> : <span>{a.kind === 'elixir' ? `+${a.bonus}` : '🐉'}</span>}
               </button>
             ))}
           </div>

@@ -40,7 +40,7 @@ export function viewParty(state: GameState, cards: CardArt[] = []): ViewPartyMem
       card: resolveCard("creature", m.creatureId, cards)?.file ?? null,
       items,
       awards: awardsOf(m),         // permanent marks, drawn after the items in the roster (rosterCarry.ts)
-      dragonCard: resolveCard("creature", 10, cards)?.file ?? null, // the Dragon creature's small card
+      dragonCard: resolveCard("award", 1, cards)?.file ?? null, // the Dragonslayer (+1) award card
       carry: c.carry,
       load,
       fs: c.fs,

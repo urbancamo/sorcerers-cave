@@ -6,8 +6,8 @@ export function escAttr(s: unknown): string {
 }
 
 /** The compressed roster's carried-items row for one member: a thumbnail per carried item, then each
- *  earned award (awards.ts): an inverted Dragon card per dragon felled single-handed (as in the full
- *  party panel — the boxed game's upside-down dragon card), and a "+N" chip for the Elixir's permanent
+ *  earned award (awards.ts): a Dragonslayer (+1) card per dragon felled single-handed (as in the full
+ *  party panel), and a "+N" chip for the Elixir's permanent
  *  bonus. "empty-handed" only when there are neither items nor awards. */
 export function carryRowHtml(m: Pick<ViewPartyMember, "items" | "awards" | "dragonCard">): string {
   const items = m.items.map((it) => {
@@ -20,7 +20,7 @@ export function carryRowHtml(m: Pick<ViewPartyMember, "items" | "awards" | "drag
     if (a.kind === "elixir") return [`<span class="tre award fs" title="${escAttr(a.title)}">+${a.bonus}</span>`];
     return Array.from({ length: a.count }, () =>
       m.dragonCard
-        ? `<img class="tre dragon-slain" src="${escAttr(m.dragonCard)}" alt="Dragon slain" title="${escAttr(a.title)}">`
+        ? `<img class="tre dragon-slain" src="${escAttr(m.dragonCard)}" alt="Dragonslayer" title="${escAttr(a.title)}">`
         : `<span class="tre ph dragon-slain" title="${escAttr(a.title)}">🐉</span>`);
   });
   const all = [...items, ...awards];

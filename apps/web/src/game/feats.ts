@@ -1,7 +1,6 @@
 import { ALL_CREATURES, ALL_TREASURES, type GameEvent } from "@sorcerers-cave/engine";
 
-/** `flip` swings the card through 180° to lie inverted (a felled foe, kept as a trophy — the rulebook's
- *  upside-down dragon card); `rise` lifts it with a glow (a prize won or a gift received); `fall` is the
+/** `flip` swings the card through 180° to lie inverted (no feat uses it now: the Dragonslayer card is shown upright); `rise` lifts it with a glow (a prize won or a gift received); `fall` is the
  *  grand finale — the card shudders, drains to ash and crashes inverted amid sparks (the Sorcerer). */
 export type FeatMotion = "flip" | "rise" | "fall";
 export type FeatId = "dragon-slain" | "sorcerer-slain" | "ruby-wrested" | "elixir-strength";
@@ -12,7 +11,7 @@ export interface FeatView {
   headline: string;
   detail: string;
   /** The card shown: looked up in the manifest by category + engine entity id; `name` is its alt text. */
-  card: { category: "creature" | "treasure"; entityId: number; name: string };
+  card: { category: "creature" | "treasure" | "award"; entityId: number; name: string };
   motion: FeatMotion;
   /** A short chip on the card: a running tally ("×3", repeat dragon kills) or the points won ("+30"). */
   badge?: string;
@@ -33,15 +32,15 @@ export function featsFromEvents(events: GameEvent[]): FeatView[] {
     switch (e.type) {
       case "dragonSlain": {
         const who = `Your ${ALL_CREATURES[e.creatureId]?.name ?? "fighter"}`;
-        const card = { category: "creature" as const, entityId: DRAGON, name: "Dragon" };
+        const card = { category: "award" as const, entityId: 1, name: "Dragonslayer" }; // the +1 trophy card, not an inverted Dragon
         feats.push(e.kills === 1
           ? {
-              id: "dragon-slain", title: "Dragon-slayer!", motion: "flip", card,
+              id: "dragon-slain", title: "Dragon-slayer!", motion: "rise", card,
               headline: `${who} has felled a dragon single-handed!`,
-              detail: "The dragon's card is turned and kept with its slayer — +1 fighting strength, for ever after.",
+              detail: "The Dragonslayer card is kept with its slayer — +1 fighting strength, for ever after.",
             }
           : {
-              id: "dragon-slain", title: "Dragon-slayer!", motion: "flip", card, badge: `×${e.kills}`,
+              id: "dragon-slain", title: "Dragon-slayer!", motion: "rise", card, badge: `×${e.kills}`,
               headline: `${who} fells yet another dragon!`,
               detail: `Dragon-slayer ×${e.kills} — +${e.kills} fighting strength in all.`,
             });

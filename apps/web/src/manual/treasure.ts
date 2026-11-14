@@ -34,7 +34,7 @@ export const TREASURE: Section = {
     ] },
     { id: 'inventory-status', title: 'The Inventory', brief: 'Every item the party carries, who has it, and whether it can be used now.', cards: [], screens: ['inventory'], blocks: [
       p('Each item shows a colour and a word: **usable now** (green), **not usable now**, **wielded**, **worn**, **carried · not wielded** (or *not worn*) or **passive** (yellow), or gray when its carrier cannot use it or it is treasure only. The line under an item\'s name says who **holds** it; the word on the right says whether it is in use. A wielded Magic Staff also shows the magic it adds (+1 for a Priest-class bearer, such as a Priest, Witch or Scholar; +2 for a Wizard-class one). Click an item to read it.'),
-      p('A hero\'s earned marks, such as the upside-down Dragon card for a Dragon slain single-handed, sit among the mini-cards on their card and open the same way.'),
+      p('A hero\'s earned marks, such as the Dragonslayer (+1) card for a Dragon slain single-handed, sit among the mini-cards on their card and open the same way.'),
     ] },
     { id: 'item-actions', title: 'What you can do with an item', brief: 'Use it, wield or wear it, open the Chest, give it to another member, or drop it.', cards: [], screens: ['inventory'], blocks: [
       p('An item\'s card holds everything you can do with it: use it (choosing a target or direction), wield or wear it (or stow it again), open the Treasure Chest, give it to another member or drop it. Nothing suggests when to use an artefact; that is up to you.'),

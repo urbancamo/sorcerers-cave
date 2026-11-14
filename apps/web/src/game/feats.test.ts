@@ -13,7 +13,7 @@ describe("featsFromEvents", () => {
   describe("dragon-slayer", () => {
     it("celebrates a first kill, naming the slayer and the +1 strength", () => {
       const [f] = featsFromEvents([ev({ type: "dragonSlain", creatureId: 12, kills: 1 })]);
-      expect(f).toMatchObject({ id: "dragon-slain", title: "Dragon-slayer!", motion: "flip", card: { category: "creature", entityId: 10, name: "Dragon" } });
+      expect(f).toMatchObject({ id: "dragon-slain", title: "Dragon-slayer!", motion: "rise", card: { category: "award", entityId: 1, name: "Dragonslayer" } });
       expect(f!.headline).toBe("Your Giant has felled a dragon single-handed!");
       expect(f!.detail).toMatch(/\+1 fighting strength/);
       expect(f!.badge).toBeUndefined();
