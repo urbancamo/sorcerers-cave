@@ -270,6 +270,9 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
   }, [onShow?.phase === 'medusa', onShow?.partyArea, holding]);
   // Whether the welcome page offers Multiplayer is a site option a SYSTEM user sets in the admin panel (default OFF; shown only once it is known to be ON).
   const multiplayerEnabled = useQuery(api.settings.get)?.multiplayerEnabled === true;
+  // A signed-in admin user (anonymous players hold no roles) gets an Admin button on the welcome page, taking them to the admin view.
+  const me = useQuery(api.roles.me, isAuthenticated ? {} : "skip");
+  const isAdmin = (me?.roles?.length ?? 0) > 0;
   const gameOver = !!state && state.gs !== GS_PLAYING;
   // The finished game's move log, for the post-game .txt / .log downloads (fetched only at game over).
   const gameLog = useQuery(api.game.log, gameOver && gameId && !local ? { id: gameId } : "skip") as GameLog | null | undefined;
@@ -358,6 +361,7 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
         onReplay={handleReplay}
         onStartMultiplayer={multiplayerEnabled ? () => setMp({ view: "create" }) : undefined}
         onJoinMultiplayer={multiplayerEnabled ? () => setMp({ view: "join" }) : undefined}
+        onAdmin={isAdmin ? () => window.location.assign("/admin") : undefined}
       />
     );
   }

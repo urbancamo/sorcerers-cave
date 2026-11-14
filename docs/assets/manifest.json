@@ -956,7 +956,7 @@
     "cards": {
       "dir": "cards",
       "source": "base",
-      "description": "Small cards: creatures, treasures, artifacts, hazards (63x88mm), upright portrait. Each card identified by its yellow name banner: name + category (creature/treasure/hazard) + engine entityId (21 for the optional Sibyl variant, 22 for the revised-combat Ghoul). 39 creatures + 27 treasures + 7 hazards.",
+      "description": "Small cards: creatures, treasures, artifacts, hazards (63x88mm), upright portrait. Each card identified by its yellow name banner: name + category (creature/treasure/hazard) + engine entityId (21 for the optional Sibyl variant, 22 for the revised-combat Ghoul, 23 for the Lost Ruby Statue, which reuses the original dual-purpose Lost Ruby card; the Lost Ruby treasure (11) is a placeholder card until new artwork arrives). 39 creatures + 27 treasures + 7 hazards.",
       "count": 73,
       "items": [
         {
@@ -1160,7 +1160,7 @@
           "entityId": 0
         },
         {
-          "file": "small-card-s04-2.png",
+          "file": "small-card-lost-ruby.png",
           "w": 700,
           "h": 1000,
           "name": "Lost Ruby",
@@ -1406,6 +1406,14 @@
           "name": "Ghoul",
           "category": "creature",
           "entityId": 22
+        },
+        {
+          "file": "small-card-s04-2.png",
+          "w": 700,
+          "h": 1000,
+          "name": "Lost Ruby Statue",
+          "category": "creature",
+          "entityId": 23
         },
         {
           "file": "small-card-s07-8.png",

@@ -5,7 +5,7 @@
 // Task 16 manual smoke test (a drawn Magic Axe showed category "treasure").
 import {
   decodeArea, openCard, unpackCoord, ALL_CREATURES, ALL_TREASURES, AF_DESTROYED, AF_UNRESOLVED, getSubLocation,
-  targetCoord, doorBit, DIR_N, DIR_E, DIR_S, DIR_W, type GameState, type PlacedArea,
+  targetCoord, doorBit, DIR_N, DIR_E, DIR_S, DIR_W, C_STATUE, type GameState, type PlacedArea,
 } from "@sorcerers-cave/engine";
 import { resolveTile, resolveCardVariant, normExits, type TileArt, type CardArt, type Rot } from "../data/manifest";
 import type { Area, Card } from "./ports";
@@ -23,6 +23,14 @@ const SPECIAL: (string | null)[] = [
 export const areaKey = (level: number, col: number, row: number): string => `${level},${col},${row}`;
 
 const DIR_NUM_TO_LETTER: Record<number, 'N' | 'E' | 'S' | 'W'> = { [DIR_N]: 'N', [DIR_E]: 'E', [DIR_S]: 'S', [DIR_W]: 'W' };
+
+/** The Lost Ruby is set in the Statue's forehead (Peter, GitHub #59): until the Statue is beaten it is part of the Statue and is not shown
+ *  as a treasure of its own — the Lost Ruby Statue creature card stands on the floor in its place. Only in games that fight the Statue
+ *  as a party (`variants.statueFight`); in older games the Ruby keeps its own card. */
+const T_LOST_RUBY = 11;
+export const rubyIsGuarded = (state: GameState): boolean => !state.rubyFreed && !!state.variants?.combatRevision && !!state.variants.statueFight;
+export const withStatueForRuby = (codes: number[], state: GameState): number[] =>
+  rubyIsGuarded(state) ? codes.map((c) => (c === 200 + T_LOST_RUBY ? 100 + C_STATUE : c)) : codes;
 
 /** Encode the live chamber working set into persisted-content codes (100+cid / 200+tid / 300+hid). */
 export function encodeWorkingSet(state: GameState): number[] {
@@ -182,7 +190,7 @@ export function projectArea(
   const lulledNow = (state.lulled ?? []).filter((id) => id === 10).length;
   const inContest = state.phase === "encounter" || state.phase === "fight";
   const sleepingDragons = !here ? 0 : inContest ? lulledNow : state.pacifiedAreas?.includes(idx) ? 0 : floor.filter((c) => c === 110).length;
-  const lanes = laneCards(floor, art.cards, sleepingDragons);
+  const lanes = laneCards(withStatueForRuby(floor, state), art.cards, sleepingDragons);
   // Precise Locations (SC-10.5-9): treasure sunk at a specific sub-location, kept apart from the
   // generic `treasure` lane above so it can be rendered precisely (a doorway or the island), not
   // lumped into the tile-wide floor.

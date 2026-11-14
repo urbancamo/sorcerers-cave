@@ -10,7 +10,7 @@ export interface CardRef { category: CardCategory; name: string }
 export type Requires = VariantKey | VariantKey[];
 
 /** A game option that must be in force for help to apply: a key of the game's own `state.variants`. */
-export type VariantKey = 'extensionKit' | 'forcedRedraw' | 'sorcererTeleport' | 'trapRules' | 'sibyl' | 'combatRevision';
+export type VariantKey = 'extensionKit' | 'forcedRedraw' | 'sorcererTeleport' | 'trapRules' | 'sibyl' | 'combatRevision' | 'statueFight';
 /** The options a game runs under. `undefined` (no game: splash, tests) means "unknown", so nothing is hidden. */
 export type VariantFlags = Partial<Record<VariantKey, boolean | string>>;
 

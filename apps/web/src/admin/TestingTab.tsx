@@ -52,6 +52,11 @@ export function TestingTab() {
   return (
     <div className="scv-admin-testing">
       <section className="scv-panel scv-admin-card">
+        <h2 className="scv-admin-h2">New game</h2>
+        <p className="scv-admin-note">Leave the admin view and go to the new game page.</p>
+        <button className="scv-primary" data-testid="admin-new-game" onClick={() => window.location.assign('/')}>New Game</button>
+      </section>
+      <section className="scv-panel scv-admin-card">
         <h2 className="scv-admin-h2">Test game</h2>
         <p className="scv-admin-note">Any party, no budget or stock limits, with the test controls in the game. Never scored.</p>
         <button className="scv-primary" data-testid="start-test-game" onClick={() => setPicking(true)}>Start test game</button>

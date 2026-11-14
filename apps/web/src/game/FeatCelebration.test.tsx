@@ -12,7 +12,7 @@ const dragon: FeatView = {
 };
 const ruby: FeatView = {
   id: "ruby-wrested", title: "The Lost Ruby!", motion: "rise",
-  headline: "You wrest the Lost Ruby from the guardian statue!", detail: "A jewel of great price — +20 points.",
+  headline: "You have beaten the Statue and taken the Lost Ruby!", detail: "A jewel of great price — +20 points.",
   card: { category: "treasure", entityId: 11, name: "Lost Ruby" },
 };
 const art = (category: CardArt["category"], entityId: number, file: string): CardArt =>

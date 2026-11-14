@@ -2,8 +2,9 @@
 // draw a kit id (14-21) into `state.strangers`/`state.treasures` on ANY chamber, regardless of the
 // starting party — this panel is the very first thing that renders such a draw, so the base tables
 // would crash here before a kit-on game gets past its first encounter.
+import { rubyIsGuarded } from "../view/projection";
 import { useEffect, useRef } from "react";
-import { ALL_CREATURES, ALL_TREASURES, AT_REST_FROM_PICKUP, carriedWeight, legalActions, sibylWaiting, type GameState, type GameAction } from "@sorcerers-cave/engine";
+import { ALL_CREATURES, ALL_TREASURES, AT_REST_FROM_PICKUP, carriedWeight, eyeActive, legalActions, sibylWaiting, type GameState, type GameAction } from "@sorcerers-cave/engine";
 import { memberLabel } from "./memberLabels";
 import { uncarryableNotes } from "./uncarryableNotes";
 import { ConfirmButton, ConfirmPicker } from "./ConfirmButton";
@@ -51,11 +52,10 @@ function label(a: GameAction, state: GameState): string {
       const tid = state.treasures[a.ti]!;
       const tname = ALL_TREASURES[tid]?.name ?? "treasure";
       const member = memberLabel(state.party, a.mi);
-      // The Lost Ruby (id 11) is guarded by a strength-8 statue that must be beaten to claim it (§16)
-      // — but only until it's freed once (SC-11-47): after that it's ordinary treasure, even if
-      // dropped and re-taken, so the label must stop warning of a fight that will never happen.
-      return tid === 11 && !state.rubyFreed
-        ? `Seize the ${tname} — ${member} must defeat the guardian statue`
+      // The Lost Ruby (id 11) is guarded by a strength-8 Statue, but nothing warns the player (Peter, GitHub #59): the label is a
+      // plain take. Only a held Eye of God is worth naming, since its power is why the take is free.
+      return tid === 11 && !state.rubyFreed && eyeActive(state)
+        ? `Take ${tname} → ${member} (the Eye of God holds the Statue powerless)`
         : `Take ${tname} → ${member}`;
     }
     case "useArtifact": {
@@ -120,7 +120,8 @@ export function EncounterPanel({ state, dispatch, leaveOnMove = false }: { state
   const strangers = state.strangers.map((id) => ALL_CREATURES[id]!.name);
   const fighters = state.party.filter((m) => m.status === 0 || m.status === 1); // stone and the fallen add nothing
   const sum = (ns: number[]) => ns.reduce((n, v) => n + v, 0);
-  const treasures = state.treasures.map((id) => ALL_TREASURES[id]!.name);
+  // The guarded Lost Ruby is part of the Statue until it is beaten (it has no card of its own), so it is not listed as treasure.
+  const treasures = state.treasures.filter((id) => !(id === 11 && rubyIsGuarded(state))).map((id) => ALL_TREASURES[id]!.name);
 
   // Collapse the action explosion into one control per treasure / per artefact:
   //  - each treasure is listed once, with a dropdown of the members who can carry it;

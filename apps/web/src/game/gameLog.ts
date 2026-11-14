@@ -194,8 +194,10 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "treasureReclaimed": return `recovered ${e.count} treasure from the pool`;
     case "artifactUsed": return `used ${treasure(e.artifact)}`;
     case "chestOpened": return `opened the treasure chest (rolled ${e.result})`;
-    case "rubyTaken": return "the Lost Ruby was wrested from the statue";
-    case "statueAroused": return "the guardian statue struck";
+    case "rubyTaken": return "the Lost Ruby was taken";
+    case "statueAroused": return "the Statue struck";
+    case "statueAttacks": return e.returning ? "the Statue strikes the returning party" : "the Statue comes alive and attacks the party";
+    case "statueDestroyed": return "the Statue is destroyed";
     case "wardedOff": return `the Talisman warded off ${creature(e.creatureId)}`;
     case "ghoulsWarded": return "the Talisman warded off the Ghouls";
     case "ghoulsAttack": return `${e.count} Ghoul${e.count === 1 ? "" : "s"} fall on the party`;
@@ -208,7 +210,7 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "sleeperWoke": return `${creature(e.creatureId)} woke — the Lotus Dust has worn off`;
     case "droppedRetaken": return `reclaimed ${e.count} dropped treasure`;
     case "annihilated": return `the Eye of God annihilated ${creature(e.creatureId)}`;
-    case "statuePowerless": return "the guardian statue stood powerless";
+    case "statuePowerless": return "the Eye of God held the Statue powerless";
     case "deathPrevented": return `the Ring made ${creature(e.creatureId)} invincible`;
     case "unicornGuards": return `a unicorn guards ${creature(e.creatureId)}`;
     case "unicornDeparted": return e.last ? "the Unicorn, left alone without a Woman, turned indifferent and left: no one is left in the party" : "the Unicorn, left without a Woman, stayed behind to guard the area";
@@ -539,6 +541,8 @@ export function eventCode(e: GameEvent): string | null {
     case "wardedOff": return `WRD ${cr3(e.creatureId)}`;
     case "ghoulsWarded": return "WRD GHL";
     case "ghoulsAttack": return `GHL ${e.count}`;
+    case "statueAttacks": return e.returning ? "STA RET" : "STA ATK";
+    case "statueDestroyed": return "STA END";
     case "medusaAverted": return "MED AVD";
     case "leaderChosen": return `LDR ${cr3(e.creatureId)}`;
     case "quarrelLooms": return "QRL LOM";

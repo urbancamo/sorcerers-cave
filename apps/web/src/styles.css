@@ -967,6 +967,12 @@
     radial-gradient(640px 460px at 72% 74%, rgba(201, 161, 78, 0.30), transparent 60%),
     linear-gradient(180deg, #0d0a16 0%, #0b0b10 100%);
 }
+.scv-splash-admin {
+  position: fixed;
+  top: 14px;
+  right: 16px;
+  z-index: 41; /* above the splash itself, which scrolls beneath it */
+}
 .scv-splash-title {
   font-family: var(--display);
   font-weight: 700;

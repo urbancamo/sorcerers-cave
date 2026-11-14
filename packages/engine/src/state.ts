@@ -127,6 +127,9 @@ export interface FightState {
   // chamber's real strangers wait in `aside` and come back when the Ghouls are beaten; `freshEntry`/`announceLull` are the chamber
   // entry's settings, handed on to the rest of that entry.
   ghouls?: { aside: number[]; freshEntry: boolean; announceLull: boolean; trap?: GhoulsTrap };
+  // The revised combat only (Peter, 13-NOV-2026, GitHub #59): this fight is against the Lost Ruby's Statue. `taker` is the member who
+  // reached for the Ruby (it is theirs if the Statue falls); `noRetreat` is set when the Statue struck a returning party, which may not flee.
+  statue?: { taker?: number; noRetreat?: true };
   // A retreat this round hit a dead end (§Retreat): no further retreat may be tried — the party must
   // fight another round. Cleared when a round is actually fought.
   retreatBlocked?: boolean;
@@ -331,13 +334,16 @@ export interface GameState {
   // bearer — never re-triggers the statue fight. There is exactly one Lost Ruby card in the deck
   // (data/smallPack.ts), so a single game-wide flag is sufficient.
   rubyFreed?: boolean;
+  // The revised combat (Peter, 13-NOV-2026, GitHub #59): the party retreated from the Lost Ruby's Statue in this area (an index into
+  // `areas`). While the Ruby is unfreed it attacks any party entering the area, with no retreat and no surprise. Cleared once it is destroyed.
+  statueAroused?: number;
   // Solo game variants (§EXT), fixed at `newGame` for the whole game — mirrors `MpGameState.variants`
   // (multi.ts:133). Absent/false ⇒ today's behaviour, byte-identical (SC-EXT-1). Immutable thereafter;
   // no reducer path ever writes it. `forcedRedraw` (§6.3.2, Dead End rule) is solo-only by
   // construction — deliberately NOT mirrored onto `MpGameState.variants` (multi.ts) or its own
   // separate Convex validator (apps/web/convex/multiplayer.ts), so a multiplayer-composed state can
   // never carry it.
-  variants?: { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean; sibyl?: boolean; strangerLevel?: string; combatRevision?: boolean };
+  variants?: { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean; sibyl?: boolean; strangerLevel?: string; combatRevision?: boolean; statueFight?: boolean };
   // Per-entry scratch (`variants.trapRules` only): how many traps `enterChamber` RELOADED from the area (a
   // standing trap the party walked back into) rather than drew fresh. Set by `enterChamber`, read inside
   // `applyHazards`, and deleted there — it can survive a Medusa pause but never an action boundary.
