@@ -105,7 +105,7 @@ describe('CardPanel — awards', () => {
   it('shows the award card with what it does and a way back to the member', () => {
     const onMember = vi.fn();
     render(<CardPanel selected={{ kind: 'award', award: slayer.awards[0]!, from: slayer }} onItem={() => {}} onMember={onMember} />);
-    expect(screen.getByAltText('Dragon slain')).toBeInTheDocument();
+    expect(screen.getByAltText('Dragonslayer')).toBeInTheDocument();
     expect(screen.getByText(/2 slain by Wizard/)).toBeInTheDocument();
     expect(screen.getByText(/10 more points at scoring/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: /wizard/i }));

@@ -3,7 +3,7 @@ import { ASSET_BASE } from "@sorcerers-cave/assets";
 
 export type Rot = 0 | 90 | 180 | 270;
 export type TileKind = "chamber" | "tunnel" | "gateway";
-export type Category = "creature" | "treasure" | "hazard";
+export type Category = "creature" | "treasure" | "hazard" | "award";
 
 /** A tile artwork (canonical, north-up) resolved from the manifest. */
 export interface TileArt {

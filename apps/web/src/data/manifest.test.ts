@@ -144,14 +144,18 @@ describe("real manifest ↔ engine coverage (D-1 de-risk)", () => {
     real = parseManifest(REAL);
   });
 
-  it("parses 90 tiles and 104 cards from the real manifest (base + extension-kit merged)", () => {
+  it("parses 90 tiles and 105 cards from the real manifest (base + extension-kit merged)", () => {
     expect(real.tiles.length).toBe(90);
-    expect(real.cards.length).toBe(104);
+    expect(real.cards.length).toBe(105);
   });
 
   it("has a creature card for the Lost Ruby Statue (23, the original Lost Ruby card art) and a separate Lost Ruby treasure card (11)", () => {
     expect(resolveCard("creature", 23, real.cards)).toMatchObject({ name: "Lost Ruby Statue", file: "/assets/cards/small-card-s04-2.png" });
-    expect(resolveCard("treasure", 11, real.cards)).toMatchObject({ name: "Lost Ruby", file: "/assets/cards/small-card-lost-ruby.png" });
+    expect(resolveCard("treasure", 11, real.cards)).toMatchObject({ name: "Lost Ruby", file: "/assets/cards/small-card-lost-ruby.jpg" });
+  });
+
+  it("has the Dragonslayer award card (+1), kept instead of an inverted Dragon card", () => {
+    expect(resolveCard("award", 1, real.cards)).toMatchObject({ name: "Dragonslayer", file: "/assets/cards/small-card-dragonslayer.jpg" });
   });
 
   it("has a card for the revised combat's Ghoul (creature 22), a .jpg", () => {

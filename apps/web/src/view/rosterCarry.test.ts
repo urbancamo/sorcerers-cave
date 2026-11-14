@@ -21,11 +21,11 @@ describe("carryRowHtml — the compressed roster's carried-items row", () => {
   });
 
   // The bug: a Dragon-slayer's inverted card showed in the full party panel but never in this roster.
-  it("shows one inverted dragon card per dragon slain, after the items", () => {
+  it("shows one Dragonslayer card per dragon slain, after the items", () => {
     const html = carryRowHtml(member({ items: [item("Magic Sword")], awards: dragons(2) }));
     const cards = html.match(/class="tre dragon-slain"/g) ?? [];
     expect(cards).toHaveLength(2);
-    expect(html).toContain('src="/assets/dragon.png" alt="Dragon slain" title="Dragon-slayer — +1 fighting strength"');
+    expect(html).toContain('src="/assets/dragon.png" alt="Dragonslayer" title="Dragon-slayer — +1 fighting strength"');
     expect(html.indexOf("Magic Sword")).toBeLessThan(html.indexOf("dragon-slain")); // loot first, then the slain dragons
     expect(html).not.toContain("empty-handed");
   });

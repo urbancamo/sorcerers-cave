@@ -104,12 +104,12 @@ describe("viewParty", () => {
 });
 
 describe("viewParty — dragon-slayer", () => {
-  it("carries each member's awards and the Dragon card art for the compressed roster", () => {
+  it("carries each member's awards and the Dragonslayer card art for the compressed roster", () => {
     const state = newGame(1, [5, 6]);
     state.party[0]!.dragonKills = 2;
-    const cards = [{ cardId: "d", file: "/assets/cards/dragon.png", name: "Dragon", category: "creature" as const, entityId: 10 }];
+    const cards = [{ cardId: "d", file: "/assets/cards/dragonslayer.jpg", name: "Dragonslayer", category: "award" as const, entityId: 1 }];
     const [slayer, other] = viewParty(state, cards);
-    expect(slayer).toMatchObject({ awards: [{ kind: "dragon-slayer", count: 2 }], dragonCard: "/assets/cards/dragon.png" });
+    expect(slayer).toMatchObject({ awards: [{ kind: "dragon-slayer", count: 2 }], dragonCard: "/assets/cards/dragonslayer.jpg" });
     expect(other!.awards).toEqual([]);
   });
 
