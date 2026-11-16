@@ -88,7 +88,7 @@
    {
     "rules": "kit",
     "searches": 23684,
-    "best": 484
+    "best": 460
    },
    {
     "rules": "kit+sibyl",
@@ -3332,6 +3332,13 @@
     {
      "type": "move",
      "dir": 1
+    },
+    {
+     "type": "move",
+     "dir": 3
+    },
+    {
+     "type": "withdraw"
     },
     {
      "type": "move",

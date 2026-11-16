@@ -58,7 +58,7 @@ export const CREATURES: Section = {
     { id: 'fight-retreat', title: 'Retreat', brief: 'After one round you may retreat by any exit; the strangers stay hostile for good.', cards: cards('creature', '*'), screens: ['fight', 'fight-revised'], blocks: [
       p('After at least one round has been fought you may **retreat** by *any* of the tile\'s doorways or stairways, even one you have not explored yet (a tile is drawn for it). The strangers and any treasure dropped in the fight are left behind.'),
       p('If that way turns out to be a **dead end**, the party cannot escape and must **fight another round** this turn. You cannot retreat before the first round, nor back up a trap you fell through.'),
-      note('danger', 'They remember', 'Strangers you retreat from stay **hostile to your party for the rest of the game**: return and they attack on sight, with no chance to test them.'),
+      note('danger', 'They remember', 'Strangers you retreat from stay **hostile to your party for the rest of the game**: return by a doorway you have already used and they attack on sight, with no chance to test them. Come in by a doorway nobody has used (a new route a Spell opened, say) and they have not seen it used, so you meet them as on a first visit and may attack with surprise.'),
       note('info', 'Standing traps', 'The one exception: a party that comes back by deliberately dropping through a trap catches them off guard, and it is **your** party that has surprise.', 'trapRules'),
     ] },
     { id: 'creature-hero', title: 'Hero', brief: 'Charismatic and strong: +1 to every reaction roll.', cards: cards('creature', 'Hero'), blocks: [

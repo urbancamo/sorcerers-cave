@@ -305,7 +305,7 @@ describe("Entering (or withdrawing into) the Demon's area is an ordinary encount
   });
 
   it("an area where the Demon is met hostile-by-history (hostileAreas) goes straight to the fight", () => {
-    const s = demonState({ party: [member(HERO)], areas: AREAS(PLAIN_CHAMBER), hostileAreas: [1] });
+    const s = demonState({ party: [member(HERO)], areas: AREAS(PLAIN_CHAMBER), hostileAreas: [1], doorsUsed: [1] });
     const { state } = reduce(s, { type: "move", dir: DIR_E });
     expect(state.phase).toBe("fight");
     expect(state.strangers).toEqual([DEMON]);

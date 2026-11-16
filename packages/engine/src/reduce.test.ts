@@ -613,7 +613,7 @@ describe("reduce — fight dispatch (C-2 §9.5)", () => {
     const s = makeState({
       phase: "explore", areas: [A, B], partyArea: 0, prev: 0,
       party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }],
-      hostileAreas: [1],
+      hostileAreas: [1], doorsUsed: [1], // retreated through this doorway, so it has been seen used (issue #70)
     });
     const r = reduce(s, { type: "move", dir: DIR_E }).state;
     expect(r.partyArea).toBe(1);
