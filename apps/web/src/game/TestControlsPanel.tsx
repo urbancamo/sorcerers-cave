@@ -124,7 +124,7 @@ function EntityPicker({
  * save icon already uses — reused here purely for discoverability, so a tester mid-scenario
  * doesn't have to go hunting for the HUD button to get a shareable code for a bug report.
  */
-export function TestControlsPanel({ state, dispatch, onSave, open = true }: { state: GameState; dispatch: (a: GameAction) => void; onSave?: () => void; open?: boolean }) {
+export function TestControlsPanel({ state, dispatch, onSave, onRestart, open = true }: { state: GameState; dispatch: (a: GameAction) => void; onSave?: () => void; onRestart?: () => void; open?: boolean }) {
   const [dir, setDir] = useState(DIR_N);
   // Default to the ordinary chamber — the usual thing to script. It is a plain tile, never kit-only, so
   // the initial selection is one the engine (and the kit-filtered options below, SC-Test-6) always accepts.
@@ -215,9 +215,12 @@ export function TestControlsPanel({ state, dispatch, onSave, open = true }: { st
 
       {minimized ? null : (
       <>
-      {onSave && (
+      {(onSave || onRestart) && (
         <div className="scv-tc-section">
-          <button type="button" onClick={onSave}>Save scenario</button>
+          <div className="scv-tc-row">
+            {onSave && <button type="button" onClick={onSave}>Save scenario</button>}
+            {onRestart && <button type="button" onClick={onRestart}>Restart</button>}
+          </div>
         </div>
       )}
 

@@ -14,6 +14,7 @@ import { initialTutorial, matchesBeat, tutorialReduce, wantedBeat, type Tutorial
 import { CaveCanvas, type CaveApi } from "../view/CaveCanvas";
 import { SplashScreen } from "./SplashScreen";
 import { PartySelect } from "./PartySelect";
+import { RestartTestModal } from "./RestartTestModal";
 import { GameOverScreen } from "./GameOverScreen";
 import { EncounterPanel } from "./EncounterPanel";
 import { TrapChoice } from "./TrapChoice";
@@ -187,6 +188,7 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
   const convexSession = useCaveGame(local ? null : gameId, onMoveResolved, canActRef.current);
   const localSession = useLocalGame(local ? makeTutorial : null, onMoveResolved, canActRef.current, tutGate);
   const { engine, loading, state, color, code, dispatch, present } = local ? localSession : convexSession;
+  const startTestGame = useMutation(api.game.startTestGame);
   // Presentation hold (see useDispatchWithRolls): the pre-action snapshot stays on screen —
   // canvas, panels, everything — until the die roll completes. getSnapshot reads a ref so the
   // capture always sees the freshest authoritative state without re-creating the callback.
@@ -290,6 +292,22 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
     setSavedCode({ code: await saveGame({ id: gameId }), restored: false });
   }, [gameId, saveGame]);
 
+  // Test Mode panel's Restart: asks first (same party / new party / cancel), then starts a fresh test game with a new seed and drops straight in.
+  // `restartStep`: null = no dialog, "ask" = the three-choice dialog, "party" = the party picker for a new party.
+  const [restartStep, setRestartStep] = useState<null | "ask" | "party">(null);
+  const beginTestGame = useCallback(async (picks: number[], gameColor: typeof color, variants?: { extensionKit?: boolean; sibyl?: boolean }) => {
+    clearRoll(); clearNotices(); setSelected(null);
+    setGameId(await startTestGame({ seed: Date.now(), picks, color: gameColor, variants }));
+    setRestartStep(null);
+  }, [startTestGame, clearRoll, clearNotices]);
+  const handleSameParty = useCallback(async () => {
+    const start = convexSession.start;
+    if (!start) return;
+    // The server accepts only these two variant switches from a client; it stamps the rest itself.
+    const v = start.variants as { extensionKit?: boolean; sibyl?: boolean } | undefined;
+    await beginTestGame(start.picks, color, { ...(v?.extensionKit ? { extensionKit: true } : {}), ...(v?.sibyl ? { sibyl: true } : {}) });
+  }, [convexSession.start, beginTestGame, color]);
+
   // Resume from the splash by code: look it up, claim it, and drop straight into the loaded game.
   const handleResume = useCallback(async (code: string): Promise<boolean> => {
     const id = await resumeByCode({ code });
@@ -374,6 +392,18 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
         onConfirm={async (picks, color, variants) => {
           setGameId(await newGame({ seed: Date.now(), picks, color, variants }));
         }}
+      />
+    );
+  }
+  if (restartStep === "party") {
+    return (
+      <PartySelect
+        kitToggle
+        sibylToggle
+        testMode
+        title="Choose the test party"
+        onBack={() => setRestartStep(null)}
+        onConfirm={(picks, c, variants) => beginTestGame(picks, c, variants)}
       />
     );
   }
@@ -498,8 +528,9 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
       {fightVisible && cards && <FightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} />}
       {fightVisible && cards && <RevisedFightSurface state={displayState} dispatch={dispatchWithRolls} cards={cards} inventory={leftSlot === 'inventory' ? inventoryPanel : undefined} listHidden={fightListHidden}
                                                   onMember={(member) => pick({ kind: 'member', member })} />}
-      {!local && displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} onSave={handleSave} open={testOpen} />}
+      {!local && displayState.testMode && <TestControlsPanel state={displayState} dispatch={dispatchWithRolls} onSave={handleSave} onRestart={() => setRestartStep("ask")} open={testOpen} />}
       {!local && displayState.testMode && <DeadEndSwapBadge />}
+      {restartStep === "ask" && <RestartTestModal onSameParty={() => void handleSameParty()} onNewParty={() => setRestartStep("party")} onCancel={() => setRestartStep(null)} />}
       {!fightVisible && leftSlot === 'party' && (
         <PartyList members={viewParty(displayState, cards ?? [])} expanded={partyExpanded} onToggleExpand={() => setPartyExpanded((e) => !e)}
                    onSelect={(member) => pick({ kind: 'member', member })} />
