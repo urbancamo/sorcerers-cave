@@ -556,7 +556,9 @@ function settleChamber(state: GameState, freshEntry: boolean, events: GameEvent[
     return;
   }
   if (state.strangers.length > 0) {
-    if (state.hostileAreas?.includes(state.partyArea)) {
+    // Issue #70 (R-28): a doorway nobody has used since the strangers took the area (a Spell's new route, say) is not one they have watched,
+    // so a party arriving by it is not struck on sight — it gets the usual surprise chance. (A fresh entry here is never a first visit.)
+    if (state.hostileAreas?.includes(state.partyArea) && !(freshEntry && state.deliberateFall !== true)) {
       // The party retreated from these strangers before — they attack on sight (with surprise). §Retreat
       // Unless the party came back by a trap on purpose (`trapRules`): then it is the party that has surprise.
       events.push(...startFight(state, state.deliberateFall === true ? 1 : -1));

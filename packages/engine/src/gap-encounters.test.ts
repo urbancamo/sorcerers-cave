@@ -81,6 +81,7 @@ describe("reaction — retreated-from areas attack on sight (spec §8.5 / §Retr
       prev: 0,
       party: [man()],
       hostileAreas: [1],
+      doorsUsed: [1], // the party retreated through this doorway, so the strangers have seen it used (issue #70)
     });
     const { state, events } = reduce(s, { type: "move", dir: DIR_E });
     expect(state.partyArea).toBe(1);

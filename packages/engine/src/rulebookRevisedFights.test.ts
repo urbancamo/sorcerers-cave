@@ -178,6 +178,16 @@ describe("Determining Surprise Attack: arriving by a route that cannot be walked
     expect(fresh.surpriseReady).toBe(true);
     expect(walk([1]).surpriseReady).toBe(false);
   });
+  // Issue #70: strangers the party once retreated from attack on sight, but not through a doorway nobody has used (a Spell's new route).
+  it("a hostile chamber is not attacked on sight through an unused doorway, only through a walked one (issue #70)", () => {
+    const door = (open: number) => ({ card: 31, coord: packCoord(1, open, 50), faceUp: true, visited: true, contents: open === 51 ? [100 + OGRE] : [], flags: 0, indiffCount: 0 });
+    const walk = (doorsUsed: number[]) => reduce(makeState({ phase: "explore", areas: [door(50), door(51)], partyArea: 0, prev: 0, doorsUsed, hostileAreas: [1], party: [mem(HERO)] }), { type: "move", dir: 2 } as never).state;
+    const fresh = walk([]);
+    expect(fresh.partyArea, "the move east must succeed in this fixture").toBe(1);
+    expect(fresh.phase).toBe("encounter");
+    expect(fresh.surpriseReady).toBe(true);
+    expect(walk([1]).phase).toBe("fight");
+  });
 });
 
 describe("Procedure: Quarrel Fight — no bonuses or penalties for the Ring, curses or surprise", () => {
