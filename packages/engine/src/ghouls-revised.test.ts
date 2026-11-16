@@ -24,6 +24,13 @@ const enteringGhouls = (party: PartyMember[], drawn: number[] = [], over: Partia
   }), { type: "move", dir: 2 });
 
 describe("the revised Ghouls fight", () => {
+  // The Eye of God destroys Spectres but not Ghouls; the player is told it is here and does nothing to them.
+  it("says so when the Eye of God is carried and does not stop the Ghouls", () => {
+    const r = enteringGhouls([member(HERO, [13]), member(MAN)]);
+    expect(r.events).toContainEqual({ type: "eyeIgnored", creatureId: C_GHOUL });
+    expect(r.state.phase).toBe("fight");
+  });
+
   it("is a creature of strength 2 with no magic", () => {
     expect(ALL_CREATURES[C_GHOUL]).toMatchObject({ name: "Ghoul", fs: 2, mp: 0 });
   });

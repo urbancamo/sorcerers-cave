@@ -309,7 +309,14 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
       case "partyTeleported":
         break;
       case "annihilated":
-        out.push({ text: `The Eye of God annihilates ${name(e.creatureId)}!`, tone: "good" });
+        out.push({ text: e.arrived
+          ? `A ${name(e.creatureId)} tries to materialise behind you, but the Eye of God lies there, and its power annihilates it at once!`
+          : e.floor
+            ? `${name(e.creatureId)} appears, but the Eye of God lies here, and its power annihilates it!`
+            : `The Eye of God annihilates ${name(e.creatureId)}!`, tone: "good" });
+        break;
+      case "eyeIgnored": // the Eye is in the area but does nothing to this foe
+        out.push({ text: "The Eye of God is here, but it does not touch Ghouls. Only the Talisman wards them off.", tone: "bad" });
         break;
       case "statuePowerless":
         out.push({ text: "The Eye of God holds the Statue powerless — the Lost Ruby may be taken freely.", tone: "good" });

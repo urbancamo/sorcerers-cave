@@ -202,6 +202,16 @@ describe("A drawn Demon never joins the chamber — it materializes into prev (U
     expect(state.phase).toBe("explore"); // nothing else drawn here — the party carries on
   });
 
+  it("is annihilated at once when it materialises in an area where the Eye of God lies", () => {
+    const s = demonState({ party: [member(HERO)], smallPack: [100 + DEMON] });
+    s.areas[0]!.contents.push(200 + 13);
+    const { state, events } = reduce(s, { type: "move", dir: DIR_E });
+    expect(events).toContainEqual({ type: "annihilated", creatureId: DEMON, floor: true, arrived: true });
+    expect(state.areas[0]!.contents).toEqual([200 + 13]); // never parked
+    expect(events.some((e) => e.type === "demonSpawned")).toBe(false);
+  });
+
+
   it("disperses instead when prev was collapsed by an Earthquake", () => {
     const s = demonState({
       party: [member(HERO)],
@@ -302,6 +312,16 @@ describe("Entering (or withdrawing into) the Demon's area is an ordinary encount
       seen.add(r.outcome);
     }
     expect([...seen].sort()).toEqual(["hostile", "indifferent"]);
+  });
+
+  it("is annihilated when the party carrying the Eye of God walks into the area where it waits", () => {
+    const s = demonState({ party: [member(HERO, [13])], areas: AREAS(PLAIN_CHAMBER) });
+    s.areas[1]!.contents.push(100 + DEMON);
+    const { state, events } = reduce(s, { type: "move", dir: DIR_E });
+    expect(events).toContainEqual({ type: "annihilated", creatureId: DEMON });
+    expect(state.strangers).not.toContain(DEMON);
+    expect(state.areas[1]!.contents).not.toContain(100 + DEMON);
+    expect(state.phase).not.toBe("fight");
   });
 
   it("an area where the Demon is met hostile-by-history (hostileAreas) goes straight to the fight", () => {

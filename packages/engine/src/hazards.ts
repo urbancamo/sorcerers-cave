@@ -18,7 +18,7 @@ import { AF_DESTROYED, AF_UNRESOLVED, type GameState, type PartyMember } from ".
 import type { GameEvent } from "./actions";
 import { stageMidStateOnce } from "./midState";
 import { frontStrength, partyRollBonus } from "./combat";
-import { eyeActive, eyeForsakenByDeath, markDied, ringInvincible, usesArtifactsAs, cursedRoll, canUseArtifact } from "./effects";
+import { eyeActive, eyePresent, eyeForsakenByDeath, markDied, ringInvincible, usesArtifactsAs, cursedRoll, canUseArtifact } from "./effects";
 import { spillCarried, sweepFallen } from "./loot";
 import { stashOrDeliver } from "./chamber";
 
@@ -105,6 +105,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
   for (const hz of order) {
     if (!state.hazards.includes(hz)) continue;
     if (hz === HAZARD_GHOULS && livingHolds(state, T_TALISMAN)) { events.push({ type: "ghoulsWarded" }); continue; } // the Talisman wards off Ghouls (card)
+    if (hz === HAZARD_GHOULS && eyePresent(state)) events.push({ type: "eyeIgnored", creatureId: 22 }); // the Eye does not touch Ghouls, only the Talisman does
     // Harpies parks (lurk-style) instead of striking when the party has no artifacts to steal, or
     // holds the Talisman (design US-10, SC-EXT-15) — checked, like Ghouls' ward above, BEFORE the
     // generic `hazardFired` push, so a parked visit reports only its own dedicated notice.
@@ -138,7 +139,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
       if (hasStaffWizard(state)) { events.push({ type: "medusaAverted" }); continue; } // the staff averts her gaze — no one stoned
       // "The Eye of God renders Medusa powerless" (Rules, Medusa; ruling R-09, 2026-11-06): she cannot gaze while the party holds it. It does
       // not free anyone she has already turned to stone. She stays in the chamber and strikes again if the Eye is later gone.
-      if (eyeActive(state)) { events.push({ type: "medusaAverted", by: "eye" }); continue; }
+      if (eyePresent(state)) { events.push({ type: "medusaAverted", by: "eye" }); continue; }
     }
     events.push({ type: "hazardFired", hazard: hz });
     switch (hz) {

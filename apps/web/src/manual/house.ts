@@ -56,7 +56,7 @@ export const HOUSE: Section = {
         '**Retreat** (once a round has been fought, as in any fight) and the Statue stays, **aroused**, guarding the Ruby where you left it.',
         'A party that **comes back** to an aroused Statue is struck at once, with **no retreat and no surprise**. The fight is to the end: the Statue destroyed, or the party gone.',
       ),
-      note('info', 'The Eye of God', 'The Statue\'s strength is of magical origin, so the Eye of God\'s power — it switches off all magic and artefact bonuses — leaves it powerless. While the Eye is carried the Ruby is taken with no fight, though a member must still reach for it.'),
+      note('info', 'The Eye of God', 'The Statue\'s strength is of magical origin, so the Eye of God\'s power — it switches off all magic and artefact bonuses — leaves it powerless. While the Eye is in the chamber the Ruby is taken with no fight, though a member must still reach for it.'),
     ] },
     { id: 'rc-overview', title: 'The revised combat', brief: 'Rounds on a formation screen, with a fresh set of choices each round.', requires: 'combatRevision', cards: [], screens: ['fight-revised'], blocks: [
       p('A fight is played as a series of **rounds**, and each round the game asks you for a few decisions in turn. Whoever started the fight is the **attacker** and stays so; the other side is the **defender**.'),

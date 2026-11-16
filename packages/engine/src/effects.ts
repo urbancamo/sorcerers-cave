@@ -224,14 +224,15 @@ export function wardOffSpectres(state: GameState): GameEvent[] {
   return events;
 }
 
-/** Permanently destroy every Spectre in the current encounter when the Eye is held. Mutates `strangers`. */
+/** Permanently destroy every Spectre in the current encounter when the Eye is in the area (held, or on the chamber floor; issue #77). Mutates `strangers`. */
 export function annihilateWithEye(state: GameState): GameEvent[] {
-  if (!eyeActive(state)) return [];
+  if (!eyePresent(state)) return [];
   const events: GameEvent[] = [];
   for (let i = state.strangers.length - 1; i >= 0; i--) {
-    if (state.strangers[i] === C_SPECTRE) {
+    const id = state.strangers[i];
+    if (id === C_SPECTRE || id === 15) { // a Demon is pure magic (STR 6, all of it MAG), so the Eye destroys it like a Spectre
       removeStranger(state, i);
-      events.push({ type: "annihilated", creatureId: C_SPECTRE });
+      events.push({ type: "annihilated", creatureId: id, ...(eyeActive(state) ? {} : { floor: true as const }) });
     }
   }
   return events;

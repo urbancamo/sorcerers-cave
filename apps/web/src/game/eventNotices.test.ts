@@ -162,6 +162,9 @@ describe("eventNotices", () => {
     expect(eventNotices([{ type: "secretDoorRevealed", dir: DIR_UP }])[0]!.text).toMatch(/above/i);
     expect(eventNotices([{ type: "dragonsLulled", count: 3 }])[0]!.text).toMatch(/3 dragons/i);
     expect(eventNotices([{ type: "annihilated", creatureId: 9 }])[0]!.text).toMatch(/eye of god/i);
+    expect(eventNotices([{ type: "annihilated", creatureId: 9, floor: true }])[0]!.text).toMatch(/lies here/i);
+    expect(eventNotices([{ type: "annihilated", creatureId: 15, floor: true, arrived: true }])[0]!.text).toMatch(/materialise/i);
+    expect(eventNotices([{ type: "eyeIgnored", creatureId: 22 }])[0]!.text).toMatch(/Ghouls/);
     expect(eventNotices([{ type: "carpetUsed", dir: DIR_DOWN }])[0]!.text).toMatch(/magic carpet/i);
   });
 
