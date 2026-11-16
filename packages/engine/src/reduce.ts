@@ -194,11 +194,16 @@ function unpacifyForDemon(state: GameState): void {
  *  tunnel/Gateway, or a Deep Pool/Viper Pit special (both return from `resolveAreaLoop` before the
  *  generic tunnel branch, so each needs this same pull-in at its own entry point) — and open the
  *  encounter with it (or the fight at once if the party retreated from this area before, §Retreat).
- *  Returns true when one was found, so the caller returns without its own phase resolution. */
+ *  Returns true when one was found and met, so the caller returns without its own phase resolution; false when none was there or the Eye of God destroyed it. */
 function meetParkedDemon(state: GameState, area: PlacedArea, events: GameEvent[]): boolean {
   const demonIdx = area.contents.indexOf(100 + C_DEMON);
   if (demonIdx < 0) return false;
   area.contents.splice(demonIdx, 1);
+  // The Eye of God (carried, or lying in this area) destroys a Demon on sight, as it does a Spectre: it is all magic.
+  if (eyePresent(state) || area.contents.includes(200 + 13)) {
+    events.push({ type: "annihilated", creatureId: C_DEMON, ...(eyeActive(state) ? {} : { floor: true as const }) });
+    return false;
+  }
   state.strangers = [C_DEMON];
   unpacifyForDemon(state);
   if (state.hostileAreas?.includes(state.partyArea)) events.push(...startFight(state, -1));
@@ -430,7 +435,7 @@ function wakeGalleryStatues(state: GameState): GameEvent[] {
  *  throw-or-proceed decision is the player's (§Lotus Dust "Works on MEDUSA"). A Dwarf-only holder
  *  can't throw it, so the gaze simply proceeds — same as holding no Lotus Dust at all. */
 function medusaLooms(state: GameState): boolean {
-  if (!state.hazards.includes(HAZARD_MEDUSA) || hasStaffWizard(state) || eyeActive(state)) return false;
+  if (!state.hazards.includes(HAZARD_MEDUSA) || hasStaffWizard(state) || eyePresent(state)) return false;
   const until = state.areas[state.partyArea]!.medusaAsleepUntil;
   if (until !== undefined && state.turn <= until) return false; // asleep — nothing to decide
   return state.party.some((m) => (m.status === 0 || m.status === 1) && m.treasure.includes(5) && isHumanOrPriestClass(m.creatureId));
@@ -536,7 +541,7 @@ function settleChamber(state: GameState, freshEntry: boolean, events: GameEvent[
   // The Lost Ruby's Statue (Peter, 13-NOV-2026, GitHub #59): a party that retreated from it and comes back is struck at once, with no
   // retreat and no surprise — unless the Eye stills it. (Only the revised combat has the fight; the classic wrestle is by attempt only.)
   if (state.statueAroused === state.partyArea && statueFightOn(state) && !state.rubyFreed && state.treasures.includes(11)
-      && state.strangers.length === 0 && !eyeActive(state)) {
+      && state.strangers.length === 0 && !eyePresent(state)) {
     events.push(...startStatueFight(state, undefined, true));
     return;
   }
@@ -1343,11 +1348,11 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         const events: GameEvent[] = [];
         // The revised combat (Peter, 13-NOV-2026, GitHub #59): reaching for the Ruby brings the Statue down on the WHOLE party, fought on the
         // formation screen with no surprise (the Eye, which stills it, is handled below as before).
-        if (statueFightOn(next) && !eyeActive(next)) {
+        if (statueFightOn(next) && !eyePresent(next)) {
           events.push(...startStatueFight(next, action.mi, false));
           return { state: next, events };
         }
-        if (eyeActive(next)) { // the Eye stills the statue: take the Ruby with no fight
+        if (eyePresent(next)) { // the Eye stills the statue: take the Ruby with no fight
           fighter.treasure.push(11);
           next.treasures.splice(action.ti, 1);
           next.rubyFreed = true;

@@ -201,7 +201,8 @@ export type GameEvent =
   | { type: "medusaAsleep" } // entered while she sleeps — no gaze this entry
   | { type: "sleeperWoke"; creatureId: number } // a Lotus-slept stranger's two turns have lapsed: it is awake again on re-entry
   | { type: "droppedRetaken"; count: number } // fighters reclaimed the heavy treasure they dropped to fight
-  | { type: "annihilated"; creatureId: number }
+  | { type: "annihilated"; creatureId: number; floor?: true; arrived?: true } // `floor`: the Eye was lying in the area, not carried (issue #77); `arrived`: a Demon destroyed the moment it materialised where the Eye lies
+  | { type: "eyeIgnored"; creatureId: number } // the Eye of God is in the area but does nothing to this foe (the Ghouls)
   | { type: "statuePowerless" }
   | { type: "statueAttacks"; returning: boolean } // the revised combat: the Lost Ruby's Statue fights the whole party (`returning`: it struck on re-entry)
   | { type: "statueDestroyed" } // the Statue is beaten: the Ruby is free

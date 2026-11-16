@@ -15,7 +15,7 @@ export const HAZARDS: Section = {
       p('The earthquake card is left lying on the rubble to mark what fell.'),
     ] },
     { id: 'hazard-medusa', title: 'Medusa', cards: cards('hazard', 'Medusa'), blocks: [
-      p('Her gaze sweeps the party; a die is rolled for each member, and a **1 or 2** turns that member **to stone**. A petrified member can do nothing until freed by the **Magic Staff** (a wizard wielding the staff is immune). The **Eye of God** renders her powerless while you hold it: no one is stoned (but it does not free anyone already turned to stone).'),
+      p('Her gaze sweeps the party; a die is rolled for each member, and a **1 or 2** turns that member **to stone**. A petrified member can do nothing until freed by the **Magic Staff** (a wizard wielding the staff is immune). The **Eye of God** renders her powerless while it is in the chamber (carried or lying there): no one is stoned (but it does not free anyone already turned to stone).'),
       p('Medusa **lurks for good**: her card stays on the chamber floor, and she rolls against the party *again every time you re-enter*. When she looms and you hold Lotus Dust, her card opens in the card panel and the bar offers the throw or proceeding. If her gaze petrifies your *whole* party, the expedition ends there.'),
     ] },
     { id: 'hazard-ghouls', title: 'Ghouls', cards: cards('hazard', 'Ghouls'), blocks: [

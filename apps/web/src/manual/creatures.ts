@@ -97,7 +97,7 @@ export const CREATURES: Section = {
     ] },
     { id: 'creature-spectre', title: 'Spectre', cards: cards('creature', 'Spectre'), blocks: [
       p('Cannot be harmed by ordinary blows. Without magic or the **Magic Sword** in hand, it slays your strongest member each round.'),
-      p('The **Eye of God** destroys spectres outright; the **Talisman** drives them off on level 4 or deeper.'),
+      p('The **Eye of God** destroys spectres outright, whether your party carries it or it lies in the chamber; the **Talisman** drives them off on level 4 or deeper.'),
     ] },
     { id: 'creature-sorcerer', title: 'The Sorcerer', cards: cards('creature', 'Sorcerer'), blocks: [
       p('Fighting strength 4 and **magical power 9**: he fights at an effective strength of **13**, far beyond a Dragon. As the highest-ranking creature he always **leads** any group he joins and turns it **hostile**. He is never befriended and carries no point value of his own.'),
@@ -121,6 +121,7 @@ export const CREATURES: Section = {
     ] },
     { id: 'creature-demon', title: 'The Demon', variant: 'kit', cards: cards('creature', 'Demon'), blocks: [
       p('The Demon never takes a seat among a chamber\'s ordinary strangers. Drawn from the small pack, it steps into whichever area the party has just left and waits there. Return to it (or retreat into it) and you meet it like any stranger: on a roll of 1-5 it is hostile and you fight, but on a six it is indifferent and lets you be. It is never friendly.'),
+      p('The Demon is pure magic, so the **Eye of God** destroys it just as it does a Spectre: on sight if your party carries the Eye or it lies in the chamber, and at once if the Demon would materialise in an area where the Eye lies.'),
       p('Only magic reaches it, and so, in any hand at all, does the **Magic Axe**. Without either, it cuts down the party\'s strongest member. **Holy Water** destroys it. Win, and it collapses to ash.'),
     ] },
     { id: 'creature-witch', title: 'Witch', brief: 'Uses artefacts as a Priest; strong magic.', variant: 'kit', cards: cards('creature', 'Witch'), blocks: [

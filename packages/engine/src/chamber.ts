@@ -70,6 +70,8 @@ function spawnDemon(state: GameState, events: GameEvent[]): void {
     events.push({ type: "demonDispersed" });
     return;
   }
+  // Pure magic, it cannot take form where the Eye of God lies: destroyed the moment it appears.
+  if (target.contents.includes(200 + 13)) { events.push({ type: "annihilated", creatureId: C_DEMON, floor: true, arrived: true }); return; }
   target.contents.push(100 + C_DEMON);
   events.push({ type: "demonSpawned" });
 }

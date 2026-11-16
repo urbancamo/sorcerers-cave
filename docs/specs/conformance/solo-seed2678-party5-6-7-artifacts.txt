@@ -51,7 +51,7 @@ BEGIN MOVES
   45 MOVE 6                   -> TRN 32 LVL 5 ARA 18 PH EXP GS 0 SEED 419886227 EV moved,drewChamber
   46 MOVE 1                   -> TRN 33 LVL 5 ARA 18 PH EXP GS 0 SEED 419886227 EV deadEnd
   47 MOVE 5                   -> TRN 34 LVL 4 ARA 17 PH EXP GS 0 SEED 419886227 EV moved
-  48 MOVE 2                   -> TRN 35 LVL 4 ARA 21 PH ENC GS 0 SEED 276124673 EV moved,drewChamber,annihilated,hazardFired,hazardFired,combatRoll,combatRoll,combatRoll,combatRoll,combatRoll
+  48 MOVE 2                   -> TRN 35 LVL 4 ARA 21 PH ENC GS 0 SEED 276124673 EV moved,drewChamber,annihilated,hazardFired,eyeIgnored,hazardFired,combatRoll,combatRoll,combatRoll,combatRoll,combatRoll
   49 TEST                     -> TRN 35 LVL 4 ARA 21 PH PKP GS 0 SEED 2069054118 EV reaction,strangersJoined
   50 TAKE 0 1                 -> TRN 35 LVL 4 ARA 21 PH PKP GS 0 SEED 2069054118 EV -
   51 TAKE 2 3                 -> TRN 35 LVL 4 ARA 21 PH PKP GS 0 SEED 2069054118 EV -
@@ -61,7 +61,7 @@ BEGIN MOVES
   55 MOVE 4                   -> TRN 37 LVL 4 ARA 23 PH EXP GS 0 SEED 2069054118 EV moved
   56 MOVE 4                   -> TRN 38 LVL 4 ARA 23 PH EXP GS 0 SEED 2069054118 EV deadEnd
   57 MOVE 2                   -> TRN 39 LVL 4 ARA 22 PH EXP GS 0 SEED 2069054118 EV moved
-  58 MOVE 3                   -> TRN 40 LVL 4 ARA 21 PH LDR GS 0 SEED 2100691070 EV moved,drewChamber,hazardFired,combatRoll,eyeForsaken,combatRoll,combatRoll,combatRoll,itemsSpilled,unicornDeparted,unicornGuards
+  58 MOVE 3                   -> TRN 40 LVL 4 ARA 21 PH LDR GS 0 SEED 2100691070 EV moved,drewChamber,eyeIgnored,hazardFired,combatRoll,eyeForsaken,combatRoll,combatRoll,combatRoll,itemsSpilled,unicornDeparted,unicornGuards
   59 CHOOSELEADER 4           -> TRN 40 LVL 4 ARA 21 PH PKP GS 0 SEED 2100691070 EV leaderChosen
   60 TAKE 2 3                 -> TRN 40 LVL 4 ARA 21 PH PKP GS 0 SEED 2100691070 EV -
   61 TAKE 2 3                 -> TRN 40 LVL 4 ARA 21 PH PKP GS 0 SEED 2100691070 EV -
@@ -77,7 +77,7 @@ BEGIN MOVES
   71 MOVE 4                   -> TRN 46 LVL 4 ARA 23 PH EXP GS 0 SEED 2100691070 EV moved
   72 MOVE 5                   -> TRN 47 LVL 4 ARA 23 PH EXP GS 0 SEED 2100691070 EV moved,drewChamber,hazardFired,trapSprung,moved
   73 MOVE 2                   -> TRN 48 LVL 4 ARA 22 PH EXP GS 0 SEED 2100691070 EV moved
-  74 MOVE 3                   -> TRN 49 LVL 4 ARA 21 PH EXP GS 0 SEED 405644938 EV moved,drewChamber,hazardFired,combatRoll,combatRoll,eyeForsaken,itemsSpilled,leaderChosen
+  74 MOVE 3                   -> TRN 49 LVL 4 ARA 21 PH EXP GS 0 SEED 405644938 EV moved,drewChamber,eyeIgnored,hazardFired,combatRoll,combatRoll,eyeForsaken,itemsSpilled,leaderChosen
   75 ATTACK                   -> TRN 49 LVL 4 ARA 21 PH FGT GS 0 SEED 405644938 EV fightStarted
   76 FIGHT 3>0                -> TRN 49 LVL 4 ARA 21 PH END GS 2 SEED 739797272 EV combatRoll,memberDied,itemsSpilled,gameOver
 END MOVES 76

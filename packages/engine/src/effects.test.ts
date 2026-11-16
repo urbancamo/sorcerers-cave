@@ -56,6 +56,13 @@ describe("stranger-sweep helpers", () => {
     expect(noEye.strangers).toEqual([9]);
   });
 
+  // Issue #77: the Eye works by being in the area, so one lying on the chamber floor destroys the Spectre too.
+  it("annihilateWithEye also destroys Spectres when the Eye lies on the chamber floor", () => {
+    const s = makeState({ party: [member(0)], strangers: [9, 8], treasures: [13] });
+    expect(annihilateWithEye(s)).toEqual([{ type: "annihilated", creatureId: 9, floor: true }]);
+    expect(s.strangers).toEqual([8]);
+  });
+
   it("reconcileUnicorns removes Unicorn allies when no Woman remains", () => {
     const s = makeState({ party: [member(0), member(13, [], 1)] }); // Hero + Unicorn ally, no Woman
     const events = reconcileUnicorns(s);

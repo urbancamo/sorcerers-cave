@@ -209,7 +209,8 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "medusaAsleep": return "Medusa slept on — no gaze";
     case "sleeperWoke": return `${creature(e.creatureId)} woke — the Lotus Dust has worn off`;
     case "droppedRetaken": return `reclaimed ${e.count} dropped treasure`;
-    case "annihilated": return `the Eye of God annihilated ${creature(e.creatureId)}`;
+    case "annihilated": return `the Eye of God${e.floor ? " (lying in the chamber)" : ""} annihilated ${creature(e.creatureId)}`;
+    case "eyeIgnored": return `the Eye of God has no effect on ${creature(e.creatureId)}`;
     case "statuePowerless": return "the Eye of God held the Statue powerless";
     case "deathPrevented": return `the Ring made ${creature(e.creatureId)} invincible`;
     case "unicornGuards": return `a unicorn guards ${creature(e.creatureId)}`;
@@ -551,6 +552,7 @@ export function eventCode(e: GameEvent): string | null {
     case "medusaAsleep": return "MED ZZZ";
     case "sleeperWoke": return `WAK ${cr3(e.creatureId)}`;
     case "annihilated": return `ANH ${cr3(e.creatureId)}`;
+    case "eyeIgnored": return `EYE IGN ${cr3(e.creatureId)}`;
     case "unicornGuards": return "UNI GRD";
     case "unicornDeparted": return "UNI DEP";
     case "carpetUsed": return `CPT ${d1(e.dir)}`;
