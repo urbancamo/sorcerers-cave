@@ -38,7 +38,7 @@ import { applyAllocations, equipStrangers, loadoutViolation } from "./strangerEq
 import { removeStranger, addStranger, dropAllGear } from "./strangerGear";
 import {
   advance as advanceRevised, applyScroll, applyDeploy, applyEngage, applyNominate, applyRedeploy, deployViolation, dropPartyMember, resumeAfterStandoff, engageMovesViolation, engageViolation, initRevised,
-  nominateViolation, redeployViolation, removeStrangerFromFight, resumeAfterCasualties,
+  nominateViolation, redeployViolation, removeStrangerFromFight, resumeAfterCasualties, scrollWindow, scrollAnytimeOn,
 } from "./revisedRound";
 
 const T_EYE_OF_GOD = 13; // treasure id — must stay with its bearer or the party is cursed (§Eye of God)
@@ -1024,7 +1024,9 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
     return { state: next, events };
   }
   if (action.type === "scroll") {
-    if (state.phase !== "fight" || !state.fight?.rev || pending?.by !== "party" || pending.kind !== "scroll" || (action.use === "surprise" && !pending.surprise)) return revBlocked;
+    const win = scrollWindow(state);
+    // `decline` belongs to the old Scroll step; with the Scroll open at every decision there is nothing to decline.
+    if (!win || (action.use === "surprise" && !win.surprise) || (action.use === "decline" && scrollAnytimeOn(state))) return revBlocked;
     const next = structuredClone(state);
     const events = applyScroll(next, action.use);
     events.push(...finalizeRound(next));

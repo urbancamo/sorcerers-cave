@@ -1,4 +1,4 @@
-import { BORNEABLE, canArm, canCarry, canUseArtifact, isBorne, legalActions, type GameAction, type GameState } from '@sorcerers-cave/engine';
+import { BORNEABLE, canArm, canCarry, canUseArtifact, isBorne, legalActions, scrollWindow as scrollWindowOf, type GameAction, type GameState } from '@sorcerers-cave/engine';
 import { memberLabel } from '../memberLabels';
 import { ConfirmButton, ConfirmPicker } from '../ConfirmButton';
 import { useOptions, ELIXIR_CONFIRM, SCROLL_CONFIRM } from '../artifactUse';
@@ -21,8 +21,7 @@ export function ItemActions({ state, dispatch, mi, idx }: { state: GameState; di
   const alive = m.status === 0 || m.status === 1;
   const manage = alive && state.phase !== 'fight' && state.phase !== 'gameOver';
   const uses = useOptions(state, tid);
-  const pending = state.fight?.pending;
-  const scrollWindow = pending?.by === 'party' && pending.kind === 'scroll' ? pending : null;
+  const scrollWindow = scrollWindowOf(state);
   const openChest = tid === T_CHEST ? legalActions(state).find((a) => a.type === 'openChest') : undefined;
   const heirs = state.party.flatMap((o, oi) => (oi !== mi && (o.status === 0 || o.status === 1) && canCarry(o, tid) ? [oi] : []));
 
@@ -32,7 +31,7 @@ export function ItemActions({ state, dispatch, mi, idx }: { state: GameState; di
         <ConfirmPicker rowLabel="Elixir" placeholder="Choose a drinker…" options={uses.map((u) => ({ label: u.label, value: u.action }))}
                        confirmText={() => ELIXIR_CONFIRM} onConfirm={(a) => dispatch(a)} />
       )}
-      {/* Revised combat: the attacker's window to read the Scroll is the start of the fight (the dialog just waits). */}
+      {/* Revised combat: the attacker may read the Scroll at any decision before the dice (older games: at the start of the fight). */}
       {tid === T_SCROLL && scrollWindow && (
         <>
           <ConfirmButton label="Read: destroy the unmagical" confirmText={SCROLL_CONFIRM} onConfirm={() => dispatch({ type: 'scroll', use: 'destroy' })} />

@@ -70,13 +70,13 @@ export const HOUSE: Section = {
       p('The Ring and curses add to or take from your dice as usual, and the first round carries the surprise bonus. A match you lose costs you its front line, with the same choice of who falls when two stood together. A match you win removes the foe.'),
       note('info', 'Provisional', 'These are Peter\'s reformulated fighting rules and parts are still provisional.'),
     ] },
-    { id: 'rc-scroll', title: 'The Scroll', brief: 'Read it before a round to destroy the non-magical, or take +1 to surprise. It is not used up.', requires: 'combatRevision', cards: [], screens: ['fight-revised'], blocks: [
-      p('If your party **attacks**, carries the Scroll with a human present, has no Eye of God, and has not used it in this area before, the fight waits before each round for you to read it, if you wish. Open the Scroll\'s card (from the party list or Inventory) and choose:'),
+    { id: 'rc-scroll', title: 'The Scroll', brief: 'Read it before the dice to destroy the non-magical, or take +1 to surprise. It is not used up.', requires: 'combatRevision', cards: [], screens: ['fight-revised'], blocks: [
+      p('If your party **attacks**, carries the Scroll with a human present, has no Eye of God, and has not used it in this area before, you may read it at any decision of the fight before the dice are rolled: while you choose who faces whom, or move creatures between matches. Open the Scroll\'s card (from the party list or Inventory) and choose one:'),
       list(
         '**Destroy** every stranger without magical power (a Ring-bearer on the fourth level or deeper too: the Ring falls to the floor; the Sibyl is never harmed), or',
         'in the first round only, take **+1 to surprise** instead.',
       ),
-      p('Either way the party is cursed, and the Scroll cannot be read again in the same area. Nothing prompts you to read it: press *Begin the fight* to go on without it.'),
+      p('Either way the party is cursed, and the Scroll cannot be read again in the same area. Nothing prompts you to read it, and you do not need to decline it: carry on choosing your fighters. (Games begun before this change open with a *Begin the fight* button first.)'),
     ] },
     { id: 'rc-front-line', title: 'The front line', brief: 'The defender chooses which free creatures stand in front.', requires: 'combatRevision', cards: [], screens: ['fight-revised'], blocks: [
       p('If you defend, select the creatures you want in the party list on the left (as many as you like; if you have put the list away, press Party in the title bar to bring it back), then drag any one of them into the front-line box, or tap the box, to move them all at once. Choose at least the number asked, and confirm.'),
