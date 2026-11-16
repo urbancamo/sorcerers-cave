@@ -93,5 +93,7 @@ export function useCaveGame(
   // Returns the action's result ({ state, events }) so callers can react to events
   // (e.g. animate a reaction roll); null when there is no game.
   const dispatch = (action: GameAction) => (id ? apply({ id, action }) : Promise.resolve(null));
-  return { engine: adapterRef.current, loading: !art || game === undefined, state, color, code, dispatch, present };
+  // The starting party and variants (for the Test Mode panel's Restart, which starts a fresh game with the same ones).
+  const start = game ? { picks: (game as { picks: number[] }).picks, variants: (game as { variants?: Record<string, boolean> }).variants } : null;
+  return { engine: adapterRef.current, loading: !art || game === undefined, state, color, code, dispatch, present, start };
 }

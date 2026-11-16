@@ -287,6 +287,15 @@ describe("TestControlsPanel", () => {
     expect(onSave).toHaveBeenCalledOnce();
   });
 
+  it("shows a Restart button only when onRestart is supplied, and calls it when clicked", () => {
+    render(<TestControlsPanel state={testState()} dispatch={() => {}} />);
+    expect(screen.queryByRole("button", { name: /^restart$/i })).toBeNull();
+    const onRestart = vi.fn();
+    render(<TestControlsPanel state={testState()} dispatch={() => {}} onSave={() => {}} onRestart={onRestart} />);
+    fireEvent.click(screen.getByRole("button", { name: /^restart$/i }));
+    expect(onRestart).toHaveBeenCalledOnce();
+  });
+
   it("dispatches testClearOverrides from the clear button", () => {
     const dispatch = vi.fn();
     const s = testState({ testNextReaction: "hostile" });
