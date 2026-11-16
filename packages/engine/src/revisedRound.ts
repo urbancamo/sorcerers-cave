@@ -360,8 +360,23 @@ export function initRevised(state: GameState): void {
   const fight = state.fight!;
   fight.rev = {
     attacker: fight.surprise < 0 || fight.statue ? "strangers" : "party", matches: [], deployed: { party: [], strangers: [] },
-    step: "scroll", surplusTurn: 0, progress: false, cursor: 0, killed: [],
+    step: scrollAnytimeOn(state) ? "deploy" : "scroll", surplusTurn: 0, progress: false, cursor: 0, killed: [],
   };
+}
+
+/** Games stamped `scrollAnytime` (GitHub #80): the Scroll is read at any decision before the dice, with no separate "Begin the fight" step
+ *  first. Older games keep the Scroll step, so their recorded actions still replay. */
+export const scrollAnytimeOn = (state: GameState): boolean => !!state.variants?.scrollAnytime;
+
+/** Is the Scroll's window open now, and may it also give the round-1 surprise? Null when it is not. In `scrollAnytime` games the window is
+ *  every decision the party itself has to make in the fight (pairing, moving creatures between matches), never the dice; in older games it
+ *  is the separate Scroll step at the start of a round. */
+export function scrollWindow(state: GameState): { surprise: boolean } | null {
+  const fight = state.fight, p = fight?.pending;
+  if (state.phase !== "fight" || p?.by !== "party") return null;
+  if (p.kind === "scroll") return { surprise: p.surprise };
+  if (!fight?.rev || !scrollAnytimeOn(state) || (p.kind !== "engage" && p.kind !== "redeploy") || !scrollOffered(state)) return null;
+  return { surprise: fight.round === 1 };
 }
 
 // ---------------------------------------------------------------------------------------------------------------------------
@@ -396,12 +411,13 @@ export function removeStrangerFromFight(state: GameState, i: number): number[] {
 export function applyScroll(state: GameState, use: "destroy" | "surprise" | "decline"): GameEvent[] {
   const fight = state.fight!, rev = fight.rev!, events: GameEvent[] = [];
   rev.partyActed = true;
-  delete fight.pending;
-  rev.step = "deploy";
+  // `scrollAnytime`: the party is mid-decision (pairing or moving), so the decision stays open after the Scroll is read.
+  const midDecision = scrollAnytimeOn(state) && fight.pending?.kind !== "scroll";
+  if (!midDecision) { delete fight.pending; rev.step = "deploy"; }
   if (use === "decline") return [...events, ...advance(state)];
   state.curses += 1;                                          // the attacker is cursed either way; the Scroll is not consumed
   state.scrollAreas = [...(state.scrollAreas ?? []), state.partyArea];
-  if (use === "surprise") return [{ type: "scrollSurprise" }, ...((rev.scrollSurprise = true), advance(state))];
+  if (use === "surprise") return [{ type: "scrollSurprise" }, ...((rev.scrollSurprise = true), midDecision ? [] : advance(state))];
   const destroyed: number[] = [], survivors: number[] = [];
   for (let i = state.strangers.length - 1; i >= 0; i--) {    // highest first, so the indices still to visit stay put
     const id = state.strangers[i]!;
@@ -415,6 +431,12 @@ export function applyScroll(state: GameState, use: "destroy" | "surprise" | "dec
   rev.matches = rev.matches.filter((m) => m.sf.length > 0);   // a match whose strangers are gone dissolves; its party side is unengaged again
   rev.progress = true;
   events.push({ type: "scrollRead", destroyed, survivors });
+  if (midDecision) {
+    // The decision stands unless the Scroll has taken away what it was about: nobody left to pair with.
+    const pend = fight.pending!;
+    if (state.strangers.length === 0 || (pend.kind === "engage" && legalPairs(state, "party").length === 0)) { delete fight.pending; return [...events, ...advance(state)]; }
+    return events;
+  }
   return [...events, ...advance(state)];
 }
 
@@ -491,7 +513,7 @@ export function applyNominate(state: GameState, nominated: number): GameEvent[] 
 export function resumeAfterStandoff(state: GameState): GameEvent[] {
   const rev = revOf(state);
   delete rev.standoff;
-  rev.step = "scroll"; rev.surplusTurn = 0; rev.progress = false; rev.cursor = 0;
+  rev.step = scrollAnytimeOn(state) ? "deploy" : "scroll"; rev.surplusTurn = 0; rev.progress = false; rev.cursor = 0;
   delete rev.bonus; delete rev.partyActed; delete rev.strangersMoved; delete rev.reviewed; delete rev.review;
   return advance(state);
 }

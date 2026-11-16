@@ -3,7 +3,7 @@ import { reduce } from "./reduce";
 import { makeState } from "./testkit";
 import { driveStrangers } from "./strangerDriver";
 import { playRevisedFight } from "./headless";
-import { fightView } from "./revisedRound";
+import { fightView, scrollWindow } from "./revisedRound";
 import type { GameState, PartyMember } from "./state";
 
 // Peter, 14-OCT-2026 (Step b, "The Scroll Option") and his ring-bearer clarification of 15-OCT-2026: in the revised combat the
@@ -109,5 +109,58 @@ describe("the revised Scroll step", () => {
   it("a headless fight does not stall on it: the standard party declines", () => {
     const s = attacking([member(MAN, [SCROLL]), member(HERO)], [OGRE, TROLL]);
     expect(["won", "lost"]).toContain(playRevisedFight(s).end);
+  });
+});
+
+// GitHub #80: games stamped `scrollAnytime` have no "Begin the fight" step. The fight goes straight to the party's own decisions, and the
+// Scroll is read from its card at any of them, up to the dice.
+describe("the Scroll at any decision (scrollAnytime)", () => {
+  const anytime = { combatRevision: true, scrollAnytime: true } as const;
+  const attackingAnytime = (party: PartyMember[], strangers: number[]) => attacking(party, strangers, { variants: { ...anytime } });
+
+  it("opens straight on the party's own pairing, with no Scroll step first", () => {
+    const s = attackingAnytime([member(MAN, [SCROLL]), member(HERO)], [OGRE, TROLL]);
+    expect(s.fight!.pending).toMatchObject({ by: "party", kind: "engage" });
+    expect(scrollWindow(s)).toEqual({ surprise: true });
+  });
+
+  it("an old game (no flag) still opens on the Scroll step", () => {
+    const s = attacking([member(MAN, [SCROLL])], [OGRE]);
+    expect(s.fight!.pending).toMatchObject({ kind: "scroll" });
+  });
+
+  it("reading it for surprise keeps the pairing open and adds the bonus", () => {
+    const s = attackingAnytime([member(MAN, [SCROLL]), member(HERO)], [OGRE, TROLL]);
+    const r = reduce(s, { type: "scroll", use: "surprise" });
+    expect(r.events).toContainEqual({ type: "scrollSurprise" });
+    expect(r.state.fight!.pending).toMatchObject({ kind: "engage" });
+    expect(r.state.fight!.rev!.scrollSurprise).toBe(true);
+    expect(r.state.curses).toBe(1);
+    expect(scrollWindow(r.state)).toBeNull();      // once per area
+  });
+
+  it("destroying the unmagical leaves the pairing open against whoever remains", () => {
+    const s = attackingAnytime([member(MAN, [SCROLL]), member(HERO)], [OGRE, PRIEST]);
+    const r = reduce(s, { type: "scroll", use: "destroy" });
+    expect(r.state.strangers).toEqual([PRIEST]);
+    expect(r.state.fight!.pending).toMatchObject({ by: "party", kind: "engage" });
+  });
+
+  it("destroying every stranger wins the fight at once", () => {
+    const s = attackingAnytime([member(MAN, [SCROLL])], [OGRE, TROLL]);
+    const r = reduce(s, { type: "scroll", use: "destroy" });
+    expect(r.state.strangers).toEqual([]);
+    expect(r.state.fight).toBeNull();
+  });
+
+  it("is not available once the dice are rolling, or with no Scroll", () => {
+    const none = attackingAnytime([member(MAN), member(HERO)], [OGRE, TROLL]);
+    expect(scrollWindow(none)).toBeNull();
+    expect(reduce(none, { type: "scroll", use: "destroy" }).events).toEqual([{ type: "blocked" }]);
+  });
+
+  it("has no decline: there is nothing to decline", () => {
+    const s = attackingAnytime([member(MAN, [SCROLL]), member(HERO)], [OGRE, TROLL]);
+    expect(reduce(s, { type: "scroll", use: "decline" }).events).toEqual([{ type: "blocked" }]);
   });
 });

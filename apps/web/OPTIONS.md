@@ -76,7 +76,7 @@ Any value other than the literal string `1` (including unset) is treated as off.
 engine spec SC-9.7-1 to SC-9.7-17, SC-7.2-21, SC-EXT-42). A fight is no longer one battle plan: it is played round by round on a
 formation screen. The defender deploys, the attacker pairs its free creatures against that front line, either side may then send
 extra creatures into a match, and the matches are fought; a tied or unwinnable match persists into the next round, and the fight ends
-when no match can be decided. It also changes the Scroll (a choice at the start of each round, not a one-off artefact use), the chest
+when no match can be decided. It also changes the Scroll (a choice offered to an attacking party, not a one-off artefact use; new games, stamped `variants.scrollAnytime`, GitHub #80, let it be read at any decision before the dice with no "Begin the fight" step, older games keep that step), the chest
 Spectre (one round only), the Ghouls (a stranger party of their own) and the Apprentice (she turns only if you stay after the
 Sorcerer's death), and the Lost Ruby's Statue (`variants.statueFight`, stamped on new games with it, GitHub #59: reaching for the Ruby
 brings the Statue down on the whole party, SC-11-52 to SC-11-55; a game started without the stamp keeps the old single-roll resolution).

@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { newGame, SPECIAL_VIPER_PIT, type GameState } from '@sorcerers-cave/engine';
+import { newGame, reduce, driveStrangers, SPECIAL_VIPER_PIT, type GameState } from '@sorcerers-cave/engine';
 import { inventoryRows, artifactState, givenItemAt } from './inventory';
 
 const HERO = 0, PRIEST = 4, DWARF = 7, WIZARD = 8;
@@ -12,6 +12,17 @@ const game = (carriers: [number, number[]][], over: Partial<GameState> = {}): Ga
 };
 
 describe('inventory', () => {
+  // The Scroll was shown "not usable now" in a fight: the row looked only for the old Scroll step, not the window at each decision.
+  it('shows the Scroll as usable now while the attacking party decides, in an old game and a scrollAnytime one', () => {
+    for (const variants of [{ combatRevision: true }, { combatRevision: true, scrollAnytime: true }]) {
+      const base = newGame(1, [5, 6]);
+      base.party[0]!.treasure = [19];
+      const fight = driveStrangers(reduce({ ...base, variants, phase: 'encounter', strangers: [2, 3], treasures: [] }, { type: 'attack' }).state).state;
+      const [row] = inventoryRows(fight);
+      expect(row).toMatchObject({ name: 'Scroll', color: 'green', tag: 'usable now' });
+    }
+  });
+
   it('lists each item with its carrier', () => {
     const rows = inventoryRows(game([[HERO, [T.sword]], [DWARF, [T.silver]]]));
     expect(rows.map((r) => [r.name, r.carrier])).toEqual([['Magic Sword', 'Hero'], ['Silver', 'Dwarf']]);
