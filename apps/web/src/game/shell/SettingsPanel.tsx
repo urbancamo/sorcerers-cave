@@ -1,4 +1,6 @@
+import { useState } from 'react';
 import { activeCurses, scoreGame, type GameState } from '@sorcerers-cave/engine';
+import { readMouseMode, readZoomSpeed, writeMouseMode, writeZoomSpeed, type MouseMode, type ZoomSpeed } from '../../view/mouseMode';
 
 const T_IDOL = 18; // the Idol is worth a d6 rolled only at the end of the game, so it must not be revealed mid-game
 
@@ -20,6 +22,8 @@ export function SettingsPanel({ state, code, kitActive, onLog, verbose, onVerbos
   kitActive: boolean;
   onLog?: () => void;
 }) {
+  const [mouse, setMouse] = useState<MouseMode>(readMouseMode);
+  const [zoom, setZoom] = useState<ZoomSpeed>(readZoomSpeed);
   const curses = activeCurses(state);
   const { score, idol } = scoreSoFar(state);
   const rows: [string, string][] = [
@@ -50,6 +54,21 @@ export function SettingsPanel({ state, code, kitActive, onLog, verbose, onVerbos
           Roll special dice automatically
         </label>
       )}
+      <label className="scv-settings-opt scv-settings-mouse">
+        Mouse buttons
+        <select aria-label="Mouse buttons" value={mouse} onChange={(e) => { const m = e.target.value as MouseMode; setMouse(m); writeMouseMode(m); }}>
+          <option value="classic">Classic: left drag orbits, right drag pans</option>
+          <option value="tabletop">Tabletop: left selects, right drag orbits, middle drag pans</option>
+        </select>
+      </label>
+      <label className="scv-settings-opt scv-settings-mouse">
+        Zoom speed
+        <select aria-label="Zoom speed" value={zoom} onChange={(e) => { const z = e.target.value as ZoomSpeed; setZoom(z); writeZoomSpeed(z); }}>
+          <option value="slow">Slow</option>
+          <option value="medium">Medium</option>
+          <option value="fast">Fast</option>
+        </select>
+      </label>
       <div className="scv-settings-actions">
         {onLog && <button type="button" onClick={onLog}>Game log</button>}
       </div>

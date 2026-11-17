@@ -6,6 +6,7 @@ import { fitDistance } from './camera-fit.js';
 import { carryRowHtml, escAttr } from './rosterCarry';
 import { stairAt } from '../data/stairPositions';
 import { keyOutsideAlpha } from './tileAlpha';
+import { MOUSE_MODE_EVENT, ZOOM_SPEED_EVENT, ZOOM_SPEED_VALUE, mouseButtonsFor, readMouseMode, readZoomSpeed } from './mouseMode';
 
 /* ============================================================
    Sorcerer's Cave — 3D viewer + interactive navigation
@@ -1163,7 +1164,13 @@ function pickAt(){ // ray already aimed; returns true when the click was consume
 // otherwise land on a hidden tile (or its cards) from another level at the same column and row.
 function visibleHit(hits){ return hits.find(h=>{ for(let o=h.object;o;o=o.parent) if(!o.visible) return false; return true; }); }
 let needle;
-function onPointerDown(e){ downXY=[e.clientX,e.clientY]; }
+let mouseMode='classic';
+function applyMouseMode(mode){ mouseMode=mode; if(controls) controls.mouseButtons=mouseButtonsFor(mode); }
+function onMouseModeChange(e){ applyMouseMode(e.detail); }
+function applyZoomSpeed(speed){ if(controls) controls.zoomSpeed=ZOOM_SPEED_VALUE[speed]??ZOOM_SPEED_VALUE.medium; }
+function onZoomSpeedChange(e){ applyZoomSpeed(e.detail); }
+// Tabletop scheme: only the left button selects, so an orbit or pan on the other buttons never picks what is under the pointer.
+function onPointerDown(e){ if(mouseMode==='tabletop'&&e.button!==0){ downXY=null; return; } downXY=[e.clientX,e.clientY]; }
 function onPointerUp(e){
   if(!downXY)return;const moved=Math.hypot(e.clientX-downXY[0],e.clientY-downXY[1]);downXY=null;if(moved>6)return;
   if(Reveal.active())return;
@@ -1210,6 +1217,8 @@ export async function boot({ mount, engine: eng, tiles: tileMap, deadEnd, party:
   controls.enableDamping=true; controls.dampingFactor=0.08;
   controls.zoomSpeed=1.7; controls.zoomToCursor=true; // snappier wheel zoom, toward the pointer
   controls.minDistance=4; controls.maxDistance=95; controls.maxPolarAngle=Math.PI*0.97;
+  applyMouseMode(readMouseMode()); addEventListener(MOUSE_MODE_EVENT,onMouseModeChange);
+  applyZoomSpeed(readZoomSpeed()); addEventListener(ZOOM_SPEED_EVENT,onZoomSpeedChange);
   maxAniso=renderer.capabilities.getMaxAnisotropy();
   scene.add(platformGroup,tileGroup,stairGroup,fxGroup,exitGroup,contentGroup,secretGroup,otherGroup,petrifiedGroup);
 
@@ -1277,6 +1286,8 @@ export async function boot({ mount, engine: eng, tiles: tileMap, deadEnd, party:
     removeEventListener('keydown', onKeyDown);
     removeEventListener('resize', onResize);
     renderer.domElement.removeEventListener('pointerdown', onPointerDown);
+    removeEventListener(MOUSE_MODE_EVENT, onMouseModeChange);
+    removeEventListener(ZOOM_SPEED_EVENT, onZoomSpeedChange);
     renderer.domElement.removeEventListener('pointerup', onPointerUp);
     renderer.dispose();
     renderer.domElement.remove();
