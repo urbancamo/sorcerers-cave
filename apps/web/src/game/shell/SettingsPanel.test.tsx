@@ -16,6 +16,30 @@ describe('SettingsPanel', () => {
   });
 });
 
+describe('SettingsPanel — mouse buttons', () => {
+  it('lets the player choose the tabletop mouse layout and remembers it', () => {
+    localStorage.clear();
+    render(<SettingsPanel state={state} kitActive={false} />);
+    const select = screen.getByLabelText('Mouse buttons') as HTMLSelectElement;
+    expect(select.value).toBe('classic');
+    fireEvent.change(select, { target: { value: 'tabletop' } });
+    expect(localStorage.getItem('scv-mouse-mode')).toBe('tabletop');
+    expect(select.value).toBe('tabletop');
+  });
+});
+
+describe('SettingsPanel — zoom speed', () => {
+  it('offers slow, medium and fast, defaults to medium and remembers the choice', () => {
+    localStorage.clear();
+    render(<SettingsPanel state={state} kitActive={false} />);
+    const select = screen.getByLabelText('Zoom speed') as HTMLSelectElement;
+    expect([...select.options].map((o) => o.value)).toEqual(['slow', 'medium', 'fast']);
+    expect(select.value).toBe('medium');
+    fireEvent.change(select, { target: { value: 'slow' } });
+    expect(localStorage.getItem('scv-zoom-speed')).toBe('slow');
+  });
+});
+
 describe('SettingsPanel — score so far', () => {
   const held = (treasure: number[]) => ({ ...state, gs: 1, bonusScore: 0, sorcererKilled: false, seed: 1, variants: {},
     party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure }] }) as unknown as GameState;
