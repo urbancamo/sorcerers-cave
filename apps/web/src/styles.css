@@ -2684,3 +2684,12 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 .scv-users-linkrow input { flex: 1; min-width: 0; box-sizing: border-box; padding: 9px 11px; font-family: var(--ui); font-size: 13px; color: var(--cream);
   background: rgba(0, 0, 0, 0.25); border: 1px solid var(--brass); border-radius: 9px; }
 .scv-admin-link { display: inline-block; text-align: center; text-decoration: none; align-self: flex-start; }
+
+/* The page-wide full-screen button (FullscreenCorner). The game's title bar and the replay transport carry their own, so it steps aside there. */
+.scv-fs-corner{position:fixed;top:10px;right:12px;z-index:70;background:rgba(10,10,14,.55);backdrop-filter:blur(3px);}
+body:has(.scv-titlebar) .scv-fs-corner,body:has(.scv-replay-transport) .scv-fs-corner{display:none;}
+/* Pages with their own controls in the top-right corner leave room for it. */
+.scv-splash-admin{right:52px;}
+.scv-mp-standings{right:52px;}
+@media (min-width:641px){.scv-mp-helpbtn{right:168px;}}
+.scv-admin-bar{padding-right:44px;}
