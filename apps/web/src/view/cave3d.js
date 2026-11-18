@@ -48,13 +48,24 @@ function loadAlphaTexture(src,maxW=1024){
   const p=new Promise(res=>{
     const img=new Image(); img.crossOrigin='anonymous';
     img.onload=()=>{
-      const sc=Math.min(1,maxW/img.width),w=Math.round(img.width*sc),h=Math.round(img.height*sc);
-      const cv=document.createElement('canvas');cv.width=w;cv.height=h;
-      const cx=cv.getContext('2d');cx.drawImage(img,0,0,w,h);
-      const im=cx.getImageData(0,0,w,h);
-      keyOutsideAlpha(im.data,w,h); // only the black around the art is cut away; black painted inside a tile stays
-      cx.putImageData(im,0,0);
-      const tex=new THREE.CanvasTexture(cv);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=maxAniso;res(tex);
+      try{
+        const sc=Math.min(1,maxW/img.width),w=Math.round(img.width*sc),h=Math.round(img.height*sc);
+        const cv=document.createElement('canvas');cv.width=w;cv.height=h;
+        const cx=cv.getContext('2d');cx.drawImage(img,0,0,w,h);
+        const im=cx.getImageData(0,0,w,h);
+        keyOutsideAlpha(im.data,w,h); // only the black around the art is cut away; black painted inside a tile stays
+        cx.putImageData(im,0,0);
+        const tex=new THREE.CanvasTexture(cv);tex.colorSpace=THREE.SRGBColorSpace;tex.anisotropy=maxAniso;res(tex);
+      }catch(e){
+        // A same-URL plain <img> elsewhere (Sibyl peek, card panel) loaded this resource without
+        // crossOrigin first; Firefox then serves THIS crossOrigin='anonymous' request from that
+        // cached, uncors'd entry, so the image "loads" but is CORS-tainted and getImageData() throws
+        // SecurityError. Fall back to null (the caller/cache already guard a pending load, and every
+        // caller treats a null texture as "draw untextured" rather than hanging) instead of leaving
+        // this promise — and the tile's buildAreaMesh await — unresolved forever (GitHub #86).
+        console.error('loadAlphaTexture: tainted/unreadable image, drawing untextured',src,e);
+        res(null);
+      }
     };
     img.onerror=()=>res(null); img.src=src;
   });
@@ -145,20 +156,26 @@ async function buildAreaMesh(area, spawn, revealFirst){
   const k=akey(area); // never lay two meshes for the same coord (optimistic + reconcile can race)
   if(pendingTiles.has(k) || tileMeshes.some(m=>m.userData.area&&akey(m.userData.area)===k)) return;
   pendingTiles.add(k);
-  const down=!!area.faceDown && !revealFirst;
-  const tex=down? await faceDownTexture(area) : await loadAlphaTexture(area.tileId? (tiles.get(area.tileId)?.file ?? ''):'');
-  const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,alphaTest:0.03,side:THREE.DoubleSide,depthWrite:true});
-  if(area.destroyed) mat.color.setHex(DESTROYED_TINT); // earthquake rubble — darkened so it reads as collapsed
-  const mesh=new THREE.Mesh(new THREE.PlaneGeometry(TILE_W,TILE_D),mat);
-  mesh.rotation.x=-Math.PI/2;
-  if(area.rot) mesh.rotation.z=THREE.MathUtils.degToRad(-area.rot);
-  const p=worldPos(area); mesh.position.copy(p); mesh.renderOrder=2;
-  mesh.userData.area=area; mesh.userData.lvl=area.level; mesh.userData.down=down; mesh.userData.fogStubs=down?(area.fogStubs||''):null; mesh.userData.basePos=p.clone();
-  regMat(mat); area._mesh=mesh; tileGroup.add(mesh); tileMeshes.push(mesh);
-  pendingTiles.delete(k);
-  if(spawn){ mat.opacity=0; mesh.position.y=p.y+1.4; spawnAnims.push({mesh,p,t0:clock.elapsedTime}); }
-  if(area.cardId){ addCardGlow(area); }
-  if(revealFirst && area.faceDown) setTimeout(()=>{ if(tileMeshes.includes(mesh)) fadeToFog(mesh, engine.areas.find(x=>akey(x)===k)||area); }, 3600); // (by then another doorway into it may have been tried)
+  try{
+    const down=!!area.faceDown && !revealFirst;
+    const tex=down? await faceDownTexture(area) : await loadAlphaTexture(area.tileId? (tiles.get(area.tileId)?.file ?? ''):'');
+    const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,alphaTest:0.03,side:THREE.DoubleSide,depthWrite:true});
+    if(area.destroyed) mat.color.setHex(DESTROYED_TINT); // earthquake rubble — darkened so it reads as collapsed
+    const mesh=new THREE.Mesh(new THREE.PlaneGeometry(TILE_W,TILE_D),mat);
+    mesh.rotation.x=-Math.PI/2;
+    if(area.rot) mesh.rotation.z=THREE.MathUtils.degToRad(-area.rot);
+    const p=worldPos(area); mesh.position.copy(p); mesh.renderOrder=2;
+    mesh.userData.area=area; mesh.userData.lvl=area.level; mesh.userData.down=down; mesh.userData.fogStubs=down?(area.fogStubs||''):null; mesh.userData.basePos=p.clone();
+    regMat(mat); area._mesh=mesh; tileGroup.add(mesh); tileMeshes.push(mesh);
+    if(spawn){ mat.opacity=0; mesh.position.y=p.y+1.4; spawnAnims.push({mesh,p,t0:clock.elapsedTime}); }
+    if(area.cardId){ addCardGlow(area); }
+    if(revealFirst && area.faceDown) setTimeout(()=>{ if(tileMeshes.includes(mesh)) fadeToFog(mesh, engine.areas.find(x=>akey(x)===k)||area); }, 3600); // (by then another doorway into it may have been tried)
+  }finally{
+    // Always release the guard, even if texture loading/meshing above throws — otherwise this
+    // coordinate is locked out of EVERY future build attempt (line 157's pendingTiles.has(k) check),
+    // leaving the tile permanently blank for the rest of the session (GitHub #86).
+    pendingTiles.delete(k);
+  }
 }
 /* Flip a tile over: it rises, turns edge-on (the texture swaps at the half-way point), and settles. */
 const flipAnims=[];
@@ -513,7 +530,13 @@ const CARD_W=0.62, CARD_H=0.88;          // laid-flat card footprint
 const plainTexCache=new Map();
 function loadPlainTexture(src){
   if(plainTexCache.has(src)) return plainTexCache.get(src);
-  const t=new THREE.TextureLoader().load(src);
+  // onError: a same-URL plain <img> elsewhere (the card panel, the Sibyl's peek) may have already
+  // cached this file without crossOrigin; Firefox can then serve THIS crossOrigin='anonymous' load
+  // from that tainted cache entry, so the GPU upload silently fails and the card shows only its
+  // dark backing/category-glow with no art (GitHub #87). There's no in-place recovery once tainted,
+  // but logging it means a blank card is diagnosable instead of silent.
+  const t=new THREE.TextureLoader().load(src,undefined,undefined,
+    (e)=>console.error('loadPlainTexture: failed/tainted image load',src,e));
   t.colorSpace=THREE.SRGBColorSpace; t.anisotropy=maxAniso;
   plainTexCache.set(src,t); return t;
 }

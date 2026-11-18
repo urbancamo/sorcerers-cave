@@ -104,7 +104,11 @@ export function SibylLook({ state, actions, dispatch, tools }: {
           aria-label="The card the Sibyl shows you"
           onAnimationEnd={() => setPeek(null)}
         >
-          <img src={peek.file} alt="" />
+          {/* crossOrigin must match the 3D view's loadAlphaTexture('anonymous') fetch of the same
+              file: Firefox serves a later crossOrigin='anonymous' request for an already-cached
+              plain (no-CORS) load from that tainted cache entry, permanently breaking that tile's
+              render once the party reaches it (GitHub #86). */}
+          <img src={peek.file} alt="" crossOrigin="anonymous" />
         </div>,
         document.body,
       )}

@@ -205,7 +205,11 @@ export function CaveHud({ mountRef, onPartyClick, onSave, onLog, code, turnLabel
 
           {!shell && <div className="cardpanel" id="cardpanel">
             <div className="frame">
-              <img id="cardimg" alt="" />
+              {/* crossOrigin must match the 3D view's loadPlainTexture('anonymous') fetch of the
+                  same file: Firefox serves a later crossOrigin='anonymous' request for an already-
+                  cached plain (no-CORS) load from that tainted cache entry, so the floor card's
+                  texture silently fails to upload (GitHub #87). */}
+              <img id="cardimg" alt="" crossOrigin="anonymous" />
               <div className="emptybox" style={{ display: "none" }}>
                 <div>
                   <div className="glyph">✦</div>
