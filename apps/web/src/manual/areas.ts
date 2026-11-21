@@ -9,7 +9,7 @@ export const AREAS: Section = {
       p('Where you enter — and the way out. Any stairway up from level 1 leaves the cave for good.'),
     ] },
     { id: 'area-deep-pool', title: 'The Deep Pool', cards: cards('area', 'Deep Pool'), blocks: [
-      p('To cross, heavy treasure is dropped into the water (recoverable on the way back) unless a **Giant** carries it across. A Giant carries 150 kg (six sacks) a trip; each extra trip costs the party **one turn**.'),
+      p('To cross, heavy treasure is dropped into the water (recoverable on the way back) unless a **Giant** carries it across. A Giant carries 150 kg (six sacks) a trip; each extra trip costs the party **one turn**. Heavy treasure is every sack plus the Treasure Chest (100 kg), and in the Extension kit the Idol and the Crypt gems.'),
     ] },
     { id: 'area-viper-pit', title: 'The Viper Pit', cards: cards('area', 'Viper Pit'), blocks: [
       p('Cross the narrow ledge and a careless step can pitch a member — and their treasure — into the snakes. Arriving by stair or trap lands you safely on the island.'),
