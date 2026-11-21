@@ -208,6 +208,7 @@ export type GameEvent =
   | { type: "statueDestroyed" } // the Statue is beaten: the Ruby is free
   | { type: "deathPrevented"; creatureId: number }
   | { type: "unicornGuards"; creatureId: number }
+  | { type: "unicornHangsBack"; count: number } // a Unicorn stays out of a fight against its group when the party holds a Woman (`unicornApart`, GitHub #83)
   | { type: "leaderChosen"; creatureId: number }   // R-07/R-10: an ally became the party's leader (original)
   | { type: "quarrelLooms" }                       // R-14: the Quarrel needs the player to choose between equals
   | { type: "unicornDeparted"; creatureId: number; last?: true }

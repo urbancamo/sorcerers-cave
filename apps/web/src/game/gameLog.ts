@@ -214,6 +214,7 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "statuePowerless": return "the Eye of God held the Statue powerless";
     case "deathPrevented": return `the Ring made ${creature(e.creatureId)} invincible`;
     case "unicornGuards": return `a unicorn guards ${creature(e.creatureId)}`;
+    case "unicornHangsBack": return `the unicorn hangs back from the fight (${e.count})`;
     case "unicornDeparted": return e.last ? "the Unicorn, left alone without a Woman, turned indifferent and left: no one is left in the party" : "the Unicorn, left without a Woman, stayed behind to guard the area";
     case "carpetUsed": return `the Magic Carpet moved the party ${dir(e.dir)}`;
     case "dragonsLulled": return `the Charmed Flute lulled ${e.count} dragon(s)`;
@@ -554,6 +555,7 @@ export function eventCode(e: GameEvent): string | null {
     case "annihilated": return `ANH ${cr3(e.creatureId)}`;
     case "eyeIgnored": return `EYE IGN ${cr3(e.creatureId)}`;
     case "unicornGuards": return "UNI GRD";
+    case "unicornHangsBack": return `UNI BCK ${e.count}`;
     case "unicornDeparted": return "UNI DEP";
     case "carpetUsed": return `CPT ${d1(e.dir)}`;
     case "dragonsLulled": return `LUL ${e.count}`;
