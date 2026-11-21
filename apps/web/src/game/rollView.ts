@@ -14,7 +14,11 @@ export type RollView = { title: string; lanes: Lane[]; message: string; tone: To
 const BELL_TOLL_TEXT = "A bell tolls once, far above — and is answered by silence. Something, somewhere, now knows you are here.";
 
 /** Turn a reaction event (+ any join) into a single-die overlay. */
-function reactionView(reaction: Extract<GameEvent, { type: "reaction" }>, joined: number, pacified: boolean, guarded: boolean): RollView {
+/** The Unicorn that was set apart from its group (GitHub #83): the dice overlay carries these, because a notice is not shown beside one. */
+const UNICORN_JOINS = " The Unicorn joins your party!";
+const UNICORN_HANGS_BACK = " The Unicorn hangs back from the fight.";
+
+function reactionView(reaction: Extract<GameEvent, { type: "reaction" }>, joined: number, pacified: boolean, guarded: boolean, unicorn: "joins" | "hangsBack" | null = null): RollView {
   const message =
     reaction.outcome === "friendly"
       ? joined > 0
@@ -27,9 +31,10 @@ function reactionView(reaction: Extract<GameEvent, { type: "reaction" }>, joined
           ? "Indifferent again — they now ignore you for good. Go on your way."
           : "Indifferent — they pay you no heed. You may leave by any doorway, or test them again."
         : "Hostile — they're ready for a fight!";
+  const withUnicorn = message + (unicorn === "joins" ? UNICORN_JOINS : unicorn === "hangsBack" ? UNICORN_HANGS_BACK : "");
   const tone: Tone =
     reaction.outcome === "friendly" ? "good" : reaction.outcome === "hostile" ? "bad" : "neutral";
-  return { title: "Reaction roll", lanes: [{ enemy: { value: reaction.roll } }], message, tone };
+  return { title: "Reaction roll", lanes: [{ enemy: { value: reaction.roll } }], message: withUnicorn, tone };
 }
 
 const plural = (n: number, w: string) => `${n} ${w}${n === 1 ? "" : "s"}`;
@@ -88,7 +93,7 @@ function combatView(events: GameEvent[]): RollView | null {
       ? "The party is slain… With no Woman left, the Unicorn turned indifferent and left, and no one is left in the party."
       : "The party is slain…"
     : won
-      ? "Victory — the foes have fallen!"
+      ? "Victory — the foes have fallen!" + (events.some((e) => e.type === "unicornJoins") ? UNICORN_JOINS : "")
       : `Round resolved — ${killed} foe(s) down, ${lost} of yours lost.`;
   const tone: Tone = over || lost > 0 ? "bad" : killed > 0 ? "good" : "neutral";
   return { title: "Combat round", lanes, message, tone };
@@ -263,7 +268,8 @@ function rollFromEventsUntagged(events: GameEvent[]): RollView | null {
     const joined = events.find((e): e is Extract<GameEvent, { type: "strangersJoined" }> => e.type === "strangersJoined")?.count ?? 0;
     const pacified = events.some((e) => e.type === "pacified");
     const guarded = events.some((e) => e.type === "unicornGuards");
-    return reactionView(reaction, joined, pacified, guarded);
+    const unicorn = events.some((e) => e.type === "unicornJoins") ? "joins" : events.some((e) => e.type === "unicornHangsBack") ? "hangsBack" : null;
+    return reactionView(reaction, joined, pacified, guarded, unicorn);
   }
   return (
     chestView(events) ?? casualtyView(events) ?? medusaView(events) ?? viperView(events)
