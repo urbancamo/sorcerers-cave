@@ -210,12 +210,17 @@ function quarrelView(events: GameEvent[]): RollView | null {
   const aOutcome = q.loserId === null ? "tie" : q.loserId === q.aId ? "lose" : "win";
   const bOutcome = q.loserId === null ? "tie" : q.loserId === q.bId ? "lose" : "win";
   const lanes: Lane[] = [{
-    enemy: { name: aName, value: q.aRoll, outcome: aOutcome },
-    party: { name: bName, value: q.bRoll, outcome: bOutcome },
+    enemy: { name: aName, value: q.aRoll, total: q.aTotal, outcome: aOutcome },
+    party: { name: bName, value: q.bRoll, total: q.bTotal, outcome: bOutcome },
   }];
-  const outcome = q.loserId === null
+  const verdict = q.loserId === null
     ? "They are pulled apart, fuming but unhurt."
     : `${ALL_CREATURES[q.loserId]?.name ?? "?"} falls to ${ALL_CREATURES[q.loserId === q.aId ? q.bId : q.aId]?.name ?? "?"}'s fury.`;
+  // What each side fought on, so the Magic Shield's and the Eye's effect can be checked (GitHub #91/#92); events recorded before that carry no strengths.
+  const warded = (id: number) => q.warded?.includes(id) ? " — magic nullified by the Magic Shield" : "";
+  const strengths = q.aFs !== undefined && q.bFs !== undefined
+    ? ` Strength: ${aName} ${q.aFs}${warded(q.aId)}, ${bName} ${q.bFs}${warded(q.bId)}.` : "";
+  const outcome = verdict + strengths;
   return {
     title: "Quarrel",
     lanes,

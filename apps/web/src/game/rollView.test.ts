@@ -220,6 +220,16 @@ describe("rollFromEvents", () => {
     expect(tie.tone).toBe("good");
   });
 
+  it("shows each Quarrel fighter's total and strength, and says when the Magic Shield nullified magic (GitHub #91/#92)", () => {
+    const duel = rollFromEvents([{ type: "quarrel", aId: 8, bId: 0, aRoll: 1, bRoll: 3, loserId: 8, aFs: 2, bFs: 5, aTotal: 3, bTotal: 8, warded: [8] }])!;
+    expect(duel.lanes[0]).toMatchObject({ enemy: { name: "Wizard", value: 1, total: 3, outcome: "lose" }, party: { name: "Hero", value: 3, total: 8, outcome: "win" } });
+    expect(duel.message).toMatch(/Strength: Wizard 2 — magic nullified by the Magic Shield, Hero 5\./);
+    // Without a Shield there is no such note, and an old event with no strengths shows none at all.
+    const plain = rollFromEvents([{ type: "quarrel", aId: 0, bId: 5, aRoll: 1, bRoll: 3, loserId: 0, aFs: 5, bFs: 3, aTotal: 6, bTotal: 6 }])!;
+    expect(plain.message).toMatch(/Strength: Hero 5, Man 3\./);
+    expect(plain.message).not.toMatch(/Shield/);
+  });
+
   it("shows the Elixir's draught as a single-die overlay, one message per band (US-19)", () => {
     const death = rollFromEvents([{ type: "elixirDrunk", creatureId: 0, roll: 1, outcome: "death" }])!;
     expect(death.title).toBe("The Elixir");
