@@ -330,7 +330,7 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
       // would double up.
       case "unicornGuards":
         break;
-      case "unicornJoins":
+      case "unicornJoins": // also folded into the reaction and combat overlays (rollView.ts), which stand in for a notice
         out.push({ text: e.count > 1 ? "The Unicorns join your party!" : "The Unicorn joins your party!", tone: "good" });
         break;
       case "unicornHangsBack":

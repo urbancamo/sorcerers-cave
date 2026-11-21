@@ -202,6 +202,18 @@ describe("rollFromEvents", () => {
     expect(none.tone).toBe("good");
   });
 
+  it("says the Unicorn joins or hangs back in the dice overlay, where a notice would not be shown (GitHub #83)", () => {
+    const join = rollFromEvents([{ type: "reaction", outcome: "indifferent", roll: 4 }, { type: "strangersJoined", count: 1 }, { type: "unicornJoins", count: 1 }])!;
+    expect(join.message).toMatch(/Indifferent.*The Unicorn joins your party!/);
+    const back = rollFromEvents([{ type: "reaction", outcome: "hostile", roll: 1 }, { type: "unicornHangsBack", count: 1 }, { type: "fightStarted", surprise: -1 }])!;
+    expect(back.message).toMatch(/Hostile.*The Unicorn hangs back from the fight\./);
+    const won = rollFromEvents([
+      { type: "combatRoll", party: "Hero", enemy: "Man", partyRoll: 5, enemyRoll: 1, partyTotal: 10, enemyTotal: 4, result: "partyWon" } as never,
+      { type: "fightWon" }, { type: "strangersJoined", count: 1 }, { type: "unicornJoins", count: 1 },
+    ])!;
+    expect(won.message).toBe("Victory — the foes have fallen! The Unicorn joins your party!");
+  });
+
   it("shows Quarrel's forced duel as a side-by-side dice overlay, loser or tie (US-11)", () => {
     const duel = rollFromEvents([{ type: "quarrel", aId: 0, bId: 5, aRoll: 2, bRoll: 5, loserId: 0 }])!; // Hero vs Man
     expect(duel.title).toBe("Quarrel");
