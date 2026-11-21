@@ -178,6 +178,18 @@ describe("Determining Surprise Attack: arriving by a route that cannot be walked
     expect(fresh.surpriseReady).toBe(true);
     expect(walk([1]).surpriseReady).toBe(false);
   });
+  // Issue #94: a doorway walked out of a chamber whose Dragon the Flute has put to sleep was not seen by that Dragon, so it is not "used".
+  it("leaving a chamber with a lulled Dragon does not use the doorway, in games stamped sleepUnseen (issue #94)", () => {
+    const door = (open: number, contents: number[] = []) => ({ card: 31, coord: packCoord(1, open, 50), faceUp: true, visited: true, contents, flags: 0, indiffCount: 0 });
+    const leave = (variants: object, contents: number[]) =>
+      reduce(makeState({ phase: "explore", areas: [door(50, contents), door(51)], partyArea: 0, prev: 0, variants, party: [mem(HERO)] }), { type: "move", dir: 2 } as never).state;
+    const asleep = leave({ sleepUnseen: true }, [110]);
+    expect(asleep.partyArea, "the move east must succeed in this fixture").toBe(1);
+    expect(asleep.doorsUsed ?? []).toEqual([]);
+    // Older games, and a chamber with no sleeping Dragon, record the doorway as before.
+    expect(leave({}, [110]).doorsUsed).toEqual([1]);
+    expect(leave({ sleepUnseen: true }, []).doorsUsed).toEqual([1]);
+  });
   // Issue #70: strangers the party once retreated from attack on sight, but not through a doorway nobody has used (a Spell's new route).
   it("a hostile chamber is not attacked on sight through an unused doorway, only through a walked one (issue #70)", () => {
     const door = (open: number) => ({ card: 31, coord: packCoord(1, open, 50), faceUp: true, visited: true, contents: open === 51 ? [100 + OGRE] : [], flags: 0, indiffCount: 0 });

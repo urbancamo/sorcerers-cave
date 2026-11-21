@@ -924,7 +924,10 @@ export function reduce(
     result.state.trail = [...(state.trail ?? [state.partyArea]), result.state.partyArea].slice(-300);
   }
   // The doorways walked (R-28): a move, withdrawal or retreat uses the edge between the two areas, in either direction.
-  if (result && result.state !== state && result.state.partyArea !== state.partyArea && (action.type === "move" || action.type === "withdraw" || action.type === "retreat")) {
+  // GitHub #94 (`sleepUnseen`): a move out of a chamber whose Dragon the Flute lulled (it stays parked there) is not seen by that Dragon, so the doorway
+  // does not count as used and walking back in by it is still a fresh entry for surprise.
+  const leftSleepingDragon = !!state.variants?.sleepUnseen && action.type === "move" && !!state.areas[state.partyArea]?.contents.includes(110);
+  if (result && result.state !== state && result.state.partyArea !== state.partyArea && !leftSleepingDragon && (action.type === "move" || action.type === "withdraw" || action.type === "retreat")) {
     const key = Math.min(state.partyArea, result.state.partyArea) * 100000 + Math.max(state.partyArea, result.state.partyArea);
     if (!(result.state.doorsUsed ?? []).includes(key)) result.state.doorsUsed = [...(result.state.doorsUsed ?? []), key];
   }

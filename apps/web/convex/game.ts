@@ -103,17 +103,18 @@ const variantsValidator = v.object({ extensionKit: v.optional(v.boolean()), siby
 // New games on the revised combat are also stamped `variants.statueFight` (GitHub #59): the Lost Ruby's Statue is fought by the whole party
 // on the formation screen. Games started before it keep the old one-member wrestle, so their replays still hold.
 // They are also stamped `variants.scrollAnytime`: the Scroll is read at any decision before the dice, with no "Begin the fight" step first.
+// And `variants.sleepUnseen` (GitHub #94): a doorway walked out of a chamber whose Dragon the Flute has put to sleep is not "used", because the Dragon did not see it.
 //
 // The strangers' strategy (`variants.strangerLevel`, solo only; pluggable stranger combat spec) comes from
 // `STRANGER_STRATEGY`, a registered strategy id. Unset, or an id no strategy is registered under, ⇒ not stamped ⇒ the
 // loadout is derived exactly as before. Never accepted from a client.
-type ServerVariants = { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean; sibyl?: boolean; strangerLevel?: string; combatRevision?: boolean; statueFight?: boolean; scrollAnytime?: boolean };
+type ServerVariants = { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean; sibyl?: boolean; strangerLevel?: string; combatRevision?: boolean; statueFight?: boolean; scrollAnytime?: boolean; sleepUnseen?: boolean };
 function withForcedRedraw(variants: { extensionKit?: boolean; sibyl?: boolean } | undefined): ServerVariants | undefined {
   let out: ServerVariants | undefined = variants;
   if (process.env.FORCED_REDRAW_ENABLED === "1") out = { ...out, forcedRedraw: true };
   if (process.env.SORCERER_TELEPORT_ENABLED === "1") out = { ...out, sorcererTeleport: true };
   if (process.env.TRAP_RULES_ENABLED === "1") out = { ...out, trapRules: true };
-  if (process.env.REVISED_COMBAT_ENABLED !== "0") out = { ...out, combatRevision: true, statueFight: true, scrollAnytime: true };
+  if (process.env.REVISED_COMBAT_ENABLED !== "0") out = { ...out, combatRevision: true, statueFight: true, scrollAnytime: true, sleepUnseen: true };
   const strategy = process.env.STRANGER_STRATEGY;
   if (strategy && hasStrategy(strategy)) out = { ...out, strangerLevel: strategy };
   return out;
