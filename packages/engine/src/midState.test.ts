@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { reduce } from "./reduce";
 import { makeState } from "./testkit";
-import { packCoord } from "./coords";
+import { packCoord, unpackCoord } from "./coords";
 import { GATEWAY_START_COORD, GS_PLAYING } from "./state";
 import { SPECIAL_VIPER_PIT } from "./data/areaCards";
 import { HAZARD_MEDUSA, HAZARD_QUARREL } from "./data/hazards";
@@ -46,6 +46,16 @@ describe("midState — the pre-relocation presentation snapshot (SC-4-43)", () =
     // The authoritative state has fallen one level.
     expect(r.state.level).toBe(2);
     expect(r.state.fellThroughTrap).toBe(true);
+  });
+
+  it("a fall onto a tile already laid face down turns it face up, so the landing is not drawn as a card back (GitHub #90)", () => {
+    const s = eastChamberState([301]);
+    const { x, y } = unpackCoord(gwCoord + 1);
+    s.areas.push({ card: PLAIN_CHAMBER, coord: packCoord(2, x, y), faceUp: false, visited: false, contents: [], flags: 0, indiffCount: 0 });
+    const r = reduce(s, { type: "move", dir: DIR_E });
+    expect(r.state.level).toBe(2);
+    expect(r.state.areas[r.state.partyArea]!.coord).toBe(packCoord(2, x, y)); // it did land on the existing tile
+    expect(r.state.areas[r.state.partyArea]!.faceUp).toBe(true);
   });
 
   it("a plain move (no relocation) returns no midState", () => {

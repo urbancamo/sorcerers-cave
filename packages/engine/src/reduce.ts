@@ -865,6 +865,8 @@ function relocateDown(state: GameState): void {
       const card = state.largeIdx < state.largePack.length ? state.largePack[state.largeIdx++]! : 31;
       state.areas.push({ card, coord: target, faceUp: true, visited: false, contents: [], flags: 0, indiffCount: 0 });
       idx = state.areas.length - 1;
+    } else {
+      state.areas[idx]!.faceUp = true; // a tile already laid face down there (a dead-end card laid unseen) is turned over by the landing (GitHub #90)
     }
     level += 1;
     // Whirlpool revision (2026-08-08): "a trap to this area sends you down another level" —
