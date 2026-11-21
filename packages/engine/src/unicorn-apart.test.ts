@@ -20,6 +20,7 @@ describe("the Unicorn joins at once when the others test indifferent (unicornApa
     const { state, events } = meet([m(HERO), m(W_HERO)], ON, "indifferent");
     expect(events).toContainEqual(expect.objectContaining({ type: "reaction", outcome: "indifferent" }));
     expect(events).toContainEqual({ type: "strangersJoined", count: 1 });
+    expect(events).toContainEqual({ type: "unicornJoins", count: 1 }); // narrated, not silent
     expect(state.party.map((p) => p.creatureId)).toEqual([HERO, W_HERO, UNICORN]);
     expect(state.strangers).toEqual([MAN]);
     expect(state.indiffStreak).toBe(1); // the Man's indifference still counts toward the three that pacify the chamber
@@ -67,6 +68,7 @@ describe("the Unicorn stays out of a fight when the party would be friendly to i
     const { state, events } = reduce(s, { type: "resolveRound", matches: [{ front: [0], backers: [], strangers: [0] }] });
     expect(events).toContainEqual({ type: "fightWon" });
     expect(events).toContainEqual({ type: "strangersJoined", count: 1 });
+    expect(events).toContainEqual({ type: "unicornJoins", count: 1 }); // narrated, not silent
     expect(state.party.map((p) => p.creatureId)).toEqual([HERO, W_HERO, UNICORN]);
     expect(state.areas[0]!.contents).not.toContain(100 + UNICORN);
   });

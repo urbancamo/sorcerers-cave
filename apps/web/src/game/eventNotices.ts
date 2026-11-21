@@ -330,6 +330,9 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
       // would double up.
       case "unicornGuards":
         break;
+      case "unicornJoins":
+        out.push({ text: e.count > 1 ? "The Unicorns join your party!" : "The Unicorn joins your party!", tone: "good" });
+        break;
       case "unicornHangsBack":
         out.push({ text: "The Unicorn hangs back from the fight. It will join you if you win.", tone: "neutral" });
         break;
