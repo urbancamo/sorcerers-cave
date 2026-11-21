@@ -265,7 +265,7 @@ function finalizeRound(state: GameState): GameEvent[] {
       let joined = 0;
       area.contents = area.contents.filter((c) => c !== 100 + C_UNICORN || joined >= unicornAside ? true : (joined++, false));
       for (let k = 0; k < joined; k++) state.party.push({ creatureId: C_UNICORN, status: 1, dragonKills: 0, treasure: [] });
-      if (joined > 0) events.push({ type: "strangersJoined", count: joined });
+      if (joined > 0) events.push({ type: "strangersJoined", count: joined }, { type: "unicornJoins", count: joined });
     }
     if (statueFight) {   // the Statue is destroyed: the Ruby is free, and goes to the member who reached for it
       delete state.statueAroused;
@@ -1659,7 +1659,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         if (next.variants?.unicornApart && unicorns.length > 0 && unicorns.length < next.strangers.length && hasWoman(next)) {
           next.strangers = next.strangers.filter((id) => id !== C_UNICORN);
           for (const id of unicorns) next.party.push({ creatureId: id, status: 1, dragonKills: 0, treasure: [] });
-          events.push({ type: "strangersJoined", count: unicorns.length });
+          events.push({ type: "strangersJoined", count: unicorns.length }, { type: "unicornJoins", count: unicorns.length });
         }
         next.indiffStreak = (next.indiffStreak ?? 0) + 1;
         // Bug fix 2026-08-04 (Gap D, SC-4-18a): write the fresh count through to the DURABLE,

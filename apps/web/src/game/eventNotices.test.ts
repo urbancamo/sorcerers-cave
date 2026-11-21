@@ -357,6 +357,11 @@ describe("eventNotices", () => {
     expect(lurk[0]!.text).toBe("Harpies circle overhead, eyeing your baggage.");
   });
 
+  it("says when a Unicorn that was set apart joins the party, and when it hangs back from a fight (GitHub #83)", () => {
+    expect(eventNotices([{ type: "unicornJoins", count: 1 }])).toEqual([{ text: "The Unicorn joins your party!", tone: "good" }]);
+    expect(eventNotices([{ type: "unicornHangsBack", count: 1 }]).map((n) => n.text)).toEqual(["The Unicorn hangs back from the fight. It will join you if you win."]);
+  });
+
   it("reports Quarrel's too-few-combatants fizzle; the duel itself has its own dice overlay (US-11)", () => {
     // quarrel moved to rollView's side-by-side dice overlay (Task 16) — no text notice here.
     expect(eventNotices([{ type: "quarrel", aId: 0, bId: 5, aRoll: 2, bRoll: 5, loserId: 0 }])).toHaveLength(0);
