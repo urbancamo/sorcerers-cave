@@ -324,6 +324,49 @@ describe("Quarrel — top-two effective-fs duel, Wolf/Lion exclusion, tie-break 
     expect(s.treasures).toEqual([]);
   });
 
+  // GitHub #91 / #92 (Peter): the pair are matched against each other, so a Magic Shield bearer nullifies the other's magic, and the Eye nullifies both.
+  describe("the Magic Shield and the Eye of God in a Quarrel (GitHub #91, #92)", () => {
+    const WIZARD = 8, MAGIC_STAFF = 9, MAGIC_SHIELD = 20;
+    const duel = (party: PartyMember[]) => {
+      const { events } = applyHazards(makeState({ party, hazards: [HAZARD_QUARREL], treasures: [], seed: 7, variants: { quarrelShield: true } }));
+      return events.find((e) => e.type === "quarrel") as { aId: number; bId: number; aRoll: number; bRoll: number; aFs: number; bFs: number; aTotal: number; bTotal: number; warded?: number[] };
+    };
+
+    it("a Hero with the Shield leaves the Wizard fighting on his strength of 2, not 2 + his magic", () => {
+      const q = duel([member(HERO, 0, [MAGIC_SHIELD], [MAGIC_SHIELD]), member(WIZARD)]);
+      expect([q.aId, q.bId]).toEqual([WIZARD, HERO]); // still ranked on full strength (7 against 5)
+      expect([q.aFs, q.bFs]).toEqual([2, 5]);
+      expect(q.aTotal).toBe(2 + q.aRoll);
+      expect(q.bTotal).toBe(5 + q.bRoll);
+      expect(q.warded).toEqual([WIZARD]);
+    });
+
+    it("the Staff's bonus is nullified too", () => {
+      const q = duel([member(HERO, 0, [MAGIC_SHIELD], [MAGIC_SHIELD]), member(WIZARD, 0, [MAGIC_STAFF], [MAGIC_STAFF])]);
+      expect(q.aFs).toBe(2);
+    });
+
+    it("games not stamped quarrelShield keep the old duel: the Shield does not ward the Wizard", () => {
+      const { events } = applyHazards(makeState({ party: [member(HERO, 0, [MAGIC_SHIELD], [MAGIC_SHIELD]), member(WIZARD)], hazards: [HAZARD_QUARREL], treasures: [], seed: 7 }));
+      const q = events.find((e) => e.type === "quarrel") as { aFs: number; warded?: number[] };
+      expect(q.aFs).toBe(7);
+      expect(q.warded).toBeUndefined();
+    });
+
+    it("a Shield that is carried but not borne does nothing", () => {
+      const q = duel([member(HERO, 0, [MAGIC_SHIELD]), member(WIZARD)]);
+      expect([q.aFs, q.bFs]).toEqual([7, 5]);
+      expect(q.warded).toBeUndefined();
+    });
+
+    it("the Eye of God powers down the Shield and the Wizard's magic alike: nobody is warded, the Wizard is on strength 2", () => {
+      const q = duel([member(HERO, 0, [MAGIC_SHIELD, EYE_OF_GOD], [MAGIC_SHIELD]), member(MAN), member(WIZARD)]);
+      expect(q.warded).toBeUndefined();
+      expect([q.aId, q.bId]).toEqual([HERO, MAN]); // the Wizard (strength 2) is no longer one of the two strongest
+      expect([q.aFs, q.bFs]).toEqual([5, 3]);
+    });
+  });
+
   it("fizzles with fewer than two eligible combatants — no roll, no effect, and no generic hazard notice fallback", () => {
     const s = makeState({ party: [member(HERO, 0)], hazards: [HAZARD_QUARREL] });
     const { events } = applyHazards(s);

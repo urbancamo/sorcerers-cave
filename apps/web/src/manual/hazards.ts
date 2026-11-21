@@ -43,6 +43,7 @@ export const HAZARDS: Section = {
     ] },
     { id: 'hazard-quarrel', title: 'Quarrel', variant: 'kit', cards: cards('hazard', 'Quarrel'), blocks: [
       p('The two members who would hit hardest in an ordinary fight — by strength, magic and artefacts combined — turn on each other for one round. Each rolls a die; the loser falls as a stranger\'s blow would, revivable by the **Healing Balm**.'),
+      p('The two are fighting each other, so the usual shields apply. A **Magic Shield** borne by a Hero, Man or Woman nullifies the other\'s magic for the round, the Staff\'s bonus included (an Apprentice loses only 2), and the **Eye of God** nullifies all magic and every artefact, the Shield too. The pop-up shows each fighter\'s strength and total.'),
       p('The **Wolf** and the **Lion** never take part. If no one else is left to fight, the card simply fizzles.'),
       p('When several members are **equally strong** for the last place in the quarrel, you choose which of them takes part. Strength counts everything a member brings to a fight: artefacts the party holds, items worn, weapons wielded.'),
     ] },

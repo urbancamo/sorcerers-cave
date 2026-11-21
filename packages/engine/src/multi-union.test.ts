@@ -580,7 +580,7 @@ describe("union Quarrel — the union fights, quarrels and dies as ONE force (SC
     mp.unions = [union({ onLoan: [{ fromSeat: 1, idx: 1 }] })];
 
     const moved = mpReduce(mp, 0, { type: "move", dir: 3 });
-    expect(moved.events).toContainEqual({ type: "quarrel", aId: 2, bId: 5, aRoll: 4, bRoll: 2, loserId: 5 });
+    expect(moved.events).toContainEqual(expect.objectContaining({ type: "quarrel", aId: 2, bId: 5, aRoll: 4, bRoll: 2, loserId: 5 }));
     const cmd = moved.state.parties[0]!.party;
     expect(cmd).toHaveLength(2);
     expect(cmd[1]).toMatchObject({ creatureId: 5, status: 3, mpTag: "loan:1" }); // still on loan, dead

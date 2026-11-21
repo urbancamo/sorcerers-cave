@@ -17,8 +17,9 @@ import { oppositeDir } from "./subLocation";
 import { AF_DESTROYED, AF_UNRESOLVED, type GameState, type PartyMember } from "./state";
 import type { GameEvent } from "./actions";
 import { stageMidStateOnce } from "./midState";
-import { frontStrength, partyRollBonus } from "./combat";
-import { eyeActive, eyePresent, eyeForsakenByDeath, markDied, ringInvincible, usesArtifactsAs, cursedRoll, canUseArtifact } from "./effects";
+import { casterMP, frontStrength, partyRollBonus } from "./combat";
+import { shieldedMP } from "./combatPlan";
+import { eyeActive, eyePresent, eyeForsakenByDeath, markDied, ringInvincible, usesArtifactsAs, cursedRoll, canUseArtifact, shieldWardActive } from "./effects";
 import { spillCarried, sweepFallen } from "./loot";
 import { stashOrDeliver } from "./chamber";
 
@@ -351,12 +352,22 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         const rollBonus = partyRollBonus(state); // Ring +1 / curse −1 — "the party's dice" (design build note)
         const aRoll = rollDieForState(state);
         const bRoll = rollDieForState(state);
-        const aTotal = a.fs + aRoll + rollBonus;
-        const bTotal = b.fs + bRoll + rollBonus;
+        // GitHub #91 (Peter; games stamped `quarrelShield`): the pair are matched against each other, so a live Magic Shield nullifies the other's magic (Staff included) for this
+        // round, as in any fight (the Apprentice only loses 2). The two were still ranked on their full strength above ("total strength").
+        const warded = (own: PartyMember, other: PartyMember, fs: number): number => {
+          if (!state.variants?.quarrelShield || !shieldWardActive(state, other)) return fs;
+          const mp = casterMP(own, state);
+          return fs - mp + shieldedMP(own.creatureId, mp);
+        };
+        const aFs = warded(a.m, b.m, a.fs), bFs = warded(b.m, a.m, b.fs);
+        const aTotal = aFs + aRoll + rollBonus;
+        const bTotal = bFs + bRoll + rollBonus;
         const loser = aTotal < bTotal ? a : bTotal < aTotal ? b : null;
         events.push({
           type: "quarrel", aId: a.m.creatureId, bId: b.m.creatureId,
           aRoll, bRoll, loserId: loser ? loser.m.creatureId : null,
+          aFs, bFs, aTotal, bTotal,
+          ...(aFs < a.fs || bFs < b.fs ? { warded: [...(aFs < a.fs ? [a.m.creatureId] : []), ...(bFs < b.fs ? [b.m.creatureId] : [])] } : {}),
         });
         if (loser) {
           // Normal death (design "lower total dies"): CARRIED items spill to the floor, Balm-

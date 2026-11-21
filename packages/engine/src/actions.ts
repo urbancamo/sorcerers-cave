@@ -295,7 +295,11 @@ export type GameEvent =
   // the loser's own death never removes them from `party` (status flips to 3, same as any other
   // death), so an index would stay valid too, but creature id keeps this event self-describing and
   // consistent with `bellRoll`/`desertionRoll`'s convention. `loserId` is null on a tie (no harm).
-  | { type: "quarrel"; aId: number; bId: number; aRoll: number; bRoll: number; loserId: number | null }
+  | { type: "quarrel"; aId: number; bId: number; aRoll: number; bRoll: number; loserId: number | null;
+      /** What each side fought on: strength, then roll plus the party dice bonus. Absent in events recorded before GitHub #91. */
+      aFs?: number; bFs?: number; aTotal?: number; bTotal?: number;
+      /** Creature ids (a, b or both) whose magic the other's Magic Shield nullified for the duel (GitHub #91). */
+      warded?: number[] }
   // Extension kit (SC-EXT-16): Quarrel drew but found fewer than two eligible combatants (Wolf/Lion
   // excluded, dead/stone members ineligible) — it fizzles with no roll and no effect.
   | { type: "quarrelFizzled" }
