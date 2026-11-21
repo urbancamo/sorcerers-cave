@@ -216,6 +216,7 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "unicornGuards": return `a unicorn guards ${creature(e.creatureId)}`;
     case "unicornHangsBack": return `the unicorn hangs back from the fight (${e.count})`;
     case "unicornJoins": return `the unicorn joins the party (${e.count})`;
+    case "unicornStepsBack": return `the unicorn steps back from the fight, indifferent: its Woman has fallen (${e.count})`;
     case "unicornDeparted": return e.last ? "the Unicorn, left alone without a Woman, turned indifferent and left: no one is left in the party" : "the Unicorn, left without a Woman, stayed behind to guard the area";
     case "carpetUsed": return `the Magic Carpet moved the party ${dir(e.dir)}`;
     case "dragonsLulled": return `the Charmed Flute lulled ${e.count} dragon(s)`;
@@ -558,6 +559,7 @@ export function eventCode(e: GameEvent): string | null {
     case "unicornGuards": return "UNI GRD";
     case "unicornHangsBack": return `UNI BCK ${e.count}`;
     case "unicornJoins": return `UNI JOI ${e.count}`;
+    case "unicornStepsBack": return `UNI STP ${e.count}`;
     case "unicornDeparted": return "UNI DEP";
     case "carpetUsed": return `CPT ${d1(e.dir)}`;
     case "dragonsLulled": return `LUL ${e.count}`;

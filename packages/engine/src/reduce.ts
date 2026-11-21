@@ -32,7 +32,7 @@ import {
 // Extension kit (SC-EXT-17): aliases `ALL_CREATURES` — `strongestStranger`'s fight-focus pick and
 // the Lost-Ruby wrestler's combat-roll name both index by an actual creatureId that may already be
 // a kit id (14-20); byte-identical for ids 0-13.
-import { ALL_CREATURES as CREATURES, CREATURES as BASE_CREATURES, C_GHOUL, C_STATUE } from "./data/creatures";
+import { ALL_CREATURES as CREATURES, CREATURES as BASE_CREATURES, C_GHOUL, C_STATUE, FLAG_BEFRIENDS_UNICORN } from "./data/creatures";
 import { TREASURES as BASE_TREASURES } from "./data/treasures";
 import { applyAllocations, equipStrangers, loadoutViolation } from "./strangerEquip";
 import { removeStranger, addStranger, dropAllGear } from "./strangerGear";
@@ -146,17 +146,23 @@ function strongestStranger(state: GameState): number {
 }
 
 /** Begin a fight with the given surprise (+1 party, -1 strangers). */
+/** Is a Woman or Woman-Hero among the strangers (not the Unicorn itself)? "If found with a woman, it will remain loyal to her" (§Unicorn): such a Unicorn
+ *  stays with its group, fights alongside it, and never joins the party while she is there (`unicornApart`, GitHub #83). */
+const unicornHasItsWoman = (strangers: readonly number[]): boolean =>
+  strangers.some((id) => id !== C_UNICORN && (CREATURES[id]!.flags & FLAG_BEFRIENDS_UNICORN) !== 0);
+
 function startFight(state: GameState, surprise: number): GameEvent[] {
   // GitHub #83 (`unicornApart`): the Unicorn "may not be approached till the other strangers have been befriended, found indifferent, or slain", and a party
   // holding a Woman or W-Hero is one it would join, so it stays out of the fight (parked in the chamber) and joins once the others are slain.
   const events0: GameEvent[] = [];
   const apart = state.strangers.filter((id) => id === C_UNICORN);
-  if (state.variants?.unicornApart && apart.length > 0 && apart.length < state.strangers.length && hasWoman(state)) {
+  if (state.variants?.unicornApart && apart.length > 0 && apart.length < state.strangers.length && hasWoman(state) && !unicornHasItsWoman(state.strangers)) {
     state.strangers = state.strangers.filter((id) => id !== C_UNICORN);
     state.areas[state.partyArea]!.contents.push(...apart.map((id) => 100 + id));
     events0.push({ type: "unicornHangsBack", count: apart.length });
   }
-  state.fight = { surprise, round: 1, focus: strongestStranger(state), ...(apart.length > 0 && events0.length > 0 ? { unicornAside: apart.length } : {}) };
+  const loyal = !!state.variants?.unicornApart && state.strangers.includes(C_UNICORN) && state.strangers.length > 1 && unicornHasItsWoman(state.strangers);
+  state.fight = { surprise, round: 1, focus: strongestStranger(state), ...(apart.length > 0 && events0.length > 0 ? { unicornAside: apart.length } : {}), ...(loyal ? { unicornLoyal: true as const } : {}) };
   state.phase = "fight";
   state.surpriseReady = false; // the surprise (if any) is now baked into the fight
   state.fightDrops = []; // fresh fight — forget any earlier drop record
@@ -226,6 +232,17 @@ function finalizeRound(state: GameState): GameEvent[] {
   // House rule R-17: a Unicorn left without a Woman keeps fighting to protect itself while it is engaged; in the revised combat, one a round
   // leaves unmatched leaves the party at once and guards the chamber. At the end of the fight (and outside fights) `reduce` parks it.
   const events: GameEvent[] = [];
+  // GitHub #83 (`unicornApart`): the Woman the Unicorn fought beside has fallen, so it steps back (indifferent, parked in the chamber) while the fight goes on,
+  // and joins a party holding a Woman once everything else is settled (the win branch below), or stays indifferent if not.
+  if (state.fight?.unicornLoyal && state.strangers.includes(C_UNICORN) && !unicornHasItsWoman(state.strangers)) {
+    let stepped = 0;
+    for (let i = state.strangers.length - 1; i >= 0; i--) if (state.strangers[i] === C_UNICORN) { removeStrangerFromFight(state, i); stepped++; }
+    state.areas[state.partyArea]!.contents.push(...new Array<number>(stepped).fill(100 + C_UNICORN));
+    state.fight.unicornAside = (state.fight.unicornAside ?? 0) + stepped;
+    delete state.fight.unicornLoyal;
+    if (state.fight.focus >= state.strangers.length) state.fight.focus = 0;
+    events.push({ type: "unicornStepsBack", count: stepped });
+  }
   const rev = state.fight?.rev;
   if (rev && state.strangers.length > 0) {
     const engaged = (i: number) => rev.matches.some((mt) => mt.sf.length > 0 && (mt.pf.includes(i) || mt.pb.includes(i)));
@@ -1656,7 +1673,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       } else if (outcome === "indifferent") {
         // GitHub #83 (`unicornApart`): the others are found indifferent, so the Unicorn can now be approached, and it joins a party holding a Woman or W-Hero.
         const unicorns = next.strangers.filter((id) => id === C_UNICORN);
-        if (next.variants?.unicornApart && unicorns.length > 0 && unicorns.length < next.strangers.length && hasWoman(next)) {
+        if (next.variants?.unicornApart && unicorns.length > 0 && unicorns.length < next.strangers.length && hasWoman(next) && !unicornHasItsWoman(next.strangers)) {
           next.strangers = next.strangers.filter((id) => id !== C_UNICORN);
           for (const id of unicorns) next.party.push({ creatureId: id, status: 1, dragonKills: 0, treasure: [] });
           events.push({ type: "strangersJoined", count: unicorns.length }, { type: "unicornJoins", count: unicorns.length });

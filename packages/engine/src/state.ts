@@ -132,6 +132,8 @@ export interface FightState {
   statue?: { taker?: number; noRetreat?: true };
   // `unicornApart` games (GitHub #83): this many Unicorns stayed out of the fight, parked in the chamber, because the party holds a Woman or W-Hero; they join if it is won.
   unicornAside?: number;
+  // `unicornApart` games: a Unicorn is fighting alongside its stranger Woman; if she falls it steps back (GitHub #83).
+  unicornLoyal?: true;
   // A retreat this round hit a dead end (§Retreat): no further retreat may be tried — the party must
   // fight another round. Cleared when a round is actually fought.
   retreatBlocked?: boolean;
