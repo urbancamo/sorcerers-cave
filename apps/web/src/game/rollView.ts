@@ -17,6 +17,7 @@ const BELL_TOLL_TEXT = "A bell tolls once, far above — and is answered by sile
 /** The Unicorn that was set apart from its group (GitHub #83): the dice overlay carries these, because a notice is not shown beside one. */
 const UNICORN_JOINS = " The Unicorn joins your party!";
 const UNICORN_HANGS_BACK = " The Unicorn hangs back from the fight.";
+const UNICORN_STEPS_BACK = " Its Woman has fallen, so the Unicorn steps back, indifferent.";
 
 function reactionView(reaction: Extract<GameEvent, { type: "reaction" }>, joined: number, pacified: boolean, guarded: boolean, unicorn: "joins" | "hangsBack" | null = null): RollView {
   const message =
@@ -95,8 +96,9 @@ function combatView(events: GameEvent[]): RollView | null {
     : won
       ? "Victory — the foes have fallen!" + (events.some((e) => e.type === "unicornJoins") ? UNICORN_JOINS : "")
       : `Round resolved — ${killed} foe(s) down, ${lost} of yours lost.`;
+  const stepsBack = !over && events.some((e) => e.type === "unicornStepsBack") ? UNICORN_STEPS_BACK : "";
   const tone: Tone = over || lost > 0 ? "bad" : killed > 0 ? "good" : "neutral";
-  return { title: "Combat round", lanes, message, tone };
+  return { title: "Combat round", lanes, message: message + stepsBack, tone };
 }
 
 /** Turn an opened Treasure Chest (a d6) into a single-die overlay — otherwise its

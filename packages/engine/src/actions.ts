@@ -209,6 +209,7 @@ export type GameEvent =
   | { type: "deathPrevented"; creatureId: number }
   | { type: "unicornGuards"; creatureId: number }
   | { type: "unicornJoins"; count: number } // a Unicorn set apart from its group joins the party (`unicornApart`, GitHub #83)
+  | { type: "unicornStepsBack"; count: number } // the Woman a Unicorn fought beside has fallen: it steps back from the fight, indifferent (`unicornApart`, GitHub #83)
   | { type: "unicornHangsBack"; count: number } // a Unicorn stays out of a fight against its group when the party holds a Woman (`unicornApart`, GitHub #83)
   | { type: "leaderChosen"; creatureId: number }   // R-07/R-10: an ally became the party's leader (original)
   | { type: "quarrelLooms" }                       // R-14: the Quarrel needs the player to choose between equals

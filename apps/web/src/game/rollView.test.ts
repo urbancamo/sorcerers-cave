@@ -212,6 +212,11 @@ describe("rollFromEvents", () => {
       { type: "fightWon" }, { type: "strangersJoined", count: 1 }, { type: "unicornJoins", count: 1 },
     ])!;
     expect(won.message).toBe("Victory — the foes have fallen! The Unicorn joins your party!");
+    const stepped = rollFromEvents([
+      { type: "combatRoll", party: "Hero", enemy: "Woman", partyRoll: 5, enemyRoll: 1, partyTotal: 10, enemyTotal: 3, result: "partyWon" } as never,
+      { type: "strangerKilled" } as never, { type: "unicornStepsBack", count: 1 },
+    ])!;
+    expect(stepped.message).toMatch(/Round resolved.*the Unicorn steps back, indifferent/);
   });
 
   it("shows Quarrel's forced duel as a side-by-side dice overlay, loser or tie (US-11)", () => {
