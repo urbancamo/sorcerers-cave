@@ -105,17 +105,18 @@ const variantsValidator = v.object({ extensionKit: v.optional(v.boolean()), siby
 // They are also stamped `variants.scrollAnytime`: the Scroll is read at any decision before the dice, with no "Begin the fight" step first.
 // And `variants.sleepUnseen` (GitHub #94): a doorway walked out of a chamber whose Dragon the Flute has put to sleep is not "used", because the Dragon did not see it.
 // And `variants.quarrelShield` (GitHub #91): in a Quarrel a Magic Shield bearer nullifies the other fighter's magic. Older games, and the pinned search results, keep the old duel.
+// And `variants.unicornApart` (GitHub #83): a Unicorn in a mixed group is approached on its own, once the others are dealt with. With a Woman or W-Hero in the party it joins at once when the others test indifferent, and stays out of a fight against them, joining when it is won.
 //
 // The strangers' strategy (`variants.strangerLevel`, solo only; pluggable stranger combat spec) comes from
 // `STRANGER_STRATEGY`, a registered strategy id. Unset, or an id no strategy is registered under, ⇒ not stamped ⇒ the
 // loadout is derived exactly as before. Never accepted from a client.
-type ServerVariants = { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean; sibyl?: boolean; strangerLevel?: string; combatRevision?: boolean; statueFight?: boolean; scrollAnytime?: boolean; sleepUnseen?: boolean; quarrelShield?: boolean };
+type ServerVariants = { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean; sibyl?: boolean; strangerLevel?: string; combatRevision?: boolean; statueFight?: boolean; scrollAnytime?: boolean; sleepUnseen?: boolean; quarrelShield?: boolean; unicornApart?: boolean };
 function withForcedRedraw(variants: { extensionKit?: boolean; sibyl?: boolean } | undefined): ServerVariants | undefined {
   let out: ServerVariants | undefined = variants;
   if (process.env.FORCED_REDRAW_ENABLED === "1") out = { ...out, forcedRedraw: true };
   if (process.env.SORCERER_TELEPORT_ENABLED === "1") out = { ...out, sorcererTeleport: true };
   if (process.env.TRAP_RULES_ENABLED === "1") out = { ...out, trapRules: true };
-  if (process.env.REVISED_COMBAT_ENABLED !== "0") out = { ...out, combatRevision: true, statueFight: true, scrollAnytime: true, sleepUnseen: true, quarrelShield: true };
+  if (process.env.REVISED_COMBAT_ENABLED !== "0") out = { ...out, combatRevision: true, statueFight: true, scrollAnytime: true, sleepUnseen: true, quarrelShield: true, unicornApart: true };
   const strategy = process.env.STRANGER_STRATEGY;
   if (strategy && hasStrategy(strategy)) out = { ...out, strangerLevel: strategy };
   return out;

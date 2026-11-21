@@ -330,6 +330,9 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
       // would double up.
       case "unicornGuards":
         break;
+      case "unicornHangsBack":
+        out.push({ text: "The Unicorn hangs back from the fight. It will join you if you win.", tone: "neutral" });
+        break;
       case "unicornDeparted":
         out.push(e.last
           ? { text: "With no Woman left, the lone Unicorn turns indifferent and is no longer one of your party. No one is left: the party does not survive.", tone: "bad" }

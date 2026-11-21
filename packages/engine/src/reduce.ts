@@ -147,12 +147,21 @@ function strongestStranger(state: GameState): number {
 
 /** Begin a fight with the given surprise (+1 party, -1 strangers). */
 function startFight(state: GameState, surprise: number): GameEvent[] {
-  state.fight = { surprise, round: 1, focus: strongestStranger(state) };
+  // GitHub #83 (`unicornApart`): the Unicorn "may not be approached till the other strangers have been befriended, found indifferent, or slain", and a party
+  // holding a Woman or W-Hero is one it would join, so it stays out of the fight (parked in the chamber) and joins once the others are slain.
+  const events0: GameEvent[] = [];
+  const apart = state.strangers.filter((id) => id === C_UNICORN);
+  if (state.variants?.unicornApart && apart.length > 0 && apart.length < state.strangers.length && hasWoman(state)) {
+    state.strangers = state.strangers.filter((id) => id !== C_UNICORN);
+    state.areas[state.partyArea]!.contents.push(...apart.map((id) => 100 + id));
+    events0.push({ type: "unicornHangsBack", count: apart.length });
+  }
+  state.fight = { surprise, round: 1, focus: strongestStranger(state), ...(apart.length > 0 && events0.length > 0 ? { unicornAside: apart.length } : {}) };
   state.phase = "fight";
   state.surpriseReady = false; // the surprise (if any) is now baked into the fight
   state.fightDrops = []; // fresh fight — forget any earlier drop record
   // Stranger Fight Preparations: the strangers pick up any fight artefacts guarded in the chamber.
-  const events: GameEvent[] = [{ type: "fightStarted", surprise }, ...equipStrangers(state)];
+  const events: GameEvent[] = [...events0, { type: "fightStarted", surprise }, ...equipStrangers(state)];
   return [...events, ...beginRevised(state)];
 }
 
@@ -248,9 +257,16 @@ function finalizeRound(state: GameState): GameEvent[] {
     const felled = state.fight?.sorcererFelled === true;
     const ghouls = state.fight?.ghouls;
     const statueFight = state.fight?.statue;
+    const unicornAside = state.fight?.unicornAside ?? 0;
     state.fight = null;
     state.party.forEach((m) => { m.potionActive = false; });
     events.push({ type: "fightWon" });
+    if (unicornAside > 0 && hasWoman(state)) {   // the Unicorn that hung back is now approached, and joins (GitHub #83)
+      let joined = 0;
+      area.contents = area.contents.filter((c) => c !== 100 + C_UNICORN || joined >= unicornAside ? true : (joined++, false));
+      for (let k = 0; k < joined; k++) state.party.push({ creatureId: C_UNICORN, status: 1, dragonKills: 0, treasure: [] });
+      if (joined > 0) events.push({ type: "strangersJoined", count: joined });
+    }
     if (statueFight) {   // the Statue is destroyed: the Ruby is free, and goes to the member who reached for it
       delete state.statueAroused;
       state.rubyFreed = true;
@@ -1636,6 +1652,13 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           else persistAndExplore(next);
         }
       } else if (outcome === "indifferent") {
+        // GitHub #83 (`unicornApart`): the others are found indifferent, so the Unicorn can now be approached, and it joins a party holding a Woman or W-Hero.
+        const unicorns = next.strangers.filter((id) => id === C_UNICORN);
+        if (next.variants?.unicornApart && unicorns.length > 0 && unicorns.length < next.strangers.length && hasWoman(next)) {
+          next.strangers = next.strangers.filter((id) => id !== C_UNICORN);
+          for (const id of unicorns) next.party.push({ creatureId: id, status: 1, dragonKills: 0, treasure: [] });
+          events.push({ type: "strangersJoined", count: unicorns.length });
+        }
         next.indiffStreak = (next.indiffStreak ?? 0) + 1;
         // Bug fix 2026-08-04 (Gap D, SC-4-18a): write the fresh count through to the DURABLE,
         // per-area store so a later re-entry (chamber.ts's enterChamber) resumes from here instead

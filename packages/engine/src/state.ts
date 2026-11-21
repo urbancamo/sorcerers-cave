@@ -130,6 +130,8 @@ export interface FightState {
   // The revised combat only (Peter, 13-NOV-2026, GitHub #59): this fight is against the Lost Ruby's Statue. `taker` is the member who
   // reached for the Ruby (it is theirs if the Statue falls); `noRetreat` is set when the Statue struck a returning party, which may not flee.
   statue?: { taker?: number; noRetreat?: true };
+  // `unicornApart` games (GitHub #83): this many Unicorns stayed out of the fight, parked in the chamber, because the party holds a Woman or W-Hero; they join if it is won.
+  unicornAside?: number;
   // A retreat this round hit a dead end (§Retreat): no further retreat may be tried — the party must
   // fight another round. Cleared when a round is actually fought.
   retreatBlocked?: boolean;
@@ -343,7 +345,7 @@ export interface GameState {
   // construction — deliberately NOT mirrored onto `MpGameState.variants` (multi.ts) or its own
   // separate Convex validator (apps/web/convex/multiplayer.ts), so a multiplayer-composed state can
   // never carry it.
-  variants?: { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean; sibyl?: boolean; strangerLevel?: string; combatRevision?: boolean; statueFight?: boolean; scrollAnytime?: boolean; sleepUnseen?: boolean; quarrelShield?: boolean };
+  variants?: { extensionKit?: boolean; forcedRedraw?: boolean; sorcererTeleport?: boolean; trapRules?: boolean; sibyl?: boolean; strangerLevel?: string; combatRevision?: boolean; statueFight?: boolean; scrollAnytime?: boolean; sleepUnseen?: boolean; quarrelShield?: boolean; unicornApart?: boolean };
   // Per-entry scratch (`variants.trapRules` only): how many traps `enterChamber` RELOADED from the area (a
   // standing trap the party walked back into) rather than drew fresh. Set by `enterChamber`, read inside
   // `applyHazards`, and deleted there — it can survive a Medusa pause but never an action boundary.
