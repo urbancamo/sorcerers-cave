@@ -9,7 +9,8 @@ import type { GameState, PartyMember, PlacedArea } from "./state";
 import type { GameEvent } from "./actions";
 
 const C_GIANT = 12;
-const HEAVY = new Set([0, 1, 2]); // Silver, Gold, Gems
+// Heavy treasure by the treasure table, so the Treasure Chest (100 kg) and the kit's Idol and Crypt/Gems count as well as Silver, Gold and Gems (GitHub #93).
+const isHeavy = (t: number): boolean => ALL_TREASURES[t]!.kind === "heavy";
 
 function living(state: GameState): PartyMember[] {
   return state.party.filter((m) => m.status === 0 || m.status === 1);
@@ -112,7 +113,7 @@ export function deepPoolCrossing(state: GameState, poolIdx: number): GameEvent[]
   if (giants > 0) {
     // R-30 (Peter, §Deep Pool): a load is a Giant's carrying capacity; each load beyond the first costs the party a turn.
     // Giants carry in parallel, so the capacity per trip is their combined CAP.
-    const kg = members.reduce((sum, m) => sum + m.treasure.filter((t) => HEAVY.has(t)).reduce((w, t) => w + ALL_TREASURES[t]!.weight, 0), 0);
+    const kg = members.reduce((sum, m) => sum + m.treasure.filter((t) => isHeavy(t)).reduce((w, t) => w + ALL_TREASURES[t]!.weight, 0), 0);
     const loads = Math.ceil(kg / (ALL_CREATURES[C_GIANT]!.carry * giants));
     if (loads > 1) {
       state.turn += loads - 1;
@@ -123,10 +124,10 @@ export function deepPoolCrossing(state: GameState, poolIdx: number): GameEvent[]
   const pool = state.areas[poolIdx]!;
   pool.dropped = pool.dropped ?? [];
   for (const m of members) {
-    const heavy = m.treasure.filter((t) => HEAVY.has(t));
+    const heavy = m.treasure.filter((t) => isHeavy(t));
     if (heavy.length > 0) {
       pool.dropped.push(...heavy);
-      m.treasure = m.treasure.filter((t) => !HEAVY.has(t));
+      m.treasure = m.treasure.filter((t) => !isHeavy(t));
       events.push({ type: "treasureDropped", count: heavy.length });
     }
   }

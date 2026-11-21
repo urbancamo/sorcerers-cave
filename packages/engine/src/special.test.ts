@@ -68,6 +68,21 @@ describe("deepPoolCrossing (spec §10.2)", () => {
     expect(events).toEqual([]);
   });
 
+  // GitHub #93: the Treasure Chest (100 kg), the Idol (50 kg) and Crypt/Gems are heavy treasure too, not only Silver, Gold and Gems.
+  it("a Treasure Chest counts toward the loads: 325 kg across two Giants is two loads and one extra turn", () => {
+    const s = poolState({ turn: 8, party: [member(12, [14, 0, 0]), member(12, [2, 2, 2, 1, 1]), member(5, [0]), member(5, [1])] });
+    const events = deepPoolCrossing(s, 0);
+    expect(events).toEqual([{ type: "deepPoolDelay", loads: 2, turns: 1 }]);
+    expect(s.turn).toBe(9);
+  });
+
+  it("without a Giant, a Chest, an Idol and Crypt/Gems are left in the pool with the rest", () => {
+    const s = poolState({ party: [member(5, [14, 3]), member(5, [18, 21])] });
+    deepPoolCrossing(s, 0);
+    expect(s.party.map((m) => m.treasure)).toEqual([[3], []]);
+    expect(s.areas[0]!.dropped).toEqual([14, 18, 21]);
+  });
+
   it("without a Giant, non-artifact heavy treasure is dropped into the pool; artifacts are kept", () => {
     const s = poolState({ party: [member(5, [1, 3])] }); // Man with Gold(heavy) + Magic Sword(artifact)
     const events = deepPoolCrossing(s, 0);
