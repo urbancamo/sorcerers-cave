@@ -1676,7 +1676,9 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       }
       if (state.phase !== "encounter") return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
-      if (next.hostileAreas?.includes(next.partyArea)) return { state: next, events: startFight(next, -1) }; // R-33: hostile after a theft
+      // R-33: hostile after a theft. But a party that came in by a doorway nobody has used (issue #82, after #70) still holds the surprise it
+      // was given on entry, so its attack is not an ambush by the strangers.
+      if (next.hostileAreas?.includes(next.partyArea) && !next.surpriseReady) return { state: next, events: startFight(next, -1) };
       // Surprise only on an immediate attack from a fresh, non-trap entry (§Surprise).
       return { state: next, events: startFight(next, next.surpriseReady ? 1 : 0) };
     }

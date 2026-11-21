@@ -187,6 +187,11 @@ describe("Determining Surprise Attack: arriving by a route that cannot be walked
     expect(fresh.phase).toBe("encounter");
     expect(fresh.surpriseReady).toBe(true);
     expect(walk([1]).phase).toBe("fight");
+    // Issue #82: and the attack that follows keeps the surprise (+1 for the party), instead of the strangers ambushing it (-1).
+    const attacked = reduce(fresh, { type: "attack" }).state;
+    expect(attacked.fight!.surprise).toBe(1);
+    // Approaching to test forfeits the surprise: hostile strangers attack first.
+    expect(reduce(fresh, { type: "test" }).state.fight!.surprise).toBe(-1);
   });
 });
 
