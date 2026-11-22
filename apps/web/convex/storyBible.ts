@@ -67,40 +67,105 @@ export const TREASURE_LORE: Record<string, string> = {
   "Magic Shield": "Call it a shield. The one who bears it is hard to wound with magic; it turns aside what should not be turned.",
 };
 
-/** Places and perils, matched in the digest by a plain phrase (case-insensitive). */
-export const PLACE_LORE: { match: RegExp; text: string }[] = [
-  { match: /pit of vipers|vipers/i, text: "The viper pit: a floor of moving black rope that no one crosses unmoved. A flute can put it to sleep; otherwise it is a matter of luck and nerve." },
-  { match: /deep pool/i, text: "The deep pool: black, wide, with no far bank a lamp can find. Heavy treasure does not cross it easily, and nobody wants to be the first to try." },
-  { match: /chasm/i, text: "The chasm: a gap in the floor with no bottom that light reaches. A way down for those willing to jump." },
-  { match: /whirlpool/i, text: "The whirlpool: water that turns and pulls. A party that enters it is carried, and does not choose where." },
-  { match: /gallery of statues/i, text: "The gallery: a hall of figures that were once living strangers, now stone, silent and waiting." },
-  { match: /\blair\b/i, text: "The lair: a harpies' roost, with a hoard of what they have stolen from others." },
-  { match: /\bwell\b/i, text: "The well: a shaft with a bucket on a rope, in the middle of the dark." },
-  { match: /bell rope/i, text: "The bell rope: a rope that hangs from the dark, and to pull it is to ask a question of something." },
-  { match: /\btomb\b/i, text: "The tomb: a sealed chamber of the long dead, undisturbed until now." },
-  { match: /great hall/i, text: "The great hall: a vast empty room whose size is its own threat." },
-  { match: /mutiny/i, text: "A mutiny: part of the party turns on the rest, leaves, and drops what it carries. It can be won back by those with the standing to do it, but not by force." },
-  { match: /\(trap\)|trap sprang|trap\b/i, text: "A trap: a floor that gives way, dropping the party to a lower floor with no way to climb back from where it fell. A dwarf in the party may know the way round." },
-  { match: /earthquake/i, text: "An earthquake: the cave shakes, the ceiling runs with dust, and the party may be split or hurt in the dark." },
-  { match: /medusa/i, text: "Medusa: a gaze that turns whoever meets it to stone. The only defence is not to look: eyes down, or something that stands between." },
-  { match: /ghoul/i, text: "Ghouls: dead things that attack in a rush. Wards keep them away." },
-  { match: /desertion|deserted/i, text: "Desertion: someone in the party simply stops and goes, in a moment of fear or doubt, carrying what they hold." },
-  { match: /harpies/i, text: "Harpies: they steal treasure from the party and carry it off to the lair." },
-  { match: /quarrel/i, text: "A quarrel: two members of the party fall out and one has to give way." },
+/** Places and perils, matched in the digest by any of their keywords (whole words, case-insensitive). */
+export interface PlaceLore { keys: string[]; text: string }
+export const PLACE_LORE: PlaceLore[] = [
+  { keys: ["pit of vipers", "vipers"], text: "The viper pit: a floor of moving black rope that no one crosses unmoved. A flute can put it to sleep; otherwise it is a matter of luck and nerve." },
+  { keys: ["deep pool"], text: "The deep pool: black, wide, with no far bank a lamp can find. Heavy treasure does not cross it easily, and nobody wants to be the first to try." },
+  { keys: ["chasm"], text: "The chasm: a gap in the floor with no bottom that light reaches. A way down for those willing to jump." },
+  { keys: ["whirlpool"], text: "The whirlpool: water that turns and pulls. A party that enters it is carried, and does not choose where." },
+  { keys: ["gallery of statues"], text: "The gallery: a hall of figures that were once living strangers, now stone, silent and waiting." },
+  { keys: ["lair"], text: "The lair: a harpies' roost, with a hoard of what they have stolen from others." },
+  { keys: ["well"], text: "The well: a shaft with a bucket on a rope, in the middle of the dark." },
+  { keys: ["bell rope"], text: "The bell rope: a rope that hangs from the dark, and to pull it is to ask a question of something." },
+  { keys: ["tomb"], text: "The tomb: a sealed chamber of the long dead, undisturbed until now." },
+  { keys: ["great hall"], text: "The great hall: a vast empty room whose size is its own threat." },
+  { keys: ["mutiny"], text: "A mutiny: part of the party turns on the rest, leaves, and drops what it carries. It can be won back by those with the standing to do it, but not by force." },
+  { keys: ["trap"], text: "A trap: a floor that gives way, dropping the party to a lower floor with no way to climb back from where it fell. A dwarf in the party may know the way round." },
+  { keys: ["earthquake"], text: "An earthquake: the cave shakes, the ceiling runs with dust, and the party may be split or hurt in the dark." },
+  { keys: ["medusa"], text: "Medusa: a gaze that turns whoever meets it to stone. The only defence is not to look: eyes down, or something that stands between." },
+  { keys: ["ghoul"], text: "Ghouls: dead things that attack in a rush. Wards keep them away." },
+  { keys: ["desertion", "deserted"], text: "Desertion: someone in the party simply stops and goes, in a moment of fear or doubt, carrying what they hold." },
+  { keys: ["harpies"], text: "Harpies: they steal treasure from the party and carry it off to the lair." },
+  { keys: ["quarrel"], text: "A quarrel: two members of the party fall out and one has to give way." },
 ];
 
+const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 /** Does this name appear in the digest as a word, allowing a plural 's' (the digest writes "2 Dwarfs") and not as part of a hyphenated name? */
-const mentions = (text: string, name: string): boolean => new RegExp(`(?<![\\w-])${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")}s?(?![\\w-])`).test(text);
+const mentions = (text: string, name: string, flags = ""): boolean => new RegExp(`(?<![\\w-])${escapeRe(name)}s?(?![\\w-])`, flags).test(text);
+
+/** The bible as editable text: a header section, then `Name: entry` lines per section; places use `keyword | keyword: entry`. */
+export interface Bible { header: string; creatures: [string, string][]; treasures: [string, string][]; places: PlaceLore[] }
+
+export const defaultBible = (): Bible => ({
+  header: BIBLE_HEADER,
+  creatures: Object.entries(CREATURE_LORE),
+  treasures: Object.entries(TREASURE_LORE),
+  places: PLACE_LORE,
+});
+
+const SECTIONS = ["header", "creatures", "artefacts", "places"] as const;
+
+/** Render a bible in the text format the admin panel edits (and `parseBible` reads back). */
+export function renderBible(b: Bible = defaultBible()): string {
+  return [
+    "## header", b.header, "",
+    "## creatures", ...b.creatures.map(([n, t]) => `${n}: ${t}`), "",
+    "## artefacts", ...b.treasures.map(([n, t]) => `${n}: ${t}`), "",
+    "## places", ...b.places.map((p) => `${p.keys.join(" | ")}: ${p.text}`),
+  ].join("\n");
+}
+
+/** Read the editable text back into a bible, with every problem found (an unknown section, a line with no colon, an empty entry). */
+export function parseBible(text: string): { bible: Bible; problems: string[] } {
+  const problems: string[] = [];
+  const bible: Bible = { header: "", creatures: [], treasures: [], places: [] };
+  let section: (typeof SECTIONS)[number] | null = null;
+  const header: string[] = [];
+  text.split("\n").forEach((raw, i) => {
+    const line = raw.trim();
+    const sec = line.match(/^##\s*(\w+)\s*$/);
+    if (sec) {
+      const name = sec[1]!.toLowerCase();
+      if (!(SECTIONS as readonly string[]).includes(name)) { problems.push(`Line ${i + 1}: unknown section "${sec[1]}" (use header, creatures, artefacts, places).`); section = null; }
+      else section = name as (typeof SECTIONS)[number];
+      return;
+    }
+    if (section === "header") { header.push(raw); return; }
+    if (!line) return;
+    if (section === null) { problems.push(`Line ${i + 1}: this line is outside any section.`); return; }
+    const m = line.match(/^([^:]+):\s*(.*)$/);
+    if (!m || !m[2]!.trim()) { problems.push(`Line ${i + 1}: expected "Name: entry" (${line.slice(0, 40)}…).`); return; }
+    const name = m[1]!.trim(), entry = m[2]!.trim();
+    if (section === "creatures") bible.creatures.push([name, entry]);
+    else if (section === "artefacts") bible.treasures.push([name, entry]);
+    else bible.places.push({ keys: name.split("|").map((k) => k.trim()).filter(Boolean), text: entry });
+  });
+  bible.header = header.join("\n").trim();
+  return { bible, problems };
+}
+
+/** Why a bible text cannot be saved: it does not parse, has no header, or names a creature or artefact the game does not have (which could never match). */
+export function bibleProblems(text: string, known: { creatures: readonly string[]; treasures: readonly string[] }): string[] {
+  const { bible, problems } = parseBible(text);
+  if (!bible.header) problems.push("The bible needs a header section.");
+  const creatures = new Set([...known.creatures, "Statue"]);
+  for (const [n] of bible.creatures) if (!creatures.has(n)) problems.push(`"${n}" is not a creature in the game (spelling must match, e.g. W-Hero).`);
+  for (const [n] of bible.treasures) if (!known.treasures.includes(n)) problems.push(`"${n}" is not an artefact in the game.`);
+  for (const p of bible.places) if (!p.keys.length) problems.push("A place entry has no keywords before its colon.");
+  return problems;
+}
 
 /** The bible entries for what appears in this digest, ready to put in a prompt; empty when nothing matches. */
-export function bibleFor(digestText: string): string {
+export function bibleFor(digestText: string, text?: string): string {
+  const b = text === undefined ? defaultBible() : parseBible(text).bible;
   // The Ruby's statue is not a creature the digest names; it appears as "the statue guarding the Ruby" (not the Gallery's statues).
-  const creatures = Object.entries(CREATURE_LORE).filter(([name]) => name === "Statue" ? /statue guarding the Ruby/.test(digestText) : mentions(digestText, name));
-  const treasures = Object.entries(TREASURE_LORE).filter(([name]) => mentions(digestText, name));
-  const places = PLACE_LORE.filter((p) => p.match.test(digestText));
+  const creatures = b.creatures.filter(([name]) => name === "Statue" ? /statue guarding the Ruby/.test(digestText) : mentions(digestText, name));
+  const treasures = b.treasures.filter(([name]) => mentions(digestText, name));
+  const places = b.places.filter((p) => p.keys.some((k) => mentions(digestText, k, "i")));
   if (!creatures.length && !treasures.length && !places.length) return "";
   return [
-    BIBLE_HEADER,
+    b.header,
     ...(creatures.length ? ["", "WHO IS IN IT:", ...creatures.map(([n, t]) => `- ${n}: ${t}`)] : []),
     ...(treasures.length ? ["", "WHAT THEY CARRY:", ...treasures.map(([n, t]) => `- ${n}: ${t}`)] : []),
     ...(places.length ? ["", "PLACES AND PERILS:", ...places.map((p) => `- ${p.text}`)] : []),

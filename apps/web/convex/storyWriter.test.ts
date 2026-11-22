@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { EDITOR_SYSTEM, FACT_CHECK_SYSTEM, PLANNER_SYSTEM, STORY_VOICES, pickVoice } from "./storyPrompt";
-import { writeStory, parseEditedStory, parseFactCheck, splitStory, defaultPrompt, UNSUPPORTED_MARKER, type ModelCall } from "./storyWriter";
+import { writeStory, resolveFields, parseEditedStory, parseFactCheck, splitStory, defaultPrompt, UNSUPPORTED_MARKER, type ModelCall } from "./storyWriter";
 
 const para = Array(30).fill("The lantern burned low and they went on down the long stair together").join(" ") + ".";
 export const STORY = `# The Count\n\n${[para, para, para, para].join("\n\n")}`; // about 1,560 words
@@ -135,5 +135,27 @@ describe("voice and plan", () => {
     if (!r.ok) return;
     expect(r.runs.map((x) => [x.pass, x.status])).toEqual([["plan", "error"], ["write", "ok"], ["check", "ok"], ["edit", "ok"], ["check", "ok"]]);
     expect(seen[1]!.user).not.toContain("THE PLAN");
+  });
+});
+
+describe("edited prompts reach the model", () => {
+  it("the planner, fact-check, voices and bible come from the prompt given, not from the source", async () => {
+    const edited = {
+      ...prompt, planner: "MY PLANNER", factCheck: "MY FACT CHECK", voices: "solo: MY ONLY VOICE.",
+      bible: "## header\nMY HEADER\n## creatures\nDragon: MY DRAGON.",
+    };
+    const { call, seen } = script(clean());
+    expect((await writeStory(call, edited, "A Dragon came.", Date.now, "k97abc")).ok).toBe(true);
+    expect(seen.map((s) => s.system)).toEqual(["MY PLANNER", prompt.writer, "MY FACT CHECK", prompt.editor, "MY FACT CHECK"]);
+    for (const i of [0, 1, 3]) expect(seen[i]!.user).toContain("MY ONLY VOICE.");
+    for (const i of [0, 1]) { expect(seen[i]!.user).toContain("MY HEADER"); expect(seen[i]!.user).toContain("- Dragon: MY DRAGON."); }
+  });
+
+  it("resolveFields fills only what is missing", () => {
+    const r = resolveFields({ planner: "P" });
+    expect(r.planner).toBe("P");
+    expect(r.factCheck).toBe(prompt.factCheck);
+    expect(r.voices).toBe(prompt.voices);
+    expect(r.bible).toBe(prompt.bible);
   });
 });

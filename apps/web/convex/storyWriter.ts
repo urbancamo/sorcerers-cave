@@ -1,7 +1,7 @@
 import {
-  DEFAULT_MODEL, EDITOR_SYSTEM, FACT_CHECK_SYSTEM, PLANNER_SYSTEM, WORD_RANGE, WRITER_SYSTEM, editorUserMessage, estimateCostUsd, factCheckUserMessage, pickVoice, plannerUserMessage, storyProblems, writerUserMessage,
+  DEFAULT_MODEL, EDITOR_SYSTEM, FACT_CHECK_SYSTEM, PLANNER_SYSTEM, WORD_RANGE, WRITER_SYSTEM, editorUserMessage, estimateCostUsd, factCheckUserMessage, parseVoices, pickVoice, plannerUserMessage, renderVoices, storyProblems, writerUserMessage,
 } from "./storyPrompt";
-import { bibleFor } from "./storyBible";
+import { bibleFor, renderBible } from "./storyBible";
 
 /**
  * The story generator, with the model call passed in so it is testable without an API and so the Convex action stays thin.
@@ -10,10 +10,23 @@ import { bibleFor } from "./storyBible";
  */
 export type ModelCall = (a: { model: string; system: string; user: string; maxTokens: number }) => Promise<{ text: string; inputTokens: number; outputTokens: number }>;
 
-export interface ResolvedPrompt { version: number; writer: string; editor: string; model: string; minWords: number; maxWords: number }
+/** Everything the generator reads. `planner`, `factCheck`, `voices` and `bible` are text (voices and bible in the formats of `parseVoices` and `parseBible`). */
+export interface ResolvedPrompt {
+  version: number; writer: string; editor: string; model: string; minWords: number; maxWords: number;
+  planner: string; factCheck: string; voices: string; bible: string;
+}
 
 /** The prompt used when none has been saved in the admin panel: the defaults in storyPrompt.ts (version 0). */
-export const defaultPrompt = (): ResolvedPrompt => ({ version: 0, writer: WRITER_SYSTEM, editor: EDITOR_SYSTEM, model: DEFAULT_MODEL, minWords: WORD_RANGE.min, maxWords: WORD_RANGE.max });
+export const defaultPrompt = (): ResolvedPrompt => ({
+  version: 0, writer: WRITER_SYSTEM, editor: EDITOR_SYSTEM, model: DEFAULT_MODEL, minWords: WORD_RANGE.min, maxWords: WORD_RANGE.max,
+  planner: PLANNER_SYSTEM, factCheck: FACT_CHECK_SYSTEM, voices: renderVoices(), bible: renderBible(),
+});
+
+/** Fill the four newer prompt fields from the source defaults when a caller (or an old saved version) left them out. */
+export function resolveFields<T extends { planner?: string; factCheck?: string; voices?: string; bible?: string }>(p: T): T & Pick<ResolvedPrompt, "planner" | "factCheck" | "voices" | "bible"> {
+  const d = defaultPrompt();
+  return { ...p, planner: p.planner ?? d.planner, factCheck: p.factCheck ?? d.factCheck, voices: p.voices ?? d.voices, bible: p.bible ?? d.bible };
+}
 
 export interface RunRecord {
   pass: "plan" | "write" | "check" | "edit";
@@ -62,8 +75,9 @@ export function parseFactCheck(raw: string): string[] | null {
  */
 export async function writeStory(call: ModelCall, prompt: ResolvedPrompt, digestText: string, now: () => number = Date.now, voiceKey = ""): Promise<WriteResult> {
   const runs: RunRecord[] = [];
-  const voice = pickVoice(voiceKey);
-  const bible = bibleFor(digestText); // lore for just the creatures, objects and places in this run
+  const voices = parseVoices(prompt.voices).voices;
+  const voice = pickVoice(voiceKey, voices.length ? voices : undefined);
+  const bible = bibleFor(digestText, prompt.bible); // lore for just the creatures, objects and places in this run
 
   /** One model call, recorded as a run whatever happens. Returns the text, or null after recording the failure. */
   const attempt = async (pass: RunRecord["pass"], system: string, user: string): Promise<string | null> => {
@@ -84,14 +98,14 @@ export async function writeStory(call: ModelCall, prompt: ResolvedPrompt, digest
     return { ok: false, reason, runs };
   };
 
-  const planText = await attempt("plan", PLANNER_SYSTEM, plannerUserMessage(digestText, voice, bible));
+  const planText = await attempt("plan", prompt.planner, plannerUserMessage(digestText, voice, bible));
   const plan = planText?.trim() || undefined; // a failed plan is recorded as an error run; the story goes on without it
   const draft = await attempt("write", prompt.writer, writerUserMessage(digestText, voice, plan, bible));
   if (draft === null) return { ok: false, reason: `write failed: ${runs[runs.length - 1]!.reason}`, runs };
 
   /** Fact-check a story: the problems found, [] when it is clean, or null after recording a failure. */
   const check = async (story: string): Promise<string[] | WriteResult> => {
-    const raw = await attempt("check", FACT_CHECK_SYSTEM, factCheckUserMessage(digestText, story));
+    const raw = await attempt("check", prompt.factCheck, factCheckUserMessage(digestText, story));
     if (raw === null) return { ok: false, reason: `check failed: ${runs[runs.length - 1]!.reason}`, runs };
     const found = parseFactCheck(raw);
     return found ?? reject("fact-check reply was empty");

@@ -245,7 +245,7 @@ High-scoring solo escapes get a short story written by Claude (plan: `docs/requi
   by itself; with no key, `highScores.save` queues nothing.
   Set it with `npx convex env set ANTHROPIC_API_KEY <key>` (add `--prod` for the production deployment).
 - **Threshold** per leaderboard table, in `convex/storyPrompt.ts` (`STORY_THRESHOLD`): base 200, Extension Kit 250, kit + Sibyl 250 (their scores are not comparable with base, SC-EXT-29 / SC-SIB-9). Solo only. A lower threshold means more stories and more spend.
-- **Prompt**: the default instructions, model, word range and price table are in `convex/storyPrompt.ts`; an admin-saved prompt version overrides them.
+- **Prompt**: the default instructions, model, word range and price table are in `convex/storyPrompt.ts`, and the default story bible in `convex/storyBible.ts`; an admin-saved prompt version overrides them. A version holds the planner, writer, fact-check and editor prompts, the voices (`id: instruction` per line) and the story bible (sections of `Name: entry` lines), all editable on the Stories tab's Prompt page by the Stories role. A version saved before the planner, fact-check, voices and bible were editable uses the source defaults for them.
 - **Spend controls**: the `storySettings` document holds a `paused` switch and daily/monthly caps in US dollars; a call is refused once a cap is reached.
 - **Admin panel, Stories tab** (ANALYTICS or STORIES views it; STORIES edits, but only SYSTEM can raise or remove a spending cap): dashboard of stories, calls, spend and failures; pause and caps;
   the prompt editor (each save is a new version, and a trial on one real game costs about one story and stores nothing); and bulk

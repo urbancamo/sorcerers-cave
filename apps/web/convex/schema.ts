@@ -238,6 +238,11 @@ export default defineSchema({
     model: v.string(),
     minWords: v.number(),
     maxWords: v.number(),
+    // Added later; a version without them uses the source defaults (see activePrompt).
+    planner: v.optional(v.string()),
+    factCheck: v.optional(v.string()),
+    voices: v.optional(v.string()),
+    bible: v.optional(v.string()),
     note: v.optional(v.string()),
     createdBy: v.optional(v.id("users")),
     createdAt: v.number(),

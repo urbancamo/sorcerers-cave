@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+import { activePrompt } from "./stories";
 import { convexTest } from "convex-test";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { api } from "./_generated/api";
@@ -82,6 +83,33 @@ test("saving a prompt appends a new version and activates it; bad input is refus
   await expect(admin.mutation(api.storyAdmin.savePrompt, { ...newPrompt, writer: " " })).rejects.toThrow(/writer prompt is empty/);
   await expect(admin.mutation(api.storyAdmin.savePrompt, { ...newPrompt, model: "gpt-x" })).rejects.toThrow(/model must be/);
   await expect(admin.mutation(api.storyAdmin.savePrompt, { ...newPrompt, minWords: 2000 })).rejects.toThrow(/word range/);
+});
+
+test("the planner, fact-check, voices and bible are saved with a version, validated, and defaulted for older versions", async () => {
+  const t = convexTest(schema, modules);
+  const admin = (await asUser(t, ["SYSTEM"])).as;
+  const defaults = (await admin.query(api.storyAdmin.prompts, {})).defaults;
+  expect(defaults.planner).toMatch(/planning a short story/);
+  expect(defaults.factCheck).toMatch(/fact-checker/);
+  expect(defaults.voices).toMatch(/^close-third: /);
+  expect(defaults.bible).toMatch(/^## header/);
+
+  // A version saved the old way (five fields) shows today's defaults for the rest, and uses them.
+  await admin.mutation(api.storyAdmin.savePrompt, newPrompt);
+  expect((await admin.query(api.storyAdmin.prompts, {})).versions[0]).toMatchObject({ planner: defaults.planner, bible: defaults.bible });
+
+  // A version with its own planner and bible keeps them.
+  const mine = { ...newPrompt, planner: "MY PLANNER", factCheck: "MY CHECK", voices: "solo: Just one.", bible: "## header\nH\n## creatures\nDragon: A dragon." };
+  await admin.mutation(api.storyAdmin.savePrompt, mine);
+  expect((await admin.query(api.storyAdmin.prompts, {})).versions[0]).toMatchObject({ planner: "MY PLANNER", factCheck: "MY CHECK", voices: "solo: Just one.", bible: mine.bible });
+  const used = await t.run(async (ctx) => activePrompt(ctx));
+  expect(used).toMatchObject({ planner: "MY PLANNER", factCheck: "MY CHECK", voices: "solo: Just one.", bible: mine.bible });
+
+  // Bad edits are refused with the reason.
+  await expect(admin.mutation(api.storyAdmin.savePrompt, { ...newPrompt, planner: " " })).rejects.toThrow(/planner prompt is empty/);
+  await expect(admin.mutation(api.storyAdmin.savePrompt, { ...newPrompt, factCheck: "" })).rejects.toThrow(/fact-check prompt is empty/);
+  await expect(admin.mutation(api.storyAdmin.savePrompt, { ...newPrompt, voices: "no colon" })).rejects.toThrow(/expected "id: instruction"/);
+  await expect(admin.mutation(api.storyAdmin.savePrompt, { ...newPrompt, bible: "## header\nH\n## creatures\nDragn: x" })).rejects.toThrow(/not a creature/);
 });
 
 test("a STORIES editor can pause and lower a cap but not raise or remove one; SYSTEM can", async () => {

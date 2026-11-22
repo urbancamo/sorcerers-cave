@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { ALL_CREATURES, ALL_TREASURES } from "@sorcerers-cave/engine";
-import { BIBLE_HEADER, CREATURE_LORE, PLACE_LORE, TREASURE_LORE, bibleFor } from "./storyBible";
-import { plannerUserMessage, writerUserMessage, pickVoice } from "./storyPrompt";
+import { BIBLE_HEADER, CREATURE_LORE, PLACE_LORE, TREASURE_LORE, bibleFor, bibleProblems, defaultBible, parseBible, renderBible } from "./storyBible";
+import { plannerUserMessage, writerUserMessage, pickVoice, parseVoices, renderVoices, STORY_VOICES } from "./storyPrompt";
 
 describe("bibleFor", () => {
   it("gives only the entries for what is in the digest, under the header", () => {
@@ -56,5 +56,58 @@ describe("the bible in the prompts", () => {
     expect(plannerUserMessage("THE DIGEST", voice, "THE BIBLE")).toMatch(/THE DIGEST[\s\S]*THE BIBLE[\s\S]*Write the plan now/);
     expect(writerUserMessage("THE DIGEST", voice, "A PLAN", "THE BIBLE")).toMatch(/THE DIGEST[\s\S]*THE BIBLE[\s\S]*THE VOICE[\s\S]*A PLAN/);
     expect(writerUserMessage("THE DIGEST", voice, "A PLAN")).not.toContain("THE WORLD");
+  });
+});
+
+const known = { creatures: ALL_CREATURES.map((c) => c.name), treasures: ALL_TREASURES.map((t) => t.name) };
+const DIGEST = "1. A chamber with a Dragon holding Magic Staff and Holy Water.\n2. The party came to a pit of vipers.\n3. A W-Hero joined the party.";
+
+describe("the bible as editable text", () => {
+  it("renders the defaults and reads them back unchanged, with no problems", () => {
+    const text = renderBible();
+    const { bible, problems } = parseBible(text);
+    expect(problems).toEqual([]);
+    expect(bible).toEqual(defaultBible());
+    expect(bibleProblems(text, known)).toEqual([]);
+    expect(bibleFor(DIGEST, text)).toBe(bibleFor(DIGEST)); // editing nothing changes nothing
+  });
+
+  it("uses an edited entry, an edited header and an added place keyword", () => {
+    const text = renderBible()
+      .replace(/^Dragon: .*$/m, "Dragon: A great green worm of a thing.")
+      .replace("THE WORLD, for colour.", "EDITED HEADER.")
+      .replace(/^pit of vipers \| vipers:/m, "pit of vipers | vipers | snakes:");
+    const out = bibleFor("A Dragon. The party met snakes.", text);
+    expect(out).toContain("- Dragon: A great green worm of a thing.");
+    expect(out).toContain("EDITED HEADER.");
+    expect(out).toContain("viper pit"); // matched through the new keyword
+  });
+
+  it("an entry removed from the text is simply not offered", () => {
+    const text = renderBible().replace(/^Dragon: .*\n/m, "");
+    expect(bibleFor("A Dragon.", text)).not.toContain("- Dragon:");
+  });
+
+  it("reports a malformed line, an unknown section, a missing header, and names the game does not have", () => {
+    expect(parseBible("## header\nH\n## creatures\nno colon here").problems.join(" ")).toMatch(/expected "Name: entry"/);
+    expect(parseBible("## nonsense\nx: y").problems.join(" ")).toMatch(/unknown section/);
+    expect(parseBible("Dragon: x").problems.join(" ")).toMatch(/outside any section/);
+    expect(bibleProblems("## creatures\nDragon: x", known).join(" ")).toMatch(/needs a header/);
+    const bad = bibleProblems("## header\nH\n## creatures\nDragn: x\n## artefacts\nMagic Wand: y", known).join(" ");
+    expect(bad).toMatch(/"Dragn" is not a creature/);
+    expect(bad).toMatch(/"Magic Wand" is not an artefact/);
+  });
+});
+
+describe("the voices as editable text", () => {
+  it("round-trip, and report a missing id, a duplicate id, and an empty list", () => {
+    expect(parseVoices(renderVoices())).toEqual({ voices: [...STORY_VOICES], problems: [] });
+    expect(parseVoices("just words").problems.join(" ")).toMatch(/expected "id: instruction"/);
+    expect(parseVoices("a: one\na: two").problems.join(" ")).toMatch(/appears twice/);
+    expect(parseVoices("  \n").problems.join(" ")).toMatch(/at least one voice/);
+  });
+  it("picks from an edited list", () => {
+    const { voices } = parseVoices("only: The one voice.");
+    expect(pickVoice("anything", voices)).toEqual({ id: "only", instruction: "The one voice." });
   });
 });

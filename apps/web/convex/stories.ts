@@ -51,7 +51,13 @@ export async function queueStory(ctx: MutationCtx, highScoreId: Id<"highScores">
 /** The active prompt: the newest saved version, or the source default (version 0). */
 export async function activePrompt(ctx: { db: QueryCtx["db"] }): Promise<ResolvedPrompt> {
   const row = await ctx.db.query("storyPrompts").withIndex("by_version").order("desc").first();
-  return row ? { version: row.version, writer: row.writer, editor: row.editor, model: row.model, minWords: row.minWords, maxWords: row.maxWords } : defaultPrompt();
+  if (!row) return defaultPrompt();
+  // A version saved before the planner, fact-check, voices and bible were editable has none of them: it uses today's source defaults.
+  const d = defaultPrompt();
+  return {
+    version: row.version, writer: row.writer, editor: row.editor, model: row.model, minWords: row.minWords, maxWords: row.maxWords,
+    planner: row.planner ?? d.planner, factCheck: row.factCheck ?? d.factCheck, voices: row.voices ?? d.voices, bible: row.bible ?? d.bible,
+  };
 }
 
 export const startOfUtcDay = (t: number): number => t - (t % 86_400_000);

@@ -74,3 +74,11 @@ One editor was fact-checking, fixing continuity, stripping game-speak and doing 
 - A test checks that every creature and artefact in the engine has an entry, so a new kit creature cannot be added without lore.
 - Also fixed in the digest: "an Unicorn" is now "a Unicorn".
 - The wording is a first draft meant to be edited; it lives in code, not in the admin panel.
+
+## Everything editable in the admin panel (2026-11-22, branch digest-improvements)
+
+The planner prompt, fact-check prompt, voices and story bible are now part of a saved prompt version, edited on the Stories tab's Prompt page alongside the writer and editor prompts (same versioning, same "try this prompt first", same Stories role).
+
+- Voices are text, one `id: instruction` per line. The bible is text in sections (`## header`, `## creatures`, `## artefacts`, `## places`), one `Name: entry` per line; a place is `keyword | keyword: entry` (whole-word, case-insensitive). `renderBible` / `parseBible` and `renderVoices` / `parseVoices` convert between the text and the defaults in code.
+- Saving is validated: a malformed line, an unknown section, a missing header, a creature or artefact name the game does not have (it could never match), a duplicate voice id, an empty prompt.
+- Versions saved before this have none of the four new fields and use today's source defaults for them (the admin shows those defaults when such a version is loaded). New fields are optional in the save call, so older callers still work.

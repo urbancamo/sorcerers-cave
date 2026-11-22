@@ -146,7 +146,23 @@ export const STORY_VOICES: readonly StoryVoice[] = [
 /** A short stable hash of any string (FNV-1a), so a game's voice does not change when the same game is rewritten. */
 const hash = (s: string): number => { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619); return h >>> 0; };
 /** The voice for a game, chosen from a key (the high-score id) so the same game always gets the same voice. */
-export const pickVoice = (key: string): StoryVoice => STORY_VOICES[hash(key) % STORY_VOICES.length]!;
+export const pickVoice = (key: string, voices: readonly StoryVoice[] = STORY_VOICES): StoryVoice => voices[hash(key) % voices.length]!;
+
+/** The voices as editable text, one `id: instruction` per line, and back again. */
+export const renderVoices = (voices: readonly StoryVoice[] = STORY_VOICES): string => voices.map((v) => `${v.id}: ${v.instruction}`).join("\n");
+export function parseVoices(text: string): { voices: StoryVoice[]; problems: string[] } {
+  const voices: StoryVoice[] = [], problems: string[] = [];
+  text.split("\n").forEach((raw, i) => {
+    const line = raw.trim();
+    if (!line) return;
+    const m = line.match(/^([\w-]+):\s*(.+)$/);
+    if (!m) { problems.push(`Voice line ${i + 1}: expected "id: instruction".`); return; }
+    if (voices.some((v) => v.id === m[1])) problems.push(`Voice "${m[1]}" appears twice.`);
+    voices.push({ id: m[1]!, instruction: m[2]!.trim() });
+  });
+  if (!voices.length) problems.push("There must be at least one voice.");
+  return { voices, problems };
+}
 
 /** The planning pass: choose the shape of the story before any of it is written. Its output is the beat sheet the writer follows. */
 export const PLANNER_SYSTEM = `You are a story editor planning a short story, not writing it. You will be given the record of one expedition into a cave \
