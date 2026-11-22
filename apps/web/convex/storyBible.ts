@@ -24,7 +24,7 @@ export const CREATURE_LORE: Record<string, string> = {
   "Ogre": "Huge, slow to anger and slower to be understood, with a back that carries what would break anyone else. Says little. Won over, it is the most dependable thing in the party.",
   "Troll": "Broad and stony-skinned, stolid, sullen at first meeting. Strong and hard to move; loyal once it has chosen a side.",
   "Priest": "Robed, quiet and steadier at the back of a line than the front. Brings prayer and a little power; fragile in a fight and often the one who sees what it costs.",
-  "Man": "An ordinary man: neither brave nor craven by nature, which is what makes him matter. Give him one particular trait (a limp, a cracked lip) rather than a name if he has no name.",
+  "Man": "An ordinary man: neither brave nor craven by nature, which is what makes him matter. If he has no name, tell him apart by something plain that fits what the record gives of him, and do not invent a bodily trait for him.",
   "Woman": "A capable ordinary woman, practical and unsentimental. Unicorns will come to her.",
   "Dwarf": "Small, stubborn, and in his element underground: he knows how stone is laid and reads a floor for a trap. A hard bargain-driver. Losing the one who knows the way is felt.",
   "Wizard": "Gaunt and dry, wary of rivals, with power held in a staff or a gesture. Carries what others cannot, and is rarely a friend to a Sorcerer.",
