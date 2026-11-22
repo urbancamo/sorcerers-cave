@@ -215,7 +215,9 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
         out.push({ text: "No party members have been left alive by Medusa's gaze.", tone: "bad" });
         break;
       case "eyeForsaken":
-        out.push({ text: "The Eye of God leaves its bearer — a curse settles on the party (−1 to every roll).", tone: "bad" });
+        out.push(e.inert
+          ? { text: "The Eye of God leaves its bearer — but the Sorcerer is dead, so the curse has no effect.", tone: "neutral" }
+          : { text: "The Eye of God leaves its bearer — a curse settles on the party (−1 to every roll).", tone: "bad" });
         break;
       case "hazardFired": {
         const n = hazardNotice(e.hazard);
@@ -245,7 +247,8 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
       // event (carpetUsed / secretDoorRevealed / …) handled below, so they're skipped here.
       case "artifactUsed":
         if (e.artifact === 6) out.push({ text: "The Healing Balm restores a fallen companion to life.", tone: "good" });
-        else if (e.artifact === 9) out.push({ text: "The Magic Staff frees a companion from stone.", tone: "good" });
+        // (Waking Gallery statues also emits artifactUsed 9, but its own `staffWake` line below tells that story instead.)
+        else if (e.artifact === 9 && !events.some((ev) => ev.type === "staffWake")) out.push({ text: "The Magic Staff frees a companion from stone.", tone: "good" });
         break;
       case "carpetUsed":
         out.push({ text: "The Magic Carpet whisks the party to a new area, and is left behind.", tone: "neutral" });
@@ -360,16 +363,14 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
       case "bellRoll": // rollView's single-die overlay (Task 16) — vanish/toll/stir message + tone
         break;
       case "galleryStone":
-        // UX ruling (T7 minor): when a Staff-Wizard's `staffWake` fires in this SAME batch (first
-        // entry into a Gallery already carrying the Staff — `enterChamber` then `wakeGalleryStatues`,
-        // reduce.ts), the statues never actually stay stone long enough to narrate — skip this line
-        // so the beat reads as one event ("the Staff blazes…"), not "stone… then immediately awake".
-        if (!events.some((ev) => ev.type === "staffWake")) {
-          out.push({ text: "The strangers here are stone — silent, waiting.", tone: "neutral" });
-        }
+        // The Staff no longer wakes the statues on entry (SC-EXT-11, issue #105), so they always stay stone here until a wake is chosen.
+        out.push({ text: "The strangers here are stone — silent, waiting.", tone: "neutral" });
         break;
       case "staffWake":
-        out.push({ text: "The Magic Staff blazes — every stone figure in the gallery cracks and stirs!", tone: "neutral" });
+        // One statue, or several (the player chose singly or as a group): never claim "every" when some stay stone.
+        out.push({ text: e.creatureIds.length === 1
+          ? `The Magic Staff blazes — the stone ${name(e.creatureIds[0]!)} cracks and stirs!`
+          : `The Magic Staff blazes — ${e.creatureIds.length} stone figures crack and stir!`, tone: "neutral" });
         break;
       case "lairStash":
         // Ordering fix (T9 minor): when Harpies deliver straight to an already-placed Lair,

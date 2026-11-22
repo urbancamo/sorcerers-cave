@@ -157,7 +157,13 @@ export function cursedRoll(state: GameState): number {
 export function eyeForsakenByDeath(state: GameState, fallen: PartyMember): GameEvent[] {
   if (!fallen.treasure.includes(T_EYE_OF_GOD)) return [];
   state.curses += 1;
-  return [{ type: "eyeForsaken" }];
+  return [eyeForsakenEvent(state)];
+}
+
+/** The `eyeForsaken` event for a curse just added. With the Sorcerer already dead the curse still counts (`state.curses`) but is
+ *  inert (`activeCurses` is 0), so the event says so and the screens can word it truthfully (SC-11-38). Without it the event is unchanged. */
+export function eyeForsakenEvent(state: GameState): GameEvent {
+  return state.sorcererKilled ? { type: "eyeForsaken", inert: true } : { type: "eyeForsaken" };
 }
 
 /** Slay a member and stamp when/where it happened (SC-11-15a) — call at every death site, alongside
@@ -376,18 +382,17 @@ export interface HolyWaterTarget {
   mode: HolyWaterMode;
 }
 
-/** Every legal Holy Water target in the party's CURRENT area, for the state's CURRENT phase (design
- *  US-20: "target picker listing every legal target in the current area"). REVIVE/WAKE/destroyMedusa
- *  are offered at rest or while looting (explore/pickup — the same phases Balm/Staff use); DESTROY/
- *  WEAKEN need a live stranger to target, so they're offered only in encounter/fight (Lotus Dust's
- *  own phase gate). Any other phase (medusa pause, gameOver) yields no targets at all. */
-export function holyWaterTargets(state: GameState): HolyWaterTarget[] {
-  const out: HolyWaterTarget[] = [];
-  if (state.phase === "explore" || state.phase === "pickup") {
-    state.party.forEach((m, mi) => {
-      if (m.status === 2 && m.stoneArea === state.partyArea) out.push({ target: mi, creatureId: m.creatureId, mode: "revive" });
-    });
-    (state.statues ?? []).forEach((creatureId, i) => out.push({ target: HW_STATUE_BASE + i, creatureId, mode: "wake" }));
+/**
+ * Every Gallery statue the party can reach at rest, one target each, in the same numeric ranges Holy Water has always used:
+ * a LIVE statue (mid-resolution, `state.statues`) at `HW_STATUE_BASE + index`, and one already PARKED on the tile's own
+ * `contents` as 500+cid at `HW_PARKED_STATUE_BASE + index`. Offered at rest or while looting for the live ones; the parked
+ * ones only at rest (`explore`). Shared by Holy Water (`holyWaterTargets`) and the Magic Staff (`staffStatueTargets`), so the
+ * two can never disagree about what counts as a statue to wake.
+ */
+export function galleryStatueTargets(state: GameState): { target: number; creatureId: number }[] {
+  const out: { target: number; creatureId: number }[] = [];
+  if (state.phase !== "explore" && state.phase !== "pickup") return out;
+  (state.statues ?? []).forEach((creatureId, i) => out.push({ target: HW_STATUE_BASE + i, creatureId }));
     // Bug fix 2026-08-09 (QOTO-04): a Gallery draw with nothing else pending (no live strangers or
     // treasure) settles straight to `explore` (`persistAndExplore`, SC-EXT-10's own "resolves
     // straight to pickup/explore like no strangers at all") — which PARKS its statues onto the
@@ -401,11 +406,39 @@ export function holyWaterTargets(state: GameState): HolyWaterTarget[] {
     // PARKED at the location holding it, not only mid-resolution. A distinct pool from
     // HW_STATUE_BASE (never both non-empty at once, but kept separate rather than relying on that)
     // since the target here is a `contents` array index, not a `state.statues` index.
-    if (state.phase === "explore") {
-      state.areas[state.partyArea]?.contents.forEach((code, i) => {
-        if (code >= 500 && code < 600) out.push({ target: HW_PARKED_STATUE_BASE + i, creatureId: code - 500, mode: "wake" });
-      });
-    }
+  if (state.phase === "explore") {
+    state.areas[state.partyArea]?.contents.forEach((code, i) => {
+      if (code >= 500 && code < 600) out.push({ target: HW_PARKED_STATUE_BASE + i, creatureId: code - 500 });
+    });
+  }
+  return out;
+}
+
+/** Magic Staff target meaning "wake every statue here at once" (a group), beside one target per statue (singly). */
+export const STAFF_WAKE_ALL = 5000;
+
+/** The Staff-Wizard's choices at a Gallery (SC-EXT-11, issue #105): each statue singly, and — when there are two or more —
+ *  all of them together. Empty when there are no statues to reach. */
+export function staffStatueTargets(state: GameState): { target: number; creatureIds: number[] }[] {
+  const each = galleryStatueTargets(state);
+  const out = each.map((t) => ({ target: t.target, creatureIds: [t.creatureId] }));
+  if (each.length >= 2) out.push({ target: STAFF_WAKE_ALL, creatureIds: each.map((t) => t.creatureId) });
+  return out;
+}
+
+/** Every legal Holy Water target in the party's CURRENT area, for the state's CURRENT phase (design
+ *  US-20: "target picker listing every legal target in the current area"). REVIVE/WAKE/destroyMedusa
+ *  are offered at rest or while looting (explore/pickup — the same phases Balm/Staff use); DESTROY/
+ *  WEAKEN need a live stranger to target, so they're offered only in encounter/fight (Lotus Dust's
+ *  own phase gate). Any other phase (medusa pause, gameOver) yields no targets at all. */
+export function holyWaterTargets(state: GameState): HolyWaterTarget[] {
+  const out: HolyWaterTarget[] = [];
+  if (state.phase === "explore" || state.phase === "pickup") {
+    state.party.forEach((m, mi) => {
+      if (m.status === 2 && m.stoneArea === state.partyArea) out.push({ target: mi, creatureId: m.creatureId, mode: "revive" });
+    });
+    // Gallery statues, live or parked (see `galleryStatueTargets`): Holy Water wakes them one at a time.
+    galleryStatueTargets(state).forEach((t) => out.push({ ...t, mode: "wake" }));
     if (state.areas[state.partyArea]?.contents.includes(300 + HAZARD_MEDUSA)) {
       out.push({ target: HW_MEDUSA, mode: "destroyMedusa" });
     }

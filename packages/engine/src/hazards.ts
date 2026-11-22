@@ -57,8 +57,8 @@ function livingHasArtifacts(state: GameState): boolean {
 }
 
 /** A living Wizard (or the Apprentice, who "uses artifacts as a Wizard" — design US-14, SC-EXT-17)
- *  bearing the Magic Staff — makes Medusa powerless over the whole party, and cracks every Gallery
- *  statue awake on entry (card; SC-EXT-11). */
+ *  bearing the Magic Staff — makes Medusa powerless over the whole party, and may wake Gallery
+ *  statues by choice (card; SC-EXT-11). */
 export function hasStaffWizard(state: GameState): boolean {
   return state.party.some((m) => (m.status === 0 || m.status === 1) && usesArtifactsAs(m.creatureId, C_WIZARD) && inUse(m, T_MAGIC_STAFF));
 }

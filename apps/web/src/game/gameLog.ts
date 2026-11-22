@@ -153,7 +153,7 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "mutinied": return `mutiny — ${e.deserters.length} deserted, ${e.treasures.length} item(s) dropped`;
     case "medusaGaze": return `Medusa's gaze — ${e.rolls.filter((r) => r.petrified).length} petrified`;
     case "viperPit": return `viper pit crossing — ${e.rolls.filter((r) => r.died).length} fell`;
-    case "eyeForsaken": return "the Eye of God was forsaken — the party is cursed";
+    case "eyeForsaken": return e.inert ? "the Eye of God was forsaken — the Sorcerer is dead, so the curse has no effect" : "the Eye of God was forsaken — the party is cursed";
     case "petrifiedOut": return "the whole party was turned to stone";
     case "trapSprung": return e.guideLost ? `the Dwarf was gone — the trap took the party to level ${e.level}`
       : e.deliberate ? `fell through the trap on purpose to level ${e.level}`

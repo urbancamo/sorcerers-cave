@@ -7,6 +7,7 @@ import { scoreBreakdown } from "./score";
 import { makeState, inUseGear } from "./testkit";
 import { packCoord, DIR_E, DIR_S, DIR_DOWN } from "./coords";
 import { decodeArea } from "./decode";
+import { HW_PARKED_STATUE_BASE } from "./effects";
 import { SPECIAL_GALLERY } from "./data/areaCards";
 import { HAZARD_MEDUSA, HAZARD_MUTINY } from "./data/hazards";
 import { GS_PLAYING, type GameState, type PartyMember } from "./state";
@@ -142,7 +143,7 @@ describe("Class-based artifact eligibility — Apprentice uses artifacts as a Wi
     expect(events).toContainEqual({ type: "medusaAverted" });
   });
 
-  it("bearing the Magic Staff wakes every Gallery statue on entry (staff-wake, SC-EXT-11)", () => {
+  it("bearing the Magic Staff lets her wake a Gallery statue by choice, not on entry (staff-wake, SC-EXT-11, issue #105)", () => {
     const GALLERY_CARD = (SPECIAL_GALLERY << 7) | 31;
     const s = makeState({
       gs: GS_PLAYING, phase: "explore",
@@ -152,8 +153,13 @@ describe("Class-based artifact eligibility — Apprentice uses artifacts as a Wi
       party: [member(APPRENTICE, [MAGIC_STAFF])],
       smallPack: [100 + MAN], smallIdx: 0,
     });
-    const { state, events } = reduce(s, { type: "move", dir: DIR_E });
-    expect(state.statues).toEqual([]);
+    const entered = reduce(s, { type: "move", dir: DIR_E });
+    expect(entered.state.strangers).toEqual([]); // nothing wakes on entry any more
+    const gallery = entered.state.areas.find((a) => a.contents.includes(500 + MAN))!;
+    const idx = gallery.contents.indexOf(500 + MAN);
+    const wake = { type: "useArtifact", artifact: MAGIC_STAFF, target: HW_PARKED_STATUE_BASE + idx } as const; // she uses artefacts as a Wizard
+    expect(legalActions(entered.state)).toContainEqual(wake);
+    const { state, events } = reduce(entered.state, wake);
     expect(state.strangers).toEqual([MAN]);
     expect(events).toContainEqual({ type: "staffWake", creatureIds: [MAN] });
   });
