@@ -1,9 +1,9 @@
 import { describe, it, expect } from "vitest";
-import { writeStory, parseEditorReply, splitStory, defaultPrompt, type ModelCall } from "./storyWriter";
+import { writeStory, parseEditorReply, splitStory, defaultPrompt, UNSUPPORTED_MARKER, type ModelCall } from "./storyWriter";
 
 const para = Array(30).fill("The lantern burned low and they went on down the long stair together").join(" ") + ".";
 export const STORY = `# The Count\n\n${[para, para, para, para].join("\n\n")}`; // about 1,560 words
-const reply = (story: string, unsupported: string[] = []) => JSON.stringify({ story, unsupported });
+const reply = (story: string, unsupported: string[] = []) => `${story}\n${UNSUPPORTED_MARKER}\n${unsupported.length ? unsupported.join("\n") : "none"}`;
 
 /** A model that answers from a script, recording what it was asked. */
 function script(answers: (string | Error)[]) {
@@ -53,15 +53,9 @@ describe("writeStory", () => {
     expect(r.runs[2]).toMatchObject({ status: "rejected" });
   });
 
-  it("fails on an editor reply that is not JSON", async () => {
-    const { call } = script(["draft", "Here is your story: ..."]);
-    const r = await writeStory(call, prompt, "D");
-    expect(r).toMatchObject({ ok: false, reason: "editor reply was not valid JSON" });
-  });
-
-  it("tolerates a code fence around the JSON", async () => {
-    const { call } = script(["draft", "```json\n" + reply(STORY) + "\n```"]);
-    expect((await writeStory(call, prompt, "D")).ok).toBe(true);
+  it("fails on an editor reply with no marker line, or with no title", async () => {
+    expect(await writeStory(script(["draft", "Here is your story: ..."]).call, prompt, "D")).toMatchObject({ ok: false, reason: "editor reply was not in the expected format" });
+    expect(await writeStory(script(["draft", `no title here\n${UNSUPPORTED_MARKER}\nnone`]).call, prompt, "D")).toMatchObject({ ok: false, reason: "editor reply was not in the expected format" });
   });
 
   it("fails the deterministic guard: a scene break, game-speak, or the wrong length", async () => {
@@ -87,10 +81,11 @@ describe("writeStory", () => {
 });
 
 describe("helpers", () => {
-  it("parseEditorReply rejects missing or empty stories and ignores non-string unsupported entries", () => {
-    expect(parseEditorReply("{}")).toBeNull();
-    expect(parseEditorReply(`{"story":"  "}`)).toBeNull();
-    expect(parseEditorReply(`{"story":"s","unsupported":["a",1,"",null]}`)).toEqual({ story: "s", unsupported: ["a"] });
+  it("parseEditorReply reads the story, the marker, and the listed facts (bullets and 'none' tolerated)", () => {
+    expect(parseEditorReply("")).toBeNull();
+    expect(parseEditorReply("# T\n\nbody")).toBeNull(); // no marker: probably cut off
+    expect(parseEditorReply(`# T\n\nA "quoted" line\nand another.\n${UNSUPPORTED_MARKER}\nnone`)).toEqual({ story: '# T\n\nA "quoted" line\nand another.', unsupported: [] });
+    expect(parseEditorReply(`# T\n\nb\n${UNSUPPORTED_MARKER}\n- a third dragon\n2. a wrong count\n`)).toEqual({ story: "# T\n\nb", unsupported: ["a third dragon", "a wrong count"] });
   });
   it("splitStory reads the title and counts only the body", () => {
     expect(splitStory("# Hello there\n\none two three")).toEqual({ title: "Hello there", words: 3 });

@@ -30,6 +30,10 @@ export interface StoryDigest {
     deepestLevel: number;
     roomsMapped: number;
     membersLost: number;
+    /** Who was lost along the way, and how ("a Dwarf (turned to stone)"). */
+    lost: string[];
+    /** How many chamber visits were left out because the party had passed an identical one before. */
+    repeatedChambers: number;
     /** Who walked out and what the notable ones carried. */
     exitParty: string[];
     exitCount: number;
@@ -60,8 +64,8 @@ export function storyDigest(frames: readonly ReplayFrame[]): StoryDigest {
   const beats: StoryBeat[] = [];
   let level = 1;
   let here: { strangers: string[]; treasures: string[]; hazards: string[] } = { strangers: [], treasures: [], hazards: [] };
-  let fight: { foes: string[]; killed: string[]; lost: string[]; start: number } | null = null;
-  let heavyLoss = false;
+  let fight: { foes: string[]; killed: string[]; start: number } | null = null;
+  let prevParty = first.party.map((m) => m.status);
 
   const add = (n: number, weight: 1 | 2 | 3, text: string) => beats.push({ n, level, weight, text });
 
@@ -94,20 +98,11 @@ export function storyDigest(frames: readonly ReplayFrame[]): StoryDigest {
         case "reaction":
           add(f.seq, e.outcome === "friendly" ? 2 : 1, `Their reaction${here.strangers.length ? ` (${counted(here.strangers)})` : ""}: ${e.outcome}.`);
           break;
-        case "strangersJoined": add(f.seq, 2, `${e.count} joined the party${here.strangers.length ? ` (${counted(here.strangers)})` : ""}.`); break;
-        case "fightStarted": fight = { foes: here.strangers.slice(), killed: [], lost: [], start: f.seq }; break;
+        case "fightStarted": fight = { foes: here.strangers.slice(), killed: [], start: f.seq }; break;
         case "strangerKilled": fight?.killed.push(creature(e.creatureId)); if (!fight) add(f.seq, 1, `A ${creature(e.creatureId)} was killed.`); break;
-        case "memberDied":
-        case "spectreSlew":
-        case "demonSlew": {
-          const who = creature(e.creatureId);
-          if (fight) fight.lost.push(who);
-          else add(f.seq, 3, `${who} was lost.`);
-          break;
-        }
         case "fightWon":
           if (fight) {
-            add(fight.start, fight.lost.length ? 3 : 2, `A fight against ${counted(fight.foes) || "strangers"} was won${fight.killed.length ? ` (${counted(fight.killed)} slain)` : ""}${fight.lost.length ? `, at the cost of ${list(fight.lost)}` : ""}.`);
+            add(fight.start, 2, `A fight against ${counted(fight.foes) || "strangers"} was won${fight.killed.length ? ` (${counted(fight.killed)} slain)` : ""}.`);
             fight = null;
           }
           break;
@@ -115,7 +110,7 @@ export function storyDigest(frames: readonly ReplayFrame[]): StoryDigest {
         case "desertionRoll": if (e.deserted) add(f.seq, 3, `${creature(e.creatureId)} deserted the party.`); break;
         case "eyeForsaken": add(f.seq, 2, "The Eye of God was left behind."); break;
         case "viperPit": case "vipersLulled": add(f.seq, 3, e.type === "vipersLulled" ? "The vipers were lulled to sleep (with the Charmed Flute) and the party crossed." : "The party faced the vipers."); break;
-        case "medusaGaze": add(f.seq, 3, `Medusa's gaze fell on the party${e.rolls.some((r) => r.petrified) ? " and turned someone to stone" : ""}.`); break;
+        case "medusaGaze": add(f.seq, 2, "Medusa's gaze fell on the party."); break;
         case "medusaAverted": add(f.seq, 3, e.by === "eye" ? "Medusa's gaze was turned aside by the Eye of God." : "Medusa's gaze was turned aside."); break;
         case "ghoulsAttack": add(f.seq, 2, `${e.count} ghouls attacked.`); break;
         case "artifactUsed": add(f.seq, 1, `The party used the ${treasure(e.artifact)}.`); break;
@@ -130,14 +125,36 @@ export function storyDigest(frames: readonly ReplayFrame[]): StoryDigest {
         case "leaderChosen": add(f.seq, 1, `${creature(e.creatureId)} became the party's leader.`); break;
         case "unicornJoins": add(f.seq, 3, "A Unicorn joined the party."); break;
         case "sibylJoins": add(f.seq, 3, "The Sibyl joined the party."); break;
-        case "deadEnd": break;
-        case "treasureDropped": if (e.count > 0) heavyLoss = true; break;
-        case "gameOver": break;
         default: break;
       }
     }
+    // Losses come from the roster, not the events: it names exactly who was turned to stone or killed, however it happened.
+    // What the frame itself says about how a loss came about, so the writer need not guess.
+    const evs = f.events as GameEvent[];
+    const cause = evs.some((e) => e.type === "medusaGaze") ? " by Medusa's gaze"
+      : evs.some((e) => e.type === "viperPit") ? " in the pit of vipers"
+      : fight || evs.some((e) => e.type === "fightStarted" || e.type === "strangerKilled" || e.type === "fightWon") ? ` in the fight against ${counted(here.strangers) || "strangers"}`
+      : "";
+    const joined: string[] = [];
+    f.state.party.forEach((m, i) => {
+      const before = prevParty[i];
+      if (before === undefined) { joined.push(creature(m.creatureId)); return; } // appended to the roster: a new member
+      if (before < 2 && m.status >= 2) add(f.seq, 3, `${creature(m.creatureId)} ${m.status === 2 ? "was turned to stone" : "was killed"}${cause}.`);
+      else if (before === 2 && m.status < 2) add(f.seq, 3, `${creature(m.creatureId)} was brought back from stone.`);
+    });
+    if (joined.length) add(f.seq, 2, `${counted(joined)} joined the party.`);
+    prevParty = f.state.party.map((m) => m.status);
   }
-  void heavyLoss;
+
+  // Passing the same room again is common; say it once, not eight times. Only the plainest repeats (weight 1) are dropped.
+  const seen = new Set<string>();
+  let repeated = 0;
+  for (let i = 0; i < beats.length; i++) {
+    const b = beats[i]!;
+    if (b.weight === 1 && /^A chamber/.test(b.text)) {
+      if (seen.has(b.text)) { beats.splice(i--, 1); repeated++; } else seen.add(b.text);
+    }
+  }
 
   // A fight's beat is stamped with the action it began on, so it can be emitted after later beats: put the run in order first
   // (Array.sort is stable, so beats from one action keep their emitted order).
@@ -152,7 +169,7 @@ export function storyDigest(frames: readonly ReplayFrame[]): StoryDigest {
       .sort((a, b) => a - b)
       .map((i) => beats[i]!);
 
-  const alive = last.party.filter((m) => m.status === 0);
+  const alive = last.party.filter((m) => m.status === 0 || m.status === 1); // 0 original, 1 ally; 2 stone and 3 dead are lost
   return {
     startingParty: first.party.map((m) => creature(m.creatureId)),
     outcome: {
@@ -160,7 +177,10 @@ export function storyDigest(frames: readonly ReplayFrame[]): StoryDigest {
       turns: last.turn,
       deepestLevel: deepestLevel(last),
       roomsMapped: last.areas.length,
-      membersLost: last.party.filter((m) => m.status === 3).length,
+      membersLost: last.party.filter((m) => m.status >= 2).length,
+      // Only those still lost at the end: a member turned to stone and later restored is not lost.
+      lost: last.party.filter((m) => m.status >= 2).map((m) => `${article(creature(m.creatureId))} ${creature(m.creatureId)} (${m.status === 2 ? "turned to stone" : "killed"})`),
+      repeatedChambers: repeated,
       exitParty: alive.map((m) => creature(m.creatureId) + (m.treasure.some((t) => t >= 3) ? ` (carrying ${list(m.treasure.filter((t) => t >= 3).map(treasure))})` : "")),
       exitCount: alive.length,
     },
@@ -172,8 +192,9 @@ export function storyDigest(frames: readonly ReplayFrame[]): StoryDigest {
 export function digestText(d: StoryDigest): string {
   return [
     `Starting party: ${list(d.startingParty)}.`,
-    `Outcome: escaped the cave with ${d.outcome.exitCount} living members; deepest level reached ${d.outcome.deepestLevel}; ${d.outcome.membersLost} lost along the way.`,
+    `Outcome: escaped the cave with ${d.outcome.exitCount} living members; deepest level reached ${d.outcome.deepestLevel}; ${d.outcome.membersLost} lost along the way${d.outcome.lost.length ? ` (${d.outcome.lost.join(", ")})` : ""}.`,
     `At the exit: ${d.outcome.exitParty.join("; ")}.`,
+    ...(d.outcome.repeatedChambers ? [`The party passed through some rooms more than once (${d.outcome.repeatedChambers} repeat visits are left out below).`] : []),
     "",
     "What happened, in order:",
     ...d.beats.map((b, i) => `${i + 1}. [level ${b.level}] ${b.text}`),

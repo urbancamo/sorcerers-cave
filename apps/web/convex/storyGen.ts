@@ -15,7 +15,8 @@ export const anthropicCall: ModelCall = async ({ model, system, user, maxTokens 
     body: JSON.stringify({ model, max_tokens: maxTokens, system, messages: [{ role: "user", content: user }] }),
   });
   if (!res.ok) throw new Error(`API ${res.status}: ${(await res.text()).slice(0, 200)}`);
-  const j = (await res.json()) as { content?: { type: string; text?: string }[]; usage?: { input_tokens?: number; output_tokens?: number } };
+  const j = (await res.json()) as { content?: { type: string; text?: string }[]; stop_reason?: string; usage?: { input_tokens?: number; output_tokens?: number } };
+  if (j.stop_reason === "max_tokens") throw new Error(`the reply hit the ${maxTokens}-token limit and was cut off`);
   return {
     text: (j.content ?? []).filter((c) => c.type === "text").map((c) => c.text ?? "").join(""),
     inputTokens: j.usage?.input_tokens ?? 0,

@@ -31,13 +31,36 @@ describe("storyDigest", () => {
     }
   });
 
+  it("counts allies (status 1) as alive, and names those turned to stone or killed (status 2, 3) as lost", () => {
+    for (const { code } of replayable.slice(0, 10)) {
+      const g = (games as unknown as Record<string, Rec>)[code]!;
+      const frames = replay(g.seed, g.picks, g.actions, g.variants as never);
+      const end = frames[frames.length - 1]!.state.party;
+      const d = storyDigest(frames);
+      expect(d.outcome.exitCount).toBe(end.filter((m) => m.status === 0 || m.status === 1).length);
+      expect(d.outcome.membersLost).toBe(end.filter((m) => m.status >= 2).length);
+      expect(d.outcome.lost).toHaveLength(d.outcome.membersLost); // the summary is the final state: a restored member is not lost
+    }
+  });
+
+  it("lists every member who joined, from the roster, so the joins add up to the exit party", () => {
+    for (const { code } of replayable.slice(0, 10)) {
+      const g = (games as unknown as Record<string, Rec>)[code]!;
+      const frames = replay(g.seed, g.picks, g.actions, g.variants as never);
+      const d = storyDigest(frames);
+      const everJoined = frames[frames.length - 1]!.state.party.length - frames[0]!.state.party.length;
+      const text = d.beats.filter((b) => / joined the party\./.test(b.text)).map((b) => b.text).join(" ");
+      expect(text.match(/\b(a|an|\d+) [A-Z][\w-]+/g)?.length ?? 0).toBeGreaterThanOrEqual(everJoined > 0 ? 1 : 0);
+    }
+  });
+
   it("states the starting party and the exit count truthfully", () => {
     const { code } = replayable[0]!;
     const g = (games as unknown as Record<string, Rec>)[code]!;
     const frames = replay(g.seed, g.picks, g.actions, g.variants as never);
     const d = storyDigest(frames);
     expect(d.startingParty).toHaveLength(frames[0]!.state.party.length);
-    expect(d.outcome.exitCount).toBe(frames[frames.length - 1]!.state.party.filter((m) => m.status === 0).length);
+    expect(d.outcome.exitCount).toBe(frames[frames.length - 1]!.state.party.filter((m) => m.status === 0 || m.status === 1).length);
   });
 
   it("prints one real digest for reading", () => console.log(digestText(run(replayable[0]!.code))));

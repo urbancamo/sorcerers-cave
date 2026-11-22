@@ -37,7 +37,7 @@ function fakeApi(story = STORY) {
     const body = JSON.parse(init.body) as { system: string; model: string };
     calls.push({ system: body.system, model: body.model });
     const isWriter = calls.length % 2 === 1;
-    const text = isWriter ? "a draft" : JSON.stringify({ story, unsupported: [] });
+    const text = isWriter ? "a draft" : `${story}\n=== UNSUPPORTED ===\nnone`;
     return new Response(JSON.stringify({ content: [{ type: "text", text }], usage: { input_tokens: 4000, output_tokens: 2500 } }), { status: 200 });
   }));
   return calls;
@@ -161,4 +161,14 @@ test("forScore hides the text until the story is ready, and is null for an entry
   expect(await t.query(api.stories.forScore, { highScoreId: id })).toBeNull();
   await t.run((ctx) => ctx.db.insert("stories", { highScoreId: id, status: "pending", text: "# Half\n\nwritten", attempts: 1, createdAt: 0, updatedAt: 0 }));
   expect(await t.query(api.stories.forScore, { highScoreId: id })).toMatchObject({ status: "pending", text: null });
+});
+
+test("setSettings creates the document, keeps unspecified fields, and 0 clears a cap", async () => {
+  const t = convexTest(schema, modules);
+  expect(await t.mutation(internal.stories.setSettings, { dailyCapUsd: 2 })).toMatchObject({ paused: false, dailyCapUsd: 2 });
+  expect(await t.mutation(internal.stories.setSettings, { paused: true })).toMatchObject({ paused: true, dailyCapUsd: 2 });
+  expect(await t.mutation(internal.stories.setSettings, { monthlyCapUsd: 20 })).toMatchObject({ paused: true, dailyCapUsd: 2, monthlyCapUsd: 20 });
+  expect((await t.mutation(internal.stories.setSettings, { dailyCapUsd: 0 })).dailyCapUsd).toBeUndefined();
+  expect(await t.run((ctx) => ctx.db.query("storySettings").collect())).toHaveLength(1);
+  await expect(t.mutation(internal.stories.setSettings, { dailyCapUsd: -1 })).rejects.toThrow(/0 or more/);
 });

@@ -57,7 +57,7 @@ refer to the rest by what they are (the Ogre, the Man with the bad leg).
 
 WHAT YOU MUST NOT DO
 - Do not contradict the record, and do not add events it does not contain: no extra fights, deaths, joinings, \
-treasures or rescues. If the record says something was lost, it was lost; if it says N walked out, N walked out.
+treasures or rescues. The record is a summary: you may say how a recorded event happened, but not add one. If the record says something was lost, it was lost; if it says N walked out, N walked out.
 - Do not mention dice, rolls, points, scores, levels as numbers, turns, rules, a game, or a player. Say "the third floor \
 down", "far below" or "near the surface" instead.
 - Do not name real people, brands or places, and keep it suitable for a general audience.
@@ -71,8 +71,10 @@ a draft short story written from it. Return the improved story and a list of pro
 
 CHECK, AND FIX IN THE TEXT
 1. Facts. Every event in the story must be supported by the record, and no event in the record may be contradicted. \
-Remove or correct anything unsupported: an invented fight, death, joining or treasure; a wrong count; an event told out \
-of order. Inventing names, motives and dialogue is allowed.
+Remove or correct anything unsupported: an invented fight, death, joining, treasure or rescue; a wrong count; a recorded \
+event told out of order. The record is a summary and has gaps, so be fair to the writer: names, motives, dialogue, \
+thoughts, scenery, the manner in which a recorded event happened, and an unrecorded cause for a recorded loss are all \
+allowed. Only list something as unsupported if it adds an event, changes a number, or contradicts the record.
 2. Continuity. The story must read as one continuous narrative. If it is a string of separate episodes, one per event, \
 rewrite the joins: add the connecting passage between episodes (travel, time passing, thought, a changed mood) and \
 shorten episodes that are only there to tick an event off. Remove any headings, numbering, bullet points or scene-break \
@@ -82,8 +84,10 @@ lines.
 image keeps it. About 1,500 to 1,800 words; cut rather than pad.
 
 OUTPUT FORMAT
-Return JSON only, with this shape: {"story": "<the full story: a '# Title' line, a blank line, then paragraphs separated by \
-blank lines>", "unsupported": ["<each fact you could not reconcile with the record, or an empty array>"]}`;
+Return the full improved story as plain text: a '# Title' line, a blank line, then paragraphs separated by blank lines. \
+Then, on its own line, exactly: === UNSUPPORTED ===
+After that line, list each fact you could not reconcile with the record, one per line, or the single word: none
+Nothing else: no preamble, no notes before the story.`;
 
 /** The user message given to the writer: the digest, framed so it is read as raw material. */
 export const writerUserMessage = (digestText: string): string =>

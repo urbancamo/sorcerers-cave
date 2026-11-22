@@ -126,4 +126,28 @@ export const finish = internalMutation({
   },
 });
 
+/**
+ * Create or update the single generation-settings document: pause switch and spending caps in US dollars (0 clears a cap).
+ * Unspecified fields are left as they are. Run by hand until the admin panel has a role-gated control:
+ *   npx convex run stories:setSettings '{"dailyCapUsd":2}'
+ */
+export const setSettings = internalMutation({
+  args: { paused: v.optional(v.boolean()), dailyCapUsd: v.optional(v.number()), monthlyCapUsd: v.optional(v.number()) },
+  handler: async (ctx, { paused, dailyCapUsd, monthlyCapUsd }) => {
+    const cap = (n: number | undefined): number | undefined => (n === undefined ? undefined : n > 0 ? n : undefined);
+    if ([dailyCapUsd, monthlyCapUsd].some((n) => n !== undefined && (!Number.isFinite(n) || n < 0))) throw new Error("A cap must be a number of dollars, 0 or more");
+    const now = Date.now();
+    const row = await ctx.db.query("storySettings").first();
+    const next = {
+      paused: paused ?? row?.paused ?? false,
+      dailyCapUsd: dailyCapUsd === undefined ? row?.dailyCapUsd : cap(dailyCapUsd),
+      monthlyCapUsd: monthlyCapUsd === undefined ? row?.monthlyCapUsd : cap(monthlyCapUsd),
+      updatedAt: now,
+    };
+    if (row) await ctx.db.replace(row._id, next);
+    else await ctx.db.insert("storySettings", next);
+    return next;
+  },
+});
+
 export type StoryDoc = Doc<"stories">;

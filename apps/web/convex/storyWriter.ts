@@ -29,7 +29,7 @@ export type WriteResult =
   | { ok: true; title: string; text: string; words: number; runs: RunRecord[] }
   | { ok: false; reason: string; runs: RunRecord[] };
 
-const MAX_TOKENS = 4096;
+const MAX_TOKENS = 16000; // this model counts nearly 3 tokens a word: a 1,800-word story is about 5,000, and the editor returns it whole
 const short = (s: string): string => s.replace(/\s+/g, " ").slice(0, 200);
 
 /** The title and body of a "# Title" markdown story. */
@@ -38,16 +38,17 @@ export function splitStory(text: string): { title: string; words: number } {
   return { title: first.replace(/^#\s+/, "").trim(), words: rest.join(" ").split(/\s+/).filter(Boolean).length };
 }
 
-/** Read the editor's JSON reply, tolerating a code fence or stray text around it. */
+/** The line that ends the story in the editor's reply; what follows it is the list of facts it could not support. */
+export const UNSUPPORTED_MARKER = "=== UNSUPPORTED ===";
+
+/** Read the editor's reply: the story, then the marker line, then one unsupported fact per line (or "none"). */
 export function parseEditorReply(raw: string): { story: string; unsupported: string[] } | null {
-  const start = raw.indexOf("{"), end = raw.lastIndexOf("}");
-  if (start < 0 || end <= start) return null;
-  try {
-    const j = JSON.parse(raw.slice(start, end + 1)) as { story?: unknown; unsupported?: unknown };
-    if (typeof j.story !== "string" || !j.story.trim()) return null;
-    const unsupported = Array.isArray(j.unsupported) ? j.unsupported.filter((x): x is string => typeof x === "string" && x.trim() !== "") : [];
-    return { story: j.story.trim(), unsupported };
-  } catch { return null; }
+  const m = raw.match(/^[ \t]*={3} UNSUPPORTED ={3}[ \t]*$/m);
+  if (!m || m.index === undefined) return null;
+  const story = raw.slice(0, m.index).trim();
+  if (!/^# \S/.test(story)) return null;
+  const unsupported = raw.slice(m.index + m[0].length).split("\n").map((l) => l.replace(/^[-*\d.)\s]+/, "").trim()).filter((l) => l && !/^none\.?$/i.test(l));
+  return { story, unsupported };
 }
 
 export async function writeStory(call: ModelCall, prompt: ResolvedPrompt, digestText: string, now: () => number = Date.now): Promise<WriteResult> {
@@ -78,7 +79,7 @@ export async function writeStory(call: ModelCall, prompt: ResolvedPrompt, digest
   let edited = await attempt("check", prompt.editor, editorUserMessage(digestText, draft));
   if (edited === null) return { ok: false, reason: `check failed: ${runs[runs.length - 1]!.reason}`, runs };
   let parsed = parseEditorReply(edited);
-  if (!parsed) return reject("editor reply was not valid JSON");
+  if (!parsed) return reject("editor reply was not in the expected format");
 
   // Unsupported facts left after the first check: one more pass over the edited story, told what remains.
   if (parsed.unsupported.length) {
@@ -86,7 +87,7 @@ export async function writeStory(call: ModelCall, prompt: ResolvedPrompt, digest
     if (again === null) return { ok: false, reason: `check failed: ${runs[runs.length - 1]!.reason}`, runs };
     edited = again;
     parsed = parseEditorReply(edited);
-    if (!parsed) return reject("editor reply was not valid JSON");
+    if (!parsed) return reject("editor reply was not in the expected format");
     if (parsed.unsupported.length) return reject(`unsupported facts remain: ${short(parsed.unsupported.join("; "))}`);
   }
 
