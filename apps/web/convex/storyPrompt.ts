@@ -69,7 +69,8 @@ Each story needs its own closing image.
 - Tell it in the VOICE you are given with the record. Whatever the voice, keep concrete nouns, plain verbs and dry understatement \
 for violence, and avoid "suddenly", stacked adjectives, exclamation marks and clichés. The voice is how the story is told, not \
 what happened: it never adds or changes an event.
-- About 1,500 to 1,800 words.
+- Aim for about 1,700 words, and never under 1,500: roughly 350 for the beginning, 950 for the middle and 400 for the ending. A tight middle \
+is not a short story: spend what the middle saves on the beginning and the ending.
 
 WHAT YOU MAY INVENT
 - Names, places outside the cave, motives, and dialogue: the record has none. Name the hero and one or two others; \
@@ -99,12 +100,13 @@ lines. Nothing else: no notes, no preamble, no sign-off.`;
  * that were wrong, fixes those, and then improves the telling. It may cut but never invent, and it keeps the voice.
  */
 export const EDITOR_SYSTEM = `You are a fiction line editor. You will be given the record of an expedition (the facts), a draft short story written \
-from it, the voice the story is meant to be told in, and sometimes a list of FACT PROBLEMS found in the draft. Return the improved story.
+from it, the voice the story is meant to be told in, and sometimes a list of PROBLEMS found in the draft (wrong facts, or a length or form fault). Return the improved story.
 
-FIRST, FIX THE FACT PROBLEMS, if any are listed. Remove or correct each one in the text: an invented fight, death, joining, \
+FIRST, FIX THE PROBLEMS, if any are listed. A wrong fact is an invented fight, death, joining, \
 treasure or rescue; anyone deserting, wandering off, turning back, staying behind or being separated (members only join, die, \
-turn to stone or walk out); a wrong count; a recorded event told out of order. Fix them by cutting or correcting, not by adding \
-something new.
+turn to stone or walk out); a wrong count; a recorded event told out of order. Fix it in the text by cutting or correcting, not by adding \
+something new. A length problem ("too short", "too long") is fixed by the rule on length below; a form problem (a heading, a list, a scene-break \
+line, or a game word) by removing it.
 
 THEN EDIT THE TELLING
 1. Voice. Keep the voice you were given. Do not flatten a distinctive voice into plain third person, and do not remove what makes it \
@@ -118,8 +120,9 @@ most three or four objects in the story, in plain words.
 4. Shape. The story must have a beginning before the cave that gives the starting party a past and a reason for going, a tight middle, and an ending that tells the way out and what the treasure or the survival did to them. If the beginning is thin, enrich it; if the ending only stops at the cave mouth, extend it; if the middle is a chamber-by-chamber chronicle, compress it into the few events that matter. Backstory and aftermath are outside the record and are allowed; keep them, and keep them consistent with the outcome.
 5. Craft. The story must not end on counting or naming the survivors, and its title must not be "The Count"; give it a different \
 closing image and title. Call the cave's stages floors, never levels. The theme is stated at most once. Cut clichés, stacked \
-adjectives and any closing moral. The first line makes a promise and the last image keeps it. About 1,500 to 1,800 words; cut \
-rather than pad.
+adjectives and any closing moral. The first line makes a promise and the last image keeps it. Keep it at about 1,700 words, never under \
+1,500 and never over 1,900. Cut the middle first; if the story is short, add to the beginning and the ending (the people, what the \
+treasure did to them), never by padding the middle.
 
 YOU MAY CUT, TIGHTEN AND REORDER FOR CLARITY, BUT NEVER INVENT. Do not add an event, a death, a joining, a treasure or a rescue \
 that the record does not contain. Names, motives, dialogue, thoughts and scenery may stay or change freely.
@@ -224,7 +227,7 @@ export const writerUserMessage = (digestText: string, voice?: StoryVoice, plan?:
 export const editorUserMessage = (digestText: string, draft: string, voice?: StoryVoice, problems: readonly string[] = []): string =>
   `THE RECORD\n\n${digestText}\n\n` +
   (voice ? `THE VOICE the story is meant to be told in (keep it; do not flatten it into plain third person): ${voice.instruction}\n\n` : "") +
-  (problems.length ? `FACT PROBLEMS to fix in the text:\n${problems.map((p) => `- ${p}`).join("\n")}\n\n` : "") +
+  (problems.length ? `PROBLEMS to fix in the text (facts, or length and form):\n${problems.map((p) => `- ${p}`).join("\n")}\n\n` : "") +
   `THE DRAFT\n\n${draft}`;
 
 /** The user message given to the fact-checker: the record and the story to check against it. */

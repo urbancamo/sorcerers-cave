@@ -43,7 +43,7 @@ describe("writeStory", () => {
     const { call, seen } = script(["a plan", "a draft", "A third dragon is killed; the record has two", STORY, "none"]);
     const r = await writeStory(call, prompt, "D");
     expect(r.ok).toBe(true);
-    expect(seen[3]!.user).toContain("FACT PROBLEMS");
+    expect(seen[3]!.user).toContain("PROBLEMS to fix");
     expect(seen[3]!.user).toContain("A third dragon is killed");
   });
 
@@ -68,11 +68,22 @@ describe("writeStory", () => {
     expect(await writeStory(script(["a plan", "draft", "   "]).call, prompt, "D")).toMatchObject({ ok: false, reason: "fact-check reply was empty" });
   });
 
-  it("fails the deterministic guard: a scene break, game-speak, or the wrong length", async () => {
+  /** An edit that stays broken: both edits return it, and both are fact-checked clean. */
+  const stuck = (edited: string) => ["a plan", "a draft", "none", edited, "none", edited, "none"];
+
+  it("fails the deterministic guard, after one repair edit, if the text is still a scene break, game-speak, or the wrong length", async () => {
     const withBreak = STORY.replace("\n\n" + para + "\n\n" + para, "\n\n---\n\n" + para);
-    expect(await writeStory(script(clean(withBreak)).call, prompt, "D")).toMatchObject({ ok: false, reason: expect.stringMatching(/scene-break line/) });
-    expect(await writeStory(script(clean(STORY + "\n\nHe rolled a six.")).call, prompt, "D")).toMatchObject({ ok: false, reason: expect.stringMatching(/game-speak/) });
-    expect(await writeStory(script(clean("# T\n\nToo short.")).call, prompt, "D")).toMatchObject({ ok: false, reason: expect.stringMatching(/too short/) });
+    expect(await writeStory(script(stuck(withBreak)).call, prompt, "D")).toMatchObject({ ok: false, reason: expect.stringMatching(/scene-break line/) });
+    expect(await writeStory(script(stuck(STORY + "\n\nHe rolled a six.")).call, prompt, "D")).toMatchObject({ ok: false, reason: expect.stringMatching(/game-speak/) });
+    expect(await writeStory(script(stuck("# T\n\nToo short.")).call, prompt, "D")).toMatchObject({ ok: false, reason: expect.stringMatching(/too short/) });
+  });
+
+  it("hands a length problem back to the editor, and keeps the story when the repair fixes it", async () => {
+    const { call, seen } = script(["a plan", "a draft", "none", "# T\n\nToo short.", "none", STORY, "none"]);
+    const r = await writeStory(call, prompt, "D");
+    expect(r.ok).toBe(true);
+    expect(seen[5]!.user).toMatch(/PROBLEMS to fix[\s\S]*too short/);
+    if (r.ok) expect(r.runs.map((x) => x.pass)).toEqual(["plan", "write", "check", "edit", "check", "edit", "check"]);
   });
 
   it("an admin-edited word range is honoured", async () => {

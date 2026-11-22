@@ -82,3 +82,13 @@ The planner prompt, fact-check prompt, voices and story bible are now part of a 
 - Voices are text, one `id: instruction` per line. The bible is text in sections (`## header`, `## creatures`, `## artefacts`, `## places`), one `Name: entry` per line; a place is `keyword | keyword: entry` (whole-word, case-insensitive). `renderBible` / `parseBible` and `renderVoices` / `parseVoices` convert between the text and the defaults in code.
 - Saving is validated: a malformed line, an unknown section, a missing header, a creature or artefact name the game does not have (it could never match), a duplicate voice id, an empty prompt.
 - Versions saved before this have none of the four new fields and use today's source defaults for them (the admin shows those defaults when such a version is loaded). New fields are optional in the save call, so older callers still work.
+
+## Beginning, middle and end (2026-11-22, branch digest-improvements)
+
+Feedback: the starting party needed a backstory, the ending should say how the escape went and what the treasure did to them, and the middle should be tighter, with only the significant events and the rest compressed.
+
+- **Writer prompt:** a "shape" section: a beginning before the cave (about 350 words; the starting party as particular people with a past, a debt or a want), a tight middle (about 950; three or four events in full, everything between compressed by the journey, not the room), and an ending (about 400; the climb into daylight, what they carried out and what it did to them, closing on that image and answering the want from the start). Aim 1,700, never under 1,500.
+- **Invention outside the cave is allowed, bounded by the outcome:** the party's life before and what came after (the writer prompt, the editor and the fact-checker all say so). Inside the cave, no added events.
+- **Planner:** new parts BEFORE THE CAVE and AFTER THE CAVE. **Editor:** a "shape" check (enrich a thin beginning or ending, compress a chronicle middle; if short, add to the ends, never pad the middle).
+- **Digest:** `Silver, gold and gems carried out: ...` (the exit list only named artefacts, the Chest and the Idol, so a rich run and an empty-handed one looked the same).
+- **Pipeline:** the first trial with these prompts was rejected for length (1,363 words) because tightening the middle made the whole story short. Length and form faults (too short or long, headings, scene breaks, game words) are now handed back to the editor for one repair edit, like fact problems, instead of discarding the story.

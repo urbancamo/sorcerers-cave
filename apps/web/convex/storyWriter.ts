@@ -112,22 +112,23 @@ export async function writeStory(call: ModelCall, prompt: ResolvedPrompt, digest
   };
 
   let story = draft;
-  let problems = await check(story);
-  // Two edits at most: the first fixes the draft's fact problems and improves the telling; a second only if the edit left (or added) problems.
+  let facts = await check(story);
+  let guard: string[] = [];
+  // Two edits at most. The first fixes the draft's fact problems and improves the telling. A second only if the edit left (or added) a fact
+  // problem, or the finished text breaks a length or form rule: that is handed back to the editor too, not thrown away.
   for (let round = 0; round < 2; round++) {
-    if (!Array.isArray(problems)) return problems;
-    const edited = await attempt("edit", prompt.editor, editorUserMessage(digestText, story, voice, problems));
+    if (!Array.isArray(facts)) return facts;
+    const edited = await attempt("edit", prompt.editor, editorUserMessage(digestText, story, voice, [...facts, ...guard]));
     if (edited === null) return { ok: false, reason: `edit failed: ${runs[runs.length - 1]!.reason}`, runs };
     const parsed = parseEditedStory(edited);
     if (!parsed) return reject("editor reply was not in the expected format");
     story = parsed;
-    problems = await check(story); // an edit can add a fact: the final text is always checked
-    if (Array.isArray(problems) && !problems.length) break;
+    facts = await check(story); // an edit can add a fact: the final text is always checked
+    guard = storyProblems(story, { min: prompt.minWords, max: prompt.maxWords });
+    if (Array.isArray(facts) && !facts.length && !guard.length) break;
   }
-  if (!Array.isArray(problems)) return problems;
-  if (problems.length) return reject(`unsupported facts remain: ${short(problems.join("; "))}`);
-
-  const guard = storyProblems(story, { min: prompt.minWords, max: prompt.maxWords });
+  if (!Array.isArray(facts)) return facts;
+  if (facts.length) return reject(`unsupported facts remain: ${short(facts.join("; "))}`);
   if (guard.length) return reject(`guard: ${guard.join(", ")}`);
   const { title, words } = splitStory(story);
   return { ok: true, title, text: story, words, runs };
