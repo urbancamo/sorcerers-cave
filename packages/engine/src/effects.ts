@@ -157,7 +157,13 @@ export function cursedRoll(state: GameState): number {
 export function eyeForsakenByDeath(state: GameState, fallen: PartyMember): GameEvent[] {
   if (!fallen.treasure.includes(T_EYE_OF_GOD)) return [];
   state.curses += 1;
-  return [{ type: "eyeForsaken" }];
+  return [eyeForsakenEvent(state)];
+}
+
+/** The `eyeForsaken` event for a curse just added. With the Sorcerer already dead the curse still counts (`state.curses`) but is
+ *  inert (`activeCurses` is 0), so the event says so and the screens can word it truthfully (SC-11-38). Without it the event is unchanged. */
+export function eyeForsakenEvent(state: GameState): GameEvent {
+  return state.sorcererKilled ? { type: "eyeForsaken", inert: true } : { type: "eyeForsaken" };
 }
 
 /** Slay a member and stamp when/where it happened (SC-11-15a) — call at every death site, alongside

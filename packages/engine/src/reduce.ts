@@ -18,7 +18,7 @@ import { C_SIBYL, SIBYL_CODE, examinableAreas, isGuardCode, sibylHere, sibylWait
 import { frontStrength } from "./combat";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import {
-  wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, orphanUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, markDied, healingBalmEligible, ringInvincible, usesArtifactsAs, canUseArtifact,
+  wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, orphanUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, eyeForsakenEvent, markDied, healingBalmEligible, ringInvincible, usesArtifactsAs, canUseArtifact,
   hasLivingHuman, holyWaterTargets, HW_STATUE_BASE, HW_MEDUSA, HW_STRANGER_BASE, HW_PARKED_STATUE_BASE, isHumanOrPriestClass,
   eyePresent, slaySorcerer, revertApprenticesOnSorcererDeath, cursedRoll, activeCurses,
 } from "./effects";
@@ -1657,7 +1657,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         }
       }
       // Forsaking the Eye of God curses the party (§Eye of God).
-      if (tid === T_EYE_OF_GOD) { next.curses += 1; return { state: next, events: [{ type: "eyeForsaken" }] }; }
+      if (tid === T_EYE_OF_GOD) { next.curses += 1; return { state: next, events: [eyeForsakenEvent(next)] }; }
       return { state: next, events: [] };
     }
 

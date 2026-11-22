@@ -966,6 +966,20 @@ describe("reduce — treasure redistribution (party panel)", () => {
     expect(reduce(s, { type: "dropTreasure", mi: 0, idx: 0 }).events).toContainEqual({ type: "blocked" });
   });
 
+  it("forsaking the Eye with the Sorcerer dead still banks the curse but marks the event inert (issue #112)", () => {
+    const base = {
+      phase: "explore" as const,
+      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [13] }],
+      areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
+    };
+    const dead = reduce(makeState({ ...base, sorcererKilled: true }), { type: "dropTreasure", mi: 0, idx: 0 });
+    expect(dead.events).toContainEqual({ type: "eyeForsaken", inert: true });
+    expect(dead.state.curses).toBe(1); // still counted, but activeCurses is 0
+    const alive = reduce(makeState(base), { type: "dropTreasure", mi: 0, idx: 0 });
+    expect(alive.events).toContainEqual({ type: "eyeForsaken" }); // unchanged when the Sorcerer lives (no `inert` key at all)
+    expect(JSON.stringify(alive.events)).not.toContain("inert");
+  });
+
   it("forsaking the Eye of God (a drop) curses the party; passing it between members does not", () => {
     const dropState = makeState({
       phase: "explore",

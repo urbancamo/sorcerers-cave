@@ -579,3 +579,15 @@ describe("eventNotices: the chest Spectre departing", () => {
     expect(ns.map((x) => x.text)).toEqual([expect.stringMatching(/Magic Shield holds .*at bay/), "The Spectre disappears into the dark."]);
   });
 });
+
+describe("eventNotices: forsaking the Eye of God (issue #112)", () => {
+  it("says a curse settles on the party when the Sorcerer is alive", () => {
+    expect(eventNotices([{ type: "eyeForsaken" }])).toEqual([{ text: "The Eye of God leaves its bearer — a curse settles on the party (−1 to every roll).", tone: "bad" }]);
+  });
+  it("says the curse has no effect when the Sorcerer is dead, instead of claiming one", () => {
+    const [n] = eventNotices([{ type: "eyeForsaken", inert: true }]);
+    expect(n!.text).toMatch(/Sorcerer is dead, so the curse has no effect/);
+    expect(n!.text).not.toMatch(/settles on the party/);
+    expect(n!.tone).toBe("neutral");
+  });
+});

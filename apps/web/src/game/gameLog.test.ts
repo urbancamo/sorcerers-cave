@@ -470,3 +470,10 @@ describe("Sibyl log stamps (SC-SIB-9)", () => {
     expect(eventCode({ type: "sibylExamined" })).toBe("SIB EXM");
   });
 });
+
+describe("describeEvent: eyeForsaken (issue #112)", () => {
+  it("words an inert curse truthfully", () => {
+    expect(describeEvent({ type: "eyeForsaken" })).toMatch(/the party is cursed/);
+    expect(describeEvent({ type: "eyeForsaken", inert: true })).toMatch(/Sorcerer is dead, so the curse has no effect/);
+  });
+});

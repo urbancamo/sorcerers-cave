@@ -128,7 +128,7 @@ export type GameEvent =
   | { type: "mutinied"; deserters: number[]; treasures: number[] }
   | { type: "medusaGaze"; rolls: { creatureId: number; roll: number; petrified: boolean }[] } // a d6 per member
   | { type: "viperPit"; rolls: { creatureId: number; roll: number; died: boolean }[] } // a d6 per member crossing
-  | { type: "eyeForsaken" } // the Eye of God was dropped or handed off — a curse falls on the party
+  | { type: "eyeForsaken"; inert?: true } // the Eye of God was dropped or lost with its bearer — a curse falls on the party; `inert` (only when the Sorcerer is already dead, SC-11-38) says the curse is banked but has no effect
   | { type: "petrifiedOut" } // Medusa's gaze turned the WHOLE party to stone — the game ends
   | { type: "trapSprung"; level: number; guideLost?: boolean; deliberate?: boolean } // party fell through a trap to `level` (no climb back); `guideLost` (`trapRules`): the Dwarf was gone, so the trap took the party as it tried to leave; `deliberate`: the fall was chosen, or the party walked into a known trap (SC-7.2-19)
   | { type: "trapAvoided" } // a dwarf guided the party safely past a trap
