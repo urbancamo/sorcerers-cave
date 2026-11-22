@@ -42,7 +42,7 @@ stories: defineTable({
   highScoreId: v.id("highScores"),
   status: v.union(v.literal("pending"), v.literal("ready"), v.literal("failed")),
   title: v.optional(v.string()),
-  text: v.optional(v.string()),        // markdown: paragraphs and "---" scene breaks
+  text: v.optional(v.string()),        // markdown: a "# Title" line then plain paragraphs (*emphasis* allowed); never the post-material
   words: v.optional(v.number()),
   model: v.optional(v.string()),
   digestHash: v.optional(v.string()),  // so a re-run on the same replay can be skipped
@@ -110,15 +110,23 @@ game, and only on first save. `digestHash` makes a retry free.
   stored and shown only on that entry, never indexed or shared elsewhere.
 - Failure is silent for the player: the entry simply has no story button. The error is kept on the row for the operator.
 
-### 2.6 The PDF
+### 2.6 Markdown storage, fixed post-material and the PDF
 
-- Generated **in the browser on click** from the stored text, so the server stores text (a few KB), not files, and
-  there is nothing to host. Library: `jspdf`, lazy-loaded with a dynamic import (the build already warns about chunk
-  size) and a serif font embedded for body text; to be confirmed against current maintenance before adding (best
-  practice: check recent commits and downloads). Fallback if it proves awkward: a print stylesheet and `window.print()`,
-  at the cost of not being a true download.
-- Layout: title, byline ("Told from the run of *name*, score N, game code XXXX"), body in a readable serif at about
-  11 pt as continuous paragraphs, page numbers, a small footer naming the game. About three pages.
+- **Stored as markdown** (decided 2026-11-22). The story text is markdown: a `# Title` line, then paragraphs with
+  `*emphasis*` where wanted. The same markdown is what is shown on screen and what the PDF is built from.
+- **Fixed post-material that references the game.** After the story, every PDF (and on-screen view) gets a fixed
+  "About this story" section, built by code from the high-score entry, not generated and **not stored with the story**:
+  the player's name, the date, the number of survivors, the deepest level, the score and rule set, a line that the
+  names and words are invented but the events are real, and the game code to replay the run. Because it is
+  assembled when the story is shown or printed, editing `apps/web/src/story/postMaterial.ts` updates every story,
+  old ones included, with no rewrite. The player's name is stripped of markdown characters before it is inserted.
+- **Auto-conversion to PDF on download** (built): `apps/web/src/story/markdown.ts` reads the markdown subset (title,
+  headings, paragraphs, quotes, rules, emphasis and strong), and `storyPdf.ts` lays it out with `jspdf` and saves it.
+  The library is a lazy dynamic import, so it never loads until someone downloads. `jspdf` 4.2.1 was chosen over
+  `pdf-lib` (unmaintained since 2022); A4, Times, a centred bold title, left-aligned paragraphs, page footer and numbers.
+  The server stores text (a few KB), never files.
+- Layout: title, body as continuous paragraphs, the post-material, page numbers and a footer naming the game; about
+  four pages. (The byline idea is now the post-material.)
 - Button in `ScoreDetail`'s downloads row, beside the log downloads, with the three states from 2.2. The Help manual
   (`apps/web/src/manual`, the scoring topic) gets a sentence saying high-scoring games get a short story.
 
@@ -181,7 +189,8 @@ the budget switches** need `SYSTEM`, because they spend money. Every query and m
    resolving the active prompt version, recording a `storyRuns` row per call and honouring pause and caps;
    deterministic guards with unit tests; retry-once logic; env vars documented in `apps/web/OPTIONS.md`.
 4. **Trigger:** schedule from `highScores.save` above the threshold (solo only); the retry-one action.
-5. **PDF and UI:** lazy-loaded generator, the `ScoreDetail` button and states, a help-manual sentence, UI tests.
+5. **PDF and UI:** markdown reader, fixed post-material and lazy-loaded PDF generator (done, with tests); still to do:
+   the `ScoreDetail` button and its three states, a help-manual sentence, UI tests.
 6. **Admin Stories tab:** the dashboard queries and charts, the prompt editor with versions and diff, the dry run, the
    rewrite queue with scope, cost estimate and confirmation, the pause switch and caps, role gating tests, and a
    cap test (a call is refused once the day's cap is reached).
