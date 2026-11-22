@@ -210,7 +210,7 @@ the budget switches** need `SYSTEM`, because they spend money. Every query and m
 
 | Item | Question or risk | Leaning |
 |---|---|---|
-| Threshold | The value per table | agreed: base 300, kit and Sibyl 350, tunable in `STORY_THRESHOLD` |
+| Threshold | The value per table | agreed 300/350/350, then lowered to 200/250/250 (2026-11-22); tunable in `STORY_THRESHOLD` |
 | Cost control | A bug, or a bulk rewrite, could spend a lot | one row per score (`by_highScore`), status guard, one retry, daily and monthly caps and a pause switch checked before every call, rewrite needs an estimate and typed confirmation |
 | Prompt in two places | Source and admin versions could disagree | one rule: newest admin version wins, else the source default; each story records its version; the dashboard shows both |
 | Rewrite replaces a good story | A bad prompt could wipe good stories | `previousText` kept until the rewrite succeeds, failed rewrites keep the old text, dry run before a bulk run |

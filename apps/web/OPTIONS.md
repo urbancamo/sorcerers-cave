@@ -244,7 +244,7 @@ High-scoring solo escapes get a short story written by Claude (plan: `docs/requi
 - **Off until a key is set.** Generation runs only when the Convex env var `ANTHROPIC_API_KEY` exists. Deploying the code spends nothing
   by itself; with no key, `highScores.save` queues nothing.
   Set it with `npx convex env set ANTHROPIC_API_KEY <key>` (add `--prod` for the production deployment).
-- **Threshold** per leaderboard table, in `convex/storyPrompt.ts` (`STORY_THRESHOLD`): base 300, Extension Kit 350, kit + Sibyl 350. Solo only.
+- **Threshold** per leaderboard table, in `convex/storyPrompt.ts` (`STORY_THRESHOLD`): base 200, Extension Kit 250, kit + Sibyl 250 (their scores are not comparable with base, SC-EXT-29 / SC-SIB-9). Solo only. A lower threshold means more stories and more spend.
 - **Prompt**: the default instructions, model, word range and price table are in `convex/storyPrompt.ts`; an admin-saved prompt version overrides them.
 - **Spend controls**: the `storySettings` document holds a `paused` switch and daily/monthly caps in US dollars; a call is refused once a cap is reached.
 - **Admin panel, Stories tab** (ANALYTICS views it; SYSTEM edits): dashboard of stories, calls, spend and failures; pause and caps;
