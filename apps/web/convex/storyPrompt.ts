@@ -76,32 +76,56 @@ OUTPUT FORMAT
 First line: the title only, prefixed with "# ". Then a blank line, then the story as plain paragraphs separated by blank \
 lines. Nothing else: no notes, no preamble, no sign-off.`;
 
-export const EDITOR_SYSTEM = `You are a fiction editor and fact-checker. You will be given the record of an expedition (the facts) and \
-a draft short story written from it. Return the improved story and a list of problems you could not fix.
+/**
+ * The line editor. It does NOT judge the facts (that is `FACT_CHECK_SYSTEM`'s job, run before and after it); it is handed the facts
+ * that were wrong, fixes those, and then improves the telling. It may cut but never invent, and it keeps the voice.
+ */
+export const EDITOR_SYSTEM = `You are a fiction line editor. You will be given the record of an expedition (the facts), a draft short story written \
+from it, the voice the story is meant to be told in, and sometimes a list of FACT PROBLEMS found in the draft. Return the improved story.
 
-CHECK, AND FIX IN THE TEXT
-1. Facts. Every event in the story must be supported by the record, and no event in the record may be contradicted. \
-Remove or correct anything unsupported: an invented fight, death, joining, treasure or rescue; anyone deserting, wandering \
-off, turning back, staying behind or being separated (members only join, die, turn to stone or walk out); a wrong count; a recorded \
-event told out of order. The record is a summary and has gaps, so be fair to the writer: names, motives, dialogue, \
-thoughts, scenery, the manner in which a recorded event happened, and an unrecorded cause for a recorded loss are all \
-allowed. Only list something as unsupported if it adds an event, changes a number, or contradicts the record.
-2. Continuity. The story must read as one continuous narrative. If it is a string of separate episodes, one per event, \
-rewrite the joins: add the connecting passage between episodes (travel, time passing, thought, a changed mood) and \
-shorten episodes that are only there to tick an event off. Remove any headings, numbering, bullet points or scene-break \
-lines.
+FIRST, FIX THE FACT PROBLEMS, if any are listed. Remove or correct each one in the text: an invented fight, death, joining, \
+treasure or rescue; anyone deserting, wandering off, turning back, staying behind or being separated (members only join, die, \
+turn to stone or walk out); a wrong count; a recorded event told out of order. Fix them by cutting or correcting, not by adding \
+something new.
+
+THEN EDIT THE TELLING
+1. Voice. Keep the voice you were given. Do not flatten a distinctive voice into plain third person, and do not remove what makes it \
+that voice (the teller's asides, the first person, the tense).
+2. Continuity. The story must read as one continuous narrative. If it is a string of separate episodes, one per event, rewrite \
+the joins: add the connecting passage between episodes (travel, time passing, thought, a changed mood) and shorten episodes that \
+are only there to tick an event off. Remove any headings, numbering, bullet points or scene-break lines.
 3. Game-speak. Remove any mention of dice, rolls, points, scores, numbered levels, turns, rules, a game or a player. Remove \
-capitalised item names from the record (Lost Ruby, Eye of God, Magic Staff) and any list of what each person carries; keep \
-at most three or four objects in the story, in plain words.
-4. Craft. The story must not end on counting or naming the survivors, and its title must not be "The Count"; give it a \
-different closing image and title. Call the cave's stages floors, never levels. The theme is stated at most once. No clichés or stacked adjectives. The first line makes a promise and the last \
-image keeps it. About 1,500 to 1,800 words; cut rather than pad.
+capitalised item names from the record (Lost Ruby, Eye of God, Magic Staff) and any list of what each person carries; keep at \
+most three or four objects in the story, in plain words.
+4. Craft. The story must not end on counting or naming the survivors, and its title must not be "The Count"; give it a different \
+closing image and title. Call the cave's stages floors, never levels. The theme is stated at most once. Cut clichés, stacked \
+adjectives and any closing moral. The first line makes a promise and the last image keeps it. About 1,500 to 1,800 words; cut \
+rather than pad.
+
+YOU MAY CUT, TIGHTEN AND REORDER FOR CLARITY, BUT NEVER INVENT. Do not add an event, a death, a joining, a treasure or a rescue \
+that the record does not contain. Names, motives, dialogue, thoughts and scenery may stay or change freely.
 
 OUTPUT FORMAT
-Return the full improved story as plain text: a '# Title' line, a blank line, then paragraphs separated by blank lines. \
-Then, on its own line, exactly: === UNSUPPORTED ===
-After that line, list each fact you could not reconcile with the record, one per line, or the single word: none
-Nothing else: no preamble, no notes before the story.`;
+Return the full improved story as plain text: a '# Title' line, a blank line, then paragraphs separated by blank lines. Nothing \
+else: no preamble, no notes, no list of changes.`;
+
+/** The fact-checker: reads a story against the record and lists what does not match. It never rewrites anything. */
+export const FACT_CHECK_SYSTEM = `You are a fact-checker. You will be given the record of an expedition (the facts) and a short story written from it. \
+List every place where the story does not match the record. Do not rewrite the story or comment on its style.
+
+LIST A PROBLEM ONLY IF THE STORY:
+- adds an event the record does not contain: an extra fight, death, joining, treasure, rescue or loss;
+- contradicts the record: a wrong count (who walked out, how many were lost), an event told out of order, something lost that the \
+record says was kept, or something kept that the record says was lost;
+- has anyone desert, wander off, turn back, stay behind or be separated (members only join, die, turn to stone or walk out of the \
+cave at the end; a mutiny in the record is the one exception, and those who deserted may be won back as the record says).
+
+THE RECORD IS A SUMMARY AND HAS GAPS, so be fair to the writer. These are all allowed and are NOT problems: names, motives, dialogue, \
+thoughts, scenery, the manner in which a recorded event happened, and an unrecorded cause for a recorded loss.
+
+OUTPUT FORMAT
+One problem per line, each saying what the story claims and what the record says. If there are no problems, output the single word: none
+Nothing else: no preamble, no story.`;
 
 /**
  * The voices a story can be told in. One is picked per game (see `pickVoice`) so the stories do not all sound alike.
@@ -155,9 +179,15 @@ export const writerUserMessage = (digestText: string, voice?: StoryVoice, plan?:
   (plan ? `THE PLAN to follow (it chooses what to dwell on and how the story ends; the record above is still the only source of facts):\n\n${plan}\n\n` : "") +
   `Write the story now. Remember: one continuous narrative, joined between events, not a scene for each item.`;
 
-/** The user message given to the editor: the record and the draft, and the voice it must keep. */
-export const editorUserMessage = (digestText: string, draft: string, voice?: StoryVoice): string =>
-  `THE RECORD\n\n${digestText}\n\n` + (voice ? `THE VOICE the story is meant to be told in (keep it; do not flatten it into plain third person): ${voice.instruction}\n\n` : "") + `THE DRAFT\n\n${draft}`;
+/** The user message given to the line editor: the record, the voice, any fact problems to fix, and the draft. */
+export const editorUserMessage = (digestText: string, draft: string, voice?: StoryVoice, problems: readonly string[] = []): string =>
+  `THE RECORD\n\n${digestText}\n\n` +
+  (voice ? `THE VOICE the story is meant to be told in (keep it; do not flatten it into plain third person): ${voice.instruction}\n\n` : "") +
+  (problems.length ? `FACT PROBLEMS to fix in the text:\n${problems.map((p) => `- ${p}`).join("\n")}\n\n` : "") +
+  `THE DRAFT\n\n${draft}`;
+
+/** The user message given to the fact-checker: the record and the story to check against it. */
+export const factCheckUserMessage = (digestText: string, story: string): string => `THE RECORD\n\n${digestText}\n\nTHE STORY\n\n${story}`;
 
 /** Estimated cost in US dollars of one model call (an estimate: the dashboard labels it so). */
 export function estimateCostUsd(model: string, inputTokens: number, outputTokens: number): number {

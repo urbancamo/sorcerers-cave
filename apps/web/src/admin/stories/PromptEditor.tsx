@@ -98,7 +98,7 @@ export function PromptEditor({ canEdit }: { canEdit: boolean }) {
         <>
           <p className="scv-admin-note" role="status">
             {changed.length ? `Changed from ${baseLabel}: ${changed.join(', ')}.` : `No changes from ${baseLabel}.`}
-            {' '}Changes to the editor prompt must keep its output format (story, then a line === UNSUPPORTED ===, then the list).
+            {' '}The editor prompt is the line editor: it is given the facts, the voice, any fact problems to fix and the draft, and must return only the story (a "# Title" line, then paragraphs). Fact-checking is a separate call whose prompt lives in the code.
           </p>
           <div className="scv-st-row">
             <label className="scv-bug-field scv-st-grow">Note for this version (optional)

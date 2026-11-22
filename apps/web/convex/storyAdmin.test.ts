@@ -35,7 +35,7 @@ function fakeApi() {
   let n = 0;
   vi.stubGlobal("fetch", vi.fn(async () => {
     n++;
-    const text = n % 3 === 1 ? "a plan" : n % 3 === 2 ? "a draft" : `${STORY}\n=== UNSUPPORTED ===\nnone`; // plan, write, check
+    const text = ["a plan", "a draft", "none", STORY, "none"][(n - 1) % 5]!; // plan, write, check, edit, check
     return new Response(JSON.stringify({ content: [{ type: "text", text }], usage: { input_tokens: 4000, output_tokens: 2500 } }), { status: 200 });
   }));
 }
@@ -133,7 +133,7 @@ test("a rewrite halts, without counting failures, when a spending cap is reached
   const t = convexTest(schema, modules);
   const admin = (await asUser(t, ["SYSTEM"])).as;
   await seedScore(t, "AAAA"); await seedScore(t, "BBBB"); await seedScore(t, "CCCC");
-  await admin.mutation(api.storyAdmin.updateSettings, { dailyCapUsd: 0.15 }); // each story costs about $0.10
+  await admin.mutation(api.storyAdmin.updateSettings, { dailyCapUsd: 0.45 }); // each story costs about $0.25 (five calls)
   await admin.mutation(api.storyAdmin.startRewrite, { scope: { kind: "all" }, expected: 3 });
   await t.finishAllScheduledFunctions(vi.runAllTimers);
   expect((await admin.query(api.storyAdmin.jobs, {}))[0]).toMatchObject({ status: "stopped", done: 2, failed: 0, reason: "daily cap reached" });
@@ -165,7 +165,7 @@ test("trying an unsaved prompt returns a story, stores nothing on the entry, and
   expect(r).toMatchObject({ ok: true, title: "The Count" });
   expect(await t.run((ctx) => ctx.db.get(storyId))).toMatchObject({ title: "Old" });
   const runs = await t.run((ctx) => ctx.db.query("storyRuns").collect());
-  expect(runs).toHaveLength(3); // plan, write, check
+  expect(runs).toHaveLength(5); // plan, write, check, edit, check
   expect(runs.every((x) => x.trigger === "trial" && x.promptVersion === -1)).toBe(true);
 });
 

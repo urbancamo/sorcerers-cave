@@ -1,5 +1,5 @@
 /// <reference types="vite/client" />
-import { PLANNER_SYSTEM } from "./storyPrompt";
+import { FACT_CHECK_SYSTEM, PLANNER_SYSTEM } from "./storyPrompt";
 import { convexTest } from "convex-test";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { api, internal } from "./_generated/api";
@@ -37,8 +37,8 @@ function fakeApi(story = STORY) {
   vi.stubGlobal("fetch", vi.fn(async (_url: string, init: { body: string }) => {
     const body = JSON.parse(init.body) as { system: string; model: string };
     calls.push({ system: body.system, model: body.model });
-    const step = calls.length % 3; // plan, write, check
-    const text = step === 1 ? "a plan" : step === 2 ? "a draft" : `${story}\n=== UNSUPPORTED ===\nnone`;
+    const step = (calls.length - 1) % 5; // plan, write, check, edit, check
+    const text = ["a plan", "a draft", "none", story, "none"][step]!;
     return new Response(JSON.stringify({ content: [{ type: "text", text }], usage: { input_tokens: 4000, output_tokens: 2500 } }), { status: 200 });
   }));
   return calls;
@@ -76,12 +76,12 @@ test("generate replays the run, writes and checks, and stores a ready markdown s
   const t = convexTest(schema, modules);
   const id = await seedScore(t);
   await t.action(internal.storyGen.generate, { highScoreId: id, trigger: "retry" });
-  expect(calls).toHaveLength(3);
+  expect(calls).toHaveLength(5);
   const s = await t.query(api.stories.forScore, { highScoreId: id });
   expect(s).toMatchObject({ status: "ready", title: "The Count" });
   expect(s!.text).toMatch(/^# The Count/);
   const runs = await t.run((ctx) => ctx.db.query("storyRuns").collect());
-  expect(runs.map((r) => [r.pass, r.status, r.promptVersion, r.trigger])).toEqual([["plan", "ok", 0, "retry"], ["write", "ok", 0, "retry"], ["check", "ok", 0, "retry"]]);
+  expect(runs.map((r) => [r.pass, r.status, r.promptVersion, r.trigger])).toEqual([["plan", "ok", 0, "retry"], ["write", "ok", 0, "retry"], ["check", "ok", 0, "retry"], ["edit", "ok", 0, "retry"], ["check", "ok", 0, "retry"]]);
   expect(runs[0]!.costUsd).toBeCloseTo((4000 * 3 + 2500 * 15) / 1e6, 8);
 });
 
@@ -94,7 +94,7 @@ test("the newest saved prompt version is the one used, and is recorded on the st
     await ctx.db.insert("storyPrompts", { version: 2, writer: "NEW WRITER", editor: "NEW EDITOR", model: "claude-opus-5-5", minWords: 1, maxWords: 9999, createdAt: 2 });
   });
   await t.action(internal.storyGen.generate, { highScoreId: id, trigger: "rewrite" });
-  expect(calls.map((c) => [c.system === PLANNER_SYSTEM ? "PLANNER" : c.system, c.model])).toEqual([["PLANNER", "claude-opus-5-5"], ["NEW WRITER", "claude-opus-5-5"], ["NEW EDITOR", "claude-opus-5-5"]]);
+  expect(calls.map((c) => [c.system === PLANNER_SYSTEM ? "PLANNER" : c.system === FACT_CHECK_SYSTEM ? "FACT" : c.system, c.model])).toEqual([["PLANNER", "claude-opus-5-5"], ["NEW WRITER", "claude-opus-5-5"], ["FACT", "claude-opus-5-5"], ["NEW EDITOR", "claude-opus-5-5"], ["FACT", "claude-opus-5-5"]]);
   const story = await t.run((ctx) => ctx.db.query("stories").first());
   expect(story).toMatchObject({ promptVersion: 2, model: "claude-opus-5-5" });
 });

@@ -54,3 +54,13 @@ From a second opinion on the craft of the prompts (selection, a spine, varied vo
 - **Planner.** `PLANNER_SYSTEM`: a first call that reads the digest and returns a beat sheet (HERO, OBSTACLE, TURN, COST, DWELL ON, IN PASSING, LEAVE OUT, CLOSING IMAGE, TITLE IDEA). The writer drafts from it; the editor still checks against the record, not the plan. If the planner call fails the story is written without a plan. Recorded as a `plan` run, so the admin cost tile shows plan/write/check.
 - The planner prompt lives in code, not in the admin's prompt versions, and uses the saved prompt's model.
 - Not yet done: splitting the editor into a fact-check and a line edit; a story bible; exemplar stories. NOT yet compared on the five stored games (about $3 with the extra call).
+
+## The editor split (2026-11-22, branch digest-improvements)
+
+One editor was fact-checking, fixing continuity, stripping game-speak and doing craft in a single call, which tends to make it cautious and flatten the prose.
+
+- **Fact-check** (`FACT_CHECK_SYSTEM`, in code): reads the story against the record and lists problems, one per line, or `none`. It never rewrites. It is lenient about names, motives, dialogue and scenery, and strict about added events, wrong counts and anyone leaving the party.
+- **Line edit** (`EDITOR_SYSTEM`, the admin-editable "editor prompt"): given the record, the voice, any fact problems and the draft, it fixes the problems by cutting or correcting, then improves the telling. It may cut, never invent, and must keep the voice. Returns only the story. An old-format reply with an `=== UNSUPPORTED ===` tail is tolerated.
+- **Flow:** plan, write, check, edit, check (the final text is always fact-checked, since an edit can add a fact); one more edit and check if problems remain; then the deterministic guard. Up to seven calls; a clean run is five, about $0.25 a story (was about $0.10).
+- Runs are recorded by pass: plan, write, check, edit.
+- Still to do: a story bible and exemplar stories (both need input on how the cave should sound). Nothing here has been compared on the five stored games yet.

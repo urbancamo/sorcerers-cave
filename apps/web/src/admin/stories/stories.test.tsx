@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const overview = {
   counts: { pending: 1, ready: 3, failed: 1 }, successRate: 60, avgWords: 1500,
-  runs: { total: 10, ok: 8, failed: 2, costUsd: 0.9, inputTokens: 1, outputTokens: 1, avgDurationMs: 42000, avgCostPerStoryUsd: 0.18, byPass: { plan: 0.1, write: 0.4, check: 0.4 } },
+  runs: { total: 10, ok: 8, failed: 2, costUsd: 0.9, inputTokens: 1, outputTokens: 1, avgDurationMs: 42000, avgCostPerStoryUsd: 0.18, byPass: { plan: 0.1, write: 0.3, edit: 0.2, check: 0.1 } },
   spend: { todayUsd: 0.45, monthUsd: 0.9 },
   perDay: [{ day: "2026-11-21", calls: 2, ok: 2, cents: 18 }, { day: "2026-11-22", calls: 4, ok: 3, cents: 45 }],
   byVersion: [{ version: 0, count: 2, costUsd: 0.3 }, { version: 1, count: 1, costUsd: 0.2 }],

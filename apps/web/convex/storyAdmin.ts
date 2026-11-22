@@ -20,7 +20,7 @@ const VIEW: Role[] = ["ANALYTICS", "STORIES"];
 const DAY_MS = 86_400_000;
 const MAX_REWRITE = 500;
 const BATCH = 3;
-const FALLBACK_COST_PER_STORY = 0.2; // used for an estimate before any story has been written
+const FALLBACK_COST_PER_STORY = 0.3; // used for an estimate before any story has been written (five calls: plan, write, check, edit, check)
 
 const scopeV = v.union(
   v.object({ kind: v.literal("all") }),
@@ -243,7 +243,7 @@ export const rewriteBatch = internalAction({
 export const assertEditor = internalQuery({ args: {}, handler: async (ctx) => requireRole(ctx, "STORIES") });
 export const spendBlock = internalQuery({ args: {}, handler: async (ctx) => blockReason(ctx, Date.now()) });
 export const recordTrial = internalMutation({
-  args: { highScoreId: v.id("highScores"), runs: v.array(v.object({ pass: v.union(v.literal("plan"), v.literal("write"), v.literal("check")), model: v.string(), inputTokens: v.number(), outputTokens: v.number(), costUsd: v.number(), durationMs: v.number(), status: v.union(v.literal("ok"), v.literal("rejected"), v.literal("error")), reason: v.optional(v.string()) })) },
+  args: { highScoreId: v.id("highScores"), runs: v.array(v.object({ pass: v.union(v.literal("plan"), v.literal("write"), v.literal("check"), v.literal("edit")), model: v.string(), inputTokens: v.number(), outputTokens: v.number(), costUsd: v.number(), durationMs: v.number(), status: v.union(v.literal("ok"), v.literal("rejected"), v.literal("error")), reason: v.optional(v.string()) })) },
   handler: async (ctx, { highScoreId, runs }) => {
     const now = Date.now();
     for (const r of runs) await ctx.db.insert("storyRuns", { highScoreId, trigger: "trial", promptVersion: -1, createdAt: now, ...r });

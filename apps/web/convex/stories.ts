@@ -13,7 +13,7 @@ import { storyThreshold } from "./storyPrompt";
 const triggerV = v.union(v.literal("save"), v.literal("rewrite"), v.literal("retry"));
 export type SettingsArgs = { paused?: boolean; dailyCapUsd?: number; monthlyCapUsd?: number };
 const runV = v.object({
-  pass: v.union(v.literal("plan"), v.literal("write"), v.literal("check")),
+  pass: v.union(v.literal("plan"), v.literal("write"), v.literal("check"), v.literal("edit")),
   model: v.string(), inputTokens: v.number(), outputTokens: v.number(), costUsd: v.number(), durationMs: v.number(),
   status: v.union(v.literal("ok"), v.literal("rejected"), v.literal("error")), reason: v.optional(v.string()),
 });
