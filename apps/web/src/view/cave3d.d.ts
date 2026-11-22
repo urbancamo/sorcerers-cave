@@ -17,7 +17,8 @@ export interface ViewPartyMember {
   awards: Award[];            // permanent earned marks (dragon-slayer, Elixir bonus) — see game/awards.ts
   dragonCard: string | null;  // the Dragon creature's small-card art, drawn inverted once per kill
   carry: number;  // capacity (kg)
-  load: number;   // carried heavy weight (kg)
+  load: number;   // carried heavy weight (kg), including any share of a Treasure Chest
+  chestNote?: string; // "Bearing 50 kg of the Treasure Chest, shared with …" when the member bears a share
   fs: number; mp: number; charisma: boolean; // the printed strength and magic
   fsParts?: { label: string; n: number }[]; // each bonus now in effect on top of them (a wielded weapon, Dragon kills…); see game/figures.ts
   mpParts?: { label: string; n: number }[];

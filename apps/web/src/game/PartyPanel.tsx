@@ -6,6 +6,8 @@ import {
 import { memberLabels } from "./memberLabels";
 import { loadManifest, resolveCard, resolveCardVariant, type CardArt } from "../data/manifest";
 import { awardsOf } from "./awards";
+import { ChestPicker } from "./ChestPicker";
+import { SHARED_CHEST_CARD } from "./chestShares";
 
 import { useVerbs, wieldRefusal } from "./wielding";
 // Status badges mirror the in-cave roster (see view/cave3d.js renderRoster): a befriended member
@@ -23,6 +25,7 @@ const STATUS_BADGE: Record<number, { label: string; cls: string }> = {
 // The party panel shows a static "10×?" placeholder instead — carry/transfer/drop all work exactly
 // like any other heavy treasure; only the value stays a mystery until the game-over reveal.
 const T_IDOL = 18;
+
 
 // Extension kit (SC-EXT-27, design US-23/Resolved-15): the Magic Shield is holdable by ANY member
 // (BORNEABLE, loot.ts) but its ward is only ACTIVE for an eligible bearer — Hero/W-Hero/Man/Woman.
@@ -47,6 +50,7 @@ export function PartyPanel({
   // Hovered/focused item shown as a large floating preview (fixed to the viewport so it
   // can't be clipped by, or clash with, the panel edge).
   const [preview, setPreview] = useState<string | null>(null);
+  const [adjust, setAdjust] = useState<number | null>(null); // a shared chest whose shares are being changed
 
   useEffect(() => {
     let alive = true;
@@ -135,7 +139,21 @@ export function PartyPanel({
                   <span className="scv-pp-cap-tx">{cap > 0 ? `${load} / ${cap} kg` : "no capacity"}</span>
                 </div>
                 <div className="scv-pp-items">
-                  {m.treasure.length === 0 && awards.length === 0 && <span className="scv-pp-empty">empty-handed</span>}
+                  {m.treasure.length === 0 && awards.length === 0 && !(m.chestShares?.length) && <span className="scv-pp-empty">empty-handed</span>}
+                  {/* A share of a Treasure Chest borne by several members: the chest card, splashed SHARED, with this member's kg. */}
+                  {(m.chestShares ?? []).map((s) => {
+                    const others = party.flatMap((o, oi) => oi !== mi ? (o.chestShares ?? []).filter((x) => x.chest === s.chest).map((x) => `${labels[oi] ?? "?"} ${x.kg} kg`) : []);
+                    return (
+                      <button key={`chest-${s.chest}`} type="button" className="scv-pp-item scv-pp-shared" data-testid="pp-shared-chest" disabled={!canManage || !living}
+                              title={`Treasure Chest · bearing ${s.kg} kg, shared with ${others.join(", ")}`} aria-label={`Treasure Chest, shared: ${s.kg} kg`}
+                              onClick={() => setAdjust(s.chest)}
+                      onMouseEnter={() => setPreview(SHARED_CHEST_CARD)} onMouseLeave={() => setPreview((p) => (p === SHARED_CHEST_CARD ? null : p))}
+                      onFocus={() => setPreview(SHARED_CHEST_CARD)} onBlur={() => setPreview((p) => (p === SHARED_CHEST_CARD ? null : p))}>
+                        <img src={SHARED_CHEST_CARD} alt="Treasure Chest (shared)" />
+                        <span className="scv-pp-shared-kg">{s.kg}kg</span>
+                      </button>
+                    );
+                  })}
                   {m.treasure.map((tid, idx) => {
                     const t = ALL_TREASURES[tid]!;
                     const timg = imgOf("treasure", tid);
@@ -195,6 +213,10 @@ export function PartyPanel({
         {!canManage && <p className="scv-pp-note">Treasure can’t be redistributed during a fight.</p>}
       </div>
 
+      {adjust !== null && (
+        <ChestPicker state={state} source={{ chest: adjust }} onCancel={() => setAdjust(null)} onConfirm={(a) => { setAdjust(null); dispatch(a); }}
+                     onDrop={() => { setAdjust(null); dispatch({ type: "dropChest", chest: adjust }); }} />
+      )}
       {preview && (
         <div className="scv-pp-preview" aria-hidden="true">
           <img src={preview} alt="" />

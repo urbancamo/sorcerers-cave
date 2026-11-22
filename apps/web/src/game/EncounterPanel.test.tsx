@@ -127,6 +127,14 @@ describe("EncounterPanel", () => {
     expect(dispatch).toHaveBeenCalledWith({ type: "leaveTreasure" });
   });
 
+  it("does not auto-skip a Chest nobody can carry alone when the party can share it (Troll + W-Hero)", () => {
+    const dispatch = vi.fn();
+    const g = newGame(1, [5, 6]);
+    const pickup: GameState = { ...g, phase: "pickup", treasures: [14], party: [{ ...g.party[0]!, creatureId: 3 }, { ...g.party[1]!, creatureId: 1 }] };
+    render(<EncounterPanel state={pickup} dispatch={dispatch} leaveOnMove />);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
   it("auto-skip dispatches once per state, not once per render", () => {
     const dispatch = vi.fn();
     const pickup: GameState = { ...newGame(1, [5, 6]), phase: "pickup", treasures: [14] };

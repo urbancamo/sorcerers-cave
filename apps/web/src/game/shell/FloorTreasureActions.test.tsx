@@ -29,6 +29,16 @@ describe('FloorTreasureActions — what the treasure card on the floor offers', 
     expect(d).toHaveBeenCalledWith(expect.objectContaining({ type: 'takeTreasure', ti: 0 }));
   });
 
+  it('offers Share it… on the Treasure Chest even when nobody can carry it alone', () => {
+    const d = vi.fn();
+    const g = pickup([5, 6], [14]);
+    const trollAndWHero = { ...g, party: [{ ...g.party[0]!, creatureId: 3 }, { ...g.party[1]!, creatureId: 1 }] };
+    render(<FloorTreasureActions state={trollAndWHero} dispatch={d} card={card(14)} />);
+    expect(screen.getByTestId('share-chest')).toBeTruthy();
+    fireEvent.click(screen.getByTestId('share-chest'));
+    expect(screen.getByRole('dialog', { name: /share the treasure chest/i })).toBeTruthy();
+  });
+
   it('acts on the card that was clicked, not the first thing on the floor', () => {
     const d = vi.fn();
     render(<FloorTreasureActions state={pickup([5, 6], [14, 1])} dispatch={d} card={card(1)} />); // Chest then Gold

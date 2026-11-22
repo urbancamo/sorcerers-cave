@@ -98,7 +98,7 @@ export function zombieActionGate(mp: MpGameState, seat: number, action: MpAction
   switch (action.type) {
     // "Zombies cannot carry or use treasure" — every acquisition or use path is barred; the only
     // way OUT of a pickup that slipped through is leaveTreasure (which stays legal).
-    case "takeTreasure": case "retakeDropped": case "openChest": case "useArtifact":
+    case "takeTreasure": case "retakeDropped": case "openChest": case "useArtifact": case "setChestShares":
       return reject("zombies cannot carry or use treasure");
     // "They will not attack strangers" (and strangers are indifferent to them — no test needed).
     case "test": case "attack":

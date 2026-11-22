@@ -11,6 +11,10 @@ export type GameAction =
   | { type: "retakeDropped" } // (pickup, after a win) give each fighter back the heavy treasure it dropped to fight
   // Redistribute carried treasure (spec §"keep holdings… A player may redistribute treasure"):
   | { type: "moveTreasure"; from: number; to: number; idx: number } // give party[from].treasure[idx] to party[to]
+  // Share a Treasure Chest between two or more living members (kg a multiple of 25, summing to 100), re-split it, or hand it back to one carrier.
+  // `source`: the chest on the pickup floor (`state.treasures` index), one a member carries whole, or an existing shared group.
+  | { type: "setChestShares"; source: { floor: number } | { member: number } | { chest: number }; shares: { mi: number; kg: number }[] }
+  | { type: "dropChest"; chest: number }                              // put a shared chest down whole
   | { type: "dropTreasure"; mi: number; idx: number }               // drop party[mi].treasure[idx] onto the floor
   // Put in use (wield a Sword/Axe/Staff/Shield, wear the Ring/Talisman) or stow an item (wielding weapons, 2026-11-05). Dispatched
   // by the party panel like moveTreasure/dropTreasure; never offered via legalActions.
@@ -208,6 +212,8 @@ export type GameEvent =
   | { type: "statueDestroyed" } // the Statue is beaten: the Ruby is free
   | { type: "deathPrevented"; creatureId: number }
   | { type: "unicornGuards"; creatureId: number }
+  | { type: "chestShared"; bearers: { creatureId: number; kg: number }[] } // a Treasure Chest is now carried by several members
+  | { type: "chestDropped" }                                              // a shared chest was put down because a bearer was lost
   | { type: "unicornJoins"; count: number } // a Unicorn set apart from its group joins the party (`unicornApart`, GitHub #83)
   | { type: "unicornStepsBack"; count: number } // the Woman a Unicorn fought beside has fallen: it steps back from the fight, indifferent (`unicornApart`, GitHub #83)
   | { type: "unicornHangsBack"; count: number } // a Unicorn stays out of a fight against its group when the party holds a Woman (`unicornApart`, GitHub #83)

@@ -620,6 +620,19 @@ describe("startTestGame", () => {
     expect(game2?.state.testAllDiceRoll).toBe(3);
   });
 
+  test("applyAction accepts the shared-chest actions' fields (arg validator)", async () => {
+    const t = convexTest(schema, modules);
+    const { as } = await asTester(t);
+    const id = await as.mutation(api.game.startTestGame, { seed: 7, picks: [0] });
+    // The engine refuses these on a fresh game (no chest to share); the point is that the hand-maintained actionValidator admits their shape.
+    await expect(as.mutation(api.game.applyAction, {
+      id, action: { type: "setChestShares", source: { floor: 0 }, shares: [{ mi: 0, kg: 50 }, { mi: 1, kg: 50 }] },
+    })).resolves.toBeDefined();
+    await expect(as.mutation(api.game.applyAction, { id, action: { type: "setChestShares", source: { chest: 1 }, shares: [{ mi: 0, kg: 100 }] } })).resolves.toBeDefined();
+    await expect(as.mutation(api.game.applyAction, { id, action: { type: "setChestShares", source: { member: 0 }, shares: [{ mi: 0, kg: 100 }] } })).resolves.toBeDefined();
+    await expect(as.mutation(api.game.applyAction, { id, action: { type: "dropChest", chest: 1 } })).resolves.toBeDefined();
+  });
+
   test("requires authentication", async () => {
     const t = convexTest(schema, modules);
     await expect(t.mutation(api.game.startTestGame, { seed: 1, picks: [0] })).rejects.toThrow("Unauthenticated");

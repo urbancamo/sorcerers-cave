@@ -208,3 +208,40 @@ describe('ItemActions — wielded or carried (Peter\'s report, ZYBP)', () => {
   });
 });
 
+
+describe('ItemActions — a share of the Treasure Chest', () => {
+  const shared = (): GameState => {
+    const g = newGame(1, [5, 6]);
+    return { ...g, party: [{ ...g.party[0]!, creatureId: 3, chestShares: [{ chest: 1, kg: 75 }] }, { ...g.party[1]!, creatureId: 1, chestShares: [{ chest: 1, kg: 25 }] }] };
+  };
+
+  it('lets any bearer put the whole chest down, after a confirm', () => {
+    for (const mi of [0, 1]) {
+      const d = vi.fn();
+      const { unmount } = render(<ItemActions state={shared()} dispatch={d} mi={mi} idx={0} />);
+      fireEvent.click(screen.getByRole('button', { name: /drop the treasure chest/i }));
+      expect(d).not.toHaveBeenCalled();
+      fireEvent.click(screen.getByRole('button', { name: /confirm/i }));
+      expect(d).toHaveBeenCalledWith({ type: 'dropChest', chest: 1 });
+      unmount();
+    }
+  });
+
+  it('offers nothing during a fight', () => {
+    const { container } = render(<ItemActions state={{ ...shared(), phase: 'fight' }} dispatch={() => {}} mi={0} idx={0} />);
+    expect(container).toBeEmptyDOMElement();
+  });
+});
+
+describe('inventory and Open for a shared Treasure Chest', () => {
+  it('lists each bearer\'s share in the inventory, and a share\'s card offers Open the Treasure Chest', async () => {
+    const { inventoryRows } = await import('../inventory');
+    const g = newGame(1, [5, 6]);
+    const state = { ...g, phase: 'explore' as const, party: [{ ...g.party[0]!, creatureId: 3, chestShares: [{ chest: 1, kg: 75 }] }, { ...g.party[1]!, creatureId: 1, chestShares: [{ chest: 1, kg: 25 }] }] };
+    expect(inventoryRows(state).map((r) => [r.mi, r.idx, r.name, r.weight])).toEqual([[0, 0, 'Treasure Chest (shared)', 75], [1, 0, 'Treasure Chest (shared)', 25]]);
+    const d = vi.fn();
+    render(<ItemActions state={state} dispatch={d} mi={0} idx={0} />);
+    fireEvent.click(screen.getByRole('button', { name: /open the treasure chest/i }));
+    expect(d).toHaveBeenCalledWith({ type: 'openChest' });
+  });
+});

@@ -44,6 +44,10 @@ export interface PartyMember {
   status: MemberStatus;
   dragonKills: number;
   treasure: number[]; // treasure ids carried
+  // A share of a Treasure Chest that two or more members carry between them (docs/requirements/sharing-the-treasure-chest-load/plan.md).
+  // `chest` is the group id and `kg` this member's part (a multiple of 25, the lightest treasure; a group sums to 100). A shared chest is NOT in
+  // any `treasure` list: it exists only as these shares. A chest carried whole by one member stays a plain 14 in `treasure`. Absent = no shares.
+  chestShares?: { chest: number; kg: number }[];
   // Items the member is USING rather than merely carrying — a subset of `treasure` by id: wielded (Magic Sword 3, Staff 9, Axe 17,
   // Shield 20) or worn (Talisman 7, The Ring 10). An item's combat or warding effect applies only while it is listed here (loot.ts
   // `inUse`); nothing is listed automatically. Nothing is lost with a fallen holder: in use or not, it spills to the floor
@@ -330,7 +334,8 @@ export interface GameState {
   withdrewAreas?: number[];
   // Heavy treasure dropped to the floor by front-line fighters this fight (§387), with the member that
   // dropped each — lets the won-fight pickup offer "retake as distributed before" in one step.
-  fightDrops?: { mi: number; tid: number }[];
+  // `kg`/`chest` are set for one bearer's share of a shared Treasure Chest (id 14): the chest is on the floor once, with one entry per bearer.
+  fightDrops?: { mi: number; tid: number; kg?: number; chest?: number }[];
   // Bug fix 2026-09-18 (SC-11-26/27/28): true once the Lost Ruby (treasure id 11) has been freed
   // from its strength-8 statue guard — a won wrestle or an Eye-stilled take. From that point on the
   // Ruby is ordinary treasure: `takeTreasure` reads this flag (alongside the treasure id) so

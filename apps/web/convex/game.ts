@@ -31,6 +31,11 @@ const actionValidator = v.object({
   area: v.optional(v.number()), // spareSorcerer: the discovered area to teleport to
   borne: v.optional(v.boolean()), // setBorne: bear (wield/wear) vs stow a Sword/Staff/Ring
 
+  // Sharing the Treasure Chest (setChestShares / dropChest): where the chest is now, who bears how many kg, and a shared chest's group id.
+  source: v.optional(v.union(v.object({ floor: v.number() }), v.object({ member: v.number() }), v.object({ chest: v.number() }))),
+  shares: v.optional(v.array(v.object({ mi: v.number(), kg: v.number() }))),
+  chest: v.optional(v.number()),
+
   // resolveRound: the player's pairing for one fight round (front/background/strangers per match).
   matches: v.optional(v.array(v.object({
     front: v.array(v.number()),

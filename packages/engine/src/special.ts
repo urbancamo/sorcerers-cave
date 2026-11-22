@@ -7,6 +7,7 @@ import { getSubLocation } from "./subLocation";
 import type { SubAt } from "./subLocation";
 import type { GameState, PartyMember, PlacedArea } from "./state";
 import type { GameEvent } from "./actions";
+import { chestGroups, takeShares } from "./chest";
 
 const C_GIANT = 12;
 // Heavy treasure by the treasure table, so the Treasure Chest (100 kg) and the kit's Idol and Crypt/Gems count as well as Silver, Gold and Gems (GitHub #93).
@@ -113,7 +114,9 @@ export function deepPoolCrossing(state: GameState, poolIdx: number): GameEvent[]
   if (giants > 0) {
     // R-30 (Peter, §Deep Pool): a load is a Giant's carrying capacity; each load beyond the first costs the party a turn.
     // Giants carry in parallel, so the capacity per trip is their combined CAP.
-    const kg = members.reduce((sum, m) => sum + m.treasure.filter((t) => isHeavy(t)).reduce((w, t) => w + ALL_TREASURES[t]!.weight, 0), 0);
+    // A Treasure Chest shared between members counts once, as the 100 kg its shares add up to.
+    const kg = members.reduce((sum, m) => sum + m.treasure.filter((t) => isHeavy(t)).reduce((w, t) => w + ALL_TREASURES[t]!.weight, 0)
+      + (m.chestShares ?? []).reduce((w, s) => w + s.kg, 0), 0);
     const loads = Math.ceil(kg / (ALL_CREATURES[C_GIANT]!.carry * giants));
     if (loads > 1) {
       state.turn += loads - 1;
@@ -130,6 +133,12 @@ export function deepPoolCrossing(state: GameState, poolIdx: number): GameEvent[]
       m.treasure = m.treasure.filter((t) => !isHeavy(t));
       events.push({ type: "treasureDropped", count: heavy.length });
     }
+  }
+  // With no Giant a shared chest sinks whole, like any heavy treasure (once, not once per bearer).
+  for (const chest of chestGroups(state)) {
+    takeShares(state, chest);
+    pool.dropped.push(14);
+    events.push({ type: "treasureDropped", count: 1 });
   }
   return events;
 }

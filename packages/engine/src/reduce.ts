@@ -9,7 +9,8 @@ import { viperCrossing, deepPoolCrossing, whirlpoolCrossing, giantCanRecover, su
 import { enterChamber, drawSmallCards } from "./chamber";
 import { applyHazards, hasStaffWizard, livingDwarfCount } from "./hazards";
 import { HAZARD_MEDUSA, HAZARD_TRAP, HAZARD_NAMES } from "./data/hazards";
-import { takeTreasure, canCarry } from "./pickup";
+import { takeTreasure, canCarry, carriedWeight } from "./pickup";
+import { CHEST, isAliveMember, nextChestId, chestGroups, chestBearers, sharesProblem, takeShares, settleSharedChests, droppedChestGroups, chestRetakeable } from "./chest";
 import { unpackCoord, packCoord, targetCoord, DIR_UP, DIR_DOWN } from "./coords";
 import type { GameAction, GameEvent } from "./actions";
 import { reactionRoll, forcedReactionRoll, findLeader } from "./reaction";
@@ -978,6 +979,12 @@ export function reduce(
       if (!settled.party.some((m) => m.status === 0 || m.status === 1)) result = { ...result, ...partyWipedOut(settled, result.events) };
     }
   }
+  // A shared Treasure Chest whose bearer was lost this action (died, turned to stone, left) is dropped whole (plan: sharing-the-treasure-chest-load).
+  if (result && result.state.party.some((m) => m.chestShares)) {
+    const settled = structuredClone(result.state);
+    const dropped = settleSharedChests(settled);
+    if (dropped.length) result = { ...result, state: settled, events: [...result.events, ...dropped] };
+  }
   // R-07/R-10 (MSW, 2026-11-06): when no original member is left the player picks a new leader from the allies, who counts as original from
   // then on. A lone ally is simply promoted; several make the player choose (phase "leader"). Never in the middle of a fight or a pause.
   if (result && !("seat" in result.state) && result.state.gs === GS_PLAYING && ["explore", "pickup", "encounter"].includes(result.state.phase)
@@ -1487,9 +1494,18 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       // distribution it had before — skipping any whose dropper fell or who can no longer carry it.
       if (state.phase !== "pickup") return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
-      const remaining: { mi: number; tid: number }[] = [];
+      const remaining: { mi: number; tid: number; kg?: number; chest?: number }[] = [];
       let count = 0;
+      // A shared chest comes back as one: only if it is still on the floor and every bearer can take their share again, each with the kg they bore;
+      // otherwise it stays on the floor to be taken by hand and its drop record is cleared (never half-applied).
+      for (const [chest, bearers] of droppedChestGroups(next)) {
+        if (!chestRetakeable(next, bearers)) continue;
+        next.treasures.splice(next.treasures.indexOf(CHEST), 1);
+        for (const b of bearers) next.party[b.mi]!.chestShares = [...(next.party[b.mi]!.chestShares ?? []), { chest, kg: b.kg }];
+        count += 1;
+      }
       for (const drop of next.fightDrops ?? []) {
+        if (drop.chest !== undefined) continue;
         const m = next.party[drop.mi];
         const ti = next.treasures.indexOf(drop.tid);
         if (m && (m.status === 0 || m.status === 1) && ti >= 0 && canCarry(m, drop.tid)) {
@@ -1501,7 +1517,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         }
       }
       if (count === 0) return { state, events: [{ type: "blocked" }] };
-      next.fightDrops = remaining;
+      next.fightDrops = remaining; // (the shared chests' entries are done with, whether or not they came back)
       const events: GameEvent[] = [{ type: "droppedRetaken", count }];
       if (next.treasures.length === 0) persistAndExplore(next);
       return { state: next, events };
@@ -1527,6 +1543,54 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       to.treasure.push(tid);
       // The Eye of God must stay with the party: passing it to another living member keeps it, so no curse (Peter, 2026-11-04).
       return { state: next, events: [] };
+    }
+
+    case "setChestShares": {
+      // Share the Treasure Chest between two or more members, re-split it, or hand it back to one carrier (plan: sharing-the-treasure-chest-load).
+      if (state.phase === "fight" || state.phase === "gameOver") return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state), src = action.source;
+      let chest: number;
+      if ("floor" in src) {
+        if (next.phase !== "pickup" || next.treasures[src.floor] !== CHEST) return { state, events: [{ type: "blocked" }] };
+        // Recovering from a Deep Pool is Giant-only, like any other lift out of the water.
+        if (decodeOpen(next.areas[next.partyArea]!).special === SPECIAL_DEEP_POOL && action.shares.some((s) => next.party[s.mi]?.creatureId !== C_GIANT)) return { state, events: [{ type: "blocked" }] };
+        next.treasures.splice(src.floor, 1);
+        chest = nextChestId(next);
+      } else if ("member" in src) {
+        const holder = next.party[src.member];
+        const i = holder?.treasure.indexOf(CHEST) ?? -1;
+        if (!isAliveMember(holder) || i < 0) return { state, events: [{ type: "blocked" }] };
+        holder.treasure.splice(i, 1);
+        chest = nextChestId(next);
+      } else {
+        if (chestBearers(next, src.chest).length === 0) return { state, events: [{ type: "blocked" }] };
+        takeShares(next, src.chest);
+        chest = src.chest;
+      }
+      // The chest is out of every hand now, so each bearer's load is what they carry apart from it.
+      if (sharesProblem(next, action.shares, (m) => carriedWeight(m))) return { state, events: [{ type: "blocked" }] };
+      if (action.shares.length === 1) {
+        next.party[action.shares[0]!.mi]!.treasure.push(CHEST); // one carrier: an ordinary chest
+        return { state: next, events: [] };
+      }
+      for (const s of action.shares) {
+        const m = next.party[s.mi]!;
+        m.chestShares = [...(m.chestShares ?? []), { chest, kg: s.kg }];
+      }
+      return { state: next, events: [{ type: "chestShared", bearers: action.shares.map((s) => ({ creatureId: next.party[s.mi]!.creatureId, kg: s.kg })) }] };
+    }
+
+    case "dropChest": {
+      // Put a shared chest down whole: hand it to its first bearer for a moment and let an ordinary drop place it (pickup floor, parked, or a sinking special area).
+      if (state.phase === "fight" || state.phase === "gameOver") return { state, events: [{ type: "blocked" }] };
+      const bearers = chestBearers(state, action.chest);
+      if (bearers.length === 0) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      takeShares(next, action.chest);
+      const holder = next.party[bearers[0]!.mi]!;
+      holder.treasure.push(CHEST);
+      const dropped = reduceCore(next, { type: "dropTreasure", mi: bearers[0]!.mi, idx: holder.treasure.length - 1 });
+      return dropped.events.some((e) => e.type === "blocked") ? { state, events: [{ type: "blocked" }] } : dropped;
     }
 
     case "dropTreasure": {
@@ -2197,10 +2261,15 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
     case "openChest": {
       if (state.phase !== "explore") return { state, events: [{ type: "blocked" }] };
       const bearerIdx = state.party.findIndex((m) => (m.status === 0 || m.status === 1) && m.treasure.includes(14));
-      if (bearerIdx < 0) return { state, events: [{ type: "blocked" }] };
+      const shared = chestGroups(state)[0]; // a chest borne by several members is opened just the same
+      if (bearerIdx < 0 && shared === undefined) return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
-      const bearer = next.party[bearerIdx]!;
-      bearer.treasure.splice(bearer.treasure.indexOf(14), 1); // the chest is opened (consumed)
+      if (bearerIdx >= 0) {
+        const bearer = next.party[bearerIdx]!;
+        bearer.treasure.splice(bearer.treasure.indexOf(14), 1); // the chest is opened (consumed)
+      } else {
+        takeShares(next, shared!);
+      }
       const roll = cursedRoll(next);
       const events: GameEvent[] = [{ type: "chestOpened", result: roll }];
       switch (roll) {

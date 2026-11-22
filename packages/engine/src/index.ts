@@ -18,6 +18,7 @@ export * from "./data/smallPack";
 export * from "./chamber";
 export * from "./hazards";
 export * from "./pickup";
+export * from "./chest";
 export * from "./loot";
 export * from "./score";
 export * from "./reaction";

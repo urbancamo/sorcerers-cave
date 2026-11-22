@@ -7,6 +7,7 @@ import { GS_PLAYING, AF_DESTROYED, AF_BELL_SPENT, AF_WELL_SPENT, type GameState 
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
 import type { GameAction } from "./actions";
 import { canCarry } from "./pickup";
+import { droppedChestGroups, chestRetakeable } from "./chest";
 import { canUseArtifact, holyWaterTargets, hasLivingHuman, fluteLulls, healingBalmEligible, isHumanOrPriestClass } from "./effects";
 import { getSubLocation, chasmMoveAllowed, oppositeDir, RING_ADJACENCY_SPECIALS, ISLAND_JUMP_SPECIALS, type SubLocation } from "./subLocation";
 import { giantCanRecover, sunkKey } from "./special";
@@ -289,10 +290,11 @@ export function legalActions(state: GameState): GameAction[] {
     }
     // After a win, offer to retake the heavy treasure dropped to fight, in its prior distribution —
     // when at least one dropped item is still on the floor and its dropper can carry it back.
-    const canRetake = (state.fightDrops ?? []).some(({ mi, tid }) => {
+    const canRetake = (state.fightDrops ?? []).some(({ mi, tid, chest }) => {
+      if (chest !== undefined) return false; // a shared chest is judged as a whole, below
       const m = state.party[mi];
       return !!m && (m.status === 0 || m.status === 1) && state.treasures.includes(tid) && canCarry(m, tid);
-    });
+    }) || [...droppedChestGroups(state).values()].some((bearers) => chestRetakeable(state, bearers));
     if (canRetake) actions.push({ type: "retakeDropped" });
     actions.push({ type: "leaveTreasure" });
     // An open pickup is a quiet pre-step: the at-rest tile actions (crypt, chasm, well, bell rope, chest, island, exit, the Sibyl's
@@ -318,7 +320,7 @@ export function legalActions(state: GameState): GameAction[] {
   // (Peter's house rule), never from the island itself (an ordinary `move` already crosses out
   // unrestricted from there) and never once already jumped this visit.
   if (ISLAND_JUMP_SPECIALS.has(dec.special) && sub.at === "doorway") actions.push({ type: "jumpToIsland" });
-  if (state.party.some((m) => (m.status === 0 || m.status === 1) && m.treasure.includes(14))) actions.push({ type: "openChest" });
+  if (state.party.some((m) => (m.status === 0 || m.status === 1) && (m.treasure.includes(14) || m.chestShares))) actions.push({ type: "openChest" }); // whole, or a share of a chest borne by several
   // The Chasm is reusable terrain: always offered while resting on it, not a one-shot (design US-02).
   if (dec.special === SPECIAL_CHASM) actions.push({ type: "descendChasm" });
   // The Well, like the Bell Rope, is spent forever once drawn from (AF_WELL_SPENT / AF_BELL_SPENT) and
