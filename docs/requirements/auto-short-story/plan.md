@@ -87,13 +87,17 @@ can change without a deploy):
 
 1. **Write.** System prompt carries the craft rules from `short-story/plan.md` sections 3 and 6 and `editor-notes.md`
    sections 2-3 (a want and a lack, cost, theme said once, concrete nouns, no game-speak, no stacked recruit lists,
-   1,500-1,800 words, opening line that promises and a last image that keeps it). The user message is the digest only.
+   1,500-1,800 words, opening line that promises and a last image that keeps it). **One continuous narrative:** the
+   digest is raw material, not a set of scenes, so the writer must join the events (travel, time, thought, mood) and
+   dwell on only three or four, with no headings, lists or scene-break lines. The first draft of the hand-written story
+   used `---` breaks, which read as separate episodes; the generated story must not. The user message is the digest only.
    The model may invent names, motives and dialogue (the run has none) but must not contradict or add events.
 2. **Check and edit.** A second call gets the digest and the draft and returns the final text plus a JSON list of any
-   statement it could not support from the digest. Any unsupported fact is either fixed in that pass or, after one
+   statement it could not support from the digest. It also checks **continuity**: a draft that is a string of
+   episodes, one per event, is rewritten with connecting passages between them. Any unsupported fact is either fixed in that pass or, after one
    retry, the story is stored `failed`. This is the automated version of the fact-check table in `editor-notes.md`.
 3. Cheap deterministic guards before storing: word count in range, no leaked game-speak (a small denylist such as
-   "level 4", "roll", "points", "game"), no markdown beyond paragraphs and `---`, a title present.
+   "level 4", "roll", "points", "game"), no headings, lists or scene-break lines (only a `# Title` line and plain paragraphs), a title present.
 
 Cost is small and bounded: a digest of a few thousand tokens in and about 2,500 tokens of story out, twice, per qualifying
 game, and only on first save. `digestHash` makes a retry free.
@@ -114,7 +118,7 @@ game, and only on first save. `digestHash` makes a retry free.
   practice: check recent commits and downloads). Fallback if it proves awkward: a print stylesheet and `window.print()`,
   at the cost of not being a true download.
 - Layout: title, byline ("Told from the run of *name*, score N, game code XXXX"), body in a readable serif at about
-  11 pt with scene breaks as a centred rule, page numbers, a small footer naming the game. About three pages.
+  11 pt as continuous paragraphs, page numbers, a small footer naming the game. About three pages.
 - Button in `ScoreDetail`'s downloads row, beside the log downloads, with the three states from 2.2. The Help manual
   (`apps/web/src/manual`, the scoring topic) gets a sentence saying high-scoring games get a short story.
 
