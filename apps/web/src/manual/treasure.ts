@@ -16,7 +16,7 @@ export const TREASURE: Section = {
       note('good', 'Redistribute freely', 'Outside a fight, open an item and use *Pass to* to hand it to a stronger back, or *Drop here* to leave it where you stand.'),
     ] },
     { id: 'treasure-chest', title: 'Treasure Chest', cards: [...cards('treasure', 'Treasure Chest'), ...cards('artifact', 'Treasure Chest')], blocks: [
-      p('The heaviest treasure at 100 kg, so only a strong back — a Giant, or an empty-handed Ogre — can carry it. A member must be *carrying* it to open it, and then a die decides your fortune: a curse, a Spectre (which the Eye of God destroys and the Talisman drives off on level 4+), worthless sand, or Silver, Gold or Gems.'),
+      p('The heaviest treasure at 100 kg, so only a strong back — a Giant, or an empty-handed Ogre — can carry it. A member must be *carrying* it to open it, and then a die decides your fortune: a curse, a Spectre (which the Eye of God destroys and the Talisman drives off on level 4+), worthless sand, or Silver, Gold or Gems. A Silver, Gold or Gems result tips **four bags** of that treasure (25 kg each, 100 kg in all, worth 20, 40 or 80 points) onto the chamber floor, to be taken like any other treasure: the chest\'s own bearers have just been relieved of its weight, so there is room for them. Bags nobody takes stay in the chamber.'),
     ] },
     { id: 'treasure-idol', title: 'Idol', variant: 'kit', cards: cards('treasure', 'Idol'), blocks: [
       p('Fifty kilograms of stone, and it does nothing along the way. Only at the final reckoning does it speak: a die is cast for it once, and its worth is ten times whatever it shows, from 10 to 60 points. Carried out by the dead or the stone-turned, it is worth nothing.'),

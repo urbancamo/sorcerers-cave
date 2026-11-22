@@ -334,7 +334,7 @@ describe("rollFromEvents: the Treasure Chest's Spectre", () => {
     const v = rollFromEvents(ev({ type: "chestOpened", result: 2 }, { type: "fightStarted", surprise: 0 }, { type: "deployed", creatures: [0], side: "strangers" },
       { type: "spectreSlew", creatureId: 1 }, { type: "spectreDeparts" }, { type: "fightWon" }, { type: "leaderChosen", creatureId: 3 }));
     expect(v?.tone).toBe("bad");
-    expect(v?.message).toBe("A Spectre bursts from the chest and attacks! Its touch slays W-Hero. Having had its one round, it vanishes. Troll is now the party's leader.");
+    expect(v?.message).toBe("A Spectre bursts from the chest and attacks! Its touch slays W-Hero. The Spectre disappears into the dark. Troll is now the party's leader.");
   });
   it("tells the player to defend when the fight is still on", () => {
     expect(rollFromEvents(ev({ type: "chestOpened", result: 2 }, { type: "fightStarted", surprise: 0 }))?.message).toBe("A Spectre bursts from the chest and attacks! Defend yourselves!");
@@ -342,5 +342,39 @@ describe("rollFromEvents: the Treasure Chest's Spectre", () => {
   it("says the Eye or the Talisman stopped it", () => {
     expect(rollFromEvents(ev({ type: "chestOpened", result: 2 }, { type: "annihilated", creatureId: 9 }))?.message).toMatch(/Eye of God destroys it/);
     expect(rollFromEvents(ev({ type: "chestOpened", result: 2 }, { type: "wardedOff", creatureId: 9 }))?.message).toMatch(/Talisman drives it off/);
+  });
+});
+
+describe("rollFromEvents: every way the chest's Spectre is fended off for the round", () => {
+  const ev = (...e: object[]) => e as GameEvent[];
+  const open = { type: "chestOpened", result: 2 }, start = { type: "fightStarted", surprise: 0 };
+  const combat = (result: string) => ({ type: "combatRoll", party: "Wizard", enemy: "Spectre", partyRoll: 4, enemyRoll: 3, partyTotal: 6, enemyTotal: 8, result });
+
+  it("a Magic Shield stalemate: the shield holds it, then it disappears into the dark", () => {
+    const v = rollFromEvents(ev(open, start, { type: "shieldStalemate", creatureIds: [9] }, { type: "spectreDeparts" }, { type: "fightWon" }));
+    expect(v?.message).toBe("A Spectre bursts from the chest and attacks! The Magic Shield holds it at bay — neither side can land a blow. The Spectre disappears into the dark.");
+    expect(v?.tone).toBe("good");
+  });
+  it("a caster holding it to a tie, or a Ring saving the bearer: it disappears into the dark", () => {
+    expect(rollFromEvents(ev(open, start, combat("tie"), { type: "spectreDeparts" }))?.message).toBe("A Spectre bursts from the chest and attacks! Wizard holds it off. The Spectre disappears into the dark.");
+    expect(rollFromEvents(ev(open, start, { type: "deathPrevented", creatureId: 1 }, { type: "spectreDeparts" }))?.message).toMatch(/The Ring saves W-Hero\. The Spectre disappears into the dark\.$/);
+  });
+  it("a caster beating it destroys it: no disappearing", () => {
+    const v = rollFromEvents(ev(open, start, combat("partyWon"), { type: "strangerKilled", creatureId: 9 }, { type: "fightWon" }));
+    expect(v?.message).toBe("A Spectre bursts from the chest and attacks! Wizard overcomes it. The Spectre is destroyed.");
+    expect(v?.tone).toBe("good");
+  });
+  it("a member falling to it is bad news, and the Spectre still goes", () => {
+    const v = rollFromEvents(ev(open, start, combat("enemyWon"), { type: "memberDied", creatureId: 8 }, { type: "spectreDeparts" }));
+    expect(v?.message).toBe("A Spectre bursts from the chest and attacks! Wizard falls. The Spectre disappears into the dark.");
+    expect(v?.tone).toBe("bad");
+  });
+});
+
+describe("rollFromEvents: the chest Spectre's round resolved in a later step (deploy and engage)", () => {
+  const ev = (...e: object[]) => e as GameEvent[];
+  it("a fought round says the Spectre disappears into the dark", () => {
+    const v = rollFromEvents(ev({ type: "combatRoll", party: "Wizard", enemy: "Spectre", partyRoll: 3, enemyRoll: 3, partyTotal: 8, enemyTotal: 8, result: "tie" }, { type: "spectreDeparts" }, { type: "fightWon" }));
+    expect(v?.message).toMatch(/The Spectre disappears into the dark\.$/);
   });
 });

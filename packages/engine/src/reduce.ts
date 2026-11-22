@@ -1646,7 +1646,11 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           if (!bucket) { bucket = { at: key, items: [] }; area.sunkTreasure.push(bucket); }
           bucket.items.push(tid);
         } else if (restingUnguarded) {
-          next.treasures.push(tid);
+          // Treasure already parked on this tile (left because nobody had the room, e.g. a Chest) comes back with it: the party is making room,
+          // so it must be offered again now, not only after a leave-and-return.
+          const parked = area.contents.filter((c) => c >= 200 && c < 300);
+          area.contents = area.contents.filter((c) => !(c >= 200 && c < 300));
+          next.treasures.push(...parked.map((c) => c - 200), tid);
           next.phase = "pickup";
         } else {
           area.contents.push(200 + tid); // left on the chamber floor
@@ -2264,11 +2268,12 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       const shared = chestGroups(state)[0]; // a chest borne by several members is opened just the same
       if (bearerIdx < 0 && shared === undefined) return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
+      let opener = bearerIdx; // whoever hands the loot down (see below)
       if (bearerIdx >= 0) {
         const bearer = next.party[bearerIdx]!;
         bearer.treasure.splice(bearer.treasure.indexOf(14), 1); // the chest is opened (consumed)
       } else {
-        takeShares(next, shared!);
+        opener = takeShares(next, shared!)[0]!.mi;
       }
       const roll = cursedRoll(next);
       const events: GameEvent[] = [{ type: "chestOpened", result: roll }];
@@ -2291,9 +2296,17 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           }
           break;
         case 3: break; // Sand
-        case 4: next.bonusScore += 20; break; // Silver
-        case 5: next.bonusScore += 40; break; // Gold
-        case 6: next.bonusScore += 80; break; // Gems
+        case 4: case 5: case 6: { // Silver, Gold or Gems: four 25 kg bags (the chest's 100 kg, and its 20/40/80 points at 5/10/20 each)
+          // The bags are tipped out on the floor to be picked up like any treasure: hand them to the opener for a moment and let an ordinary
+          // drop place each (the pickup, parked on a guarded tile, or sinking in a special area).
+          let dumped = next;
+          for (let k = 0; k < 4; k++) {
+            const holder = dumped.party[opener]!;
+            holder.treasure.push(roll - 4);
+            dumped = reduceCore(dumped, { type: "dropTreasure", mi: opener, idx: holder.treasure.length - 1 }).state;
+          }
+          return { state: dumped, events };
+        }
       }
       return { state: next, events };
     }

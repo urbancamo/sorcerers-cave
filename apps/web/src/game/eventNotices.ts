@@ -506,6 +506,9 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
       // Bug fix 2026-08-09 (SC-EXT-40, card text): "the shield-bearer may match himself against a
       // spectre or demon, and the spectre or demon is simply ignored for that round" — fires INSTEAD
       // of a combatRoll for that match; no dice were rolled and neither side was harmed.
+      case "spectreDeparts": // the chest Spectre's one round is over (also said in the combat overlay, rollView.ts, when dice were rolled)
+        out.push({ text: "The Spectre disappears into the dark.", tone: "good" });
+        break;
       case "shieldStalemate":
         out.push({ text: `The Magic Shield holds ${e.creatureIds.map(allName).join(", ")} at bay — neither side can land a blow this round.`, tone: "neutral" });
         break;
@@ -535,7 +538,7 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
         break;
       case "strategyFallback":
         break; // an operator's concern (the game log), not the player's
-      case "deployed": case "engaged": case "redeployed": case "strangerCasualty": case "fightStandoff": case "spectreDeparts": case "ghoulsDepart": case "scrollSurprise":
+      case "deployed": case "engaged": case "redeployed": case "strangerCasualty": case "fightStandoff": case "ghoulsDepart": case "scrollSurprise":
         break; // the revised round engine (`variants.combatRevision`) has no player surface yet
       default:
         assertNever(e);

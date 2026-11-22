@@ -103,7 +103,9 @@ function combatView(events: GameEvent[]): RollView | null {
   const joins = events.some((e) => e.type === "unicornJoins");
   const stepsBack = !stepped || joins ? "" : won ? UNICORN_STAYS_INDIFFERENT : UNICORN_STEPS_BACK;
   const tone: Tone = over || lost > 0 ? "bad" : killed > 0 ? "good" : "neutral";
-  return { title: "Combat round", lanes, message: message + stepsBack, tone };
+  // The chest's Spectre attacks for one round and then goes: say so, or a fended-off round ends without a word.
+  const spectreGone = !over && events.some((e) => e.type === "spectreDeparts") ? " The Spectre disappears into the dark." : "";
+  return { title: "Combat round", lanes, message: message + spectreGone + stepsBack, tone };
 }
 
 /** What the chest's Spectre did. Its round can already be over when the player sees this (a revised fight's one round is played at once),
@@ -115,17 +117,26 @@ function spectreFromChest(events: GameEvent[]): { message: string; tone: Tone } 
   const talisman = events.find((e) => e.type === "wardedOff");
   if (talisman) return { message: "A Spectre bursts from the chest — but the Talisman drives it off.", tone: "good" };
   const parts = ["A Spectre bursts from the chest and attacks!"];
-  const slain = events.filter((e): e is Extract<GameEvent, { type: "spectreSlew" }> => e.type === "spectreSlew");
-  for (const s of slain) parts.push(`Its touch slays ${name(s.creatureId)}.`);
+  // However the party fends it off for the round (a Magic Shield stalemate, a caster or Sword-bearer holding or beating it, the Ring), say so.
+  if (events.some((e) => e.type === "shieldStalemate")) parts.push("The Magic Shield holds it at bay — neither side can land a blow.");
+  for (const r of events.filter((e): e is Extract<GameEvent, { type: "combatRoll" }> => e.type === "combatRoll" && e.enemy === "Spectre")) {
+    if (r.result === "partyWon") parts.push(`${r.party} overcomes it.`);
+    else if (r.result === "tie") parts.push(`${r.party} holds it off.`);
+  }
+  const slain = events.filter((e): e is Extract<GameEvent, { type: "spectreSlew" } | { type: "memberDied" }> => e.type === "spectreSlew" || e.type === "memberDied");
+  for (const s of slain) parts.push(s.type === "spectreSlew" ? `Its touch slays ${name(s.creatureId)}.` : `${name(s.creatureId)} falls.`);
   for (const d of events.filter((e): e is Extract<GameEvent, { type: "deathPrevented" }> => e.type === "deathPrevented")) parts.push(`The Ring saves ${name(d.creatureId)}.`);
   const over = events.some((e) => e.type === "gameOver");
+  const destroyed = events.some((e) => e.type === "strangerKilled" && e.creatureId === 9);
   const departed = events.some((e) => e.type === "spectreDeparts");
   if (over) parts.push("The party is wiped out…");
-  else if (departed) parts.push("Having had its one round, it vanishes.");
+  else if (destroyed) parts.push("The Spectre is destroyed.");
+  else if (departed) parts.push("The Spectre disappears into the dark.");
   else if (events.some((e) => e.type === "fightStarted")) parts.push("Defend yourselves!");
   const leader = events.find((e): e is Extract<GameEvent, { type: "leaderChosen" }> => e.type === "leaderChosen");
   if (leader) parts.push(`${name(leader.creatureId)} is now the party's leader.`);
-  return { message: parts.join(" "), tone: slain.length > 0 || over ? "bad" : "neutral" };
+  const fended = destroyed || departed || events.some((e) => e.type === "shieldStalemate");
+  return { message: parts.join(" "), tone: slain.length > 0 || over ? "bad" : fended ? "good" : "neutral" };
 }
 
 /** Turn an opened Treasure Chest (a d6) into a single-die overlay — otherwise its
@@ -137,9 +148,9 @@ function chestView(events: GameEvent[]): RollView | null {
     1: { message: "A curse! A curse card settles on the party — −1 to every roll, and −30 points at scoring.", tone: "bad" },
     2: spectreFromChest(events),
     3: { message: "Only sand — nothing of value.", tone: "neutral" },
-    4: { message: "Silver! +20 points.", tone: "good" },
-    5: { message: "Gold! +40 points.", tone: "good" },
-    6: { message: "Gems! +80 points.", tone: "good" },
+    4: { message: "Silver! Four bags (20 points) spill onto the floor, ready to pick up.", tone: "good" },
+    5: { message: "Gold! Four bags (40 points) spill onto the floor, ready to pick up.", tone: "good" },
+    6: { message: "Gems! Four bags (80 points) spill onto the floor, ready to pick up.", tone: "good" },
   };
   const o = OUTCOME[chest.result] ?? { message: "The chest creaks open.", tone: "neutral" as Tone };
   return { title: "The Treasure Chest", lanes: [{ enemy: { value: chest.result } }], message: o.message, tone: o.tone, stakes: "You lift the lid. A 1 is a curse, a 2 a Spectre, a 3 only sand — but a 4, 5 or 6 is silver, gold or gems." };
