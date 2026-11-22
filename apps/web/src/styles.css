@@ -17,6 +17,7 @@
   --display: "Cinzel", serif;
   --body: "EB Garamond", serif;
   --ui: ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --mono: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
 }
 
 /* ---- menu / shell screens (party select, sign-in, game over) ---- */
@@ -2727,7 +2728,24 @@ body:has(.scv-titlebar) .scv-fs-corner,body:has(.scv-replay-transport) .scv-fs-c
 .scv-st-caps, .scv-st-row { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 12px; }
 .scv-st-grow { flex: 1 1 14em; }
 .scv-st-h { margin: 20px 0 8px; font-size: 14px; }
-.scv-st-area { font-family: ui-monospace, Menlo, monospace; font-size: 12.5px; line-height: 1.45; width: 100%; }
+/* The prompt and bible editors: a fixed-width, recessed "code well" that reads as a different thing from the surrounding fields. The
+   selector carries `textarea` so it outranks `.scv-bug-field textarea` (which sets the UI font and the faint input background). */
+.scv-bug-field textarea.scv-st-area, .scv-st-area {
+  font-family: var(--mono);
+  font-size: 12.5px;
+  line-height: 1.5;
+  tab-size: 2;
+  white-space: pre-wrap;
+  width: 100%;
+  color: var(--parchment);
+  background: var(--void);
+  border-color: var(--line-strong);
+  box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.6);
+}
+.scv-bug-field textarea.scv-st-area:read-only { color: var(--stone); background: #0d0d11; }
+.scv-bug-field textarea.scv-st-area:focus { background: #050507; box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.6), 0 0 0 2px rgba(230, 197, 120, 0.3); }
+/* Declared after the block above so it wins: iOS zooms a focused field under 16px. */
+@media (max-width: 720px) { .scv-bug-field textarea.scv-st-area { font-size: 16px; } }
 .scv-st-prompt, .scv-st-rewrite { display: flex; flex-direction: column; gap: 14px; }
 .scv-st-scope { display: flex; flex-direction: column; gap: 10px; margin: 8px 0; }
 .scv-st-radio { display: flex; gap: 10px; align-items: flex-start; cursor: pointer; }
