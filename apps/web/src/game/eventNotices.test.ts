@@ -230,18 +230,21 @@ describe("eventNotices", () => {
     const stone = eventNotices([{ type: "galleryStone", creatureIds: [5] }])[0]!;
     expect(stone.text).toMatch(/strangers here are stone/i);
 
-    const wake = eventNotices([{ type: "staffWake", creatureIds: [5, 5] }])[0]!;
-    expect(wake.text).toMatch(/magic staff blazes/i);
-    expect(wake.text).toMatch(/cracks and stirs/i);
+    // Waking is the player's choice now (issue #105): one statue, or several; the text never says "every" when some may stay stone.
+    const group = eventNotices([{ type: "staffWake", creatureIds: [5, 5] }])[0]!;
+    expect(group.text).toMatch(/magic staff blazes/i);
+    expect(group.text).toMatch(/2 stone figures crack and stir/i);
+    const single = eventNotices([{ type: "staffWake", creatureIds: [5] }])[0]!;
+    expect(single.text).toMatch(/the stone man cracks and stirs/i);
 
-    // UX ruling (T7 minor): a Staff-Wizard's first entry into a Gallery fires BOTH galleryStone and
-    // staffWake in the same batch — suppress the stone line so it reads as one beat, not two.
-    const bothInOneBeat = eventNotices([
-      { type: "galleryStone", creatureIds: [5] },
-      { type: "staffWake", creatureIds: [5] },
-    ]);
-    expect(bothInOneBeat).toHaveLength(1);
-    expect(bothInOneBeat[0]!.text).toMatch(/magic staff blazes/i);
+    // The stone line is shown whenever the Gallery is entered (a Staff no longer wakes them on entry).
+    expect(eventNotices([{ type: "galleryStone", creatureIds: [5] }]).map((n) => n.text)).toEqual(["The strangers here are stone — silent, waiting."]);
+
+    // Using the Staff on a statue emits artifactUsed 9 AND staffWake: only the wake line is told, not "frees a companion from stone".
+    const used = eventNotices([{ type: "artifactUsed", artifact: 9 }, { type: "staffWake", creatureIds: [5] }]);
+    expect(used).toHaveLength(1);
+    expect(used[0]!.text).toMatch(/blazes/i);
+    expect(eventNotices([{ type: "artifactUsed", artifact: 9 }])[0]!.text).toMatch(/frees a companion from stone/i); // a party member: unchanged
 
     const stash = eventNotices([{ type: "lairStash", treasureIds: [1] }])[0]!;
     expect(stash.text).toMatch(/harpies' hoard glitters/i);

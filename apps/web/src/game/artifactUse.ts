@@ -2,7 +2,7 @@ import {
   ALL_CREATURES, SPECIAL_VIPER_PIT, decodeOpen, DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, legalActions, type GameState, type GameAction,
 } from '@sorcerers-cave/engine';
 import { memberLabel } from './memberLabels';
-import { holyWaterTargetName } from './holyWaterLabel';
+import { holyWaterTargetName, staffTargetPhrase } from './holyWaterLabel';
 
 export type UseArtifact = Extract<GameAction, { type: 'useArtifact' }>;
 
@@ -33,7 +33,7 @@ function targetLabel(a: UseArtifact, state: GameState): string {
   const who = (mi: number) => memberLabel(state.party, mi);
   switch (a.artifact) {
     case 6: return `revive ${who(a.target!)}`;
-    case 9: return `free ${who(a.target!)} from stone`;
+    case 9: return staffTargetPhrase(state, a.target!, who);
     case 4: return `fly ${DIR_NAME[a.dir ?? -1] ?? '?'}`;
     case 12: return a.dir === undefined ? (decodeOpen(state.areas[state.partyArea]!).special === SPECIAL_VIPER_PIT ? 'lull the Vipers' : 'lull the Dragons') : `reveal the secret stair ${a.dir === DIR_DOWN ? 'below' : 'above'}`;
     case 15: return who(a.target!);

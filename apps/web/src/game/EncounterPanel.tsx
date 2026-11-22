@@ -6,6 +6,7 @@ import { rubyIsGuarded } from "../view/projection";
 import { useEffect, useRef } from "react";
 import { ALL_CREATURES, ALL_TREASURES, AT_REST_FROM_PICKUP, carriedWeight, chestShareable, eyeActive, legalActions, sibylWaiting, type GameState, type GameAction } from "@sorcerers-cave/engine";
 import { memberLabel } from "./memberLabels";
+import { staffTargetPhrase } from "./holyWaterLabel";
 import { uncarryableNotes } from "./uncarryableNotes";
 import { ConfirmButton, ConfirmPicker } from "./ConfirmButton";
 import { HelpButton } from "../manual/HelpButton";
@@ -63,7 +64,7 @@ function label(a: GameAction, state: GameState): string {
       // Member-targeting revives — name the member so each option is distinct.
       if (a.target !== undefined) {
         if (a.artifact === 6) return `${tname} — revive ${memberLabel(state.party, a.target)}`;
-        if (a.artifact === 9) return `${tname} — free ${memberLabel(state.party, a.target)} from stone`;
+        if (a.artifact === 9) return `${tname} — ${staffTargetPhrase(state, a.target, (mi) => memberLabel(state.party, mi))}`;
       }
       // Untargeted Lotus Dust is the Medusa-pause throw (§Lotus Dust "Works on MEDUSA").
       if (a.artifact === 5 && a.target === undefined) return "Throw the Lotus Dust — put Medusa to sleep";

@@ -42,7 +42,7 @@ export const AREAS: Section = {
     ] },
     { id: 'area-gallery', title: 'The Gallery', variant: 'kit', cards: cards('area', 'The Gallery'), blocks: [
       p('Every creature drawn here on a fresh visit arrives as a **stone statue**, not a living stranger — free to loot around, no fight.'),
-      p('A Wizard bearing the **Magic Staff** cracks the whole room awake at a glance; **Holy Water** wakes a single statue (with a reaction roll of its own).'),
+      p('A Wizard bearing the **Magic Staff** can wake the statues if you choose: one at a time, or the whole room at once (with one reaction roll for whoever wakes). Nothing wakes by itself, and you may leave them asleep. **Holy Water** wakes a single statue (with a reaction roll of its own).'),
     ] },
     { id: 'area-lair', title: 'The Lair', variant: 'kit', cards: cards('area', 'The Lair'), blocks: [
       p('An unremarkable chamber on its own — until **Harpies** come calling. Once placed and entered, it is the one address their stolen hoard is ever delivered to.'),

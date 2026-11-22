@@ -374,7 +374,7 @@ export interface GameState {
   vipersLulledArea?: number;
   noWithdrawTurn?: number;
   // Extension kit (SC-EXT-10): the Gallery's chamber working set of creatures drawn there as
-  // statues — inert scenery (no reaction test) unless woken (Staff auto-wake, SC-EXT-11; Holy
+  // statues — inert scenery (no reaction test) unless woken (Staff wake by choice, SC-EXT-11; Holy
   // Water single-statue wake, Task 13). Persists across exit/re-entry as 500+creatureId content
   // codes on the area (pattern: `sleeping`'s 400+id). Reset to `[]` only on a Gallery entry — stays
   // undefined for every other chamber, so a kit-off (or Gallery-less) game never gains this field

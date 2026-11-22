@@ -1,5 +1,5 @@
 import {
-  ALL_CREATURES, HW_STATUE_BASE, HW_MEDUSA, HW_STRANGER_BASE, HW_PARKED_STATUE_BASE, type GameState,
+  ALL_CREATURES, HW_STATUE_BASE, STAFF_WAKE_ALL, HW_MEDUSA, HW_STRANGER_BASE, HW_PARKED_STATUE_BASE, type GameState,
 } from "@sorcerers-cave/engine";
 
 /**
@@ -24,4 +24,15 @@ export function holyWaterTargetName(state: GameState, target: number, memberLabe
   if (target >= HW_STRANGER_BASE) return ALL_CREATURES[state.strangers[target - HW_STRANGER_BASE]!]?.name ?? "the stranger";
   if (target >= HW_STATUE_BASE) return ALL_CREATURES[(state.statues ?? [])[target - HW_STATUE_BASE]!]?.name ?? "the statue";
   return memberLabelOf(target);
+}
+
+/**
+ * What a Magic Staff (artifact 9) `useArtifact` target does, in words (SC-EXT-11, issue #105): a plain party index frees that stone
+ * member; `STAFF_WAKE_ALL` wakes every Gallery statue here at once; any other offset target wakes that one statue (the same
+ * numeric ranges Holy Water uses, so the statue is named by the same decoder). Shared by the item menu and the encounter panel.
+ */
+export function staffTargetPhrase(state: GameState, target: number, memberLabelOf: (mi: number) => string): string {
+  if (target === STAFF_WAKE_ALL) return "wake every stone figure here";
+  if (target >= HW_STATUE_BASE) return `wake the stone ${holyWaterTargetName(state, target, memberLabelOf)}`;
+  return `free ${memberLabelOf(target)} from stone`;
 }

@@ -969,7 +969,7 @@ describe("reduce — treasure redistribution (party panel)", () => {
   it("forsaking the Eye with the Sorcerer dead still banks the curse but marks the event inert (issue #112)", () => {
     const base = {
       phase: "explore" as const,
-      party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [13] }],
+      party: [{ creatureId: 0, status: 0 as const, dragonKills: 0, treasure: [13] }],
       areas: [{ card: 31, coord: 15050, faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 }],
     };
     const dead = reduce(makeState({ ...base, sorcererKilled: true }), { type: "dropTreasure", mi: 0, idx: 0 });

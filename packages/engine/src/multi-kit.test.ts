@@ -7,6 +7,7 @@ import { GS_PLAYING, GATEWAY_START_COORD, AF_BELL_SPENT } from "./state";
 import { AREA_CARDS, GATEWAY_INDEX, SPECIAL_LAIR, SPECIAL_GALLERY, SPECIAL_WHIRLPOOL, SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
 import { packCoord, unpackCoord } from "./coords";
 import { legalActions } from "./selectors";
+import { HW_PARKED_STATUE_BASE } from "./effects";
 import type { PartyMember, PlacedArea } from "./state";
 import {
   declarePvp, expirePvp, setDefenderCasters, pvpView, type PvpFightSession,
@@ -266,7 +267,7 @@ describe("Shared kit content across seats (SC-EXT-32)", () => {
     expect(ambushed.state.cave.areas[0]!.contents).not.toContainEqual(100 + C_DEMON); // pulled off the shared tile
   });
 
-  it("Gallery statues petrified for seat A are statues for seat B, whose Staff-Wizard wakes them — the reaction test rolls on the SHARED cave stream (US-06, SC-EXT-11)", () => {
+  it("Gallery statues petrified for seat A are statues for seat B, whose Staff-Wizard may wake them — the reaction test rolls on the SHARED cave stream (US-06, SC-EXT-11)", () => {
     const GALLERY_CARD = (SPECIAL_GALLERY << 7) | 31;
     const seed = seedForRoll((v) => v === 1); // hostile for a Man (hostileMax 2), no charisma bonus
     const mp: MpGameState = {
@@ -290,10 +291,18 @@ describe("Shared kit content across seats (SC-EXT-32)", () => {
     expect(petrified.state.cave.areas[1]!.contents).toContainEqual(500 + MAN);
     expect(petrified.state.parties[0]!.phase).toBe("explore");
 
-    // Seat B — a Staff-Wizard who never saw A's visit — enters the same tile: the persisted statue
-    // reloads into B's own `statues`, and the Staff wakes it into an ordinary stranger for a normal
-    // reaction test (SC-EXT-11).
-    const woken = mpReduce(petrified.state, 1, { type: "move", dir: DIR_E });
+    // Seat B — a Staff-Wizard who never saw A's visit — enters the same tile: nothing wakes on entry (SC-EXT-11, issue #105),
+    // the statue settles back onto the shared tile, and B may choose to wake it with the Staff for a normal reaction test.
+    const entered = mpReduce(petrified.state, 1, { type: "move", dir: DIR_E });
+    expect(entered.state.parties[1]!.strangers).toEqual([]);
+    const idx = entered.state.cave.areas[1]!.contents.indexOf(500 + MAN);
+    expect(idx).toBeGreaterThanOrEqual(0);
+    const wake = { type: "useArtifact", artifact: MAGIC_STAFF, target: HW_PARKED_STATUE_BASE + idx } as const;
+    expect(legalActions(partyView(entered.state, 1))).toContainEqual(wake);
+    expect(legalActions(partyView(entered.state, 1))).toContainEqual(wake);
+    // (The turn passed to seat A when B settled to rest; B wakes the statue on its next turn.)
+    const bTurn = { ...entered.state, active: 1 };
+    const woken = mpReduce(bTurn, 1, wake);
     expect(woken.events).toContainEqual({ type: "staffWake", creatureIds: [MAN] });
     expect(woken.state.parties[1]!.strangers).toEqual([MAN]);
     expect(woken.state.parties[1]!.phase).toBe("encounter");

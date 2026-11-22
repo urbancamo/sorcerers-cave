@@ -8,7 +8,7 @@ import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WELL, SPEC
 import type { GameAction } from "./actions";
 import { canCarry } from "./pickup";
 import { droppedChestGroups, chestRetakeable } from "./chest";
-import { canUseArtifact, holyWaterTargets, hasLivingHuman, fluteLulls, healingBalmEligible, isHumanOrPriestClass } from "./effects";
+import { canUseArtifact, holyWaterTargets, staffStatueTargets, hasLivingHuman, fluteLulls, healingBalmEligible, isHumanOrPriestClass } from "./effects";
 import { getSubLocation, chasmMoveAllowed, oppositeDir, RING_ADJACENCY_SPECIALS, ISLAND_JUMP_SPECIALS, type SubLocation } from "./subLocation";
 import { giantCanRecover, sunkKey } from "./special";
 import { teleportDestinations } from "./sorcerer";
@@ -126,6 +126,8 @@ function artifactActions(state: GameState): GameAction[] {
   }
   if (atRestOrLooting && has(9, (id) => canUseArtifact(id, 9))) { // Magic Staff (Wizard) -> each stoned member left in THIS area
     state.party.forEach((m, idx) => { if (m.status === 2 && m.stoneArea === state.partyArea) actions.push({ type: "useArtifact", artifact: 9, target: idx }); });
+    // Gallery statues (SC-EXT-11, issue #105): the Staff-Wizard may wake each statue singly, or all together when there are two or more.
+    staffStatueTargets(state).forEach((t) => actions.push({ type: "useArtifact", artifact: 9, target: t.target }));
   }
   // The Charmed Flute, played at an encounter, lulls its Dragons (the player's choice; it is never automatic).
   if (state.phase === "encounter" && state.strangers.includes(10) && has(12, (id) => canUseArtifact(id, 12))) actions.push({ type: "useArtifact", artifact: 12 });

@@ -19,7 +19,7 @@ import { frontStrength } from "./combat";
 import { validatePlan, resolvePlannedRound } from "./combatPlan";
 import {
   wardOffSpectres, annihilateWithEye, eyeActive, reconcileUnicorns, orphanUnicorns, hasWoman, fluteLulls, eyeForsakenByDeath, eyeForsakenEvent, markDied, healingBalmEligible, ringInvincible, usesArtifactsAs, canUseArtifact,
-  hasLivingHuman, holyWaterTargets, HW_STATUE_BASE, HW_MEDUSA, HW_STRANGER_BASE, HW_PARKED_STATUE_BASE, isHumanOrPriestClass,
+  hasLivingHuman, holyWaterTargets, galleryStatueTargets, staffStatueTargets, STAFF_WAKE_ALL, HW_STATUE_BASE, HW_MEDUSA, HW_STRANGER_BASE, HW_PARKED_STATUE_BASE, isHumanOrPriestClass,
   eyePresent, slaySorcerer, revertApprenticesOnSorcererDeath, cursedRoll, activeCurses,
 } from "./effects";
 import { canTeleportTo } from "./sorcerer";
@@ -447,21 +447,25 @@ function reviveStoned(state: GameState): GameEvent[] {
   return events;
 }
 
-/** Extension kit (SC-EXT-11): a living Wizard bearing the Magic Staff cracks every Gallery statue
- *  awake the instant the party enters (design US-06 / Resolved-14) — mirrors `reviveStoned`'s own
- *  bearer condition (`hasStaffWizard`) exactly. Waking converts them to ordinary strangers, so the
- *  standard chamber interaction (one group reaction test, fight/recruit) follows in the normal tail
- *  (`finishChamber`). Unlike `reviveStoned` (which runs BEFORE the chamber draw, since it frees
- *  PARTY members left stone on an earlier visit), this must run AFTER `enterChamber` has populated
- *  `state.statues` for the area just entered.
- *  Task 10 (SC-EXT-17): the Apprentice (id 14) "uses artifacts as Wizard" per the design — she now
- *  counts here too, via `hasStaffWizard`'s own `usesArtifactsAs` check (closes the Task 7 seam). */
-function wakeGalleryStatues(state: GameState): GameEvent[] {
-  if (!state.statues?.length || !hasStaffWizard(state)) return [];
-  const creatureIds = [...state.statues];
-  state.strangers.push(...creatureIds);
-  state.statues = [];
-  return [{ type: "staffWake", creatureIds }];
+/** Wake the Gallery statues at these target codes (see `galleryStatueTargets`): each leaves wherever it stands, the live
+ *  `state.statues` or the tile's parked `contents`, and joins the strangers. Removes from the highest index down so earlier
+ *  indices stay valid. Returns the woken creature ids in target order. Shared by Holy Water and the Magic Staff. */
+function wakeStatues(state: GameState, targets: number[]): number[] {
+  const woken: number[] = [];
+  const ordered = [...targets].sort((a, b) => b - a); // parked (4000+) first, then live (1000+), each from the last index
+  for (const t of ordered) {
+    if (t >= HW_PARKED_STATUE_BASE) {
+      const contents = state.areas[state.partyArea]!.contents;
+      woken.push(contents[t - HW_PARKED_STATUE_BASE]! - 500);
+      contents.splice(t - HW_PARKED_STATUE_BASE, 1);
+    } else {
+      woken.push(state.statues![t - HW_STATUE_BASE]!);
+      state.statues!.splice(t - HW_STATUE_BASE, 1);
+    }
+  }
+  woken.reverse(); // back to ascending target order
+  woken.forEach((id) => addStranger(state, id));
+  return woken;
 }
 
 /** A Medusa is about to gaze, nothing already neutralises her (staff-Wizard, or her Lotus sleep),
@@ -802,7 +806,6 @@ function resolveAreaLoop(state: GameState): GameEvent[] {
     const unusedDoor = state.areas[arrived]!.visited && !state.fellThroughTrap && left !== arrived && !(state.doorsUsed ?? []).includes(Math.min(left, arrived) * 100000 + Math.max(left, arrived));
     const freshEntry = !state.areas[arrived]!.visited || state.deliberateFall === true || unusedDoor;
     events.push(...enterChamber(state));
-    events.push(...wakeGalleryStatues(state)); // Staff-Wizard cracks every Gallery statue awake (SC-EXT-11)
     events.push(...annihilateWithEye(state)); // the Eye destroys Spectres on sight (§ Eye of God)
     events.push(...wardOffSpectres(state)); // the Talisman drives off Spectres on level >= 4 (§ Talisman)
     if (medusaLooms(state)) {
@@ -2035,8 +2038,17 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
           consume();
           return ok;
         }
-        case 9: { // Magic Staff reanimation — at rest or while looting, free a stoned member IN THIS area; NOT consumed
+        case 9: { // Magic Staff reanimation — at rest or while looting, free a stoned member IN THIS area, or wake Gallery statues; NOT consumed
           if ((next.phase !== "explore" && next.phase !== "pickup") || action.target === undefined) return { state, events: [{ type: "blocked" }] };
+          if (action.target >= HW_STATUE_BASE) { // a Gallery statue, or all of them (SC-EXT-11, issue #105): the player chooses
+            const chosen = staffStatueTargets(next).find((t) => t.target === action.target);
+            if (!chosen) return { state, events: [{ type: "blocked" }] };
+            const woken = wakeStatues(next, action.target === STAFF_WAKE_ALL ? galleryStatueTargets(next).map((t) => t.target) : [action.target]);
+            next.phase = "encounter"; // one reaction test for whoever woke (a group is ONE test, not one per statue)
+            next.surpriseReady = false; // well after any fresh entry — never a surprise attack
+            next.indiffStreak = 0; // a fresh mini-encounter re-tests from scratch (enterChamber's own rule)
+            return { state: next, events: [...ok.events, { type: "staffWake", creatureIds: woken }] };
+          }
           const sm = next.party[action.target];
           if (!sm || sm.status !== 2 || sm.stoneArea !== next.partyArea) return { state, events: [{ type: "blocked" }] };
           sm.status = 0;
@@ -2193,14 +2205,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
               // or already PARKED on the tile's own contents as 500+cid (settled to explore with
               // nothing else pending, holyWaterTargets' own comment explains why) — remove it from
               // whichever it actually came from.
-              if (found.target >= HW_PARKED_STATUE_BASE) {
-                const ci = found.target - HW_PARKED_STATUE_BASE;
-                next.areas[next.partyArea]!.contents.splice(ci, 1);
-              } else {
-                const idx = found.target - HW_STATUE_BASE;
-                next.statues!.splice(idx, 1);
-              }
-              addStranger(next, found.creatureId!);
+              wakeStatues(next, [found.target]);
               next.phase = "encounter";
               next.surpriseReady = false; // this is well after any fresh entry — never a surprise attack
               next.indiffStreak = 0; // a fresh mini-encounter re-tests from scratch (enterChamber's own rule)

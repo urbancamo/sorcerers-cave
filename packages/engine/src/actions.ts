@@ -250,8 +250,8 @@ export type GameEvent =
   // on sight (design US-06) — `creatureIds` lists only the newly-stoned ones, not statues reloaded
   // from an earlier visit (those produce no fresh notice).
   | { type: "galleryStone"; creatureIds: number[] }
-  // Extension kit (SC-EXT-11): a living Wizard bearing the Magic Staff cracked every Gallery statue
-  // awake on entry (design US-06 / Resolved-14) — they rejoin `strangers` as ordinary creatures.
+  // Extension kit (SC-EXT-11): a Staff-Wizard chose to wake one or all Gallery statues (issue #105;
+  // design US-06 / Resolved-14) — the woken rejoin `strangers` as ordinary creatures.
   | { type: "staffWake"; creatureIds: number[] }
   // Extension kit (SC-EXT-12): Harpies-stolen treasure landed on the Lair's floor — either spilled
   // on the Lair's own placement/entry, or delivered straight there by a later theft (design US-04).
