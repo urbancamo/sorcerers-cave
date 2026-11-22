@@ -5,7 +5,7 @@ import { MODEL_PRICES, WORD_RANGE } from "./storyPrompt";
 const DAY_MS = 86_400_000;
 export const DAYS = 30;
 
-export interface RunRow { createdAt: number; pass: "write" | "check"; trigger: string; promptVersion: number; model: string; inputTokens: number; outputTokens: number; costUsd: number; durationMs: number; status: "ok" | "rejected" | "error" }
+export interface RunRow { createdAt: number; pass: "plan" | "write" | "check"; trigger: string; promptVersion: number; model: string; inputTokens: number; outputTokens: number; costUsd: number; durationMs: number; status: "ok" | "rejected" | "error" }
 export interface StoryRow { status: "pending" | "ready" | "failed"; words?: number; promptVersion?: number; attempts: number; error?: string }
 
 /** A short, countable label for a failure message. */
@@ -31,7 +31,7 @@ export function aggregateStories(runs: RunRow[], stories: StoryRow[], now: numbe
   const days = Array.from({ length: DAYS }, (_, i) => today - (DAYS - 1 - i) * DAY_MS);
   const perDay = new Map<number, { calls: number; ok: number; cents: number }>(days.map((d) => [d, { calls: 0, ok: 0, cents: 0 }]));
   let cost = 0, inTok = 0, outTok = 0, dur = 0, ok = 0, spendToday = 0, spendMonth = 0, writes = 0;
-  const byPass = { write: 0, check: 0 };
+  const byPass = { plan: 0, write: 0, check: 0 };
   const byVersionCost = new Map<number, number>();
   for (const r of runs) {
     cost += r.costUsd; inTok += r.inputTokens; outTok += r.outputTokens; dur += r.durationMs;
@@ -66,7 +66,7 @@ export function aggregateStories(runs: RunRow[], stories: StoryRow[], now: numbe
       costUsd: round(cost), inputTokens: inTok, outputTokens: outTok,
       avgDurationMs: runs.length ? Math.round(dur / runs.length) : null,
       avgCostPerStoryUsd: writes ? round(cost / writes) : null, // each story starts with one write call
-      byPass: { write: round(byPass.write), check: round(byPass.check) },
+      byPass: { plan: round(byPass.plan), write: round(byPass.write), check: round(byPass.check) },
     },
     spend: { todayUsd: round(spendToday), monthUsd: round(spendMonth) },
     perDay: days.map((d) => ({ day: new Date(d).toISOString().slice(0, 10), ...perDay.get(d)!, cents: Math.round(perDay.get(d)!.cents * 100) / 100 })),

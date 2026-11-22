@@ -247,7 +247,7 @@ export default defineSchema({
   storyRuns: defineTable({
     storyId: v.optional(v.id("stories")),
     highScoreId: v.id("highScores"),
-    pass: v.union(v.literal("write"), v.literal("check")),
+    pass: v.union(v.literal("plan"), v.literal("write"), v.literal("check")),
     trigger: v.union(v.literal("save"), v.literal("rewrite"), v.literal("retry"), v.literal("trial")), // trial: an unsaved prompt tried from the admin panel
     promptVersion: v.number(), // -1 for a trial of an unsaved prompt
     model: v.string(),

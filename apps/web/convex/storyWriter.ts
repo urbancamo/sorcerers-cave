@@ -1,5 +1,5 @@
 import {
-  DEFAULT_MODEL, EDITOR_SYSTEM, WORD_RANGE, WRITER_SYSTEM, editorUserMessage, estimateCostUsd, storyProblems, writerUserMessage,
+  DEFAULT_MODEL, EDITOR_SYSTEM, PLANNER_SYSTEM, WORD_RANGE, WRITER_SYSTEM, editorUserMessage, estimateCostUsd, pickVoice, plannerUserMessage, storyProblems, writerUserMessage,
 } from "./storyPrompt";
 
 /**
@@ -15,7 +15,7 @@ export interface ResolvedPrompt { version: number; writer: string; editor: strin
 export const defaultPrompt = (): ResolvedPrompt => ({ version: 0, writer: WRITER_SYSTEM, editor: EDITOR_SYSTEM, model: DEFAULT_MODEL, minWords: WORD_RANGE.min, maxWords: WORD_RANGE.max });
 
 export interface RunRecord {
-  pass: "write" | "check";
+  pass: "plan" | "write" | "check";
   model: string;
   inputTokens: number;
   outputTokens: number;
@@ -51,8 +51,13 @@ export function parseEditorReply(raw: string): { story: string; unsupported: str
   return { story, unsupported };
 }
 
-export async function writeStory(call: ModelCall, prompt: ResolvedPrompt, digestText: string, now: () => number = Date.now): Promise<WriteResult> {
+/**
+ * `voiceKey` (the high-score id) picks the voice the story is told in, the same one every time for the same game. The planning pass
+ * comes first; if it fails the story is still written, just without a plan.
+ */
+export async function writeStory(call: ModelCall, prompt: ResolvedPrompt, digestText: string, now: () => number = Date.now, voiceKey = ""): Promise<WriteResult> {
   const runs: RunRecord[] = [];
+  const voice = pickVoice(voiceKey);
 
   /** One model call, recorded as a run whatever happens. Returns the text, or null after recording the failure. */
   const attempt = async (pass: RunRecord["pass"], system: string, user: string): Promise<string | null> => {
@@ -73,17 +78,19 @@ export async function writeStory(call: ModelCall, prompt: ResolvedPrompt, digest
     return { ok: false, reason, runs };
   };
 
-  const draft = await attempt("write", prompt.writer, writerUserMessage(digestText));
+  const planText = await attempt("plan", PLANNER_SYSTEM, plannerUserMessage(digestText, voice));
+  const plan = planText?.trim() || undefined; // a failed plan is recorded as an error run; the story goes on without it
+  const draft = await attempt("write", prompt.writer, writerUserMessage(digestText, voice, plan));
   if (draft === null) return { ok: false, reason: `write failed: ${runs[runs.length - 1]!.reason}`, runs };
 
-  let edited = await attempt("check", prompt.editor, editorUserMessage(digestText, draft));
+  let edited = await attempt("check", prompt.editor, editorUserMessage(digestText, draft, voice));
   if (edited === null) return { ok: false, reason: `check failed: ${runs[runs.length - 1]!.reason}`, runs };
   let parsed = parseEditorReply(edited);
   if (!parsed) return reject("editor reply was not in the expected format");
 
   // Unsupported facts left after the first check: one more pass over the edited story, told what remains.
   if (parsed.unsupported.length) {
-    const again = await attempt("check", prompt.editor, `${editorUserMessage(digestText, parsed.story)}\n\nThe previous check could not reconcile these with the record; fix them in the text:\n- ${parsed.unsupported.join("\n- ")}`);
+    const again = await attempt("check", prompt.editor, `${editorUserMessage(digestText, parsed.story, voice)}\n\nThe previous check could not reconcile these with the record; fix them in the text:\n- ${parsed.unsupported.join("\n- ")}`);
     if (again === null) return { ok: false, reason: `check failed: ${runs[runs.length - 1]!.reason}`, runs };
     edited = again;
     parsed = parseEditorReply(edited);

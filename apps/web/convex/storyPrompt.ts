@@ -51,8 +51,9 @@ shown in an image, never explained. State the theme at most once, plainly, late.
 - Open with a line that makes a promise; end on an image that keeps it. Do not end by counting or naming the survivors, and \
 do not build the story on a tally or title it "The Count": the list of who walked out is for you to check against, not a scene. \
 Each story needs its own closing image.
-- Third person, past tense, close on one person in the party. Concrete nouns, plain verbs, dry understatement for violence. \
-Avoid "suddenly", stacked adjectives, exclamation marks and clichés.
+- Tell it in the VOICE you are given with the record. Whatever the voice, keep concrete nouns, plain verbs and dry understatement \
+for violence, and avoid "suddenly", stacked adjectives, exclamation marks and clichés. The voice is how the story is told, not \
+what happened: it never adds or changes an event.
 - About 1,500 to 1,800 words.
 
 WHAT YOU MAY INVENT
@@ -102,14 +103,61 @@ Then, on its own line, exactly: === UNSUPPORTED ===
 After that line, list each fact you could not reconcile with the record, one per line, or the single word: none
 Nothing else: no preamble, no notes before the story.`;
 
-/** The user message given to the writer: the digest, framed so it is read as raw material. */
-export const writerUserMessage = (digestText: string): string =>
-  `Here is the record of the expedition.\n\n${digestText}\n\nWrite the story now. Remember: one continuous narrative, \
-joined between events, not a scene for each item.`;
+/**
+ * The voices a story can be told in. One is picked per game (see `pickVoice`) so the stories do not all sound alike.
+ * A voice is a way of telling, never a source of events: the writer and editor are both told it may not add any.
+ */
+export interface StoryVoice { id: string; instruction: string }
+export const STORY_VOICES: readonly StoryVoice[] = [
+  { id: "close-third", instruction: "Close third person, past tense, staying with one person in the party, and seeing only what they see and know." },
+  { id: "bard", instruction: "A bard telling it by a fire years afterwards, in third person and past tense. The teller may make a dry aside or remark on how the tale has grown in the telling, at most a few times, but never invents what happened." },
+  { id: "letter", instruction: "First person, past tense: a letter written by one survivor to someone at home. Plain, a little formal, holding back what hurt most. No dates, headings or salutation lists; ordinary paragraphs." },
+  { id: "clerk", instruction: "Third person, past tense, in the exact, unhurried voice of a clerk who has written many such accounts and is moved despite himself. Understatement carries all the feeling." },
+  { id: "fable", instruction: "A tale told to children by someone old, in third person, with the rhythm of a fable (short sentences, things in threes, a plain refrain at most once) but with nothing softened: the losses are told as they were." },
+  { id: "rear-guard", instruction: "First person, past tense, told by an ordinary member near the back of the party (not the leader) who watched the leader and kept their own counsel. They know less than the record: they report what they saw." },
+  { id: "present", instruction: "Close third person in the PRESENT tense, staying with one person in the party, so the reader never knows more than they do." },
+  { id: "wake", instruction: "Third person, past tense, told as if at a wake, for those who did not come back as much as for those who did. Name the cost early and let the ending carry it." },
+];
 
-/** The user message given to the editor: the record and the draft. */
-export const editorUserMessage = (digestText: string, draft: string): string =>
-  `THE RECORD\n\n${digestText}\n\nTHE DRAFT\n\n${draft}`;
+/** A short stable hash of any string (FNV-1a), so a game's voice does not change when the same game is rewritten. */
+const hash = (s: string): number => { let h = 2166136261; for (let i = 0; i < s.length; i++) h = Math.imul(h ^ s.charCodeAt(i), 16777619); return h >>> 0; };
+/** The voice for a game, chosen from a key (the high-score id) so the same game always gets the same voice. */
+export const pickVoice = (key: string): StoryVoice => STORY_VOICES[hash(key) % STORY_VOICES.length]!;
+
+/** The planning pass: choose the shape of the story before any of it is written. Its output is the beat sheet the writer follows. */
+export const PLANNER_SYSTEM = `You are a story editor planning a short story, not writing it. You will be given the record of one expedition into a cave \
+full of monsters, treasure and strangers, and the voice the story will be told in. Decide the shape of the story and set it out as a \
+short plan for the writer.
+
+A record is a timeline; a story needs a person who wants something, an obstacle that costs them, a turn, and an ending that lands. \
+Choose what matters and leave out the rest: most of the record should be a clause or nothing.
+
+Write the plan in exactly these parts, each a line or two, in plain words:
+HERO: who the story follows (one member of the party, by what they are) and what they want or lack.
+OBSTACLE: what stands in the way, taken from the record.
+TURN: the one moment in the record that changes things.
+COST: what the victory cost, taken from the record (the lost, what was left behind).
+DWELL ON: three or four events from the record, by their numbers, to tell in full.
+IN PASSING: six or eight more, by number, to tell in a sentence or two.
+LEAVE OUT: the kinds of event to skip altogether (for example, repeated rooms).
+CLOSING IMAGE: one concrete object or action to end on. Not a moral, and not a count of the survivors.
+TITLE IDEA: a short title that is not "The Count".
+
+Use only what the record contains: you choose and arrange, you do not add events. Output the plan and nothing else.`;
+
+export const plannerUserMessage = (digestText: string, voice: StoryVoice): string =>
+  `THE VOICE the story will be told in: ${voice.instruction}\n\nTHE RECORD\n\n${digestText}\n\nWrite the plan now.`;
+
+/** The user message given to the writer: the digest, framed so it is read as raw material, with the voice and (when there is one) the plan. */
+export const writerUserMessage = (digestText: string, voice?: StoryVoice, plan?: string): string =>
+  `Here is the record of the expedition.\n\n${digestText}\n\n` +
+  (voice ? `THE VOICE to tell it in: ${voice.instruction}\n\n` : "") +
+  (plan ? `THE PLAN to follow (it chooses what to dwell on and how the story ends; the record above is still the only source of facts):\n\n${plan}\n\n` : "") +
+  `Write the story now. Remember: one continuous narrative, joined between events, not a scene for each item.`;
+
+/** The user message given to the editor: the record and the draft, and the voice it must keep. */
+export const editorUserMessage = (digestText: string, draft: string, voice?: StoryVoice): string =>
+  `THE RECORD\n\n${digestText}\n\n` + (voice ? `THE VOICE the story is meant to be told in (keep it; do not flatten it into plain third person): ${voice.instruction}\n\n` : "") + `THE DRAFT\n\n${draft}`;
 
 /** Estimated cost in US dollars of one model call (an estimate: the dashboard labels it so). */
 export function estimateCostUsd(model: string, inputTokens: number, outputTokens: number): number {

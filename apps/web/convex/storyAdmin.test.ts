@@ -35,7 +35,7 @@ function fakeApi() {
   let n = 0;
   vi.stubGlobal("fetch", vi.fn(async () => {
     n++;
-    const text = n % 2 === 1 ? "a draft" : `${STORY}\n=== UNSUPPORTED ===\nnone`;
+    const text = n % 3 === 1 ? "a plan" : n % 3 === 2 ? "a draft" : `${STORY}\n=== UNSUPPORTED ===\nnone`; // plan, write, check
     return new Response(JSON.stringify({ content: [{ type: "text", text }], usage: { input_tokens: 4000, output_tokens: 2500 } }), { status: 200 });
   }));
 }
@@ -165,7 +165,7 @@ test("trying an unsaved prompt returns a story, stores nothing on the entry, and
   expect(r).toMatchObject({ ok: true, title: "The Count" });
   expect(await t.run((ctx) => ctx.db.get(storyId))).toMatchObject({ title: "Old" });
   const runs = await t.run((ctx) => ctx.db.query("storyRuns").collect());
-  expect(runs).toHaveLength(2);
+  expect(runs).toHaveLength(3); // plan, write, check
   expect(runs.every((x) => x.trigger === "trial" && x.promptVersion === -1)).toBe(true);
 });
 

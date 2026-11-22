@@ -45,3 +45,12 @@ Found by reading the digest of a 320-point kit game. Changes in `storyDigest.ts`
 - Not done: weights are not shown to the writer (joinings are weight 3 for correctness, so they would mislead as "turning points").
 
 The five-game prompt comparison has NOT been re-run against this digest yet (costs about $2-3).
+
+## Voice per story and a planning pass (2026-11-22, branch digest-improvements)
+
+From a second opinion on the craft of the prompts (selection, a spine, varied voice, a planner separate from the writer).
+
+- **Voice.** `STORY_VOICES` in `storyPrompt.ts` (close third, bard, letter, clerk, fable, rear-guard, present tense, wake). `pickVoice(highScoreId)` is a stable hash, so a rewrite of the same game keeps its voice. The voice is in the user messages of the planner, the writer and the editor (the editor is told to keep it), and the writer prompt's fixed "third person, past tense" line now defers to it. A voice never adds events.
+- **Planner.** `PLANNER_SYSTEM`: a first call that reads the digest and returns a beat sheet (HERO, OBSTACLE, TURN, COST, DWELL ON, IN PASSING, LEAVE OUT, CLOSING IMAGE, TITLE IDEA). The writer drafts from it; the editor still checks against the record, not the plan. If the planner call fails the story is written without a plan. Recorded as a `plan` run, so the admin cost tile shows plan/write/check.
+- The planner prompt lives in code, not in the admin's prompt versions, and uses the saved prompt's model.
+- Not yet done: splitting the editor into a fact-check and a line edit; a story bible; exemplar stories. NOT yet compared on the five stored games (about $3 with the extra call).

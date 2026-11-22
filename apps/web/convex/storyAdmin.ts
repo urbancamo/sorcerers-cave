@@ -243,7 +243,7 @@ export const rewriteBatch = internalAction({
 export const assertEditor = internalQuery({ args: {}, handler: async (ctx) => requireRole(ctx, "STORIES") });
 export const spendBlock = internalQuery({ args: {}, handler: async (ctx) => blockReason(ctx, Date.now()) });
 export const recordTrial = internalMutation({
-  args: { highScoreId: v.id("highScores"), runs: v.array(v.object({ pass: v.union(v.literal("write"), v.literal("check")), model: v.string(), inputTokens: v.number(), outputTokens: v.number(), costUsd: v.number(), durationMs: v.number(), status: v.union(v.literal("ok"), v.literal("rejected"), v.literal("error")), reason: v.optional(v.string()) })) },
+  args: { highScoreId: v.id("highScores"), runs: v.array(v.object({ pass: v.union(v.literal("plan"), v.literal("write"), v.literal("check")), model: v.string(), inputTokens: v.number(), outputTokens: v.number(), costUsd: v.number(), durationMs: v.number(), status: v.union(v.literal("ok"), v.literal("rejected"), v.literal("error")), reason: v.optional(v.string()) })) },
   handler: async (ctx, { highScoreId, runs }) => {
     const now = Date.now();
     for (const r of runs) await ctx.db.insert("storyRuns", { highScoreId, trigger: "trial", promptVersion: -1, createdAt: now, ...r });
@@ -265,7 +265,7 @@ export const tryPrompt = action({
     const input = await ctx.runQuery(internal.stories.replayInput, { highScoreId });
     if (!input) throw new Error("That entry has no replay data to write a story from.");
     const digest = digestText(storyDigest(replay(input.seed, input.picks, input.actions as GameAction[], input.variants as never)));
-    const r = await writeStory(anthropicCall, { version: -1, ...p }, digest);
+    const r = await writeStory(anthropicCall, { version: -1, ...p }, digest, Date.now, String(highScoreId));
     await ctx.runMutation(internal.storyAdmin.recordTrial, { highScoreId, runs: r.runs });
     const costUsd = Math.round(r.runs.reduce((n, x) => n + x.costUsd, 0) * 10_000) / 10_000;
     return r.ok ? { ok: true, title: r.title, text: r.text, words: r.words, costUsd } : { ok: false, reason: r.reason, costUsd };
