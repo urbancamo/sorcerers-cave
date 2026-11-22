@@ -61,7 +61,8 @@ const SPECIAL_NAMES: Record<number, string> = {
 const creature = (id: number): string => ALL_CREATURES[id]?.name ?? "someone";
 const treasure = (id: number): string => ALL_TREASURES.find((t) => t.id === id)?.name ?? "a treasure";
 const list = (xs: string[]): string => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
-const article = (w: string): string => (/^[AEIOU]/.test(w) ? "an" : "a");
+// "an" before a vowel sound: not before "Unicorn" (a "yoo" sound).
+const article = (w: string): string => (/^[AEIOU]/.test(w) && !/^Uni/.test(w) ? "an" : "a");
 const counted = (names: string[]): string => {
   const n = new Map<string, number>();
   for (const x of names) n.set(x, (n.get(x) ?? 0) + 1);

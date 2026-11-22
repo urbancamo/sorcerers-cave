@@ -169,12 +169,13 @@ TITLE IDEA: a short title that is not "The Count".
 
 Use only what the record contains: you choose and arrange, you do not add events. Output the plan and nothing else.`;
 
-export const plannerUserMessage = (digestText: string, voice: StoryVoice): string =>
-  `THE VOICE the story will be told in: ${voice.instruction}\n\nTHE RECORD\n\n${digestText}\n\nWrite the plan now.`;
+export const plannerUserMessage = (digestText: string, voice: StoryVoice, bible = ""): string =>
+  `THE VOICE the story will be told in: ${voice.instruction}\n\nTHE RECORD\n\n${digestText}\n\n` + (bible ? `${bible}\n\n` : "") + `Write the plan now.`;
 
 /** The user message given to the writer: the digest, framed so it is read as raw material, with the voice and (when there is one) the plan. */
-export const writerUserMessage = (digestText: string, voice?: StoryVoice, plan?: string): string =>
+export const writerUserMessage = (digestText: string, voice?: StoryVoice, plan?: string, bible = ""): string =>
   `Here is the record of the expedition.\n\n${digestText}\n\n` +
+  (bible ? `${bible}\n\n` : "") +
   (voice ? `THE VOICE to tell it in: ${voice.instruction}\n\n` : "") +
   (plan ? `THE PLAN to follow (it chooses what to dwell on and how the story ends; the record above is still the only source of facts):\n\n${plan}\n\n` : "") +
   `Write the story now. Remember: one continuous narrative, joined between events, not a scene for each item.`;

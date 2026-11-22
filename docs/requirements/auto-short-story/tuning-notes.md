@@ -64,3 +64,13 @@ One editor was fact-checking, fixing continuity, stripping game-speak and doing 
 - **Flow:** plan, write, check, edit, check (the final text is always fact-checked, since an edit can add a fact); one more edit and check if problems remain; then the deterministic guard. Up to seven calls; a clean run is five, about $0.25 a story (was about $0.10).
 - Runs are recorded by pass: plan, write, check, edit.
 - Still to do: a story bible and exemplar stories (both need input on how the cave should sound). Nothing here has been compared on the five stored games yet.
+
+## The story bible (2026-11-22, branch digest-improvements)
+
+`apps/web/convex/storyBible.ts`: a header (the cave and how to use the entries) plus fiction-facing entries for every creature, artefact and a set of places and perils. No statistics or rules. `bibleFor(digestText)` gives the model only the entries whose names appear in that game's digest (about 1,200 words for a big party), to the planner and the writer, not to the fact-checker or the line editor.
+
+- Each entry is colour for an event the record contains, never a source of events (the header says so). Artefact entries say what to call the object in plain words, which keeps the "no capitalised names" rule.
+- The digest's own names are handled: "W-Hero" is told to be written as "the heroine"; Hero is not matched inside W-Hero; plurals ("2 Dwarfs") match; the Ruby's statue is only matched by "statue guarding the Ruby", not the Gallery's statues.
+- A test checks that every creature and artefact in the engine has an entry, so a new kit creature cannot be added without lore.
+- Also fixed in the digest: "an Unicorn" is now "a Unicorn".
+- The wording is a first draft meant to be edited; it lives in code, not in the admin panel.

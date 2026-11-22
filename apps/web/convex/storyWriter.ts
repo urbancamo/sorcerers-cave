@@ -1,6 +1,7 @@
 import {
   DEFAULT_MODEL, EDITOR_SYSTEM, FACT_CHECK_SYSTEM, PLANNER_SYSTEM, WORD_RANGE, WRITER_SYSTEM, editorUserMessage, estimateCostUsd, factCheckUserMessage, pickVoice, plannerUserMessage, storyProblems, writerUserMessage,
 } from "./storyPrompt";
+import { bibleFor } from "./storyBible";
 
 /**
  * The story generator, with the model call passed in so it is testable without an API and so the Convex action stays thin.
@@ -62,6 +63,7 @@ export function parseFactCheck(raw: string): string[] | null {
 export async function writeStory(call: ModelCall, prompt: ResolvedPrompt, digestText: string, now: () => number = Date.now, voiceKey = ""): Promise<WriteResult> {
   const runs: RunRecord[] = [];
   const voice = pickVoice(voiceKey);
+  const bible = bibleFor(digestText); // lore for just the creatures, objects and places in this run
 
   /** One model call, recorded as a run whatever happens. Returns the text, or null after recording the failure. */
   const attempt = async (pass: RunRecord["pass"], system: string, user: string): Promise<string | null> => {
@@ -82,9 +84,9 @@ export async function writeStory(call: ModelCall, prompt: ResolvedPrompt, digest
     return { ok: false, reason, runs };
   };
 
-  const planText = await attempt("plan", PLANNER_SYSTEM, plannerUserMessage(digestText, voice));
+  const planText = await attempt("plan", PLANNER_SYSTEM, plannerUserMessage(digestText, voice, bible));
   const plan = planText?.trim() || undefined; // a failed plan is recorded as an error run; the story goes on without it
-  const draft = await attempt("write", prompt.writer, writerUserMessage(digestText, voice, plan));
+  const draft = await attempt("write", prompt.writer, writerUserMessage(digestText, voice, plan, bible));
   if (draft === null) return { ok: false, reason: `write failed: ${runs[runs.length - 1]!.reason}`, runs };
 
   /** Fact-check a story: the problems found, [] when it is clean, or null after recording a failure. */

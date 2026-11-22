@@ -27,7 +27,7 @@ describe("storyDigest", () => {
       expect(d.beats.length).toBeLessThanOrEqual(150);
       expect(d.beats.map((b) => b.n)).toEqual([...d.beats.map((b) => b.n)].sort((a, b) => a - b));
       const text = digestText(d);
-      expect(text).not.toMatch(/undefined|NaN|\ba (?=[AEIOU])/);
+      expect(text).not.toMatch(/undefined|NaN|\ba (?=(?!Uni)[AEIOU])/);
     }
   });
 
@@ -110,5 +110,11 @@ describe("storyDigest: what the writer reads", () => {
 
   it("does not claim a desertion for a member who later came back, and keeps the whole record (no 60 cap)", () => {
     for (const t of texts()) if (/turned against the party/.test(t)) expect(t).toMatch(/who had deserted came back|may be won back/);
+  });
+});
+
+describe("storyDigest: grammar", () => {
+  it("says 'a Unicorn', not 'an Unicorn'", () => {
+    for (const { code } of replayable.slice(0, 25)) expect(digestText(run(code))).not.toMatch(/\ban Unicorn/);
   });
 });
