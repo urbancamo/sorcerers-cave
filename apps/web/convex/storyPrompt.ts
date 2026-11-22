@@ -13,9 +13,9 @@ export const MODEL_PRICES: Record<string, { inputPerMTok: number; outputPerMTok:
 
 /**
  * The score a solo escape must reach to get a story, per leaderboard table (base, kit and kit+Sibyl scores are not comparable,
- * SC-EXT-29 / SC-SIB-9). Agreed 2026-11-22; tune here.
+ * SC-EXT-29 / SC-SIB-9). Agreed 2026-11-22 as 300/350/350; lowered to 200 for every table on 2026-11-22; tune here.
  */
-export const STORY_THRESHOLD = { base: 300, kit: 350, sibyl: 350 } as const;
+export const STORY_THRESHOLD = { base: 200, kit: 200, sibyl: 200 } as const;
 export function storyThreshold(variants: { extensionKit?: boolean; sibyl?: boolean } | undefined): number {
   return variants?.sibyl ? STORY_THRESHOLD.sibyl : variants?.extensionKit ? STORY_THRESHOLD.kit : STORY_THRESHOLD.base;
 }

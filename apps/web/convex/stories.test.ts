@@ -52,13 +52,13 @@ test("a score at or above its table's threshold queues a pending story, once; be
   const t = convexTest(schema, modules);
   const id = await seedScore(t);
   const rows = () => t.run((ctx) => ctx.db.query("stories").collect());
-  await t.run((ctx) => queueStory(ctx, id, 299, undefined));
+  await t.run((ctx) => queueStory(ctx, id, 199, undefined));
   expect(await rows()).toHaveLength(0);
-  await t.run((ctx) => queueStory(ctx, id, 349, { sibyl: true })); // sibyl and kit tables need 350
-  await t.run((ctx) => queueStory(ctx, id, 349, { extensionKit: true }));
+  await t.run((ctx) => queueStory(ctx, id, 199, { sibyl: true })); // every table needs 200
+  await t.run((ctx) => queueStory(ctx, id, 199, { extensionKit: true }));
   expect(await rows()).toHaveLength(0);
-  await t.run((ctx) => queueStory(ctx, id, 300, undefined));
-  await t.run((ctx) => queueStory(ctx, id, 300, undefined)); // idempotent
+  await t.run((ctx) => queueStory(ctx, id, 200, undefined));
+  await t.run((ctx) => queueStory(ctx, id, 200, undefined)); // idempotent
   expect(await rows()).toHaveLength(1);
   await t.finishAllScheduledFunctions(vi.runAllTimers);
   vi.useRealTimers();
