@@ -9,7 +9,7 @@ import { validateUsername } from "./passwords";
 // User administration (the admin panel's Users tab). Every function needs the USER role (SYSTEM implies it). SYSTEM itself is
 // guarded: only a SYSTEM user may grant it, remove it, or delete someone who holds it, so a USER admin cannot promote themselves.
 
-const ROLE_ORDER: Role[] = ["SYSTEM", "USER", "ANALYTICS", "TEST"];
+const ROLE_ORDER: Role[] = ["SYSTEM", "USER", "ANALYTICS", "STORIES", "TEST"];
 
 /** The roles as a set, in the canonical order, and at least one. */
 function cleanRoles(roles: Role[]): Role[] {

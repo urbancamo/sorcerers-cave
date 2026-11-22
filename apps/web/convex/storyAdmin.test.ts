@@ -57,6 +57,18 @@ test("viewing needs ANALYTICS; changing anything needs SYSTEM", async () => {
   expect(await admin.mutation(api.storyAdmin.savePrompt, newPrompt)).toBe(1);
 });
 
+test("STORIES views and edits the Stories tab and nothing else; ANALYTICS only views", async () => {
+  const t = convexTest(schema, modules);
+  const stories = (await asUser(t, ["STORIES"])).as, analytics = (await asUser(t, ["ANALYTICS"])).as, tester = (await asUser(t, ["TEST"])).as;
+  expect((await stories.query(api.storyAdmin.overview, {})).counts).toEqual({ pending: 0, ready: 0, failed: 0 });
+  expect(await stories.mutation(api.storyAdmin.savePrompt, newPrompt)).toBe(1);
+  expect(await stories.mutation(api.storyAdmin.updateSettings, { paused: true })).toMatchObject({ paused: true });
+  await expect(analytics.mutation(api.storyAdmin.savePrompt, newPrompt)).rejects.toThrow();
+  await expect(tester.query(api.storyAdmin.overview, {})).rejects.toThrow();
+  await expect(stories.query(api.analytics.summary, {})).rejects.toThrow(); // no game analytics
+  await expect(stories.query(api.adminUsers.list, {})).rejects.toThrow(); // no user administration
+});
+
 test("saving a prompt appends a new version and activates it; bad input is refused", async () => {
   const t = convexTest(schema, modules);
   const admin = (await asUser(t, ["SYSTEM"])).as;

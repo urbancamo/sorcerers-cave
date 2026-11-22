@@ -7,7 +7,7 @@ import { errorText } from './errorText';
 import { ago } from './analytics/format';
 
 const ALL_ROLES: { role: Role; label: string }[] = [
-  { role: 'SYSTEM', label: 'System' }, { role: 'USER', label: 'Users' }, { role: 'ANALYTICS', label: 'Analytics' }, { role: 'TEST', label: 'Testing' },
+  { role: 'SYSTEM', label: 'System' }, { role: 'USER', label: 'Users' }, { role: 'ANALYTICS', label: 'Analytics' }, { role: 'STORIES', label: 'Stories' }, { role: 'TEST', label: 'Testing' },
 ];
 
 function RoleBoxes({ value, onChange, canSystem, idPrefix }: { value: Role[]; onChange: (r: Role[]) => void; canSystem: boolean; idPrefix: string }) {

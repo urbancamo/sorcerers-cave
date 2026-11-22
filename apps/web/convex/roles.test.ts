@@ -33,12 +33,12 @@ describe("roles.me", () => {
     const { as } = await asUser(t);
     expect((await as.query(api.roles.me, {})).roles).toEqual([]);
   });
-  test("reports held roles, and SYSTEM expands to all four", async () => {
+  test("reports held roles, and SYSTEM expands to all five", async () => {
     const t = convexTest(schema, modules);
     const a = await asUser(t, ["ANALYTICS"]);
     expect((await a.as.query(api.roles.me, {})).roles).toEqual(["ANALYTICS"]);
     const s = await asUser(t, ["SYSTEM"]);
-    expect((await s.as.query(api.roles.me, {})).roles).toEqual(["SYSTEM", "USER", "ANALYTICS", "TEST"]);
+    expect((await s.as.query(api.roles.me, {})).roles).toEqual(["SYSTEM", "USER", "ANALYTICS", "STORIES", "TEST"]);
   });
 });
 

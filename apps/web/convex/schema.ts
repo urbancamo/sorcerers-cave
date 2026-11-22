@@ -4,7 +4,7 @@ import { authTables } from "@convex-dev/auth/server";
 
 // RBAC roles for the hidden admin panel (/login). SYSTEM implies every other role (see roles.ts).
 // Roles are only ever written by the internal seed in admin.ts, never from a client argument.
-export const roleValidator = v.union(v.literal("SYSTEM"), v.literal("USER"), v.literal("ANALYTICS"), v.literal("TEST"));
+export const roleValidator = v.union(v.literal("SYSTEM"), v.literal("USER"), v.literal("ANALYTICS"), v.literal("STORIES"), v.literal("TEST"));
 
 export default defineSchema({
   ...authTables,
