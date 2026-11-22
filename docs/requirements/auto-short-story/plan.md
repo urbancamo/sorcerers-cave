@@ -73,11 +73,14 @@ count), keeping the arc: an opening, a first loss or betrayal, a set piece, a qu
 
 ### 2.4 The generation (two passes, as the hand edit)
 
-**The prompt is editable in the source code, not in a database or an env var:** every instruction lives in one file,
-`apps/web/convex/storyPrompt.ts`, as plain exported strings (`WRITER_SYSTEM`, `EDITOR_SYSTEM`, the word-count range,
-the denylist, the model name default) with a comment block explaining each part. Changing the story's voice is an edit
-and a deploy of that one file; nothing else needs to know the wording. A test pins that the file exports them and that
-they are non-empty, and the quality pass (step 6) tunes them there.
+**The prompt is editable in two places, with one rule for which wins.**
+- **In source (the default):** every instruction lives in one file, `apps/web/convex/storyPrompt.ts`, as plain exported
+  strings (`WRITER_SYSTEM`, `EDITOR_SYSTEM`, the word-count range, the denylist, the default model) with a comment block
+  explaining each part. A test pins that they exist and are non-empty. Tests and a fresh deployment use these.
+- **In the admin panel (an override):** a SYSTEM user can edit the writer and editor prompts, the model and the word
+  range, and save them as a new **prompt version** (section 2.7). The newest saved version is the active one; if none
+  exists, the source default is used (version `source`). Reverting is selecting an older version, which saves it as a
+  new one. Every story and every model call records the version it used.
 
 An `internalAction` calls the Claude API (`@anthropic-ai/sdk`, key in a Convex env var, model in a second env var so it
 can change without a deploy):
@@ -115,6 +118,53 @@ game, and only on first save. `digestHash` makes a retry free.
 - Button in `ScoreDetail`'s downloads row, beside the log downloads, with the three states from 2.2. The Help manual
   (`apps/web/src/manual`, the scoring topic) gets a sentence saying high-scoring games get a short story.
 
+### 2.7 Admin: prompt versions, rewrites and the dashboard (added 2026-11-22)
+
+All of this sits in the existing admin panel (roles `SYSTEM`, `ANALYTICS`, `TEST`, PR #61; `gameStats` already feeds
+the Game Analytics tab) as a new **Stories** tab. **Viewing** needs `ANALYTICS`; **editing the prompt, rewriting and
+the budget switches** need `SYSTEM`, because they spend money. Every query and mutation uses `requireRole`.
+
+**New tables**
+- `storyPrompts`: `version` (number, increasing), `writer`, `editor`, `model`, `minWords`, `maxWords`, `note`,
+  `createdBy`, `createdAt`. Append-only; the active one is the highest `version`.
+- `storyRuns`: one row per model call (write pass, check pass), so cost and failures are measured, not guessed:
+  `storyId`, `highScoreId`, `pass` (`write` | `check`), `promptVersion`, `model`, `inputTokens`, `outputTokens`,
+  `costUsd` (computed at write time from a price table in `storyPrompt.ts`, marked as an estimate), `durationMs`,
+  `status` (`ok` | `rejected` | `error`), `reason`, `trigger` (`save` | `rewrite` | `retry`), `createdAt`.
+  Indexes by `createdAt` and by `storyId`.
+- `storySettings` (single doc): `paused` (stop all generation), `dailyCapUsd`, `monthlyCapUsd`. Generation checks
+  the settings and the running day and month totals from `storyRuns` before every call, and fails the row with the
+  reason "cap reached" rather than spending.
+- `stories` gains `promptVersion`, `previousText` (one-step undo after a rewrite) and `attempts`.
+
+**Rewrites after a prompt change** (SYSTEM only)
+- A **Rewrite** panel offers a scope: all stories, those written with an older prompt version, failed ones, or one score
+  (by game code). It shows the count and an **estimated cost** (count times the recent average cost per story) and
+  needs a typed confirmation, because it is bulk and spends money.
+- Execution is a queue, not a loop: the mutation marks the chosen stories `pending` with `trigger: rewrite` and
+  schedules batches (for example 5 at a time, spaced out) through `ctx.scheduler`. It honours the pause switch and the
+  caps, so a rewrite can be stopped mid-way, and progress is visible live on the dashboard.
+- A rewrite keeps the old text in `previousText` until it succeeds; a failed rewrite leaves the old story in place,
+  so the player's download never disappears.
+- **Dry run:** "Try this prompt on a score" generates a story from the edited, unsaved prompt for any stored game and
+  shows it side by side with the current story, without saving. It is the way to tune the prompt before a bulk rewrite.
+
+**Dashboard** (reactive queries over `stories` and `storyRuns`; hand-rolled SVG like the Game Analytics charts)
+- Tiles: stories total, ready, pending, failed; generated today and in the last 7 days; success rate; average words;
+  average duration; tokens in and out; **estimated spend** today, this month and all time against the caps.
+- Charts: stories per day by outcome, cost per day, words histogram, spend by prompt version and by pass, failure
+  reasons (guard rejected, check pass found an unsupported fact, API error, cap reached).
+- Tables: recent runs (time, game code, trigger, pass, tokens, cost, status, reason) and recent stories with a link
+  to read the text; a stories-by-prompt-version breakdown that shows how many still use an older version (the
+  natural input to a rewrite).
+- Controls: pause or resume generation, set the caps, retry a failed story, remove a story (a takedown).
+
+**Prompt editor**
+- Two text areas (writer, editor), model, word range and a note. A diff against the previous version, **Save as new
+  version**, the version history with who and when, and a "make this version active again" action. Saving does
+  not rewrite anything by itself; the Rewrite panel does, so a prompt change never spends money as a side effect.
+- Validation before saving: both prompts non-empty, a sensible word range, a model from an allow-list in source.
+
 ## 3. Implementation steps
 
 1. **Digest** (engine-free, pure): `storyDigest(log)` plus tests that replay the stored fixtures
@@ -122,14 +172,20 @@ game, and only on first save. `digestHash` makes a retry free.
    `short-story/plan.md` section 2. This is the most valuable test: it pins the accuracy control.
 2. **Schema and queries:** the `stories` table, `stories.forScore`, and `convex-test` tests (status transitions,
    idempotence, a failed row stays failed until re-run).
-3. **Generation action:** the two-pass call behind an interface so tests use a stub; deterministic guards with unit
-   tests; retry-once logic; env vars documented in `apps/web/OPTIONS.md`.
-4. **Trigger:** schedule from `highScores.save` above the threshold (solo only); an internal regenerate-one action.
+3. **Prompt, versions and generation action:** `storyPrompt.ts` (defaults, price table, model allow-list); the
+   `storyPrompts`, `storyRuns` and `storySettings` tables; the two-pass call behind an interface so tests use a stub,
+   resolving the active prompt version, recording a `storyRuns` row per call and honouring pause and caps;
+   deterministic guards with unit tests; retry-once logic; env vars documented in `apps/web/OPTIONS.md`.
+4. **Trigger:** schedule from `highScores.save` above the threshold (solo only); the retry-one action.
 5. **PDF and UI:** lazy-loaded generator, the `ScoreDetail` button and states, a help-manual sentence, UI tests.
-6. **Quality pass on real output:** generate stories for five stored games of different shapes (B002, a short run, a
-   kit run, a Sibyl run, one with a chest), read them, tune the prompt, and record the findings the way
-   `editor-notes.md` did.
-7. **Docs and release:** note the feature in `OPTIONS.md` and the manual. Setting `ANTHROPIC_API_KEY` and the first
+6. **Admin Stories tab:** the dashboard queries and charts, the prompt editor with versions and diff, the dry run, the
+   rewrite queue with scope, cost estimate and confirmation, the pause switch and caps, role gating tests, and a
+   cap test (a call is refused once the day's cap is reached).
+7. **Quality pass on real output:** generate stories for five stored games of different shapes (a short run, a
+   kit run, a Sibyl run, one with a chest), read them, tune the prompt (in source, then via the dry run), and record
+   the findings the way `editor-notes.md` did. Note: the stored B002 game no longer replays past its chest (the chest
+   rule changed), so the digest tests pick games that still replay to their pinned score.
+8. **Docs and release:** note the feature in `OPTIONS.md` and the manual. Setting `ANTHROPIC_API_KEY` and the first
    `convex deploy` touch the shared backend, so they are done only with Mark's go-ahead.
 
 ## 4. Risks and open decisions
@@ -137,7 +193,10 @@ game, and only on first save. `digestHash` makes a retry free.
 | Item | Question or risk | Leaning |
 |---|---|---|
 | Threshold | The value per table | agreed: base 300, kit and Sibyl 350, tunable in `STORY_THRESHOLD` |
-| Cost control | A bug could loop generation | one row per score (`by_highScore`), status guard, one retry, a daily cap counter |
+| Cost control | A bug, or a bulk rewrite, could spend a lot | one row per score (`by_highScore`), status guard, one retry, daily and monthly caps and a pause switch checked before every call, rewrite needs an estimate and typed confirmation |
+| Prompt in two places | Source and admin versions could disagree | one rule: newest admin version wins, else the source default; each story records its version; the dashboard shows both |
+| Rewrite replaces a good story | A bad prompt could wipe good stories | `previousText` kept until the rewrite succeeds, failed rewrites keep the old text, dry run before a bulk run |
+| Cost accuracy | Dashboard spend is an estimate | tokens come from the API response; the price table is in source and labelled an estimate |
 | Accuracy | The model invents an event | digest-only input, second-pass check, deterministic guards, fixture-based review |
 | Tone drift | Stories read alike | pass a small "shape" hint from the digest (a loss, a betrayal, a quiet climax) and vary names by seed |
 | Names | Invented names vs the player's | invented; the player's name appears only in the byline |
