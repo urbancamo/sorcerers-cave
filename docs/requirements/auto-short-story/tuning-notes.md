@@ -32,3 +32,16 @@ After the changes: the next round passed the fact-check on all five (S012 after 
   admin makes version 1 and then "older" works as intended.
 - Still to watch: the length (1,400 to 1,650 words, inside the range but under the three pages the prompt aims for), and the
   editor's strictness on invented causes (it caught one real invention, and one false alarm on S012 caused by the digest bug).
+
+## Digest rework (2026-11-22, branch digest-improvements)
+
+Found by reading the digest of a 320-point kit game. Changes in `storyDigest.ts`:
+
+- **Cap 60 to 150.** The writer prompt already tells it to choose three or four events to dwell on, so the digest keeps nearly everything; the old cap dropped beats by weight and cut the middle of long games.
+- **Floors, not levels.** Beats sit under `Floor N` headings shown when the floor changes, the route is stated up front, and "level" no longer appears (the prompt forbids numbered levels).
+- **Meetings are one beat.** Chamber, reaction and joining merge ("A chamber with a Lion holding Magic Sword: friendly. A Lion joined the party."); a run of reaction rolls keeps the last.
+- **Mutiny.** Deserters are named; members who come back are reported as having come back, not as new recruits. The roster shift a mutiny causes no longer risks a false "turned to stone" beat.
+- **Artefacts taken** get a beat ("The Eye of God was taken."); kit hazards are named (`ALL_HAZARD_NAMES`); an identical chamber twice in a row is one beat.
+- Not done: weights are not shown to the writer (joinings are weight 3 for correctness, so they would mislead as "turning points").
+
+The five-game prompt comparison has NOT been re-run against this digest yet (costs about $2-3).
