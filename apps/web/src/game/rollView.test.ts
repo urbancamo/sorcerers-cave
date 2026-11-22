@@ -327,3 +327,20 @@ describe("Quarrel waits for the player's roll", () => {
     expect(duel.stakes).toMatch(/Hero.*Man/);
   });
 });
+
+describe("rollFromEvents: the Treasure Chest's Spectre", () => {
+  const ev = (...e: object[]) => e as GameEvent[];
+  it("names who it slew, that it vanished and the new leader when its round is already over (game PEVO)", () => {
+    const v = rollFromEvents(ev({ type: "chestOpened", result: 2 }, { type: "fightStarted", surprise: 0 }, { type: "deployed", creatures: [0], side: "strangers" },
+      { type: "spectreSlew", creatureId: 1 }, { type: "spectreDeparts" }, { type: "fightWon" }, { type: "leaderChosen", creatureId: 3 }));
+    expect(v?.tone).toBe("bad");
+    expect(v?.message).toBe("A Spectre bursts from the chest and attacks! Its touch slays W-Hero. Having had its one round, it vanishes. Troll is now the party's leader.");
+  });
+  it("tells the player to defend when the fight is still on", () => {
+    expect(rollFromEvents(ev({ type: "chestOpened", result: 2 }, { type: "fightStarted", surprise: 0 }))?.message).toBe("A Spectre bursts from the chest and attacks! Defend yourselves!");
+  });
+  it("says the Eye or the Talisman stopped it", () => {
+    expect(rollFromEvents(ev({ type: "chestOpened", result: 2 }, { type: "annihilated", creatureId: 9 }))?.message).toMatch(/Eye of God destroys it/);
+    expect(rollFromEvents(ev({ type: "chestOpened", result: 2 }, { type: "wardedOff", creatureId: 9 }))?.message).toMatch(/Talisman drives it off/);
+  });
+});
