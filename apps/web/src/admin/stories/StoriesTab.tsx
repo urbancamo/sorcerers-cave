@@ -50,7 +50,7 @@ function Controls({ settings, canEdit }: { settings: { paused: boolean; dailyCap
         <button type="button" className="scv-primary" disabled={daily === null && monthly === null}
                 onClick={() => void run({ ...(daily !== null ? { dailyCapUsd: parse(daily) } : {}), ...(monthly !== null ? { monthlyCapUsd: parse(monthly) } : {}) }, 'Caps saved.')}>Save caps</button>
       </div>
-      <p className="scv-admin-note">When a cap is reached, no new story is written until the next day or month (or the cap is raised). Empty means no cap. Costs are estimates from a price table.</p>
+      <p className="scv-admin-note">When a cap is reached, no new story is written until the next day or month (or the cap is raised). Empty means no cap. Costs are estimates from a price table. Lowering a cap or pausing needs the Stories role; raising or removing a cap needs the System role.</p>
       {!canEdit && <p className="scv-admin-note">Changing these needs the System role.</p>}
       {msg && <p className={msg.ok ? 'scv-sys-ok' : 'scv-resume-err'} role={msg.ok ? 'status' : 'alert'}>{msg.text}</p>}
     </fieldset>

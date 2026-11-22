@@ -84,6 +84,20 @@ test("saving a prompt appends a new version and activates it; bad input is refus
   await expect(admin.mutation(api.storyAdmin.savePrompt, { ...newPrompt, minWords: 2000 })).rejects.toThrow(/word range/);
 });
 
+test("a STORIES editor can pause and lower a cap but not raise or remove one; SYSTEM can", async () => {
+  const t = convexTest(schema, modules);
+  const editor = (await asUser(t, ["STORIES"])).as, admin = (await asUser(t, ["SYSTEM"])).as;
+  // First setting a cap (there was none) is a lowering, so an editor may do it.
+  expect(await editor.mutation(api.storyAdmin.updateSettings, { dailyCapUsd: 2, monthlyCapUsd: 20 })).toMatchObject({ dailyCapUsd: 2, monthlyCapUsd: 20 });
+  expect(await editor.mutation(api.storyAdmin.updateSettings, { dailyCapUsd: 1 })).toMatchObject({ dailyCapUsd: 1 });
+  expect(await editor.mutation(api.storyAdmin.updateSettings, { paused: true })).toMatchObject({ paused: true });
+  expect(await editor.mutation(api.storyAdmin.updateSettings, { dailyCapUsd: 1, paused: false })).toMatchObject({ paused: false }); // same value is not a raise
+  await expect(editor.mutation(api.storyAdmin.updateSettings, { dailyCapUsd: 5 })).rejects.toThrow(/System role/);
+  await expect(editor.mutation(api.storyAdmin.updateSettings, { monthlyCapUsd: 0 })).rejects.toThrow(/System role/); // removing
+  expect(await admin.mutation(api.storyAdmin.updateSettings, { dailyCapUsd: 5 })).toMatchObject({ dailyCapUsd: 5 });
+  expect(await admin.mutation(api.storyAdmin.updateSettings, { monthlyCapUsd: 0 })).toMatchObject({ monthlyCapUsd: null });
+});
+
 test("settings: pause and caps can be set and cleared", async () => {
   const t = convexTest(schema, modules);
   const admin = (await asUser(t, ["SYSTEM"])).as;

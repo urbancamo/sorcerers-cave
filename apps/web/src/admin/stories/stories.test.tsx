@@ -61,7 +61,7 @@ describe("Stories overview", () => {
   it("a viewer without SYSTEM sees the controls disabled", () => {
     render(<StoriesTab canEdit={false} />);
     expect(screen.getByLabelText("Daily cap (US $)")).toBeDisabled();
-    expect(screen.getByText(/needs the System role/)).toBeInTheDocument();
+    expect(screen.getByText(/Changing these needs the System role/)).toBeInTheDocument();
   });
 });
 
