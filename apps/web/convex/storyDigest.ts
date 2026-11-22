@@ -41,6 +41,8 @@ export interface StoryDigest {
     /** Who walked out and what the notable ones carried. */
     exitParty: string[];
     exitCount: number;
+    /** The silver, gold and gems carried out, in plain words ("3 Gold and 2 Silver"), or "none". The exit list names artefacts and the Chest and Idol, not these. */
+    wealth: string;
     /** The floor the party ended on (1 is the top, by the entrance). */
     finalLevel: number;
   };
@@ -68,6 +70,12 @@ const counted = (names: string[]): string => {
   for (const x of names) n.set(x, (n.get(x) ?? 0) + 1);
   return list([...n].map(([k, c]) => (c > 1 ? `${c} ${k}s` : `${article(k)} ${k}`)));
 };
+
+/** Silver (0), Gold (1) and Gems (2) among what the survivors carried, as "3 Gold, 2 Silver and a Gems"; "none" when there is none. */
+function wealthText(carried: readonly number[]): string {
+  const parts = [1, 0, 2].map((id) => ({ name: treasure(id), n: carried.filter((t) => t === id).length })).filter((p) => p.n > 0);
+  return parts.length ? list(parts.map((p) => `${p.n} ${p.name}`)) : "none";
+}
 
 export function storyDigest(frames: readonly ReplayFrame[]): StoryDigest {
   const first = frames[0]!.state, last = frames[frames.length - 1]!.state;
@@ -238,6 +246,7 @@ export function storyDigest(frames: readonly ReplayFrame[]): StoryDigest {
       repeatedChambers: repeated,
       exitParty: alive.map((m) => creature(m.creatureId) + (m.treasure.some((t) => t >= 3) ? ` (carrying ${list(m.treasure.filter((t) => t >= 3).map(treasure))})` : "")),
       exitCount: alive.length,
+      wealth: wealthText(alive.flatMap((m) => m.treasure)),
       finalLevel: level,
     },
     beats: kept,
@@ -258,6 +267,7 @@ export function digestText(d: StoryDigest): string {
     `Starting party: ${list(d.startingParty)}.`,
     `Outcome: escaped the cave with ${o.exitCount} living members; deepest floor reached ${o.deepestLevel}; ${o.membersLost} lost along the way${o.lost.length ? ` (${o.lost.join(", ")})` : ""}.`,
     `At the exit: ${o.exitParty.join("; ")}.`,
+    `Silver, gold and gems carried out: ${o.wealth}.`,
     route,
     ...(o.repeatedChambers ? [`The party passed through some rooms more than once (${o.repeatedChambers} repeat visits are left out below).`] : []),
     "Floors are numbered from 1, the top, by the entrance.",

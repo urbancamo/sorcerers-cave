@@ -45,6 +45,21 @@ sentence about the journey. A paragraph for each room in turn is the failure to 
 - Time and place should always be clear: the reader should know, without being told, that the party has gone deeper, or \
 climbed, or crossed something, and roughly how long it has been.
 
+THE SHAPE: A BEGINNING, A MIDDLE AND AN END. The cave is the middle of the story, not all of it.
+- THE BEGINNING (about a fifth): before the cave. Introduce the people who set out, the starting party in the record, as particular \
+people with a life: where they come from, what they owe or want or are running from, and why they are going down. Give the hero a \
+past and a reason, and give any companion at the start something of their own. Invent freely here (the record has none), but make \
+it lead to the expedition and plant the want the ending will answer. Do not open with the cave or an explanation of it.
+- THE MIDDLE (about three fifths): the cave. Keep it tight. Tell the three or four events that change the party in full; \
+compress everything between them to a sentence or a clause, or leave it out. Compress by the journey, not the room: "two floors \
+of cold stairs and a Dwarf's stubbornness" is better than a paragraph on each chamber. Every paragraph in the middle must change \
+something: the party, its hope, or what it carries.
+- THE END (about a fifth): the way out, and what it meant. Tell the climb into daylight and what it was to be out. Then say what \
+they carried out (the record's lists of who walked out, what each carried and any wealth) and what it did to them: a debt paid, a \
+home saved, a fortune that felt like less than the cost, a thing carried that no one could sell. Show it in concrete images, not \
+by explaining. If little was carried, that is the story: they came out alive and the cave kept the rest. End on an image of what \
+the treasure or the survival did to the people, and let it answer the want planted at the start.
+
 WHAT TO WRITE
 - Give the story a want and something the hero lacks, a cost the victory must not erase, and one change in the hero that is \
 shown in an image, never explained. State the theme at most once, plainly, late.
@@ -59,9 +74,12 @@ what happened: it never adds or changes an event.
 WHAT YOU MAY INVENT
 - Names, places outside the cave, motives, and dialogue: the record has none. Name the hero and one or two others; \
 refer to the rest by what they are (the Ogre, the Man with the bad leg).
+- The lives of the party before the cave, and what happened to them and the treasure after they came out: how a debt was paid, what a \
+home looked like, what the gold or the survival changed. These lie outside the record, so they are yours to invent, but they must \
+never contradict its outcome (who walked out, who was lost, what was carried or left behind).
 
 WHAT YOU MUST NOT DO
-- Do not contradict the record, and do not add events it does not contain: no extra fights, deaths, joinings, \
+- Do not contradict the record, and do not add events inside the cave that it does not contain: no extra fights, deaths, joinings, \
 treasures or rescues. The record is a summary: you may say how a recorded event happened, but not add one. If the record says something was lost, it was lost; if it says N walked out, N walked out.
 - Nobody leaves the party except by being lost as the record says. Do not have anyone desert, wander off, turn back, stay \
 behind or be separated; members only join, die, turn to stone, or walk out of the cave at the end. If someone is not in the \
@@ -97,7 +115,8 @@ are only there to tick an event off. Remove any headings, numbering, bullet poin
 3. Game-speak. Remove any mention of dice, rolls, points, scores, numbered levels, turns, rules, a game or a player. Remove \
 capitalised item names from the record (Lost Ruby, Eye of God, Magic Staff) and any list of what each person carries; keep at \
 most three or four objects in the story, in plain words.
-4. Craft. The story must not end on counting or naming the survivors, and its title must not be "The Count"; give it a different \
+4. Shape. The story must have a beginning before the cave that gives the starting party a past and a reason for going, a tight middle, and an ending that tells the way out and what the treasure or the survival did to them. If the beginning is thin, enrich it; if the ending only stops at the cave mouth, extend it; if the middle is a chamber-by-chamber chronicle, compress it into the few events that matter. Backstory and aftermath are outside the record and are allowed; keep them, and keep them consistent with the outcome.
+5. Craft. The story must not end on counting or naming the survivors, and its title must not be "The Count"; give it a different \
 closing image and title. Call the cave's stages floors, never levels. The theme is stated at most once. Cut clichés, stacked \
 adjectives and any closing moral. The first line makes a promise and the last image keeps it. About 1,500 to 1,800 words; cut \
 rather than pad.
@@ -121,7 +140,10 @@ record says was kept, or something kept that the record says was lost;
 cave at the end; a mutiny in the record is the one exception, and those who deserted may be won back as the record says).
 
 THE RECORD IS A SUMMARY AND HAS GAPS, so be fair to the writer. These are all allowed and are NOT problems: names, motives, dialogue, \
-thoughts, scenery, the manner in which a recorded event happened, and an unrecorded cause for a recorded loss.
+thoughts, scenery, the manner in which a recorded event happened, and an unrecorded cause for a recorded loss. The story's beginning \
+(the party's life before the cave) and its ending (what became of the survivors and the treasure afterwards) lie outside the record and \
+are invention: they are NOT problems unless they contradict it, for example by saying someone died who walked out, someone lived who \
+was lost, or the party carried out something the record says it did not.
 
 OUTPUT FORMAT
 One problem per line, each saying what the story claims and what the record says. If there are no problems, output the single word: none
@@ -170,9 +192,10 @@ full of monsters, treasure and strangers, and the voice the story will be told i
 short plan for the writer.
 
 A record is a timeline; a story needs a person who wants something, an obstacle that costs them, a turn, and an ending that lands. \
-Choose what matters and leave out the rest: most of the record should be a clause or nothing.
+The story is a beginning (before the cave), a middle (the cave, kept tight on a few events) and an end (the way out and what it meant). Choose what matters in the middle and leave out the rest: most of the record should be a clause or nothing.
 
 Write the plan in exactly these parts, each a line or two, in plain words:
+BEFORE THE CAVE: who the starting party are before they go down (the hero, and any companion named in the record) and what each owes, wants or is leaving behind, which is why they are going. Invent this; the record has none.
 HERO: who the story follows (one member of the party, by what they are) and what they want or lack.
 OBSTACLE: what stands in the way, taken from the record.
 TURN: the one moment in the record that changes things.
@@ -180,7 +203,8 @@ COST: what the victory cost, taken from the record (the lost, what was left behi
 DWELL ON: three or four events from the record, by their numbers, to tell in full.
 IN PASSING: six or eight more, by number, to tell in a sentence or two.
 LEAVE OUT: the kinds of event to skip altogether (for example, repeated rooms).
-CLOSING IMAGE: one concrete object or action to end on. Not a moral, and not a count of the survivors.
+AFTER THE CAVE: what the daylight and what they carried out (see "At the exit" and any wealth in the record) did to these people: the want from the start answered, or not. Invent this too, but it must fit the outcome in the record.
+CLOSING IMAGE: one concrete object or action to end on that shows that aftermath. Not a moral, and not a count of the survivors.
 TITLE IDEA: a short title that is not "The Count".
 
 Use only what the record contains: you choose and arrange, you do not add events. Output the plan and nothing else.`;

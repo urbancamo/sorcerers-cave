@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { EDITOR_SYSTEM, FACT_CHECK_SYSTEM, PLANNER_SYSTEM, STORY_VOICES, pickVoice } from "./storyPrompt";
+import { EDITOR_SYSTEM, FACT_CHECK_SYSTEM, PLANNER_SYSTEM, STORY_VOICES, WRITER_SYSTEM, pickVoice } from "./storyPrompt";
 import { writeStory, resolveFields, parseEditedStory, parseFactCheck, splitStory, defaultPrompt, UNSUPPORTED_MARKER, type ModelCall } from "./storyWriter";
 
 const para = Array(30).fill("The lantern burned low and they went on down the long stair together").join(" ") + ".";
@@ -157,5 +157,20 @@ describe("edited prompts reach the model", () => {
     expect(r.factCheck).toBe(prompt.factCheck);
     expect(r.voices).toBe(prompt.voices);
     expect(r.bible).toBe(prompt.bible);
+  });
+});
+
+describe("the shape of a story: a beginning, a middle and an end", () => {
+  it("the writer is told to open before the cave, keep the middle tight, and close on what the treasure did", () => {
+    expect(WRITER_SYSTEM).toMatch(/THE BEGINNING[\s\S]*before the cave[\s\S]*past/);
+    expect(WRITER_SYSTEM).toMatch(/THE MIDDLE[\s\S]*tight[\s\S]*compress/i);
+    expect(WRITER_SYSTEM).toMatch(/THE END[\s\S]*what they carried out[\s\S]*what it did to them/);
+    expect(WRITER_SYSTEM).toMatch(/never contradict its outcome/); // invention outside the cave is bounded by the record's outcome
+  });
+  it("the planner plans the beginning and the aftermath, the editor enforces the shape, and the fact-checker allows both", () => {
+    expect(PLANNER_SYSTEM).toMatch(/BEFORE THE CAVE:/);
+    expect(PLANNER_SYSTEM).toMatch(/AFTER THE CAVE:/);
+    expect(EDITOR_SYSTEM).toMatch(/Shape\./);
+    expect(FACT_CHECK_SYSTEM).toMatch(/beginning[\s\S]*ending[\s\S]*NOT problems unless they contradict/);
   });
 });

@@ -118,3 +118,18 @@ describe("storyDigest: grammar", () => {
     for (const { code } of replayable.slice(0, 25)) expect(digestText(run(code))).not.toMatch(/\ban Unicorn/);
   });
 });
+
+describe("storyDigest: what was carried out", () => {
+  it("says how much silver, gold and gems the survivors carried, or none, and it matches the final state", () => {
+    for (const { code } of replayable.slice(0, 8)) {
+      const g = (games as unknown as Record<string, Rec>)[code]!;
+      const frames = replay(g.seed, g.picks, g.actions, g.variants as never);
+      const end = frames[frames.length - 1]!.state.party.filter((m) => m.status === 0 || m.status === 1).flatMap((m) => m.treasure);
+      const d = storyDigest(frames);
+      const total = [0, 1, 2].reduce((n, id) => n + end.filter((t) => t === id).length, 0);
+      expect(digestText(d)).toMatch(/^Silver, gold and gems carried out: .+\.$/m);
+      if (total === 0) expect(d.outcome.wealth).toBe("none");
+      else expect([...d.outcome.wealth.matchAll(/(\d+) (Silver|Gold|Gems)/g)].reduce((n, m) => n + Number(m[1]), 0)).toBe(total);
+    }
+  });
+});
