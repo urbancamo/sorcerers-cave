@@ -106,6 +106,28 @@ function combatView(events: GameEvent[]): RollView | null {
   return { title: "Combat round", lanes, message: message + stepsBack, tone };
 }
 
+/** What the chest's Spectre did. Its round can already be over when the player sees this (a revised fight's one round is played at once),
+ *  and the overlay then hides the notices, so it says everything: who it slew, that it vanished, any new leader. */
+function spectreFromChest(events: GameEvent[]): { message: string; tone: Tone } {
+  const name = (id: number) => ALL_CREATURES[id]?.name ?? "A companion";
+  const eye = events.find((e) => e.type === "annihilated");
+  if (eye) return { message: "A Spectre bursts from the chest — but the Eye of God destroys it on sight.", tone: "good" };
+  const talisman = events.find((e) => e.type === "wardedOff");
+  if (talisman) return { message: "A Spectre bursts from the chest — but the Talisman drives it off.", tone: "good" };
+  const parts = ["A Spectre bursts from the chest and attacks!"];
+  const slain = events.filter((e): e is Extract<GameEvent, { type: "spectreSlew" }> => e.type === "spectreSlew");
+  for (const s of slain) parts.push(`Its touch slays ${name(s.creatureId)}.`);
+  for (const d of events.filter((e): e is Extract<GameEvent, { type: "deathPrevented" }> => e.type === "deathPrevented")) parts.push(`The Ring saves ${name(d.creatureId)}.`);
+  const over = events.some((e) => e.type === "gameOver");
+  const departed = events.some((e) => e.type === "spectreDeparts");
+  if (over) parts.push("The party is wiped out…");
+  else if (departed) parts.push("Having had its one round, it vanishes.");
+  else if (events.some((e) => e.type === "fightStarted")) parts.push("Defend yourselves!");
+  const leader = events.find((e): e is Extract<GameEvent, { type: "leaderChosen" }> => e.type === "leaderChosen");
+  if (leader) parts.push(`${name(leader.creatureId)} is now the party's leader.`);
+  return { message: parts.join(" "), tone: slain.length > 0 || over ? "bad" : "neutral" };
+}
+
 /** Turn an opened Treasure Chest (a d6) into a single-die overlay — otherwise its
  *  curse / Spectre / loot outcome is invisible. */
 function chestView(events: GameEvent[]): RollView | null {
@@ -113,7 +135,7 @@ function chestView(events: GameEvent[]): RollView | null {
   if (!chest) return null;
   const OUTCOME: Record<number, { message: string; tone: Tone }> = {
     1: { message: "A curse! A curse card settles on the party — −1 to every roll, and −30 points at scoring.", tone: "bad" },
-    2: { message: "A Spectre bursts from the chest — defend yourselves!", tone: "bad" },
+    2: spectreFromChest(events),
     3: { message: "Only sand — nothing of value.", tone: "neutral" },
     4: { message: "Silver! +20 points.", tone: "good" },
     5: { message: "Gold! +40 points.", tone: "good" },
