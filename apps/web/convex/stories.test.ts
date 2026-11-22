@@ -54,8 +54,8 @@ test("a score at or above its table's threshold queues a pending story, once; be
   const rows = () => t.run((ctx) => ctx.db.query("stories").collect());
   await t.run((ctx) => queueStory(ctx, id, 199, undefined));
   expect(await rows()).toHaveLength(0);
-  await t.run((ctx) => queueStory(ctx, id, 199, { sibyl: true })); // every table needs 200
-  await t.run((ctx) => queueStory(ctx, id, 199, { extensionKit: true }));
+  await t.run((ctx) => queueStory(ctx, id, 249, { sibyl: true })); // the kit and Sibyl tables need 250
+  await t.run((ctx) => queueStory(ctx, id, 249, { extensionKit: true }));
   expect(await rows()).toHaveLength(0);
   await t.run((ctx) => queueStory(ctx, id, 200, undefined));
   await t.run((ctx) => queueStory(ctx, id, 200, undefined)); // idempotent
