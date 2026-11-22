@@ -208,3 +208,39 @@ describe("a shared chest is invisible to games that never share one", () => {
     expect(dropSharedChest(s, 99, "working")).toEqual([]);
   });
 });
+
+describe("opening a chest tips four bags onto the floor", () => {
+  it("for a shared chest, in a pickup the party takes with the normal mechanics, and banks no points", () => {
+    for (let seed = 1; seed <= 40; seed++) {
+      const g = makeState({ phase: "explore", party: [m(TROLL, { chestShares: [{ chest: 1, kg: 75 }] }), m(HERO, { chestShares: [{ chest: 1, kg: 25 }] })], areas: [room()], seed });
+      const r = reduce(g, { type: "openChest" } as GameAction);
+      const roll = (r.events.find((e) => e.type === "chestOpened") as { result: number }).result;
+      if (roll < 4) continue;
+      expect(r.state.treasures).toEqual(Array(4).fill(roll - 4));
+      expect(r.state.phase).toBe("pickup");
+      expect(r.state.bonusScore).toBe(0);
+      expect(r.state.party.every((p) => !p.chestShares && p.treasure.length === 0)).toBe(true);
+      // the freed room lets the bags be taken
+      expect(reduce(r.state, { type: "takeTreasure", ti: 0, mi: 0 } as GameAction).events).not.toContainEqual({ type: "blocked" });
+      return;
+    }
+    throw new Error("no loot roll found");
+  });
+});
+
+describe("a Chest left on the floor comes back when the party makes room (game WQXK)", () => {
+  it("dropping at rest re-offers the parked chest along with the dropped treasure", () => {
+    const s = makeState({ phase: "explore", areas: [room([200 + 14])], party: [m(1, { treasure: [1, 1] }), m(TROLL, { treasure: [1, 1] })] }); // W-Hero and Troll, full of Gold
+    const r = reduce(s, { type: "dropTreasure", mi: 0, idx: 0 });
+    expect(r.state.phase).toBe("pickup");
+    expect(r.state.treasures.sort()).toEqual([1, 14]);
+    expect(r.state.areas[0]!.contents).toEqual([]);
+  });
+
+  it("leaves other parked things (a guarded tile keeps its goods)", () => {
+    const s = makeState({ phase: "explore", areas: [room([100 + 3, 200 + 14])], party: [m(1, { treasure: [1] })] });
+    const r = reduce(s, { type: "dropTreasure", mi: 0, idx: 0 });
+    expect(r.state.phase).toBe("explore"); // a guard is still there: the drop parks too
+    expect(r.state.areas[0]!.contents).toEqual([103, 214, 201]);
+  });
+});

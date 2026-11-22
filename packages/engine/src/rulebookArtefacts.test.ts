@@ -144,14 +144,14 @@ describe("rulebook cards: the Elixir (1 poison kills, 2-3 nothing, 4-6 +2 streng
   }
 });
 
-describe("rulebook cards: the Treasure Chest (1 curse, 2 Spectre, 3 sand, 4 silver 20, 5 gold 40, 6 gems 80)", () => {
+describe("rulebook cards: the Treasure Chest (1 curse, 2 Spectre, 3 sand, 4 silver, 5 gold, 6 gems: four bags of each)", () => {
   const open = (roll: number) => reduce(makeState({ phase: "explore", areas: [area], party: [worn(2, [14])], seed: seedFor(roll) }), { type: "openChest" } as never).state;
   it("1: a curse", () => expect(open(1).curses).toBe(1));
   it("2: a Spectre attacks", () => expect(open(2).strangers).toContain(9));
   it("3: sand, nothing", () => { const s = open(3); expect([s.curses, s.bonusScore, s.strangers.length]).toEqual([0, 0, 0]); });
-  it("4: silver, 20 points", () => expect(open(4).bonusScore).toBe(20));
-  it("5: gold, 40 points", () => expect(open(5).bonusScore).toBe(40));
-  it("6: gems, 80 points", () => expect(open(6).bonusScore).toBe(80));
+  it("4: silver, four bags (20 points) on the floor", () => expect([open(4).treasures, open(4).phase, open(4).bonusScore]).toEqual([[0, 0, 0, 0], "pickup", 0]));
+  it("5: gold, four bags (40 points) on the floor", () => expect([open(5).treasures, open(5).phase, open(5).bonusScore]).toEqual([[1, 1, 1, 1], "pickup", 0]));
+  it("6: gems, four bags (80 points) on the floor", () => expect([open(6).treasures, open(6).phase, open(6).bonusScore]).toEqual([[2, 2, 2, 2], "pickup", 0]));
 });
 
 describe("rulebook: curses (subtract one from all die rolls, cumulative, none once the Sorcerer is dead)", () => {

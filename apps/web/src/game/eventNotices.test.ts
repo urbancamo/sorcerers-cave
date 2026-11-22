@@ -572,3 +572,10 @@ describe("the Flute at the Viper Pit: playing it and crossing are different mome
     expect(eventNotices([{ type: "vipersLulled" }])).toEqual([]);
   });
 });
+
+describe("eventNotices: the chest Spectre departing", () => {
+  it("says it disappears into the dark, after a Magic Shield stalemate with no dice rolled", () => {
+    const ns = eventNotices([{ type: "shieldStalemate", creatureIds: [9] }, { type: "spectreDeparts" }, { type: "fightWon" }]);
+    expect(ns.map((x) => x.text)).toEqual([expect.stringMatching(/Magic Shield holds .*at bay/), "The Spectre disappears into the dark."]);
+  });
+});

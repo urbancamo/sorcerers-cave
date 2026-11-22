@@ -19,9 +19,8 @@ describe("openChest (spec §11/§16)", () => {
       expect(state.party[0]!.treasure).not.toContain(14); // chest consumed
       if (opened!.result === 1) expect(state.curses).toBe(1);
       if (opened!.result === 2) { expect(state.phase).toBe("fight"); expect(state.strangers).toContain(9); }
-      if (opened!.result === 4) expect(state.bonusScore).toBe(20);
-      if (opened!.result === 5) expect(state.bonusScore).toBe(40);
-      if (opened!.result === 6) expect(state.bonusScore).toBe(80);
+      // 4, 5, 6: four 25 kg bags of Silver, Gold or Gems (20/40/80 points at 5/10/20 each) are tipped onto the floor for a normal pickup
+      if (opened!.result >= 4) { expect(state.treasures).toEqual(Array(4).fill(opened!.result - 4)); expect(state.phase).toBe("pickup"); expect(state.bonusScore).toBe(0); }
     }
   });
 

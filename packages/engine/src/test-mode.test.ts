@@ -726,10 +726,11 @@ describe("Next Roll Selector — end-to-end through a non-reaction roll site (SC
 
   it("forces the chest's outcome via testNextDie", () => {
     const s = withChest();
-    s.testNextDie = 6; // -> Gems, +80 bonusScore
+    s.testNextDie = 6; // -> four bags of Gems on the floor
     const { state, events } = reduce(s, { type: "openChest" });
     expect(events[0]).toEqual({ type: "chestOpened", result: 6 });
-    expect(state.bonusScore).toBe(80);
+    expect(state.treasures).toEqual([2, 2, 2, 2]);
+    expect(state.bonusScore).toBe(0);
     expect(state.testNextDie).toBeUndefined();
   });
 });
