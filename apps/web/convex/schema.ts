@@ -248,8 +248,8 @@ export default defineSchema({
     storyId: v.optional(v.id("stories")),
     highScoreId: v.id("highScores"),
     pass: v.union(v.literal("write"), v.literal("check")),
-    trigger: v.union(v.literal("save"), v.literal("rewrite"), v.literal("retry")),
-    promptVersion: v.number(),
+    trigger: v.union(v.literal("save"), v.literal("rewrite"), v.literal("retry"), v.literal("trial")), // trial: an unsaved prompt tried from the admin panel
+    promptVersion: v.number(), // -1 for a trial of an unsaved prompt
     model: v.string(),
     inputTokens: v.number(),
     outputTokens: v.number(),
@@ -261,6 +261,20 @@ export default defineSchema({
   })
     .index("by_createdAt", ["createdAt"])
     .index("by_story", ["storyId"]),
+
+  // A bulk rewrite of existing stories after a prompt change, run in small scheduled batches so it can be watched and stopped.
+  storyJobs: defineTable({
+    kind: v.literal("rewrite"),
+    scope: v.string(), // a readable label of what was chosen
+    total: v.number(),
+    done: v.number(),
+    failed: v.number(),
+    status: v.union(v.literal("running"), v.literal("done"), v.literal("stopped")),
+    reason: v.optional(v.string()), // why it stopped early (a cap, a pause, or an admin)
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_createdAt", ["createdAt"]),
 
   // Single document of generation switches: a global pause and spending caps in US dollars (0 or absent = no cap).
   storySettings: defineTable({

@@ -27,6 +27,8 @@ import type * as passwords from "../passwords.js";
 import type * as roles from "../roles.js";
 import type * as settings from "../settings.js";
 import type * as stories from "../stories.js";
+import type * as storyAdmin from "../storyAdmin.js";
+import type * as storyAdminLib from "../storyAdminLib.js";
 import type * as storyDigest from "../storyDigest.js";
 import type * as storyGen from "../storyGen.js";
 import type * as storyPrompt from "../storyPrompt.js";
@@ -59,6 +61,8 @@ declare const fullApi: ApiFromModules<{
   roles: typeof roles;
   settings: typeof settings;
   stories: typeof stories;
+  storyAdmin: typeof storyAdmin;
+  storyAdminLib: typeof storyAdminLib;
   storyDigest: typeof storyDigest;
   storyGen: typeof storyGen;
   storyPrompt: typeof storyPrompt;

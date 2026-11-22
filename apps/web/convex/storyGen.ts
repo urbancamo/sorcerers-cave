@@ -1,6 +1,7 @@
-import { internalAction } from "./_generated/server";
+import { internalAction, type ActionCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
+import type { Id } from "./_generated/dataModel";
 import { replay, type GameAction } from "@sorcerers-cave/engine";
 import { digestText, storyDigest } from "./storyDigest";
 import { writeStory, type ModelCall } from "./storyWriter";
@@ -24,33 +25,47 @@ export const anthropicCall: ModelCall = async ({ model, system, user, maxTokens 
   };
 };
 
+export type Trigger = "save" | "rewrite" | "retry";
+export type GenerateResult = { ok: true } | { ok: false; reason: string };
+
+/** Reasons that mean "stop everything" rather than "this story failed": a bulk rewrite halts on them. */
+export const isBlockReason = (reason: string): boolean => /paused|cap reached/.test(reason);
+
 /**
  * Write (or rewrite) the story for one high-score entry: replay the run, reduce it to the digest, run the two-pass writer, and
- * store the result with a record of every model call. Run one entry by hand with
+ * store the result with a record of every model call. Shared by the `generate` action and the rewrite batches.
+ */
+export async function generateStory(ctx: ActionCtx, highScoreId: Id<"highScores">, trigger: Trigger): Promise<GenerateResult> {
+  const started = await ctx.runMutation(internal.stories.begin, { highScoreId, trigger });
+  if (!started.ok) return { ok: false, reason: started.reason };
+  const { storyId, prompt } = started;
+  const fail = async (reason: string): Promise<GenerateResult> => {
+    await ctx.runMutation(internal.stories.finish, { storyId, trigger, promptVersion: prompt.version, runs: [], result: { ok: false, reason } });
+    return { ok: false, reason };
+  };
+
+  const input = await ctx.runQuery(internal.stories.replayInput, { highScoreId });
+  if (!input) return fail("no replay data for this entry");
+  let digest: string;
+  try {
+    digest = digestText(storyDigest(replay(input.seed, input.picks, input.actions as GameAction[], input.variants as never)));
+  } catch (e) {
+    return fail(`could not replay the run: ${e instanceof Error ? e.message.slice(0, 150) : "error"}`);
+  }
+
+  const r = await writeStory(anthropicCall, prompt, digest);
+  await ctx.runMutation(internal.stories.finish, {
+    storyId, trigger, promptVersion: prompt.version, runs: r.runs,
+    result: r.ok ? { ok: true, title: r.title, text: r.text, words: r.words, model: prompt.model } : { ok: false, reason: r.reason },
+  });
+  return r.ok ? { ok: true } : { ok: false, reason: r.reason };
+}
+
+/**
+ * Run one entry by hand with
  *   npx convex run storyGen:generate '{"highScoreId":"<id>","trigger":"retry"}'
  */
 export const generate = internalAction({
   args: { highScoreId: v.id("highScores"), trigger: v.union(v.literal("save"), v.literal("rewrite"), v.literal("retry")) },
-  handler: async (ctx, { highScoreId, trigger }): Promise<null> => {
-    const started = await ctx.runMutation(internal.stories.begin, { highScoreId, trigger });
-    if (!started.ok) return null;
-    const { storyId, prompt } = started;
-    const fail = (reason: string) => ctx.runMutation(internal.stories.finish, { storyId, trigger, promptVersion: prompt.version, runs: [], result: { ok: false, reason } });
-
-    const input = await ctx.runQuery(internal.stories.replayInput, { highScoreId });
-    if (!input) return fail("no replay data for this entry");
-    let digest: string;
-    try {
-      digest = digestText(storyDigest(replay(input.seed, input.picks, input.actions as GameAction[], input.variants as never)));
-    } catch (e) {
-      return fail(`could not replay the run: ${e instanceof Error ? e.message.slice(0, 150) : "error"}`);
-    }
-
-    const r = await writeStory(anthropicCall, prompt, digest);
-    await ctx.runMutation(internal.stories.finish, {
-      storyId, trigger, promptVersion: prompt.version, runs: r.runs,
-      result: r.ok ? { ok: true, title: r.title, text: r.text, words: r.words, model: prompt.model } : { ok: false, reason: r.reason },
-    });
-    return null;
-  },
+  handler: async (ctx, { highScoreId, trigger }): Promise<GenerateResult> => generateStory(ctx, highScoreId, trigger),
 });

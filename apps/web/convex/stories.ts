@@ -1,4 +1,4 @@
-import { internalMutation, internalQuery, query, type MutationCtx } from "./_generated/server";
+import { internalMutation, internalQuery, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import type { Doc, Id } from "./_generated/dataModel";
@@ -11,6 +11,7 @@ import { storyThreshold } from "./storyPrompt";
  */
 
 const triggerV = v.union(v.literal("save"), v.literal("rewrite"), v.literal("retry"));
+export type SettingsArgs = { paused?: boolean; dailyCapUsd?: number; monthlyCapUsd?: number };
 const runV = v.object({
   pass: v.union(v.literal("write"), v.literal("check")),
   model: v.string(), inputTokens: v.number(), outputTokens: v.number(), costUsd: v.number(), durationMs: v.number(),
@@ -48,18 +49,27 @@ export async function queueStory(ctx: MutationCtx, highScoreId: Id<"highScores">
 }
 
 /** The active prompt: the newest saved version, or the source default (version 0). */
-async function activePrompt(ctx: { db: MutationCtx["db"] }): Promise<ResolvedPrompt> {
+export async function activePrompt(ctx: { db: QueryCtx["db"] }): Promise<ResolvedPrompt> {
   const row = await ctx.db.query("storyPrompts").withIndex("by_version").order("desc").first();
   return row ? { version: row.version, writer: row.writer, editor: row.editor, model: row.model, minWords: row.minWords, maxWords: row.maxWords } : defaultPrompt();
 }
 
-const startOfUtcDay = (t: number): number => t - (t % 86_400_000);
-const startOfUtcMonth = (t: number): number => { const d = new Date(t); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1); };
+export const startOfUtcDay = (t: number): number => t - (t % 86_400_000);
+export const startOfUtcMonth = (t: number): number => { const d = new Date(t); return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), 1); };
 
 /** Estimated spend since `from` (a bounded read: a month of runs is small). */
-async function spendSince(ctx: { db: MutationCtx["db"] }, from: number): Promise<number> {
+export async function spendSince(ctx: { db: QueryCtx["db"] }, from: number): Promise<number> {
   const rows = await ctx.db.query("storyRuns").withIndex("by_createdAt", (q) => q.gte("createdAt", from)).take(20_000);
   return rows.reduce((n, r) => n + r.costUsd, 0);
+}
+
+/** Why a model call must not be made right now (paused, or a spending cap reached), or null when it may go ahead. */
+export async function blockReason(ctx: { db: QueryCtx["db"] }, now: number): Promise<string | null> {
+  const settings = await ctx.db.query("storySettings").first();
+  if (settings?.paused) return "generation is paused";
+  if (settings?.dailyCapUsd && (await spendSince(ctx, startOfUtcDay(now))) >= settings.dailyCapUsd) return "daily cap reached";
+  if (settings?.monthlyCapUsd && (await spendSince(ctx, startOfUtcMonth(now))) >= settings.monthlyCapUsd) return "monthly cap reached";
+  return null;
 }
 
 /**
@@ -80,10 +90,8 @@ export const begin = internalMutation({
       if (!story!.text) await ctx.db.patch(story!._id, { status: "failed", error: reason, updatedAt: now });
       return { ok: false as const, reason, storyId: story!._id };
     };
-    const settings = await ctx.db.query("storySettings").first();
-    if (settings?.paused) return blocked("generation is paused");
-    if (settings?.dailyCapUsd && (await spendSince(ctx, startOfUtcDay(now))) >= settings.dailyCapUsd) return blocked("daily cap reached");
-    if (settings?.monthlyCapUsd && (await spendSince(ctx, startOfUtcMonth(now))) >= settings.monthlyCapUsd) return blocked("monthly cap reached");
+    const why = await blockReason(ctx, now);
+    if (why) return blocked(why);
     await ctx.db.patch(story._id, { attempts: story.attempts + 1, updatedAt: now, ...(story.text ? {} : { status: "pending" as const }) });
     return { ok: true, storyId: story._id, prompt: await activePrompt(ctx) };
   },
@@ -131,23 +139,25 @@ export const finish = internalMutation({
  * Unspecified fields are left as they are. Run by hand until the admin panel has a role-gated control:
  *   npx convex run stories:setSettings '{"dailyCapUsd":2}'
  */
+export async function applySettings(ctx: MutationCtx, { paused, dailyCapUsd, monthlyCapUsd }: SettingsArgs) {
+  const cap = (n: number | undefined): number | undefined => (n === undefined ? undefined : n > 0 ? n : undefined);
+  if ([dailyCapUsd, monthlyCapUsd].some((n) => n !== undefined && (!Number.isFinite(n) || n < 0))) throw new Error("A cap must be a number of dollars, 0 or more");
+  const now = Date.now();
+  const row = await ctx.db.query("storySettings").first();
+  const next = {
+    paused: paused ?? row?.paused ?? false,
+    dailyCapUsd: dailyCapUsd === undefined ? row?.dailyCapUsd : cap(dailyCapUsd),
+    monthlyCapUsd: monthlyCapUsd === undefined ? row?.monthlyCapUsd : cap(monthlyCapUsd),
+    updatedAt: now,
+  };
+  if (row) await ctx.db.replace(row._id, next);
+  else await ctx.db.insert("storySettings", next);
+  return next;
+}
+
 export const setSettings = internalMutation({
   args: { paused: v.optional(v.boolean()), dailyCapUsd: v.optional(v.number()), monthlyCapUsd: v.optional(v.number()) },
-  handler: async (ctx, { paused, dailyCapUsd, monthlyCapUsd }) => {
-    const cap = (n: number | undefined): number | undefined => (n === undefined ? undefined : n > 0 ? n : undefined);
-    if ([dailyCapUsd, monthlyCapUsd].some((n) => n !== undefined && (!Number.isFinite(n) || n < 0))) throw new Error("A cap must be a number of dollars, 0 or more");
-    const now = Date.now();
-    const row = await ctx.db.query("storySettings").first();
-    const next = {
-      paused: paused ?? row?.paused ?? false,
-      dailyCapUsd: dailyCapUsd === undefined ? row?.dailyCapUsd : cap(dailyCapUsd),
-      monthlyCapUsd: monthlyCapUsd === undefined ? row?.monthlyCapUsd : cap(monthlyCapUsd),
-      updatedAt: now,
-    };
-    if (row) await ctx.db.replace(row._id, next);
-    else await ctx.db.insert("storySettings", next);
-    return next;
-  },
+  handler: async (ctx, args) => applySettings(ctx, args),
 });
 
 export type StoryDoc = Doc<"stories">;

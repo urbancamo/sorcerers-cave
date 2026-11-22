@@ -191,11 +191,14 @@ the budget switches** need `SYSTEM`, because they spend money. Every query and m
 4. **Trigger:** schedule from `highScores.save` above the threshold (solo only); the retry-one action.
    Steps 1-4 are built and tested (2026-11-22). Generation is gated on `ANTHROPIC_API_KEY` being set, so deploying the code
    spends nothing; the API is called over `fetch` (no SDK dependency).
-5. **PDF and UI:** markdown reader, fixed post-material and lazy-loaded PDF generator (done, with tests); still to do:
-   the `ScoreDetail` button and its three states, a help-manual sentence, UI tests.
-6. **Admin Stories tab:** the dashboard queries and charts, the prompt editor with versions and diff, the dry run, the
-   rewrite queue with scope, cost estimate and confirmation, the pause switch and caps, role gating tests, and a
-   cap test (a call is refused once the day's cap is reached).
+5. **PDF and UI:** markdown reader, fixed post-material and lazy-loaded PDF generator, the "Short story (PDF)" button on a
+   high-score entry with its states, and the help-manual sentence (done, with tests).
+6. **Admin Stories tab** (built, 2026-11-22; `convex/storyAdmin.ts`, `storyAdminLib.ts`, `src/admin/stories/`): Overview
+   (tiles, spend per day, calls per day, stories by prompt version, failure reasons, pause switch and caps), Prompt (versions,
+   append-only save, which fields changed from the loaded version, a dry run on a real game that stores nothing), Rewrites
+   (scope, count and cost estimate, typed confirmation, batches of three that halt on pause or a cap, stop button), Runs.
+   Viewing needs ANALYTICS; saving, caps, rewrites and trials need SYSTEM. Tests cover role gating, versions, caps and a
+   mid-job cap halt. The "diff" is a list of changed fields, not a line diff.
 7. **Quality pass on real output:** generate stories for five stored games of different shapes (a short run, a
    kit run, a Sibyl run, one with a chest), read them, tune the prompt (in source, then via the dry run), and record
    the findings the way `editor-notes.md` did. Note: the stored B002 game no longer replays past its chest (the chest

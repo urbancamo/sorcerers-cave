@@ -247,4 +247,8 @@ High-scoring solo escapes get a short story written by Claude (plan: `docs/requi
 - **Threshold** per leaderboard table, in `convex/storyPrompt.ts` (`STORY_THRESHOLD`): base 300, Extension Kit 350, kit + Sibyl 350. Solo only.
 - **Prompt**: the default instructions, model, word range and price table are in `convex/storyPrompt.ts`; an admin-saved prompt version overrides them.
 - **Spend controls**: the `storySettings` document holds a `paused` switch and daily/monthly caps in US dollars; a call is refused once a cap is reached.
+- **Admin panel, Stories tab** (ANALYTICS views it; SYSTEM edits): dashboard of stories, calls, spend and failures; pause and caps;
+  the prompt editor (each save is a new version, and a trial on one real game costs about one story and stores nothing); and bulk
+  rewrites (choose a scope, check the count and estimate, type REWRITE). A rewrite runs in the background, can be stopped, halts by
+  itself on a pause or cap, and a failed rewrite keeps the old story. Existing stories keep their prompt version until rewritten.
 - **Retry one entry by hand**: `npx convex run storyGen:generate '{"highScoreId":"<id>","trigger":"retry"}'`.
