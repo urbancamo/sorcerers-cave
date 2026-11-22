@@ -1,5 +1,5 @@
 import {
-  ALL_TREASURES, CREATURES, HAZARD_NAMES, scoreGame,
+  ALL_CREATURES, ALL_TREASURES, HAZARD_NAMES, scoreGame,
   SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WHIRLPOOL, SPECIAL_TOMB, SPECIAL_GREAT_HALL, SPECIAL_BELL_ROPE,
   SPECIAL_LAIR, SPECIAL_GALLERY, SPECIAL_WELL, SPECIAL_GATEWAY,
   type GameEvent, type ReplayFrame,
@@ -49,7 +49,8 @@ const SPECIAL_NAMES: Record<number, string> = {
   [SPECIAL_WHIRLPOOL]: "a whirlpool", [SPECIAL_GALLERY]: "a gallery of statues", [SPECIAL_WELL]: "a well",
 };
 
-const creature = (id: number): string => CREATURES[id]?.name ?? "someone";
+// ALL_CREATURES, not CREATURES: the Extension Kit and Sibyl creatures (ids 14 and up) are only in the combined list.
+const creature = (id: number): string => ALL_CREATURES[id]?.name ?? "someone";
 const treasure = (id: number): string => ALL_TREASURES.find((t) => t.id === id)?.name ?? "a treasure";
 const list = (xs: string[]): string => (xs.length <= 1 ? xs.join("") : `${xs.slice(0, -1).join(", ")} and ${xs[xs.length - 1]}`);
 const article = (w: string): string => (/^[AEIOU]/.test(w) ? "an" : "a");
@@ -142,7 +143,8 @@ export function storyDigest(frames: readonly ReplayFrame[]): StoryDigest {
       if (before < 2 && m.status >= 2) add(f.seq, 3, `${creature(m.creatureId)} ${m.status === 2 ? "was turned to stone" : "was killed"}${cause}.`);
       else if (before === 2 && m.status < 2) add(f.seq, 3, `${creature(m.creatureId)} was brought back from stone.`);
     });
-    if (joined.length) add(f.seq, 2, `${counted(joined)} joined the party.`);
+    // Weight 3, like losses: who is in the party is a fact the story must get right, so a long game's cap must not drop a joining.
+    if (joined.length) add(f.seq, 3, `${counted(joined)} joined the party.`);
     prevParty = f.state.party.map((m) => m.status);
   }
 
