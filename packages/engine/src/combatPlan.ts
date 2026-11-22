@@ -4,6 +4,7 @@ import { rollDieForState } from "./rng";
 // kit stranger (id 14-20) fighting no longer crashes; byte-identical for ids 0-13.
 import { ALL_CREATURES as CREATURES } from "./data/creatures";
 import { ALL_TREASURES } from "./data/treasures";
+import { dropSharedChestsForFight } from "./chest";
 import { frontStrength, casterMP, partyRollBonus, isCaster } from "./combat";
 import { eyePresent, ringInvincible, activeCurses, eyeForsakenByDeath, markDied, slaySorcerer, shieldWardActive } from "./effects";
 import { equipStrangers } from "./strangerEquip";
@@ -440,6 +441,7 @@ export function resolvePlannedRound(state: GameState, plan: BattlePlan): GameEve
         m.treasure = m.treasure.filter((t) => ALL_TREASURES[t]!.kind !== "heavy");
         state.fightDrops = [...(state.fightDrops ?? []), ...heavy.map((t) => ({ mi: i, tid: t }))]; // remember who dropped what
       }
+      dropSharedChestsForFight(state, i, true); // a shared chest goes down whole if any bearer fights
     }
   }
 

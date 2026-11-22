@@ -2,6 +2,7 @@ import { ALL_CREATURES, ALL_TREASURES, FLAG_CHARISMA, type GameState } from "@so
 import { resolveCard, type CardArt } from "../data/manifest";
 import { memberLabels } from "../game/memberLabels";
 import { awardsOf } from "../game/awards";
+import { shareSentence, SHARED_CHEST_CARD } from "../game/chestShares";
 import { memberFigures } from "../game/figures";
 import type { ViewPartyMember } from "./cave3d";
 
@@ -29,8 +30,12 @@ export function viewParty(state: GameState, cards: CardArt[] = []): ViewPartyMem
       const art = resolveCard("treasure", tid, cards);
       return { name: t.name, file: art?.file ?? null, weight: t.weight, artifact: t.kind === "artifact" };
     });
+    // A share of a Treasure Chest rides along as one more mini card (after the real treasure, so item indices still match `treasure`).
+    for (const s of m.chestShares ?? []) items.push({ name: "Treasure Chest (shared)", file: SHARED_CHEST_CARD, weight: s.kg, artifact: false });
     const figures = memberFigures(state, origIdx);
-    const load = m.treasure.reduce((sum, tid) => sum + ALL_TREASURES[tid]!.weight, 0);
+    const load = m.treasure.reduce((sum, tid) => sum + ALL_TREASURES[tid]!.weight, 0) + (m.chestShares ?? []).reduce((sum, s) => sum + s.kg, 0);
+    // A share of a Treasure Chest borne with others: the creature card says how much, and with whom.
+    const chestNote = (m.chestShares ?? []).map((s) => shareSentence(s.kg, state.party.flatMap((o, oi) => oi !== origIdx ? (o.chestShares ?? []).filter((x) => x.chest === s.chest).map((x) => ({ label: labels[oi]!, kg: x.kg })) : []))).join(' ');
     return {
       sig: c.name[0]!.toUpperCase(),
       name: c.name,               // plain creature name — kept stable for the desertion-diff (by name)
@@ -43,6 +48,7 @@ export function viewParty(state: GameState, cards: CardArt[] = []): ViewPartyMem
       dragonCard: resolveCard("award", 1, cards)?.file ?? null, // the Dragonslayer (+1) award card
       carry: c.carry,
       load,
+      ...(chestNote ? { chestNote } : {}),
       fs: c.fs,
       mp: c.mp,
       fsParts: figures.fsParts,

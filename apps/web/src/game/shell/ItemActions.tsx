@@ -4,6 +4,8 @@ import { ConfirmButton, ConfirmPicker } from '../ConfirmButton';
 import { useOptions, ELIXIR_CONFIRM, SCROLL_CONFIRM } from '../artifactUse';
 import { useVerbs, wieldRefusal } from '../wielding';
 import { ACTIVE } from '../inventory';
+import { ChestPicker } from '../ChestPicker';
+import { useState } from 'react';
 
 const T_CHEST = 14;
 const T_ELIXIR = 15;
@@ -17,9 +19,17 @@ const NOT_USABLE_REASON: Record<number, string> = { 6: 'Nobody has fallen here t
 export function ItemActions({ state, dispatch, mi, idx }: { state: GameState; dispatch: (a: GameAction) => void; mi: number; idx: number }) {
   const m = state.party[mi];
   const tid = m?.treasure[idx];
+  if (m && tid === undefined) {
+    // A share of a Treasure Chest borne with others (listed after the member's real treasure): anyone bearing it may put the whole chest down,
+    // which drops it for everyone; or change who bears what.
+    const share = m.chestShares?.[idx - m.treasure.length];
+    if (!share || !(m.status === 0 || m.status === 1) || state.phase === 'fight' || state.phase === 'gameOver') return null;
+    return <SharedChestActions state={state} dispatch={dispatch} chest={share.chest} />;
+  }
   if (!m || tid === undefined) return null;
   const alive = m.status === 0 || m.status === 1;
   const manage = alive && state.phase !== 'fight' && state.phase !== 'gameOver';
+  const [sharing, setSharing] = useState(false);
   const uses = useOptions(state, tid);
   const scrollWindow = scrollWindowOf(state);
   const openChest = tid === T_CHEST ? legalActions(state).find((a) => a.type === 'openChest') : undefined;
@@ -61,6 +71,8 @@ export function ItemActions({ state, dispatch, mi, idx }: { state: GameState; di
           <p className="scv-enc-note" data-testid="ia-not-usable">{NOT_USABLE_REASON[tid] ?? 'Not usable now.'}</p>
         </>
       )}
+      {manage && tid === T_CHEST && <button type="button" className="scv-enc-btn" data-testid="share-chest" onClick={() => setSharing(true)}>Share it…</button>}
+      {sharing && <ChestPicker state={state} source={{ member: mi }} onCancel={() => setSharing(false)} onConfirm={(a) => { setSharing(false); dispatch(a); }} />}
       {openChest && <button type="button" className="scv-enc-btn" onClick={() => dispatch(openChest)}>Open the Treasure Chest</button>}
       {/* Say which it is: the card's own words are "held by", so the state needs stating (Peter, ZYBP: "is she wielding it or not?"). */}
       {alive && BORNEABLE.includes(tid) && (
@@ -94,6 +106,20 @@ export function ItemActions({ state, dispatch, mi, idx }: { state: GameState; di
       )}
       {/* "Drop here" is right wherever the party stands: a tunnel, a Precise-Locations special, a chamber. */}
       {manage && <button type="button" className="scv-enc-btn ghost" onClick={() => dispatch({ type: 'dropTreasure', mi, idx })}>Drop here</button>}
+    </div>
+  );
+}
+
+/** What a bearer's share card offers: change the split, or put the whole chest down (for every bearer; it must be picked up again). */
+function SharedChestActions({ state, dispatch, chest }: { state: GameState; dispatch: (a: GameAction) => void; chest: number }) {
+  const [sharing, setSharing] = useState(false);
+  const openChest = legalActions(state).find((a) => a.type === 'openChest');
+  return (
+    <div className="scv-ia" data-testid="shared-chest-actions">
+      {openChest && <button type="button" className="scv-enc-btn" onClick={() => dispatch(openChest)}>Open the Treasure Chest</button>}
+      <button type="button" className="scv-enc-btn" onClick={() => setSharing(true)}>Change the shares…</button>
+      <ConfirmButton label="Drop the Treasure Chest" confirmText="Put the whole Treasure Chest down? Every bearer drops their share, and it must be picked up again." onConfirm={() => dispatch({ type: 'dropChest', chest })} />
+      {sharing && <ChestPicker state={state} source={{ chest }} onCancel={() => setSharing(false)} onConfirm={(a) => { setSharing(false); dispatch(a); }} />}
     </div>
   );
 }

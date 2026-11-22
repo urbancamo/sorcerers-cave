@@ -15,6 +15,7 @@
 // strangerDriver.ts). The engine decides nothing for either side: it only checks legality and plays out what was chosen.
 import { ALL_CREATURES as CREATURES } from "./data/creatures";
 import { ALL_TREASURES } from "./data/treasures";
+import { dropSharedChestsForFight } from "./chest";
 import { inUse } from "./loot";
 import { rollDieForState } from "./rng";
 import { casterMP, frontStrength, isCaster, partyRollBonus } from "./combat";
@@ -642,6 +643,7 @@ function fightMatches(state: GameState): GameEvent[] {
         mem.treasure = mem.treasure.filter((t) => ALL_TREASURES[t]!.kind !== "heavy");
         state.fightDrops = [...(state.fightDrops ?? []), ...heavy.map((t) => ({ mi: i, tid: t }))];
       }
+      dropSharedChestsForFight(state, i, true); // a shared chest goes down whole if any bearer fights
     }
     events.push(...idleMagicOnlyKills(state));
   }

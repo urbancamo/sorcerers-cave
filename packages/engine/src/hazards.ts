@@ -4,6 +4,7 @@ import { rollDieForState } from "./rng";
 // no longer crashes them; byte-identical for ids 0-13.
 import { ALL_CREATURES as CREATURES, FLAG_GUIDES_PAST_TRAP } from "./data/creatures";
 import { ALL_TREASURES } from "./data/treasures";
+import { dropSharedChest } from "./chest";
 import { inUse } from "./loot";
 import {
   HAZARD_MUTINY, HAZARD_TRAP, HAZARD_EARTHQUAKE, HAZARD_MEDUSA, HAZARD_GHOULS, HAZARD_DESERTION,
@@ -197,6 +198,7 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
             m.treasure = m.treasure.filter((t) => ALL_TREASURES[t]!.kind !== "heavy");
             state.treasures.push(...heavy);
           }
+          for (const s of [...(m.chestShares ?? [])]) dropSharedChest(state, s.chest, "working"); // the whole shared chest, onto the floor
         }
         // Each creature fights the ghouls (strength 2) in the normal way — full fighting strength
         // (Magic Sword / Strength Potion count), no surprise. A lost match removes that member.

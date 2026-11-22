@@ -64,10 +64,17 @@ export function inventoryRows(state: GameState): InventoryRow[] {
   // Revised combat: the Scroll is read while the party is deciding (older games: at the start of the attack), not as a useArtifact action.
   if (scrollWindow(state)) usable.add(19);
   return state.party.flatMap((m, mi) =>
-    m.status === 3 ? [] : m.treasure.map((tid, idx) => {
-      const t = ALL_TREASURES[tid]!;
-      return { mi, idx, tid, name: t.name, weight: t.weight, artifact: t.kind === 'artifact', carrier: labels[mi]!, ...artifactState(state, mi, tid, usable) };
-    }));
+    m.status === 3 ? [] : [
+      ...m.treasure.map((tid, idx) => {
+        const t = ALL_TREASURES[tid]!;
+        return { mi, idx, tid, name: t.name, weight: t.weight, artifact: t.kind === 'artifact', carrier: labels[mi]!, ...artifactState(state, mi, tid, usable) };
+      }),
+      // A share of a Treasure Chest borne with others follows the member's real treasure (as in the roster's items), weighing what they bear.
+      ...(m.chestShares ?? []).map((s, k): InventoryRow => {
+        const others = state.party.filter((o, oi) => oi !== mi && (o.chestShares ?? []).some((x) => x.chest === s.chest)).length;
+        return { mi, idx: m.treasure.length + k, tid: 14, name: 'Treasure Chest (shared)', weight: s.kg, artifact: false, carrier: labels[mi]!, color: 'gray', tag: `shared with ${others} other${others === 1 ? '' : 's'}` };
+      }),
+    ]);
 }
 
 /** Where a given item now sits: it joins the end of the receiver's list, so once that list has grown past `before` entries the item

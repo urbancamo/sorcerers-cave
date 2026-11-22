@@ -9,6 +9,7 @@ import { decodeArea, decodeOpen } from "./decode";
 import { ALL_CREATURES } from "./data/creatures";
 import { ALL_TREASURES } from "./data/treasures";
 import { canCarry } from "./pickup";
+import { canBear } from "./chest";
 import { DIR_N, DIR_E, DIR_S, DIR_W, DIR_UP, DIR_DOWN, targetCoord, unpackCoord } from "./coords";
 import { areaInteractionMask, partyView, pvpSurprise, type MpGameState, type PartyState } from "./multi";
 import type { PvpSession, ReactionWindow } from "./multi-session";
@@ -44,7 +45,7 @@ import type { PvpSession, ReactionWindow } from "./multi-session";
 export const PVP_WINDOW_MS = 45_000;
 
 /** §388 pre-drop memory: which member (by "seat:idx" id) dropped which heavy treasure at declaration. */
-export interface PvpDrop { seat: number; id: string; tid: number }
+export interface PvpDrop { seat: number; id: string; tid: number; kg?: number; chest?: number } // kg/chest: one bearer's share of a shared Treasure Chest
 
 /** The live PvP session as this module stores it — PvpSession plus the drop memory. */
 export interface PvpFightSession extends PvpSession { drops: PvpDrop[] }
@@ -226,6 +227,19 @@ export function declarePvp(mp: MpGameState, attackerSeat: number, defenderSeat: 
       for (const tid of heavy) drops.push({ seat, id: mkId(seat, idx), tid });
       count += heavy.length;
     });
+    // A Treasure Chest borne by several members goes down whole (once), each bearer's share remembered for the retake.
+    const party = next.parties[seat]!.party;
+    for (const chest of new Set(party.flatMap((m) => (alive(m) ? m.chestShares ?? [] : []).map((s) => s.chest)))) {
+      party.forEach((m, idx) => {
+        const own = (m.chestShares ?? []).find((s) => s.chest === chest);
+        if (!own) return;
+        drops.push({ seat, id: mkId(seat, idx), tid: 14, kg: own.kg, chest });
+        m.chestShares = m.chestShares!.filter((s) => s.chest !== chest);
+        if (m.chestShares.length === 0) delete m.chestShares;
+      });
+      tile.contents.push(200 + 14);
+      count += 1;
+    }
     if (count) events.push({ type: "heavyDownForFight", count });
   }
 
@@ -608,7 +622,19 @@ export function acceptStop(mp: MpGameState, seat: number, _now: number): PvpResu
   const tile = next.cave.areas[ns.area]!;
   const events: GameEvent[] = [];
   const retaken: Record<"attacker" | "defender", number> = { attacker: 0, defender: 0 };
+  // A shared chest comes back only whole: still on the floor, every bearer alive and able to take their share again.
+  const chests = new Map<string, PvpDrop[]>();
+  for (const d of ns.drops) if (d.chest !== undefined) chests.set(`${d.seat}:${d.chest}`, [...(chests.get(`${d.seat}:${d.chest}`) ?? []), d]);
+  for (const group of chests.values()) {
+    const at = tile.contents.indexOf(200 + 14);
+    const bearers = group.map((d) => ({ d, m: memberAt(next, d.id) }));
+    if (at < 0 || !bearers.every(({ d, m }) => alive(m) && canBear(m!, d.kg!))) continue;
+    for (const { d, m } of bearers) m!.chestShares = [...(m!.chestShares ?? []), { chest: d.chest!, kg: d.kg! }];
+    tile.contents.splice(at, 1);
+    retaken[sideOf(ns, group[0]!.seat)!] += 1;
+  }
   for (const d of ns.drops) {
+    if (d.chest !== undefined) continue;
     const m = memberAt(next, d.id);
     const at = tile.contents.indexOf(200 + d.tid);
     if (at < 0 || !alive(m) || !canCarry(m!, d.tid)) continue; // leftovers stay on the floor

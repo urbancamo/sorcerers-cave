@@ -71,6 +71,8 @@ function encodeAction(a: GameAction): string {
     case "takeTreasure": return `TAKE ${a.ti} ${a.mi}`;
     case "moveTreasure": return `GIVE ${a.from} ${a.to} ${a.idx}`;
     case "dropTreasure": return `DROP ${a.mi} ${a.idx}`;
+    case "setChestShares": return `SHARECHEST ${"floor" in a.source ? `F${a.source.floor}` : "member" in a.source ? `M${a.source.member}` : `C${a.source.chest}`} ${a.shares.map((x) => `${x.mi}:${x.kg}`).join(",")}`;
+    case "dropChest": return `DROPCHEST ${a.chest}`;
     case "setBorne": return `BORNE ${a.mi} ${a.idx} ${a.borne ? 1 : 0}`;
     case "chooseCasualty": return `CASUALTY ${a.idx}`;
     case "proceed": return "PROCEED";

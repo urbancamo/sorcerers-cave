@@ -1,4 +1,4 @@
-import { ALL_TREASURES, canCarry, decodeArea, SPECIAL_DEEP_POOL, type GameState } from "@sorcerers-cave/engine";
+import { ALL_TREASURES, CHEST, chestShareable, canCarry, decodeArea, SPECIAL_DEEP_POOL, type GameState } from "@sorcerers-cave/engine";
 
 // 12 = Giant, the engine's own C_GIANT (selectors.ts) — only a Giant lifts treasure from a Deep Pool.
 const C_GIANT = 12;
@@ -20,6 +20,7 @@ export function uncarryableNotes(state: GameState, tids: number[]): string[] {
   for (const tid of tids) {
     const name = ALL_TREASURES[tid]!.name;
     if (giantless) notes.push(`Only a Giant can lift the ${name} from the pool.`);
+    else if (tid === CHEST && chestShareable(state)) notes.push(`No one can carry the ${name} alone: share it between two or more members.`);
     else if (!party.some((m) => (!deepPool || m.creatureId === C_GIANT) && canCarry(m, tid))) {
       notes.push(`The ${name} is too heavy for anyone to carry.`);
     }

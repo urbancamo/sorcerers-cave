@@ -10,7 +10,7 @@ import type { GameState, PartyMember } from "./state";
  *  `TREASURES` — for ids 0-14 the two tables hold the identical objects, so this is byte-identical
  *  for every kit-off game (SC-EXT-1); a kit-off game can never carry a ≥15 id in the first place. */
 export function carriedWeight(member: PartyMember): number {
-  return member.treasure.reduce((sum, tid) => sum + ALL_TREASURES[tid]!.weight, 0);
+  return member.treasure.reduce((sum, tid) => sum + ALL_TREASURES[tid]!.weight, 0) + (member.chestShares ?? []).reduce((sum, s) => sum + s.kg, 0);
 }
 
 // The Unicorn, the Lion and the Wolf carry no artefact at all (Peter's Appendices 20261110: blank in every artefact row but for being the target of

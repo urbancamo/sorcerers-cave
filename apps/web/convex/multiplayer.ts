@@ -21,6 +21,10 @@ const mpActionValidator = v.object({
   target: v.optional(v.number()),
   area: v.optional(v.number()), // examineArea: a face-down tile index (absent = the large-pack top)
   borne: v.optional(v.boolean()), // setBorne: bear vs stow a Sword/Staff/Ring
+  // Sharing the Treasure Chest (setChestShares / dropChest): where the chest is, who bears how many kg, and a shared chest's group id.
+  source: v.optional(v.union(v.object({ floor: v.number() }), v.object({ member: v.number() }), v.object({ chest: v.number() }))),
+  shares: v.optional(v.array(v.object({ mi: v.number(), kg: v.number() }))),
+  chest: v.optional(v.number()),
   // Trade-session baskets (I-5): treasure ids + party member indices offered.
   treasure: v.optional(v.array(v.number())),
   members: v.optional(v.array(v.number())),

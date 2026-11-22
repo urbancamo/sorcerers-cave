@@ -4,7 +4,7 @@
 // would crash here before a kit-on game gets past its first encounter.
 import { rubyIsGuarded } from "../view/projection";
 import { useEffect, useRef } from "react";
-import { ALL_CREATURES, ALL_TREASURES, AT_REST_FROM_PICKUP, carriedWeight, eyeActive, legalActions, sibylWaiting, type GameState, type GameAction } from "@sorcerers-cave/engine";
+import { ALL_CREATURES, ALL_TREASURES, AT_REST_FROM_PICKUP, carriedWeight, chestShareable, eyeActive, legalActions, sibylWaiting, type GameState, type GameAction } from "@sorcerers-cave/engine";
 import { memberLabel } from "./memberLabels";
 import { uncarryableNotes } from "./uncarryableNotes";
 import { ConfirmButton, ConfirmPicker } from "./ConfirmButton";
@@ -95,7 +95,8 @@ function barLabel(state: GameState): string {
 
 /** A pickup where "Leave the treasure" is the only legal action is pure interruption: the panel leaves for the player. */
 const onlyLeave = (state: GameState, actions: GameAction[]) =>
-  state.phase === "pickup" && actions.length > 0 && actions.every((a) => a.type === "leaveTreasure");
+  state.phase === "pickup" && actions.length > 0 && actions.every((a) => a.type === "leaveTreasure")
+  && !chestShareable(state); // a Chest nobody can take alone stays on offer: the party may share it
 
 /** `leaveOnMove` (solo): treasure is never "left" with a button; the party just walks on (see the cave adapter's `leavePickupOnMove`),
  *  so the Leave action is dropped and a pickup with nothing else to choose shows no bar. Multiplayer keeps the button. */

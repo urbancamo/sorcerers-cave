@@ -4,9 +4,12 @@ import { memberLabel } from '../memberLabels';
 import { uncarryableNotes } from '../uncarryableNotes';
 import { HelpButton } from '../../manual/HelpButton';
 import { ConfirmButton } from '../ConfirmButton';
+import { ChestPicker } from '../ChestPicker';
+import { useState } from 'react';
 
 const T_LOST_RUBY = 11;
 const T_CRYPT = 21;
+const T_CHEST = 14;
 const CRYPT_CONFIRM = 'Enter? A trap here cannot be avoided.';
 
 /**
@@ -65,6 +68,7 @@ export function FloorTreasureActions({ state, dispatch, card }: { state: GameSta
           {`Give to ${who(mi)}`}
         </button>
       ))}
+      {tid === T_CHEST && <ShareChestButton state={state} dispatch={dispatch} floor={ti} />}
       {reason && (
         <>
           <button type="button" className="scv-enc-btn" disabled title={reason}>Give to…</button>
@@ -72,5 +76,16 @@ export function FloorTreasureActions({ state, dispatch, card }: { state: GameSta
         </>
       )}
     </div>
+  );
+}
+
+/** "Share it…": two or more members carry the Treasure Chest between them, in 25 kg shares (the picker). */
+function ShareChestButton({ state, dispatch, floor }: { state: GameState; dispatch: (a: GameAction) => void; floor: number }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <>
+      <button type="button" className="scv-enc-btn" data-testid="share-chest" onClick={() => setOpen(true)}>Share it…</button>
+      {open && <ChestPicker state={state} source={{ floor }} onCancel={() => setOpen(false)} onConfirm={(a) => { setOpen(false); dispatch(a); }} />}
+    </>
   );
 }

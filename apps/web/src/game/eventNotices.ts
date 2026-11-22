@@ -333,6 +333,11 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
       case "unicornStepsBack": // also folded into the combat overlay (rollView.ts)
         out.push({ text: "The Unicorn steps back from the fight, indifferent now its Woman has fallen.", tone: "neutral" });
         break;
+      case "chestShared": // the player's own choice: the party panel shows the result
+        break;
+      case "chestDropped":
+        out.push({ text: "A bearer of the shared Treasure Chest was lost, so the chest has been put down. It must be picked up again.", tone: "bad" });
+        break;
       case "unicornJoins": // also folded into the reaction and combat overlays (rollView.ts), which stand in for a notice
         out.push({ text: e.count > 1 ? "The Unicorns join your party!" : "The Unicorn joins your party!", tone: "good" });
         break;
