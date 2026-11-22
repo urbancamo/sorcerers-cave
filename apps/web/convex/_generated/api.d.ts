@@ -26,8 +26,11 @@ import type * as multiplayer from "../multiplayer.js";
 import type * as passwords from "../passwords.js";
 import type * as roles from "../roles.js";
 import type * as settings from "../settings.js";
+import type * as stories from "../stories.js";
 import type * as storyDigest from "../storyDigest.js";
+import type * as storyGen from "../storyGen.js";
 import type * as storyPrompt from "../storyPrompt.js";
+import type * as storyWriter from "../storyWriter.js";
 import type * as strangerDecision from "../strangerDecision.js";
 
 import type {
@@ -55,8 +58,11 @@ declare const fullApi: ApiFromModules<{
   passwords: typeof passwords;
   roles: typeof roles;
   settings: typeof settings;
+  stories: typeof stories;
   storyDigest: typeof storyDigest;
+  storyGen: typeof storyGen;
   storyPrompt: typeof storyPrompt;
+  storyWriter: typeof storyWriter;
   strangerDecision: typeof strangerDecision;
 }>;
 

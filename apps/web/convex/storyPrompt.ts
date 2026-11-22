@@ -11,6 +11,15 @@ export const MODEL_PRICES: Record<string, { inputPerMTok: number; outputPerMTok:
   "claude-opus-5-5": { inputPerMTok: 15, outputPerMTok: 75 },
 };
 
+/**
+ * The score a solo escape must reach to get a story, per leaderboard table (base, kit and kit+Sibyl scores are not comparable,
+ * SC-EXT-29 / SC-SIB-9). Agreed 2026-11-22; tune here.
+ */
+export const STORY_THRESHOLD = { base: 300, kit: 350, sibyl: 350 } as const;
+export function storyThreshold(variants: { extensionKit?: boolean; sibyl?: boolean } | undefined): number {
+  return variants?.sibyl ? STORY_THRESHOLD.sibyl : variants?.extensionKit ? STORY_THRESHOLD.kit : STORY_THRESHOLD.base;
+}
+
 /** Target length in words (about three pages). The check pass and the deterministic guard both use it. */
 export const WORD_RANGE = { min: 1400, max: 1900 } as const;
 

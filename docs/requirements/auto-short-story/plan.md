@@ -189,6 +189,8 @@ the budget switches** need `SYSTEM`, because they spend money. Every query and m
    resolving the active prompt version, recording a `storyRuns` row per call and honouring pause and caps;
    deterministic guards with unit tests; retry-once logic; env vars documented in `apps/web/OPTIONS.md`.
 4. **Trigger:** schedule from `highScores.save` above the threshold (solo only); the retry-one action.
+   Steps 1-4 are built and tested (2026-11-22). Generation is gated on `ANTHROPIC_API_KEY` being set, so deploying the code
+   spends nothing; the API is called over `fetch` (no SDK dependency).
 5. **PDF and UI:** markdown reader, fixed post-material and lazy-loaded PDF generator (done, with tests); still to do:
    the `ScoreDetail` button and its three states, a help-manual sentence, UI tests.
 6. **Admin Stories tab:** the dashboard queries and charts, the prompt editor with versions and diff, the dry run, the
