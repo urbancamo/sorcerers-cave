@@ -21,8 +21,8 @@ export const SCORING: Section = {
     { id: 'score-bounty', title: 'Sorcerer slain', brief: 'Slaying the Sorcerer is worth a 30-point bounty and lifts every curse.', cards: [], screens: ['game-over'], blocks: [
       p('Slaying the Sorcerer earns a **+30** bounty, and because a curse has no effect once the Sorcerer is dead, it also lifts every curse on your party.'),
     ] },
-    { id: 'score-chest', title: 'Treasure Chest loot', brief: 'Loot banked from opening the Treasure Chest.', cards: [], screens: ['game-over'], blocks: [
-      p('Silver, Gold or Gems found by opening the Treasure Chest are banked at scoring.'),
+    { id: 'score-chest', title: 'Treasure Chest loot', brief: 'Silver, Gold or Gems from the chest are four bags on the floor, scored only if you carry them out.', cards: [], screens: ['game-over'], blocks: [
+      p('Opening the Treasure Chest does not add points by itself. A Silver, Gold or Gems result tips **four bags** of that treasure (worth 20, 40 or 80 points in all) onto the chamber floor, and they count towards your score only if your party picks them up and carries them out of the cave, like any other treasure.'),
     ] },
     { id: 'score-curse', title: 'Curses', brief: 'A single flat −30 however many curses you carry; slaying the Sorcerer erases it.', cards: [], screens: ['game-over'], blocks: [
       p('**−30** if the party is under a curse — a single flat penalty, however many curses you carry. Slaying the Sorcerer lifts every curse and erases this penalty.'),
@@ -36,6 +36,7 @@ export const SCORING: Section = {
     ] },
     { id: 'high-score-tables', title: 'The high-score tables', brief: 'Eight tables, because solo, multiplayer, kit and Sibyl games cannot fairly be compared.', cards: [], screens: ['high-scores', 'game-over'], blocks: [
       p('Enter a name to record an escaped party on the shared **high-score board**. It keeps separate tables for solitaire and multiplayer games, for base-game and Extension Kit games, and for games with or without the Sibyl — **eight tables** in all, because those games cannot fairly be compared. Switch between them with the buttons above the table. The **Depth** column shows the deepest level the party reached.'),
+      p('A high-scoring solitaire escape is also given a **short story** — a tale written from the actual run, with the real events and invented names. Open the score and choose **Short story (PDF)** to download it; it can take a minute to appear after the score is recorded.'),
     ] },
     { id: 'feats', title: 'Great feats', brief: 'A single-handed Dragon kill, felling the Sorcerer, freeing the Lost Ruby, drinking the Elixir.', cards: [], blocks: [
       p('Great feats — a single-handed Dragon kill, felling the Sorcerer, freeing the Lost Ruby, drinking the Elixir — are celebrated on screen as they happen.'),

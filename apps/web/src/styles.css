@@ -1890,6 +1890,12 @@
   cursor: pointer;
   transition: border-color 0.15s, background 0.15s, color 0.15s;
 }
+.scv-hsd-dl-note {
+  font-family: var(--ui);
+  font-size: 12px;
+  font-style: italic;
+  color: var(--stone-dim);
+}
 .scv-hsd-dl:hover {
   border-color: var(--brass);
   background: rgba(201, 161, 78, 0.08);

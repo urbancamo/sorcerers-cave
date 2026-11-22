@@ -8,7 +8,7 @@ import type { GameLog } from "./gameLog";
 // (no provider in unit tests). Stub the generated api so a test can tell the two queries apart by their
 // (string) reference.
 vi.mock("../../convex/_generated/api", () => ({
-  api: { highScores: { list: "highScores:list", stats: "highScores:stats", log: "highScores:log" } },
+  api: { highScores: { list: "highScores:list", stats: "highScores:stats", log: "highScores:log" }, stories: { forScore: "stories:forScore" } },
 }));
 const { useQueryMock } = vi.hoisted(() => ({ useQueryMock: vi.fn() }));
 vi.mock("convex/react", () => ({ useQuery: (...args: unknown[]) => useQueryMock(...args) }));
@@ -128,6 +128,22 @@ describe("HighScores", () => {
     expect(downloadLogMock).toHaveBeenCalledWith(log, "human");
     fireEvent.click(within(dl).getByRole("button", { name: /printer \(\.log\)/i }));
     expect(downloadLogMock).toHaveBeenCalledWith(log, "printer");
+  });
+
+  it("offers the short story beside the log downloads when the score has one, and not for a multiplayer score", () => {
+    const log = { game: { code: "ABCD", seed: 1, picks: [0], color: null, status: "finished", createdAt: 0 }, moves: [] } as GameLog;
+    const ready = { status: "ready", title: "The Count", text: "# The Count\n\nBody.", words: 2 };
+    useQueryMock.mockImplementation((q: unknown) => (q === "highScores:log" ? log : q === "stories:forScore" ? ready : undefined));
+    const rows = [row({ _id: "a", name: "Alice", party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }] })];
+    const { unmount } = render(<HighScores rows={rows} />);
+    fireEvent.click(screen.getByText("Alice"));
+    expect(within(screen.getByTestId("download-log")).getByRole("button", { name: /short story \(pdf\)/i })).toBeInTheDocument();
+    unmount();
+
+    useQueryMock.mockImplementation((q: unknown, arg: unknown) => (q === "highScores:log" ? log : q === "stories:forScore" && arg !== "skip" ? ready : undefined));
+    render(<HighScores rows={rows} multiplayer />);
+    fireEvent.click(screen.getByText("Alice"));
+    expect(within(screen.getByTestId("download-log")).queryByRole("button", { name: /short story/i })).toBeNull();
   });
 
   it("omits the log downloads until the log query resolves", () => {
