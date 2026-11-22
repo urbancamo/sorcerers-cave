@@ -78,7 +78,7 @@ describe("AdminApp gating", () => {
   it("SYSTEM (expanded by the server to all four roles) sees every tab", () => {
     me = { roles: ["SYSTEM", "USER", "ANALYTICS", "TEST"], username: "root" };
     render(<AdminApp />);
-    expect(within(screen.getByRole("tablist", { name: "Admin sections" })).getAllByRole("tab").map((t) => t.textContent)).toEqual(["Game Analytics", "Testing", "Users", "System"]);
+    expect(within(screen.getByRole("tablist", { name: "Admin sections" })).getAllByRole("tab").map((t) => t.textContent)).toEqual(["Game Analytics", "Stories", "Testing", "Users", "System"]);
   });
 });
 

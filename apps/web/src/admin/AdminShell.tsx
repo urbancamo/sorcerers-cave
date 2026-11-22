@@ -5,30 +5,35 @@ import { TestingTab } from './TestingTab';
 import { AnalyticsTab } from './analytics/AnalyticsTab';
 import { UsersTab } from './UsersTab';
 import { SystemTab } from './SystemTab';
+import { StoriesTab } from './stories/StoriesTab';
 
 export type Role = 'SYSTEM' | 'USER' | 'ANALYTICS' | 'TEST';
+type TabId = Role | 'STORIES';
 
-// One tab per role, in display order. A tab is shown only to a user holding its role (the server expands SYSTEM to all four).
-const TABS: { id: Role; label: string }[] = [
-  { id: 'ANALYTICS', label: 'Game Analytics' },
-  { id: 'TEST', label: 'Testing' },
-  { id: 'USER', label: 'Users' },
-  { id: 'SYSTEM', label: 'System' },
+// Tabs in display order. A tab is shown only to a user holding its role (the server expands SYSTEM to all four). Stories is viewed
+// with ANALYTICS; its editing controls need SYSTEM (and the server checks that again).
+const TABS: { id: TabId; role: Role; label: string }[] = [
+  { id: 'ANALYTICS', role: 'ANALYTICS', label: 'Game Analytics' },
+  { id: 'STORIES', role: 'ANALYTICS', label: 'Stories' },
+  { id: 'TEST', role: 'TEST', label: 'Testing' },
+  { id: 'USER', role: 'USER', label: 'Users' },
+  { id: 'SYSTEM', role: 'SYSTEM', label: 'System' },
 ];
 
-function panel(role: Role, roles: Role[], userId: string | null): ReactNode {
+function panel(role: TabId, roles: Role[], userId: string | null): ReactNode {
   switch (role) {
     case 'TEST': return <TestingTab />;
     case 'ANALYTICS': return <AnalyticsTab />;
     case 'USER': return <UsersTab roles={roles} selfId={userId} />;
     case 'SYSTEM': return <SystemTab />;
+    case 'STORIES': return <StoriesTab canEdit={roles.includes('SYSTEM')} />;
   }
 }
 
 export function AdminShell({ roles, username, userId }: { roles: Role[]; username: string; userId: string | null }) {
   const { signOut } = useAuthActions();
-  const visible = TABS.filter((t) => roles.includes(t.id));
-  const [tab, setTab] = useState<Role>(visible[0]!.id);
+  const visible = TABS.filter((t) => roles.includes(t.role));
+  const [tab, setTab] = useState<TabId>(visible[0]!.id);
   // Roles can change underneath a signed-in session; never leave a tab selected that is no longer shown.
   useEffect(() => { if (!visible.some((t) => t.id === tab)) setTab(visible[0]!.id); }, [visible, tab]);
 

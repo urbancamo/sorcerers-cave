@@ -2,6 +2,7 @@ import { internalMutation, mutation, query } from "./_generated/server";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
+import { queueStory } from "./stories";
 import { scoreGame, unpackCoord, GS_PLAYING, GS_ESCAPED, type GameState, type GameEvent } from "@sorcerers-cave/engine";
 
 const MAX_NAME = 40;
@@ -49,7 +50,7 @@ export const save = mutation({
     const cleanName = name.trim().slice(0, MAX_NAME) || "Anonymous";
     const score = scoreGame(state); // authoritative — never trust a client score
 
-    return await ctx.db.insert("highScores", {
+    const id = await ctx.db.insert("highScores", {
       gameId,
       ownerId: callerId,
       name: cleanName,
@@ -69,6 +70,9 @@ export const save = mutation({
       sibyl: state.variants?.sibyl ?? undefined,
       maxDepth: deepestLevel(state),
     });
+    // A high enough solo escape gets a short story (only once an API key is configured; see stories.ts).
+    await queueStory(ctx, id, score, state.variants);
+    return id;
   },
 });
 

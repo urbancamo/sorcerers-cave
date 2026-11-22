@@ -236,3 +236,19 @@ npx convex env set GITHUB_ISSUES_TOKEN <token> --prod   # production
 
 Local dev and production currently share one Convex backend, so a report filed while testing lands in the real repository too.
 File test reports from a Test Mode game (labelled `test-mode`) and close them afterwards.
+
+## Short stories (auto-generated)
+
+High-scoring solo escapes get a short story written by Claude (plan: `docs/requirements/auto-short-story/plan.md`).
+
+- **Off until a key is set.** Generation runs only when the Convex env var `ANTHROPIC_API_KEY` exists. Deploying the code spends nothing
+  by itself; with no key, `highScores.save` queues nothing.
+  Set it with `npx convex env set ANTHROPIC_API_KEY <key>` (add `--prod` for the production deployment).
+- **Threshold** per leaderboard table, in `convex/storyPrompt.ts` (`STORY_THRESHOLD`): base 300, Extension Kit 350, kit + Sibyl 350. Solo only.
+- **Prompt**: the default instructions, model, word range and price table are in `convex/storyPrompt.ts`; an admin-saved prompt version overrides them.
+- **Spend controls**: the `storySettings` document holds a `paused` switch and daily/monthly caps in US dollars; a call is refused once a cap is reached.
+- **Admin panel, Stories tab** (ANALYTICS views it; SYSTEM edits): dashboard of stories, calls, spend and failures; pause and caps;
+  the prompt editor (each save is a new version, and a trial on one real game costs about one story and stores nothing); and bulk
+  rewrites (choose a scope, check the count and estimate, type REWRITE). A rewrite runs in the background, can be stopped, halts by
+  itself on a pause or cap, and a failed rewrite keeps the old story. Existing stories keep their prompt version until rewritten.
+- **Retry one entry by hand**: `npx convex run storyGen:generate '{"highScoreId":"<id>","trigger":"retry"}'`.

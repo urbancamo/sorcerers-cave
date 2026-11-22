@@ -208,4 +208,79 @@ export default defineSchema({
   })
     .index("by_game", ["gameId"])
     .index("by_score", ["score"]),
+
+  // Auto-generated short stories for high-scoring solo games (docs/requirements/auto-short-story/plan.md). One row per
+  // high-score entry; the text is markdown (a "# Title" line then paragraphs) and never holds the fixed post-material,
+  // which is added when the story is shown or printed.
+  stories: defineTable({
+    highScoreId: v.id("highScores"),
+    status: v.union(v.literal("pending"), v.literal("ready"), v.literal("failed")),
+    title: v.optional(v.string()),
+    text: v.optional(v.string()),
+    words: v.optional(v.number()),
+    model: v.optional(v.string()),
+    promptVersion: v.optional(v.number()), // 0 = the default prompt in storyPrompt.ts; otherwise a storyPrompts.version
+    previousText: v.optional(v.string()), // the text before a rewrite, kept until the rewrite succeeds (one-step undo)
+    attempts: v.number(),
+    error: v.optional(v.string()), // operator-facing; never shown to players
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  })
+    .index("by_highScore", ["highScoreId"])
+    .index("by_status_and_updatedAt", ["status", "updatedAt"]),
+
+  // Saved prompt versions, edited in the admin panel. Append-only; the highest `version` is active, and with none saved the
+  // default in storyPrompt.ts is used (version 0).
+  storyPrompts: defineTable({
+    version: v.number(),
+    writer: v.string(),
+    editor: v.string(),
+    model: v.string(),
+    minWords: v.number(),
+    maxWords: v.number(),
+    note: v.optional(v.string()),
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+  }).index("by_version", ["version"]),
+
+  // One row per model call, so cost and failures are measured. `costUsd` is an estimate from the price table in storyPrompt.ts.
+  storyRuns: defineTable({
+    storyId: v.optional(v.id("stories")),
+    highScoreId: v.id("highScores"),
+    pass: v.union(v.literal("write"), v.literal("check")),
+    trigger: v.union(v.literal("save"), v.literal("rewrite"), v.literal("retry"), v.literal("trial")), // trial: an unsaved prompt tried from the admin panel
+    promptVersion: v.number(), // -1 for a trial of an unsaved prompt
+    model: v.string(),
+    inputTokens: v.number(),
+    outputTokens: v.number(),
+    costUsd: v.number(),
+    durationMs: v.number(),
+    status: v.union(v.literal("ok"), v.literal("rejected"), v.literal("error")),
+    reason: v.optional(v.string()),
+    createdAt: v.number(),
+  })
+    .index("by_createdAt", ["createdAt"])
+    .index("by_story", ["storyId"]),
+
+  // A bulk rewrite of existing stories after a prompt change, run in small scheduled batches so it can be watched and stopped.
+  storyJobs: defineTable({
+    kind: v.literal("rewrite"),
+    scope: v.string(), // a readable label of what was chosen
+    total: v.number(),
+    done: v.number(),
+    failed: v.number(),
+    status: v.union(v.literal("running"), v.literal("done"), v.literal("stopped")),
+    reason: v.optional(v.string()), // why it stopped early (a cap, a pause, or an admin)
+    createdBy: v.optional(v.id("users")),
+    createdAt: v.number(),
+    updatedAt: v.number(),
+  }).index("by_createdAt", ["createdAt"]),
+
+  // Single document of generation switches: a global pause and spending caps in US dollars (0 or absent = no cap).
+  storySettings: defineTable({
+    paused: v.boolean(),
+    dailyCapUsd: v.optional(v.number()),
+    monthlyCapUsd: v.optional(v.number()),
+    updatedAt: v.number(),
+  }),
 });

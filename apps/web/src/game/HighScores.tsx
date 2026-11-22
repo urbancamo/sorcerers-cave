@@ -9,6 +9,7 @@ import { ALL_CREATURES, ALL_TREASURES, GS_ESCAPED, GS_DEAD, GS_QUIT, type PartyM
 import { loadManifest, resolveCard, resolveCardVariant, type CardArt } from "../data/manifest";
 import { downloadLog, type GameLog } from "./gameLog";
 import { HelpButton } from "../manual/HelpButton";
+import { StoryDownload } from "../story/StoryDownload";
 
 export interface LeaderboardRow {
   _id: string;
@@ -177,6 +178,8 @@ function ScoreDetail({ row, rank, onBack, onReplay, multiplayer }: {
           )}
           <button type="button" className="scv-hsd-dl" onClick={() => downloadLog(log, "human")}>Readable (.txt)</button>
           <button type="button" className="scv-hsd-dl" onClick={() => downloadLog(log, "printer")}>Printer (.log)</button>
+          {/* A short story, written automatically for high-scoring solo escapes; renders nothing when there is none. */}
+          <StoryDownload row={row} gameCode={log.game?.code ?? null} multiplayer={multiplayer} />
         </div>
       )}
       {replayErr && <p className="scv-resume-err" role="alert">{replayErr}</p>}
