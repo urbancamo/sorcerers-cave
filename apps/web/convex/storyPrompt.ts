@@ -38,15 +38,19 @@ section, and do not use headings, numbered parts, bullet points or scene-break l
 - Join the events. Between any two things that happened, say what lay between them: the walk, the weather of the place, \
 what the party was thinking, what changed in the way they spoke to one another. Move from one event to the next with a \
 sentence that carries the reader across (a stair descended, a silence kept, a decision made), not with a jump.
-- Most events in the list can be told in a clause or a sentence. Choose three or four to dwell on, the ones that turn the \
-story, and let the rest pass as part of the journey. A long run of short, equal paragraphs, one per event, is the failure to avoid.
+- The list is long and a story of this length cannot visit every chamber. Choose three or four events to dwell on, the ones \
+that turn the story. Tell perhaps six or eight more in a sentence or two. Leave out the rest altogether: most rooms in the \
+list need no mention, and a run of similar rooms (the same two creatures met again, a room passed without a fight) becomes one \
+sentence about the journey. A paragraph for each room in turn is the failure to avoid.
 - Time and place should always be clear: the reader should know, without being told, that the party has gone deeper, or \
 climbed, or crossed something, and roughly how long it has been.
 
 WHAT TO WRITE
 - Give the story a want and something the hero lacks, a cost the victory must not erase, and one change in the hero that is \
 shown in an image, never explained. State the theme at most once, plainly, late.
-- Open with a line that makes a promise; end on an image that keeps it.
+- Open with a line that makes a promise; end on an image that keeps it. Do not end by counting or naming the survivors, and \
+do not build the story on a tally or title it "The Count": the list of who walked out is for you to check against, not a scene. \
+Each story needs its own closing image.
 - Third person, past tense, close on one person in the party. Concrete nouns, plain verbs, dry understatement for violence. \
 Avoid "suddenly", stacked adjectives, exclamation marks and clichés.
 - About 1,500 to 1,800 words.
@@ -58,8 +62,13 @@ refer to the rest by what they are (the Ogre, the Man with the bad leg).
 WHAT YOU MUST NOT DO
 - Do not contradict the record, and do not add events it does not contain: no extra fights, deaths, joinings, \
 treasures or rescues. The record is a summary: you may say how a recorded event happened, but not add one. If the record says something was lost, it was lost; if it says N walked out, N walked out.
+- Nobody leaves the party except by being lost as the record says. Do not have anyone desert, wander off, turn back, stay \
+behind or be separated; members only join, die, turn to stone, or walk out of the cave at the end. If someone is not in the \
+list of those who walked out, they were lost, and the record says how.
+- Mention no more than three or four objects in the whole story, in plain words (a staff, a ruby, a jar of balm). Do not use \
+the capitalised names from the record, and do not list what anyone is carrying.
 - Do not mention dice, rolls, points, scores, levels as numbers, turns, rules, a game, or a player. Say "the third floor \
-down", "far below" or "near the surface" instead.
+down", "far below" or "near the surface" instead. Call the cave's stages floors, never levels ("the second level" is wrong).
 - Do not name real people, brands or places, and keep it suitable for a general audience.
 
 OUTPUT FORMAT
@@ -71,7 +80,8 @@ a draft short story written from it. Return the improved story and a list of pro
 
 CHECK, AND FIX IN THE TEXT
 1. Facts. Every event in the story must be supported by the record, and no event in the record may be contradicted. \
-Remove or correct anything unsupported: an invented fight, death, joining, treasure or rescue; a wrong count; a recorded \
+Remove or correct anything unsupported: an invented fight, death, joining, treasure or rescue; anyone deserting, wandering \
+off, turning back, staying behind or being separated (members only join, die, turn to stone or walk out); a wrong count; a recorded \
 event told out of order. The record is a summary and has gaps, so be fair to the writer: names, motives, dialogue, \
 thoughts, scenery, the manner in which a recorded event happened, and an unrecorded cause for a recorded loss are all \
 allowed. Only list something as unsupported if it adds an event, changes a number, or contradicts the record.
@@ -79,8 +89,11 @@ allowed. Only list something as unsupported if it adds an event, changes a numbe
 rewrite the joins: add the connecting passage between episodes (travel, time passing, thought, a changed mood) and \
 shorten episodes that are only there to tick an event off. Remove any headings, numbering, bullet points or scene-break \
 lines.
-3. Game-speak. Remove any mention of dice, rolls, points, scores, numbered levels, turns, rules, a game or a player.
-4. Craft. The theme is stated at most once. No clichés or stacked adjectives. The first line makes a promise and the last \
+3. Game-speak. Remove any mention of dice, rolls, points, scores, numbered levels, turns, rules, a game or a player. Remove \
+capitalised item names from the record (Lost Ruby, Eye of God, Magic Staff) and any list of what each person carries; keep \
+at most three or four objects in the story, in plain words.
+4. Craft. The story must not end on counting or naming the survivors, and its title must not be "The Count"; give it a \
+different closing image and title. Call the cave's stages floors, never levels. The theme is stated at most once. No clichés or stacked adjectives. The first line makes a promise and the last \
 image keeps it. About 1,500 to 1,800 words; cut rather than pad.
 
 OUTPUT FORMAT

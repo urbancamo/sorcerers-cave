@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { replay, type GameAction } from "@sorcerers-cave/engine";
+import { ALL_CREATURES, replay, type GameAction } from "@sorcerers-cave/engine";
 import games from "../src/data/scenario-games.json";
 import topScores from "../../../packages/engine/src/fixtures/top-score-games.json";
 import { storyDigest, digestText } from "./storyDigest";
@@ -64,4 +64,21 @@ describe("storyDigest", () => {
   });
 
   it("prints one real digest for reading", () => console.log(digestText(run(replayable[0]!.code))));
+});
+
+it("Extension Kit and Sibyl creatures are named, never 'someone'", () => {
+  const rec = (games as unknown as Record<string, { seed: number; picks: number[]; variants: Record<string, boolean>; actions: GameAction[] }>)["S012"]!;
+  const text = digestText(storyDigest(replay(rec.seed, rec.picks, rec.actions, rec.variants as never)));
+  expect(text).not.toMatch(/someone/);
+  expect(text.split("\n")[0]).toBe(`Starting party: ${ALL_CREATURES[rec.picks[0]!]!.name}.`);
+});
+
+it("a long game's cap never drops a joining: every roster growth is in the digest", () => {
+  const rec = (games as unknown as Record<string, Rec>)["S012"]!; // 544 turns, far more than the beat cap
+  const frames = replay(rec.seed, rec.picks, rec.actions, rec.variants as never);
+  const grew = frames.filter((f, i) => i > 0 && f.state.party.length > frames[i - 1]!.state.party.length).length;
+  const joins = storyDigest(frames).beats.filter((b) => / joined the party\.$/.test(b.text));
+  expect(grew).toBeGreaterThan(5);
+  expect(joins.length).toBe(grew);
+  expect(joins.every((b) => b.weight === 3)).toBe(true);
 });
