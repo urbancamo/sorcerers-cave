@@ -3,7 +3,7 @@ import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import { replay, type GameAction } from "@sorcerers-cave/engine";
-import { requireAnyRole, requireRole, type Role } from "./roles";
+import { hasRole, requireAnyRole, requireRole, type Role } from "./roles";
 import { activePrompt, applySettings, blockReason } from "./stories";
 import { aggregateStories, promptProblems, DAYS } from "./storyAdminLib";
 import { digestText, storyDigest } from "./storyDigest";
@@ -117,10 +117,22 @@ export const savePrompt = mutation({
   },
 });
 
+/** True when `next` lets more be spent than `current` does: a higher figure, or removing a cap (0 clears it). */
+export const raisesCap = (current: number | undefined, next: number | undefined): boolean =>
+  next !== undefined && current !== undefined && (next === 0 || next > current);
+
+/**
+ * Pause, resume and LOWER a cap need STORIES. Raising a cap or removing it lets more money be spent, so that needs SYSTEM:
+ * a STORIES editor cannot lift the limit the administrator set.
+ */
 export const updateSettings = mutation({
   args: { paused: v.optional(v.boolean()), dailyCapUsd: v.optional(v.number()), monthlyCapUsd: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    await requireRole(ctx, "STORIES");
+    const userId = await requireRole(ctx, "STORIES");
+    const current = await ctx.db.query("storySettings").first();
+    if ((raisesCap(current?.dailyCapUsd, args.dailyCapUsd) || raisesCap(current?.monthlyCapUsd, args.monthlyCapUsd)) && !hasRole(await ctx.db.get(userId), "SYSTEM")) {
+      throw new Error("Forbidden: raising or removing a spending cap needs the System role.");
+    }
     const r = await applySettings(ctx, args);
     return { paused: r.paused, dailyCapUsd: r.dailyCapUsd ?? null, monthlyCapUsd: r.monthlyCapUsd ?? null };
   },
