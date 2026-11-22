@@ -186,7 +186,7 @@ npx convex run admin:seedUser '{"username":"alice","password":"<a-long-password>
 npx convex run admin:setPassword '{"username":"alice","password":"<new-password>"}'                             # change a password
 ```
 
-Roles are `SYSTEM`, `USER`, `ANALYTICS`, `TEST`. Re-running `seedUser` with a different role list updates the roles.
+Roles are `SYSTEM`, `USER`, `ANALYTICS`, `STORIES`, `TEST` (`STORIES` views and edits the Stories tab only; `ANALYTICS` can view it). Re-running `seedUser` with a different role list updates the roles.
 See [`TEST-MODE.md`](TEST-MODE.md) for using Test Mode.
 
 ## `CONVEX_SITE_URL`
@@ -247,7 +247,7 @@ High-scoring solo escapes get a short story written by Claude (plan: `docs/requi
 - **Threshold** per leaderboard table, in `convex/storyPrompt.ts` (`STORY_THRESHOLD`): base 200, Extension Kit 250, kit + Sibyl 250 (their scores are not comparable with base, SC-EXT-29 / SC-SIB-9). Solo only. A lower threshold means more stories and more spend.
 - **Prompt**: the default instructions, model, word range and price table are in `convex/storyPrompt.ts`; an admin-saved prompt version overrides them.
 - **Spend controls**: the `storySettings` document holds a `paused` switch and daily/monthly caps in US dollars; a call is refused once a cap is reached.
-- **Admin panel, Stories tab** (ANALYTICS views it; SYSTEM edits): dashboard of stories, calls, spend and failures; pause and caps;
+- **Admin panel, Stories tab** (ANALYTICS or STORIES views it; STORIES edits): dashboard of stories, calls, spend and failures; pause and caps;
   the prompt editor (each save is a new version, and a trial on one real game costs about one story and stores nothing); and bulk
   rewrites (choose a scope, check the count and estimate, type REWRITE). A rewrite runs in the background, can be stopped, halts by
   itself on a pause or cap, and a failed rewrite keeps the old story. Existing stories keep their prompt version until rewritten.

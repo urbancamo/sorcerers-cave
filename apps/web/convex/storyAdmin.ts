@@ -3,7 +3,7 @@ import { internal } from "./_generated/api";
 import { v } from "convex/values";
 import type { Id } from "./_generated/dataModel";
 import { replay, type GameAction } from "@sorcerers-cave/engine";
-import { requireRole } from "./roles";
+import { requireAnyRole, requireRole, type Role } from "./roles";
 import { activePrompt, applySettings, blockReason } from "./stories";
 import { aggregateStories, promptProblems, DAYS } from "./storyAdminLib";
 import { digestText, storyDigest } from "./storyDigest";
@@ -12,9 +12,10 @@ import { MODEL_PRICES } from "./storyPrompt";
 import { defaultPrompt, writeStory } from "./storyWriter";
 
 /**
- * The admin Stories tab's backend. Viewing needs the ANALYTICS role; everything that changes a setting, rewrites stories or spends
- * money needs SYSTEM (which implies ANALYTICS). Every function checks its role first.
+ * The admin Stories tab's backend. Viewing needs ANALYTICS or STORIES; everything that changes a setting, rewrites stories or spends
+ * money needs STORIES. SYSTEM implies both. Every function checks its role first.
  */
+const VIEW: Role[] = ["ANALYTICS", "STORIES"];
 
 const DAY_MS = 86_400_000;
 const MAX_REWRITE = 500;
@@ -35,7 +36,7 @@ type Scope = typeof scopeV.type;
 export const overview = query({
   args: {},
   handler: async (ctx) => {
-    await requireRole(ctx, "ANALYTICS");
+    await requireAnyRole(ctx, VIEW);
     const now = Date.now();
     const runs = await ctx.db.query("storyRuns").withIndex("by_createdAt", (q) => q.gte("createdAt", now - DAYS * DAY_MS)).take(10_000);
     const stories = await ctx.db.query("stories").take(5000);
@@ -54,7 +55,7 @@ export const overview = query({
 export const recent = query({
   args: {},
   handler: async (ctx) => {
-    await requireRole(ctx, "ANALYTICS");
+    await requireAnyRole(ctx, VIEW);
     const runs = await ctx.db.query("storyRuns").withIndex("by_createdAt").order("desc").take(40);
     const titles = new Map<Id<"stories">, string | undefined>();
     for (const r of runs) if (r.storyId && !titles.has(r.storyId)) titles.set(r.storyId, (await ctx.db.get(r.storyId))?.title);
@@ -70,7 +71,7 @@ export const recent = query({
 export const storyText = query({
   args: { storyId: v.id("stories") },
   handler: async (ctx, { storyId }) => {
-    await requireRole(ctx, "ANALYTICS");
+    await requireAnyRole(ctx, VIEW);
     const s = await ctx.db.get(storyId);
     return s ? { title: s.title ?? null, text: s.text ?? null, previousText: s.previousText ?? null, status: s.status, error: s.error ?? null } : null;
   },
@@ -80,7 +81,7 @@ export const storyText = query({
 export const prompts = query({
   args: {},
   handler: async (ctx) => {
-    await requireRole(ctx, "ANALYTICS");
+    await requireAnyRole(ctx, VIEW);
     const versions = await ctx.db.query("storyPrompts").withIndex("by_version").order("desc").take(25);
     const d = defaultPrompt();
     return {
@@ -95,7 +96,7 @@ export const prompts = query({
 export const jobs = query({
   args: {},
   handler: async (ctx) => {
-    await requireRole(ctx, "ANALYTICS");
+    await requireAnyRole(ctx, VIEW);
     return (await ctx.db.query("storyJobs").withIndex("by_createdAt").order("desc").take(8)).map((j) => ({ _id: j._id, scope: j.scope, total: j.total, done: j.done, failed: j.failed, status: j.status, reason: j.reason ?? null, createdAt: j.createdAt, updatedAt: j.updatedAt }));
   },
 });
@@ -106,7 +107,7 @@ export const jobs = query({
 export const savePrompt = mutation({
   args: { writer: v.string(), editor: v.string(), model: v.string(), minWords: v.number(), maxWords: v.number(), note: v.optional(v.string()) },
   handler: async (ctx, args) => {
-    const userId = await requireRole(ctx, "SYSTEM");
+    const userId = await requireRole(ctx, "STORIES");
     const problems = promptProblems(args);
     if (problems.length) throw new Error(problems.join(" "));
     const latest = await ctx.db.query("storyPrompts").withIndex("by_version").order("desc").first();
@@ -119,7 +120,7 @@ export const savePrompt = mutation({
 export const updateSettings = mutation({
   args: { paused: v.optional(v.boolean()), dailyCapUsd: v.optional(v.number()), monthlyCapUsd: v.optional(v.number()) },
   handler: async (ctx, args) => {
-    await requireRole(ctx, "SYSTEM");
+    await requireRole(ctx, "STORIES");
     const r = await applySettings(ctx, args);
     return { paused: r.paused, dailyCapUsd: r.dailyCapUsd ?? null, monthlyCapUsd: r.monthlyCapUsd ?? null };
   },
@@ -149,7 +150,7 @@ async function targets(ctx: QueryCtx, scope: Scope): Promise<{ ids: Id<"highScor
 export const rewritePreview = query({
   args: { scope: scopeV },
   handler: async (ctx, { scope }) => {
-    await requireRole(ctx, "SYSTEM");
+    await requireRole(ctx, "STORIES");
     const now = Date.now();
     const t = await targets(ctx, scope);
     const recentRuns = await ctx.db.query("storyRuns").withIndex("by_createdAt").order("desc").take(300);
@@ -166,7 +167,7 @@ export const rewritePreview = query({
 export const startRewrite = mutation({
   args: { scope: scopeV, expected: v.number() },
   handler: async (ctx, { scope, expected }) => {
-    const userId = await requireRole(ctx, "SYSTEM");
+    const userId = await requireRole(ctx, "STORIES");
     const running = await ctx.db.query("storyJobs").withIndex("by_createdAt").order("desc").take(5);
     if (running.some((j) => j.status === "running")) throw new Error("A rewrite is already running. Stop it or wait for it to finish.");
     const t = await targets(ctx, scope);
@@ -184,7 +185,7 @@ export const startRewrite = mutation({
 export const stopJob = mutation({
   args: { jobId: v.id("storyJobs") },
   handler: async (ctx, { jobId }) => {
-    await requireRole(ctx, "SYSTEM");
+    await requireRole(ctx, "STORIES");
     const j = await ctx.db.get(jobId);
     if (j?.status === "running") await ctx.db.patch(jobId, { status: "stopped", reason: "stopped by an administrator", updatedAt: Date.now() });
   },
@@ -227,7 +228,7 @@ export const rewriteBatch = internalAction({
 
 // ---- trying a prompt without saving it ---------------------------------------------------------------------------------------
 
-export const assertSystem = internalQuery({ args: {}, handler: async (ctx) => requireRole(ctx, "SYSTEM") });
+export const assertEditor = internalQuery({ args: {}, handler: async (ctx) => requireRole(ctx, "STORIES") });
 export const spendBlock = internalQuery({ args: {}, handler: async (ctx) => blockReason(ctx, Date.now()) });
 export const recordTrial = internalMutation({
   args: { highScoreId: v.id("highScores"), runs: v.array(v.object({ pass: v.union(v.literal("write"), v.literal("check")), model: v.string(), inputTokens: v.number(), outputTokens: v.number(), costUsd: v.number(), durationMs: v.number(), status: v.union(v.literal("ok"), v.literal("rejected"), v.literal("error")), reason: v.optional(v.string()) })) },
@@ -244,7 +245,7 @@ export const recordTrial = internalMutation({
 export const tryPrompt = action({
   args: { highScoreId: v.id("highScores"), writer: v.string(), editor: v.string(), model: v.string(), minWords: v.number(), maxWords: v.number() },
   handler: async (ctx, { highScoreId, ...p }): Promise<{ ok: true; title: string; text: string; words: number; costUsd: number } | { ok: false; reason: string; costUsd: number }> => {
-    await ctx.runQuery(internal.storyAdmin.assertSystem, {});
+    await ctx.runQuery(internal.storyAdmin.assertEditor, {});
     const problems = promptProblems(p);
     if (problems.length) throw new Error(problems.join(" "));
     const blocked = await ctx.runQuery(internal.storyAdmin.spendBlock, {});

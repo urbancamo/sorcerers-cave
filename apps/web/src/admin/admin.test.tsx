@@ -14,7 +14,7 @@ vi.mock("convex/react", () => ({
   useMutation: () => vi.fn(),
   useConvex: () => ({ query: vi.fn() }),
 }));
-vi.mock("../../convex/_generated/api", () => ({ api: { roles: { me: "roles.me" }, analytics: { summary: "a.summary", history: "a.history", liveGames: "a.live" }, game: { startTestGame: "s", restoreTestScenario: "r", replayByCode: "p" } } }));
+vi.mock("../../convex/_generated/api", () => ({ api: { roles: { me: "roles.me" }, storyAdmin: { overview: "s.overview", updateSettings: "s.update" }, analytics: { summary: "a.summary", history: "a.history", liveGames: "a.live" }, game: { startTestGame: "s", restoreTestScenario: "r", replayByCode: "p" } } }));
 vi.mock("../game/PartySelect", () => ({ PartySelect: () => <div>party select</div> }));
 vi.mock("../game/ScenarioBrowser", () => ({ ScenarioBrowserModal: () => <div>scenario browser</div> }));
 vi.mock("../game/ReplayView", () => ({ ReplayView: () => <div>replay</div> }));
@@ -75,8 +75,15 @@ describe("AdminApp gating", () => {
     expect(assign).toHaveBeenCalledWith("/");
   });
 
-  it("SYSTEM (expanded by the server to all four roles) sees every tab", () => {
-    me = { roles: ["SYSTEM", "USER", "ANALYTICS", "TEST"], username: "root" };
+  it("a STORIES-only user sees just the Stories tab, with editing allowed", () => {
+    me = { roles: ["STORIES"], username: "pete" };
+    render(<AdminApp />);
+    expect(within(screen.getByRole("tablist", { name: "Admin sections" })).getAllByRole("tab").map((t) => t.textContent)).toEqual(["Stories"]);
+    expect(screen.getByRole("tab", { name: "Stories" })).toHaveAttribute("aria-selected", "true");
+  });
+
+  it("SYSTEM (expanded by the server to all five roles) sees every tab", () => {
+    me = { roles: ["SYSTEM", "USER", "ANALYTICS", "STORIES", "TEST"], username: "root" };
     render(<AdminApp />);
     expect(within(screen.getByRole("tablist", { name: "Admin sections" })).getAllByRole("tab").map((t) => t.textContent)).toEqual(["Game Analytics", "Stories", "Testing", "Users", "System"]);
   });
