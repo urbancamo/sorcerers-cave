@@ -2,6 +2,7 @@ import {
   DEFAULT_MODEL, EDITOR_SYSTEM, FACT_CHECK_SYSTEM, PLANNER_SYSTEM, WORD_RANGE, WRITER_SYSTEM, editorUserMessage, estimateCostUsd, factCheckUserMessage, parseVoices, pickVoice, plannerUserMessage, renderVoices, storyProblems, writerUserMessage,
 } from "./storyPrompt";
 import { bibleFor, renderBible } from "./storyBible";
+import { castFor, renderCharacters } from "./storyCharacters";
 
 /**
  * The story generator, with the model call passed in so it is testable without an API and so the Convex action stays thin.
@@ -14,18 +15,20 @@ export type ModelCall = (a: { model: string; system: string; user: string; maxTo
 export interface ResolvedPrompt {
   version: number; writer: string; editor: string; model: string; minWords: number; maxWords: number;
   planner: string; factCheck: string; voices: string; bible: string;
+  /** The story characters (class entries, names, pools and pairings), in the format of `parseCharacters`. */
+  characters: string;
 }
 
 /** The prompt used when none has been saved in the admin panel: the defaults in storyPrompt.ts (version 0). */
 export const defaultPrompt = (): ResolvedPrompt => ({
   version: 0, writer: WRITER_SYSTEM, editor: EDITOR_SYSTEM, model: DEFAULT_MODEL, minWords: WORD_RANGE.min, maxWords: WORD_RANGE.max,
-  planner: PLANNER_SYSTEM, factCheck: FACT_CHECK_SYSTEM, voices: renderVoices(), bible: renderBible(),
+  planner: PLANNER_SYSTEM, factCheck: FACT_CHECK_SYSTEM, voices: renderVoices(), bible: renderBible(), characters: renderCharacters(),
 });
 
-/** Fill the four newer prompt fields from the source defaults when a caller (or an old saved version) left them out. */
-export function resolveFields<T extends { planner?: string; factCheck?: string; voices?: string; bible?: string }>(p: T): T & Pick<ResolvedPrompt, "planner" | "factCheck" | "voices" | "bible"> {
+/** Fill the five newer prompt fields from the source defaults when a caller (or an old saved version) left them out. */
+export function resolveFields<T extends { planner?: string; factCheck?: string; voices?: string; bible?: string; characters?: string }>(p: T): T & Pick<ResolvedPrompt, "planner" | "factCheck" | "voices" | "bible" | "characters"> {
   const d = defaultPrompt();
-  return { ...p, planner: p.planner ?? d.planner, factCheck: p.factCheck ?? d.factCheck, voices: p.voices ?? d.voices, bible: p.bible ?? d.bible };
+  return { ...p, planner: p.planner ?? d.planner, factCheck: p.factCheck ?? d.factCheck, voices: p.voices ?? d.voices, bible: p.bible ?? d.bible, characters: p.characters ?? d.characters };
 }
 
 export interface RunRecord {
@@ -77,7 +80,8 @@ export async function writeStory(call: ModelCall, prompt: ResolvedPrompt, digest
   const runs: RunRecord[] = [];
   const voices = parseVoices(prompt.voices).voices;
   const voice = pickVoice(voiceKey, voices.length ? voices : undefined);
-  const bible = bibleFor(digestText, prompt.bible); // lore for just the creatures, objects and places in this run
+  // lore for just the creatures, objects and places in this run, then the named company of the party (fixed names, pools to pick from)
+  const bible = [bibleFor(digestText, prompt.bible), castFor(digestText, voiceKey, prompt.characters)].filter(Boolean).join("\n\n");
 
   /** One model call, recorded as a run whatever happens. Returns the text, or null after recording the failure. */
   const attempt = async (pass: RunRecord["pass"], system: string, user: string): Promise<string | null> => {

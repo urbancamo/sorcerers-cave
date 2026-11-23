@@ -12,7 +12,7 @@ const overview = {
 };
 const defaults = {
   writer: "DEFAULT WRITER", editor: "DEFAULT EDITOR", model: "claude-sonnet-5-5", minWords: 1400, maxWords: 1900,
-  planner: "DEFAULT PLANNER", factCheck: "DEFAULT FACT CHECK", voices: "solo: A voice.", bible: "## header\nDEFAULT BIBLE",
+  planner: "DEFAULT PLANNER", factCheck: "DEFAULT FACT CHECK", voices: "solo: A voice.", bible: "## header\nDEFAULT BIBLE", characters: "## header\nDEFAULT CHARACTERS",
 };
 const v1 = { ...defaults, writer: "V1 WRITER", version: 1, note: "first", createdAt: 1 };
 const preview = { label: "Stories written with an older prompt than version 1", count: 2, truncated: false, perStoryUsd: 0.18, estimatedUsd: 0.36, remainingTodayUsd: 1.55, exceedsDailyCap: false, paused: false };
@@ -94,15 +94,18 @@ describe("Prompt editor", () => {
     expect(screen.getByLabelText(/Story bible/)).toHaveValue("## header\nDEFAULT BIBLE");
     fireEvent.change(screen.getByLabelText(/Planner prompt/), { target: { value: "NEW PLANNER" } });
     fireEvent.change(screen.getByLabelText(/Story bible/), { target: { value: "## header\nNEW BIBLE" } });
-    expect(screen.getByText(/Changed from version 1: planner prompt, story bible/)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Story characters/)).toHaveValue("## header\nDEFAULT CHARACTERS");
+    fireEvent.change(screen.getByLabelText(/Story characters/), { target: { value: "## header\nNEW CHARACTERS" } });
+    expect(screen.getByText(/Changed from version 1: planner prompt, story bible, story characters/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Save as a new version" }));
-    await waitFor(() => expect(save).toHaveBeenCalledWith({ ...defaults, writer: "V1 WRITER", planner: "NEW PLANNER", bible: "## header\nNEW BIBLE", note: undefined }));
+    await waitFor(() => expect(save).toHaveBeenCalledWith({ ...defaults, writer: "V1 WRITER", planner: "NEW PLANNER", bible: "## header\nNEW BIBLE", characters: "## header\nNEW CHARACTERS", note: undefined }));
   });
 
   it("shows the new fields read-only without the Stories role", () => {
     render(<StoriesTab canEdit={false} />);
     open("Prompt");
     expect(screen.getByLabelText(/Story bible/)).toHaveAttribute("readonly");
+    expect(screen.getByLabelText(/Story characters/)).toHaveAttribute("readonly");
     expect(screen.getByLabelText(/Planner prompt/)).toHaveAttribute("readonly");
   });
 

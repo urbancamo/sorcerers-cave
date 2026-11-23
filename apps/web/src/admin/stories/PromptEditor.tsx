@@ -7,19 +7,19 @@ import { usd } from './format';
 
 interface Fields {
   writer: string; editor: string; model: string; minWords: number; maxWords: number;
-  planner: string; factCheck: string; voices: string; bible: string;
+  planner: string; factCheck: string; voices: string; bible: string; characters: string;
 }
 type Tried = { ok: true; title: string; text: string; words: number; costUsd: number } | { ok: false; reason: string; costUsd: number };
 
 /** Only the editable fields: a saved version row carries more (version, note, timestamps) that the save call must not receive. */
 const pick = (p: Fields): Fields => ({
   writer: p.writer, editor: p.editor, model: p.model, minWords: p.minWords, maxWords: p.maxWords,
-  planner: p.planner, factCheck: p.factCheck, voices: p.voices, bible: p.bible,
+  planner: p.planner, factCheck: p.factCheck, voices: p.voices, bible: p.bible, characters: p.characters,
 });
 
 const FIELD_NAMES: [keyof Fields, string][] = [
   ['planner', 'planner prompt'], ['writer', 'writer prompt'], ['factCheck', 'fact-check prompt'], ['editor', 'editor prompt'],
-  ['voices', 'voices'], ['bible', 'story bible'], ['model', 'model'], ['minWords', 'minimum words'], ['maxWords', 'maximum words'],
+  ['voices', 'voices'], ['bible', 'story bible'], ['characters', 'story characters'], ['model', 'model'], ['minWords', 'minimum words'], ['maxWords', 'maximum words'],
 ];
 
 /**
@@ -67,7 +67,7 @@ export function PromptEditor({ canEdit }: { canEdit: boolean }) {
     <div className="scv-st-prompt">
       <p className="scv-admin-note">
         Active: <b>{active ? `version ${active.version}` : 'the defaults in the source code (version 0)'}</b>. Saving makes a new version and never overwrites an old one.
-        The source files <code>convex/storyPrompt.ts</code> and <code>convex/storyBible.ts</code> hold the defaults used until a version is saved here. A version saved before the planner, fact-check, voices and bible were editable uses the source defaults for them.
+        The source files <code>convex/storyPrompt.ts</code> and <code>convex/storyBible.ts</code> and <code>convex/storyCharacters.ts</code> hold the defaults used until a version is saved here. A version saved before the planner, fact-check, voices, bible and characters were editable uses the source defaults for them.
       </p>
 
       <div className="scv-st-row">
@@ -116,6 +116,10 @@ export function PromptEditor({ canEdit }: { canEdit: boolean }) {
       </label>
       <label className="scv-bug-field">Story bible (sections <code>## header</code>, <code>## creatures</code>, <code>## artefacts</code>, <code>## places</code>; one <code>Name: entry</code> per line; a place is <code>keyword | keyword: entry</code>. Only the entries for what is in a game are given to the planner and writer.)
         <textarea className="scv-st-area" rows={28} value={fields.bible} readOnly={!canEdit} onChange={(e) => set({ bible: e.target.value })} spellCheck={false} />
+      </label>
+
+      <label className="scv-bug-field">Story characters (a <code>## header</code>, then one <code>## Class</code> block per creature with lines <code>general:</code>, <code>names:</code>, <code>habits:</code>, <code>worries:</code>, <code>wants:</code>, <code>strengths:</code> and, for classes that can start a party, <code>explorer:</code>; list items are separated by <code>|</code>. Last comes <code>## pairings</code> with <code>Class + Class: text</code>. Names are assigned by the code, the same for a game every time)
+        <textarea className="scv-st-area" rows={32} value={fields.characters} readOnly={!canEdit} onChange={(e) => set({ characters: e.target.value })} spellCheck={false} />
       </label>
 
       {canEdit ? (

@@ -8,6 +8,7 @@ import { GS_ESCAPED, replay, type GameAction } from "@sorcerers-cave/engine";
 import games from "../src/data/scenario-games.json";
 import topScores from "../../../packages/engine/src/fixtures/top-score-games.json";
 import { asUser } from "./game.test";
+import { renderCharacters } from "./storyCharacters";
 import { aggregateStories, categoriseFailure, promptProblems } from "./storyAdminLib";
 
 const modules = import.meta.glob("./**/*.*s");
@@ -220,4 +221,6 @@ test("failure reasons are grouped and prompt problems listed", () => {
   expect(categoriseFailure("something odd")).toBe("Other");
   expect(promptProblems({ ...newPrompt })).toEqual([]);
   expect(promptProblems({ ...newPrompt, editor: "", maxWords: 50 }).length).toBe(2);
+  expect(promptProblems({ ...newPrompt, characters: renderCharacters() })).toEqual([]);
+  expect(promptProblems({ ...newPrompt, characters: "## header\nH\n## Gnome\ngeneral: x\nnames: a" }).join(" ")).toMatch(/Gnome/);
 });

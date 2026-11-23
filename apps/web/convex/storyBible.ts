@@ -92,7 +92,7 @@ export const PLACE_LORE: PlaceLore[] = [
 
 const escapeRe = (s: string): string => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 /** Does this name appear in the digest as a word, allowing a plural 's' (the digest writes "2 Dwarfs") and not as part of a hyphenated name? */
-const mentions = (text: string, name: string, flags = ""): boolean => new RegExp(`(?<![\\w-])${escapeRe(name)}s?(?![\\w-])`, flags).test(text);
+export const mentions = (text: string, name: string, flags = ""): boolean => new RegExp(`(?<![\\w-])${escapeRe(name)}s?(?![\\w-])`, flags).test(text);
 
 /** The bible as editable text: a header section, then `Name: entry` lines per section; places use `keyword | keyword: entry`. */
 export interface Bible { header: string; creatures: [string, string][]; treasures: [string, string][]; places: PlaceLore[] }

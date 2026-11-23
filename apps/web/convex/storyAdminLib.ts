@@ -1,6 +1,7 @@
 import { ALL_CREATURES, ALL_TREASURES } from "@sorcerers-cave/engine";
 import { MODEL_PRICES, WORD_RANGE, parseVoices } from "./storyPrompt";
 import { bibleProblems } from "./storyBible";
+import { characterProblems } from "./storyCharacters";
 
 /** Pure figures for the admin Stories dashboard (tested without a database), like analyticsLib.ts for games. */
 
@@ -78,7 +79,7 @@ export function aggregateStories(runs: RunRow[], stories: StoryRow[], now: numbe
 }
 
 /** What a saved prompt version must satisfy. Returns the problems (empty = fine). */
-export function promptProblems(p: { writer: string; editor: string; model: string; minWords: number; maxWords: number; planner?: string; factCheck?: string; voices?: string; bible?: string }): string[] {
+export function promptProblems(p: { writer: string; editor: string; model: string; minWords: number; maxWords: number; planner?: string; factCheck?: string; voices?: string; bible?: string; characters?: string }): string[] {
   const out: string[] = [];
   if (!p.writer.trim()) out.push("The writer prompt is empty.");
   if (!p.editor.trim()) out.push("The editor prompt is empty.");
@@ -91,6 +92,10 @@ export function promptProblems(p: { writer: string; editor: string; model: strin
     if (t.length > 20_000) out.push(`The ${label} prompt is over 20,000 characters.`);
   }
   if (p.voices !== undefined) out.push(...parseVoices(p.voices).problems);
+  if (p.characters !== undefined) {
+    if (p.characters.length > 120_000) out.push("The story characters are over 120,000 characters.");
+    out.push(...characterProblems(p.characters, ALL_CREATURES.map((c) => c.name)));
+  }
   if (p.bible !== undefined) {
     if (p.bible.length > 80_000) out.push("The story bible is over 80,000 characters.");
     out.push(...bibleProblems(p.bible, { creatures: ALL_CREATURES.map((c) => c.name), treasures: ALL_TREASURES.map((t) => t.name) }));

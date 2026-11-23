@@ -243,6 +243,7 @@ export default defineSchema({
     factCheck: v.optional(v.string()),
     voices: v.optional(v.string()),
     bible: v.optional(v.string()),
+    characters: v.optional(v.string()),
     note: v.optional(v.string()),
     createdBy: v.optional(v.id("users")),
     createdAt: v.number(),
