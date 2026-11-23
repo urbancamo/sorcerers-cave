@@ -9,6 +9,7 @@ import {
 } from "@sorcerers-cave/engine";
 import { resolveTile, resolveCardVariant, normExits, type TileArt, type CardArt, type Rot } from "../data/manifest";
 import type { Area, Card } from "./ports";
+import { MISSING_TILE_ID, reportMissingTileArt } from "./missingTile";
 
 export interface ArtTables { tiles: TileArt[]; cards: CardArt[]; }
 
@@ -158,6 +159,12 @@ export function projectArea(
     { exits: shown.exits, stairUp: shown.d.stairUp && (mirrored & 32) === 0, stairDown: shown.d.stairDown && (mirrored & 64) === 0, special: shown.special, isChamber: shown.d.chamber },
     art.tiles,
   );
+  // No art for this card is a bug, never a corridor to pretend with (issue #120): report it (throws in tests) and draw the placeholder.
+  let missingArt: string | undefined;
+  if (!resolved) {
+    missingArt = `card ${pa.card}: exits ${shown.exits || "none"}${shown.d.stairUp ? ", stair up" : ""}${shown.d.stairDown ? ", stair down" : ""}${shown.special ? `, special ${shown.special}` : ""}`;
+    reportMissingTileArt(missingArt);
+  }
   // Heavy treasure left in a Deep Pool lives on `dropped` (reclaimable on return); display-only
   // hazard scars (e.g. an Earthquake) live on `markers`. Show both on the floor alongside contents.
   // Extension kit (SC-EXT-13, design US-08): a parked Crypt has no content code of its own (unlike
@@ -206,7 +213,8 @@ export function projectArea(
     : undefined;
   const faceDown = !pa.faceUp || (pa.flags & AF_UNRESOLVED) !== 0;
   return {
-    tileId: resolved?.tileId ?? art.tiles[0]!.tileId,
+    tileId: resolved?.tileId ?? MISSING_TILE_ID,
+    ...(missingArt ? { missingArt } : {}),
     rot: (resolved?.rot ?? 0) as Area["rot"],
     level, col: x, row: y,
     exits,

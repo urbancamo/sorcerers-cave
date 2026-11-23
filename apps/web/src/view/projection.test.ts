@@ -1,9 +1,10 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { AssetManifest } from "@sorcerers-cave/assets";
-import { newGame, packCoord, type GameState, type PlacedArea } from "@sorcerers-cave/engine";
+import { newGame, packCoord, AREA_CARDS, EXT_AREA_CARDS, SPECIAL_CANONICAL_CARD, AREA_TILE_CANONICAL_CARD, type GameState, type PlacedArea } from "@sorcerers-cave/engine";
 import { parseManifest, type TileArt, type CardArt } from "../data/manifest";
+import { MISSING_TILE_ID, MissingTileArtError, setStrictTileArt } from "./missingTile";
 import { projectArea, encodeWorkingSet, areaKey, tileForCard, laneCards, withStatueForRuby, type ArtTables } from "./projection";
 
 let art: ArtTables;
@@ -102,12 +103,12 @@ describe("projectArea", () => {
   it("projects persisted floor contents into typed card lanes", () => {
     const state = newGame(1, [0]);
     // a chamber tile (bit16) with a creature (Dragon id10), a treasure (Magic Sword id3 = artifact), a hazard (id0)
-    const a = projectArea(area({ card: 16 | 2, contents: [100 + 10, 200 + 3, 300 + 0] }), 1, state, art);
+    const a = projectArea(area({ card: 31, contents: [100 + 10, 200 + 3, 300 + 0] }), 1, state, art);
     expect(a.strangers.map((c) => c.name)).toContain("Dragon");
     expect(a.treasure.find((c) => c.name === "Magic Sword")?.category).toBe("artifact");
     expect(a.hazards.length).toBe(1);
     // unique ids even for repeats
-    const dup = projectArea(area({ card: 16, contents: [100 + 10, 100 + 10] }), 1, state, art);
+    const dup = projectArea(area({ card: 31, contents: [100 + 10, 100 + 10] }), 1, state, art);
     expect(new Set(dup.strangers.map((c) => c.id)).size).toBe(2);
     // …each duplicate shows its OWN card art (the manifest has 3 distinct Dragon images)
     expect(dup.strangers[0]!.file).not.toBe(dup.strangers[1]!.file);
@@ -119,15 +120,15 @@ describe("projectArea", () => {
     state.party[0]!.treasure = [12]; // Charmed Flute held
     state.phase = "encounter";
     state.strangers = [10];
-    const here = projectArea(area({ card: 16, contents: [] }), 0, state, art, [100 + 10]).strangers[0]!;
+    const here = projectArea(area({ card: 31, contents: [] }), 0, state, art, [100 + 10]).strangers[0]!;
     expect(here.asleep).toBe(false); // met, awake, Flute in the bag
     state.strangers = []; state.lulled = [10]; // the player played the Flute
-    const lulled = projectArea(area({ card: 16, contents: [] }), 0, state, art, [100 + 10]).strangers[0]!;
+    const lulled = projectArea(area({ card: 31, contents: [] }), 0, state, art, [100 + 10]).strangers[0]!;
     expect(lulled.asleep).toBe(true);
     state.phase = "explore"; state.lulled = []; // chamber played out: the Dragon is parked on the tile, still lulled for this visit
-    const parked = projectArea(area({ card: 16, contents: [100 + 10] }), 0, state, art).strangers[0]!;
+    const parked = projectArea(area({ card: 31, contents: [100 + 10] }), 0, state, art).strangers[0]!;
     expect(parked.asleep).toBe(true);
-    const elsewhere = projectArea(area({ card: 16, contents: [100 + 10] }), 1, state, art).strangers[0]!;
+    const elsewhere = projectArea(area({ card: 31, contents: [100 + 10] }), 1, state, art).strangers[0]!;
     expect(elsewhere.asleep).toBe(false); // another tile: awake
   });
 });
@@ -165,7 +166,7 @@ describe("extension kit specials (Part 2 US-02..07)", () => {
 
   it("projects a Gallery statue (500+id) as a stone creature card", () => {
     const state = newGame(1, [0]);
-    const a = projectArea(area({ card: 16, contents: [500 + 18] }), 0, state, art); // Witch, stoned
+    const a = projectArea(area({ card: 31, contents: [500 + 18] }), 0, state, art); // Witch, stoned
     expect(a.strangers).toHaveLength(1);
     expect(a.strangers[0]!.stone).toBe(true);
     expect(a.strangers[0]!.asleep).toBe(false); // distinct overlay from Lotus Dust sleep
@@ -176,10 +177,10 @@ describe("extension kit specials (Part 2 US-02..07)", () => {
     const state = newGame(1, [0]);
     // Magic Axe (kit treasure 17, an artifact) — the base-only TREASURES table lookup used to miss
     // every kit id and silently fall back to the plain "treasure" category.
-    const a = projectArea(area({ card: 16, contents: [200 + 17] }), 0, state, art);
+    const a = projectArea(area({ card: 31, contents: [200 + 17] }), 0, state, art);
     expect(a.treasure[0]!.category).toBe("artifact");
     // A kit heavy treasure (Idol, 18) correctly stays "treasure" (not an artifact).
-    const idol = projectArea(area({ card: 16, contents: [200 + 18] }), 0, state, art);
+    const idol = projectArea(area({ card: 31, contents: [200 + 18] }), 0, state, art);
     expect(idol.treasure[0]!.category).toBe("treasure");
   });
 
@@ -287,5 +288,46 @@ describe("the guarded Lost Ruby (GitHub #59)", () => {
   });
   it("keeps its own treasure card in a game without the Statue fight", () => {
     expect(withStatueForRuby([211], { ...base, variants: { combatRevision: true } } as typeof base)).toEqual([211]);
+  });
+});
+
+// A card with no tile art is a bug, never a corridor to pretend with (issue #120: a Spell re-queued a card with an added stair, which the
+// renderer drew as the first tile in the manifest).
+describe("missing tile art is loud", () => {
+  const UNPRINTED = 103; // north, east, south and both stairs: no such tile, and no such card in the deck
+
+  it("every card the deck can hold, and every special's canonical card, has art", () => {
+    const cards = new Set<number>([...AREA_CARDS, ...EXT_AREA_CARDS, ...Object.values(SPECIAL_CANONICAL_CARD)]);
+    expect([...cards].filter((c) => !tileForCard(c, art.tiles))).toEqual([]);
+  });
+
+  it("every Test Mode plain-tile card has art, except the one known gap (an east-west tunnel with an up stair, 42, which no printed tile shows)", () => {
+    const missing = Object.values(AREA_TILE_CANONICAL_CARD).filter((c) => !tileForCard(c, art.tiles));
+    expect(missing).toEqual([42]);
+  });
+
+  it("throws MissingTileArtError when strict (as in every test)", () => {
+    expect(() => projectArea(area({ card: UNPRINTED }), 0, newGame(1, [0]), art)).toThrow(MissingTileArtError);
+  });
+
+  describe("in the app (not strict)", () => {
+    beforeAll(() => setStrictTileArt(false));
+    afterAll(() => setStrictTileArt(true));
+
+    it("draws the placeholder and says which card had no art, never the first tile of the manifest", () => {
+      const err = vi.spyOn(console, "error").mockImplementation(() => {});
+      const a = projectArea(area({ card: UNPRINTED }), 0, newGame(1, [0]), art);
+      expect(a.tileId).toBe(MISSING_TILE_ID);
+      expect(a.tileId).not.toBe(art.tiles[0]!.tileId);
+      expect(a.missingArt).toMatch(/card 103.*exits NES.*stair up.*stair down/);
+      expect(err).toHaveBeenCalledWith(expect.stringContaining("No tile art matches"));
+      err.mockRestore();
+    });
+
+    it("leaves a real card alone", () => {
+      const a = projectArea(area({ card: 7 }), 0, newGame(1, [0]), art);
+      expect(a.tileId).not.toBe(MISSING_TILE_ID);
+      expect(a.missingArt).toBeUndefined();
+    });
   });
 });

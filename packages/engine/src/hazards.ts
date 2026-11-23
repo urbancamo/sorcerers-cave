@@ -402,7 +402,9 @@ export function applyHazards(state: GameState): { events: GameEvent[]; fell: boo
         const gone = unpackCoord(prevArea.coord);
         // The old tunnel's card value splices into the middle of the REMAINING large pack (not the
         // whole array — cards already drawn stay put), so it can turn up again as a later draw.
-        const oldValue = prevArea.card;
+        // Only the PRINTED card goes back: a stair mirrored onto the tunnel for level connectivity (`mirroredStairs`) was never on the card,
+        // and left in it would become a card the deck does not contain (extra stairs, even a spurious cave exit on level 1) when drawn again.
+        const oldValue = prevArea.card & ~(prevArea.mirroredStairs ?? 0);
         const remaining = state.largePack.length - state.largeIdx;
         const insertAt = state.largeIdx + Math.floor(remaining / 2);
         state.largePack.splice(insertAt, 0, oldValue);

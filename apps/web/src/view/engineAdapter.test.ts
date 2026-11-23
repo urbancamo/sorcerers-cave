@@ -1,11 +1,17 @@
-import { describe, it, expect, beforeAll } from "vitest";
+import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { AssetManifest } from "@sorcerers-cave/assets";
 import { newGame, packCoord as pc, type GameState, type PlacedArea } from "@sorcerers-cave/engine";
 import { parseManifest } from "../data/manifest";
 import { createCaveAdapter } from "./engineAdapter";
+import { setStrictTileArt } from "./missingTile";
 import type { ArtTables } from "./projection";
+
+// These tests lay out hand-made maps from single-doorway cards that are not in the deck and have no tile art; they are about movement,
+// not drawing, so a missing tile logs instead of throwing here (everywhere else it throws: see missingTile.ts).
+beforeAll(() => { setStrictTileArt(false); vi.spyOn(console, "error").mockImplementation(() => {}); });
+afterAll(() => { setStrictTileArt(true); vi.restoreAllMocks(); });
 
 let art: ArtTables;
 beforeAll(() => {

@@ -43,6 +43,29 @@ let renderer, scene, camera, controls, maxAniso;
 
 /* ---- alpha-cut textures ---- */
 const texCache=new Map();
+/** The face of a placed tile. An area with no matching art (a bug: see view/missingTile.ts) gets a placeholder that cannot be mistaken for real art. */
+function tileTexture(area){
+  if(area.missingArt) return missingTileTexture(area.missingArt);
+  return loadAlphaTexture(area.tileId? (tiles.get(area.tileId)?.file ?? ''):'');
+}
+function missingTileTexture(detail){
+  const key='missing:'+detail; if(texCache.has(key)) return texCache.get(key);
+  const w=1024,h=Math.round(1024*TILE_D/TILE_W), cv=document.createElement('canvas'); cv.width=w; cv.height=h;
+  const cx=cv.getContext('2d');
+  cx.fillStyle='#ff00c8'; cx.fillRect(0,0,w,h); // hazard stripes: magenta and yellow, nothing in the real art looks like this
+  cx.save(); cx.beginPath(); cx.rect(0,0,w,h); cx.clip(); cx.fillStyle='#ffe600';
+  for(let x=-h;x<w+h;x+=96){ cx.beginPath(); cx.moveTo(x,0); cx.lineTo(x+48,0); cx.lineTo(x+48+h,h); cx.lineTo(x+h,h); cx.closePath(); cx.fill(); }
+  cx.restore();
+  cx.lineWidth=28; cx.strokeStyle='#d00000'; cx.strokeRect(14,14,w-28,h-28);
+  cx.fillStyle='rgba(0,0,0,.82)'; cx.fillRect(60,h/2-150,w-120,300);
+  cx.fillStyle='#fff'; cx.textAlign='center'; cx.textBaseline='middle';
+  cx.font='bold 120px sans-serif'; cx.fillText('BUG',w/2,h/2-80);
+  cx.font='bold 46px sans-serif'; cx.fillText('NO TILE ART FOR THIS AREA',w/2,h/2+10);
+  cx.font='34px monospace'; cx.fillText(detail.length>46?detail.slice(0,46)+'…':detail,w/2,h/2+75);
+  cx.font='28px sans-serif'; cx.fillText('please report this (bug button) with the game code',w/2,h/2+125);
+  const tex=new THREE.CanvasTexture(cv); tex.colorSpace=THREE.SRGBColorSpace; tex.anisotropy=maxAniso;
+  const p=Promise.resolve(tex); texCache.set(key,p); return p;
+}
 function loadAlphaTexture(src,maxW=1024){
   if(texCache.has(src))return texCache.get(src);
   const p=new Promise(res=>{
@@ -158,7 +181,7 @@ async function buildAreaMesh(area, spawn, revealFirst){
   pendingTiles.add(k);
   try{
     const down=!!area.faceDown && !revealFirst;
-    const tex=down? await faceDownTexture(area) : await loadAlphaTexture(area.tileId? (tiles.get(area.tileId)?.file ?? ''):'');
+    const tex=down? await faceDownTexture(area) : await tileTexture(area);
     const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,alphaTest:0.03,side:THREE.DoubleSide,depthWrite:true});
     if(area.destroyed) mat.color.setHex(DESTROYED_TINT); // earthquake rubble — darkened so it reads as collapsed
     const mesh=new THREE.Mesh(new THREE.PlaneGeometry(TILE_W,TILE_D),mat);
@@ -200,13 +223,13 @@ async function fadeToFog(mesh, area, dur){
 async function fadeToFace(mesh, area, dur){
   if(!mesh.userData.down) return;
   mesh.userData.down=false; mesh.userData.fogStubs=null;
-  const tex=await loadAlphaTexture(area.tileId? (tiles.get(area.tileId)?.file ?? ''):'');
+  const tex=await tileTexture(area);
   if(tileMeshes.includes(mesh)) startFade(mesh,tex,dur);
 }
 async function flipTile(mesh, toDown, area){
   if(!!mesh.userData.down===toDown) return;
   mesh.userData.down=toDown; mesh.userData.fogStubs=toDown?(area.fogStubs||''):null;
-  const tex=toDown? await faceDownTexture(area) : await loadAlphaTexture(area.tileId? (tiles.get(area.tileId)?.file ?? ''):'');
+  const tex=toDown? await faceDownTexture(area) : await tileTexture(area);
   if(!tileMeshes.includes(mesh)) return;
   flipAnims.push({mesh,tex,t0:clock.elapsedTime,swapped:false});
 }
