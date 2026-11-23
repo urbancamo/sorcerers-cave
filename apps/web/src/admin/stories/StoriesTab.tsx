@@ -69,7 +69,7 @@ function Overview({ canEdit }: { canEdit: boolean }) {
         <Tile label="Success rate" value={o.successRate === null ? '–' : `${o.successRate}%`} sub={`${num(o.runs.ok)} of ${num(o.runs.total)} model calls ok (30 days)`} />
         <Tile label="Spend today" value={usd(o.spend.todayUsd)} sub={cap(o.spend.todayUsd, o.settings.dailyCapUsd)} />
         <Tile label="Spend this month" value={usd(o.spend.monthUsd)} sub={cap(o.spend.monthUsd, o.settings.monthlyCapUsd)} />
-        <Tile label="Average cost per story" value={usd(o.runs.avgCostPerStoryUsd)} sub={`write ${usd(o.runs.byPass.write)}, check ${usd(o.runs.byPass.check)} (30 days)`} />
+        <Tile label="Average cost per story" value={usd(o.runs.avgCostPerStoryUsd)} sub={`plan ${usd(o.runs.byPass.plan)}, write ${usd(o.runs.byPass.write)}, edit ${usd(o.runs.byPass.edit)}, check ${usd(o.runs.byPass.check)} (30 days)`} />
         <Tile label="Average length" value={o.avgWords ? `${num(o.avgWords)} words` : '–'} sub={`${seconds(o.runs.avgDurationMs)} per call; prompt v${o.activeVersion} active`} />
       </div>
       <Controls settings={o.settings} canEdit={canEdit} />

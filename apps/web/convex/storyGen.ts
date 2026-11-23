@@ -53,7 +53,7 @@ export async function generateStory(ctx: ActionCtx, highScoreId: Id<"highScores"
     return fail(`could not replay the run: ${e instanceof Error ? e.message.slice(0, 150) : "error"}`);
   }
 
-  const r = await writeStory(anthropicCall, prompt, digest);
+  const r = await writeStory(anthropicCall, prompt, digest, Date.now, String(highScoreId));
   await ctx.runMutation(internal.stories.finish, {
     storyId, trigger, promptVersion: prompt.version, runs: r.runs,
     result: r.ok ? { ok: true, title: r.title, text: r.text, words: r.words, model: prompt.model } : { ok: false, reason: r.reason },

@@ -1,4 +1,5 @@
 /// <reference types="vite/client" />
+import { activePrompt } from "./stories";
 import { convexTest } from "convex-test";
 import { afterEach, beforeEach, expect, test, vi } from "vitest";
 import { api } from "./_generated/api";
@@ -7,6 +8,7 @@ import { GS_ESCAPED, replay, type GameAction } from "@sorcerers-cave/engine";
 import games from "../src/data/scenario-games.json";
 import topScores from "../../../packages/engine/src/fixtures/top-score-games.json";
 import { asUser } from "./game.test";
+import { renderCharacters } from "./storyCharacters";
 import { aggregateStories, categoriseFailure, promptProblems } from "./storyAdminLib";
 
 const modules = import.meta.glob("./**/*.*s");
@@ -35,7 +37,7 @@ function fakeApi() {
   let n = 0;
   vi.stubGlobal("fetch", vi.fn(async () => {
     n++;
-    const text = n % 2 === 1 ? "a draft" : `${STORY}\n=== UNSUPPORTED ===\nnone`;
+    const text = ["a plan", "a draft", "none", STORY, "none"][(n - 1) % 5]!; // plan, write, check, edit, check
     return new Response(JSON.stringify({ content: [{ type: "text", text }], usage: { input_tokens: 4000, output_tokens: 2500 } }), { status: 200 });
   }));
 }
@@ -82,6 +84,33 @@ test("saving a prompt appends a new version and activates it; bad input is refus
   await expect(admin.mutation(api.storyAdmin.savePrompt, { ...newPrompt, writer: " " })).rejects.toThrow(/writer prompt is empty/);
   await expect(admin.mutation(api.storyAdmin.savePrompt, { ...newPrompt, model: "gpt-x" })).rejects.toThrow(/model must be/);
   await expect(admin.mutation(api.storyAdmin.savePrompt, { ...newPrompt, minWords: 2000 })).rejects.toThrow(/word range/);
+});
+
+test("the planner, fact-check, voices and bible are saved with a version, validated, and defaulted for older versions", async () => {
+  const t = convexTest(schema, modules);
+  const admin = (await asUser(t, ["SYSTEM"])).as;
+  const defaults = (await admin.query(api.storyAdmin.prompts, {})).defaults;
+  expect(defaults.planner).toMatch(/planning a short story/);
+  expect(defaults.factCheck).toMatch(/fact-checker/);
+  expect(defaults.voices).toMatch(/^close-third: /);
+  expect(defaults.bible).toMatch(/^## header/);
+
+  // A version saved the old way (five fields) shows today's defaults for the rest, and uses them.
+  await admin.mutation(api.storyAdmin.savePrompt, newPrompt);
+  expect((await admin.query(api.storyAdmin.prompts, {})).versions[0]).toMatchObject({ planner: defaults.planner, bible: defaults.bible });
+
+  // A version with its own planner and bible keeps them.
+  const mine = { ...newPrompt, planner: "MY PLANNER", factCheck: "MY CHECK", voices: "solo: Just one.", bible: "## header\nH\n## creatures\nDragon: A dragon." };
+  await admin.mutation(api.storyAdmin.savePrompt, mine);
+  expect((await admin.query(api.storyAdmin.prompts, {})).versions[0]).toMatchObject({ planner: "MY PLANNER", factCheck: "MY CHECK", voices: "solo: Just one.", bible: mine.bible });
+  const used = await t.run(async (ctx) => activePrompt(ctx));
+  expect(used).toMatchObject({ planner: "MY PLANNER", factCheck: "MY CHECK", voices: "solo: Just one.", bible: mine.bible });
+
+  // Bad edits are refused with the reason.
+  await expect(admin.mutation(api.storyAdmin.savePrompt, { ...newPrompt, planner: " " })).rejects.toThrow(/planner prompt is empty/);
+  await expect(admin.mutation(api.storyAdmin.savePrompt, { ...newPrompt, factCheck: "" })).rejects.toThrow(/fact-check prompt is empty/);
+  await expect(admin.mutation(api.storyAdmin.savePrompt, { ...newPrompt, voices: "no colon" })).rejects.toThrow(/expected "id: instruction"/);
+  await expect(admin.mutation(api.storyAdmin.savePrompt, { ...newPrompt, bible: "## header\nH\n## creatures\nDragn: x" })).rejects.toThrow(/not a creature/);
 });
 
 test("a STORIES editor can pause and lower a cap but not raise or remove one; SYSTEM can", async () => {
@@ -133,7 +162,7 @@ test("a rewrite halts, without counting failures, when a spending cap is reached
   const t = convexTest(schema, modules);
   const admin = (await asUser(t, ["SYSTEM"])).as;
   await seedScore(t, "AAAA"); await seedScore(t, "BBBB"); await seedScore(t, "CCCC");
-  await admin.mutation(api.storyAdmin.updateSettings, { dailyCapUsd: 0.15 }); // each story costs about $0.10
+  await admin.mutation(api.storyAdmin.updateSettings, { dailyCapUsd: 0.45 }); // each story costs about $0.25 (five calls)
   await admin.mutation(api.storyAdmin.startRewrite, { scope: { kind: "all" }, expected: 3 });
   await t.finishAllScheduledFunctions(vi.runAllTimers);
   expect((await admin.query(api.storyAdmin.jobs, {}))[0]).toMatchObject({ status: "stopped", done: 2, failed: 0, reason: "daily cap reached" });
@@ -165,7 +194,7 @@ test("trying an unsaved prompt returns a story, stores nothing on the entry, and
   expect(r).toMatchObject({ ok: true, title: "The Count" });
   expect(await t.run((ctx) => ctx.db.get(storyId))).toMatchObject({ title: "Old" });
   const runs = await t.run((ctx) => ctx.db.query("storyRuns").collect());
-  expect(runs).toHaveLength(2);
+  expect(runs).toHaveLength(5); // plan, write, check, edit, check
   expect(runs.every((x) => x.trigger === "trial" && x.promptVersion === -1)).toBe(true);
 });
 
@@ -192,4 +221,6 @@ test("failure reasons are grouped and prompt problems listed", () => {
   expect(categoriseFailure("something odd")).toBe("Other");
   expect(promptProblems({ ...newPrompt })).toEqual([]);
   expect(promptProblems({ ...newPrompt, editor: "", maxWords: 50 }).length).toBe(2);
+  expect(promptProblems({ ...newPrompt, characters: renderCharacters() })).toEqual([]);
+  expect(promptProblems({ ...newPrompt, characters: "## header\nH\n## Gnome\ngeneral: x\nnames: a" }).join(" ")).toMatch(/Gnome/);
 });

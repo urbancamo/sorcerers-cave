@@ -9,7 +9,7 @@ import { aggregateStories, promptProblems, DAYS } from "./storyAdminLib";
 import { digestText, storyDigest } from "./storyDigest";
 import { anthropicCall, generateStory, isBlockReason } from "./storyGen";
 import { MODEL_PRICES } from "./storyPrompt";
-import { defaultPrompt, writeStory } from "./storyWriter";
+import { defaultPrompt, resolveFields, writeStory } from "./storyWriter";
 
 /**
  * The admin Stories tab's backend. Viewing needs ANALYTICS or STORIES; everything that changes a setting, rewrites stories or spends
@@ -20,7 +20,12 @@ const VIEW: Role[] = ["ANALYTICS", "STORIES"];
 const DAY_MS = 86_400_000;
 const MAX_REWRITE = 500;
 const BATCH = 3;
-const FALLBACK_COST_PER_STORY = 0.2; // used for an estimate before any story has been written
+/** The editable parts of a prompt version. The newer five are optional so older callers still work; one left out falls back to the source default. */
+const promptFields = {
+  writer: v.string(), editor: v.string(), model: v.string(), minWords: v.number(), maxWords: v.number(),
+  planner: v.optional(v.string()), factCheck: v.optional(v.string()), voices: v.optional(v.string()), bible: v.optional(v.string()), characters: v.optional(v.string()),
+};
+const FALLBACK_COST_PER_STORY = 0.3; // used for an estimate before any story has been written (five calls: plan, write, check, edit, check)
 
 const scopeV = v.union(
   v.object({ kind: v.literal("all") }),
@@ -86,9 +91,10 @@ export const prompts = query({
     const d = defaultPrompt();
     return {
       activeVersion: versions[0]?.version ?? 0,
-      defaults: { writer: d.writer, editor: d.editor, model: d.model, minWords: d.minWords, maxWords: d.maxWords },
+      defaults: { writer: d.writer, editor: d.editor, model: d.model, minWords: d.minWords, maxWords: d.maxWords, planner: d.planner, factCheck: d.factCheck, voices: d.voices, bible: d.bible, characters: d.characters },
       models: Object.keys(MODEL_PRICES),
-      versions: versions.map((p) => ({ version: p.version, writer: p.writer, editor: p.editor, model: p.model, minWords: p.minWords, maxWords: p.maxWords, note: p.note ?? null, createdAt: p.createdAt })),
+      // Older versions lack the five newer fields: show today's defaults for them, which is what they actually use.
+      versions: versions.map((p) => ({ version: p.version, writer: p.writer, editor: p.editor, model: p.model, minWords: p.minWords, maxWords: p.maxWords, planner: p.planner ?? d.planner, factCheck: p.factCheck ?? d.factCheck, voices: p.voices ?? d.voices, bible: p.bible ?? d.bible, characters: p.characters ?? d.characters, note: p.note ?? null, createdAt: p.createdAt })),
     };
   },
 });
@@ -105,7 +111,7 @@ export const jobs = query({
 
 /** Save the edited prompt as a NEW version (append-only), which becomes the active one. Re-activating an old version is saving its text again. */
 export const savePrompt = mutation({
-  args: { writer: v.string(), editor: v.string(), model: v.string(), minWords: v.number(), maxWords: v.number(), note: v.optional(v.string()) },
+  args: { ...promptFields, note: v.optional(v.string()) },
   handler: async (ctx, args) => {
     const userId = await requireRole(ctx, "STORIES");
     const problems = promptProblems(args);
@@ -194,6 +200,21 @@ export const startRewrite = mutation({
   },
 });
 
+/**
+ * The stories a rewrite job produced, for download: the ready stories last written while it ran. Jobs do not list their stories, and only one
+ * runs at a time, so the window from the job's start to its last update picks out its stories (a manual retry in that window would be included).
+ */
+export const jobStories = query({
+  args: { jobId: v.id("storyJobs") },
+  handler: async (ctx, { jobId }) => {
+    await requireAnyRole(ctx, VIEW);
+    const j = await ctx.db.get(jobId);
+    if (!j) return [];
+    const rows = await ctx.db.query("stories").withIndex("by_status_and_updatedAt", (q) => q.eq("status", "ready").gte("updatedAt", j.createdAt).lte("updatedAt", j.updatedAt)).take(MAX_REWRITE);
+    return rows.filter((r) => r.text).map((r) => ({ title: r.title ?? "Untitled", text: r.text!, updatedAt: r.updatedAt }));
+  },
+});
+
 export const stopJob = mutation({
   args: { jobId: v.id("storyJobs") },
   handler: async (ctx, { jobId }) => {
@@ -243,7 +264,7 @@ export const rewriteBatch = internalAction({
 export const assertEditor = internalQuery({ args: {}, handler: async (ctx) => requireRole(ctx, "STORIES") });
 export const spendBlock = internalQuery({ args: {}, handler: async (ctx) => blockReason(ctx, Date.now()) });
 export const recordTrial = internalMutation({
-  args: { highScoreId: v.id("highScores"), runs: v.array(v.object({ pass: v.union(v.literal("write"), v.literal("check")), model: v.string(), inputTokens: v.number(), outputTokens: v.number(), costUsd: v.number(), durationMs: v.number(), status: v.union(v.literal("ok"), v.literal("rejected"), v.literal("error")), reason: v.optional(v.string()) })) },
+  args: { highScoreId: v.id("highScores"), runs: v.array(v.object({ pass: v.union(v.literal("plan"), v.literal("write"), v.literal("check"), v.literal("edit")), model: v.string(), inputTokens: v.number(), outputTokens: v.number(), costUsd: v.number(), durationMs: v.number(), status: v.union(v.literal("ok"), v.literal("rejected"), v.literal("error")), reason: v.optional(v.string()) })) },
   handler: async (ctx, { highScoreId, runs }) => {
     const now = Date.now();
     for (const r of runs) await ctx.db.insert("storyRuns", { highScoreId, trigger: "trial", promptVersion: -1, createdAt: now, ...r });
@@ -255,7 +276,7 @@ export const recordTrial = internalMutation({
  * rewrite. It spends money like any generation (recorded as a "trial" run, and refused when paused or over a cap).
  */
 export const tryPrompt = action({
-  args: { highScoreId: v.id("highScores"), writer: v.string(), editor: v.string(), model: v.string(), minWords: v.number(), maxWords: v.number() },
+  args: { highScoreId: v.id("highScores"), ...promptFields },
   handler: async (ctx, { highScoreId, ...p }): Promise<{ ok: true; title: string; text: string; words: number; costUsd: number } | { ok: false; reason: string; costUsd: number }> => {
     await ctx.runQuery(internal.storyAdmin.assertEditor, {});
     const problems = promptProblems(p);
@@ -265,7 +286,7 @@ export const tryPrompt = action({
     const input = await ctx.runQuery(internal.stories.replayInput, { highScoreId });
     if (!input) throw new Error("That entry has no replay data to write a story from.");
     const digest = digestText(storyDigest(replay(input.seed, input.picks, input.actions as GameAction[], input.variants as never)));
-    const r = await writeStory(anthropicCall, { version: -1, ...p }, digest);
+    const r = await writeStory(anthropicCall, { version: -1, ...resolveFields(p) }, digest, Date.now, String(highScoreId));
     await ctx.runMutation(internal.storyAdmin.recordTrial, { highScoreId, runs: r.runs });
     const costUsd = Math.round(r.runs.reduce((n, x) => n + x.costUsd, 0) * 10_000) / 10_000;
     return r.ok ? { ok: true, title: r.title, text: r.text, words: r.words, costUsd } : { ok: false, reason: r.reason, costUsd };

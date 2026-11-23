@@ -5,13 +5,22 @@ import { errorText } from '../errorText';
 import { num } from '../analytics/format';
 import { usd } from './format';
 
-interface Fields { writer: string; editor: string; model: string; minWords: number; maxWords: number }
+interface Fields {
+  writer: string; editor: string; model: string; minWords: number; maxWords: number;
+  planner: string; factCheck: string; voices: string; bible: string; characters: string;
+}
 type Tried = { ok: true; title: string; text: string; words: number; costUsd: number } | { ok: false; reason: string; costUsd: number };
 
-/** Only the five editable fields: a saved version row carries more (version, note, timestamps) that the save call must not receive. */
-const pick = (p: Fields): Fields => ({ writer: p.writer, editor: p.editor, model: p.model, minWords: p.minWords, maxWords: p.maxWords });
+/** Only the editable fields: a saved version row carries more (version, note, timestamps) that the save call must not receive. */
+const pick = (p: Fields): Fields => ({
+  writer: p.writer, editor: p.editor, model: p.model, minWords: p.minWords, maxWords: p.maxWords,
+  planner: p.planner, factCheck: p.factCheck, voices: p.voices, bible: p.bible, characters: p.characters,
+});
 
-const FIELD_NAMES: [keyof Fields, string][] = [['writer', 'writer prompt'], ['editor', 'editor prompt'], ['model', 'model'], ['minWords', 'minimum words'], ['maxWords', 'maximum words']];
+const FIELD_NAMES: [keyof Fields, string][] = [
+  ['planner', 'planner prompt'], ['writer', 'writer prompt'], ['factCheck', 'fact-check prompt'], ['editor', 'editor prompt'],
+  ['voices', 'voices'], ['bible', 'story bible'], ['characters', 'story characters'], ['model', 'model'], ['minWords', 'minimum words'], ['maxWords', 'maximum words'],
+];
 
 /**
  * View and edit the prompt behind the stories. Saving never overwrites: it appends a new version, which becomes the one used for
@@ -58,7 +67,7 @@ export function PromptEditor({ canEdit }: { canEdit: boolean }) {
     <div className="scv-st-prompt">
       <p className="scv-admin-note">
         Active: <b>{active ? `version ${active.version}` : 'the defaults in the source code (version 0)'}</b>. Saving makes a new version and never overwrites an old one.
-        The source file <code>convex/storyPrompt.ts</code> holds the defaults used until a version is saved here.
+        The source files <code>convex/storyPrompt.ts</code> and <code>convex/storyBible.ts</code> and <code>convex/storyCharacters.ts</code> hold the defaults used until a version is saved here. A version saved before the planner, fact-check, voices, bible and characters were editable uses the source defaults for them.
       </p>
 
       <div className="scv-st-row">
@@ -87,18 +96,37 @@ export function PromptEditor({ canEdit }: { canEdit: boolean }) {
         </label>
       </div>
 
-      <label className="scv-bug-field">Writer prompt (writes the first draft from the record of the expedition)
+      <h4 className="scv-st-h">The four calls, in the order they run</h4>
+      <label className="scv-bug-field"><span>1. Planner prompt (reads the record and the voice, and plans what the story is about and how it ends)</span>
+        <textarea className="scv-st-area" rows={14} value={fields.planner} readOnly={!canEdit} onChange={(e) => set({ planner: e.target.value })} spellCheck={false} />
+      </label>
+      <label className="scv-bug-field"><span>2. Writer prompt (writes the first draft from the record, the plan and the voice)</span>
         <textarea className="scv-st-area" rows={18} value={fields.writer} readOnly={!canEdit} onChange={(e) => set({ writer: e.target.value })} spellCheck={false} />
       </label>
-      <label className="scv-bug-field">Editor prompt (checks the draft against the record and improves it)
+      <label className="scv-bug-field"><span>3. Fact-check prompt (lists where the story departs from the record; run before and after the edit)</span>
+        <textarea className="scv-st-area" rows={12} value={fields.factCheck} readOnly={!canEdit} onChange={(e) => set({ factCheck: e.target.value })} spellCheck={false} />
+      </label>
+      <label className="scv-bug-field"><span>4. Editor prompt (fixes the fact problems and improves the telling; returns only the story)</span>
         <textarea className="scv-st-area" rows={14} value={fields.editor} readOnly={!canEdit} onChange={(e) => set({ editor: e.target.value })} spellCheck={false} />
+      </label>
+
+      <h4 className="scv-st-h">Voices and the world</h4>
+      <label className="scv-bug-field"><span>Voices (one per line as <code>id: instruction</code>; each game is given one, always the same one)</span>
+        <textarea className="scv-st-area" rows={9} value={fields.voices} readOnly={!canEdit} onChange={(e) => set({ voices: e.target.value })} spellCheck={false} />
+      </label>
+      <label className="scv-bug-field"><span>Story bible (sections <code>## header</code>, <code>## creatures</code>, <code>## artefacts</code>, <code>## places</code>; one <code>Name: entry</code> per line; a place is <code>keyword | keyword: entry</code>. Only the entries for what is in a game are given to the planner and writer.)</span>
+        <textarea className="scv-st-area" rows={28} value={fields.bible} readOnly={!canEdit} onChange={(e) => set({ bible: e.target.value })} spellCheck={false} />
+      </label>
+
+      <label className="scv-bug-field"><span>Story characters (a <code>## header</code>, then one <code>## Class</code> block per creature with lines <code>general:</code>, <code>names:</code>, <code>habits:</code>, <code>worries:</code>, <code>wants:</code>, <code>strengths:</code> and, for classes that can start a party, <code>explorer:</code>; list items are separated by <code>|</code>. Last comes <code>## pairings</code> with <code>Class + Class: text</code>. Names are assigned by the code, the same for a game every time)</span>
+        <textarea className="scv-st-area" rows={32} value={fields.characters} readOnly={!canEdit} onChange={(e) => set({ characters: e.target.value })} spellCheck={false} />
       </label>
 
       {canEdit ? (
         <>
           <p className="scv-admin-note" role="status">
             {changed.length ? `Changed from ${baseLabel}: ${changed.join(', ')}.` : `No changes from ${baseLabel}.`}
-            {' '}Changes to the editor prompt must keep its output format (story, then a line === UNSUPPORTED ===, then the list).
+            {' '}The editor prompt is the line editor: it is given the facts, the voice, any fact problems to fix and the draft, and must return only the story (a "# Title" line, then paragraphs). Fact-checking is a separate call whose prompt lives in the code.
           </p>
           <div className="scv-st-row">
             <label className="scv-bug-field scv-st-grow">Note for this version (optional)

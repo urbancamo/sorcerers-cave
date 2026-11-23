@@ -238,6 +238,12 @@ export default defineSchema({
     model: v.string(),
     minWords: v.number(),
     maxWords: v.number(),
+    // Added later; a version without them uses the source defaults (see activePrompt).
+    planner: v.optional(v.string()),
+    factCheck: v.optional(v.string()),
+    voices: v.optional(v.string()),
+    bible: v.optional(v.string()),
+    characters: v.optional(v.string()),
     note: v.optional(v.string()),
     createdBy: v.optional(v.id("users")),
     createdAt: v.number(),
@@ -247,7 +253,7 @@ export default defineSchema({
   storyRuns: defineTable({
     storyId: v.optional(v.id("stories")),
     highScoreId: v.id("highScores"),
-    pass: v.union(v.literal("write"), v.literal("check")),
+    pass: v.union(v.literal("plan"), v.literal("write"), v.literal("check"), v.literal("edit")),
     trigger: v.union(v.literal("save"), v.literal("rewrite"), v.literal("retry"), v.literal("trial")), // trial: an unsaved prompt tried from the admin panel
     promptVersion: v.number(), // -1 for a trial of an unsaved prompt
     model: v.string(),

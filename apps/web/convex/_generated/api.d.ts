@@ -29,6 +29,8 @@ import type * as settings from "../settings.js";
 import type * as stories from "../stories.js";
 import type * as storyAdmin from "../storyAdmin.js";
 import type * as storyAdminLib from "../storyAdminLib.js";
+import type * as storyBible from "../storyBible.js";
+import type * as storyCharacters from "../storyCharacters.js";
 import type * as storyDigest from "../storyDigest.js";
 import type * as storyGen from "../storyGen.js";
 import type * as storyPrompt from "../storyPrompt.js";
@@ -63,6 +65,8 @@ declare const fullApi: ApiFromModules<{
   stories: typeof stories;
   storyAdmin: typeof storyAdmin;
   storyAdminLib: typeof storyAdminLib;
+  storyBible: typeof storyBible;
+  storyCharacters: typeof storyCharacters;
   storyDigest: typeof storyDigest;
   storyGen: typeof storyGen;
   storyPrompt: typeof storyPrompt;

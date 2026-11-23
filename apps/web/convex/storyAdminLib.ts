@@ -1,11 +1,14 @@
-import { MODEL_PRICES, WORD_RANGE } from "./storyPrompt";
+import { ALL_CREATURES, ALL_TREASURES } from "@sorcerers-cave/engine";
+import { MODEL_PRICES, WORD_RANGE, parseVoices } from "./storyPrompt";
+import { bibleProblems } from "./storyBible";
+import { characterProblems } from "./storyCharacters";
 
 /** Pure figures for the admin Stories dashboard (tested without a database), like analyticsLib.ts for games. */
 
 const DAY_MS = 86_400_000;
 export const DAYS = 30;
 
-export interface RunRow { createdAt: number; pass: "write" | "check"; trigger: string; promptVersion: number; model: string; inputTokens: number; outputTokens: number; costUsd: number; durationMs: number; status: "ok" | "rejected" | "error" }
+export interface RunRow { createdAt: number; pass: "plan" | "write" | "check" | "edit"; trigger: string; promptVersion: number; model: string; inputTokens: number; outputTokens: number; costUsd: number; durationMs: number; status: "ok" | "rejected" | "error" }
 export interface StoryRow { status: "pending" | "ready" | "failed"; words?: number; promptVersion?: number; attempts: number; error?: string }
 
 /** A short, countable label for a failure message. */
@@ -31,7 +34,7 @@ export function aggregateStories(runs: RunRow[], stories: StoryRow[], now: numbe
   const days = Array.from({ length: DAYS }, (_, i) => today - (DAYS - 1 - i) * DAY_MS);
   const perDay = new Map<number, { calls: number; ok: number; cents: number }>(days.map((d) => [d, { calls: 0, ok: 0, cents: 0 }]));
   let cost = 0, inTok = 0, outTok = 0, dur = 0, ok = 0, spendToday = 0, spendMonth = 0, writes = 0;
-  const byPass = { write: 0, check: 0 };
+  const byPass = { plan: 0, write: 0, check: 0, edit: 0 };
   const byVersionCost = new Map<number, number>();
   for (const r of runs) {
     cost += r.costUsd; inTok += r.inputTokens; outTok += r.outputTokens; dur += r.durationMs;
@@ -66,7 +69,7 @@ export function aggregateStories(runs: RunRow[], stories: StoryRow[], now: numbe
       costUsd: round(cost), inputTokens: inTok, outputTokens: outTok,
       avgDurationMs: runs.length ? Math.round(dur / runs.length) : null,
       avgCostPerStoryUsd: writes ? round(cost / writes) : null, // each story starts with one write call
-      byPass: { write: round(byPass.write), check: round(byPass.check) },
+      byPass: { plan: round(byPass.plan), write: round(byPass.write), check: round(byPass.check), edit: round(byPass.edit) },
     },
     spend: { todayUsd: round(spendToday), monthUsd: round(spendMonth) },
     perDay: days.map((d) => ({ day: new Date(d).toISOString().slice(0, 10), ...perDay.get(d)!, cents: Math.round(perDay.get(d)!.cents * 100) / 100 })),
@@ -76,12 +79,27 @@ export function aggregateStories(runs: RunRow[], stories: StoryRow[], now: numbe
 }
 
 /** What a saved prompt version must satisfy. Returns the problems (empty = fine). */
-export function promptProblems(p: { writer: string; editor: string; model: string; minWords: number; maxWords: number }): string[] {
+export function promptProblems(p: { writer: string; editor: string; model: string; minWords: number; maxWords: number; planner?: string; factCheck?: string; voices?: string; bible?: string; characters?: string }): string[] {
   const out: string[] = [];
   if (!p.writer.trim()) out.push("The writer prompt is empty.");
   if (!p.editor.trim()) out.push("The editor prompt is empty.");
   if (p.writer.length > 20_000) out.push("The writer prompt is over 20,000 characters.");
   if (p.editor.length > 20_000) out.push("The editor prompt is over 20,000 characters.");
+  for (const [key, label] of [["planner", "planner"], ["factCheck", "fact-check"]] as const) {
+    const t = p[key];
+    if (t === undefined) continue;
+    if (!t.trim()) out.push(`The ${label} prompt is empty.`);
+    if (t.length > 20_000) out.push(`The ${label} prompt is over 20,000 characters.`);
+  }
+  if (p.voices !== undefined) out.push(...parseVoices(p.voices).problems);
+  if (p.characters !== undefined) {
+    if (p.characters.length > 120_000) out.push("The story characters are over 120,000 characters.");
+    out.push(...characterProblems(p.characters, ALL_CREATURES.map((c) => c.name)));
+  }
+  if (p.bible !== undefined) {
+    if (p.bible.length > 80_000) out.push("The story bible is over 80,000 characters.");
+    out.push(...bibleProblems(p.bible, { creatures: ALL_CREATURES.map((c) => c.name), treasures: ALL_TREASURES.map((t) => t.name) }));
+  }
   if (!(p.model in MODEL_PRICES)) out.push(`The model must be one of: ${Object.keys(MODEL_PRICES).join(", ")}.`);
   if (!Number.isInteger(p.minWords) || !Number.isInteger(p.maxWords) || p.minWords < 100 || p.maxWords > 6000 || p.minWords >= p.maxWords) out.push("The word range must be whole numbers, at least 100 and at most 6,000, with the minimum below the maximum.");
   return out;

@@ -75,6 +75,13 @@ describe("AdminApp gating", () => {
     expect(assign).toHaveBeenCalledWith("/");
   });
 
+  it("Quit Admin returns to the welcome page without signing out", () => {
+    me = { roles: ["ANALYTICS"], username: "ann" };
+    render(<AdminApp />);
+    fireEvent.click(screen.getByRole("button", { name: "Quit Admin" }));
+    expect(assign).toHaveBeenCalledWith("/");
+  });
+
   it("a STORIES-only user sees just the Stories tab, with editing allowed", () => {
     me = { roles: ["STORIES"], username: "pete" };
     render(<AdminApp />);

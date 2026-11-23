@@ -24,10 +24,10 @@ describe("storyDigest", () => {
       expect(d.outcome.score).toBe(score);
       expect(d.outcome.exitCount).toBeGreaterThan(0);
       expect(d.beats.length).toBeGreaterThan(5);
-      expect(d.beats.length).toBeLessThanOrEqual(60);
+      expect(d.beats.length).toBeLessThanOrEqual(150);
       expect(d.beats.map((b) => b.n)).toEqual([...d.beats.map((b) => b.n)].sort((a, b) => a - b));
       const text = digestText(d);
-      expect(text).not.toMatch(/undefined|NaN|\ba (?=[AEIOU])/);
+      expect(text).not.toMatch(/undefined|NaN|\ba (?=(?!Uni)[AEIOU])/);
     }
   });
 
@@ -81,4 +81,56 @@ it("a long game's cap never drops a joining: every roster growth is in the diges
   expect(grew).toBeGreaterThan(5);
   expect(joins.length).toBe(grew);
   expect(joins.every((b) => b.weight === 3)).toBe(true);
+});
+
+describe("storyDigest: what the writer reads", () => {
+  const texts = () => replayable.slice(0, 8).map(({ code }) => digestText(run(code)));
+
+  it("speaks of floors, never levels, and groups the beats under floor headings", () => {
+    for (const t of texts()) {
+      expect(t).not.toMatch(/\blevel\b/i);
+      expect(t).toMatch(/^Floor 1$/m);
+      expect(t).toMatch(/^Floors are numbered from 1/m);
+    }
+  });
+
+  it("states the route and never names a hazard it cannot name", () => {
+    for (const t of texts()) {
+      expect(t).toMatch(/The party went down to floor \d/);
+      expect(t).not.toMatch(/\(a hazard\)/);
+    }
+  });
+
+  it("merges a meeting that ended in a joining into one beat, and keeps only a meeting's last reaction", () => {
+    for (const t of texts()) {
+      expect(t).not.toMatch(/^\d+\. Their reaction[^\n]*\n\d+\. Their reaction/m); // never two reactions in a row
+      expect(t).not.toMatch(/^\d+\. A chamber with [^\n]*\n\d+\. Their reaction[^\n]*: friendly\.\n\d+\. [^\n]* joined the party/m); // chamber, friendly reaction, joining: one line
+    }
+  });
+
+  it("does not claim a desertion for a member who later came back, and keeps the whole record (no 60 cap)", () => {
+    for (const t of texts()) if (/turned against the party/.test(t)) expect(t).toMatch(/who had deserted came back|may be won back/);
+  });
+});
+
+describe("storyDigest: grammar", () => {
+  it("says 'a Unicorn', not 'an Unicorn'", () => {
+    for (const { code } of replayable.slice(0, 25)) expect(digestText(run(code))).not.toMatch(/\ban Unicorn/);
+  });
+});
+
+describe("storyDigest: what was carried out", () => {
+  it("says how much silver, gold and gems the survivors carried, or none, and it matches the final state", () => {
+    for (const { code } of replayable.slice(0, 8)) {
+      const g = (games as unknown as Record<string, Rec>)[code]!;
+      const frames = replay(g.seed, g.picks, g.actions, g.variants as never);
+      const end = frames[frames.length - 1]!.state.party.filter((m) => m.status === 0 || m.status === 1).flatMap((m) => m.treasure);
+      const d = storyDigest(frames);
+      const total = [0, 1, 2].reduce((n, id) => n + end.filter((t) => t === id).length, 0);
+      expect(digestText(d)).toMatch(/^Silver, gold and gems carried out: .+\.$/m);
+      expect(d.outcome.wealth).not.toMatch(/\d (Silver|Gold|Gems)/); // always bags, never a bare count of pieces
+      if (total === 0) expect(d.outcome.wealth).toBe("none");
+      else expect([...d.outcome.wealth.matchAll(/(\d+) bags? of (Silver|Gold|Gems)/g)].reduce((n, m) => n + Number(m[1]), 0)).toBe(total);
+    }
+  });
 });

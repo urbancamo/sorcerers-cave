@@ -3,19 +3,22 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 const overview = {
   counts: { pending: 1, ready: 3, failed: 1 }, successRate: 60, avgWords: 1500,
-  runs: { total: 10, ok: 8, failed: 2, costUsd: 0.9, inputTokens: 1, outputTokens: 1, avgDurationMs: 42000, avgCostPerStoryUsd: 0.18, byPass: { write: 0.5, check: 0.4 } },
+  runs: { total: 10, ok: 8, failed: 2, costUsd: 0.9, inputTokens: 1, outputTokens: 1, avgDurationMs: 42000, avgCostPerStoryUsd: 0.18, byPass: { plan: 0.1, write: 0.3, edit: 0.2, check: 0.1 } },
   spend: { todayUsd: 0.45, monthUsd: 0.9 },
   perDay: [{ day: "2026-11-21", calls: 2, ok: 2, cents: 18 }, { day: "2026-11-22", calls: 4, ok: 3, cents: 45 }],
   byVersion: [{ version: 0, count: 2, costUsd: 0.3 }, { version: 1, count: 1, costUsd: 0.2 }],
   failureReasons: [{ reason: "Unsupported facts", count: 1 }],
   settings: { paused: false, dailyCapUsd: 2, monthlyCapUsd: null }, activeVersion: 1, windowDays: 30,
 };
-const defaults = { writer: "DEFAULT WRITER", editor: "DEFAULT EDITOR", model: "claude-sonnet-5-5", minWords: 1400, maxWords: 1900 };
+const defaults = {
+  writer: "DEFAULT WRITER", editor: "DEFAULT EDITOR", model: "claude-sonnet-5-5", minWords: 1400, maxWords: 1900,
+  planner: "DEFAULT PLANNER", factCheck: "DEFAULT FACT CHECK", voices: "solo: A voice.", bible: "## header\nDEFAULT BIBLE", characters: "## header\nDEFAULT CHARACTERS",
+};
 const v1 = { ...defaults, writer: "V1 WRITER", version: 1, note: "first", createdAt: 1 };
 const preview = { label: "Stories written with an older prompt than version 1", count: 2, truncated: false, perStoryUsd: 0.18, estimatedUsd: 0.36, remainingTodayUsd: 1.55, exceedsDailyCap: false, paused: false };
 let jobs: unknown[];
 
-const update = vi.fn(), save = vi.fn(), start = vi.fn(), stop = vi.fn(), tryIt = vi.fn();
+const update = vi.fn(), save = vi.fn(), start = vi.fn(), stop = vi.fn(), tryIt = vi.fn(), jobStoriesQuery = vi.fn();
 vi.mock("convex/react", () => ({
   useQuery: (ref: string, args: unknown) => {
     if (args === "skip") return undefined;
@@ -28,9 +31,10 @@ vi.mock("convex/react", () => ({
   },
   useMutation: (ref: string) => ({ "s.update": update, "s.save": save, "s.start": start, "s.stop": stop } as Record<string, unknown>)[ref],
   useAction: () => tryIt,
+  useConvex: () => ({ query: jobStoriesQuery }),
 }));
 vi.mock("../../../convex/_generated/api", () => ({
-  api: { storyAdmin: { overview: "s.overview", prompts: "s.prompts", recent: "s.recent", rewritePreview: "s.preview", jobs: "s.jobs", storyText: "s.text", updateSettings: "s.update", savePrompt: "s.save", startRewrite: "s.start", stopJob: "s.stop", tryPrompt: "s.try" } },
+  api: { storyAdmin: { overview: "s.overview", prompts: "s.prompts", recent: "s.recent", rewritePreview: "s.preview", jobs: "s.jobs", storyText: "s.text", updateSettings: "s.update", savePrompt: "s.save", startRewrite: "s.start", stopJob: "s.stop", jobStories: "s.jobStories", tryPrompt: "s.try" } },
 }));
 
 import { StoriesTab } from "./StoriesTab";
@@ -70,7 +74,7 @@ describe("Prompt editor", () => {
     save.mockResolvedValue(2);
     render(<StoriesTab canEdit />);
     open("Prompt");
-    const writer = screen.getByLabelText(/^Writer prompt/);
+    const writer = screen.getByLabelText(/Writer prompt/);
     expect(writer).toHaveValue("V1 WRITER");
     expect(screen.getByRole("button", { name: "Save as a new version" })).toBeDisabled();
     fireEvent.change(writer, { target: { value: "V2 WRITER" } });
@@ -81,18 +85,43 @@ describe("Prompt editor", () => {
     expect(await screen.findByText(/Saved as version 2/)).toBeInTheDocument();
   });
 
+  it("edits the planner, fact-check, voices and bible too, and saves them with the version", async () => {
+    save.mockResolvedValue(2);
+    render(<StoriesTab canEdit />);
+    open("Prompt");
+    expect(screen.getByLabelText(/Planner prompt/)).toHaveValue("DEFAULT PLANNER");
+    expect(screen.getByLabelText(/Fact-check prompt/)).toHaveValue("DEFAULT FACT CHECK");
+    expect(screen.getByLabelText(/Voices \(one per line/)).toHaveValue("solo: A voice.");
+    expect(screen.getByLabelText(/Story bible/)).toHaveValue("## header\nDEFAULT BIBLE");
+    fireEvent.change(screen.getByLabelText(/Planner prompt/), { target: { value: "NEW PLANNER" } });
+    fireEvent.change(screen.getByLabelText(/Story bible/), { target: { value: "## header\nNEW BIBLE" } });
+    expect(screen.getByLabelText(/Story characters/)).toHaveValue("## header\nDEFAULT CHARACTERS");
+    fireEvent.change(screen.getByLabelText(/Story characters/), { target: { value: "## header\nNEW CHARACTERS" } });
+    expect(screen.getByText(/Changed from version 1: planner prompt, story bible, story characters/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Save as a new version" }));
+    await waitFor(() => expect(save).toHaveBeenCalledWith({ ...defaults, writer: "V1 WRITER", planner: "NEW PLANNER", bible: "## header\nNEW BIBLE", characters: "## header\nNEW CHARACTERS", note: undefined }));
+  });
+
+  it("shows the new fields read-only without the Stories role", () => {
+    render(<StoriesTab canEdit={false} />);
+    open("Prompt");
+    expect(screen.getByLabelText(/Story bible/)).toHaveAttribute("readonly");
+    expect(screen.getByLabelText(/Story characters/)).toHaveAttribute("readonly");
+    expect(screen.getByLabelText(/Planner prompt/)).toHaveAttribute("readonly");
+  });
+
   it("can load the source defaults into the editor", () => {
     render(<StoriesTab canEdit />);
     open("Prompt");
     fireEvent.change(screen.getByLabelText("Load a version"), { target: { value: "defaults" } });
-    expect(screen.getByLabelText(/^Writer prompt/)).toHaveValue("DEFAULT WRITER");
+    expect(screen.getByLabelText(/Writer prompt/)).toHaveValue("DEFAULT WRITER");
   });
 
   it("tries the unsaved prompt on a chosen story and shows the result without saving", async () => {
     tryIt.mockResolvedValue({ ok: true, title: "Trial Tale", text: "# Trial Tale\n\nOnce there was a cave.", words: 1500, costUsd: 0.1 });
     render(<StoriesTab canEdit />);
     open("Prompt");
-    fireEvent.change(screen.getByLabelText(/^Writer prompt/), { target: { value: "TRY THIS" } });
+    fireEvent.change(screen.getByLabelText(/Writer prompt/), { target: { value: "TRY THIS" } });
     fireEvent.change(screen.getByLabelText("Game to write from"), { target: { value: "hs1" } });
     fireEvent.click(screen.getByRole("button", { name: "Write a trial story" }));
     expect(await screen.findByText("Once there was a cave.")).toBeInTheDocument();
@@ -103,7 +132,7 @@ describe("Prompt editor", () => {
   it("is read-only without SYSTEM", () => {
     render(<StoriesTab canEdit={false} />);
     open("Prompt");
-    expect(screen.getByLabelText(/^Writer prompt/)).toHaveAttribute("readonly");
+    expect(screen.getByLabelText(/Writer prompt/)).toHaveAttribute("readonly");
     expect(screen.queryByRole("button", { name: "Save as a new version" })).toBeNull();
   });
 });
@@ -134,6 +163,29 @@ describe("Rewrites", () => {
     expect(stop).toHaveBeenCalledWith({ jobId: "j1" });
     fireEvent.change(screen.getByLabelText(/Type REWRITE/), { target: { value: "REWRITE" } });
     expect(screen.getByRole("button", { name: "Start rewrite" })).toBeDisabled();
+  });
+
+  it("offers PDF and Markdown downloads only on a finished rewrite that wrote stories", async () => {
+    const now = Date.now();
+    jobs = [
+      { _id: "j1", scope: "Every story", total: 5, done: 5, failed: 0, status: "done", reason: null, createdAt: now, updatedAt: now },
+      { _id: "j2", scope: "Failed stories", total: 3, done: 0, failed: 3, status: "done", reason: null, createdAt: now, updatedAt: now },
+      { _id: "j3", scope: "One game", total: 1, done: 0, failed: 0, status: "running", reason: null, createdAt: now, updatedAt: now },
+    ];
+    const created: Blob[] = [];
+    URL.createObjectURL = vi.fn((b: Blob) => { created.push(b); return "blob:x"; });
+    URL.revokeObjectURL = vi.fn();
+    jobStoriesQuery.mockResolvedValue([{ title: "A", text: "# A\n\nOne.", updatedAt: 1 }, { title: "B", text: "# B\n\nTwo.", updatedAt: 2 }]);
+    render(<StoriesTab canEdit />);
+    open("Rewrites");
+    const rowOf = (scope: string) => within(screen.getByRole("table")).getByText(scope).closest("tr")!;
+    expect(within(rowOf("Failed stories")).queryByRole("button", { name: "PDF" })).toBeNull();
+    expect(within(rowOf("One game")).queryByRole("button", { name: "Markdown" })).toBeNull();
+    expect(within(rowOf("Every story")).getByRole("button", { name: "PDF" })).toBeInTheDocument();
+    fireEvent.click(within(rowOf("Every story")).getByRole("button", { name: "Markdown" }));
+    await waitFor(() => expect(created).toHaveLength(1));
+    expect(jobStoriesQuery).toHaveBeenCalledWith("s.jobStories", { jobId: "j1" });
+    expect(await created[0]!.text()).toBe("# A\n\nOne.\n\n---\n\n# B\n\nTwo.\n");
   });
 
   it("offers no rewrite form without SYSTEM", () => {

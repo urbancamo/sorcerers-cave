@@ -13,7 +13,7 @@ import { storyThreshold } from "./storyPrompt";
 const triggerV = v.union(v.literal("save"), v.literal("rewrite"), v.literal("retry"));
 export type SettingsArgs = { paused?: boolean; dailyCapUsd?: number; monthlyCapUsd?: number };
 const runV = v.object({
-  pass: v.union(v.literal("write"), v.literal("check")),
+  pass: v.union(v.literal("plan"), v.literal("write"), v.literal("check"), v.literal("edit")),
   model: v.string(), inputTokens: v.number(), outputTokens: v.number(), costUsd: v.number(), durationMs: v.number(),
   status: v.union(v.literal("ok"), v.literal("rejected"), v.literal("error")), reason: v.optional(v.string()),
 });
@@ -51,7 +51,13 @@ export async function queueStory(ctx: MutationCtx, highScoreId: Id<"highScores">
 /** The active prompt: the newest saved version, or the source default (version 0). */
 export async function activePrompt(ctx: { db: QueryCtx["db"] }): Promise<ResolvedPrompt> {
   const row = await ctx.db.query("storyPrompts").withIndex("by_version").order("desc").first();
-  return row ? { version: row.version, writer: row.writer, editor: row.editor, model: row.model, minWords: row.minWords, maxWords: row.maxWords } : defaultPrompt();
+  if (!row) return defaultPrompt();
+  // A version saved before the planner, fact-check, voices, bible and characters were editable has none of them: it uses today's source defaults.
+  const d = defaultPrompt();
+  return {
+    version: row.version, writer: row.writer, editor: row.editor, model: row.model, minWords: row.minWords, maxWords: row.maxWords,
+    planner: row.planner ?? d.planner, factCheck: row.factCheck ?? d.factCheck, voices: row.voices ?? d.voices, bible: row.bible ?? d.bible, characters: row.characters ?? d.characters,
+  };
 }
 
 export const startOfUtcDay = (t: number): number => t - (t % 86_400_000);

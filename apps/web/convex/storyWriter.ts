@@ -1,21 +1,38 @@
 import {
-  DEFAULT_MODEL, EDITOR_SYSTEM, WORD_RANGE, WRITER_SYSTEM, editorUserMessage, estimateCostUsd, storyProblems, writerUserMessage,
+  DEFAULT_MODEL, EDITOR_SYSTEM, FACT_CHECK_SYSTEM, PLANNER_SYSTEM, WORD_RANGE, WRITER_SYSTEM, editorUserMessage, estimateCostUsd, factCheckUserMessage, parseVoices, pickVoice, plannerUserMessage, renderVoices, storyProblems, writerUserMessage,
 } from "./storyPrompt";
+import { bibleFor, renderBible } from "./storyBible";
+import { castFor, renderCharacters } from "./storyCharacters";
 
 /**
- * The two-pass story generator, with the model call passed in so it is testable without an API and so the Convex action
- * stays thin. Pass 1 writes from the digest; pass 2 checks the draft against the digest (facts and continuity), returns the
- * improved story and any facts it could not support; one retry of pass 2 may clear those; deterministic guards run last.
+ * The story generator, with the model call passed in so it is testable without an API and so the Convex action stays thin.
+ * plan (the shape) -> write (a draft) -> check (a fact-checker lists what is wrong) -> edit (a line editor fixes those and improves
+ * the telling) -> check again, since an edit can add a fact; one more edit and check if problems remain. Deterministic guards run last.
  */
 export type ModelCall = (a: { model: string; system: string; user: string; maxTokens: number }) => Promise<{ text: string; inputTokens: number; outputTokens: number }>;
 
-export interface ResolvedPrompt { version: number; writer: string; editor: string; model: string; minWords: number; maxWords: number }
+/** Everything the generator reads. `planner`, `factCheck`, `voices` and `bible` are text (voices and bible in the formats of `parseVoices` and `parseBible`). */
+export interface ResolvedPrompt {
+  version: number; writer: string; editor: string; model: string; minWords: number; maxWords: number;
+  planner: string; factCheck: string; voices: string; bible: string;
+  /** The story characters (class entries, names, pools and pairings), in the format of `parseCharacters`. */
+  characters: string;
+}
 
 /** The prompt used when none has been saved in the admin panel: the defaults in storyPrompt.ts (version 0). */
-export const defaultPrompt = (): ResolvedPrompt => ({ version: 0, writer: WRITER_SYSTEM, editor: EDITOR_SYSTEM, model: DEFAULT_MODEL, minWords: WORD_RANGE.min, maxWords: WORD_RANGE.max });
+export const defaultPrompt = (): ResolvedPrompt => ({
+  version: 0, writer: WRITER_SYSTEM, editor: EDITOR_SYSTEM, model: DEFAULT_MODEL, minWords: WORD_RANGE.min, maxWords: WORD_RANGE.max,
+  planner: PLANNER_SYSTEM, factCheck: FACT_CHECK_SYSTEM, voices: renderVoices(), bible: renderBible(), characters: renderCharacters(),
+});
+
+/** Fill the five newer prompt fields from the source defaults when a caller (or an old saved version) left them out. */
+export function resolveFields<T extends { planner?: string; factCheck?: string; voices?: string; bible?: string; characters?: string }>(p: T): T & Pick<ResolvedPrompt, "planner" | "factCheck" | "voices" | "bible" | "characters"> {
+  const d = defaultPrompt();
+  return { ...p, planner: p.planner ?? d.planner, factCheck: p.factCheck ?? d.factCheck, voices: p.voices ?? d.voices, bible: p.bible ?? d.bible, characters: p.characters ?? d.characters };
+}
 
 export interface RunRecord {
-  pass: "write" | "check";
+  pass: "plan" | "write" | "check" | "edit";
   model: string;
   inputTokens: number;
   outputTokens: number;
@@ -38,21 +55,34 @@ export function splitStory(text: string): { title: string; words: number } {
   return { title: first.replace(/^#\s+/, "").trim(), words: rest.join(" ").split(/\s+/).filter(Boolean).length };
 }
 
-/** The line that ends the story in the editor's reply; what follows it is the list of facts it could not support. */
+/** The line an older editor prompt put between the story and its list of unsupported facts; tolerated and ignored. */
 export const UNSUPPORTED_MARKER = "=== UNSUPPORTED ===";
 
-/** Read the editor's reply: the story, then the marker line, then one unsupported fact per line (or "none"). */
-export function parseEditorReply(raw: string): { story: string; unsupported: string[] } | null {
+/** Read the line editor's reply: a "# Title" story. (A reply in the old format, with a marker line and a list after the story, is cut at the marker.) */
+export function parseEditedStory(raw: string): string | null {
   const m = raw.match(/^[ \t]*={3} UNSUPPORTED ={3}[ \t]*$/m);
-  if (!m || m.index === undefined) return null;
-  const story = raw.slice(0, m.index).trim();
-  if (!/^# \S/.test(story)) return null;
-  const unsupported = raw.slice(m.index + m[0].length).split("\n").map((l) => l.replace(/^[-*\d.)\s]+/, "").trim()).filter((l) => l && !/^none\.?$/i.test(l));
-  return { story, unsupported };
+  const story = (m && m.index !== undefined ? raw.slice(0, m.index) : raw).trim();
+  return /^# \S/.test(story) ? story : null;
 }
 
-export async function writeStory(call: ModelCall, prompt: ResolvedPrompt, digestText: string, now: () => number = Date.now): Promise<WriteResult> {
+/** Read the fact-checker's reply: one problem per line, or the single word "none". Null for an empty reply. */
+export function parseFactCheck(raw: string): string[] | null {
+  const lines = raw.split("\n").map((l) => l.replace(/^[-*\d.)\s]+/, "").trim()).filter(Boolean);
+  if (!lines.length) return null;
+  return lines.length === 1 && /^none\.?$/i.test(lines[0]!) ? [] : lines.filter((l) => !/^none\.?$/i.test(l));
+}
+
+/**
+ * `voiceKey` (the high-score id) picks the voice the story is told in, the same one every time for the same game. The planning pass
+ * comes first; if it fails the story is still written, just without a plan.
+ */
+export async function writeStory(call: ModelCall, prompt: ResolvedPrompt, digestText: string, now: () => number = Date.now, voiceKey = ""): Promise<WriteResult> {
   const runs: RunRecord[] = [];
+  const voices = parseVoices(prompt.voices).voices;
+  const voice = pickVoice(voiceKey, voices.length ? voices : undefined);
+  // lore for just the creatures, objects and places in this run, then the named company of the party (fixed names, pools to pick from)
+  const people = castFor(digestText, voiceKey, prompt.characters);
+  const bible = [bibleFor(digestText, prompt.bible), people].filter(Boolean).join("\n\n");
 
   /** One model call, recorded as a run whatever happens. Returns the text, or null after recording the failure. */
   const attempt = async (pass: RunRecord["pass"], system: string, user: string): Promise<string | null> => {
@@ -73,26 +103,38 @@ export async function writeStory(call: ModelCall, prompt: ResolvedPrompt, digest
     return { ok: false, reason, runs };
   };
 
-  const draft = await attempt("write", prompt.writer, writerUserMessage(digestText));
+  const planText = await attempt("plan", prompt.planner, plannerUserMessage(digestText, voice, bible));
+  const plan = planText?.trim() || undefined; // a failed plan is recorded as an error run; the story goes on without it
+  const draft = await attempt("write", prompt.writer, writerUserMessage(digestText, voice, plan, bible));
   if (draft === null) return { ok: false, reason: `write failed: ${runs[runs.length - 1]!.reason}`, runs };
 
-  let edited = await attempt("check", prompt.editor, editorUserMessage(digestText, draft));
-  if (edited === null) return { ok: false, reason: `check failed: ${runs[runs.length - 1]!.reason}`, runs };
-  let parsed = parseEditorReply(edited);
-  if (!parsed) return reject("editor reply was not in the expected format");
+  /** Fact-check a story: the problems found, [] when it is clean, or null after recording a failure. */
+  const check = async (story: string): Promise<string[] | WriteResult> => {
+    const raw = await attempt("check", prompt.factCheck, factCheckUserMessage(digestText, story));
+    if (raw === null) return { ok: false, reason: `check failed: ${runs[runs.length - 1]!.reason}`, runs };
+    const found = parseFactCheck(raw);
+    return found ?? reject("fact-check reply was empty");
+  };
 
-  // Unsupported facts left after the first check: one more pass over the edited story, told what remains.
-  if (parsed.unsupported.length) {
-    const again = await attempt("check", prompt.editor, `${editorUserMessage(digestText, parsed.story)}\n\nThe previous check could not reconcile these with the record; fix them in the text:\n- ${parsed.unsupported.join("\n- ")}`);
-    if (again === null) return { ok: false, reason: `check failed: ${runs[runs.length - 1]!.reason}`, runs };
-    edited = again;
-    parsed = parseEditorReply(edited);
+  let story = draft;
+  let facts = await check(story);
+  let guard: string[] = [];
+  // Two edits at most. The first fixes the draft's fact problems and improves the telling. A second only if the edit left (or added) a fact
+  // problem, or the finished text breaks a length or form rule: that is handed back to the editor too, not thrown away.
+  for (let round = 0; round < 2; round++) {
+    if (!Array.isArray(facts)) return facts;
+    const edited = await attempt("edit", prompt.editor, editorUserMessage(digestText, story, voice, [...facts, ...guard], plan, people));
+    if (edited === null) return { ok: false, reason: `edit failed: ${runs[runs.length - 1]!.reason}`, runs };
+    const parsed = parseEditedStory(edited);
     if (!parsed) return reject("editor reply was not in the expected format");
-    if (parsed.unsupported.length) return reject(`unsupported facts remain: ${short(parsed.unsupported.join("; "))}`);
+    story = parsed;
+    facts = await check(story); // an edit can add a fact: the final text is always checked
+    guard = storyProblems(story, { min: prompt.minWords, max: prompt.maxWords });
+    if (Array.isArray(facts) && !facts.length && !guard.length) break;
   }
-
-  const problems = storyProblems(parsed.story, { min: prompt.minWords, max: prompt.maxWords });
-  if (problems.length) return reject(`guard: ${problems.join(", ")}`);
-  const { title, words } = splitStory(parsed.story);
-  return { ok: true, title, text: parsed.story, words, runs };
+  if (!Array.isArray(facts)) return facts;
+  if (facts.length) return reject(`unsupported facts remain: ${short(facts.join("; "))}`);
+  if (guard.length) return reject(`guard: ${guard.join(", ")}`);
+  const { title, words } = splitStory(story);
+  return { ok: true, title, text: story, words, runs };
 }
