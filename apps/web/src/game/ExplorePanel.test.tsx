@@ -16,6 +16,14 @@ describe("ExplorePanel", () => {
     expect(screen.queryByTestId("explore-panel")).toBeNull();
   });
 
+  it("explains a Thief-only pickup in a pacified chamber (issue #119), and shows nothing for an ordinary pickup", () => {
+    const base: GameState = { ...newGame(1, [0]), phase: "pickup", treasures: [1] };
+    const { rerender } = render(<ExplorePanel state={{ ...base, thiefPickup: true }} dispatch={() => {}} />);
+    expect(screen.getByTestId("thief-pickup-note")).toHaveTextContent(/only the Thief can lift one treasure.*turn hostile/i);
+    rerender(<ExplorePanel state={base} dispatch={() => {}} />);
+    expect(screen.queryByTestId("thief-pickup-note")).toBeNull();
+  });
+
   it("offers 'Attack the guardians' when traversing a pacified chamber, and dispatches attack", () => {
     const dispatch = vi.fn();
     const base = newGame(1, [0]); // Hero

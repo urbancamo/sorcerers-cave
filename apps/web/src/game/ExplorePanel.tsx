@@ -41,11 +41,19 @@ export function ExplorePanel({ state, dispatch }: { state: GameState; dispatch: 
   const stay = all.find((a) => a.type === "stay") ?? null;
   const hasKitActions = !!descendChasm || !!drawFromWell || !!enterCrypt || pullBellRope.length > 0 || !!jumpToIsland;
   // (Why parked treasure cannot be carried is told on that treasure's own card, so a note alone never opens this bar.)
-  if (!attack && !hasKitActions && !reclaimTreasure && !stay) return null;
+  // A chamber its guards left indifferent three times: with a Thief present, one treasure may be lifted, and that turns the guards hostile (SC-EXT-19, issue #119).
+  const thiefNote = state.phase === "pickup" && !!state.thiefPickup;
+  if (!attack && !hasKitActions && !reclaimTreasure && !stay && !thiefNote) return null;
 
   return (
     <div className="scv-enc" data-testid="explore-panel">
       <h3 className="scv-enc-hd">{chamberName(state, state.partyArea) ?? "Actions"}</h3>
+
+      {thiefNote && (
+        <p className="scv-enc-line" data-testid="thief-pickup-note">
+          The guards here are indifferent. Only the Thief can lift one treasure, and the moment it does the guards turn hostile. Leave by any doorway to keep the peace.
+        </p>
+      )}
 
       {attack && (
         <div className="scv-enc-actions">

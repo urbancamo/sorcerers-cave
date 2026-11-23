@@ -33,6 +33,7 @@ function targetLabel(a: UseArtifact, state: GameState): string {
   const who = (mi: number) => memberLabel(state.party, mi);
   switch (a.artifact) {
     case 6: return `revive ${who(a.target!)}`;
+    case 8: return who(a.target!); // Strength Potion: the member who drinks it
     case 9: return staffTargetPhrase(state, a.target!, who);
     case 4: return `fly ${DIR_NAME[a.dir ?? -1] ?? '?'}`;
     case 12: return a.dir === undefined ? (decodeOpen(state.areas[state.partyArea]!).special === SPECIAL_VIPER_PIT ? 'lull the Vipers' : 'lull the Dragons') : `reveal the secret stair ${a.dir === DIR_DOWN ? 'below' : 'above'}`;
