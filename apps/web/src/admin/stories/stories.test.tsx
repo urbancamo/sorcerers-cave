@@ -91,7 +91,7 @@ describe("Prompt editor", () => {
     open("Prompt");
     expect(screen.getByLabelText(/Planner prompt/)).toHaveValue("DEFAULT PLANNER");
     expect(screen.getByLabelText(/Fact-check prompt/)).toHaveValue("DEFAULT FACT CHECK");
-    expect(screen.getByLabelText(/Voices \(one per line/)).toHaveValue("solo: A voice.");
+    expect(screen.getByLabelText(/Voices \(one per paragraph/)).toHaveValue("solo: A voice.");
     expect(screen.getByLabelText(/Story bible/)).toHaveValue("## header\nDEFAULT BIBLE");
     fireEvent.change(screen.getByLabelText(/Planner prompt/), { target: { value: "NEW PLANNER" } });
     fireEvent.change(screen.getByLabelText(/Story bible/), { target: { value: "## header\nNEW BIBLE" } });
@@ -186,6 +186,16 @@ describe("Rewrites", () => {
     await waitFor(() => expect(created).toHaveLength(1));
     expect(jobStoriesQuery).toHaveBeenCalledWith("s.jobStories", { jobId: "j1" });
     expect(await created[0]!.text()).toBe("# A\n\nOne.\n\n---\n\n# B\n\nTwo.\n");
+  });
+
+  it("keeps Start rewrite disabled for a single game until the word is typed", () => {
+    render(<StoriesTab canEdit />);
+    open("Rewrites");
+    fireEvent.click(screen.getByLabelText(/One game/));
+    fireEvent.change(screen.getByLabelText(/Game code/), { target: { value: "UPTR" } });
+    expect(screen.getByRole("button", { name: "Start rewrite" })).toBeDisabled();
+    fireEvent.change(screen.getByLabelText(/Type REWRITE/), { target: { value: "REWRITE" } });
+    expect(screen.getByRole("button", { name: "Start rewrite" })).toBeEnabled();
   });
 
   it("offers no rewrite form without SYSTEM", () => {

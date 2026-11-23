@@ -170,6 +170,26 @@ test("a rewrite halts, without counting failures, when a spending cap is reached
   await expect(admin.mutation(api.storyAdmin.startRewrite, { scope: { kind: "all" }, expected: 3 })).rejects.toThrow(/cap reached/);
 });
 
+test("a single game can be rewritten whatever state its story is in, if it has a saved entry", async () => {
+  vi.useFakeTimers();
+  fakeApi();
+  const t = convexTest(schema, modules);
+  const admin = (await asUser(t, ["SYSTEM"])).as;
+  const one = (code: string) => admin.query(api.storyAdmin.rewritePreview, { scope: { kind: "one", gameCode: code } });
+  // No story row at all (a saved score below the story threshold), a pending story, and a failed one all count.
+  const a = await seedScore(t, "NOST"); await t.run((ctx) => ctx.db.delete(a.storyId));
+  const b = await seedScore(t, "PEND"); await t.run((ctx) => ctx.db.patch(b.storyId, { status: "pending", text: undefined }));
+  const c = await seedScore(t, "FAIL"); await t.run((ctx) => ctx.db.patch(c.storyId, { status: "failed", text: undefined, error: "x" }));
+  for (const code of ["NOST", "PEND", "FAIL"]) expect(await one(code), code).toMatchObject({ count: 1, note: null });
+  // A game that was never saved has no entry to attach a story to, and the panel is told why.
+  await t.run((ctx) => ctx.db.insert("games", { state: {}, status: "finished", code: "LOST", seed: rec.seed, picks: rec.picks, createdAt: 0, updatedAt: 0 }));
+  expect(await one("LOST")).toMatchObject({ count: 0, note: expect.stringContaining("no saved entry") });
+  // Rewriting the game with no story row writes one.
+  await admin.mutation(api.storyAdmin.startRewrite, { scope: { kind: "one", gameCode: "NOST" }, expected: 1 });
+  await t.finishAllScheduledFunctions(vi.runAllTimers);
+  expect(await t.run((ctx) => ctx.db.query("stories").withIndex("by_highScore", (q) => q.eq("highScoreId", a.highScoreId)).first())).toMatchObject({ status: "ready" });
+});
+
 test("stopping a job is final; a single story can be chosen by game code", async () => {
   vi.useFakeTimers();
   fakeApi();
@@ -177,7 +197,7 @@ test("stopping a job is final; a single story can be chosen by game code", async
   const admin = (await asUser(t, ["SYSTEM"])).as;
   await seedScore(t, "WXYZ");
   expect(await admin.query(api.storyAdmin.rewritePreview, { scope: { kind: "one", gameCode: " wxyz " } })).toMatchObject({ count: 1, label: "Game WXYZ" });
-  expect(await admin.query(api.storyAdmin.rewritePreview, { scope: { kind: "one", gameCode: "NOPE" } })).toMatchObject({ count: 0 });
+  expect(await admin.query(api.storyAdmin.rewritePreview, { scope: { kind: "one", gameCode: "NOPE" } })).toMatchObject({ count: 0, note: expect.stringContaining("No game has the code NOPE") });
   const jobId = await admin.mutation(api.storyAdmin.startRewrite, { scope: { kind: "one", gameCode: "WXYZ" }, expected: 1 });
   await admin.mutation(api.storyAdmin.stopJob, { jobId });
   await t.finishAllScheduledFunctions(vi.runAllTimers);

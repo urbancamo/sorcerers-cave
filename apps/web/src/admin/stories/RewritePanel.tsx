@@ -91,6 +91,7 @@ export function RewritePanel({ canEdit }: { canEdit: boolean }) {
           {preview && (
             <div role="status" className="scv-st-preview">
               <p><b>{num(preview.count)}</b> {preview.count === 1 ? 'story' : 'stories'} selected ({preview.label.toLowerCase()}). Estimated cost <b>{usd(preview.estimatedUsd)}</b> at about {usd(preview.perStoryUsd)} each.</p>
+              {preview.count === 0 && <p className="scv-resume-err">{preview.note ?? 'Nothing matches that choice, so there is nothing to rewrite.'}</p>}
               {preview.truncated && <p className="scv-admin-note">Only the first 500 are included in one job; run another job afterwards for the rest.</p>}
               {preview.paused && <p className="scv-resume-err">Generation is paused (Overview tab). Resume it to start a rewrite.</p>}
               {preview.exceedsDailyCap && <p className="scv-resume-err">That is more than the {usd(preview.remainingTodayUsd)} left under today's cap. The job will stop when the cap is reached and can be resumed tomorrow by starting another.</p>}
