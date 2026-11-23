@@ -27,6 +27,26 @@ describe("invariants: a sound state has no violations", () => {
   it("makeState's minimal state", () => { expect(checkInvariants(makeState())).toEqual([]); });
 });
 
+describe("invariants: the map's cards come from the deck (issue #120)", () => {
+  it("names a card in the large pack that the deck does not hold, such as a printed card with a stair added", () => {
+    const s = newGame(1, [0]);
+    s.largePack[s.largeIdx + 3] = 103; // north, east, south and both stairs: the BING card
+    expect(checkInvariants(s)).toEqual(["the large pack holds card 103, which is not in the deck"]);
+  });
+  it("names a placed area whose doorways are on no deck card, but allows a stair added later", () => {
+    const s = newGame(1, [0]);
+    s.areas[0]!.card |= 32 | 64; // stairs mirrored or revealed after the card was laid: fine
+    expect(checkInvariants(s)).toEqual([]);
+    s.areas[0]!.card = 16 | 2; // a chamber with only an east doorway: no such card
+    expect(checkInvariants(s)).toEqual([`area 0 is card 18, whose doorways, chamber and special are on no deck card`]);
+  });
+  it("lets a Test Mode game script any tile", () => {
+    const s = newGame(1, [0], undefined, true);
+    s.largePack[s.largeIdx] = 103;
+    expect(checkInvariants(s)).toEqual([]);
+  });
+});
+
 describe("invariants: each corruption is named", () => {
   const cases: [string, (s: GameState) => void, RegExp][] = [
     ["a member with an impossible status", (s) => { s.party[0]!.status = 9 as 0; }, /status 9/],

@@ -2,6 +2,7 @@ import { ALL_CREATURES } from "./data/creatures";
 import { ALL_TREASURES } from "./data/treasures";
 import { smallPackExtension, smallPackSibyl, smallPackTemplate } from "./data/smallPack";
 import { unpackCoord } from "./coords";
+import { AREA_CARDS, EXT_AREA_CARDS } from "./data/areaCards";
 import { GS_PLAYING, type GameState, type PartyMember } from "./state";
 
 // Engine rules validation, pilot (docs/requirements/engine-rules-validation/plan.md): a pure checker for the conditions that must hold in
@@ -9,6 +10,9 @@ import { GS_PLAYING, type GameState, type PartyMember } from "./state";
 // against deliberately corrupted states (`invariants.test.ts`) so a silent checker cannot pass. Returns one message per violation;
 // empty means the state is sound. It states only things the book or the data model guarantee — a message from here is a bug or a wrong
 // invariant, and either way worth a look.
+/** The area cards the deck can hold, and their shapes with the stair bits (32, 64) removed: a placed tile may gain a stair later (mirrored for a retraceable link, or revealed by the Flute). */
+const DECK_CARDS = new Set<number>([...AREA_CARDS, ...EXT_AREA_CARDS]);
+const DECK_SHAPES = new Set<number>([...DECK_CARDS].map((c) => c & ~96));
 const living = (m: PartyMember) => m.status === 0 || m.status === 1;
 const weightOf = (m: PartyMember) => m.treasure.reduce((n, t) => n + (ALL_TREASURES[t]?.weight ?? 0), 0);
 
@@ -41,6 +45,13 @@ export function checkInvariants(s: GameState): string[] {
   // The packs: cursors inside their packs, and no treasure card in play more often than the pack holds it.
   need(s.smallIdx >= 0 && s.smallIdx <= s.smallPack.length, `smallIdx ${s.smallIdx} is outside the small pack (${s.smallPack.length})`);
   need(s.largeIdx >= 0 && s.largeIdx <= s.largePack.length, `largeIdx ${s.largeIdx} is outside the large pack (${s.largePack.length})`);
+  // The map's cards come from the deck and nowhere else (issue #120: the Spell once put a tunnel back in the pack with a stair added to it,
+  // so a card the deck never held was drawn later: extra stairs, a spurious cave exit, and no tile art). A Test Mode game may script any tile.
+  if (!s.testMode) {
+    const stray = [...new Set(s.largePack.filter((c) => !DECK_CARDS.has(c)))];
+    need(stray.length === 0, `the large pack holds card ${stray.join(", ")}, which is not in the deck`);
+    s.areas.forEach((a, i) => need(DECK_SHAPES.has(a.card & ~96), `area ${i} is card ${a.card}, whose doorways, chamber and special are on no deck card`));
+  }
   const stock = new Map<number, number>();
   let template = smallPackTemplate();
   if (s.variants?.extensionKit) template = template.concat(smallPackExtension());
