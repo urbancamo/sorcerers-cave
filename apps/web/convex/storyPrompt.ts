@@ -61,6 +61,11 @@ by explaining. If little was carried, that is the story: they came out alive and
 the treasure or the survival did to the people, and let it answer the want planted at the start.
 
 WHAT TO WRITE
+- Follow THE PLAN's craft choices: tell the story against its clock, keep its binaries in tension (both halves present), let its motif \
+come back and grow each time, set up its props early and pay them off, and show the hero at the transition it names. Each event told \
+in full must raise the stakes above the last; if it does not, compress it. A story that merely goes on is a chronicle.
+- Use the names and the picked traits from THE PEOPLE and the plan for the starting party. Show a trait in an action or an object, \
+never by naming it. Give each named person at least two moments, and let how they stand with each other change.
 - Give the story a want and something the hero lacks, a cost the victory must not erase, and one change in the hero that is \
 shown in an image, never explained. State the theme at most once, plainly, late.
 - Open with a line that makes a promise; end on an image that keeps it. Do not end by counting or naming the survivors, and \
@@ -73,8 +78,9 @@ what happened: it never adds or changes an event.
 is not a short story: spend what the middle saves on the beginning and the ending.
 
 WHAT YOU MAY INVENT
-- Names, places outside the cave, motives, and dialogue: the record has none. Name the hero and one or two others; \
-refer to the rest by what they are (the Ogre, the Man with the bad leg).
+- Places outside the cave, motives, and dialogue: the record has none. The starting party have fixed names in THE PEOPLE; use \
+them exactly, and never rename anyone. Refer to the rest by what they are (the ogre, the man with the heavy idol), or by a name from \
+THE PEOPLE if the story names one.
 - The lives of the party before the cave, and what happened to them and the treasure after they came out: how a debt was paid, what a \
 home looked like, what the gold or the survival changed. These lie outside the record, so they are yours to invent, but they must \
 never contradict its outcome (who walked out, who was lost, what was carried or left behind).
@@ -118,7 +124,8 @@ are only there to tick an event off. Remove any headings, numbering, bullet poin
 capitalised item names from the record (Lost Ruby, Eye of God, Magic Staff) and any list of what each person carries; keep at \
 most three or four objects in the story, in plain words.
 4. Shape. The story must have a beginning before the cave that gives the starting party a past and a reason for going, a tight middle, and an ending that tells the way out and what the treasure or the survival did to them. If the beginning is thin, enrich it; if the ending only stops at the cave mouth, extend it; if the middle is a chamber-by-chamber chronicle, compress it into the few events that matter. Backstory and aftermath are outside the record and are allowed; keep them, and keep them consistent with the outcome.
-5. Craft. The story must not end on counting or naming the survivors, and its title must not be "The Count"; give it a different \
+5. Arc. Check the middle rises: each event told in full should raise the stakes above the one before, and one motif should return and grow. Check that a clock shapes the story, that the opposing forces both appear, that props set up early are paid off, and that the hero's change is shown. If a middle event does not raise the stakes, compress it; do not add events. Check that the starting party keep the names given in THE PEOPLE.
+6. Craft. The story must not end on counting or naming the survivors, and its title must not be "The Count"; give it a different \
 closing image and title. Call the cave's stages floors, never levels. The theme is stated at most once. Cut clichés, stacked \
 adjectives and any closing moral. The first line makes a promise and the last image keeps it. Keep it at about 1,700 words, never under \
 1,500 and never over 1,900. Cut the middle first; if the story is short, add to the beginning and the ending (the people, what the \
@@ -197,17 +204,30 @@ short plan for the writer.
 A record is a timeline; a story needs a person who wants something, an obstacle that costs them, a turn, and an ending that lands. \
 The story is a beginning (before the cave), a middle (the cave, kept tight on a few events) and an end (the way out and what it meant). Choose what matters in the middle and leave out the rest: most of the record should be a clause or nothing.
 
+Build the plan on these ideas from the craft of the short story:
+- A CLOCK: the thing that tells the reader how much time they are spending with these people (the way down and back up; one long night; the aftermath). Every story needs one, and it shapes where it starts and stops.
+- BINARIES: two or three opposing forces that give the story tension (the crowd and being alone, greed and loyalty, down and up). If one side of a pair is in the story, the other must be too.
+- A MOTIF THAT ESCALATES: one thing that comes back four or five times in the cave, stronger each time (the lion leaning on the hero, a debt, the cold). The middle is chosen for how it rises, not for how much of the record it covers.
+- PROPS THAT RECUR: three or four objects that are set up once and paid off later.
+- A PERSON AT A TRANSITION: the hero is at a moment of change (the last job before the knees give out, the first time anyone has asked them to stay) and does not want to pass the point of no return.
+
+THE PEOPLE block in the record names the party (fixed names, and options to pick from). Use those names. For the hero and at most two or three others, pick one or two options each (a habit, a worry, a want, an explorer reason) and say which; the writer will show those and not invent others. Everyone else is a name and a general line at most.
+
 Write the plan in exactly these parts, each a line or two, in plain words:
-BEFORE THE CAVE: who the starting party are before they go down (the hero, and any companion named in the record) and what each owes, wants or is leaving behind, which is why they are going. Invent this; the record has none.
-HERO: who the story follows (one member of the party, by what they are) and what they want or lack.
+CLOCK: the shaping device, and where the story starts and stops against it.
+BEFORE THE CAVE: who the starting party are before they go down, by name, with the options you picked and the stage of life the hero is at. Add one line on how two of them stand with each other (a pairing, if one is given). Invent the rest; the record has none.
+HERO: who the story follows and what they want or lack.
+BINARIES: the two or three pairs of opposing forces, each with both halves.
+MOTIF: the one thing that escalates, and the four or five record events (by number) where it returns, in rising order.
+PROPS: three or four objects from the record (plain words) and where each is set up and where it pays off.
 OBSTACLE: what stands in the way, taken from the record.
 TURN: the one moment in the record that changes things.
 COST: what the victory cost, taken from the record (the lost, what was left behind).
-DWELL ON: three or four events from the record, by their numbers, to tell in full.
-IN PASSING: six or eight more, by number, to tell in a sentence or two.
+DWELL ON: three or four events from the record, by their numbers, to tell in full. They should be the motif's returns and the turn, and each should raise the stakes above the one before.
+IN PASSING: no more than four more, by number, to tell in a sentence or two. Everything else is compressed into the journey between ("two floors of cold stairs") or left out.
 LEAVE OUT: the kinds of event to skip altogether (for example, repeated rooms).
-AFTER THE CAVE: what the daylight and what they carried out (see "At the exit" and any wealth in the record) did to these people: the want from the start answered, or not. Invent this too, but it must fit the outcome in the record.
-CLOSING IMAGE: one concrete object or action to end on that shows that aftermath. Not a moral, and not a count of the survivors.
+AFTER THE CAVE: what the daylight and what they carried out (see "At the exit" and any wealth in the record) did to these people: the want from the start answered, or not, and the hero's transition made or refused. Invent this, but it must fit the outcome in the record.
+CLOSING IMAGE: one concrete object or action to end on that shows that aftermath, ideally one of the props. Not a moral, and not a count of the survivors.
 TITLE IDEA: a short title that is not "The Count".
 
 Use only what the record contains: you choose and arrange, you do not add events. Output the plan and nothing else.`;
@@ -224,8 +244,10 @@ export const writerUserMessage = (digestText: string, voice?: StoryVoice, plan?:
   `Write the story now. Remember: one continuous narrative, joined between events, not a scene for each item.`;
 
 /** The user message given to the line editor: the record, the voice, any fact problems to fix, and the draft. */
-export const editorUserMessage = (digestText: string, draft: string, voice?: StoryVoice, problems: readonly string[] = []): string =>
+export const editorUserMessage = (digestText: string, draft: string, voice?: StoryVoice, problems: readonly string[] = [], plan?: string, people = ""): string =>
   `THE RECORD\n\n${digestText}\n\n` +
+  (people ? `${people}\n\n` : "") +
+  (plan ? `THE PLAN the writer followed (check the story keeps its clock, motif, binaries and props):\n\n${plan}\n\n` : "") +
   (voice ? `THE VOICE the story is meant to be told in (keep it; do not flatten it into plain third person): ${voice.instruction}\n\n` : "") +
   (problems.length ? `PROBLEMS to fix in the text (facts, or length and form):\n${problems.map((p) => `- ${p}`).join("\n")}\n\n` : "") +
   `THE DRAFT\n\n${draft}`;

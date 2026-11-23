@@ -81,7 +81,8 @@ export async function writeStory(call: ModelCall, prompt: ResolvedPrompt, digest
   const voices = parseVoices(prompt.voices).voices;
   const voice = pickVoice(voiceKey, voices.length ? voices : undefined);
   // lore for just the creatures, objects and places in this run, then the named company of the party (fixed names, pools to pick from)
-  const bible = [bibleFor(digestText, prompt.bible), castFor(digestText, voiceKey, prompt.characters)].filter(Boolean).join("\n\n");
+  const people = castFor(digestText, voiceKey, prompt.characters);
+  const bible = [bibleFor(digestText, prompt.bible), people].filter(Boolean).join("\n\n");
 
   /** One model call, recorded as a run whatever happens. Returns the text, or null after recording the failure. */
   const attempt = async (pass: RunRecord["pass"], system: string, user: string): Promise<string | null> => {
@@ -122,7 +123,7 @@ export async function writeStory(call: ModelCall, prompt: ResolvedPrompt, digest
   // problem, or the finished text breaks a length or form rule: that is handed back to the editor too, not thrown away.
   for (let round = 0; round < 2; round++) {
     if (!Array.isArray(facts)) return facts;
-    const edited = await attempt("edit", prompt.editor, editorUserMessage(digestText, story, voice, [...facts, ...guard]));
+    const edited = await attempt("edit", prompt.editor, editorUserMessage(digestText, story, voice, [...facts, ...guard], plan, people));
     if (edited === null) return { ok: false, reason: `edit failed: ${runs[runs.length - 1]!.reason}`, runs };
     const parsed = parseEditedStory(edited);
     if (!parsed) return reject("editor reply was not in the expected format");

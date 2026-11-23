@@ -1,3 +1,4 @@
+import { castFor } from "./storyCharacters";
 import { describe, it, expect } from "vitest";
 import { EDITOR_SYSTEM, FACT_CHECK_SYSTEM, PLANNER_SYSTEM, STORY_VOICES, WRITER_SYSTEM, pickVoice } from "./storyPrompt";
 import { writeStory, resolveFields, parseEditedStory, parseFactCheck, splitStory, defaultPrompt, UNSUPPORTED_MARKER, type ModelCall } from "./storyWriter";
@@ -130,13 +131,23 @@ describe("voice and plan", () => {
     expect(used.size).toBe(STORY_VOICES.length);
   });
 
-  it("tells the planner, the writer and the line editor the same voice, gives the writer the plan, and keeps the plan from the checkers", async () => {
+  it("tells the planner, the writer and the line editor the same voice, gives the writer and the editor the plan, and keeps it from the fact-checker", async () => {
     const voice = pickVoice("k97abc");
     const { call, seen } = script(["THE BEAT SHEET", "a draft", "none", STORY, "none"]);
     expect((await writeStory(call, prompt, "THE DIGEST", Date.now, "k97abc")).ok).toBe(true);
     for (const i of [0, 1, 3]) expect(seen[i]!.user).toContain(voice.instruction);
     expect(seen[1]!.user).toContain("THE BEAT SHEET");
-    for (const i of [2, 3, 4]) expect(seen[i]!.user).not.toContain("THE BEAT SHEET"); // checked against the record, not the plan
+    expect(seen[3]!.user).toContain("THE BEAT SHEET"); // the editor checks the arc against the plan
+    for (const i of [2, 4]) expect(seen[i]!.user).not.toContain("THE BEAT SHEET"); // facts are checked against the record, not the plan
+  });
+
+  it("gives the planner, writer and editor the same named company, and not the fact-checker", async () => {
+    const digest = "Starting party: Hero and Dwarf.\nOutcome: escaped.";
+    const { call, seen } = script(["PLAN", "a draft", "none", STORY, "none"]);
+    expect((await writeStory(call, prompt, digest, Date.now, "k97abc")).ok).toBe(true);
+    const name = castFor(digest, "k97abc").match(/- ([^,]+), the hero:/)![1]!;
+    for (const i of [0, 1, 3]) expect(seen[i]!.user).toContain(name);
+    for (const i of [2, 4]) expect(seen[i]!.user).not.toContain(name);
   });
 
   it("still writes the story, without a plan, when the planning call fails", async () => {

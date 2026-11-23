@@ -92,3 +92,20 @@ Feedback: the starting party needed a backstory, the ending should say how the e
 - **Planner:** new parts BEFORE THE CAVE and AFTER THE CAVE. **Editor:** a "shape" check (enrich a thin beginning or ending, compress a chronicle middle; if short, add to the ends, never pad the middle).
 - **Digest:** `Silver, gold and gems carried out: ...` (the exit list only named artefacts, the Chest and the Idol, so a rich run and an empty-handed one looked the same).
 - **Pipeline:** the first trial with these prompts was rejected for length (1,363 words) because tightening the middle made the whole story short. Length and form faults (too short or long, headings, scene breaks, game words) are now handed back to the editor for one repair edit, like fact problems, instead of discarding the story.
+
+## Craft pass from "A Process of Revision" and the character bundle (2026-11-23, branch digest-improvements)
+
+Source: Antonya Nelson's article (docs/digest-improvements/short-story-a-process-of-revision.md). Ideas taken into the prompts:
+a **clock** (what the reader measures time by), **binaries** (opposing forces, both halves present), a **motif that escalates**
+(Baldwin's music in "Sonny's Blues"), **props that recur** and pay off, and a protagonist **at a transition**. The planner now has
+CLOCK, BINARIES, MOTIF and PROPS parts, DWELL ON is chosen for escalation, and IN PASSING is capped at four (the rest is compressed
+into the journey). The writer is told to follow them; the editor gained an "Arc" check and, for the first time, sees the plan.
+The fact-checker still sees only the record.
+
+Characters are by class (`convex/storyCharacters.ts`, editable in the admin panel): a general line, names, and pools of habits,
+worries, wants and strengths, plus "as an explorer" reasons for the classes that can start a party, and pairings. Code assigns the
+names (hash of the high-score id, distinct within a class); the planner picks one or two options for the hero and two or three
+others; the writer, editor and planner all see the same named company. Uniqueness between stories is not a goal.
+
+A saved prompt version OVERRIDES these source defaults for the planner, writer and editor. Load the source defaults in the Prompt
+tab (or copy the new text in) and save a new version to use them; the characters apply at once to any version that has none.
