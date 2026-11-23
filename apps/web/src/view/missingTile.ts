@@ -14,6 +14,10 @@ export class MissingTileArtError extends Error {
   }
 }
 
+/** Does this area draw as a face-down fog card? A dead end normally does (revealed for a moment, then fogged), but the BUG placeholder stays up for good:
+ *  it must be seen, and a bug report is worth nothing if the evidence fades away. */
+export const showsFog = (area: { faceDown: boolean; missingArt?: string }): boolean => area.faceDown && !area.missingArt;
+
 let strict = false;
 /** Make a missing tile throw instead of drawing the placeholder. On in tests; off in the app. */
 export function setStrictTileArt(on: boolean): void { strict = on; }

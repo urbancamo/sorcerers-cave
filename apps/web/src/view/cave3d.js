@@ -6,6 +6,7 @@ import { fitDistance } from './camera-fit.js';
 import { carryRowHtml, escAttr } from './rosterCarry';
 import { stairAt } from '../data/stairPositions';
 import { keyOutsideAlpha } from './tileAlpha';
+import { showsFog } from './missingTile';
 import { MOUSE_MODE_EVENT, ZOOM_SPEED_EVENT, ZOOM_SPEED_VALUE, mouseButtonsFor, readMouseMode, readZoomSpeed } from './mouseMode';
 
 /* ============================================================
@@ -180,7 +181,7 @@ async function buildAreaMesh(area, spawn, revealFirst){
   if(pendingTiles.has(k) || tileMeshes.some(m=>m.userData.area&&akey(m.userData.area)===k)) return;
   pendingTiles.add(k);
   try{
-    const down=!!area.faceDown && !revealFirst;
+    const down=showsFog(area) && !revealFirst; // (the BUG tile is never fogged: see missingTile.ts)
     const tex=down? await faceDownTexture(area) : await tileTexture(area);
     const mat=new THREE.MeshBasicMaterial({map:tex,transparent:true,alphaTest:0.03,side:THREE.DoubleSide,depthWrite:true});
     if(area.destroyed) mat.color.setHex(DESTROYED_TINT); // earthquake rubble — darkened so it reads as collapsed
@@ -192,7 +193,7 @@ async function buildAreaMesh(area, spawn, revealFirst){
     regMat(mat); area._mesh=mesh; tileGroup.add(mesh); tileMeshes.push(mesh);
     if(spawn){ mat.opacity=0; mesh.position.y=p.y+1.4; spawnAnims.push({mesh,p,t0:clock.elapsedTime}); }
     if(area.cardId){ addCardGlow(area); }
-    if(revealFirst && area.faceDown) setTimeout(()=>{ if(tileMeshes.includes(mesh)) fadeToFog(mesh, engine.areas.find(x=>akey(x)===k)||area); }, 3600); // (by then another doorway into it may have been tried)
+    if(revealFirst && showsFog(area)) setTimeout(()=>{ if(tileMeshes.includes(mesh)) fadeToFog(mesh, engine.areas.find(x=>akey(x)===k)||area); }, 3600); // (by then another doorway into it may have been tried)
   }finally{
     // Always release the guard, even if texture loading/meshing above throws — otherwise this
     // coordinate is locked out of EVERY future build attempt (line 157's pendingTiles.has(k) check),
@@ -489,13 +490,13 @@ function reconcileTiles(canAct){
   for(const m of tileMeshes){
     const ua=m.userData.area; if(!ua) continue;
     const a=want.get(akey(ua)); if(!a) continue;
-    if(a.faceDown && (a.tileId!==ua.tileId||a.rot!==ua.rot) && !pendingRemaps.has(akey(a))) pendingRemaps.set(akey(a),a);
+    if(showsFog(a) && (a.tileId!==ua.tileId||a.rot!==ua.rot) && !pendingRemaps.has(akey(a))) pendingRemaps.set(akey(a),a);
   }
   // A face-down tile the party has now entered (or a Spell tile resolved) fades to its real face.
   for(const m of tileMeshes){
     const ua=m.userData.area; if(!ua) continue;
-    const a=want.get(akey(ua)); if(a && m.userData.down && !a.faceDown) fadeToFace(m,a);
-    else if(a && m.userData.down && a.faceDown) fadeToFog(m,a); // another doorway into it was tried: its fog card gains a stub
+    const a=want.get(akey(ua)); if(a && m.userData.down && !showsFog(a)) fadeToFace(m,a);
+    else if(a && m.userData.down && showsFog(a)) fadeToFog(m,a); // another doorway into it was tried: its fog card gains a stub
   }
   if(pendingRemaps.size && canAct!==false){
     for(const [k,a] of [...pendingRemaps]){
@@ -893,8 +894,8 @@ function inspectArea(a){
   if(!onSelectArea){ areaPanel(placed,true); return; }
   selectRing.position.copy(worldPos(placed));selectRing.position.y+=0.02;selectRing.visible=true;
   // A face-down tile shows its fog card, never the face it hides; a revealed one shows its art turned as laid.
-  const file=placed.faceDown? deadEndArt(placed.fogStubs||'') : (placed.tileId? tiles.get(placed.tileId)?.file : null);
-  onSelectArea(placed,file||null,placed.faceDown?0:(placed.rot||0));
+  const file=showsFog(placed)? deadEndArt(placed.fogStubs||'') : (placed.tileId? tiles.get(placed.tileId)?.file : null);
+  onSelectArea(placed,file||null,showsFog(placed)?0:(placed.rot||0));
 }   // the tile mesh holds the area as it was laid: show what is there now
 function hexA(hex,a){const n=parseInt(hex.replace('#',''),16);return 'rgba('+((n>>16)&255)+','+((n>>8)&255)+','+(n&255)+','+a+')';}
 
@@ -1191,7 +1192,7 @@ function peekTile(d){
   fadeToFace(m,a,PEEK_S*0.2);
   setTimeout(()=>{
     const cur=engine.areas.find(x=>akey(x)===k);
-    if(tileMeshes.includes(m) && cur && cur.faceDown) fadeToFog(m,cur,PEEK_S*0.3);   // unless a party has entered it meanwhile
+    if(tileMeshes.includes(m) && cur && showsFog(cur)) fadeToFog(m,cur,PEEK_S*0.3);   // unless a party has entered it meanwhile
     setTimeout(viewSnapTile,PEEK_S*0.3*1000+800);   // once it has faded back, go 'home': back to the party's own tile
   },PEEK_S*0.7*1000);
 }
