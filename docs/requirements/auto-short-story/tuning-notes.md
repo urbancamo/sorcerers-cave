@@ -109,3 +109,20 @@ others; the writer, editor and planner all see the same named company. Uniquenes
 
 A saved prompt version OVERRIDES these source defaults for the planner, writer and editor. Load the source defaults in the Prompt
 tab (or copy the new text in) and save a new version to use them; the characters apply at once to any version that has none.
+
+## Light humour (2026-11-23)
+
+Humour comes from character and understatement, not jokes added on top. Each class has a `quirks` pool (small dry habits under
+pressure), offered to the planner with the other pools. The planner has a HUMOUR part: two or three touches, each tied to a record
+event, quirk or contrast, none at a death, loss, mutiny or the worst of a fight. The writer keeps to at most four touches (no puns,
+winks, slang or mocking the dead); the editor cuts any that break those rules and adds none. The bard, clerk, rear-guard, fable and
+close-third voices carry a one-line note on how their humour sounds; the wake, letter and present voices stay sober. To judge it, run
+the same game with and without the HUMOUR lines.
+
+## Fears and flaws (2026-11-23)
+
+Each class has a `flaws` pool of phobias and psychological flaws, often ironic for the class (the ogre afraid of mice, the troll afraid
+of goats and the dawn, the dwarf afraid of the open sky). The planner picks one for the hero and one or two others (FLAW part); the
+writer shows it once or twice as a flinch or a thing avoided, never explained. Safeguards: the feared thing may be real in the
+beginning and the aftermath, but inside the cave it is only dread (no new creature or incident is invented), and a flaw never makes
+anyone leave the party. The editor has a Flaws check for those rules.

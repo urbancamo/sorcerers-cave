@@ -71,10 +71,10 @@ const counted = (names: string[]): string => {
   return list([...n].map(([k, c]) => (c > 1 ? `${c} ${k}s` : `${article(k)} ${k}`)));
 };
 
-/** Silver (0), Gold (1) and Gems (2) among what the survivors carried, as "3 Gold, 2 Silver and a Gems"; "none" when there is none. */
+/** Silver (0), Gold (1) and Gems (2) among what the survivors carried, as "3 bags of Gold, 2 bags of Silver and 1 bag of Gems"; "none" when there is none. Each is a bag (a unit of treasure), never a coin or a single stone. */
 function wealthText(carried: readonly number[]): string {
   const parts = [1, 0, 2].map((id) => ({ name: treasure(id), n: carried.filter((t) => t === id).length })).filter((p) => p.n > 0);
-  return parts.length ? list(parts.map((p) => `${p.n} ${p.name}`)) : "none";
+  return parts.length ? list(parts.map((p) => `${p.n} ${p.n === 1 ? "bag" : "bags"} of ${p.name}`)) : "none";
 }
 
 export function storyDigest(frames: readonly ReplayFrame[]): StoryDigest {

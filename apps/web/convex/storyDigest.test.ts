@@ -128,8 +128,9 @@ describe("storyDigest: what was carried out", () => {
       const d = storyDigest(frames);
       const total = [0, 1, 2].reduce((n, id) => n + end.filter((t) => t === id).length, 0);
       expect(digestText(d)).toMatch(/^Silver, gold and gems carried out: .+\.$/m);
+      expect(d.outcome.wealth).not.toMatch(/\d (Silver|Gold|Gems)/); // always bags, never a bare count of pieces
       if (total === 0) expect(d.outcome.wealth).toBe("none");
-      else expect([...d.outcome.wealth.matchAll(/(\d+) (Silver|Gold|Gems)/g)].reduce((n, m) => n + Number(m[1]), 0)).toBe(total);
+      else expect([...d.outcome.wealth.matchAll(/(\d+) bags? of (Silver|Gold|Gems)/g)].reduce((n, m) => n + Number(m[1]), 0)).toBe(total);
     }
   });
 });

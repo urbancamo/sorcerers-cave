@@ -18,6 +18,10 @@ export interface Character {
   worries: string[];
   wants: string[];
   strengths: string[];
+  /** Small comic habits that surface under pressure (dry, never at someone's expense); optional, and used sparingly. */
+  quirks?: string[];
+  /** Fears, phobias and psychological flaws, often ironic for the class (the elephant afraid of the mouse); used for depth or, lightly, for humour. */
+  flaws?: string[];
   /** Why they went down, as an explorer; only for classes that can start a party. */
   explorer?: string[];
 }
@@ -227,6 +231,62 @@ export const CHARACTERS: Record<string, Character> = {
     ""),
 };
 
+/** Funny habits by class: small, dry, character-driven, and never at the expense of a loss. Merged into CHARACTERS below. */
+const QUIRKS: Record<string, string> = {
+  "Hero": "is unfailingly polite to things that are trying to kill them | gives every river a short talk before crossing it | has a speech for strangers that has not changed in twenty years | apologises to doors they have to kick",
+  "W-Hero": "keeps a running score of who is wrong about the route, and it is never her | answers a compliment with a complaint about the weather | is the only one who has ever won an argument with the dwarf",
+  "Ogre": "apologises to every doorway as he ducks it | carries a small stone and consults it as if it were a map | nods gravely at everything, including the weather | is startled every time he hears his own name said kindly",
+  "Troll": "treats every cheerful remark as a personal insult, and is quietly pleased | announces that he is not impressed, about everything | is very good at standing perfectly still while others panic",
+  "Priest": "blesses the food, the road and, once, a trap | answers every question with a quotation, and is then upset when it does not fit | counts the party under his breath and always comes out one short before he finds himself",
+  "Man": "says 'I'm sure it's fine' about things that are not | is sure he has seen this room before, in every room | has a theory about everything, none of them correct | carries a spoon, for emergencies",
+  "Woman": "has priced everything in the cave and thinks it is overvalued | gives a running review of each room as if it were an inn | corrects other people's packing without being asked",
+  "Dwarf": "taps a wall and pronounces it 'adequate' | haggles with anything that speaks | is personally offended by bad masonry, even while being chased | refuses to admit he is lost, only that the cave has moved",
+  "Wizard": "mislays his staff while holding it | speaks to rivals only in the third person | has an answer to everything that begins 'as I foresaw'",
+  "Giant": "is very careful about tables | asks whether anyone else would like to sit down, and means the floor | warns people before he sneezes",
+  "Lion": "regards the whole expedition with the patience of a cat that has seen it before | yawns at the dragon | lies in the one place everyone needs to walk through",
+  "Scholar": "corrects the inscription's grammar while running from what it says | is thrilled by every new danger, as an example | cites a book no one has read, always with page numbers",
+  "Witch": "mutters about people who 'should have known better' | has a curse for every occasion and the manners not to use most of them | greets monsters as if they were late for an appointment",
+  "Thief": "returns things he took, with an explanation | says 'I was only holding it for them' | is the only one who can open a door and the only one who insists it was already open",
+  "Wolf": "disapproves of the party's singing | looks at the lion as if it were a colleague | sits down at the exact moment it is time to go",
+  "Dragon": "is clearly most put out that it has been woken for this",
+  "Sorcerer": "talks to his own treasure as if it were a disappointing relative",
+  "Unicorn": "wanders off at exactly the wrong moment and appears to be completely unconcerned about it",
+};
+for (const [cls, q] of Object.entries(QUIRKS)) CHARACTERS[cls]!.quirks = q.split("|").map((x) => x.trim());
+
+/**
+ * Fears, phobias and psychological flaws by class, often ironic for the class (the elephant afraid of the mouse). They are colour for who
+ * a person is, not events: the thing feared may be a memory, a sound, a sign or an ordinary object, and in the cave it is only ever
+ * dread, never a new creature or incident. A flaw never makes anyone leave the party; they face it badly, or freeze, and go on.
+ * Merged into CHARACTERS below.
+ */
+const FLAWS: Record<string, string> = {
+  "Hero": "is terrified of geese, and of nothing else | cannot bear to be thanked in front of others | dreads an empty house more than any cave | cannot rest when nobody depends on them | is certain that the next person to look closely will see through them",
+  "W-Hero": "cannot bear to be pitied, and will take a wound rather than be helped | is afraid of moths, the soft kind, and will not say so | never lets anyone see her asleep | must be early, and is shaken if she is not",
+  "Ogre": "is afraid of mice, and of the sound of small scratching | cannot stand a low ceiling, however much he pretends to | is shaken to the bone by a raised voice, even a cheerful one | dreads being laughed at more than being hurt",
+  "Troll": "is afraid of the dawn, and counts the hours to it | will not cross a bridge without a long look under it | is afraid of goats, for reasons he refuses to explain | cannot bear to be called gentle",
+  "Priest": "is plagued by the fear that he has left out a word of the rite | dreads the silence after a prayer, in case nothing answers | cannot light a candle without counting the flame | is afraid of the dark, and keeps this from the others",
+  "Man": "fears being noticed, and will stand at the back of anything | is afraid of dogs, even small, friendly ones | cannot make a choice without asking someone first | dreads owing anyone anything",
+  "Woman": "will not sit with her back to a door | cannot abide idle hands, her own or anyone's | is afraid of deep water, and has never learned to swim | dreads being thought soft more than being thought cruel",
+  "Dwarf": "is afraid of the open sky, and keeps his hat low outdoors | has a terror of bees | is quietly sick at the thought of a day with no money in his purse | cannot bear being the one who gives way in a bargain",
+  "Wizard": "dreads forgetting one word of a spell in the middle of it | is afraid of being laughed at, above all by an apprentice | cannot look at himself in a polished surface | will not owe a favour to a stranger",
+  "Spectre": "dreads being named, and flinches at its own name | is unsettled by the morning | is afraid of being forgotten, and so cannot leave anyone alone",
+  "Dragon": "is afraid of a small, quick thief, more than of any knight | cannot reach an itch beneath one scale, and it haunts it | is secretly afraid of getting wet",
+  "Sorcerer": "dreads being ordinary again | cannot stand a room left untidy | is afraid to be liked, in case he comes to need it",
+  "Giant": "is afraid of spiders, and of small quick things in general | dreads breaking something delicate | gets dizzy when he looks down, and is embarrassed about it | is uneasy in a crowd, in case he steps on someone",
+  "Unicorn": "startles at a sudden noise, and will not be coaxed back | cannot bear mud | is afraid of being touched by anyone it does not know",
+  "Apprentice": "dreads being examined, by anyone | is afraid of his master's footstep on the stair | cannot cast with someone watching",
+  "Demon": "is unsettled by kindness | cannot bear a bargain left unfinished | is afraid of being thanked",
+  "Lion": "is afraid of small scuttling sounds, as in the old fable | cannot bear to be laughed at when it purrs | is uneasy about water that drips",
+  "Scholar": "is afraid of fire among books, and of fire generally | cannot let a wrong date pass, and suffers when he lets one | dreads the dark more than he lets on, and reads by the smallest light | is afraid of birds, and cannot say why",
+  "Witch": "cannot cross running water without a long breath | is afraid of her own reflection, in clear water | is mortified to be thought kind | is afraid of toads, which is awkward in her trade",
+  "Thief": "is afraid of being shut in, and always props a door | cannot look at a rope without thinking of one use for it | dreads being owed a favour | is unable to pass a bell without flinching",
+  "Wolf": "is afraid of fire, and keeps just beyond its light | startles at its own echo | is uneasy near a dog",
+  "Sibyl": "dreads being surprised by the one thing she did not see | cannot stop herself from looking at hands",
+  "Ghoul": "is afraid of its own shadow | cannot bear light, and is ashamed of it",
+};
+for (const [cls, f] of Object.entries(FLAWS)) CHARACTERS[cls]!.flaws = f.split("|").map((x) => x.trim());
+
 /** Pairings: how two classes stand with each other when they travel together. A line of one is enough in a story. */
 export const PAIRINGS: Pairing[] = [
   { a: "Dwarf", b: "Ogre", text: "The dwarf talks and the ogre carries; each thinks the other is the sensible one." },
@@ -247,8 +307,8 @@ export const PAIRINGS: Pairing[] = [
 
 export const defaultCharacters = (): CharacterBundle => ({ header: CHARACTERS_HEADER, characters: Object.entries(CHARACTERS), pairings: PAIRINGS });
 
-const FIELDS = ["general", "names", "habits", "worries", "wants", "strengths", "explorer"] as const;
-const POOLS = new Set(["names", "habits", "worries", "wants", "strengths", "explorer"]);
+const FIELDS = ["general", "names", "habits", "worries", "wants", "strengths", "quirks", "flaws", "explorer"] as const;
+const POOLS = new Set(["names", "habits", "worries", "wants", "strengths", "quirks", "flaws", "explorer"]);
 
 /** The bundle as editable text: a header, a `## Class` block per creature (`field: a | b | c` lines), then `## pairings` with `A + B: text`. */
 export function renderCharacters(b: CharacterBundle = defaultCharacters()): string {
@@ -256,6 +316,8 @@ export function renderCharacters(b: CharacterBundle = defaultCharacters()): stri
   for (const [name, c] of b.characters) {
     out.push(`## ${name}`, `general: ${c.general}`, `names: ${c.names.join(" | ")}`, `habits: ${c.habits.join(" | ")}`, `worries: ${c.worries.join(" | ")}`,
       `wants: ${c.wants.join(" | ")}`, `strengths: ${c.strengths.join(" | ")}`);
+    if (c.quirks?.length) out.push(`quirks: ${c.quirks.join(" | ")}`);
+    if (c.flaws?.length) out.push(`flaws: ${c.flaws.join(" | ")}`);
     if (c.explorer?.length) out.push(`explorer: ${c.explorer.join(" | ")}`);
     out.push("");
   }
@@ -360,7 +422,7 @@ export function castFor(digestText: string, key: string, text?: string): string 
       const c = byName.get(cls)!;
       namesFor(key, cls, c.names, n).forEach((name) => {
         lines.push(`- ${name}, the ${cls === "W-Hero" ? "heroine" : cls.toLowerCase()}: ${c.general}` +
-          pool("Habits", c.habits) + pool("Worries", c.worries) + pool("Wants", c.wants) + pool("Strengths", c.strengths) + pool("As an explorer, why they went down", c.explorer ?? []));
+          pool("Habits", c.habits) + pool("Worries", c.worries) + pool("Wants", c.wants) + pool("Strengths", c.strengths) + pool("Funny habits, for a light touch under pressure", c.quirks ?? []) + pool("Fears and flaws, to pick one from for depth or a light comic touch", c.flaws ?? []) + pool("As an explorer, why they went down", c.explorer ?? []));
       });
     }
   }

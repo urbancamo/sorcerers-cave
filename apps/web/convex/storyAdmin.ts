@@ -200,6 +200,21 @@ export const startRewrite = mutation({
   },
 });
 
+/**
+ * The stories a rewrite job produced, for download: the ready stories last written while it ran. Jobs do not list their stories, and only one
+ * runs at a time, so the window from the job's start to its last update picks out its stories (a manual retry in that window would be included).
+ */
+export const jobStories = query({
+  args: { jobId: v.id("storyJobs") },
+  handler: async (ctx, { jobId }) => {
+    await requireAnyRole(ctx, VIEW);
+    const j = await ctx.db.get(jobId);
+    if (!j) return [];
+    const rows = await ctx.db.query("stories").withIndex("by_status_and_updatedAt", (q) => q.eq("status", "ready").gte("updatedAt", j.createdAt).lte("updatedAt", j.updatedAt)).take(MAX_REWRITE);
+    return rows.filter((r) => r.text).map((r) => ({ title: r.title ?? "Untitled", text: r.text!, updatedAt: r.updatedAt }));
+  },
+});
+
 export const stopJob = mutation({
   args: { jobId: v.id("storyJobs") },
   handler: async (ctx, { jobId }) => {

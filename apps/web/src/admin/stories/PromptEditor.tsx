@@ -97,28 +97,28 @@ export function PromptEditor({ canEdit }: { canEdit: boolean }) {
       </div>
 
       <h4 className="scv-st-h">The four calls, in the order they run</h4>
-      <label className="scv-bug-field">1. Planner prompt (reads the record and the voice, and plans what the story is about and how it ends)
+      <label className="scv-bug-field"><span>1. Planner prompt (reads the record and the voice, and plans what the story is about and how it ends)</span>
         <textarea className="scv-st-area" rows={14} value={fields.planner} readOnly={!canEdit} onChange={(e) => set({ planner: e.target.value })} spellCheck={false} />
       </label>
-      <label className="scv-bug-field">2. Writer prompt (writes the first draft from the record, the plan and the voice)
+      <label className="scv-bug-field"><span>2. Writer prompt (writes the first draft from the record, the plan and the voice)</span>
         <textarea className="scv-st-area" rows={18} value={fields.writer} readOnly={!canEdit} onChange={(e) => set({ writer: e.target.value })} spellCheck={false} />
       </label>
-      <label className="scv-bug-field">3. Fact-check prompt (lists where the story departs from the record; run before and after the edit)
+      <label className="scv-bug-field"><span>3. Fact-check prompt (lists where the story departs from the record; run before and after the edit)</span>
         <textarea className="scv-st-area" rows={12} value={fields.factCheck} readOnly={!canEdit} onChange={(e) => set({ factCheck: e.target.value })} spellCheck={false} />
       </label>
-      <label className="scv-bug-field">4. Editor prompt (fixes the fact problems and improves the telling; returns only the story)
+      <label className="scv-bug-field"><span>4. Editor prompt (fixes the fact problems and improves the telling; returns only the story)</span>
         <textarea className="scv-st-area" rows={14} value={fields.editor} readOnly={!canEdit} onChange={(e) => set({ editor: e.target.value })} spellCheck={false} />
       </label>
 
       <h4 className="scv-st-h">Voices and the world</h4>
-      <label className="scv-bug-field">Voices (one per line as <code>id: instruction</code>; each game is given one, always the same one)
+      <label className="scv-bug-field"><span>Voices (one per line as <code>id: instruction</code>; each game is given one, always the same one)</span>
         <textarea className="scv-st-area" rows={9} value={fields.voices} readOnly={!canEdit} onChange={(e) => set({ voices: e.target.value })} spellCheck={false} />
       </label>
-      <label className="scv-bug-field">Story bible (sections <code>## header</code>, <code>## creatures</code>, <code>## artefacts</code>, <code>## places</code>; one <code>Name: entry</code> per line; a place is <code>keyword | keyword: entry</code>. Only the entries for what is in a game are given to the planner and writer.)
+      <label className="scv-bug-field"><span>Story bible (sections <code>## header</code>, <code>## creatures</code>, <code>## artefacts</code>, <code>## places</code>; one <code>Name: entry</code> per line; a place is <code>keyword | keyword: entry</code>. Only the entries for what is in a game are given to the planner and writer.)</span>
         <textarea className="scv-st-area" rows={28} value={fields.bible} readOnly={!canEdit} onChange={(e) => set({ bible: e.target.value })} spellCheck={false} />
       </label>
 
-      <label className="scv-bug-field">Story characters (a <code>## header</code>, then one <code>## Class</code> block per creature with lines <code>general:</code>, <code>names:</code>, <code>habits:</code>, <code>worries:</code>, <code>wants:</code>, <code>strengths:</code> and, for classes that can start a party, <code>explorer:</code>; list items are separated by <code>|</code>. Last comes <code>## pairings</code> with <code>Class + Class: text</code>. Names are assigned by the code, the same for a game every time)
+      <label className="scv-bug-field"><span>Story characters (a <code>## header</code>, then one <code>## Class</code> block per creature with lines <code>general:</code>, <code>names:</code>, <code>habits:</code>, <code>worries:</code>, <code>wants:</code>, <code>strengths:</code> and, for classes that can start a party, <code>explorer:</code>; list items are separated by <code>|</code>. Last comes <code>## pairings</code> with <code>Class + Class: text</code>. Names are assigned by the code, the same for a game every time)</span>
         <textarea className="scv-st-area" rows={32} value={fields.characters} readOnly={!canEdit} onChange={(e) => set({ characters: e.target.value })} spellCheck={false} />
       </label>
 

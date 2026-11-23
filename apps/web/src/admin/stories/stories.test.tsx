@@ -18,7 +18,7 @@ const v1 = { ...defaults, writer: "V1 WRITER", version: 1, note: "first", create
 const preview = { label: "Stories written with an older prompt than version 1", count: 2, truncated: false, perStoryUsd: 0.18, estimatedUsd: 0.36, remainingTodayUsd: 1.55, exceedsDailyCap: false, paused: false };
 let jobs: unknown[];
 
-const update = vi.fn(), save = vi.fn(), start = vi.fn(), stop = vi.fn(), tryIt = vi.fn();
+const update = vi.fn(), save = vi.fn(), start = vi.fn(), stop = vi.fn(), tryIt = vi.fn(), jobStoriesQuery = vi.fn();
 vi.mock("convex/react", () => ({
   useQuery: (ref: string, args: unknown) => {
     if (args === "skip") return undefined;
@@ -31,9 +31,10 @@ vi.mock("convex/react", () => ({
   },
   useMutation: (ref: string) => ({ "s.update": update, "s.save": save, "s.start": start, "s.stop": stop } as Record<string, unknown>)[ref],
   useAction: () => tryIt,
+  useConvex: () => ({ query: jobStoriesQuery }),
 }));
 vi.mock("../../../convex/_generated/api", () => ({
-  api: { storyAdmin: { overview: "s.overview", prompts: "s.prompts", recent: "s.recent", rewritePreview: "s.preview", jobs: "s.jobs", storyText: "s.text", updateSettings: "s.update", savePrompt: "s.save", startRewrite: "s.start", stopJob: "s.stop", tryPrompt: "s.try" } },
+  api: { storyAdmin: { overview: "s.overview", prompts: "s.prompts", recent: "s.recent", rewritePreview: "s.preview", jobs: "s.jobs", storyText: "s.text", updateSettings: "s.update", savePrompt: "s.save", startRewrite: "s.start", stopJob: "s.stop", jobStories: "s.jobStories", tryPrompt: "s.try" } },
 }));
 
 import { StoriesTab } from "./StoriesTab";
@@ -162,6 +163,29 @@ describe("Rewrites", () => {
     expect(stop).toHaveBeenCalledWith({ jobId: "j1" });
     fireEvent.change(screen.getByLabelText(/Type REWRITE/), { target: { value: "REWRITE" } });
     expect(screen.getByRole("button", { name: "Start rewrite" })).toBeDisabled();
+  });
+
+  it("offers PDF and Markdown downloads only on a finished rewrite that wrote stories", async () => {
+    const now = Date.now();
+    jobs = [
+      { _id: "j1", scope: "Every story", total: 5, done: 5, failed: 0, status: "done", reason: null, createdAt: now, updatedAt: now },
+      { _id: "j2", scope: "Failed stories", total: 3, done: 0, failed: 3, status: "done", reason: null, createdAt: now, updatedAt: now },
+      { _id: "j3", scope: "One game", total: 1, done: 0, failed: 0, status: "running", reason: null, createdAt: now, updatedAt: now },
+    ];
+    const created: Blob[] = [];
+    URL.createObjectURL = vi.fn((b: Blob) => { created.push(b); return "blob:x"; });
+    URL.revokeObjectURL = vi.fn();
+    jobStoriesQuery.mockResolvedValue([{ title: "A", text: "# A\n\nOne.", updatedAt: 1 }, { title: "B", text: "# B\n\nTwo.", updatedAt: 2 }]);
+    render(<StoriesTab canEdit />);
+    open("Rewrites");
+    const rowOf = (scope: string) => within(screen.getByRole("table")).getByText(scope).closest("tr")!;
+    expect(within(rowOf("Failed stories")).queryByRole("button", { name: "PDF" })).toBeNull();
+    expect(within(rowOf("One game")).queryByRole("button", { name: "Markdown" })).toBeNull();
+    expect(within(rowOf("Every story")).getByRole("button", { name: "PDF" })).toBeInTheDocument();
+    fireEvent.click(within(rowOf("Every story")).getByRole("button", { name: "Markdown" }));
+    await waitFor(() => expect(created).toHaveLength(1));
+    expect(jobStoriesQuery).toHaveBeenCalledWith("s.jobStories", { jobId: "j1" });
+    expect(await created[0]!.text()).toBe("# A\n\nOne.\n\n---\n\n# B\n\nTwo.\n");
   });
 
   it("offers no rewrite form without SYSTEM", () => {

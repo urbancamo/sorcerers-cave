@@ -1,9 +1,21 @@
 import { useState } from 'react';
-import { useMutation, useQuery } from 'convex/react';
+import { useConvex, useMutation, useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { errorText } from '../errorText';
 import { ago, num } from '../analytics/format';
 import { usd } from './format';
+import { buildStoryPdf } from '../../story/storyPdf';
+
+const STORY_SEPARATOR = '\n\n---\n\n';
+
+/** Save text as a file in the browser. */
+function download(name: string, blob: Blob) {
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
 
 type Kind = 'older' | 'failed' | 'all' | 'one';
 const KINDS: { id: Kind; label: string; help: string }[] = [
@@ -27,11 +39,26 @@ export function RewritePanel({ canEdit }: { canEdit: boolean }) {
   const jobs = useQuery(api.storyAdmin.jobs);
   const start = useMutation(api.storyAdmin.startRewrite);
   const stop = useMutation(api.storyAdmin.stopJob);
+  const convex = useConvex();
+  const [exporting, setExporting] = useState<string | null>(null);
   const [typed, setTyped] = useState('');
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<{ ok: boolean; text: string } | null>(null);
   const running = jobs?.find((j) => j.status === 'running');
   const ready = !!preview && preview.count > 0 && typed === CONFIRM_WORD && !running && !preview.paused && !busy;
+
+  /** Download the stories a finished job wrote, as one Markdown file or one PDF. */
+  const exportJob = async (jobId: (typeof jobs extends (infer J)[] | undefined ? J : never)['_id'], format: 'md' | 'pdf') => {
+    setExporting(`${jobId}:${format}`); setMsg(null);
+    try {
+      const stories = await convex.query(api.storyAdmin.jobStories, { jobId });
+      if (!stories.length) { setMsg({ ok: false, text: 'No stories were found for that rewrite.' }); return; }
+      const markdown = stories.map((x) => x.text.trim()).join(STORY_SEPARATOR) + '\n';
+      const stamp = new Date().toISOString().slice(0, 10);
+      if (format === 'md') download(`rewrite-${stamp}.md`, new Blob([markdown], { type: 'text/markdown' }));
+      else { const pdf = await buildStoryPdf(markdown, 'The Sorcerer\'s Cave'); download(`rewrite-${stamp}.pdf`, new Blob([pdf.output()], { type: 'application/pdf' })); }
+    } catch (e) { setMsg({ ok: false, text: errorText(e) }); } finally { setExporting(null); }
+  };
 
   const go = async () => {
     if (!preview) return;
@@ -84,13 +111,21 @@ export function RewritePanel({ canEdit }: { canEdit: boolean }) {
       <h3 className="scv-st-h">Rewrite jobs</h3>
       {!jobs ? <p className="scv-admin-note">Loading…</p> : jobs.length === 0 ? <p className="scv-admin-note">No rewrites have been run.</p> : (
         <table className="scv-hs-table">
-          <thead><tr><th>Started</th><th>What</th><th>Status</th><th className="scv-hs-num">Done</th><th className="scv-hs-num">Failed</th><th className="scv-hs-num">Of</th><th /></tr></thead>
+          <thead><tr><th>Started</th><th>What</th><th>Status</th><th className="scv-hs-num">Done</th><th className="scv-hs-num">Failed</th><th className="scv-hs-num">Total</th><th /></tr></thead>
           <tbody>{jobs.map((j) => (
             <tr key={j._id}>
               <td>{ago(j.createdAt, Date.now())}</td><td>{j.scope}</td>
               <td>{j.status}{j.reason ? ` (${j.reason})` : ''}</td>
               <td className="scv-hs-num">{j.done}</td><td className="scv-hs-num">{j.failed}</td><td className="scv-hs-num">{j.total}</td>
-              <td>{canEdit && j.status === 'running' && <button type="button" className="scv-ghost" onClick={() => void stop({ jobId: j._id })}>Stop</button>}</td>
+              <td>
+                {canEdit && j.status === 'running' && <button type="button" className="scv-ghost" onClick={() => void stop({ jobId: j._id })}>Stop</button>}
+                {j.status === 'done' && j.done > 0 && (
+                  <span className="scv-st-export">
+                    <button type="button" className="scv-ghost" disabled={exporting !== null} onClick={() => void exportJob(j._id, 'pdf')}>{exporting === `${j._id}:pdf` ? 'Making…' : 'PDF'}</button>
+                    <button type="button" className="scv-ghost" disabled={exporting !== null} onClick={() => void exportJob(j._id, 'md')}>Markdown</button>
+                  </span>
+                )}
+              </td>
             </tr>
           ))}</tbody>
         </table>

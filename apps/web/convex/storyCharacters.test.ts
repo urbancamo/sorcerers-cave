@@ -44,6 +44,22 @@ describe("story characters", () => {
     expect(cast).toContain("Dwarf and Ogre");
     expect(castFor(digest, "hs1")).toBe(castFor(digest, "hs1"));
   });
+  it("offers funny habits for the starting party and keeps them out of the others' lines", () => {
+    const cast = castFor(digest, "hs1");
+    expect(cast).toContain("Funny habits, for a light touch under pressure");
+    expect(CHARACTERS.Dwarf!.quirks!.length).toBeGreaterThan(2);
+    expect(cast.split("OTHERS THEY MEET")[1]).not.toContain("Funny habits");
+  });
+  it("gives every class a fear or flaw and offers them for the starting party only", () => {
+    for (const [n, c] of Object.entries(CHARACTERS)) expect(c.flaws?.length, n).toBeGreaterThan(1);
+    const cast = castFor(digest, "hs1");
+    expect(cast).toContain("Fears and flaws");
+    expect(cast.split("OTHERS THEY MEET")[1]).not.toContain("Fears and flaws");
+    expect(parseCharacters(renderCharacters()).bundle.characters.find(([n]) => n === "Ogre")![1].flaws).toEqual(CHARACTERS.Ogre!.flaws);
+  });
+  it("round-trips quirks through the editable text", () => {
+    expect(parseCharacters(renderCharacters()).bundle.characters.find(([n]) => n === "Ogre")![1].quirks).toEqual(CHARACTERS.Ogre!.quirks);
+  });
   it("calls the woman hero the heroine and says nothing when no creature is named", () => {
     expect(castFor("Starting party: W-Hero.\n", "k")).toContain("the heroine");
     expect(castFor("Nothing here.", "k")).toBe("");

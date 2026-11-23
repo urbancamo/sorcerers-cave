@@ -39,6 +39,8 @@ export function AdminShell({ roles, username, userId }: { roles: Role[]; usernam
 
   return (
     <main className="scv-admin">
+      {/* Same place as the splash screen's Admin button; stays signed in, and goes back to the welcome page. */}
+      <button type="button" className="scv-ghost scv-splash-admin" onClick={() => window.location.assign('/')}>Quit Admin</button>
       <header className="scv-admin-bar">
         <h1 className="scv-admin-title">Administration</h1>
         <span className="scv-admin-user">{username}</span>

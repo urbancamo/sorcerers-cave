@@ -64,6 +64,8 @@ WHAT TO WRITE
 - Follow THE PLAN's craft choices: tell the story against its clock, keep its binaries in tension (both halves present), let its motif \
 come back and grow each time, set up its props early and pay them off, and show the hero at the transition it names. Each event told \
 in full must raise the stakes above the last; if it does not, compress it. A story that merely goes on is a chronicle.
+- Show each picked fear or flaw in one or two moments, as a flinch, a habit or a thing avoided, never explained, and never as a creature or event the record does not contain. It may deepen a person or give a light touch; it never makes anyone leave the party.
+- Follow the plan's HUMOUR: at most four light touches in the whole story, each a clause or a line, dry and about character or the gap between how grand something sounds and how it went. None inside a death, a loss, a mutiny or the worst of a fight. A running gag may come back once, rising. No puns, no winks at the reader, no modern slang, and nobody mocked for dying. If in doubt, leave the joke out; the story must work without it.
 - Use the names and the picked traits from THE PEOPLE and the plan for the starting party. Show a trait in an action or an object, \
 never by naming it. Give each named person at least two moments, and let how they stand with each other change.
 - Give the story a want and something the hero lacks, a cost the victory must not erase, and one change in the hero that is \
@@ -91,6 +93,8 @@ treasures or rescues. The record is a summary: you may say how a recorded event 
 - Nobody leaves the party except by being lost as the record says. Do not have anyone desert, wander off, turn back, stay \
 behind or be separated; members only join, die, turn to stone, or walk out of the cave at the end. If someone is not in the \
 list of those who walked out, they were lost, and the record says how.
+- Silver, gold and gems are counted in BAGS: a bag of gold, a bag of silver, a bag of gems. Never call them coins, pieces, nuggets or \
+individual stones, and never count them as such ("five bags of gold", not "five pieces of gold"). They do not count among the three or four objects.
 - Mention no more than three or four objects in the whole story, in plain words (a staff, a ruby, a jar of balm). Do not use \
 the capitalised names from the record, and do not list what anyone is carrying.
 - Do not mention dice, rolls, points, scores, levels as numbers, turns, rules, a game, or a player. Say "the third floor \
@@ -122,10 +126,12 @@ the joins: add the connecting passage between episodes (travel, time passing, th
 are only there to tick an event off. Remove any headings, numbering, bullet points or scene-break lines.
 3. Game-speak. Remove any mention of dice, rolls, points, scores, numbered levels, turns, rules, a game or a player. Remove \
 capitalised item names from the record (Lost Ruby, Eye of God, Magic Staff) and any list of what each person carries; keep at \
-most three or four objects in the story, in plain words.
+most three or four objects in the story, in plain words. Silver, gold and gems are counted in bags ("five bags of gold"): change any count of coins, pieces, nuggets or stones to bags.
 4. Shape. The story must have a beginning before the cave that gives the starting party a past and a reason for going, a tight middle, and an ending that tells the way out and what the treasure or the survival did to them. If the beginning is thin, enrich it; if the ending only stops at the cave mouth, extend it; if the middle is a chamber-by-chamber chronicle, compress it into the few events that matter. Backstory and aftermath are outside the record and are allowed; keep them, and keep them consistent with the outcome.
 5. Arc. Check the middle rises: each event told in full should raise the stakes above the one before, and one motif should return and grow. Check that a clock shapes the story, that the opposing forces both appear, that props set up early are paid off, and that the hero's change is shown. If a middle event does not raise the stakes, compress it; do not add events. Check that the starting party keep the names given in THE PEOPLE.
-6. Craft. The story must not end on counting or naming the survivors, and its title must not be "The Count"; give it a different \
+6. Flaws. Check each fear or flaw named in the plan is shown once or twice and not explained, that it is not a new creature, event or cause of anyone leaving, and that it is played with respect (the dread of a thing, not a fight with it). Cut any that invent something in the cave.
+7. Humour. Keep it light and rare: at most four touches, each a clause or a line, from character or understatement. Cut any joke inside a death, a loss, a mutiny or the worst of a fight, any pun, wink at the reader or modern slang, anything that mocks someone for dying, and anything that reads as a gag instead of a person. If the story has no humour at all, leave it that way; do not add jokes.
+8. Craft. The story must not end on counting or naming the survivors, and its title must not be "The Count"; give it a different \
 closing image and title. Call the cave's stages floors, never levels. The theme is stated at most once. Cut clichés, stacked \
 adjectives and any closing moral. The first line makes a promise and the last image keeps it. Keep it at about 1,700 words, never under \
 1,500 and never over 1,900. Cut the middle first; if the story is short, add to the beginning and the ending (the people, what the \
@@ -165,12 +171,12 @@ Nothing else: no preamble, no story.`;
  */
 export interface StoryVoice { id: string; instruction: string }
 export const STORY_VOICES: readonly StoryVoice[] = [
-  { id: "close-third", instruction: "Close third person, past tense, staying with one person in the party, and seeing only what they see and know." },
-  { id: "bard", instruction: "A bard telling it by a fire years afterwards, in third person and past tense. The teller may make a dry aside or remark on how the tale has grown in the telling, at most a few times, but never invents what happened." },
+  { id: "close-third", instruction: "Close third person, past tense, staying with one person in the party, and seeing only what they see and know. Dry understatement is the only humour allowed." },
+  { id: "bard", instruction: "A bard telling it by a fire years afterwards, in third person and past tense. The teller may make a dry aside or remark on how the tale has grown in the telling, at most a few times, but never invents what happened. His asides are where the humour lives, dry and rare." },
   { id: "letter", instruction: "First person, past tense: a letter written by one survivor to someone at home. Plain, a little formal, holding back what hurt most. No dates, headings or salutation lists; ordinary paragraphs." },
-  { id: "clerk", instruction: "Third person, past tense, in the exact, unhurried voice of a clerk who has written many such accounts and is moved despite himself. Understatement carries all the feeling." },
-  { id: "fable", instruction: "A tale told to children by someone old, in third person, with the rhythm of a fable (short sentences, things in threes, a plain refrain at most once) but with nothing softened: the losses are told as they were." },
-  { id: "rear-guard", instruction: "First person, past tense, told by an ordinary member near the back of the party (not the leader) who watched the leader and kept their own counsel. They know less than the record: they report what they saw." },
+  { id: "clerk", instruction: "Third person, past tense, in the exact, unhurried voice of a clerk who has written many such accounts and is moved despite himself. Understatement carries all the feeling. The humour is in the exactness: an unmoved report of something absurd." },
+  { id: "fable", instruction: "A tale told to children by someone old, in third person, with the rhythm of a fable (short sentences, things in threes, a plain refrain at most once) but with nothing softened: the losses are told as they were. A little gentle absurdity is welcome, in a fable's plain way." },
+  { id: "rear-guard", instruction: "First person, past tense, told by an ordinary member near the back of the party (not the leader) who watched the leader and kept their own counsel. They know less than the record: they report what they saw. Wry about the leader and the others, never unkind." },
   { id: "present", instruction: "Close third person in the PRESENT tense, staying with one person in the party, so the reader never knows more than they do." },
   { id: "wake", instruction: "Third person, past tense, told as if at a wake, for those who did not come back as much as for those who did. Name the cost early and let the ending carry it." },
 ];
@@ -209,6 +215,8 @@ Build the plan on these ideas from the craft of the short story:
 - BINARIES: two or three opposing forces that give the story tension (the crowd and being alone, greed and loyalty, down and up). If one side of a pair is in the story, the other must be too.
 - A MOTIF THAT ESCALATES: one thing that comes back four or five times in the cave, stronger each time (the lion leaning on the hero, a debt, the cold). The middle is chosen for how it rises, not for how much of the record it covers.
 - PROPS THAT RECUR: three or four objects that are set up once and paid off later.
+- A FLAW OR A FEAR: a person is made by what scares them and how they carry it, especially when it is out of keeping (the ogre afraid of mice). One well-placed fear is worth a page of virtues, and the best humour grows from it.
+- LIGHT HUMOUR: well placed and rare. It comes from character (a funny habit under pressure, a pairing) and from understatement, and it is strongest set against real stakes. It sits in the setup, the travel and the aftermath, and goes quiet at every death and loss.
 - A PERSON AT A TRANSITION: the hero is at a moment of change (the last job before the knees give out, the first time anyone has asked them to stay) and does not want to pass the point of no return.
 
 THE PEOPLE block in the record names the party (fixed names, and options to pick from). Use those names. For the hero and at most two or three others, pick one or two options each (a habit, a worry, a want, an explorer reason) and say which; the writer will show those and not invent others. Everyone else is a name and a general line at most.
@@ -219,6 +227,8 @@ BEFORE THE CAVE: who the starting party are before they go down, by name, with t
 HERO: who the story follows and what they want or lack.
 BINARIES: the two or three pairs of opposing forces, each with both halves.
 MOTIF: the one thing that escalates, and the four or five record events (by number) where it returns, in rising order.
+FLAW: for the hero and at most one or two others, one fear or flaw each, picked from THE PEOPLE, and where it shows (one or two moments). It deepens a person or, lightly, makes the humour. It may be real in the beginning and the aftermath; inside the cave it is only ever dread, a flinch, a detour of thought or a sound, never a new creature or incident. It never makes anyone leave the party.
+HUMOUR: two or three light touches (not more), each a clause or a line, and which record event, character quirk or contrast it rests on. The comedy is dry and about character or about the gap between how grand a thing sounds and how it went. None of them may touch a death, a loss, a mutiny or the worst moment of a fight.
 PROPS: three or four objects from the record (plain words) and where each is set up and where it pays off.
 OBSTACLE: what stands in the way, taken from the record.
 TURN: the one moment in the record that changes things.
