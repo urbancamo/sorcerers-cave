@@ -105,7 +105,10 @@ export function ReplayView({ bundle, onExit }: {
         <div className="scv-replay-row">
           <button className="scv-primary" onClick={() => jump(0)} disabled={i === 0} aria-label="first move">⏮ First</button>
           <button className="scv-primary" onClick={() => jump(i - 1)} disabled={i === 0} aria-label="previous move">◀ Previous</button>
+          {/* A move is one action in the log; the turn is the game's own counter, which only a step to a new tile advances, so many moves share a turn
+              (a bug report quotes the turn, and this is how to find it). */}
           <span className="scv-replay-pos">Move {i} / {last}</span>
+          <span className="scv-replay-turn" data-testid="replay-turn" title="The game's turn counter: several moves can share a turn">Turn {frame.state.turn}</span>
           {playing ? (
             <button className="scv-primary" onClick={() => setPlaying(false)} aria-label="stop playback">■ Stop</button>
           ) : (
