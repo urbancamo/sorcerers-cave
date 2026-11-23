@@ -312,16 +312,17 @@ const POOLS = new Set(["names", "habits", "worries", "wants", "strengths", "quir
 
 /** The bundle as editable text: a header, a `## Class` block per creature (`field: a | b | c` lines), then `## pairings` with `A + B: text`. */
 export function renderCharacters(b: CharacterBundle = defaultCharacters()): string {
-  const out = ["## header", b.header, ""];
+  const out = ["## header", "", b.header, ""];
   for (const [name, c] of b.characters) {
-    out.push(`## ${name}`, `general: ${c.general}`, `names: ${c.names.join(" | ")}`, `habits: ${c.habits.join(" | ")}`, `worries: ${c.worries.join(" | ")}`,
-      `wants: ${c.wants.join(" | ")}`, `strengths: ${c.strengths.join(" | ")}`);
-    if (c.quirks?.length) out.push(`quirks: ${c.quirks.join(" | ")}`);
-    if (c.flaws?.length) out.push(`flaws: ${c.flaws.join(" | ")}`);
-    if (c.explorer?.length) out.push(`explorer: ${c.explorer.join(" | ")}`);
-    out.push("");
+    // A blank line between every field so each reads as its own paragraph (the parser ignores blank lines).
+    const fields = [`general: ${c.general}`, `names: ${c.names.join(" | ")}`, `habits: ${c.habits.join(" | ")}`, `worries: ${c.worries.join(" | ")}`,
+      `wants: ${c.wants.join(" | ")}`, `strengths: ${c.strengths.join(" | ")}`];
+    if (c.quirks?.length) fields.push(`quirks: ${c.quirks.join(" | ")}`);
+    if (c.flaws?.length) fields.push(`flaws: ${c.flaws.join(" | ")}`);
+    if (c.explorer?.length) fields.push(`explorer: ${c.explorer.join(" | ")}`);
+    out.push(`## ${name}`, "", fields.join("\n\n"), "");
   }
-  out.push("## pairings", ...b.pairings.map((p) => `${p.a} + ${p.b}: ${p.text}`));
+  out.push("## pairings", "", b.pairings.map((p) => `${p.a} + ${p.b}: ${p.text}`).join("\n\n"));
   return out.join("\n");
 }
 

@@ -111,7 +111,7 @@ export function PromptEditor({ canEdit }: { canEdit: boolean }) {
       </label>
 
       <h4 className="scv-st-h">Voices and the world</h4>
-      <label className="scv-bug-field"><span>Voices (one per line as <code>id: instruction</code>; each game is given one, always the same one)</span>
+      <label className="scv-bug-field"><span>Voices (one per paragraph as <code>id: instruction</code>; each game is given one, always the same one)</span>
         <textarea className="scv-st-area" rows={9} value={fields.voices} readOnly={!canEdit} onChange={(e) => set({ voices: e.target.value })} spellCheck={false} />
       </label>
       <label className="scv-bug-field"><span>Story bible (sections <code>## header</code>, <code>## creatures</code>, <code>## artefacts</code>, <code>## places</code>; one <code>Name: entry</code> per line; a place is <code>keyword | keyword: entry</code>. Only the entries for what is in a game are given to the planner and writer.)</span>

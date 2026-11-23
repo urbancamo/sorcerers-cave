@@ -108,11 +108,13 @@ const SECTIONS = ["header", "creatures", "artefacts", "places"] as const;
 
 /** Render a bible in the text format the admin panel edits (and `parseBible` reads back). */
 export function renderBible(b: Bible = defaultBible()): string {
+  // A blank line between entries so each reads as its own paragraph (the parser ignores blank lines).
+  const entries = (xs: string[]): string[] => [xs.join("\n\n"), ""];
   return [
-    "## header", b.header, "",
-    "## creatures", ...b.creatures.map(([n, t]) => `${n}: ${t}`), "",
-    "## artefacts", ...b.treasures.map(([n, t]) => `${n}: ${t}`), "",
-    "## places", ...b.places.map((p) => `${p.keys.join(" | ")}: ${p.text}`),
+    "## header", "", b.header, "",
+    "## creatures", "", ...entries(b.creatures.map(([n, t]) => `${n}: ${t}`)),
+    "## artefacts", "", ...entries(b.treasures.map(([n, t]) => `${n}: ${t}`)),
+    "## places", "", b.places.map((p) => `${p.keys.join(" | ")}: ${p.text}`).join("\n\n"),
   ].join("\n");
 }
 

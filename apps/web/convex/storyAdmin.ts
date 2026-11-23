@@ -145,23 +145,28 @@ export const updateSettings = mutation({
 });
 
 /** The stories a rewrite scope selects (at most MAX_REWRITE), with a readable label. */
-async function targets(ctx: QueryCtx, scope: Scope): Promise<{ ids: Id<"highScores">[]; label: string; truncated: boolean }> {
+async function targets(ctx: QueryCtx, scope: Scope): Promise<{ ids: Id<"highScores">[]; label: string; truncated: boolean; note?: string }> {
   const active = (await activePrompt(ctx)).version;
   let label = "";
+  let note: string | undefined;
   let ids: Id<"highScores">[] = [];
   if (scope.kind === "one") {
-    label = `Game ${scope.gameCode.trim().toUpperCase()}`;
-    const game = await ctx.db.query("games").withIndex("by_code", (q) => q.eq("code", scope.gameCode.trim().toUpperCase())).first();
-    const hs = game ? await ctx.db.query("highScores").withIndex("by_game", (q) => q.eq("gameId", game._id)).first() : null;
-    const story = hs ? await ctx.db.query("stories").withIndex("by_highScore", (q) => q.eq("highScoreId", hs._id)).first() : null;
-    if (story && story.status !== "pending") ids = [story.highScoreId];
+    const code = scope.gameCode.trim().toUpperCase();
+    label = `Game ${code}`;
+    // Any game with a saved entry will do, whatever state its story is in (none yet, pending, failed or ready): `stories.begin` makes the
+    // story row when there is none. A multiplayer game can have an entry per party.
+    const game = await ctx.db.query("games").withIndex("by_code", (q) => q.eq("code", code)).first();
+    const entries = game ? await ctx.db.query("highScores").withIndex("by_game", (q) => q.eq("gameId", game._id)).take(20) : [];
+    ids = entries.map((h) => h._id);
+    if (!game) note = `No game has the code ${code}.`;
+    else if (!ids.length) note = `Game ${code} has no saved entry (stories are written for saved high scores, and a game that was never saved has none to attach to).`;
   } else {
     const all = await ctx.db.query("stories").take(5000);
     if (scope.kind === "all") { label = "Every story"; ids = all.filter((s) => s.status !== "pending").map((s) => s.highScoreId); }
     else if (scope.kind === "failed") { label = "Failed stories"; ids = all.filter((s) => s.status === "failed").map((s) => s.highScoreId); }
     else { label = `Stories written with an older prompt than version ${active}`; ids = all.filter((s) => s.status === "ready" && (s.promptVersion ?? 0) < active).map((s) => s.highScoreId); }
   }
-  return { ids: ids.slice(0, MAX_REWRITE), label, truncated: ids.length > MAX_REWRITE };
+  return { ids: ids.slice(0, MAX_REWRITE), label, truncated: ids.length > MAX_REWRITE, note };
 }
 
 /** How many stories a scope would rewrite and roughly what it would cost, so the admin can confirm knowingly. */
@@ -177,7 +182,7 @@ export const rewritePreview = query({
     const todayUsd = aggregateStories(recentRuns, [], now).spend.todayUsd;
     const estimatedUsd = Math.round(per * t.ids.length * 100) / 100;
     const remaining = settings?.dailyCapUsd ? Math.max(0, Math.round((settings.dailyCapUsd - todayUsd) * 100) / 100) : null;
-    return { label: t.label, count: t.ids.length, truncated: t.truncated, perStoryUsd: per, estimatedUsd, remainingTodayUsd: remaining, exceedsDailyCap: remaining !== null && estimatedUsd > remaining, paused: settings?.paused ?? false };
+    return { label: t.label, note: t.note ?? null, count: t.ids.length, truncated: t.truncated, perStoryUsd: per, estimatedUsd, remainingTodayUsd: remaining, exceedsDailyCap: remaining !== null && estimatedUsd > remaining, paused: settings?.paused ?? false };
   },
 });
 

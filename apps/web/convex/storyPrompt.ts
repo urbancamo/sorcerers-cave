@@ -186,8 +186,8 @@ const hash = (s: string): number => { let h = 2166136261; for (let i = 0; i < s.
 /** The voice for a game, chosen from a key (the high-score id) so the same game always gets the same voice. */
 export const pickVoice = (key: string, voices: readonly StoryVoice[] = STORY_VOICES): StoryVoice => voices[hash(key) % voices.length]!;
 
-/** The voices as editable text, one `id: instruction` per line, and back again. */
-export const renderVoices = (voices: readonly StoryVoice[] = STORY_VOICES): string => voices.map((v) => `${v.id}: ${v.instruction}`).join("\n");
+/** The voices as editable text, one `id: instruction` per paragraph (blank line between), and back again. */
+export const renderVoices = (voices: readonly StoryVoice[] = STORY_VOICES): string => voices.map((v) => `${v.id}: ${v.instruction}`).join("\n\n");
 export function parseVoices(text: string): { voices: StoryVoice[]; problems: string[] } {
   const voices: StoryVoice[] = [], problems: string[] = [];
   text.split("\n").forEach((raw, i) => {
