@@ -39,7 +39,8 @@ export interface Card {
 /** A placed tile = one "area" (chamber or tunnel) on the grid. */
 export interface Area {
   // identity & placement
-  tileId: string;        // which tile artwork, e.g. "s12-3"
+  tileId: string;        // which tile artwork, e.g. "s12-3" (MISSING_TILE_ID when none matches the card: a bug, drawn as a placeholder)
+  missingArt?: string;   // set with MISSING_TILE_ID: which card/doorways had no art, printed on the placeholder tile
   rot: 0 | 90 | 180 | 270; // clockwise rotation applied to BOTH art and exits
   level: number;         // 1 = top/surface level, increasing DOWNWARD
   col: number;           // grid column (east = +)

@@ -445,6 +445,20 @@ describe("Spell — remap-on-draw: splice into the pack, replace the cell face-d
     expect(events).toContainEqual({ type: "spellRemap", fizzled: false });
   });
 
+  it("splices back the PRINTED card, without a stair that was only mirrored onto the tunnel (BING, issue #120)", () => {
+    // A tunnel (north, east, south + a printed stair down = 71) that also carries a mirrored stair up (32): the card value in
+    // the pack must be 71, not 103, or it is later drawn as a card the deck never held.
+    const PRINTED = 71, MIRRORED_UP = 32;
+    const s = spellState({
+      areas: [
+        { card: PRINTED | MIRRORED_UP, coord: packCoord(1, 50, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0, mirroredStairs: MIRRORED_UP, secretDoor: 0 },
+        { card: CHAMBER_CARD, coord: packCoord(1, 51, 50), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0 },
+      ],
+    });
+    applyHazards(s);
+    expect(s.largePack).toEqual([CHAMBER_CARD, PRINTED, 999, 998]);
+  });
+
   it("clears a neighbour's dead-door mark facing the replaced tile, so a passage the new card opens is not stuck shut (game HXIH)", () => {
     // Area 2 sits south of the tunnel and had its north door marked dead (bit 1) because the OLD card had no way through.
     const neighbour = { card: CHAMBER_CARD, coord: packCoord(1, 50, 51), faceUp: true, visited: true, contents: [], flags: 0, indiffCount: 0, deadDoors: 1 | 2 };
