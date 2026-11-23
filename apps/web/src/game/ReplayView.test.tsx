@@ -51,6 +51,16 @@ describe("ReplayView — transport over ReplayFrames (§RB-4)", () => {
     expect(syncMock).toHaveBeenCalledWith(frames[1]!.state);
   });
 
+  it("shows the game's turn beside the move number, following the frame", async () => {
+    await renderView();
+    const turn = () => screen.getByTestId("replay-turn").textContent;
+    expect(turn()).toBe(`Turn ${frames[0]!.state.turn}`);
+    fireEvent.click(screen.getByRole("button", { name: /next/i }));
+    expect(turn()).toBe(`Turn ${frames[1]!.state.turn}`);
+    fireEvent.change(screen.getByRole("slider", { name: /replay position/i }), { target: { value: "0" } });
+    expect(turn()).toBe(`Turn ${frames[0]!.state.turn}`);
+  });
+
   it("scrubber jumps to the chosen frame", async () => {
     await renderView();
     fireEvent.change(screen.getByRole("slider", { name: /replay position/i }), { target: { value: "2" } });
