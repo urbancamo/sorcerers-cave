@@ -24,6 +24,14 @@ const WOULD_HELP: Record<number, (creatureId: number) => boolean> = {
   7: (c) => canUseArtifact(c, 7), // the Talisman is for humans and magic users only
 };
 
+// Items that do nothing at all in some carriers' hands, even when worn: the Talisman for anyone but a human or magic user. Where this is
+// true the item is shown as inactive (inventory, party panel, item card) and auto-wear leaves it alone.
+const NO_EFFECT: Record<number, (creatureId: number) => boolean> = {
+  7: (c) => !canUseArtifact(c, 7),
+};
+/** True when `tid` would do nothing in this creature's hands (the Talisman on a Dwarf). A false is not a promise that it helps. */
+export const noEffectFor = (tid: number, creatureId: number): boolean => NO_EFFECT[tid]?.(creatureId) ?? false;
+
 // The items whose use adds points to a fight (the Shield and Talisman ward off harm instead).
 const POINTS: readonly number[] = [3, 9, 17, 10];
 

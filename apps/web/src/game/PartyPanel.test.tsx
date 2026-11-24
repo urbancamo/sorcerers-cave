@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, cleanup } from "@testing-library/react";
 import { describe, it, expect, vi } from "vitest";
 import { newGame, type GameState } from "@sorcerers-cave/engine";
 import { PartyPanel } from "./PartyPanel";
@@ -79,6 +79,30 @@ describe("PartyPanel", () => {
     const inert = screen.getByRole("button", { name: /magic shield \(wielded\) \(inert\)/i });
     expect(inert.className).toContain("inert");
     expect(inert.title).toMatch(/inert — needs a man, woman, hero, or w-hero/i);
+  });
+
+  // Issue #132: a Talisman worn by a Dwarf looked as if it were working.
+  it("marks the Talisman inert when a Dwarf bears it, worn or only carried, and not when the Man does", () => {
+    const dwarf = partyState(); // Man (idx 0) + Dwarf (idx 1)
+    dwarf.party[1]!.treasure.push(7);
+    dwarf.party[1]!.borne = [7];
+    const { unmount } = render(<PartyPanel state={dwarf} dispatch={() => {}} onClose={() => {}} />);
+    const worn = screen.getByRole("button", { name: /talisman \(worn\) \(inert\)/i });
+    expect(worn.className).toContain("inert");
+    expect(worn.title).toMatch(/no effect — only a human or magic user/i);
+    unmount();
+
+    const carried = partyState();
+    carried.party[1]!.treasure.push(7);
+    render(<PartyPanel state={carried} dispatch={() => {}} onClose={() => {}} />);
+    expect(screen.getByRole("button", { name: /talisman \(inert\)/i }).className).toContain("inert");
+    cleanup();
+
+    const man = partyState();
+    man.party[0]!.treasure.push(7);
+    man.party[0]!.borne = [7];
+    render(<PartyPanel state={man} dispatch={() => {}} onClose={() => {}} />);
+    expect(screen.getByRole("button", { name: /talisman \(worn\)$/i }).className).not.toContain("inert");
   });
 
   it("moves a carried treasure to another member", () => {

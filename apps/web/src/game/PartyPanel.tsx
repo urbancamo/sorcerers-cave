@@ -9,7 +9,7 @@ import { awardsOf } from "./awards";
 import { ChestPicker } from "./ChestPicker";
 import { SHARED_CHEST_CARD } from "./chestShares";
 
-import { useVerbs, wieldRefusal } from "./wielding";
+import { noEffectFor, useVerbs, wieldRefusal } from "./wielding";
 // Status badges mirror the in-cave roster (see view/cave3d.js renderRoster): a befriended member
 // shows the same green "ally" pill, a petrified one the grey "stone" pill, so the detailed party
 // view and the summary roster read identically.
@@ -162,14 +162,17 @@ export function PartyPanel({
                     const isIdol = tid === T_IDOL;
                     // Inert = borne, but the current holder can't make the ward do anything (US-23).
                     const shieldInert = tid === T_MAGIC_SHIELD && borne && !SHIELD_ELIGIBLE.has(m.creatureId);
+                    // The Talisman on a creature that cannot use it does nothing either, worn or not.
+                    const talismanInert = noEffectFor(tid, m.creatureId);
+                    const inert = shieldInert || talismanInert;
                     return (
                       <button
                         key={idx}
                         type="button"
-                        className={"scv-pp-item" + (t.kind === "artifact" ? " art" : "") + (selected ? " sel" : "") + (borne ? " borne" : "") + (shieldInert ? " inert" : "")}
+                        className={"scv-pp-item" + (t.kind === "artifact" ? " art" : "") + (selected ? " sel" : "") + (borne ? " borne" : "") + (inert ? " inert" : "")}
                         disabled={!canManage}
-                        aria-label={t.name + (borne ? ` (${useVerbs(tid).state})` : "") + (shieldInert ? " (inert)" : "")}
-                        title={t.name + (t.kind === "artifact" ? " · artifact" : ` · ${t.weight}kg`) + (borne ? ` · ${useVerbs(tid).state}` : "") + (isIdol ? " · value revealed at game's end" : "") + (shieldInert ? " · inert — needs a Man, Woman, Hero, or W-Hero to bear it" : "")}
+                        aria-label={t.name + (borne ? ` (${useVerbs(tid).state})` : "") + (inert ? " (inert)" : "")}
+                        title={t.name + (t.kind === "artifact" ? " · artifact" : ` · ${t.weight}kg`) + (borne ? ` · ${useVerbs(tid).state}` : "") + (isIdol ? " · value revealed at game's end" : "") + (shieldInert ? " · inert — needs a Man, Woman, Hero, or W-Hero to bear it" : "") + (talismanInert ? " · no effect — only a human or magic user can use the Talisman" : "")}
                         onClick={() => setSel(selected ? null : { mi, idx })}
                         onMouseEnter={() => setPreview(timg)}
                         onMouseLeave={() => setPreview((p) => (p === timg ? null : p))}

@@ -2,7 +2,7 @@ import { BORNEABLE, canArm, canCarry, canUseArtifact, isBorne, legalActions, scr
 import { memberLabel } from '../memberLabels';
 import { ConfirmButton, ConfirmPicker } from '../ConfirmButton';
 import { useOptions, ELIXIR_CONFIRM, SCROLL_CONFIRM } from '../artifactUse';
-import { useVerbs, wieldRefusal } from '../wielding';
+import { noEffectFor, useVerbs, wieldRefusal } from '../wielding';
 import { ACTIVE } from '../inventory';
 import { ChestPicker } from '../ChestPicker';
 import { useState } from 'react';
@@ -76,7 +76,10 @@ export function ItemActions({ state, dispatch, mi, idx }: { state: GameState; di
       {openChest && <button type="button" className="scv-enc-btn" onClick={() => dispatch(openChest)}>Open the Treasure Chest</button>}
       {/* Say which it is: the card's own words are "held by", so the state needs stating (Peter, ZYBP: "is she wielding it or not?"). */}
       {alive && BORNEABLE.includes(tid) && (
-        <p className="scv-ia-state" data-testid="ia-state">{isBorne(m, tid) ? (useVerbs(tid).state === 'worn' ? 'Worn' : 'Wielded') : `Carried, not ${useVerbs(tid).state}`}</p>
+        <p className="scv-ia-state" data-testid="ia-state">
+          {isBorne(m, tid) ? (useVerbs(tid).state === 'worn' ? 'Worn' : 'Wielded') : `Carried, not ${useVerbs(tid).state}`}
+          {noEffectFor(tid, m.creatureId) && ' · no effect: this creature cannot use it'}
+        </p>
       )}
       {/* Wield or wear: an item's effect applies only while it is in use. Nothing is put in use for you. */}
       {alive && canArm(state, mi) && BORNEABLE.includes(tid) && (() => {

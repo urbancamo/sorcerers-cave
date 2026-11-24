@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, cleanup } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { newGame, type GameState } from '@sorcerers-cave/engine';
 import { ItemActions } from './ItemActions';
@@ -200,6 +200,18 @@ describe('ItemActions — wielded or carried (Peter\'s report, ZYBP)', () => {
     s.party[0]!.borne = [10];
     show(s, 10);
     expect(screen.getByTestId('ia-state')).toHaveTextContent('Worn');
+  });
+
+  it('says a Talisman has no effect when a Dwarf wears it (issue #132), and nothing of the kind for a Hero', () => {
+    const dwarf = carrying([7], 7);
+    dwarf.party[0]!.borne = [7];
+    show(dwarf, 7);
+    expect(screen.getByTestId('ia-state')).toHaveTextContent('Worn · no effect: this creature cannot use it');
+    cleanup();
+    const hero = carrying([0], 7);
+    hero.party[0]!.borne = [7];
+    show(hero, 7);
+    expect(screen.getByTestId('ia-state')).toHaveTextContent(/^Worn$/);
   });
 
   it('shows no state for an item that is neither wielded nor worn', () => {

@@ -1,7 +1,7 @@
 import { ALL_TREASURES, BORNEABLE, canUseArtifact, isBorne, legalActions, scrollWindow, staffBonus, type GameState } from '@sorcerers-cave/engine';
 import { memberLabels } from './memberLabels';
 
-import { useVerbs } from './wielding';
+import { noEffectFor, useVerbs } from './wielding';
 // Draft classification for the inventory (docs/requirements/ui-review, "Artifact classification"); it still needs a
 // rules review. Active artifacts need a player action; passive ones work by being carried or wielded.
 export const ACTIVE = new Set([4, 5, 6, 8, 9, 12, 15, 16, 19]);
@@ -52,6 +52,8 @@ export function artifactState(state: GameState, mi: number, tid: number, usable:
   if (tid === T_MAGIC_SHIELD && !SHIELD_ELIGIBLE.has(m.creatureId)) return { color: 'gray', tag: 'inert for this carrier' };
   if (BORNEABLE.includes(tid)) {
     const state = useVerbs(tid).state;
+    // Worn or not, it does nothing in this carrier's hands (the Talisman on a Dwarf): say so, so a worn Talisman is not taken to be working.
+    if (noEffectFor(tid, m.creatureId)) return { color: 'gray', tag: isBorne(m, tid) ? `${state} · no effect: carrier cannot use` : 'carried · carrier cannot use' };
     return { color: 'yellow', tag: isBorne(m, tid) ? state : `carried · not ${state}` };
   }
   return { color: 'yellow', tag: 'passive' };

@@ -11,6 +11,25 @@ const game = (carriers: [number, number[]][], over: Partial<GameState> = {}): Ga
   return { ...s, ...over };
 };
 
+describe('the Talisman in a carrier who cannot use it (issue #132)', () => {
+  const T_TALISMAN = 7;
+  const row = (creatureId: number, worn: boolean) => {
+    const s = game([[creatureId, [T_TALISMAN]]]);
+    if (worn) s.party[0]!.borne = [T_TALISMAN];
+    return inventoryRows(s)[0]!;
+  };
+  it('reads as inactive when a Dwarf wears it: grey, and the tag says it has no effect', () => {
+    expect(row(DWARF, true)).toMatchObject({ name: 'Talisman', color: 'gray', tag: 'worn · no effect: carrier cannot use' });
+  });
+  it('reads as inactive when a Dwarf only carries it', () => {
+    expect(row(DWARF, false)).toMatchObject({ color: 'gray', tag: 'carried · carrier cannot use' });
+  });
+  it('still reads as worn (or carried, not worn) for a Hero, who can use it', () => {
+    expect(row(HERO, true)).toMatchObject({ color: 'yellow', tag: 'worn' });
+    expect(row(HERO, false)).toMatchObject({ color: 'yellow', tag: 'carried · not worn' });
+  });
+});
+
 describe('inventory', () => {
   // The Scroll was shown "not usable now" in a fight: the row looked only for the old Scroll step, not the window at each decision.
   it('shows the Scroll as usable now while the attacking party decides, in an old game and a scrollAnytime one', () => {

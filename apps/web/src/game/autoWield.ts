@@ -1,5 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { BORNEABLE, isBorne, reduce, wieldConflict, type GameAction, type GameState } from '@sorcerers-cave/engine';
+import { noEffectFor } from './wielding';
 
 const AUTO_WIELD_KEY = 'scv-auto-wield';
 
@@ -17,7 +18,7 @@ const countOf = (xs: readonly number[], t: number): number => xs.filter((x) => x
 
 /**
  * The next wield or wear to do for an item a member has GAINED since `prev` (picked up, passed, traded or won): a weapon, shield, Ring or
- * Talisman the member is not yet using. An item the player stowed is never put back, because it was not gained. `defer` is true when an
+ * Talisman the member is not yet using and would get something from. An item the player stowed is never put back, because it was not gained. `defer` is true when an
  * item was gained but the engine will not allow it just now (a fight is under way), so the caller should look again later.
  */
 export function autoWieldPlan(prev: GameState, next: GameState): { action: GameAction | null; defer: boolean } {
@@ -30,6 +31,8 @@ export function autoWieldPlan(prev: GameState, next: GameState): { action: GameA
       if (countOf(m.treasure, tid) <= countOf(before, tid) || isBorne(m, tid)) continue;
       // Two attacking weapons cannot be wielded at once: the one already in use stays, and the new one is left for the player to choose.
       if (wieldConflict(m, tid) !== null) continue;
+      // Wearing it would do nothing for this member (the Talisman on a Dwarf): leave it unworn, so it does not look as if it were working.
+      if (noEffectFor(tid, m.creatureId)) continue;
       const action: GameAction = { type: 'setBorne', mi, idx: m.treasure.indexOf(tid), borne: true };
       if (reduce(next, action).events.some((e) => e.type === 'blocked')) { defer = true; continue; }
       return { action, defer };
