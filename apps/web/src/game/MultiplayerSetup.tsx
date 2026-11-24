@@ -1,3 +1,4 @@
+import { playerError } from "./playerError";
 import { useState, type CSSProperties } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
@@ -48,6 +49,8 @@ export function MultiplayerSetup({ mode, onEnterLobby, onCancel }: {
         if (res.ok) onEnterLobby(code);
         else setErr(REASON[res.reason] ?? "Could not join.");
       }
+    } catch (e) {
+      setErr(playerError(e)); // e.g. too many join attempts
     } finally { setBusy(false); }
   };
 

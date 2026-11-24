@@ -10,6 +10,7 @@ vi.mock("convex/react", () => ({
 }));
 vi.mock("../../convex/_generated/api", () => ({ api: { settings: { get: "get", setOptions: "setOptions" } } }));
 
+vi.mock("./RateLimitsForm", () => ({ RateLimitsForm: () => null })); // has its own tests
 import { SystemTab } from "./SystemTab";
 
 const toggle = () => screen.getByRole("switch");

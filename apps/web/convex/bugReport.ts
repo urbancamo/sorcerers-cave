@@ -1,5 +1,6 @@
 import { internalAction, internalMutation, internalQuery, mutation, type QueryCtx } from './_generated/server';
 import { internal } from './_generated/api';
+import { checkRate } from './rateLimits';
 import type { Doc, Id } from './_generated/dataModel';
 import { ConvexError, v } from 'convex/values';
 import { getAuthUserId } from '@convex-dev/auth/server';
@@ -14,8 +15,6 @@ import { buildBody, buildLabels, buildTitle, retryDelayMs, type Category, type I
 // (defaults to urbancamo/sorcerers-cave). See apps/web/OPTIONS.md.
 
 const DEFAULT_REPO = 'urbancamo/sorcerers-cave';
-const HOUR = 60 * 60 * 1000;
-const MAX_PER_HOUR = 5;
 // The screenshot is sent at the window's native resolution (a large retina window is a few MB); this is the server's ceiling.
 const MAX_SCREENSHOT_BYTES = 10 * 1024 * 1024;
 const SCREENSHOT_TYPES = ['image/jpeg', 'image/png'];
@@ -39,7 +38,10 @@ function text(value: string | undefined, name: string, min: number, max: number)
 export const generateUploadUrl = mutation({
   args: {},
   handler: async (ctx) => {
-    if (!(await getAuthUserId(ctx))) return reject('Sign-in required.');
+    const userId = await getAuthUserId(ctx);
+    if (!userId) return reject('Sign-in required.');
+    await checkRate(ctx, 'uploadUser', userId);
+    await checkRate(ctx, 'uploadSite');
     return await ctx.storage.generateUploadUrl();
   },
 });
@@ -88,11 +90,8 @@ export const submit = mutation({
     }
 
     const now = Date.now();
-    const recent = await ctx.db
-      .query('bugReports')
-      .withIndex('by_owner_and_created', (q) => q.eq('ownerId', ownerId).gte('createdAt', now - HOUR))
-      .take(MAX_PER_HOUR);
-    if (recent.length >= MAX_PER_HOUR) reject('Too many reports; please try again later.');
+    await checkRate(ctx, 'bugReportUser', ownerId);
+    await checkRate(ctx, 'bugReportSite'); // each report is a public GitHub issue, and accounts are free: a cap for the whole site too
 
     const id = await ctx.db.insert('bugReports', {
       ownerId, gameId: args.gameId, code, testMode, description, expected, category: args.category, contact, client, screenshotId,

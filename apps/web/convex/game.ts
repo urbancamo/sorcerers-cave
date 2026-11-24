@@ -1,3 +1,4 @@
+import { checkRate } from "./rateLimits";
 import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { v } from "convex/values";
@@ -133,6 +134,7 @@ export const newGame = mutation({
   handler: async (ctx, { seed, picks, color, variants }) => {
     const ownerId = await getAuthUserId(ctx);
     if (!ownerId) throw new Error("Unauthenticated");
+    await checkRate(ctx, "newGame", ownerId);
     // Server-side authoritative check (mirrors the client's PartySelect validation) — a kit-only
     // pick (e.g. the Witch) is only legal when `variants.extensionKit` is actually set, closing off
     // a client that omits the flag to sneak a kit creature into a kit-off game.

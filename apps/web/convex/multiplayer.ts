@@ -1,3 +1,4 @@
+import { checkRate } from "./rateLimits";
 import { mutation, query, internalMutation, type MutationCtx, type QueryCtx } from "./_generated/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
@@ -164,6 +165,7 @@ export const createMultiplayer = mutation({
     if (!userId) throw new Error("Unauthenticated");
     const name = cleanName(partyName);
     if (!name) throw new Error("Party name is required");
+    await checkRate(ctx, "createMultiplayer", userId);
     const code = await uniqueCode(ctx);
     const now = Date.now();
     const gameId = await ctx.db.insert("games", {
@@ -216,6 +218,7 @@ export const joinByCode = mutation({
   handler: async (ctx, { code, partyName, color }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Unauthenticated");
+    await checkRate(ctx, "joinAttempt", userId); // every attempt counts, found or not: it is what slows guessing of codes
     const c = code.trim().toUpperCase();
     const game = await ctx.db.query("games").withIndex("by_code", (q) => q.eq("code", c)).first();
     if (!game || game.mode !== "multi") return { ok: false as const, reason: "not_found" };
@@ -764,6 +767,8 @@ export const sendMessage = mutation({
     if (!me) throw new Error("Not in this game");
     const body = text.trim().slice(0, MSG_MAX);
     if (!body) return;
+    await checkRate(ctx, "chatUser", userId);
+    await checkRate(ctx, "chatGame", gameId);
     await ctx.db.insert("messages", {
       gameId, seat: me.seat, partyName: me.partyName, color: me.color, text: body, createdAt: Date.now(),
     });

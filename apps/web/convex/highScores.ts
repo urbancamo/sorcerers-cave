@@ -7,6 +7,7 @@ import { getAuthUserId } from "@convex-dev/auth/server";
 import { queueStory } from "./stories";
 import { anthropicCall } from "./storyGen";
 import { moderateName } from "./nameCheck";
+import { tryRate } from "./rateLimits";
 import { scoreGame, unpackCoord, GS_PLAYING, GS_ESCAPED, type GameState, type GameEvent } from "@sorcerers-cave/engine";
 
 const MAX_NAME = 40;
@@ -63,14 +64,16 @@ export const canSave = internalQuery({
 
 /** Count one name offered for this game; false once it has had its share. */
 export const noteAttempt = internalMutation({
-  args: { gameId: v.id("games") },
-  handler: async (ctx, { gameId }) => {
+  args: { gameId: v.id("games"), userId: v.id("users") },
+  handler: async (ctx, { gameId, userId }) => {
     const game = await ctx.db.get(gameId);
     if (!game) throw new Error("Game not found");
     const n = (game.nameAttempts ?? 0) + 1;
-    if (n > MAX_NAME_ATTEMPTS) return false;
+    if (n > MAX_NAME_ATTEMPTS) return { ok: false as const, message: "That is as many names as can be tried for this score. Record it as Anonymous, or leave it unrecorded." };
+    const rate = await tryRate(ctx, "highScoreName", userId); // an admin-set cap across all of a player's games: each name is a model call
+    if (!rate.ok) return rate;
     await ctx.db.patch(gameId, { nameAttempts: n });
-    return true;
+    return { ok: true as const };
   },
 });
 
@@ -82,15 +85,15 @@ export const noteAttempt = internalMutation({
 export const submit = action({
   args: { gameId: v.id("games"), name: v.string() },
   handler: async (ctx, { gameId, name }): Promise<{ ok: true; id: Id<"highScores"> } | { ok: false; reason: string }> => {
-    if (!(await getAuthUserId(ctx))) throw new Error("Unauthenticated");
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
     // The same rules as `save`, checked first so a request that could not be saved never costs a model call.
     const { existing } = (await ctx.runQuery(internal.highScores.canSave, { gameId })) as { existing: Id<"highScores"> | null };
     if (existing) return { ok: true, id: existing };
     const cleanName = name.trim().slice(0, MAX_NAME); // empty becomes "Anonymous" in `save`: nothing to screen
     if (cleanName) {
-      if (!(await ctx.runMutation(internal.highScores.noteAttempt, { gameId }))) {
-        return { ok: false, reason: "That is as many names as can be tried for this score. Record it as Anonymous, or leave it unrecorded." };
-      }
+      const attempt = await ctx.runMutation(internal.highScores.noteAttempt, { gameId, userId });
+      if (!attempt.ok) return { ok: false, reason: attempt.message };
       // No key configured: only the local check runs (see OPTIONS.md). A model failure is "try again", never a pass.
       const verdict = await moderateName(process.env.ANTHROPIC_API_KEY ? anthropicCall : null, cleanName, process.env.NAME_CHECK_MODEL || undefined);
       if (!verdict.ok) return { ok: false, reason: verdict.reason };

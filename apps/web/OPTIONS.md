@@ -237,6 +237,31 @@ npx convex env set GITHUB_ISSUES_TOKEN <token> --prod   # production
 Local dev and production currently share one Convex backend, so a report filed while testing lands in the real repository too.
 File test reports from a Test Mode game (labelled `test-mode`) and close them afterwards.
 
+## Rate limits (admin System tab)
+
+Anonymous sign-in is free, so what a player can do is limited by counters (`convex/rateLimits.ts`), and the figures are set in the
+admin panel: **System tab → Rate limits** (SYSTEM role). A change takes effect on the next use and needs no deploy. A limit left at its
+default is not stored, so a later change to a default in the code reaches it.
+
+| Limit | Scope | Default |
+|-------|-------|---------|
+| Start a solo game (`newGame`) | player | 40 per hour |
+| Create a multiplayer game (`createMultiplayer`) | player | 10 per hour |
+| Join by code (`joinAttempt`; a wrong code counts) | player | 30 per 10 minutes |
+| Chat messages (`chatUser`) | player | 20 per minute |
+| Chat messages in one game (`chatGame`) | game | 300 per hour |
+| High-score names checked (`highScoreName`) | player | 30 per hour |
+| Bug reports (`bugReportUser`) | player | 5 per hour |
+| Bug reports (`bugReportSite`) | whole site | 30 per hour |
+| Screenshot uploads (`uploadUser`, `uploadSite`) | player, site | 10 / 100 per hour |
+
+- Counting is in fixed windows (the count restarts when the window has passed), so a burst across a boundary can reach twice the figure.
+- A refused use is not counted. The player sees "Too many … Please try again in about N seconds/minutes" in the place they acted.
+- Bounds: 1 to 100000 uses, a period of 10 seconds to 7 days. Out-of-range values are refused when saving.
+- Counters are cleared hourly by a cron (`crons.ts`), once they are more than 8 days old.
+- Not limited here: anonymous sign-in itself (it is Convex Auth's own endpoint; limit it at the edge if it is abused) and password
+  sign-in (Convex Auth limits failed attempts itself).
+
 ## High-score names are screened (`ANTHROPIC_API_KEY`, `NAME_CHECK_MODEL`)
 
 The name a player enters for the public high-score table is checked before the score is recorded (`convex/nameCheck.ts`,

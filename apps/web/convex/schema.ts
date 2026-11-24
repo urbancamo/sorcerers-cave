@@ -174,7 +174,15 @@ export default defineSchema({
   systemSettings: defineTable({
     // Is Multiplayer mode offered on the welcome page? Absent or false: no (the default).
     multiplayerEnabled: v.optional(v.boolean()),
+    // Rate-limit settings changed from the defaults in rateLimits.ts, by limit name (System tab). A limit not listed uses its default.
+    rateLimits: v.optional(v.record(v.string(), v.object({ max: v.number(), windowSec: v.number() }))),
   }),
+  // One counter per limit and subject (user, game or the whole site): the window it opened at and the uses since (rateLimits.ts).
+  rateLimitHits: defineTable({
+    key: v.string(),
+    windowStart: v.number(),
+    count: v.number(),
+  }).index("by_key", ["key"]).index("by_windowStart", ["windowStart"]),
   highScores: defineTable({
     gameId: v.id("games"),
     ownerId: v.optional(v.id("users")),

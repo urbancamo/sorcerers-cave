@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import { playerError } from "./playerError";
 import { PARTY_COLOR_HEX, type PartyColor } from "./partyColors";
 
 /** Reactive broadcast chat for a multiplayer game (Phase 1). */
@@ -9,6 +10,7 @@ export function ChatPanel({ gameId }: { gameId: Id<"games"> }) {
   const messages = useQuery(api.multiplayer.messages, { gameId }) ?? [];
   const send = useMutation(api.multiplayer.sendMessage);
   const [text, setText] = useState("");
+  const [err, setErr] = useState<string | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => { endRef.current?.scrollIntoView({ block: "end" }); }, [messages.length]);
@@ -17,7 +19,9 @@ export function ChatPanel({ gameId }: { gameId: Id<"games"> }) {
     const body = text.trim();
     if (!body) return;
     setText("");
-    void send({ gameId, text: body });
+    setErr(null);
+    // A refused message (sent too fast) is put back to send again, with the reason.
+    send({ gameId, text: body }).catch((e) => { setText((cur) => cur || body); setErr(playerError(e)); });
   };
 
   return (
@@ -40,6 +44,7 @@ export function ChatPanel({ gameId }: { gameId: Id<"games"> }) {
         )}
         <div ref={endRef} />
       </div>
+      {err && <p className="scv-hs-error" role="alert">{err}</p>}
       <div className="scv-chat-row">
         <input
           className="scv-chat-input"
@@ -47,7 +52,7 @@ export function ChatPanel({ gameId }: { gameId: Id<"games"> }) {
           maxLength={280}
           placeholder="Say something…"
           aria-label="chat message"
-          onChange={(e) => setText(e.target.value)}
+          onChange={(e) => { setText(e.target.value); setErr(null); }}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); submit(); } }}
         />
         <button className="scv-primary" onClick={submit} disabled={!text.trim()}>Send</button>
