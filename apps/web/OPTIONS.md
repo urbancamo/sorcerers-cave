@@ -251,6 +251,7 @@ default is not stored, so a later change to a default in the code reaches it.
 | Chat messages (`chatUser`) | player | 20 per minute |
 | Chat messages in one game (`chatGame`) | game | 300 per hour |
 | High-score names checked (`highScoreName`) | player | 30 per hour |
+| Party names checked (`partyNameCheck`) | player | 30 per hour |
 | Bug reports (`bugReportUser`) | player | 5 per hour |
 | Bug reports (`bugReportSite`) | whole site | 30 per hour |
 | Screenshot uploads (`uploadUser`, `uploadSite`) | player, site | 10 / 100 per hour |
@@ -262,10 +263,13 @@ default is not stored, so a later change to a default in the code reaches it.
 - Not limited here: anonymous sign-in itself (it is Convex Auth's own endpoint; limit it at the edge if it is abused) and password
   sign-in (Convex Auth limits failed attempts itself).
 
-## High-score names are screened (`ANTHROPIC_API_KEY`, `NAME_CHECK_MODEL`)
+## Names are screened (`ANTHROPIC_API_KEY`, `NAME_CHECK_MODEL`)
 
 The name a player enters for the public high-score table is checked before the score is recorded (`convex/nameCheck.ts`,
-`highScores.submit`; `highScores.save` is internal, so nothing skips the check).
+`highScores.submit`; `highScores.save` is internal, so nothing skips the check). Multiplayer **party names** get the same check
+(`convex/nameScreen.ts`) in `multiplayer.createMultiplayer`, `joinByCode` and `setPartyName`, which are actions that screen the name and
+then call internal mutations (`createGameRow`, `joinSeat`, `renamePartyRow`). A join is screened only once it would otherwise succeed
+(not for a wrong code, a full or started game, a taken name or colour, or a rejoin). Chat messages are free text and are **not** screened.
 
 - **Local check, always on:** a web address, email address or phone number is refused, with no model call.
 - **Claude check, when `ANTHROPIC_API_KEY` is set** (the same key the short stories use): a small model answers `{"ok":true}` or
@@ -275,7 +279,12 @@ The name a player enters for the public high-score table is checked before the s
   words. Set the key on the production deployment for the full check.
 - A refused name returns the player to the entry form with the reason. At most 10 names are tried per game (`MAX_NAME_ATTEMPTS`); each
   tried name is one short model call.
-- Not covered: multiplayer party names (they reach the multiplayer table and chat unscreened).
+- Chat is not screened.
+- **Fixing a name that got through:** admin panel, **Names** tab (SYSTEM role). It lists the latest 100 high-score entries and the
+  party names in the latest multiplayer games, with a filter. **Edit** sets a new name and **Clear** replaces it with `Anonymous` (a
+  party becomes `Party`, or `Party 2`… if that is taken). A party rename reaches its seat, the game's own copy, that party's chat lines
+  and its leaderboard entry; "joined" lines already written and the full game record kept with a high score are left as they were. An
+  admin's own text is not screened. Every change is kept in the `nameAudit` table (the tab's **Changes** list) with the old and new name.
 
 ## Short stories (auto-generated)
 

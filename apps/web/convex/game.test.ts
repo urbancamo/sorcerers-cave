@@ -1,5 +1,5 @@
 import { convexTest } from "convex-test";
-import { expect, test, describe, beforeEach, afterEach } from "vitest";
+import { expect, test, describe, beforeEach, afterEach, vi } from "vitest";
 import { api } from "./_generated/api";
 import schema from "./schema";
 import type { Id } from "./_generated/dataModel";
@@ -377,7 +377,9 @@ test("the replay of a game still being played is not served by code, and its row
 test("a multiplayer game is not readable or playable through the solo functions (its state is not a solo state)", async () => {
   const t = convexTest(schema, modules);
   const { as } = await asUser(t);
-  const { gameId } = await as.mutation(api.multiplayer.createMultiplayer, { partyName: "Hosts", color: "red" });
+  vi.stubEnv("ANTHROPIC_API_KEY", ""); // this test is not about name screening (storyAdmin.test.ts re-runs it with a key and a stubbed fetch)
+  const { gameId } = await as.action(api.multiplayer.createMultiplayer, { partyName: "Hosts", color: "red" });
+  vi.unstubAllEnvs();
   expect(await as.query(api.game.get, { id: gameId })).toBeNull();
   expect(await as.query(api.game.log, { id: gameId })).toBeNull();
   expect(await as.query(api.game.listMine, {})).toEqual([]);

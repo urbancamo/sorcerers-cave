@@ -1,6 +1,7 @@
 import { checkRate } from "./rateLimits";
-import { mutation, query, internalMutation, type MutationCtx, type QueryCtx } from "./_generated/server";
-import { v } from "convex/values";
+import { action, mutation, query, internalMutation, type MutationCtx, type QueryCtx } from "./_generated/server";
+import { ConvexError, v } from "convex/values";
+import { screenName } from "./nameScreen";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import type { Id, Doc } from "./_generated/dataModel";
 import { internal } from "./_generated/api";
@@ -158,7 +159,7 @@ async function postSystem(ctx: MutationCtx, gameId: Id<"games">, text: string, a
 
 /** Create a multiplayer game: the host takes seat 0 with a required party name + colour.
  *  `variants` (M7) may be set here and/or toggled in the open lobby via setVariants. */
-export const createMultiplayer = mutation({
+export const createGameRow = internalMutation({
   args: { partyName: v.string(), color: colorV, variants: v.optional(variantsV) },
   handler: async (ctx, { partyName, color, variants }) => {
     const userId = await getAuthUserId(ctx);
@@ -213,12 +214,13 @@ export const lobby = query({
  * Join a multiplayer lobby by code. Returns a tagged result rather than throwing for expected
  * conditions (full / name or colour taken / started). Idempotent if already seated.
  */
-export const joinByCode = mutation({
-  args: { code: v.string(), partyName: v.string(), color: colorV },
-  handler: async (ctx, { code, partyName, color }) => {
+export const joinSeat = internalMutation({
+  // `checked`: the party name has been screened (joinByCode runs this once without, to learn whether the join is possible at all, and once with)
+  args: { code: v.string(), partyName: v.string(), color: colorV, checked: v.boolean() },
+  handler: async (ctx, { code, partyName, color, checked }) => {
     const userId = await getAuthUserId(ctx);
     if (!userId) throw new Error("Unauthenticated");
-    await checkRate(ctx, "joinAttempt", userId); // every attempt counts, found or not: it is what slows guessing of codes
+    if (!checked) await checkRate(ctx, "joinAttempt", userId); // every attempt counts, found or not: it is what slows guessing of codes
     const c = code.trim().toUpperCase();
     const game = await ctx.db.query("games").withIndex("by_code", (q) => q.eq("code", c)).first();
     if (!game || game.mode !== "multi") return { ok: false as const, reason: "not_found" };
@@ -233,6 +235,7 @@ export const joinByCode = mutation({
     if (!name) return { ok: false as const, reason: "name_required" };
     if (seats.some((p) => p.partyName.toLowerCase() === name.toLowerCase())) return { ok: false as const, reason: "name_taken" };
     if (seats.some((p) => p.color === color)) return { ok: false as const, reason: "color_taken" };
+    if (!checked) return { ok: false as const, reason: "needs_check" }; // every other rule holds: only now is the name worth a model call
 
     const used = new Set(seats.map((p) => p.seat));
     let seat = 0;
@@ -244,7 +247,7 @@ export const joinByCode = mutation({
   },
 });
 
-export const setPartyName = mutation({
+export const renamePartyRow = internalMutation({
   args: { gameId: v.id("games"), partyName: v.string() },
   handler: async (ctx, { gameId, partyName }) => {
     const userId = await getAuthUserId(ctx);
@@ -259,6 +262,54 @@ export const setPartyName = mutation({
     }
     await ctx.db.patch(me._id, { partyName: name });
     return { ok: true as const };
+  },
+});
+
+/** A refused party name: the join or rename is not done and `message` says why (e.g. an offensive name), for the player. */
+type NameRefused = { ok: false; reason: "name_rejected"; message: string };
+
+/** Create a multiplayer game. The party name is screened first (nameScreen.ts): a refused name throws a ConvexError carrying the reason. */
+export const createMultiplayer = action({
+  args: { partyName: v.string(), color: colorV, variants: v.optional(variantsV) },
+  handler: async (ctx, args): Promise<{ gameId: Id<"games">; code: string }> => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
+    const name = cleanName(args.partyName);
+    if (name) {
+      const verdict = await screenName(ctx, userId, name);
+      if (!verdict.ok) throw new ConvexError(verdict.reason);
+    }
+    return await ctx.runMutation(internal.multiplayer.createGameRow, args);
+  },
+});
+
+/** Join by code. The name is screened only once the join would otherwise succeed (not for a rejoin, a full or started game, or a wrong code). */
+export const joinByCode = action({
+  args: { code: v.string(), partyName: v.string(), color: colorV },
+  handler: async (ctx, args): Promise<{ ok: true; gameId: Id<"games"> } | { ok: false; reason: string } | NameRefused> => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
+    const first = await ctx.runMutation(internal.multiplayer.joinSeat, { ...args, checked: false });
+    if (first.ok || first.reason !== "needs_check") return first;
+    const verdict = await screenName(ctx, userId, cleanName(args.partyName));
+    if (!verdict.ok) return { ok: false, reason: "name_rejected", message: verdict.reason };
+    const done = await ctx.runMutation(internal.multiplayer.joinSeat, { ...args, checked: true });
+    return done.ok || done.reason !== "needs_check" ? done : { ok: false, reason: "not_found" };
+  },
+});
+
+/** Change your party's name. Screened like any party name. */
+export const setPartyName = action({
+  args: { gameId: v.id("games"), partyName: v.string() },
+  handler: async (ctx, args): Promise<{ ok: true } | { ok: false; reason: string } | NameRefused> => {
+    const userId = await getAuthUserId(ctx);
+    if (!userId) throw new Error("Unauthenticated");
+    const name = cleanName(args.partyName);
+    if (name) {
+      const verdict = await screenName(ctx, userId, name);
+      if (!verdict.ok) return { ok: false, reason: "name_rejected", message: verdict.reason };
+    }
+    return await ctx.runMutation(internal.multiplayer.renamePartyRow, args);
   },
 });
 

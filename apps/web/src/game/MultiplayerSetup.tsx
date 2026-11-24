@@ -1,6 +1,6 @@
 import { playerError } from "./playerError";
 import { useState, type CSSProperties } from "react";
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import { PARTY_COLORS, PARTY_COLOR_HEX, type PartyColor } from "./partyColors";
 import { HelpButton } from "../manual/HelpButton";
@@ -20,8 +20,8 @@ export function MultiplayerSetup({ mode, onEnterLobby, onCancel }: {
   onEnterLobby: (code: string) => void;
   onCancel: () => void;
 }) {
-  const createGame = useMutation(api.multiplayer.createMultiplayer);
-  const join = useMutation(api.multiplayer.joinByCode);
+  const createGame = useAction(api.multiplayer.createMultiplayer);
+  const join = useAction(api.multiplayer.joinByCode);
   const [code, setCode] = useState("");
   const [partyName, setPartyName] = useState("");
   const [color, setColor] = useState<PartyColor | null>(null);
@@ -47,7 +47,7 @@ export function MultiplayerSetup({ mode, onEnterLobby, onCancel }: {
       } else {
         const res = await join({ code, partyName: name, color });
         if (res.ok) onEnterLobby(code);
-        else setErr(REASON[res.reason] ?? "Could not join.");
+        else setErr(("message" in res && res.message) || REASON[res.reason] || "Could not join.");
       }
     } catch (e) {
       setErr(playerError(e)); // e.g. too many join attempts
@@ -86,9 +86,11 @@ export function MultiplayerSetup({ mode, onEnterLobby, onCancel }: {
           maxLength={24}
           placeholder="The Bold"
           aria-label="party name"
+          aria-describedby="scv-mp-name-hint"
           onChange={(e) => { setPartyName(e.target.value); setErr(null); }}
         />
       </label>
+      <p className="scv-hs-hint" id="scv-mp-name-hint">Other players see this name. It is checked first: offensive names are turned away.</p>
 
       <div className="scv-mp-field">
         <span>Colour</span>

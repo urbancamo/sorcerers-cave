@@ -13,6 +13,7 @@ export const MULTIPLAYER: Section = {
       list(
         '**Create** a game from the title screen: choose your party name and a colour, and you become the *host*. The game is given a unique **four-letter code**.',
         'Share that code with your friends. Each of them picks **Join Multiplayer Game**, enters the code in their own browser, and chooses a party name and an **unused colour** (colours already taken are greyed out).',
+        'Your party name is shown to the other players and is **checked first**: an offensive name, or one with a web address, an email address or a phone number in it, is turned away and you are asked for another. If the check cannot be made at that moment, try again.',
         'Up to **four** players may gather in the lobby. When everyone is ready the **host starts the game** — after that no one new can join (apart from rejoining a party that is already in it).',
       ),
     ] },

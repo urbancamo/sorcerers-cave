@@ -70,20 +70,20 @@ describe("limits are enforced per player, with a message the player can read", (
     const t = convexTest(schema, modules);
     await setLimits(t, { createMultiplayer: { max: 1, windowSec: 600 }, joinAttempt: { max: 2, windowSec: 600 } });
     const a = await asUser(t);
-    await a.as.mutation(api.multiplayer.createMultiplayer, { partyName: "One", color: "green" });
-    await expect(a.as.mutation(api.multiplayer.createMultiplayer, { partyName: "Two", color: "green" })).rejects.toThrow(/Too many multiplayer games/);
+    await a.as.action(api.multiplayer.createMultiplayer, { partyName: "One", color: "green" });
+    await expect(a.as.action(api.multiplayer.createMultiplayer, { partyName: "Two", color: "green" })).rejects.toThrow(/Too many multiplayer games/);
     const b = await asUser(t);
-    for (let i = 0; i < 2; i++) expect(await b.as.mutation(api.multiplayer.joinByCode, { code: "ZZZZ", partyName: "X", color: "blue" })).toMatchObject({ ok: false });
-    await expect(b.as.mutation(api.multiplayer.joinByCode, { code: "ZZZZ", partyName: "X", color: "blue" })).rejects.toThrow(/Too many join attempts/);
+    for (let i = 0; i < 2; i++) expect(await b.as.action(api.multiplayer.joinByCode, { code: "ZZZZ", partyName: "X", color: "blue" })).toMatchObject({ ok: false });
+    await expect(b.as.action(api.multiplayer.joinByCode, { code: "ZZZZ", partyName: "X", color: "blue" })).rejects.toThrow(/Too many join attempts/);
   });
 
   test("chat: per player and per game", async () => {
     const t = convexTest(schema, modules);
     await setLimits(t, { chatUser: { max: 2, windowSec: 60 }, chatGame: { max: 3, windowSec: 3600 } });
     const host = await asUser(t);
-    const { gameId, code } = await host.as.mutation(api.multiplayer.createMultiplayer, { partyName: "Host", color: "green" });
+    const { gameId, code } = await host.as.action(api.multiplayer.createMultiplayer, { partyName: "Host", color: "green" });
     const guest = await asUser(t);
-    await guest.as.mutation(api.multiplayer.joinByCode, { code, partyName: "Guest", color: "blue" });
+    await guest.as.action(api.multiplayer.joinByCode, { code, partyName: "Guest", color: "blue" });
     const say = (u: typeof host) => u.as.mutation(api.multiplayer.sendMessage, { gameId, text: "hi" });
     await say(host); await say(host);
     await expect(say(host)).rejects.toThrow(/Too many chat messages/);

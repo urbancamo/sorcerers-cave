@@ -1,4 +1,4 @@
-import { ConvexError } from "convex/values";
+import { ConvexError, v } from "convex/values";
 import { internalMutation, type MutationCtx } from "./_generated/server";
 
 // Rate limits for the writes an anonymous player can reach (docs/security/review-2026-11.md, findings 3 and 4). Sign-in is free and anonymous,
@@ -16,6 +16,7 @@ export const RATE_LIMITS = {
   chatUser: { label: "Chat messages", note: "Per player.", what: "chat messages", scope: "user", max: 20, windowSec: 60 },
   chatGame: { label: "Chat messages in one game", note: "Per game, all players together: keeps one game's chat from growing without end.", what: "messages in this game", scope: "game", max: 300, windowSec: 3600 },
   highScoreName: { label: "High-score names checked", note: "Per player. Each one is a call to Claude.", what: "names tried", scope: "user", max: 30, windowSec: 3600 },
+  partyNameCheck: { label: "Party names checked", note: "Per player. Each one is a call to Claude.", what: "party names tried", scope: "user", max: 30, windowSec: 3600 },
   bugReportUser: { label: "Bug reports", note: "Per player.", what: "reports", scope: "user", max: 5, windowSec: 3600 },
   bugReportSite: { label: "Bug reports, whole site", note: "All players together: each report opens a public GitHub issue, and anonymous accounts are free.", what: "reports", scope: "site", max: 30, windowSec: 3600 },
   uploadUser: { label: "Screenshot uploads", note: "Per player.", what: "uploads", scope: "user", max: 10, windowSec: 3600 },
@@ -74,6 +75,15 @@ export async function checkRate(ctx: MutationCtx, name: RateName, subject?: stri
   const r = await tryRate(ctx, name, subject);
   if (!r.ok) throw new ConvexError(r.message);
 }
+
+/** Count one use from an action (which cannot touch the database itself); answers as `tryRate` does. */
+export const consume = internalMutation({
+  args: { name: v.string(), subject: v.optional(v.string()) },
+  handler: async (ctx, { name, subject }): Promise<RateResult> => {
+    if (!(RATE_NAMES as string[]).includes(name)) throw new Error(`Unknown limit: ${name}`);
+    return await tryRate(ctx, name as RateName, subject);
+  },
+});
 
 const KEEP_MS = (MAX_WINDOW_SEC + 24 * 3600) * 1000;
 
