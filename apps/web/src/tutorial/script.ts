@@ -87,7 +87,7 @@ const RAW_SCRIPT: CoachStep[] = [
   info('pass', T(9), 'Passing treasure on',
     'Treasure can be passed between the party at any time. The Dwarf is a stronger fighter, so he should carry the Axe. Open the Axe from the inventory (the bag button), or from the Woman Hero\'s card.'),
   act('pass-axe', T(9), 'Pass the Axe to the Dwarf', 'On the Axe\'s card, choose "Pass to" and pick the Dwarf.', 14, button('moveTreasure')),
-  act('wield', T(9), 'Wield it', 'Carrying the Axe is not enough: its bonus only counts while it is in use. On the Axe\'s card, press the Wield button, so it adds to the Dwarf\'s fighting strength. (Stow puts it away again.) In a real game, Auto Wield/Wear in Settings does this for you; the tutorial leaves it to you so you can see how it works.', 15, button('setBorne')),
+  act('wield', T(9), 'Wield it', 'Carrying the Axe is not enough: its bonus only counts while it is in use. On the Axe\'s card, press the Wield button, so it adds to the Dwarf\'s fighting strength. (Stow puts it away again.) In a real game, wielding weapons and wearing artifacts is automatic by default, unless you switch off Auto Wield/Wear in Settings; the tutorial turns it off so you can see how it works.', 15, button('setBorne')),
   act('north-tunnel', T(9), 'Go north', 'Explore north.', 16, exit('N')),
 
   info('stairs', T(10), 'Stairs and secret doors',
