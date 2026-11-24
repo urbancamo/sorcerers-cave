@@ -67,7 +67,7 @@ describe("moderateName", () => {
     expect(arg.user).toBe(`Name: ${JSON.stringify(sneaky)}`);
     expect(arg.user.split("\n")).toHaveLength(1); // the newline in the name is escaped, not a new line of instruction
     expect(arg.system).toBe(NAME_SYSTEM);
-    expect(arg.maxTokens).toBeLessThanOrEqual(30);
+    expect(arg.maxTokens).toBeLessThanOrEqual(300);
   });
 
   it("uses the model it is given", async () => {

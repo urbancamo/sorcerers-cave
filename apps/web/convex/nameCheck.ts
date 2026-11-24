@@ -65,12 +65,15 @@ export async function moderateName(call: ModelCall | null, name: string, model: 
   let timer: ReturnType<typeof setTimeout> | undefined;
   try {
     const timeout = new Promise<never>((_, reject) => { timer = setTimeout(() => reject(new Error("timeout")), TIMEOUT_MS); });
-    const r = await Promise.race([call({ model, system: NAME_SYSTEM, user: `Name: ${JSON.stringify(name)}`, maxTokens: 20 }), timeout]);
+    const r = await Promise.race([call({ model, system: NAME_SYSTEM, user: `Name: ${JSON.stringify(name)}`, maxTokens: 200 }), timeout]);
     const verdict = parseVerdict(r.text);
     if (verdict === true) return { ok: true };
     if (verdict === false) return { ok: false, reason: REJECTED };
+    // Log what the model said (the name is not logged): a fenced or chatty reply reads as "try again" every time.
+    console.error(`name check: unreadable model reply: ${JSON.stringify(r.text.slice(0, 120))}`);
     return { ok: false, reason: UNAVAILABLE, retry: true };
-  } catch {
+  } catch (e) {
+    console.error(`name check failed: ${e instanceof Error ? e.message.slice(0, 300) : "error"}`);
     return { ok: false, reason: UNAVAILABLE, retry: true };
   } finally {
     clearTimeout(timer);
