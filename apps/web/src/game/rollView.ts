@@ -1,9 +1,9 @@
 // ALL_CREATURES/ALL_TREASURES (not the base-only tables): the kit's dice-overlay events can name a
 // kit ally/stranger (14-21) — a Bell Rope puller, a Quarrel combatant, a Desertion roll, an Elixir
 // drinker. Byte-identical for ids 0-13.
-import { ALL_CREATURES, ALL_TREASURES, type GameEvent } from "@sorcerers-cave/engine";
+import { ALL_CREATURES, ALL_TREASURES, HAZARD_DESERTION, HAZARD_QUARREL, type GameEvent } from "@sorcerers-cave/engine";
 import type { Lane } from "./DiceRoll";
-import { spentHazard } from "./hazardCard";
+import { firedSpent } from "./hazardCard";
 
 export type Tone = "good" | "bad" | "neutral";
 /** `stakes`, when present, is what is riding on the roll: the overlay then opens with a "Roll the dice" button so the player
@@ -290,12 +290,16 @@ function elixirView(events: GameEvent[]): RollView | null {
   return { title: "The Elixir", lanes: [{ enemy: { value: d.roll } }], message, tone, stakes: `${drinker} raises the flask and drinks. Poison, pond water, or a surge of strength — only the dice know.` };
 }
 
+const OWN_HAZARD: Record<string, number | undefined> = { Desertion: HAZARD_DESERTION, Quarrel: HAZARD_QUARREL };
+
 /** Build the dice overlay (if any) for the events an action produced — reaction, chest, casualty,
  *  Medusa, Viper, the extension kit's own roll events, else combat. */
 export function rollFromEvents(events: GameEvent[]): RollView | null {
   const view = rollFromEventsUntagged(events);
-  const hazard = view ? spentHazard(events) : null;
-  return view && hazard !== null ? { ...view, hazard } : view;
+  // Only the Desertion and Quarrel rolls are about a hazard card, and each shows its own: not one that merely fired in the same action,
+  // like the Harpies in the chamber with a Desertion, or a Quarrel on the Bell Rope's extra cards (issue #133).
+  const own = view ? OWN_HAZARD[view.title] : undefined;
+  return view && own !== undefined && firedSpent(events, own) ? { ...view, hazard: own } : view;
 }
 
 function rollFromEventsUntagged(events: GameEvent[]): RollView | null {

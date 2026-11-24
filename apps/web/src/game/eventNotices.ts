@@ -6,7 +6,7 @@ import {
   DIR_DOWN,
   type GameEvent,
 } from "@sorcerers-cave/engine";
-import { spentHazard } from "./hazardCard";
+import { firedSpent, ownerOf } from "./hazardCard";
 
 // Exhaustiveness guard for the switch in eventNotices(): if a new GameEvent member is added
 // without a case below, TypeScript reports `x` as not assignable to `never` here — a compile
@@ -60,9 +60,7 @@ function hazardNotice(hz: number): Notice | null {
  * skipped so nothing is double-reported.
  */
 export function eventNotices(events: GameEvent[]): Notice[] {
-  const out = eventNoticesUntagged(events);
-  const hazard = spentHazard(events);
-  return hazard === null ? out : out.map((n) => ({ ...n, hazard }));
+  return eventNoticesUntagged(events);
 }
 
 /** The notices for a move made on the cave canvas. A move the engine refuses (`blocked`: no exit that way, or an exit already found to be a
@@ -77,6 +75,7 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
   const hasViper = events.some((e) => e.type === "viperPit");
   const out: Notice[] = [];
   for (const e of events) {
+    const start = out.length;
     switch (e.type) {
       case "blocked":
         // Generic no-op guard (wrong phase, invalid target, …) fired by many actions across both
@@ -551,6 +550,9 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
         assertNever(e);
         break;
     }
+    // A spent hazard's card goes with the notices of its own events only (hazardCard.ts, ownerOf).
+    const owner = ownerOf(e, events);
+    if (owner !== undefined) for (let i = start; i < out.length; i++) out[i] = { ...out[i]!, hazard: owner };
   }
   // Desertion's "everyone stayed" summary (design US-09 Feedback: "The party holds together.") isn't
   // its own engine event — it's derived here from the batch of `desertionRoll`/`wolfUnmoved` events
@@ -570,17 +572,17 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
   // With dice rolled, the Desertion overlay already says "The party holds together." — a second pop-up after it is redundant, so this notice
   // is only for the all-Wolf roster, where nothing rolls and so there is no overlay.
   if (hadDesertionActivity && desertionRolls.length === 0) {
-    out.push({ text: "The party holds together.", tone: "good" });
+    out.push({ text: "The party holds together.", tone: "good", ...(firedSpent(events, HAZARD_DESERTION) ? { hazard: HAZARD_DESERTION } : {}) });
   }
   // Mutiny and Desertion only ever touch ALLIES. With none in the party they fire and change nothing, which used to read as a stuck card
   // (Peter, 2026-11-04 items 5 and 6): say so. (A Mutiny that did make someone desert has its own notice; a Wolf's skip has its own too.)
   const fired = (hz: number) => events.some((e) => e.type === "hazardFired" && e.hazard === hz);
   if (fired(HAZARD_MUTINY) && !events.some((e) => e.type === "mutinied")) {
     const wolf = events.some((e) => e.type === "wolfUnmoved" && e.hazard === HAZARD_MUTINY);
-    out.push({ text: wolf ? "Mutiny! Nobody deserts — the Wolf is unmoved." : "Mutiny! But there are no allies in the party to turn — the original adventurers stand firm.", tone: "neutral" });
+    out.push({ text: wolf ? "Mutiny! Nobody deserts — the Wolf is unmoved." : "Mutiny! But there are no allies in the party to turn — the original adventurers stand firm.", tone: "neutral", hazard: HAZARD_MUTINY });
   }
   if (fired(HAZARD_DESERTION) && !hadDesertionActivity) {
-    out.push({ text: "Desertion! But there are no allies in the party — only allies are ever tempted to leave.", tone: "neutral" });
+    out.push({ text: "Desertion! But there are no allies in the party — only allies are ever tempted to leave.", tone: "neutral", hazard: HAZARD_DESERTION });
   }
   return out;
 }

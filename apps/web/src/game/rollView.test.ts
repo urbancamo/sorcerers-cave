@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import type { GameEvent } from "@sorcerers-cave/engine";
+import { HAZARD_DESERTION, HAZARD_HARPIES, HAZARD_QUARREL, type GameEvent } from "@sorcerers-cave/engine";
 import { rollFromEvents } from "./rollView";
 
 describe("rollFromEvents", () => {
@@ -173,6 +173,26 @@ describe("rollFromEvents", () => {
     const stir = rollFromEvents([{ type: "bellRoll", roll: 5, outcome: "stir", creatureId: 0 }])!;
     expect(stir.message).toMatch(/two cards are drawn/i);
     expect(stir.message).toMatch(/cannot withdraw this turn/i);
+  });
+
+  // Issue #133: the Bell Rope's two extra cards included a Quarrel, and its popup showed the Quarrel card.
+  it("does not put a Quarrel card on the Bell Rope's popup when the cards it drew fired a Quarrel", () => {
+    const events = [{ type: "bellRoll", roll: 5, outcome: "stir", creatureId: 0 }, { type: "hazardFired", hazard: HAZARD_QUARREL }] as never[];
+    const view = rollFromEvents(events)!;
+    expect(view.title).toBe("The Bell Rope");
+    expect(view.hazard).toBeUndefined();
+  });
+
+  // The Desertion popup showed the Harpies card when both hazards fired in one chamber and the Harpies came first.
+  it("shows the Desertion card on the Desertion roll even when the Harpies fired first", () => {
+    const events = [
+      { type: "hazardFired", hazard: HAZARD_HARPIES },
+      { type: "hazardFired", hazard: HAZARD_DESERTION },
+      { type: "desertionRoll", creatureId: 7, roll: 1, deserted: true, items: [] },
+    ] as never[];
+    const view = rollFromEvents(events);
+    expect(view?.title).toBe("Desertion");
+    expect(view?.hazard).toBe(HAZARD_DESERTION);
   });
 
   it("shows the Crypt's roll as a single-die overlay, trap or find (US-08)", () => {
