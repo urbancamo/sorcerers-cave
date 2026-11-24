@@ -9,11 +9,11 @@
  */
 
 import type * as admin from "../admin.js";
+import type * as adminNames from "../adminNames.js";
 import type * as adminUsers from "../adminUsers.js";
 import type * as analytics from "../analytics.js";
 import type * as analyticsLib from "../analyticsLib.js";
 import type * as auth from "../auth.js";
-import type * as adminNames from "../adminNames.js";
 import type * as bugReport from "../bugReport.js";
 import type * as bugReportIssue from "../bugReportIssue.js";
 import type * as crons from "../crons.js";
@@ -50,11 +50,11 @@ import type {
 
 declare const fullApi: ApiFromModules<{
   admin: typeof admin;
+  adminNames: typeof adminNames;
   adminUsers: typeof adminUsers;
   analytics: typeof analytics;
   analyticsLib: typeof analyticsLib;
   auth: typeof auth;
-  adminNames: typeof adminNames;
   bugReport: typeof bugReport;
   bugReportIssue: typeof bugReportIssue;
   crons: typeof crons;
