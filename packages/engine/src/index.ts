@@ -8,6 +8,7 @@ export * from "./redraw";
 export * from "./actions";
 export * from "./reduce";
 export * from "./replay";
+export * from "./redact";
 export * from "./selectors";
 export * from "./decks";
 export * from "./data/creatures";

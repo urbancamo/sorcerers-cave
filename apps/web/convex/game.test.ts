@@ -2,7 +2,8 @@ import { convexTest } from "convex-test";
 import { expect, test, describe, beforeEach, afterEach } from "vitest";
 import { api } from "./_generated/api";
 import schema from "./schema";
-import { newGame as createGameState } from "@sorcerers-cave/engine";
+import type { Id } from "./_generated/dataModel";
+import { newGame as createGameState, redactState } from "@sorcerers-cave/engine";
 
 const modules = import.meta.glob("./**/*.*s");
 
@@ -12,6 +13,11 @@ export async function asUser(t: ReturnType<typeof convexTest>, roles?: ("SYSTEM"
   const userId = await t.run((ctx) => ctx.db.insert("users", roles ? { roles } : {}));
   return { as: t.withIdentity({ subject: `${userId}|session` }), userId };
 }
+// The row as the server stores it. `get`, `applyAction` and the views send a client the state WITHOUT its seed and card order (redactState),
+// so a test of the real, whole state reads it here.
+export const stored = (t: ReturnType<typeof convexTest>, id: Id<"games">) => t.run((ctx) => ctx.db.get(id));
+// End a game (the replay and log of one still being played are not served: they carry its seed).
+const finish = (as: Awaited<ReturnType<typeof asUser>>["as"], id: Id<"games">) => as.mutation(api.game.applyAction, { id, action: { type: "quit" } });
 // A signed-in admin holding the TEST role (Test Mode is gated on it, not on a secret).
 export const asTester = (t: ReturnType<typeof convexTest>) => asUser(t, ["TEST"]);
 
@@ -26,8 +32,9 @@ test("newGame builds and persists a real engine GameState", async () => {
   expect(game?.state.turn).toBe(1);
   expect(game?.state.areas.length).toBe(1);        // the gateway
   expect(game?.state.party.map((m: { creatureId: number }) => m.creatureId)).toEqual([0]);
-  // The server runs the SAME deterministic engine as the client.
-  expect(game?.state).toEqual(createGameState(123, [0]));
+  // The server runs the SAME deterministic engine as the client; the client is sent it without the seed and the card order.
+  expect((await stored(t, id))?.state).toEqual(createGameState(123, [0]));
+  expect(game?.state).toEqual(redactState(createGameState(123, [0])));
 });
 
 test("newGame requires authentication", async () => {
@@ -166,9 +173,10 @@ test("applyAction matches the local engine and logs the event", async () => {
   // The authoritative result must equal a local deterministic reduce of the same state.
   const expected = reduce(createGameState(7, [0]), { type: "move", dir: 1 }); // move North from the gateway
   const res = await as.mutation(api.game.applyAction, { id, action: { type: "move", dir: 1 } });
-  expect(res.state).toEqual(expected.state);
+  expect(res.state).toEqual(redactState(expected.state)); // what the client is sent: no seed, no card order
   const game = await as.query(api.game.get, { id });
-  expect(game?.state).toEqual(expected.state);
+  expect(game?.state).toEqual(redactState(expected.state));
+  expect((await stored(t, id))?.state).toEqual(expected.state); // the server keeps the whole state
   // A non-blocked action is logged.
   const logged = await t.run((ctx) =>
     ctx.db.query("gameEvents").withIndex("by_game", (q) => q.eq("gameId", id)).collect(),
@@ -320,8 +328,10 @@ test("newGame persists the seed and picks so the game can be replayed from scrat
   const { as } = await asUser(t);
   const id = await as.mutation(api.game.newGame, { seed: 123, picks: [6, 4] }); // Woman + Priest
   const game = await as.query(api.game.get, { id });
-  expect(game?.seed).toBe(123);
+  expect((await stored(t, id))?.seed).toBe(123);
+  expect((await stored(t, id))?.picks).toEqual([6, 4]);
   expect(game?.picks).toEqual([6, 4]);
+  expect(game?.seed).toBeUndefined(); // the client is not told the seed of a game it is playing
 });
 
 test("log returns the game's initial conditions and its ordered, self-contained move records", async () => {
@@ -330,20 +340,48 @@ test("log returns the game's initial conditions and its ordered, self-contained 
   const id = await as.mutation(api.game.newGame, { seed: 7, picks: [0] });
   await as.mutation(api.game.applyAction, { id, action: { type: "move", dir: 1 } }); // North — logged
   await as.mutation(api.game.applyAction, { id, action: { type: "attack" } });        // illegal → blocked, NOT logged
+  expect(await as.query(api.game.log, { id })).toBeNull();                            // still being played: the log would give away the seed
+  await finish(as, id);
 
   const log = await as.query(api.game.log, { id });
   expect(log?.game.seed).toBe(7);
   expect(log?.game.picks).toEqual([0]);
   expect(log?.game.code).toBeTruthy();
-  expect(log?.moves.length).toBe(1);                                  // only the non-blocked move
+  expect(log?.moves.length).toBe(2);                                  // the move and the quit; the blocked attack is absent
   expect(log?.moves[0]!.seq).toBe(0);
   expect(log?.moves[0]!.action).toEqual({ type: "move", dir: 1 });
   expect(Array.isArray(log?.moves[0]!.events)).toBe(true);
 
   // The log is self-contained: seed + picks + actions replay to the authoritative state.
   const frames = replay(7, [0], log!.moves.map((m) => m.action));
-  const game = await as.query(api.game.get, { id });
-  expect(frames[frames.length - 1]!.state).toEqual(game?.state);
+  expect(frames[frames.length - 1]!.state).toEqual((await stored(t, id))?.state);
+});
+
+test("the replay of a game still being played is not served by code, and its row hides the seed (nothing to play ahead with)", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const id = await as.mutation(api.game.newGame, { seed: 11, picks: [0] });
+  const code = await as.mutation(api.game.save, { id });
+  expect(await as.query(api.game.replayByCode, { code })).toBeNull();
+  expect(await t.query(api.game.replayByCode, { code })).toBeNull();
+  expect(await as.query(api.game.log, { id })).toBeNull();
+  const served = JSON.stringify([await as.query(api.game.get, { id }), await as.query(api.game.listMine, {})]);
+  const real = (await stored(t, id))!;
+  expect(served).not.toContain(JSON.stringify(real.state.seed));
+  expect(served).not.toContain(JSON.stringify(real.state.largePack));
+  expect(served).not.toContain(JSON.stringify(real.state.smallPack));
+  await finish(as, id);
+  expect((await as.query(api.game.replayByCode, { code }))?.replayable).toBe(true); // once it is over it is the shareable replay
+});
+
+test("a multiplayer game is not readable or playable through the solo functions (its state is not a solo state)", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const { gameId } = await as.mutation(api.multiplayer.createMultiplayer, { partyName: "Hosts", color: "red" });
+  expect(await as.query(api.game.get, { id: gameId })).toBeNull();
+  expect(await as.query(api.game.log, { id: gameId })).toBeNull();
+  expect(await as.query(api.game.listMine, {})).toEqual([]);
+  await expect(as.mutation(api.game.applyAction, { id: gameId, action: { type: "quit" } })).rejects.toThrow();
 });
 
 test("log is owner-scoped (IDOR guard)", async () => {
@@ -371,6 +409,7 @@ test("replayByCode normalises 'abcd' to 'ABCD'", async () => {
   const t = convexTest(schema, modules);
   const { as } = await asUser(t);
   const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+  await finish(as, id);
   const code = await as.mutation(api.game.save, { id });
   const bundle = await as.query(api.game.replayByCode, { code: ` ${code.toLowerCase()} ` });
   expect(bundle).not.toBeNull();
@@ -382,6 +421,7 @@ test("replayByCode returns the bundle for a game the caller does NOT own", async
   const t = convexTest(schema, modules);
   const owner = await asUser(t);
   const id = await owner.as.mutation(api.game.newGame, { seed: 5, picks: [0] });
+  await finish(owner.as, id);
   const code = await owner.as.mutation(api.game.save, { id });
   const stranger = await asUser(t);
   const bundle = await stranger.as.query(api.game.replayByCode, { code });
@@ -396,6 +436,7 @@ test("replayByCode bundle carries no ownerId or user PII", async () => {
   const t = convexTest(schema, modules);
   const { as } = await asUser(t);
   const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+  await finish(as, id);
   const code = await as.mutation(api.game.save, { id });
   const bundle = await as.query(api.game.replayByCode, { code });
   const flat = JSON.stringify(bundle);
@@ -406,7 +447,7 @@ test("replayByCode bundle carries no ownerId or user PII", async () => {
     seed: 1,
     picks: [0],
     color: null,
-    status: "active",
+    status: "finished",
     createdAt: expect.any(Number),
   });
 });
@@ -418,12 +459,13 @@ test("replayByCode bundle carries seed, picks and ordered moves", async () => {
   const id = await as.mutation(api.game.newGame, { seed: 7, picks: [0] });
   await as.mutation(api.game.applyAction, { id, action: { type: "move", dir: 1 } });
   await as.mutation(api.game.applyAction, { id, action: { type: "attack" } }); // blocked → not logged
+  await finish(as, id);
   const code = await as.mutation(api.game.save, { id });
   const bundle = await as.query(api.game.replayByCode, { code });
   expect(bundle?.replayable).toBe(true);
   expect(bundle?.game.seed).toBe(7);
   expect(bundle?.game.picks).toEqual([0]);
-  expect(bundle?.moves.map((m) => m.seq)).toEqual([0]); // seq order, blocked no-op absent
+  expect(bundle?.moves.map((m) => m.seq)).toEqual([0, 1]); // seq order (the move, then the quit), blocked no-op absent
   expect(bundle?.moves[0]!.action).toEqual({ type: "move", dir: 1 });
   expect(Array.isArray(bundle?.moves[0]!.events)).toBe(true);
 });
@@ -487,7 +529,7 @@ test("newGame accepts a kit-only pick only when variants.extensionKit is set (se
   const game = await as.query(api.game.get, { id });
   expect(game?.variants).toEqual({ extensionKit: true });
   expect(game?.state.variants).toEqual({ extensionKit: true });
-  expect(game?.state).toEqual(createGameState(1, [18], { extensionKit: true }));
+  expect((await stored(t, id))?.state).toEqual(createGameState(1, [18], { extensionKit: true }));
 });
 
 test("newGame with no variants stays byte-identical to today (variants absent on the row)", async () => {
@@ -513,13 +555,13 @@ test("log and replayByCode return variants so the client's replay() reconstructs
   const { as } = await asUser(t);
   const id = await as.mutation(api.game.newGame, { seed: 9, picks: [18, 20], variants: { extensionKit: true } }); // Witch + Wolf
   await as.mutation(api.game.applyAction, { id, action: { type: "move", dir: 1 } });
+  await finish(as, id);
   const code = await as.mutation(api.game.save, { id });
 
   const log = await as.query(api.game.log, { id });
   expect(log?.game.variants).toEqual({ extensionKit: true });
   const frames = replay(log!.game.seed!, log!.game.picks!, log!.moves.map((m) => m.action), log!.game.variants);
-  const game = await as.query(api.game.get, { id });
-  expect(frames[frames.length - 1]!.state).toEqual(game?.state);
+  expect(frames[frames.length - 1]!.state).toEqual((await stored(t, id))?.state);
 
   const bundle = await as.query(api.game.replayByCode, { code });
   expect(bundle?.game.variants).toEqual({ extensionKit: true });
@@ -540,6 +582,7 @@ test("replayByCode omits variants for a kit-off game — decodes kit-off same as
   const t = convexTest(schema, modules);
   const { as } = await asUser(t);
   const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
+  await finish(as, id);
   const code = await as.mutation(api.game.save, { id });
   const bundle = await as.query(api.game.replayByCode, { code });
   expect(bundle?.game.variants).toBeUndefined();
@@ -561,8 +604,7 @@ test("replayByCode log replays to the stored final state", async () => {
   // RB-2-3 invariant: moves.length + 1 frames, frame 0 the untouched deal.
   expect(frames.length).toBe(bundle!.moves.length + 1);
   expect(frames[0]!.action).toBeNull();
-  const game = await as.query(api.game.get, { id });
-  expect(frames[frames.length - 1]!.state).toEqual(game?.state);
+  expect(frames[frames.length - 1]!.state).toEqual((await stored(t, id))?.state);
 });
 
 // ---------------------------------------------------------------------------
@@ -745,7 +787,7 @@ describe("log/replayByCode surface testMode, and replay() reproduces a test-mode
     expect(bundle?.game.testMode).toBe(true);
 
     const frames = replay(log!.game.seed!, log!.game.picks!, log!.moves.map((m) => m.action), log!.game.variants, log!.game.testMode);
-    const game = await as.query(api.game.get, { id });
+    const game = await stored(t, id);
     // The real regression: without threading testMode into newGame, the replayed testForceReaction
     // comes back `blocked` and testNextReaction never arms, diverging from the persisted state.
     expect(frames[frames.length - 1]!.state).toEqual(game?.state);
@@ -768,9 +810,9 @@ test("newGame accepts variants.sibyl, stores it and deals the Sibyl into the pil
   const t = convexTest(schema, modules);
   const { as } = await asUser(t);
   const id = await as.mutation(api.game.newGame, { seed: 3, picks: [0], variants: { sibyl: true } });
-  const game = await as.query(api.game.get, { id });
-  expect(game?.state.variants?.sibyl).toBe(true);
-  expect((game?.state.smallPack as number[]).filter((c) => c === 121)).toHaveLength(1);
+  const game = await stored(t, id); // the whole row: the client is not sent the pack
+  expect((game?.state as { variants?: { sibyl?: boolean } }).variants?.sibyl).toBe(true);
+  expect(((game?.state as { smallPack: number[] }).smallPack).filter((c) => c === 121)).toHaveLength(1);
 });
 
 test("applyAction accepts examineArea's area field (arg validator)", async () => {

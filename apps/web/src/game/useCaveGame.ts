@@ -62,6 +62,14 @@ export function useCaveGame(
             onResolvedRef.current?.(r?.events ?? [], r?.midState);
           });
         },
+        // A move is played by the server, which alone holds the seed and the card order (the state we are sent has neither): the adapter
+        // animates the result it gets back. The same dice/notice hold as any other resolved action follows.
+        act: async (action: GameAction) => {
+          if (!id) return null;
+          const res = (await apply({ id, action })) as { state?: GameState; events?: GameEvent[]; midState?: GameState } | null;
+          onResolvedRef.current?.(res?.events ?? [], res?.midState);
+          return res ? { state: res.state, events: res.events ?? [] } : null;
+        },
         canAct: () => !canActRef.current || canActRef.current(),
         leavePickupOnMove: true, // solo: walking away from treasure leaves it, no button
       });

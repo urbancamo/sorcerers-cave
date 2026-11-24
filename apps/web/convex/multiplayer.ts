@@ -6,7 +6,7 @@ import { internal } from "./_generated/api";
 import { uniqueCode } from "./game";
 import { deepestLevel } from "./highScores";
 import { recordStat, statsFromState } from "./gameStats";
-import { buildMpGame, choosePartyFor, mpReduce, partyView, fogFilter, distantFights, zombiePostSweep, repairTurnFlow, mpScore, occupants, areaInteractionMask, expireTrade, expirePvp, expireUnionProposal, pvpView, PVP_WINDOW_MS, CREATURES, TREASURES, KIT_CREATURES, PARTY_BUDGET, type MpGameState, type MpAction, type PartyState, type GameEvent } from "@sorcerers-cave/engine";
+import { redactState, buildMpGame, choosePartyFor, mpReduce, partyView, fogFilter, distantFights, zombiePostSweep, repairTurnFlow, mpScore, occupants, areaInteractionMask, expireTrade, expirePvp, expireUnionProposal, pvpView, PVP_WINDOW_MS, CREATURES, TREASURES, KIT_CREATURES, PARTY_BUDGET, type MpGameState, type MpAction, type PartyState, type GameEvent } from "@sorcerers-cave/engine";
 
 // Permissive action shape; the engine (mpReduce) enforces semantics. Includes the lobby-level endTurn.
 const mpActionValidator = v.object({
@@ -419,6 +419,13 @@ export const gameState = query({
  * decks included for optimistic moves), plus whose turn it is and every party's position/colour for
  * the multi-token map. Membership-gated; null unless the game is in the playing phase.
  */
+/** What a seat's client is shown of the game: its party composed with the shared cave (and masked under fog), without the seed, the
+ *  party's dice seed or the card order, which would let a player work out every draw and roll (docs/security/review-2026-11.md, finding 1).
+ *  The rules run on the full state in `act`; the client only draws what it is sent. */
+function seatView(mp: MpGameState, seat: number) {
+  return redactState(mp.variants?.fogLite === true ? fogFilter(mp, seat) : partyView(mp, seat));
+}
+
 export const playView = query({
   args: { gameId: v.id("games") },
   handler: async (ctx, { gameId }) => {
@@ -441,7 +448,7 @@ export const playView = query({
       // this seat has never entered (fogFilter) — pawns and cave shape stay, detail goes. The
       // authoritative rules run on the FULL state inside act/mpReduce, so the filter leaks no
       // agency, only information.
-      state: mp.variants?.fogLite === true ? fogFilter(mp, me.seat) : partyView(mp, me.seat),
+      state: seatView(mp, me.seat),
       youSeat: me.seat,
       // Concurrent exploration (M6, plan ①): there is no table turn — every free seat's thread is
       // live. currentSeat null tells the HUD to show "free exploration" instead of a name.
@@ -524,7 +531,7 @@ export const spectateView = query({
     return {
       // Under fog-of-war-lite you follow THAT seat's screen — served with that seat's own fog,
       // so spectating never reveals more of the cave than the followed party has seen.
-      state: mp.variants?.fogLite === true ? fogFilter(mp, seat) : partyView(mp, seat),
+      state: seatView(mp, seat),
       seat,
       name: mp.parties[seat]!.name,
       color: mp.parties[seat]!.color,
@@ -742,7 +749,8 @@ export const act = mutation({
 
     // Record every party that just reached a terminal state (§8.4) — see recordTerminals.
     await recordTerminals(ctx, gameId, game, mp, state, now);
-    return { events };
+    // The acting seat's view after the action: a move that draws a tile is decided here, and the client animates the result it is sent.
+    return kind === "move" ? { events, view: seatView(state, me.seat) } : { events };
   },
 });
 

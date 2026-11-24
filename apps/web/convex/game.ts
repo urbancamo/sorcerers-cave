@@ -12,6 +12,7 @@ import {
   driveStrangers,
   awaitingRequest,
   hasStrategy,
+  redactState,
   GS_PLAYING,
   type GameState,
   type GameAction,
@@ -251,6 +252,12 @@ export const resumeByCode = mutation({
   },
 });
 
+/** A solo game row as a client may hold it (docs/security/review-2026-11.md, finding 1): the state without its seed and card order
+ *  (`redactState`), and no top-level `seed` either, which would give the same thing away. The server keeps both and decides every draw. */
+function forClient(game: Doc<"games">) {
+  return { ...game, seed: undefined, state: redactState(game.state as GameState) };
+}
+
 /** Apply one player action authoritatively: reduce, persist the new state, log the events. */
 export const applyAction = mutation({
   args: { id: v.id("games"), action: actionValidator },
@@ -260,7 +267,8 @@ export const applyAction = mutation({
     const game = await ctx.db.get(id);
     if (!game) throw new Error("Game not found");
     if (game.ownerId !== callerId) throw new Error("Forbidden"); // IDOR guard
-    if (game.status !== "active") return { state: game.state as GameState, events: [] };
+    if (game.mode === "multi") throw new Error("A multiplayer game is played through multiplayer.act"); // its state is not a solo GameState
+    if (game.status !== "active") return { state: redactState(game.state as GameState), events: [] };
 
     // The strangers' decisions are the server's alone (P7): never accepted from a client, whatever the game's state.
     if (action.type.startsWith("strangers")) throw new Error("A stranger action cannot be sent by a client");
@@ -285,7 +293,8 @@ export const applyAction = mutation({
     // returned only so the client can hold the interrupted room as the backdrop.
     // The events the client presents (dice, notices) include the strangers' automatic follow-ups: in a revised fight the
     // round's rolls (and a game-ending one) often fall in the call the server drove after the player's own action.
-    return { state, events: [...events, ...driven.applied.flatMap((a) => a.events)], midState };
+    // The client gets the state without the seed or the card order (it asks the server for every draw); the stored state is whole.
+    return { state: redactState(state), events: [...events, ...driven.applied.flatMap((a) => a.events)], midState: midState && redactState(midState) };
   },
 });
 
@@ -294,8 +303,8 @@ export const get = query({
   handler: async (ctx, { id }) => {
     const callerId = await getAuthUserId(ctx);
     const game = await ctx.db.get(id);
-    if (!game || game.ownerId !== callerId) return null; // owner-scoped (IDOR guard)
-    return game;
+    if (!game || game.ownerId !== callerId || game.mode === "multi") return null; // owner-scoped (IDOR guard); a multiplayer game is read through its own views
+    return forClient(game);
   },
 });
 
@@ -308,7 +317,9 @@ export const log = query({
   handler: async (ctx, { id }) => {
     const callerId = await getAuthUserId(ctx);
     const game = await ctx.db.get(id);
-    if (!game || game.ownerId !== callerId) return null; // owner-scoped (IDOR guard)
+    if (!game || game.ownerId !== callerId || game.mode === "multi") return null; // owner-scoped (IDOR guard)
+    // The log carries the seed, so a game still being played has none (it would let the player play ahead). A Test Mode game is a QA fixture.
+    if (game.status === "active" && !(game.state as GameState).testMode) return null;
     return gameLog(ctx, game);
   },
 });
@@ -352,6 +363,8 @@ export const replayByCode = query({
     const game = await ctx.db.query("games").withIndex("by_code", (q) => q.eq("code", normalized)).first();
     if (!game) return null;
     if (game.mode === "multi") return null; // solo only in this milestone (RB-1-6)
+    // A game still being played would hand over its seed (so its owner could play ahead): finished games, and Test Mode QA fixtures, only.
+    if (game.status === "active" && !(game.state as GameState).testMode) return null;
     const rows = await ctx.db
       .query("gameEvents")
       .withIndex("by_game", (q) => q.eq("gameId", game._id))
@@ -383,6 +396,7 @@ export const listMine = query({
   handler: async (ctx) => {
     const ownerId = await getAuthUserId(ctx);
     if (!ownerId) return [];
-    return ctx.db.query("games").withIndex("by_owner", (q) => q.eq("ownerId", ownerId)).order("desc").collect();
+    const rows = await ctx.db.query("games").withIndex("by_owner", (q) => q.eq("ownerId", ownerId)).order("desc").collect();
+    return rows.filter((g) => g.mode !== "multi").map(forClient);
   },
 });

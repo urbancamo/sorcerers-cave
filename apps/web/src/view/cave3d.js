@@ -767,7 +767,7 @@ function viewLevel(lvl){lastSnapArea=null;activeLevel=lvl;setMode('level','Level
    navigation
    ============================================================ */
 let busy=false;
-function doMove(dir){
+async function doMove(dir){
   if(busy||Reveal.active()) return;
   // Leaving the Cave: a level-1 up-stair exits instead of climbing (spec §"Movement"). Confirm
   // first — it's one-way. On confirm the engine ends the game; React swaps in the score screen.
@@ -777,8 +777,13 @@ function doMove(dir){
       .then(ok=>{ if(ok) engine.exit(); else busy=false; });
     return;
   }
-  const ev=engine.tryMove(dir);
+  // The server decides a move (it holds the cards and the dice), so wait for its answer; no second move is taken meanwhile.
+  busy=true;
+  let ev;
+  try{ ev=await engine.tryMove(dir); }
+  catch(err){ busy=false; setPrompt('The move could not be made. Try again.','danger'); console.error(err); return; }
   if(!ev.moved){
+    busy=false;
     if(ev.placed){ // a tile was drawn onto a dead-end frontier — show it face up for a few seconds, then flip it face down
       buildAreaMesh(ev.placed,true,true).then(()=>{rebuildPlatforms();rebuildStairs();rebuildSecretDoors();rebuildLevelButtons();});
       refreshExitMarkers(); // the attempted exit was pruned

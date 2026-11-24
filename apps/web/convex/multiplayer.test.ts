@@ -1,5 +1,6 @@
 import { convexTest } from "convex-test";
-import { expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
+import type { Id } from "./_generated/dataModel";
 import type { PartyState, MpGameState, GameState } from "@sorcerers-cave/engine";
 type GameStateLike = GameState;
 import { api } from "./_generated/api";
@@ -745,7 +746,9 @@ test("act accepts examineArea (with and without an area), free of the turn", asy
   let actor = userBySeat[0]!;
   if ((await actor.query(api.multiplayer.gameState, { gameId }))!.youSeat !== seat) actor = userBySeat[1]!;
   const look = await actor.mutation(api.multiplayer.act, { gameId, action: { type: "examineArea" } });
-  expect((look as { events: unknown[] }).events).toEqual([{ type: "sibylExamined" }]);
+  // A look at the pack names the top card in its event (the client is not sent the pack); it goes to the looker only.
+  const top = await t.run(async (ctx) => { const c = (await ctx.db.get(gameId))!.state as MpGameState; return c.cave.largePack[c.cave.largeIdx]; });
+  expect((look as { events: unknown[] }).events).toEqual([{ type: "sibylExamined", card: top }]);
   // `area` must pass the validator; the Gateway is face-up so the engine blocks it (not a validation error).
   const forged = await actor.mutation(api.multiplayer.act, { gameId, action: { type: "examineArea", area: 0 } });
   expect((forged as { events: unknown[] }).events).toEqual([{ type: "blocked" }]);
@@ -757,4 +760,42 @@ test("act rejects a forged strangers action (the strangers' decisions are never 
   const { gameId, userBySeat } = await reachPlaying(t);
   const pv = (await userBySeat[0]!.query(api.multiplayer.playView, { gameId }))!;
   await expect(userBySeat[pv.currentSeat]!.mutation(api.multiplayer.act, { gameId, action: { type: "strangersAssignArtefacts" } })).rejects.toThrow(/stranger/i);
+});
+
+// A client that held the seed or the card order could play the game ahead offline (docs/security/review-2026-11.md, finding 1).
+describe("what a multiplayer client is sent hides the seed and the card order", () => {
+  const whole = (t: ReturnType<typeof convexTest>, gameId: Id<"games">) =>
+    t.run(async (ctx) => (await ctx.db.get(gameId))!.state as MpGameState);
+  const hidden = (view: { seed: number; largePack: number[]; smallPack: number[]; diceSeed?: number }, mp: MpGameState) => {
+    expect(view.seed).toBe(0);
+    expect(view.diceSeed).toBeUndefined();
+    expect(view.largePack).toHaveLength(mp.cave.largePack.length);
+    expect(view.smallPack).toHaveLength(mp.cave.smallPack.length);
+    expect(new Set(view.largePack)).toEqual(new Set([0]));
+    expect(new Set(view.smallPack)).toEqual(new Set([0]));
+  };
+
+  test("playView and spectateView send the state without the seed, a party's dice seed or the packs", async () => {
+    const t = convexTest(schema, modules);
+    const { gameId, userBySeat } = await reachPlaying(t);
+    const mp = await whole(t, gameId);
+    expect(mp.cave.seed).not.toBe(0); // the stored game keeps them
+    hidden((await userBySeat[0]!.query(api.multiplayer.playView, { gameId }))!.state as never, mp);
+    hidden((await userBySeat[0]!.query(api.multiplayer.spectateView, { gameId, seat: 1 }))!.state as never, mp);
+  });
+
+  test("act on a move answers with the acting seat's redacted view, so the client can animate what the server decided", async () => {
+    const t = convexTest(schema, modules);
+    const { gameId, userBySeat } = await reachPlaying(t);
+    const mp = await whole(t, gameId);
+    const pv = (await userBySeat[0]!.query(api.multiplayer.playView, { gameId }))!;
+    const actor = userBySeat[pv.currentSeat!]!;
+    const res = (await actor.mutation(api.multiplayer.act, { gameId, action: { type: "move", dir: 1 } })) as { events: unknown[]; view?: { areas: unknown[] } };
+    expect(res.view).toBeDefined();
+    hidden(res.view as never, mp);
+    expect(res.view!.areas.length).toBeGreaterThan(1); // the tile the server drew is in what it sends
+    // Other actions do not carry a view (the subscription brings the state).
+    const other = (await actor.mutation(api.multiplayer.act, { gameId, action: { type: "examineArea" } })) as { view?: unknown };
+    expect(other.view).toBeUndefined();
+  });
 });

@@ -147,7 +147,8 @@ export interface CaveEngine {
    *   `chamber.draws` (also persisting them onto Area.strangers/treasure/hazards).
    * Pure w.r.t. the view: the view only reads the returned event.
    */
-  tryMove(dir: Dir): MoveEvent;
+  /** May wait on the server (a move can draw a tile, and only the server holds the packs); the stub engine answers at once. */
+  tryMove(dir: Dir): MoveEvent | Promise<MoveEvent>;
 
   /** True when the party may leave the Cave from `current` (a level-1 up-stair, spec §"Movement"). */
   canExit(): boolean;

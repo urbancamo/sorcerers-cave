@@ -1,4 +1,4 @@
-import { render, screen, fireEvent } from "@testing-library/react";
+import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { newGame, legalActions, packCoord, type GameState, type GameAction } from "@sorcerers-cave/engine";
 import { SibylLook, describeTile } from "./SibylLook";
@@ -41,13 +41,22 @@ describe("SibylLook", () => {
     expect(container).toBeEmptyDOMElement();
   });
 
-  it("dispatches the pack look and then shows what the top of the pack is", () => {
+  it("dispatches the pack look and then shows what the top of the pack is (a game without a server reads it from its state)", async () => {
     const dispatch = vi.fn();
     const s = stateWithSibyl();
     render(<SibylLook state={s} actions={looks(s)} dispatch={dispatch} />);
     fireEvent.click(screen.getByRole("button", { name: /top of the pack/i }));
     expect(dispatch).toHaveBeenCalledWith({ type: "examineArea" });
-    expect(screen.getByTestId("sibyl-readout")).toHaveTextContent("Viper Pit — north, east, south, west");
+    expect(await screen.findByTestId("sibyl-readout")).toHaveTextContent("Viper Pit — north, east, south, west");
+  });
+
+  it("shows the card the server named in its answer, not the (hidden) pack in the state it was sent", async () => {
+    const s = stateWithSibyl();
+    s.largePack = [0]; // as served: the card values are not sent
+    const dispatch = vi.fn().mockResolvedValue({ events: [{ type: "sibylExamined", card: (3 << 7) | 31 }] });
+    render(<SibylLook state={s} actions={looks(s)} dispatch={dispatch} />);
+    fireEvent.click(screen.getByRole("button", { name: /top of the pack/i }));
+    expect(await screen.findByTestId("sibyl-readout")).toHaveTextContent("Viper Pit — north, east, south, west");
   });
 
   it("looks at a face-down tile by choosing it on the map: the cave view rings the tiles, the pick dispatches the look and turns the tile up", () => {
@@ -85,45 +94,46 @@ describe("SibylLook", () => {
 });
 
 describe("SibylLook — the fading card", () => {
-  it("shows the tile art for the top of the pack as a see-through overlay that removes itself when the fade ends", () => {
+  it("shows the tile art for the top of the pack as a see-through overlay that removes itself when the fade ends", async () => {
     const s = stateWithSibyl();
     render(<SibylLook state={s} actions={looks(s)} dispatch={() => {}} />);
     expect(screen.queryByTestId("sibyl-peek")).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /top of the pack/i }));
-    const peek = screen.getByTestId("sibyl-peek");
+    const peek = await screen.findByTestId("sibyl-peek");
     expect(peek.querySelector("img")).toHaveAttribute("src", "/pit.png");
     // jsdom has no AnimationEvent, so React listens for the prefixed name there; real browsers fire "animationend".
     fireEvent(peek, new Event("webkitAnimationEnd", { bubbles: true }));
     expect(screen.queryByTestId("sibyl-peek")).toBeNull();
   });
 
-  it("is drawn on the page itself, not inside the panel: a transformed, clipped parent would trap a fixed overlay", () => {
+  it("is drawn on the page itself, not inside the panel: a transformed, clipped parent would trap a fixed overlay", async () => {
     const s = stateWithSibyl();
     const { container } = render(<SibylLook state={s} actions={looks(s)} dispatch={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: /top of the pack/i }));
-    const peek = screen.getByTestId("sibyl-peek");
+    const peek = await screen.findByTestId("sibyl-peek");
     expect(container.contains(peek)).toBe(false);
     expect(peek.parentElement).toBe(document.body);
   });
 
-  it("a second look replaces the card (it restarts the fade rather than stacking)", () => {
+  it("a second look replaces the card (it restarts the fade rather than stacking)", async () => {
     const s = stateWithSibyl();
     render(<SibylLook state={s} actions={looks(s)} dispatch={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: /top of the pack/i }));
+    await screen.findByTestId("sibyl-peek");
     fireEvent.click(screen.getByRole("button", { name: /top of the pack/i }));
-    expect(screen.getAllByTestId("sibyl-peek")).toHaveLength(1);
+    await waitFor(() => expect(screen.getAllByTestId("sibyl-peek")).toHaveLength(1));
     expect(screen.getByTestId("sibyl-peek").querySelector("img")).toHaveAttribute("src", "/pit.png");
   });
 });
 
 describe("SibylLook — the introduction is said once", () => {
-  it("opens the first look with the Sibyl's line and does not repeat it", () => {
+  it("opens the first look with the Sibyl's line and does not repeat it", async () => {
     const s = stateWithSibyl();
     render(<SibylLook state={s} actions={looks(s)} dispatch={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: /top of the pack/i }));
-    expect(screen.getByTestId("sibyl-readout")).toHaveTextContent("The Sibyl shows you what lies hidden.");
+    expect(await screen.findByTestId("sibyl-readout")).toHaveTextContent("The Sibyl shows you what lies hidden.");
     fireEvent.click(screen.getByRole("button", { name: /top of the pack/i }));
-    expect(screen.getByTestId("sibyl-readout")).not.toHaveTextContent("The Sibyl shows you what lies hidden.");
+    await waitFor(() => expect(screen.getByTestId("sibyl-readout")).not.toHaveTextContent("The Sibyl shows you what lies hidden."));
     expect(screen.getByTestId("sibyl-readout")).toHaveTextContent("Viper Pit");
   });
 });

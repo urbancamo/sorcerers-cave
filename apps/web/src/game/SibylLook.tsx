@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
-import { decodeArea, unpackCoord, type GameAction, type GameState } from "@sorcerers-cave/engine";
+import { decodeArea, unpackCoord, type GameAction, type GameEvent, type GameState } from "@sorcerers-cave/engine";
 import { useManifestArt } from "../data/useManifestCards";
 import { tileForCard } from "../view/projection";
 import type { DestinationPicker } from "./SorcererTerms";
@@ -40,7 +40,9 @@ function takeIntro(): boolean {
  *  see-through card that fades in and out over the view; the text readout stays as a record. All of it is
  *  local UI state. */
 export function SibylLook({ state, actions, dispatch, tools }: {
-  state: GameState; actions: Look[]; dispatch: (a: GameAction) => void;
+  state: GameState; actions: Look[];
+  /** Sends the look; resolves with the result, whose events carry the top card (a game against the server holds no pack to read it from). */
+  dispatch: (a: GameAction) => void | Promise<{ events?: GameEvent[] } | null | void>;
   /** The 3D cave view: choose a face-down tile on the map, and fade it up for a few seconds. */
   tools?: { pick: DestinationPicker; peek: (a: { col: number; row: number; level: number }) => void };
 }) {
@@ -59,10 +61,12 @@ export function SibylLook({ state, actions, dispatch, tools }: {
     setPeek(tile ? { n: ++looks.current, file: tile.file } : null);
     setSeen(`${takeIntro() ? `${INTRO} ` : ""}${label}: ${describeTile(card)}`);
   };
-  const lookPack = () => {
+  const lookPack = async () => {
     if (!pack) return;
-    dispatch(pack);
-    reveal("Top of the pack", state.largePack[state.largeIdx]!);
+    const res = await dispatch(pack);
+    // The server's answer says which card it is; the tutorial's own game has the pack in its state.
+    const seen = res?.events?.find((e): e is Extract<GameEvent, { type: "sibylExamined" }> => e.type === "sibylExamined")?.card;
+    reveal("Top of the pack", seen ?? state.largePack[state.largeIdx]!);
   };
   // Choosing a face-down tile: the cave view rings every one; the player clicks it on the map, it is turned up for a few
   // seconds and faded down again (no text record: they must remember what they saw).
