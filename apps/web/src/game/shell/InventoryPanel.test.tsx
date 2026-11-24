@@ -8,9 +8,9 @@ const row = (over: Partial<InventoryRow> = {}): InventoryRow => ({ mi: 0, idx: 0
 
 describe('InventoryPanel', () => {
   it('shows each item with its carrier and a text tag as well as colour', () => {
-    render(<InventoryPanel rows={[row(), row({ idx: 1, name: 'Silver', weight: 25, color: 'gray', tag: 'treasure only', carrier: 'Dwarf' })]} selected={null} onSelect={() => {}} />);
+    render(<InventoryPanel rows={[row(), row({ idx: 1, name: 'Silver', weight: 25, color: 'gray', tag: 'treasure', carrier: 'Dwarf' })]} selected={null} onSelect={() => {}} />);
     expect(screen.getByText('usable now')).toBeInTheDocument();
-    expect(screen.getByText('treasure only')).toBeInTheDocument();
+    expect(screen.getByText('treasure')).toBeInTheDocument();
     expect(screen.getByText(/held by Dwarf · 25 kg/)).toBeInTheDocument();
   });
 

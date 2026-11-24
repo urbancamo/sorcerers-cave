@@ -1,11 +1,7 @@
-import { render, screen, fireEvent, within } from '@testing-library/react';
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { render, screen, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
 import { HelpButton } from './HelpButton';
 import { HelpProvider } from './HelpContext';
-import { HelpBrowser } from './HelpBrowser';
-import { HelpModal } from './HelpModal';
-import { markNudgeSeen, nudgeSeen } from './nudge';
-import { HelpPanel } from '../game/shell/HelpPanel';
 import { TitleBar } from '../game/shell/TitleBar';
 import { SplashScreen } from '../game/SplashScreen';
 
@@ -37,79 +33,17 @@ describe('HelpButton', () => {
   });
 });
 
-describe('HelpBrowser and panel', () => {
-  it('leads with help for the screen, then the manual sections', () => {
-    render(<HelpPanel screens={['encounter']} flags={{}} />);
-    expect(screen.getByTestId('help-here')).toHaveTextContent(/Meeting strangers/);
-    expect(screen.getByText('The manual')).toBeInTheDocument();
-    expect(screen.getByText('Hazards')).toBeInTheDocument();
+describe('no general help', () => {
+  it('has no Help icon on the title bar', () => {
+    render(<TitleBar left={null} right={null} testMode={false} onLeft={() => {}} onRight={vi.fn()} />);
+    expect(screen.queryByRole('button', { name: 'Help' })).toBeNull();
   });
 
-  it('shows only the sections and rules in force', () => {
-    const { unmount } = render(<HelpBrowser screens={['explore']} flags={{}} />);
-    expect(screen.queryByText('The Whirlpool')).toBeNull();
-    unmount();
-    render(<HelpBrowser screens={['explore']} flags={{ extensionKit: true }} />);
-    expect(screen.getByText('The Whirlpool')).toBeInTheDocument();
-  });
-
-  it('searches the whole manual', () => {
-    render(<HelpBrowser screens={['explore']} />);
-    fireEvent.change(screen.getByLabelText('Search the manual'), { target: { value: 'medusa' } });
-    expect(screen.getByTestId('help-results')).toHaveTextContent('Medusa');
-    expect(screen.queryByTestId('help-here')).toBeNull();
-    fireEvent.change(screen.getByLabelText('Search the manual'), { target: { value: 'qqqqzz' } });
-    expect(screen.getByText('Nothing found.')).toBeInTheDocument();
-  });
-});
-
-describe('title bar Help icon', () => {
-  it('toggles the help slot', () => {
-    const onRight = vi.fn();
-    render(<TitleBar left={null} right="help" testMode={false} onLeft={() => {}} onRight={onRight} />);
-    const b = screen.getByRole('button', { name: 'Help' });
-    expect(b).toHaveAttribute('aria-pressed', 'true');
-    fireEvent.click(b);
-    expect(onRight).toHaveBeenCalledWith('help');
-  });
-});
-
-describe('first-run How to play nudge', () => {
-  beforeEach(() => localStorage.clear());
-  const splash = () => render(<SplashScreen onStartSolitaire={() => {}} />);
-
-  it('is offered once, opens the help modal, and is then remembered', () => {
-    expect(nudgeSeen()).toBe(false);
-    splash();
-    fireEvent.click(within(screen.getByTestId('howto-nudge')).getByRole('button', { name: 'How to play' }));
-    expect(screen.getByTestId('help-modal')).toBeInTheDocument();
+  it('has no How to Play button or nudge on the splash screen', () => {
+    render(<SplashScreen onStartSolitaire={() => {}} />);
+    expect(screen.queryByRole('button', { name: /how to play/i })).toBeNull();
     expect(screen.queryByTestId('howto-nudge')).toBeNull();
-    expect(nudgeSeen()).toBe(true);
-  });
-
-  it('can be dismissed, and does not return on the next visit', () => {
-    const { unmount } = splash();
-    fireEvent.click(screen.getByRole('button', { name: 'Dismiss' }));
-    expect(screen.queryByTestId('howto-nudge')).toBeNull();
-    unmount();
-    splash();
-    expect(screen.queryByTestId('howto-nudge')).toBeNull();
-  });
-
-  it('stays out of the way once seen, but How to Play is always available', () => {
-    markNudgeSeen();
-    splash();
-    expect(screen.queryByTestId('howto-nudge')).toBeNull();
-    fireEvent.click(screen.getByRole('button', { name: 'How to Play' }));
-    fireEvent.click(screen.getByRole('button', { name: 'Close help' }));
-    expect(screen.queryByTestId('help-modal')).toBeNull();
-  });
-
-  it('the modal closes on Escape', () => {
-    const onClose = vi.fn();
-    render(<HelpModal onClose={onClose} />);
-    fireEvent.keyDown(window, { key: 'Escape' });
-    expect(onClose).toHaveBeenCalled();
+    expect(screen.queryByText(/read how to play/i)).toBeNull();
   });
 });
 
@@ -164,7 +98,6 @@ describe('phase 4: party, inventory, scoring, tooltips', () => {
     render(<TitleBar left={null} right={null} testMode={false} onLeft={() => {}} onRight={() => {}} />);
     const party = screen.getByRole('button', { name: 'Party' });
     expect(party).toHaveAttribute('title', expect.stringMatching(/^Party — /));
-    expect(screen.getByRole('button', { name: 'Help' })).toHaveAttribute('title', expect.stringMatching(/whole manual/));
   });
 
   it('hides the sibyl and kit overviews in a game that has neither, but shows them with no game', async () => {
@@ -186,14 +119,6 @@ describe('phase 5: multiplayer', () => {
     expect(ids('mp-trade')).toEqual(['mp-trade']);
     expect(ids('mp-pvp')).toEqual(['mp-pvp']);
     expect(ids('mp-union')).toEqual(['mp-union']);
-  });
-
-  it('the modal shows help for the screens it is given, under the game\'s options', () => {
-    render(<HelpModal title="Help" screens={['mp-trade']} flags={{}} onClose={() => {}} />);
-    expect(screen.getByRole('dialog', { name: 'Help' })).toBeInTheDocument();
-    expect(screen.getByTestId('help-here')).toHaveTextContent(/Trading/);
-    // a multiplayer game has none of the solo house rules or kit content unless the kit is on
-    expect(screen.queryByText('The Whirlpool')).toBeNull();
   });
 
   it('notes the multiplayer secret-door rule on the secret door topic', async () => {

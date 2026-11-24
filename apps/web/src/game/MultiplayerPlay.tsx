@@ -18,6 +18,7 @@ import { showFightSurface } from "./fightGate";
 import { useManifestCards } from "../data/useManifestCards";
 import { PartyPanel } from "./PartyPanel";
 import { DiceRoll } from "./DiceRoll";
+import { readAutoWield, useAutoWield, writeAutoWield } from "./autoWield";
 import { rollFromEvents, type RollView } from "./rollView";
 import { NoticeModal } from "./NoticeModal";
 import { FeatCelebration } from "./FeatCelebration";
@@ -29,8 +30,6 @@ import { SpectateView } from "./SpectateView";
 import { DEFAULT_PARTY_COLOR, PARTY_COLOR_HEX, type PartyColor } from "./partyColors";
 import { HelpButton } from "../manual/HelpButton";
 import { HelpProvider } from "../manual/HelpContext";
-import { HelpModal } from "../manual/HelpModal";
-import type { HelpScreen } from "../manual";
 
 /**
  * Shared-cave play for the viewing seat: renders the existing 3D cave from this party's composed
@@ -43,7 +42,7 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   const actMut = useMutation(api.multiplayer.act);
   const [art, setArt] = useState<ArtTables | null>(null);
   const [roll, setRoll] = useState<RollView | null>(null);
-  const [showHelp, setShowHelp] = useState(false);
+  const [autoWield, setAutoWield] = useState(readAutoWield); // wield and wear what a member gets, automatically (a per-player setting kept in the browser)
   const [notices, setNotices] = useState<Notice[] | null>(null);
   const [showParty, setShowParty] = useState(false);
   const [showChat, setShowChat] = useState(false);
@@ -189,6 +188,8 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
     else { const ns = eventNotices(events); if (ns.length) setNotices(ns); }
     return res;
   }, [actMut, gameId]);
+  // Auto Wield/Wear on your own turn, when nothing is being shown or rolled.
+  useAutoWield((view?.state as GameState | undefined) ?? null, autoWield, !!view?.yourTurn && !roll && !notices, dispatch, gameId);
 
   // Presentation hold for the cave-stranger fight surface (hook-level reuse of solo's
   // GameScreen.tsx): MP's own `act` mutation has the SAME subscription-vs-mutation race
@@ -278,8 +279,6 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
   const canProposeUnion = !terminal && !meZombie && state.phase === "explore" && !view.session && !yourUnion;
   // Guarded loot (spec I-8/I-4): a rival rear-guard stands on your tile — its treasure is not free.
   const guards = view.detachmentsHere ?? [];
-
-  const helpScreens: HelpScreen[] = pvpSession ? ["mp-pvp", "mp-play"] : tradeSession ? ["mp-trade", "mp-play"] : unionProposal || yourUnion ? ["mp-union", "mp-play"] : fightVisible ? ["fight", "mp-play"] : ["mp-play", "explore"];
 
   return (
     <HelpProvider variants={state.variants}>
@@ -415,8 +414,10 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
           </div>
         </div>
       )}
-      <button className="scv-mp-helpbtn" aria-label="Help" title="Help for this screen, and the whole manual" onClick={() => setShowHelp(true)}>?</button>
-      {showHelp && <HelpModal title="Help" screens={helpScreens} flags={state.variants ?? {}} onClose={() => setShowHelp(false)} />}
+      <label className="scv-mp-autowield" title="Wield weapons and wear artifacts automatically when you get them">
+        <input type="checkbox" checked={autoWield} onChange={(e) => { setAutoWield(e.target.checked); writeAutoWield(e.target.checked); }} />
+        Auto Wield/Wear
+      </label>
       {/* Active players can peek at the standings; terminal/finished players land here by default. */}
       {!showScoreboard && !terminal && !gameOver && (
         <button className="scv-mp-standings" onClick={() => setPeeking(true)}>Standings ▣</button>

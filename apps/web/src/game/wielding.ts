@@ -24,6 +24,9 @@ const WOULD_HELP: Record<number, (creatureId: number) => boolean> = {
   7: (c) => canUseArtifact(c, 7), // the Talisman is for humans and magic users only
 };
 
+// The items whose use adds points to a fight (the Shield and Talisman ward off harm instead).
+const POINTS: readonly number[] = [3, 9, 17, 10];
+
 /** A fight is about to be fought (or is under way) with gear that would help sitting unused: "Magic Sword (Hero) carried, not wielded".
  *  Information only: the game never puts anything in use for the player. */
 export function unusedGear(state: GameState): string[] {
@@ -38,8 +41,9 @@ export function unusedGear(state: GameState): string[] {
   return out;
 }
 
-/** What a party member's fight card shows: a wieldable or wearable item only while it is in use. A carried Sword does nothing, so it is not
- *  shown against its bearer. Everything else (heavy treasure, other artefacts) shows as before. */
+/** What a party member's fight card shows: only an item that is in use AND adds points for this member's class (the Sword, Axe or Staff
+ *  with a class bonus, or the Ring where its +1 applies). Treasure, carried-but-unwielded weapons, unworn artefacts, and weapons that do
+ *  nothing for the class (a Sword in a Dwarf's hands) are left off, so each card shows exactly what is helping in this fight. */
 export function fightGear(m: PartyMember): number[] {
-  return m.treasure.filter((t) => !BORNEABLE.includes(t) || isBorne(m, t));
+  return m.treasure.filter((t) => isBorne(m, t) && !!WOULD_HELP[t]?.(m.creatureId) && POINTS.includes(t));
 }

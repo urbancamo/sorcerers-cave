@@ -30,7 +30,7 @@ describe('inventory', () => {
 
   it('shows treasure as gray with a text tag', () => {
     const [r] = inventoryRows(game([[HERO, [T.silver]]]));
-    expect(r).toMatchObject({ color: 'gray', tag: 'treasure only' });
+    expect(r).toMatchObject({ color: 'gray', tag: 'treasure' });
   });
 
   it('shows a class that cannot use an active artifact as gray', () => {

@@ -493,7 +493,7 @@ export function RevisedFightSurface({ state, dispatch, cards, onMember, inventor
           A stalemate: no match can be decided any more. Retreat{retreats.length ? "" : " — if a way is open"}.
         </p>
       )}
-      {mine?.kind === "engage" && !autoPairs && <p className="scv-fight-sub" data-testid="rev-engage-hint">Pair each of your fighters with a foe. Spare creatures can join a pairing, or stand behind it if they are casters. Nothing is final until you roll.</p>}
+      {mine?.kind === "engage" && !autoPairs && <p className="scv-fight-sub scv-fight-sub-main" data-testid="rev-engage-hint">Pair each of your fighters with a foe. Spare creatures can join a pairing, or stand behind it if they are casters. Nothing is final until you roll.</p>}
       {refusal && placing && <p className="scv-fight-reason" role="status" data-testid="rev-refusal">{refusal}</p>}
       {mine?.kind === "engage" && engageBad && usedPairs.length > 0 && <p className="scv-fight-reason">{engageBad}</p>}
       {mine?.kind === "deploy" && !forcedDeploy && usedChosen.length > 0 && deployBad && <p className="scv-fight-reason">{deployBad}</p>}

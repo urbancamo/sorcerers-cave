@@ -1632,7 +1632,7 @@
 .scv-rc-tag {
   font-family: var(--ui);
   font-weight: 500;
-  font-size: 10px;
+  font-size: 12px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--stone-dim);
@@ -1654,7 +1654,7 @@
   display: flex;
   justify-content: space-between;
   gap: 10px;
-  font-size: 13px;
+  font-size: 15px;
   color: var(--stone);
 }
 .scv-rc-items .scv-rc-pts { color: var(--stone); font-weight: 500; }
@@ -1671,7 +1671,7 @@
   justify-content: space-between;
   gap: 10px;
 }
-.scv-rc-totals dt { color: var(--stone); font-size: 13px; }
+.scv-rc-totals dt { color: var(--stone); font-size: 15px; }
 .scv-rc-totals dd { margin: 0; }
 
 /* ---- score name entry ---- */
@@ -1981,8 +1981,9 @@
 .scv-rev > .scv-rev-board { flex: 1 1 auto; min-height: 160px; display: flex; gap: 14px; align-items: stretch; overflow: hidden; }
 .scv-rev-board > .scv-fight-strangers { flex: 1 1 auto; min-width: 0; overflow-y: auto; overscroll-behavior: contain; }
 .scv-fight-hd { font-family: var(--display); font-weight: 700; font-size: 14px; letter-spacing: .14em; text-transform: uppercase; color: var(--cream); }
-.scv-fight-sub, .scv-fight-cap, .scv-fight-hint { font-family: var(--body); font-style: italic; font-size: 13px; color: var(--stone-dim); }
-.scv-fight-banner { font-family: var(--body); font-style: italic; font-size: 13px; padding: 3px 11px; border-radius: 999px; }
+.scv-fight-sub, .scv-fight-cap, .scv-fight-hint { font-family: var(--ui); font-style: normal; font-size: 15px; color: var(--stone-dim); }
+.scv-fight-sub.scv-fight-sub-main { color: var(--parchment); } /* body-text cream, for an instruction the player must read */
+.scv-fight-banner { font-family: var(--ui); font-style: normal; font-size: 15px; padding: 3px 11px; border-radius: 999px; }
 .scv-fight-banner.bad { color: #e7a59c; border: 1px solid rgba(168,68,58,.5); background: rgba(46,18,16,.6); }
 .scv-fight-banner.good { color: #bfe0ad; border: 1px solid rgba(127,174,111,.5); background: rgba(22,34,18,.6); }
 /* Battles are laid out horizontally and stacked: foes face the front line, with a magic slot behind it. */
@@ -1999,7 +2000,7 @@
 /* Pinned to the top edge of the cards, not centred: a hero's fan of artefact cards is drawn across the middle and used to cover the score. */
 .scv-match-vs { display: flex; flex-direction: column; align-items: center; align-self: flex-start; position: relative; z-index: 2; padding-top: 4px; min-width: 44px; font-family: var(--display); font-weight: 700; font-size: 16px; line-height: 1.1; }
 .scv-match-vs .them { color: #e7a59c; } .scv-match-vs .me { color: #7fae6f; }
-.scv-match-vs .x { font-family: var(--ui); font-weight: 400; font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--stone-dim); margin: 1px 0; }
+.scv-match-vs .x { font-family: var(--ui); font-weight: 400; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--stone-dim); margin: 1px 0; }
 /* the party side: the front line + behind slot on one row, with the modifier chips beneath them */
 .scv-match-party { display: flex; flex-direction: column; gap: 8px; align-self: flex-start; }
 /* flex-start (not center): when a bg slot grows taller than its front (two backers stacked), the
@@ -2011,26 +2012,26 @@
 .scv-match-front { position: relative; min-height: 178px; min-width: 254px; display: flex; gap: 10px; align-items: flex-start; justify-content: center; padding: 22px 16px 6px 6px; border: 1px dashed var(--line); border-radius: 9px; }
 .scv-match-bg { min-height: 178px; min-width: 104px; position: relative; display: flex; flex-direction: column; gap: 6px; align-items: center; justify-content: flex-start; padding: 22px 16px 8px 8px; border: 1px dashed var(--arcane); border-radius: 9px; background: rgba(95,143,138,.06); }
 .scv-match-front:focus-visible, .scv-match-bg:focus-visible { outline: 2px solid var(--brass-bright); }
-.scv-match-hint { font-family: var(--body); font-style: italic; font-size: 12px; color: var(--stone-dim); }
-.scv-match-slotlbl { white-space: nowrap; position: absolute; top: 7px; left: 8px; right: 8px; text-align: center; font-family: var(--ui); font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; color: var(--arcane); }
+.scv-match-hint { font-family: var(--ui); font-style: normal; font-size: 15px; color: var(--stone-dim); }
+.scv-match-slotlbl { white-space: nowrap; position: absolute; top: 7px; left: 8px; right: 8px; text-align: center; font-family: var(--ui); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--arcane); }
 /* an empty front slot — a card-sized "drop a fighter" placeholder (always two, so a 2nd is invitingly open) */
-.scv-slot-empty { width: 116px; aspect-ratio: 63 / 88; display: flex; align-items: center; justify-content: center; padding: 6px; border: 1px dashed var(--line); border-radius: 8px; font-family: var(--body); font-style: italic; font-size: 12px; color: var(--stone-dim); text-align: center; }
+.scv-slot-empty { width: 116px; aspect-ratio: 63 / 88; display: flex; align-items: center; justify-content: center; padding: 6px; border: 1px dashed var(--line); border-radius: 8px; font-family: var(--ui); font-style: normal; font-size: 12px; color: var(--stone-dim); text-align: center; }
 /* per-matchup modifier chips (artefact bonuses, curse, surprise) — sit under the party members */
 /* width:0 + min-width:100% — the chips wrap within the party line's width instead of contributing their
    unwrapped width to .scv-match-party, which would widen the column and bump the whole matchup onto a
    second row (a fighter carrying several artefacts produces many chips). */
 .scv-match-mods { display: flex; gap: 7px; flex-wrap: wrap; width: 0; min-width: 100%; }
-.scv-mod { font-family: var(--ui); font-size: 11px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--parchment); background: rgba(201,161,78,.07); }
+.scv-mod { font-family: var(--ui); font-size: 13px; padding: 2px 9px; border-radius: 999px; border: 1px solid var(--line-strong); color: var(--parchment); background: rgba(201,161,78,.07); }
 .scv-mod-party { border-color: rgba(201,161,78,.4); color: var(--brass-bright); }
 .scv-mod-enemy { border-color: rgba(168,68,58,.5); color: #e7a59c; background: rgba(46,18,16,.4); }
-.scv-mod.is-roll { font-style: italic; }
+.scv-mod.is-roll { font-style: normal; }
 button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: transparent; } button.scv-mod-more:hover { border-color: var(--brass); color: var(--cream); } /* added to the die roll, not the strength total */
 /* per-matchup artefact zoom (click a wielded artefact to enlarge it within its own battle) */
 .scv-match-zoom { position: absolute; inset: 0; z-index: 10; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 10px; background: rgba(7,7,9,.86); border-radius: 12px; cursor: pointer; }
 .scv-match-zoom img { width: auto; max-height: 78%; aspect-ratio: 63/88; object-fit: contain; border-radius: 10px; box-shadow: 0 22px 60px -16px rgba(0,0,0,.9); }
-.scv-match-zoom-cap { font-family: var(--body); font-style: italic; font-size: 12px; color: var(--stone); }
+.scv-match-zoom-cap { font-family: var(--ui); font-style: normal; font-size: 14px; color: var(--stone); }
 .scv-fight-tray { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; border: 1px dashed var(--line); border-radius: 12px; padding: 10px; background: rgba(0,0,0,.18); }
-.scv-fight-reason { font-family: var(--body); font-style: italic; font-size: 13px; color: #e7c07a; }
+.scv-fight-reason { font-family: var(--ui); font-style: normal; font-size: 15px; color: #e7c07a; }
 .scv-fight-doom { color: #e7a59c; font-weight: 600; }
 .scv-fight-deciding { animation: scv-deciding-pulse 1.6s ease-in-out infinite; }
 @keyframes scv-deciding-pulse { 50% { opacity: .55; } }
@@ -2056,7 +2057,7 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
   border: 1px solid rgba(140,200,160,.35); border-radius: 14px; background: rgba(6,12,9,.72); box-shadow: 0 0 60px -10px rgba(110,190,135,.5), inset 0 0 40px rgba(0,0,0,.6); }
 .scv-ghouls-skull { font-size: 54px; line-height: 1; color: #c9e8d0; text-shadow: 0 0 18px rgba(130,220,160,.9), 0 0 42px rgba(90,180,120,.6); animation: scv-ghouls-rise 3.2s ease-in-out infinite; }
 .scv-ghouls-title { margin: 0; font-family: var(--display); font-size: 30px; letter-spacing: .06em; color: #d6f0dc; text-shadow: 0 0 14px rgba(120,210,150,.8); animation: scv-ghouls-gutter 4.5s linear infinite; }
-.scv-ghouls-lede { margin: 0; font-family: var(--body); font-style: italic; font-size: 15px; color: var(--parchment); }
+.scv-ghouls-lede { margin: 0; font-family: var(--ui); font-style: normal; font-size: 15px; color: var(--parchment); }
 .scv-ghouls-facts { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 7px; font-family: var(--body); font-size: 13.5px; color: var(--stone); text-align: left; }
 .scv-ghouls-facts li::before { content: "✦ "; color: #7fae8f; }
 .scv-ghouls-facts b { color: var(--cream); font-weight: 600; }
@@ -2067,7 +2068,7 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 @media (prefers-reduced-motion: reduce) { .scv-ghouls, .scv-ghouls-mist, .scv-ghouls-skull, .scv-ghouls-title { animation: none; } }
 .scv-rev-decision { display: flex; flex-direction: column; gap: 8px; }
 .scv-rev-moves { display: flex; flex-direction: column; gap: 6px; align-items: flex-start; }
-.scv-fight-btn { font-family: var(--ui); font-size: 13.5px; padding: 9px 14px; border-radius: 9px; border: 1px solid var(--line-strong); color: var(--parchment); background: rgba(201,161,78,.06); cursor: pointer; }
+.scv-fight-btn { font-family: var(--ui); font-size: 15px; padding: 9px 14px; border-radius: 9px; border: 1px solid var(--line-strong); color: var(--parchment); background: rgba(201,161,78,.06); cursor: pointer; }
 .scv-fight-btn.primary { border-color: var(--brass); color: var(--cream); background: rgba(201,161,78,.16); font-weight: 600; }
 .scv-fight-btn.ghost { background: transparent; } .scv-fight-btn:disabled { opacity: .4; cursor: default; }
 .scv-fight-btn:hover:not(:disabled) { border-color: var(--brass); color: var(--cream); }
@@ -2082,9 +2083,9 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 
 /* ---- two-sided PvP fight surface (spec §I-10) — same shell as the solo fight ---- */
 .scv-pvp { z-index: 60; } /* over the canvas and any other panel, like the trade modal */
-.scv-pvp-round { font-family: var(--ui); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--brass-bright); white-space: nowrap; }
+.scv-pvp-round { font-family: var(--ui); font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--brass-bright); white-space: nowrap; }
 .scv-pvp-rosters { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.scv-pvp-roster h4 { display: flex; align-items: center; gap: 7px; margin: 0 0 6px; font-family: var(--ui); font-size: 10.5px; letter-spacing: .14em; text-transform: uppercase; }
+.scv-pvp-roster h4 { display: flex; align-items: center; gap: 7px; margin: 0 0 6px; font-family: var(--ui); font-size: 12.5px; letter-spacing: .14em; text-transform: uppercase; }
 .scv-pvp-roster h4 i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
 .scv-pvp-chips { display: flex; gap: 10px; flex-wrap: wrap; }
 /* Member CARD TILES: creature card art at close to the solo FightSurface's scale (its .scv-fc is
@@ -2094,7 +2095,7 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 .scv-pvp-chip {
   display: inline-flex; flex-direction: column; align-items: center; gap: 4px;
   width: 104px; padding: 6px 6px 7px;
-  font-family: var(--ui); font-size: 12px; line-height: 1.25; text-align: center;
+  font-family: var(--ui); font-size: 14px; line-height: 1.25; text-align: center;
   border-radius: 10px; border: 1px solid var(--line-strong);
   color: var(--parchment); background: rgba(201,161,78,.06); cursor: pointer;
 }
@@ -2105,12 +2106,12 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 .scv-pvp-thumb img { width: 100%; height: 100%; object-fit: cover; display: block; }
 /* Tighter tiles on small screens so the bottom sheet still fits two commands side by side. */
 @media (max-width: 640px) {
-  .scv-pvp-chip { width: 76px; font-size: 11px; }
+  .scv-pvp-chip { width: 76px; font-size: 13px; }
   .scv-pvp-thumb { width: 62px; }
 }
 .scv-pvp-chip:disabled { cursor: default; opacity: .8; }
 .scv-pvp-chip b { font-family: var(--display); font-weight: 700; font-size: 15px; color: var(--brass-bright); }
-.scv-pvp-chip i { font-family: var(--body); font-style: italic; font-size: 11px; color: var(--stone-dim); }
+.scv-pvp-chip i { font-family: var(--ui); font-style: normal; font-size: 13px; color: var(--stone-dim); }
 .scv-pvp-chip.caster { background: rgba(95,143,138,.09); }
 .scv-pvp-chip.foe { background: rgba(46,18,16,.35); color: #e7c9c2; }
 .scv-pvp-chip.picked { outline: 2px solid var(--brass-bright); outline-offset: 1px; }
@@ -2126,7 +2127,7 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 .scv-pvp-mini { font-family: var(--ui); font-size: 10.5px; letter-spacing: .1em; text-transform: uppercase; padding: 3px 8px; border-radius: 999px; border: 1px solid var(--line-strong); background: transparent; color: var(--stone); cursor: pointer; }
 .scv-pvp-mini:hover { border-color: var(--brass); color: var(--cream); }
 .scv-pvp-wait { align-items: flex-start; }
-.scv-pvp-waittext { margin: 0; font-family: var(--body); font-style: italic; font-size: 14px; color: var(--stone); }
+.scv-pvp-waittext { margin: 0; font-family: var(--ui); font-style: normal; font-size: 14px; color: var(--stone); }
 .scv-pvp-waittext b { font-family: var(--display); font-style: normal; color: var(--brass-bright); }
 .scv-pvp-boundary { border-top: 1px dashed var(--line); padding-top: 10px; }
 
@@ -2421,7 +2422,7 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 .scv-kit-row{display:flex;align-items:center;gap:6px;}
 .scv-kit-row .scv-kit-toggle{flex:1;}
 .scv-hs-tablehelp{margin:0 0 6px;font-size:12px;}
-.scv-rc-totals .scv-hb,.scv-rc-tag .scv-hb{font-size:11px;}
+.scv-rc-totals .scv-hb,.scv-rc-tag .scv-hb{font-size:13px;}
 
 .scv-mp-helpbtn{position:fixed;top:12px;right:130px;z-index:60;width:30px;height:30px;border-radius:50%;border:1px solid var(--line-strong);background:rgba(15,15,20,.82);color:var(--brass-bright);font-size:15px;cursor:pointer;}
 @media (max-width:640px){.scv-mp-helpbtn{top:56px;right:14px;}}
@@ -2700,7 +2701,8 @@ body:has(.scv-titlebar) .scv-fs-corner,body:has(.scv-replay-transport) .scv-fs-c
 /* Pages with their own controls in the top-right corner leave room for it. */
 .scv-splash-admin{right:52px;}
 .scv-mp-standings{right:52px;}
-@media (min-width:641px){.scv-mp-helpbtn{right:168px;}}
+.scv-mp-autowield{position:fixed;top:12px;right:168px;z-index:60;display:flex;align-items:center;gap:6px;padding:4px 10px;border:1px solid var(--line-strong);border-radius:15px;background:rgba(15,15,20,.82);color:var(--parchment);font-size:13px;cursor:pointer;}
+@media (max-width:640px){.scv-mp-autowield{top:56px;right:14px;}}
 .scv-admin-bar{padding-right:44px;}
 /* The fixed Quit Admin button sits top right, so the bar's own controls (Sign out) stop short of it. */
 .scv-admin .scv-admin-bar{padding-right:150px;}
@@ -2757,3 +2759,11 @@ body:has(.scv-titlebar) .scv-fs-corner,body:has(.scv-replay-transport) .scv-fs-c
 .scv-st-preview p { margin: 4px 0; }
 .scv-st-read { max-width: 68ch; }
 .scv-st-read p { line-height: 1.55; margin: 0 0 0.8em; }
+
+/* Help opened from a side panel (inventory, party, card, settings): the "?" sits near the heading and the popover is wider than the panel, so it was
+   clipped on the right. Anchor it to the panel itself (the panel is position:fixed) and span the panel's width, under the heading. */
+.scv-slot .scv-hb { position: static; }
+.scv-slot .scv-hb-pop { left: 8px; right: 8px; top: 40px; width: auto; max-height: none; }
+.scv-slot .scv-hb-pop.up { top: auto; bottom: 8px; }
+/* the base mobile rule makes the popover fixed, which a panel with backdrop-filter would still contain: keep it inside the panel there too */
+@media (max-width: 640px) { .scv-slot .scv-hb-pop { position: absolute; left: 8px; right: 8px; top: 40px; bottom: auto; max-height: none; } }

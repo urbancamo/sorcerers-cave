@@ -25,10 +25,9 @@ const GLYPHS = {
 const BRIEF: Partial<Record<keyof typeof GLYPHS, string>> = {
   party: 'the living members and what each carries',
   inventory: 'every item the party carries, and who has it',
-  card: 'the card under focus, with what the manual says about it',
+  card: 'the card under focus, with help for it',
   settings: 'game code, level, turn, verbose descriptions and the Game log',
   exit: 'save the game, or abandon the expedition',
-  help: 'help for this screen, and the whole manual',
   bug: 'report something that looks wrong, with this game attached',
   fullscreen: 'fill the browser window',
 };
@@ -72,7 +71,6 @@ export function TitleBar({ left, right, testMode, testOpen, inFight, bugOpen, on
       <div className="scv-tb-group">
         <IconButton id="card" label="Card panel" active={right === 'card'} onClick={() => onRight('card')} />
         <IconButton id="settings" label="Settings" active={right === 'settings'} onClick={() => onRight('settings')} />
-        <IconButton id="help" label="Help" active={right === 'help'} onClick={() => onRight('help')} />
         <IconButton id="bug" label="Report a bug" active={!!bugOpen} onClick={() => onBug?.()} />
         <FullscreenButton />
         {testMode && <IconButton id="test" label="Test panel" active={!!testOpen} onClick={() => onTest?.()} />}

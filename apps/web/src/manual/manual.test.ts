@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { ALL_CREATURES, ALL_TREASURES, ALL_HAZARD_NAMES } from '@sorcerers-cave/engine';
-import { MANUAL, topicsForCard, topicById, topicsForScreen, searchTopics, manualFor, visibleBlocks } from './index';
+import { MANUAL, topicsForCard, topicById, topicsForScreen, topicVisible, visibleBlocks } from './index';
 
 describe('structured manual', () => {
   it('has unique topic ids and non-empty topics', () => {
@@ -60,7 +60,7 @@ describe('structured manual', () => {
     it('hides whole topics for rules and options that are off', () => {
       expect(topicsForScreen('fight-revised', {}).map((t) => t.id)).not.toContain('rc-overview');
       expect(topicsForScreen('fight-revised', { combatRevision: true }).map((t) => t.id)).toContain('rc-overview');
-      const hasWhirlpool = (flags?: Record<string, boolean>) => manualFor(flags).flatMap((x) => x.topics).some((t) => t.id === 'area-whirlpool');
+      const hasWhirlpool = (flags?: Record<string, boolean>) => topicVisible(topicById('area-whirlpool')!, flags);
       expect(hasWhirlpool({})).toBe(false);
       expect(hasWhirlpool({ extensionKit: true })).toBe(true);
     });
@@ -76,18 +76,6 @@ describe('structured manual', () => {
       expect(topicsForScreen('encounter').map((t) => t.id)).toEqual(expect.arrayContaining(['encounter-choices', 'reaction-roll', 'reaction-results']));
       expect(topicsForScreen('fight').map((t) => t.id)).toEqual(expect.arrayContaining(['fight-overview', 'fight-retreat']));
       expect(topicsForScreen(['fight', 'encounter']).length).toBeGreaterThan(topicsForScreen('fight').length);
-    });
-
-    it('finds topics by their words, titles first', () => {
-      expect(searchTopics('medusa')[0]!.id).toBe('hazard-medusa');
-      expect(searchTopics('stone medusa').map((t) => t.id)).toContain('hazard-medusa');
-      expect(searchTopics('   ')).toEqual([]);
-      expect(searchTopics('zzzzqx')).toEqual([]);
-    });
-
-    it('does not search wording the game has switched off', () => {
-      expect(searchTopics('teleport', {}).map((t) => t.id)).not.toContain('creature-sorcerer');
-      expect(searchTopics('teleport', { sorcererTeleport: true }).map((t) => t.id)).toContain('creature-sorcerer');
     });
   });
 });
