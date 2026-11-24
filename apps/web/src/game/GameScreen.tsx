@@ -66,9 +66,8 @@ import { ExitPanel } from "./shell/ExitPanel";
 import { useDismissOutside } from "./shell/useDismissOutside";
 import { describeArea, readVerbose, writeVerbose } from "../data/areaText";
 import { readAutoRoll, writeAutoRoll } from "./autoRoll";
-import { HelpPanel } from "./shell/HelpPanel";
+import { readAutoWield, useAutoWield, writeAutoWield } from "./autoWield";
 import { HelpProvider } from "../manual/HelpContext";
-import type { HelpScreen } from "../manual";
 import { toggleLeft, toggleRight, type LeftSlot, type RightSlot } from "./shell/shellState";
 import { useOpenPartyOnce } from "./shell/useOpenPartyOnce";
 
@@ -112,6 +111,7 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
   sibylOpen.current.open = selected?.kind === 'member' && !!selected.member.sibyl;
   const partyAreaNow = useRef(-1);
   const [autoRoll, setAutoRoll] = useState(readAutoRoll); // skip the "Roll the dice" click on special rolls (a per-player setting)
+  const [autoWield, setAutoWield] = useState(readAutoWield); // wield and wear what a member gets, automatically (a per-player setting, on by default)
   const [verbose, setVerbose] = useState(readVerbose); // story-voice area descriptions (a per-player setting)
   // Shows the save/restore code modal when set. `restored` distinguishes a plain save (dismiss ⇒
   // back to menu) from a just-forked Test Mode scenario (dismiss ⇒ keep playing the new game).
@@ -168,7 +168,8 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
     if (beat && !matchesBeat(beat, a)) console.debug('[tutorial] refused', JSON.stringify(a), 'wanted', JSON.stringify(beat.play));
     // The right button with the wrong party picked is a different mistake from the wrong button, so it is told apart.
     const wrongParty = beat?.play.type === 'deploy' && a.type === 'deploy';
-    if (!beat || !matchesBeat(beat, a)) { setTutHint(wrongParty ? 'Put all three forward: the Woman Hero, the Dwarf and the Priest. Select the one that is missing, then press the button again.' : beat ? 'Not that one: follow the highlighted control.' : TUTORIAL_SCRIPT[tutRef.current.step]?.kind === 'ui' ? 'Press the highlighted button first.' : 'Press Continue first.'); return null; }
+    const wrongLine = beat?.play.type === 'redeploy' && a.type === 'redeploy'; // Roll pressed before the Priest is placed behind
+    if (!beat || !matchesBeat(beat, a)) { setTutHint(wrongParty ? 'Put all three forward: the Woman Hero, the Dwarf and the Priest. Select the one that is missing, then press the button again.' : wrongLine ? 'Not yet: put the Priest behind the fight first. Tap her, then the "behind" slot, and then press Roll the Round.' : beat ? 'Not that one: follow the highlighted control.' : TUTORIAL_SCRIPT[tutRef.current.step]?.kind === 'ui' ? 'Press the highlighted button first.' : 'Press Continue first.'); return null; }
     tutSend({ type: 'played' });
     return beat.before ?? [];
   }, [tutSend]);
@@ -210,6 +211,8 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
   );
   onHoldMoveRef.current = holdMove;
   presentingRef.current = holding || !!roll || !!notices;
+  // Auto Wield/Wear: not in the tutorial (it teaches wielding by hand), and only while nothing is being shown or rolled.
+  useAutoWield(state, autoWield && !local, !holding && !roll && !notices, dispatchWithRolls, gameKey);
   const cards = useManifestCards();
   const caveApi = useRef<CaveApi | null>(null);
   useEffect(() => {
@@ -471,10 +474,6 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
           }} />
   );
 
-  // What the player is doing now, so the Help panel can lead with the topics for it.
-  const helpScreens: HelpScreen[] = fightVisible ? [displayState.fight?.rev ? 'fight-revised' : 'fight']
-    : displayState.phase === 'encounter' ? ['encounter'] : displayState.phase === 'pickup' ? ['pickup'] : displayState.phase === 'trap' ? ['trap'] : displayState.phase === 'sorcerer' ? ['sorcerer'] : ['explore'];
-
   return (
     <HelpProvider variants={displayState.variants}>
     <div className="relative h-screen w-screen scv-shell-root">
@@ -516,8 +515,7 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
                      ? <SibylLook state={displayState} actions={sibylLooks} dispatch={dispatchWithRolls} tools={{ pick: pickDestination, peek: (a) => caveApi.current?.peekTile(a) }} />
                      : undefined} />
       )}
-      {rightSlot === 'help' && <HelpPanel screens={helpScreens} flags={displayState.variants} />}
-      {rightSlot === 'settings' && <SettingsPanel verbose={verbose} onVerbose={(on) => { setVerbose(on); writeVerbose(on); }} autoRoll={autoRoll} onAutoRoll={(on) => { setAutoRoll(on); writeAutoRoll(on); }} state={displayState} code={code ?? undefined} kitActive={!!displayState.variants?.extensionKit} onLog={() => setShowLog(true)} />}
+      {rightSlot === 'settings' && <SettingsPanel verbose={verbose} onVerbose={(on) => { setVerbose(on); writeVerbose(on); }} autoRoll={autoRoll} onAutoRoll={(on) => { setAutoRoll(on); writeAutoRoll(on); }} autoWield={autoWield} onAutoWield={(on) => { setAutoWield(on); writeAutoWield(on); }} state={displayState} code={code ?? undefined} kitActive={!!displayState.variants?.extensionKit} onLog={() => setShowLog(true)} />}
       {rightSlot === 'exit' && <ExitPanel onSave={local ? undefined : handleSave} onAbandon={() => (local ? onLocalExit?.() : engine.quit())} />}
       {/* The encounter/treasure bar and the explore actions bar can both be showing (a pickup with the crypt to enter); the dock stacks them. */}
       <div className="scv-enc-dock">

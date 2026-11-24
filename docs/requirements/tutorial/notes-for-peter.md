@@ -46,7 +46,7 @@ on** (your script uses Spectre, Trap, Earthquake and the Tomb of Kings), and the
    (explore, test strangers, fight when the odds are good, withdraw when they are not, carry the treasure home) and a Finish
    button. Do you want your Earthquake line on it as well, or something about scoring?
 
-8. **The demo (step 1).**
+8. **The demo (step 1). REMOVED (2026-11-24), as you asked: there is no demo any more.** The original question:
    We play the first 24 moves of the best searched Extension Kit game (K001) with captions, paced at 7 seconds a move after a
    15-second opening pause. It is a different party from the tutorial's (Hero, Dwarf, Dwarf). Would you prefer a particular game or
    different captions?

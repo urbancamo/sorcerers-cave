@@ -28,8 +28,9 @@ A `PostToolUse` hook in `.claude/settings.json` prints a reminder after any edit
 ## Keep the player's manual in sync with the game
 
 The player's manual is structured data in `apps/web/src/manual/` (plan: `docs/requirements/structured-manual/`).
-The UI shows it as contextual help: the card panel's Help section, "?" buttons on screens and options, the
-title-bar Help panel (browse and search), and the splash "How to Play". There is no standalone `manual.html`.
+The UI shows it only as contextual help: the card panel's Help section and "?" buttons beside the screen or option they
+explain, each showing just its own topics. There is **no** general help: no Help button, browse, search or "How to Play",
+and nothing may display the whole manual. Do not add one.
 It describes the rules **as the game actually plays them**, so it goes stale whenever a feature does.
 
 **Whenever you add or change anything a player can see or choose — a rule, a card or creature, a
@@ -44,7 +45,7 @@ how scores are recorded — check the manual in the same change and update it:**
    `variant` set. A rule switched on server-side with an env flag (see `apps/web/OPTIONS.md`) goes in `house.ts`,
    gated by `requires: '<variant key>'` (also on any single block that only applies when it is on), so it is shown
    only to games where it is in force.
-3. Give a new topic a one-line `brief`, and tag the `screens` it explains so the "?" for that screen finds it.
+3. Give a new topic a one-line `brief`, and tag the `screens` it explains.
    Add a `HelpButton` where the player meets the feature.
 4. Pure engine refactors, Test Mode and developer tooling need no manual change — say so in the PR
    description if you checked and found nothing to update.

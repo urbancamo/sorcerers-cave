@@ -28,11 +28,6 @@ export const topicVisible = (t: Topic, flags?: VariantFlags) => on(flags, topicK
 /** The topic's blocks that apply under `flags`. */
 export const visibleBlocks = (t: Topic, flags?: VariantFlags): Block[] => t.blocks.filter((b) => on(flags, b.requires));
 
-/** The sections with only their relevant topics; sections left empty are dropped. */
-export function manualFor(flags?: VariantFlags): Section[] {
-  return MANUAL.map((s) => ({ ...s, topics: s.topics.filter((t) => topicVisible(t, flags)) })).filter((s) => s.topics.length > 0);
-}
-
 /** Treasure and artefact cards share a deck and the UI is not always sure which it holds, so they match each other. */
 const isLoot = (c: CardCategory) => c === 'treasure' || c === 'artifact';
 const sameKind = (a: CardCategory, b: CardCategory) => a === b || (isLoot(a) && isLoot(b));
@@ -49,28 +44,11 @@ export function topicsForCard(category: CardCategory, name: string, { general = 
   return [...own, ...wide];
 }
 
-/** The topics tagged for a screen, in manual order. */
+/** The topics tagged for a screen, in manual order. Only the "?" buttons show them, one topic at a time; this lets tests check every screen has its help. */
 export const topicsForScreen = (screens: HelpScreen | HelpScreen[], flags?: VariantFlags): Topic[] => {
   const want = Array.isArray(screens) ? screens : [screens];
   return TOPICS.filter((t) => topicVisible(t, flags) && t.screens?.some((s) => want.includes(s)));
 };
-
-const textOf = (b: Block): string => (b.type === 'list' ? b.items.join(' ') : b.text);
-
-/** Topics whose title, summary or words contain every word of `query` (case-insensitive), most title-like first. */
-export function searchTopics(query: string, flags?: VariantFlags): Topic[] {
-  const words = query.toLowerCase().split(/\s+/).filter(Boolean);
-  if (words.length === 0) return [];
-  const scored: [Topic, number][] = [];
-  for (const t of TOPICS) {
-    if (!topicVisible(t, flags)) continue;
-    const title = t.title.toLowerCase();
-    const body = `${t.brief ?? ''} ${visibleBlocks(t, flags).map(textOf).join(' ')}`.toLowerCase().replace(/\*/g, '');
-    if (!words.every((w) => title.includes(w) || body.includes(w))) continue;
-    scored.push([t, words.some((w) => title.includes(w)) ? 0 : 1]);
-  }
-  return scored.sort((a, b) => a[1] - b[1]).map(([t]) => t);
-}
 
 /** A topic's one-sentence summary, for tooltips; `undefined` when the card has none. */
 export const briefForCard = (category: CardCategory, name: string): string | undefined =>

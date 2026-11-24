@@ -12,11 +12,13 @@ function scoreSoFar(state: GameState): { score: number; idol: boolean } {
   return { score: scoreGame(bare), idol };
 }
 
-export function SettingsPanel({ state, code, kitActive, onLog, verbose, onVerbose, autoRoll, onAutoRoll }: {
+export function SettingsPanel({ state, code, kitActive, onLog, verbose, onVerbose, autoRoll, onAutoRoll, autoWield, onAutoWield }: {
   verbose?: boolean;
   onVerbose?: (on: boolean) => void;
   autoRoll?: boolean;
   onAutoRoll?: (on: boolean) => void;
+  autoWield?: boolean;
+  onAutoWield?: (on: boolean) => void;
   state: GameState;
   code?: string;
   kitActive: boolean;
@@ -52,6 +54,12 @@ export function SettingsPanel({ state, code, kitActive, onLog, verbose, onVerbos
         <label className="scv-settings-opt">
           <input type="checkbox" checked={!!autoRoll} onChange={(e) => onAutoRoll(e.target.checked)} />
           Roll special dice automatically
+        </label>
+      )}
+      {onAutoWield && (
+        <label className="scv-settings-opt">
+          <input type="checkbox" checked={!!autoWield} onChange={(e) => onAutoWield(e.target.checked)} />
+          Auto Wield/Wear
         </label>
       )}
       <label className="scv-settings-opt scv-settings-mouse">

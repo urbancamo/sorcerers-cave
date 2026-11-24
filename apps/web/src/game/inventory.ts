@@ -29,7 +29,7 @@ export function artifactState(state: GameState, mi: number, tid: number, usable:
   const m = state.party[mi]!;
   const t = ALL_TREASURES[tid]!;
   if (m.status !== 0 && m.status !== 1) return { color: 'gray', tag: 'carrier cannot act' };
-  if (t.kind === 'heavy' || tid === 11) return { color: 'gray', tag: 'treasure only' };
+  if (t.kind === 'heavy' || tid === 11) return { color: 'gray', tag: 'treasure' };
   // The Staff adds magical power to a Priest-class bearer (+1) and a Wizard-class one (+2) while it is wielded, so the label says how much;
   // only the Wizard class can also use its powers (ward off Medusa, wake the stone), so the others are not told "carrier cannot use".
   const bonus = tid === T_MAGIC_STAFF ? staffBonus(m.creatureId) : 0;

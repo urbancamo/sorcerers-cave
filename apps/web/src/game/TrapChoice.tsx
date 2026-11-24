@@ -49,7 +49,7 @@ export function TrapChoice({ traps = 1, dispatch }: { traps?: number; dispatch: 
           are strangers below, they will not be expecting you, so you gain the advantage of surprise.
         </p>
         <div className="scv-tp-actions">
-          <button className="scv-primary" onClick={() => dispatch({ type: "avoidTrap" })}>{many ? "Guided past the traps" : "Guided past the trap"}</button>
+          <button className="scv-primary" data-tutorial-action="avoidTrap" onClick={() => dispatch({ type: "avoidTrap" })}>{many ? "Guided past the traps" : "Guided past the trap"}</button>
           <button className="scv-primary danger" data-tutorial-action="fallThroughTrap" onClick={() => dispatch({ type: "fallThroughTrap" })}>{many ? "Fall through the traps" : "Fall through the trap"}</button>
         </div>
       </div>

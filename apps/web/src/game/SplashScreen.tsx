@@ -2,8 +2,6 @@ import { useEffect, useState, type CSSProperties } from "react";
 import { CREATURES } from "@sorcerers-cave/engine";
 import { loadManifest, resolveCard } from "../data/manifest";
 import { HighScoresModal } from "./HighScores";
-import { HelpModal } from "../manual/HelpModal";
-import { markNudgeSeen, nudgeSeen } from "../manual/nudge";
 import { inProgress, loadProgress, saveProgress } from "../tutorial/progress";
 import { isScenarioCode } from "./goldenGame";
 
@@ -36,13 +34,10 @@ export function SplashScreen({
 }) {
   const [files, setFiles] = useState<string[]>([]);
   const [showScores, setShowScores] = useState(false);
-  const [showHelp, setShowHelp] = useState(false);
   const [tutProgress, setTutProgress] = useState(loadProgress);
-  // First visit on this device (the tutorial never offered): suggest it, in place of the how-to-play nudge.
+  // First visit on this device (the tutorial never offered): suggest it.
   const [tutNudge, setTutNudge] = useState(() => !!onStartTutorial && loadProgress() === null);
   const dismissTutNudge = () => { saveProgress({ status: 'skipped' }); setTutProgress({ status: 'skipped' }); setTutNudge(false); };
-  const [nudge, setNudge] = useState(() => !nudgeSeen()); // first visit on this device: offer the how-to-play help once
-  const openHelp = () => { markNudgeSeen(); setNudge(false); setShowHelp(true); };
   const [resumeCode, setResumeCode] = useState("");
   const [resumeErr, setResumeErr] = useState<string | null>(null);
   const [resuming, setResuming] = useState(false);
@@ -135,13 +130,6 @@ export function SplashScreen({
             <button type="button" className="scv-nudge-x" aria-label="Dismiss" onClick={dismissTutNudge}>×</button>
           </div>
         )}
-        {nudge && !tutNudge && (
-          <div className="scv-nudge" role="note" data-testid="howto-nudge">
-            <span>New to the cave? Read how to play.</span>
-            <button type="button" className="scv-primary" onClick={openHelp}>How to play</button>
-            <button type="button" className="scv-nudge-x" aria-label="Dismiss" onClick={() => { markNudgeSeen(); setNudge(false); }}>×</button>
-          </div>
-        )}
         <h2 className="scv-hd">Start new game</h2>
         <button className="scv-primary" onClick={onStartSolitaire}>Start Solitaire Game</button>
         {onStartTutorial && (inProgress(tutProgress)
@@ -215,10 +203,8 @@ export function SplashScreen({
           {replayErr && <p className="scv-resume-err" role="alert">{replayErr}</p>}
         </div>
         <button className="scv-primary" onClick={() => setShowScores(true)}>High Scores</button>
-        <button className="scv-primary" onClick={openHelp}>How to Play</button>
       </section>
 
-      {showHelp && <HelpModal onClose={() => setShowHelp(false)} />}
       {showScores && <HighScoresModal onClose={() => setShowScores(false)} onReplay={onReplay} />}
 
       <footer className="scv-attrib">
