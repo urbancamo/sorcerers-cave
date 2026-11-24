@@ -168,7 +168,8 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
     if (beat && !matchesBeat(beat, a)) console.debug('[tutorial] refused', JSON.stringify(a), 'wanted', JSON.stringify(beat.play));
     // The right button with the wrong party picked is a different mistake from the wrong button, so it is told apart.
     const wrongParty = beat?.play.type === 'deploy' && a.type === 'deploy';
-    if (!beat || !matchesBeat(beat, a)) { setTutHint(wrongParty ? 'Put all three forward: the Woman Hero, the Dwarf and the Priest. Select the one that is missing, then press the button again.' : beat ? 'Not that one: follow the highlighted control.' : TUTORIAL_SCRIPT[tutRef.current.step]?.kind === 'ui' ? 'Press the highlighted button first.' : 'Press Continue first.'); return null; }
+    const wrongLine = beat?.play.type === 'redeploy' && a.type === 'redeploy'; // Roll pressed before the Priest is placed behind
+    if (!beat || !matchesBeat(beat, a)) { setTutHint(wrongParty ? 'Put all three forward: the Woman Hero, the Dwarf and the Priest. Select the one that is missing, then press the button again.' : wrongLine ? 'Not yet: put the Priest behind the fight first. Tap her, then the "behind" slot, and then press Roll the Round.' : beat ? 'Not that one: follow the highlighted control.' : TUTORIAL_SCRIPT[tutRef.current.step]?.kind === 'ui' ? 'Press the highlighted button first.' : 'Press Continue first.'); return null; }
     tutSend({ type: 'played' });
     return beat.before ?? [];
   }, [tutSend]);

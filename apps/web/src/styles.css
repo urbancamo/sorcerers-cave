@@ -1982,8 +1982,9 @@
 .scv-rev-board > .scv-fight-strangers { flex: 1 1 auto; min-width: 0; overflow-y: auto; overscroll-behavior: contain; }
 .scv-fight-hd { font-family: var(--display); font-weight: 700; font-size: 14px; letter-spacing: .14em; text-transform: uppercase; color: var(--cream); }
 .scv-fight-sub, .scv-fight-cap, .scv-fight-hint { font-family: var(--ui); font-style: normal; font-size: 15px; color: var(--stone-dim); }
+.scv-fight-cap { font-size: calc(15px - 2pt); } /* the round's "You attack · your dice +0" caption */
 .scv-fight-sub.scv-fight-sub-main { color: var(--parchment); } /* body-text cream, for an instruction the player must read */
-.scv-fight-banner { font-family: var(--ui); font-style: normal; font-size: 15px; padding: 3px 11px; border-radius: 999px; }
+.scv-fight-banner { font-family: var(--ui); font-style: normal; font-size: calc(15px - 2pt); padding: 3px 11px; border-radius: 999px; }
 .scv-fight-banner.bad { color: #e7a59c; border: 1px solid rgba(168,68,58,.5); background: rgba(46,18,16,.6); }
 .scv-fight-banner.good { color: #bfe0ad; border: 1px solid rgba(127,174,111,.5); background: rgba(22,34,18,.6); }
 /* Battles are laid out horizontally and stacked: foes face the front line, with a magic slot behind it. */
@@ -2342,7 +2343,15 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 /* Only in a wide window: below 1300px an open panel floats over the dialog instead (it is closed when a fight starts; AutoHideRightPanels), so the pairing area keeps the room. */
 @media (min-width:1301px){ body:has(#hud[data-right]) .scv-fight.scv-rev{right:309px;} }
 /* Revised fights put the party on the left, beside the party panel, and the strangers on the right; the fronts stay next to the "vs". */
-.scv-rev .scv-match,.scv-rev .scv-match-line{flex-direction:row-reverse;}
+/* The party sits on the left by `order`, not row-reverse: a row-reverse that is wider than its box overflows off the left edge, where it cannot be scrolled to
+   (the party's behind slot was cut off and unreachable). With `order` the overflow is on the right and the board scrolls sideways. */
+.scv-rev .scv-match > .scv-match-party{order:1;}
+.scv-rev .scv-match > .scv-match-vs{order:2;}
+.scv-rev .scv-match > .scv-match-foes{order:3;}
+.scv-rev .scv-match-party .scv-match-bg{order:1;}
+.scv-rev .scv-match-party .scv-match-front{order:2;}
+.scv-rev .scv-match-foes .scv-match-front{order:1;}
+.scv-rev .scv-match-foes .scv-match-bg{order:2;}
 /* The panels either side narrow the dialog, so a match stays on one row (party | vs | strangers) and the board scrolls sideways
    rather than the party's side dropping underneath. Slots shrink to fit one card and grow with more. */
 .scv-rev .scv-match,.scv-rev .scv-match-line{flex-wrap:nowrap;}
@@ -2563,6 +2572,7 @@ button.scv-mod-more { cursor: pointer; font-family: var(--ui); background: trans
 .scv-tut-ring { position: fixed; border: 3px solid var(--party-green); border-radius: 14px; box-shadow: 0 0 20px rgba(91, 191, 99, 0.75), inset 0 0 12px rgba(91, 191, 99, 0.35); pointer-events: none; animation: scv-tut-pulse 1.4s ease-in-out infinite; }
 @keyframes scv-tut-pulse { 50% { box-shadow: 0 0 32px rgba(91, 191, 99, 0.95), inset 0 0 16px rgba(91, 191, 99, 0.5); } }
 @media (prefers-reduced-motion: reduce) { .scv-tut-ring { animation: none; } }
+.scv-tut-card.low { top: auto; bottom: 84px; }
 .scv-tut-card { position: fixed; left: 50%; top: 56px; transform: translateX(-50%); width: min(440px, calc(100vw - 32px)); padding: 16px 18px 12px; background: var(--panel); border: 1px solid var(--line-strong); border-radius: 10px; box-shadow: 0 10px 40px rgba(7, 7, 9, 0.7); pointer-events: auto; }
 .scv-tut-eyebrow { margin: 0 0 4px; font: 600 11px var(--ui); letter-spacing: 0.14em; text-transform: uppercase; color: var(--brass); }
 .scv-tut-title { margin: 0 0 6px; font: 600 20px var(--display); color: var(--cream); }

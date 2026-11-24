@@ -86,3 +86,15 @@ Add a test over the script that no card contains phrases such as "next fight", "
 1. G and E (text only), then A, B and C together (engine route, card text and tests), then D.
 2. Decide F and the auto-wield question with Peter.
 3. Update `notes-for-peter.md` so it matches the built tutorial, or replace it with a short status.
+
+## Progress (2026-11-24)
+
+Done: **A** (Troll dice now `[5, 2]`: 15 to 7), **B** (the `won` card gives each side's parts; the combat window itself still shows totals only),
+**C** (the Witch's 13 to 12 was already pinned in `tutorial.test.ts`), **D** (no demo code left; `notes-for-peter.md` says it was removed),
+**E**, **F**, **G** (audited every card; fixed `gems`, `retreat`, `assess`, `explore-north`, `arrows`; `script.test.ts` now guards against
+announcing what is coming, naming keys, and mentioning a manual or Help button). The `wield` card now says Auto Wield/Wear does this in a
+real game and that the tutorial leaves it to the player (auto-wield is off in the tutorial).
+
+Open for Peter: confirm the Troll margin (15 to 7), and whether the tutorial should keep teaching manual wielding.
+
+**Trap dialog (2026-11-24).** The tutorial game now runs with `trapRules`, so arriving at the Trap shows the real "A trap lies in this chamber" dialog (Guided past / Fall through). The route has an `avoidTrap` beat and the Step 6 card (`trap`) asks the player to press "Guided past the trap"; later `until` cursors moved up by one.

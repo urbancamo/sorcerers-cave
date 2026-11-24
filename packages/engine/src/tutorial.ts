@@ -65,7 +65,7 @@ export function tutorialGame(): GameState {
   const base = newGame(2026, [...TUTORIAL_PICKS], { extensionKit: true }, true);
   return {
     ...base,
-    variants: { ...base.variants, extensionKit: true, combatRevision: true },
+    variants: { ...base.variants, extensionKit: true, combatRevision: true, trapRules: true },
     largePack: [...LARGE_PACK],
     largeIdx: 0,
     smallPack: [...SMALL_PACK],
@@ -96,7 +96,9 @@ export const TUTORIAL_ROUTE: TutorialBeat[] = [
   { step: 5, play: { type: "move", dir: S } },
   { step: 5, play: { type: "move", dir: W } },
   { step: 5, play: { type: "move", dir: N } },
-  // [6] west: a tunnel with exits east and north; north again: the Whirlpool; then try to wade west through the shallows. The die is
+  // [6] the trap's dialog: the Dwarf guides the party past (Peter, Q4: the party is not taught to fall)
+  { step: 6, play: { type: "avoidTrap" } },
+  // west: a tunnel with exits east and north; north again: the Whirlpool; then try to wade west through the shallows. The die is
   //     forced to 1, so the whirlpool drags the party down to level 2, onto the tile it was about to reach: a tunnel. Then west: a Priest guarding a Magic Axe
   { step: 6, play: { type: "move", dir: W } },
   { step: 6, play: { type: "move", dir: N } },
@@ -113,8 +115,8 @@ export const TUTORIAL_ROUTE: TutorialBeat[] = [
   { step: 9, play: { type: "move", dir: UP } },
   { step: 9, play: { type: "move", dir: DOWN } },
   { step: 9, play: { type: "move", dir: E } },
-  // [10] the Troll is hostile and attacks (with surprise). Dice: party 3, Troll 4 => party Woman-Hero 4 + Dwarf 1 + Axe 3 + Priest's magic 2 + die 3 = 13 against Troll 4+1+4 = 9
-  { step: 10, before: [{ type: "testForceReaction", outcome: "hostile" }, { type: "testForceDice", values: [3, 4] }], play: { type: "test" } },
+  // [10] the Troll is hostile and attacks (with surprise). Dice: party 5, Troll 2 => party Woman-Hero 4 + Dwarf 1 + Axe 3 + Priest's magic 2 + die 5 = 15 against Troll 4+1+2 = 7: a clear win (Peter, Q1)
+  { step: 10, before: [{ type: "testForceReaction", outcome: "hostile" }, { type: "testForceDice", values: [5, 2] }], play: { type: "test" } },
   { step: 10, play: { type: "deploy", creatures: [0, 1, 2] } },
   { step: 10, play: { type: "redeploy", moves: [{ creature: 1, match: 0, back: false }, { creature: 2, match: 0, back: true }] } },
   { step: 10, play: { type: "takeTreasure", ti: 0, mi: 0 } },

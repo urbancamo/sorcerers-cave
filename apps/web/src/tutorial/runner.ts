@@ -22,6 +22,8 @@ export interface CoachStep {
   free?: boolean;
   /** Continue puts the camera back on the party first (after the player has been free to move it) */
   resetView?: boolean;
+  /** the card sits at the foot of the screen, clear of the fight board that fills the middle (set on the fight cards) */
+  low?: boolean;
 }
 
 /** How many numbered steps the guide has ("Step 3 of 13"); the cards of a step share its number. */

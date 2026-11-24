@@ -94,7 +94,7 @@ export function TutorialCoach({ step, index, total, cave, hint, onContinue, onBa
   return (
     <div className="scv-tut" data-testid="tutorial-coach">
       {box && !free && <div className="scv-tut-ring" style={{ left: box.x, top: box.y, width: box.w, height: box.h }} />}
-      <section ref={cardRef} className={'scv-tut-card' + (pos ? ' moved' : '')} role="dialog" aria-label="Tutorial" aria-live="polite"
+      <section ref={cardRef} className={'scv-tut-card' + (pos ? ' moved' : step.low ? ' low' : '')} role="dialog" aria-label="Tutorial" aria-live="polite"
                style={pos ? { left: clamp(pos).x, top: clamp(pos).y } : undefined}>
         <div className="scv-tut-grip" onPointerDown={startDrag} onDoubleClick={() => { setPos(null); storePos(null); }}
              title="Drag to move this window; double-click to put it back">
