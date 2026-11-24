@@ -278,7 +278,7 @@ describe("only standard is ranked (D2)", () => {
       const g = (await ctx.db.get(id))!;
       await ctx.db.patch(id, { status: "finished", state: { ...g.state, gs: 1, variants: { ...(g.state.variants ?? {}), strangerLevel: "ext-easy" } } });
     });
-    await expect(as.mutation(api.highScores.save, { gameId: id as Id<"games">, name: "x" })).rejects.toThrow(/stranger/i);
+    await expect(as.mutation(internal.highScores.save, { gameId: id as Id<"games">, name: "x" })).rejects.toThrow(/stranger/i);
   });
 });
 

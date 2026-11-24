@@ -344,7 +344,7 @@ export type GameEvent =
   | { type: "sibylDeclines" }
   // Fired by `examineArea`. Deliberately carries NO card content — the event is broadcast to rivals
   // in multiplayer, who learn only that this seat consulted the Sibyl (SC-SIB-8).
-  | { type: "sibylExamined" }
+  | { type: "sibylExamined"; card?: number } // `card`: the top of the large pack, for a look at the pack (the client no longer holds the packs)
   // Extension kit (SC-EXT-21, design US-13/Resolved-6): a freshly-drawn Demon materializes into
   // `prev`'s contents instead of joining the chamber it was drawn in (`spawnDemon`, chamber.ts).
   | { type: "demonSpawned" }

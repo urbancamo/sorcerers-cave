@@ -4,6 +4,10 @@ settings:
   autoInstallPeers: true
   excludeLinksFromLockfile: false
 
+overrides:
+  '@auth/core': '>=0.41.3'
+  ws: '>=8.21.0'
+
 importers:
 
   .:
@@ -17,9 +21,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@auth/core':
+        specifier: 0.41.3
+        version: 0.41.3
       '@convex-dev/auth':
         specifier: ^0.0.94
-        version: 0.0.94(@auth/core@0.41.2)(convex@1.41.0(react@19.2.7))(react@19.2.7)
+        version: 0.0.94(@auth/core@0.41.3)(convex@1.41.0(react@19.2.7))(react@19.2.7)
       '@sorcerers-cave/assets':
         specifier: workspace:*
         version: link:../../packages/assets
@@ -157,12 +164,12 @@ packages:
   '@asamuzakjp/nwsapi@2.3.9':
     resolution: {integrity: sha512-n8GuYSrI9bF7FFZ/SjhwevlHc8xaVlb/7HmHelnc/PZXBD2ZR49NnN9sMMuDdEGPeeRQ5d0hqlSlEpgCX3Wl0Q==}
 
-  '@auth/core@0.41.2':
-    resolution: {integrity: sha512-Hx5MNBxN2fJTbJKGUKAA0wca43D0Akl3TvufY54Gn8lop7F+34vU1zA1pn0vQfIoVuLIrpfc2nkyjwIaPJMW7w==}
+  '@auth/core@0.41.3':
+    resolution: {integrity: sha512-sJ3JMHHkXMD3aOjopv7mOBTO1Ocw4b0fAEXJBz6k7YHLpYQI6C40jCUPc5fNvUKxXRXNE1/sRISA15UrwWJBTw==}
     peerDependencies:
       '@simplewebauthn/browser': ^9.0.1
       '@simplewebauthn/server': ^9.0.2
-      nodemailer: ^7.0.7
+      nodemailer: ^7.0.7 || ^8.0.5
     peerDependenciesMeta:
       '@simplewebauthn/browser':
         optional: true
@@ -191,7 +198,7 @@ packages:
     resolution: {integrity: sha512-A/ily6mXQFhSOUAYoiVZdzAZj3RBhiU4d2MOqpEByL7Uzzub6Y+MYQCzSTi0hQzE1dv7dVHprFku0lQuiq6A5w==}
     hasBin: true
     peerDependencies:
-      '@auth/core': ^0.41.1
+      '@auth/core': '>=0.41.3'
       convex: ^1.17.0
       react: ^18.2.0 || ^19.0.0-0
     peerDependenciesMeta:
@@ -1496,8 +1503,8 @@ packages:
     engines: {node: '>=8'}
     hasBin: true
 
-  ws@8.20.1:
-    resolution: {integrity: sha512-It4dO0K5v//JtTXuPkfEOaI3uUN87iYPnqo/ZzqCoG3g8uhA66QUMs/SrM0YK7/NAu+r4LMh/9dq2A7k+rHs+w==}
+  ws@8.23.0:
+    resolution: {integrity: sha512-wCkmX8QMOrKjgO8HW2WyDbTSGeqkocxgDzS9iR79rEAexty6/2qzilx3Ag8Tqf9ykop3irLKle0MtVn5qjVnoQ==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -1557,7 +1564,7 @@ snapshots:
 
   '@asamuzakjp/nwsapi@2.3.9': {}
 
-  '@auth/core@0.41.2':
+  '@auth/core@0.41.3':
     dependencies:
       '@panva/hkdf': 1.2.1
       jose: 6.2.3
@@ -1579,9 +1586,9 @@ snapshots:
     dependencies:
       css-tree: 3.2.1
 
-  '@convex-dev/auth@0.0.94(@auth/core@0.41.2)(convex@1.41.0(react@19.2.7))(react@19.2.7)':
+  '@convex-dev/auth@0.0.94(@auth/core@0.41.3)(convex@1.41.0(react@19.2.7))(react@19.2.7)':
     dependencies:
-      '@auth/core': 0.41.2
+      '@auth/core': 0.41.3
       '@oslojs/crypto': 1.0.1
       '@oslojs/encoding': 1.1.0
       convex: 1.41.0(react@19.2.7)
@@ -2081,7 +2088,7 @@ snapshots:
     dependencies:
       esbuild: 0.27.0
       prettier: 3.8.4
-      ws: 8.20.1
+      ws: 8.23.0
     optionalDependencies:
       react: 19.2.7
     transitivePeerDependencies:
@@ -2622,7 +2629,7 @@ snapshots:
       siginfo: 2.0.0
       stackback: 0.0.2
 
-  ws@8.20.1: {}
+  ws@8.23.0: {}
 
   xml-name-validator@5.0.0: {}
 

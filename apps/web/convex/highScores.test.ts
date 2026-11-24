@@ -97,7 +97,7 @@ test("save records extensionKit from the finished game's state.variants", async 
   const { as } = await asUser(t);
   const id = await as.mutation(api.game.newGame, { seed: 1, picks: [18, 20], variants: { extensionKit: true } }); // Witch + Wolf
   await as.mutation(api.game.applyAction, { id, action: { type: "exitCave" } }); // escape at the gateway
-  const scoreId = await as.mutation(api.highScores.save, { gameId: id, name: "Kitter" });
+  const scoreId = await as.mutation(internal.highScores.save, { gameId: id, name: "Kitter" });
   const row = await t.run((ctx) => ctx.db.get(scoreId));
   expect(row?.extensionKit).toBe(true);
 });
@@ -107,7 +107,7 @@ test("a kit-off game's score has no extensionKit flag", async () => {
   const { as } = await asUser(t);
   const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
   await as.mutation(api.game.applyAction, { id, action: { type: "exitCave" } });
-  const scoreId = await as.mutation(api.highScores.save, { gameId: id, name: "Plain" });
+  const scoreId = await as.mutation(internal.highScores.save, { gameId: id, name: "Plain" });
   const row = await t.run((ctx) => ctx.db.get(scoreId));
   expect(row?.extensionKit).toBeFalsy();
 });
@@ -117,10 +117,10 @@ test("list splits the tables: kit scores only under extensionKit true, base only
   const { as } = await asUser(t);
   const kitId = await as.mutation(api.game.newGame, { seed: 1, picks: [18, 20], variants: { extensionKit: true } });
   await as.mutation(api.game.applyAction, { id: kitId, action: { type: "exitCave" } });
-  await as.mutation(api.highScores.save, { gameId: kitId, name: "Kitter" });
+  await as.mutation(internal.highScores.save, { gameId: kitId, name: "Kitter" });
   const baseId = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
   await as.mutation(api.game.applyAction, { id: baseId, action: { type: "exitCave" } });
-  await as.mutation(api.highScores.save, { gameId: baseId, name: "Plain" });
+  await as.mutation(internal.highScores.save, { gameId: baseId, name: "Plain" });
 
   const baseRows = await t.query(api.highScores.list, {});
   expect(baseRows.find((r) => r.name === "Plain")).toBeDefined();
@@ -144,7 +144,7 @@ test("save records forcedRedraw from the finished game's state.variants", async 
     const { as } = await asUser(t);
     const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
     await as.mutation(api.game.applyAction, { id, action: { type: "exitCave" } });
-    const scoreId = await as.mutation(api.highScores.save, { gameId: id, name: "Rescued" });
+    const scoreId = await as.mutation(internal.highScores.save, { gameId: id, name: "Rescued" });
     const row = await t.run((ctx) => ctx.db.get(scoreId));
     expect(row?.forcedRedraw).toBe(true);
   } finally {
@@ -161,7 +161,7 @@ test("a game without the env var has no forcedRedraw flag", async () => {
     const { as } = await asUser(t);
     const id = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
     await as.mutation(api.game.applyAction, { id, action: { type: "exitCave" } });
-    const scoreId = await as.mutation(api.highScores.save, { gameId: id, name: "Plain" });
+    const scoreId = await as.mutation(internal.highScores.save, { gameId: id, name: "Plain" });
     const row = await t.run((ctx) => ctx.db.get(scoreId));
     expect(row?.forcedRedraw).toBeFalsy();
   } finally {
@@ -182,12 +182,12 @@ test("list does NOT split the table by forcedRedraw: rescued and plain runs sit 
     process.env.FORCED_REDRAW_ENABLED = "1";
     const redrawId = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
     await as.mutation(api.game.applyAction, { id: redrawId, action: { type: "exitCave" } });
-    await as.mutation(api.highScores.save, { gameId: redrawId, name: "Rescued" });
+    await as.mutation(internal.highScores.save, { gameId: redrawId, name: "Rescued" });
 
     delete process.env.FORCED_REDRAW_ENABLED;
     const baseId = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
     await as.mutation(api.game.applyAction, { id: baseId, action: { type: "exitCave" } });
-    await as.mutation(api.highScores.save, { gameId: baseId, name: "Plain" });
+    await as.mutation(internal.highScores.save, { gameId: baseId, name: "Plain" });
 
     const rows = await t.query(api.highScores.list, {});
     expect(rows.find((r) => r.name === "Plain")).toBeDefined();
@@ -249,7 +249,7 @@ test("save rejects a test-mode game", async () => {
     const state = { gs: GS_ESCAPED, testMode: true, party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }] };
     return ctx.db.insert("games", { ownerId: userId, state, status: "finished", createdAt: 0, updatedAt: 0 });
   });
-  await expect(as.mutation(api.highScores.save, { gameId, name: "Tester" })).rejects.toThrow();
+  await expect(as.mutation(internal.highScores.save, { gameId, name: "Tester" })).rejects.toThrow();
 });
 
 test("save accepts a game played with the revised combat (it is the default rule set)", async () => {
@@ -259,7 +259,7 @@ test("save accepts a game played with the revised combat (it is the default rule
     const state = { gs: GS_ESCAPED, variants: { combatRevision: true }, areas: [], party: [{ creatureId: 0, status: 0, dragonKills: 0, treasure: [] }] };
     return ctx.db.insert("games", { ownerId: userId, state, status: "finished", createdAt: 0, updatedAt: 0 });
   });
-  await expect(as.mutation(api.highScores.save, { gameId, name: "Reviser" })).resolves.toBeTruthy();
+  await expect(as.mutation(internal.highScores.save, { gameId, name: "Reviser" })).resolves.toBeTruthy();
 });
 
 // --- Sibyl (SC-SIB-9): a third leaderboard key, mode × extensionKit × sibyl ---------------------
@@ -269,11 +269,11 @@ test("save records sibyl from the finished game's state.variants, and list split
   const { as } = await asUser(t);
   const sibylId = await as.mutation(api.game.newGame, { seed: 1, picks: [0], variants: { sibyl: true } });
   await as.mutation(api.game.applyAction, { id: sibylId, action: { type: "exitCave" } });
-  const scoreId = await as.mutation(api.highScores.save, { gameId: sibylId, name: "Seer" });
+  const scoreId = await as.mutation(internal.highScores.save, { gameId: sibylId, name: "Seer" });
   expect((await t.run((ctx) => ctx.db.get(scoreId)))?.sibyl).toBe(true);
   const plainId = await as.mutation(api.game.newGame, { seed: 1, picks: [0] });
   await as.mutation(api.game.applyAction, { id: plainId, action: { type: "exitCave" } });
-  const plainScore = await as.mutation(api.highScores.save, { gameId: plainId, name: "Plain" });
+  const plainScore = await as.mutation(internal.highScores.save, { gameId: plainId, name: "Plain" });
   expect((await t.run((ctx) => ctx.db.get(plainScore)))?.sibyl).toBeFalsy();
 
   expect((await t.query(api.highScores.list, {})).map((r) => r.name)).toEqual(["Plain"]);

@@ -29,7 +29,7 @@ describe("the tutorial game", () => {
     const s = tutorialGame();
     expect(s.party.map((m) => m.creatureId)).toEqual([...TUTORIAL_PICKS]);
     expect(s.variants).toMatchObject({ extensionKit: true, combatRevision: true });
-    expect(s.variants.trapRules).toBe(true); // the Dwarf's choice is offered, as in the real game
+    expect(s.variants?.trapRules).toBe(true); // the Dwarf's choice is offered, as in the real game
     expect(s.testMode).toBe(true);
     expect(s.areas).toHaveLength(1); // just the Gateway
   });

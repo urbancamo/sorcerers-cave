@@ -1,3 +1,4 @@
+import { playerError } from "./playerError";
 import { useEffect, useState, type CSSProperties } from "react";
 import {
   CREATURES, KIT_CREATURES, PARTY_BUDGET, validatePicks, selectionCost, startingStock,
@@ -37,7 +38,8 @@ export function PartySelect({
   testMode = false,
   onChange,
 }: {
-  onConfirm: (picks: number[], color: PartyColor, variants?: { extensionKit?: boolean; sibyl?: boolean }) => void;
+  /** May return a promise: if it rejects, the reason (e.g. too many games started) is shown here and the player can try again. */
+  onConfirm: (picks: number[], color: PartyColor, variants?: { extensionKit?: boolean; sibyl?: boolean }) => void | Promise<unknown>;
   /** Solo only: return to the title screen without starting. The MP draft passes no handler —
    *  leaving a lobby is its own flow — so no Back is rendered there. */
   onBack?: () => void;
@@ -59,6 +61,7 @@ export function PartySelect({
 }) {
   const [counts, setCounts] = useState<Record<number, number>>({});
   const [kit, setKit] = useState(false);
+  const [startError, setStartError] = useState<string | null>(null);
   const [color, setColor] = useState<PartyColor>(lockedColor ?? DEFAULT_PARTY_COLOR);
   const [cardFile, setCardFile] = useState<Record<number, string>>({});
   // Click a card to read about it in the card panel, as in the game, rather than enlarging the picture.
@@ -217,10 +220,15 @@ export function PartySelect({
         disabled={!valid}
         // Kit-off calls `onConfirm` with exactly the pre-kit two-argument shape (no trailing
         // `undefined`) — byte-identical call signature (SC-EXT-1) for every existing caller.
-        onClick={() => (variants ? onConfirm(picks, lockedColor ?? color, variants) : onConfirm(picks, lockedColor ?? color))}
+        onClick={() => {
+          setStartError(null);
+          const started = variants ? onConfirm(picks, lockedColor ?? color, variants) : onConfirm(picks, lockedColor ?? color);
+          if (started) started.catch((e) => setStartError(playerError(e, "The game could not be started. Please try again.")));
+        }}
       >
         {confirmLabel(picks.length)}
       </button>
+      {startError && <p className="scv-hs-error" role="alert">{startError}</p>}
 
     </section>
     {viewedCreature && (

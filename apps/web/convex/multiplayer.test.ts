@@ -1,5 +1,6 @@
 import { convexTest } from "convex-test";
-import { expect, test } from "vitest";
+import { describe, expect, test } from "vitest";
+import type { Id } from "./_generated/dataModel";
 import type { PartyState, MpGameState, GameState } from "@sorcerers-cave/engine";
 type GameStateLike = GameState;
 import { api } from "./_generated/api";
@@ -39,7 +40,7 @@ async function asUser(t: ReturnType<typeof convexTest>) {
 test("createMultiplayer seats the host with a code, party name and colour", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);
-  const { gameId, code } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Bold Few", color: "green" });
+  const { gameId, code } = await host.action(api.multiplayer.createMultiplayer, { partyName: "Bold Few", color: "green" });
   expect(code).toMatch(/^[A-Z]{4}$/);
   const lob = await host.query(api.multiplayer.lobby, { code });
   expect(lob?.gameId).toBe(gameId);
@@ -55,15 +56,15 @@ test("createMultiplayer seats the host with a code, party name and colour", asyn
 test("createMultiplayer requires a party name", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);
-  await expect(host.mutation(api.multiplayer.createMultiplayer, { partyName: "   ", color: "green" })).rejects.toThrow();
+  await expect(host.action(api.multiplayer.createMultiplayer, { partyName: "   ", color: "green" })).rejects.toThrow();
 });
 
 test("a second player joins by code into the next seat", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);
-  const { code } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
+  const { code } = await host.action(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
   const p2 = await asUser(t);
-  const res = await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  const res = await p2.action(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
   expect(res.ok).toBe(true);
   const lob = await p2.query(api.multiplayer.lobby, { code });
   expect(lob?.seats.map((s) => s.partyName)).toEqual(["Alpha", "Beta"]);
@@ -74,18 +75,18 @@ test("a second player joins by code into the next seat", async () => {
 test("join rejects taken colour, taken name, and unknown code", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);
-  const { code } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
+  const { code } = await host.action(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
   const p2 = await asUser(t);
-  expect((await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "green" })).reason).toBe("color_taken");
-  expect((await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "alpha", color: "blue" })).reason).toBe("name_taken");
-  expect((await p2.mutation(api.multiplayer.joinByCode, { code: "ZZZZ", partyName: "Beta", color: "blue" })).reason).toBe("not_found");
+  expect((await p2.action(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "green" })).reason).toBe("color_taken");
+  expect((await p2.action(api.multiplayer.joinByCode, { code, partyName: "alpha", color: "blue" })).reason).toBe("name_taken");
+  expect((await p2.action(api.multiplayer.joinByCode, { code: "ZZZZ", partyName: "Beta", color: "blue" })).reason).toBe("not_found");
 });
 
 test("join is idempotent for an already-seated player", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);
-  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
-  const again = await host.mutation(api.multiplayer.joinByCode, { code, partyName: "Whatever", color: "red" });
+  const { code, gameId } = await host.action(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
+  const again = await host.action(api.multiplayer.joinByCode, { code, partyName: "Whatever", color: "red" });
   expect(again).toEqual({ ok: true, gameId });
   const lob = await host.query(api.multiplayer.lobby, { code });
   expect(lob?.seats.length).toBe(1); // no duplicate seat
@@ -94,22 +95,22 @@ test("join is idempotent for an already-seated player", async () => {
 test("the lobby fills to four and then rejects as full", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);
-  const { code } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "A", color: "green" });
+  const { code } = await host.action(api.multiplayer.createMultiplayer, { partyName: "A", color: "green" });
   for (const [name, color] of [["B", "blue"], ["C", "yellow"], ["D", "red"]] as const) {
     const p = await asUser(t);
-    expect((await p.mutation(api.multiplayer.joinByCode, { code, partyName: name, color })).ok).toBe(true);
+    expect((await p.action(api.multiplayer.joinByCode, { code, partyName: name, color })).ok).toBe(true);
   }
   const p5 = await asUser(t);
   // colours are exhausted too, but the seat-count guard reports full
-  expect((await p5.mutation(api.multiplayer.joinByCode, { code, partyName: "E", color: "green" })).reason).toBe("full");
+  expect((await p5.action(api.multiplayer.joinByCode, { code, partyName: "E", color: "green" })).reason).toBe("full");
 });
 
 test("colour and ready can be changed; colour clash is rejected", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);
-  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
+  const { code, gameId } = await host.action(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
   const p2 = await asUser(t);
-  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await p2.action(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
   expect((await p2.mutation(api.multiplayer.setColor, { gameId, color: "green" })).reason).toBe("color_taken");
   expect((await p2.mutation(api.multiplayer.setColor, { gameId, color: "red" })).ok).toBe(true);
   await p2.mutation(api.multiplayer.setReady, { gameId, ready: true });
@@ -120,25 +121,25 @@ test("colour and ready can be changed; colour clash is rejected", async () => {
 test("startGame is host-only, needs two players, and locks the lobby", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);
-  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
+  const { code, gameId } = await host.action(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
   expect((await host.mutation(api.multiplayer.startGame, { gameId })).reason).toBe("need_players"); // only the host
   const p2 = await asUser(t);
-  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await p2.action(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
   await expect(p2.mutation(api.multiplayer.startGame, { gameId })).rejects.toThrow(/host/); // non-host blocked
   expect((await host.mutation(api.multiplayer.startGame, { gameId })).ok).toBe(true);
   const lob = await host.query(api.multiplayer.lobby, { code });
   expect(lob?.lobby).toBe("started");
   // joins are refused once started
   const p3 = await asUser(t);
-  expect((await p3.mutation(api.multiplayer.joinByCode, { code, partyName: "Gamma", color: "yellow" })).reason).toBe("started");
+  expect((await p3.action(api.multiplayer.joinByCode, { code, partyName: "Gamma", color: "yellow" })).reason).toBe("started");
 });
 
 test("the host leaving promotes the next seat", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);
-  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
+  const { code, gameId } = await host.action(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
   const p2 = await asUser(t);
-  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await p2.action(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
   await host.mutation(api.multiplayer.leaveSeat, { gameId });
   const lob = await p2.query(api.multiplayer.lobby, { code });
   expect(lob?.seats.map((s) => s.partyName)).toEqual(["Beta"]);
@@ -148,9 +149,9 @@ test("the host leaving promotes the next seat", async () => {
 test("startGame builds the shared game state and opens the party draft", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);
-  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
+  const { code, gameId } = await host.action(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
   const p2 = await asUser(t);
-  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await p2.action(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
   await host.mutation(api.multiplayer.startGame, { gameId });
 
   const gs = await host.query(api.multiplayer.gameState, { gameId });
@@ -167,9 +168,9 @@ test("startGame builds the shared game state and opens the party draft", async (
 test("the party draft is turn-based and transitions to play after the last pick", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);
-  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
+  const { code, gameId } = await host.action(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
   const p2 = await asUser(t);
-  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await p2.action(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
   await host.mutation(api.multiplayer.startGame, { gameId });
 
   const userBySeat = [host, p2]; // seats compacted to 0 (host), 1 (p2)
@@ -193,9 +194,9 @@ test("the party draft is turn-based and transitions to play after the last pick"
 
 async function reachPlaying(t: ReturnType<typeof convexTest>) {
   const host = await asUser(t);
-  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
+  const { code, gameId } = await host.action(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
   const p2 = await asUser(t);
-  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await p2.action(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
   await host.mutation(api.multiplayer.startGame, { gameId });
   const userBySeat = [host, p2];
   for (let i = 0; i < 2; i++) {
@@ -287,9 +288,9 @@ test("a finished party is recorded to the multiplayer high-score table, kept apa
 test("a kit-on game's terminal rows are stamped for the MP-kit leaderboard (mode, kit flag, seat count)", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);
-  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
+  const { code, gameId } = await host.action(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
   const p2 = await asUser(t);
-  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await p2.action(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
   await host.mutation(api.multiplayer.setVariants, { gameId, variants: { extensionKit: true } });
   await host.mutation(api.multiplayer.startGame, { gameId });
   const userBySeat = [host, p2];
@@ -333,9 +334,9 @@ test("spectateView returns any seat's composed view to a member, and nothing to 
 test("chat is membership-gated and includes system lines", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);
-  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
+  const { code, gameId } = await host.action(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
   const p2 = await asUser(t);
-  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await p2.action(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
   await p2.mutation(api.multiplayer.sendMessage, { gameId, text: "  hello cave  " });
 
   const feed = await host.query(api.multiplayer.messages, { gameId });
@@ -354,9 +355,9 @@ test("chat is membership-gated and includes system lines", async () => {
 /** Seat two players into a PLAYING game with hand-set parties co-located on the Gateway. */
 async function playingPair(t: ReturnType<typeof convexTest>) {
   const host = await asUser(t);
-  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
+  const { code, gameId } = await host.action(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
   const p2 = await asUser(t);
-  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await p2.action(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
   await host.mutation(api.multiplayer.startGame, { gameId });
   // Draft in pick order (whoever is current picks first).
   const gs1 = await host.query(api.multiplayer.gameState, { gameId });
@@ -476,13 +477,13 @@ test("respondUnion accept forms the union for both seats; leaveUnion returns the
 test("variants are stored at creation, surfaced in the lobby, and host-toggleable until start", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);
-  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, {
+  const { code, gameId } = await host.action(api.multiplayer.createMultiplayer, {
     partyName: "Alpha", color: "green", variants: { zombies: true },
   });
   expect((await host.query(api.multiplayer.lobby, { code }))!.variants).toEqual({ zombies: true });
 
   const p2 = await asUser(t);
-  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await p2.action(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
   // Only the host may toggle; guests read the chips.
   expect((await p2.mutation(api.multiplayer.setVariants, { gameId, variants: { fogLite: true } })).reason).toBe("host_only");
   await host.mutation(api.multiplayer.setVariants, { gameId, variants: { zombies: true, fogLite: true } });
@@ -499,11 +500,11 @@ test("variants are stored at creation, surfaced in the lobby, and host-toggleabl
 test("fog-of-war-lite: playView masks areas this seat has never entered (coords kept, detail gone)", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);
-  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, {
+  const { code, gameId } = await host.action(api.multiplayer.createMultiplayer, {
     partyName: "Alpha", color: "green", variants: { fogLite: true },
   });
   const p2 = await asUser(t);
-  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await p2.action(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
   await host.mutation(api.multiplayer.startGame, { gameId });
   const bySeat: Record<number, typeof host> = {};
   for (const u of [host, p2]) bySeat[(await u.query(api.multiplayer.gameState, { gameId }))!.youSeat] = u;
@@ -597,11 +598,11 @@ test("a PvP wipe caused by window auto-resolve records the loser's high score (I
 test("the concurrent variant frees both seats to act at once (M6 wiring, plan ①)", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);
-  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, {
+  const { code, gameId } = await host.action(api.multiplayer.createMultiplayer, {
     partyName: "Alpha", color: "green", variants: { concurrent: true },
   });
   const p2 = await asUser(t);
-  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await p2.action(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
   await host.mutation(api.multiplayer.startGame, { gameId });
   const gs1 = await host.query(api.multiplayer.gameState, { gameId });
   const seatOf = async (u: typeof host) => (await u.query(api.multiplayer.gameState, { gameId }))!.youSeat;
@@ -634,9 +635,9 @@ test("the concurrent variant frees both seats to act at once (M6 wiring, plan �
 test("setVariants persists extensionKit: true, surfaced in the lobby (host-only, mirrors zombies/fogLite)", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);
-  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
+  const { code, gameId } = await host.action(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
   const p2 = await asUser(t);
-  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await p2.action(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
   expect((await p2.mutation(api.multiplayer.setVariants, { gameId, variants: { extensionKit: true } })).reason).toBe("host_only");
   await host.mutation(api.multiplayer.setVariants, { gameId, variants: { extensionKit: true } });
   expect((await p2.query(api.multiplayer.lobby, { code }))!.variants).toEqual({ extensionKit: true });
@@ -645,11 +646,11 @@ test("setVariants persists extensionKit: true, surfaced in the lobby (host-only,
 test("startGame with extensionKit builds a shared kit cave: 90/101-card packs, flag on the composed state", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);
-  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, {
+  const { code, gameId } = await host.action(api.multiplayer.createMultiplayer, {
     partyName: "Alpha", color: "green", variants: { extensionKit: true },
   });
   const p2 = await asUser(t);
-  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await p2.action(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
   await host.mutation(api.multiplayer.startGame, { gameId });
 
   // Probe the stored engine state directly (multi-kit.test.ts already pins compose()'s own
@@ -664,9 +665,9 @@ test("startGame with extensionKit builds a shared kit cave: 90/101-card packs, f
 test("kit-off startGame keeps the pre-kit 60/71-card packs — no extensionKit key at all (byte-identical)", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);
-  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
+  const { code, gameId } = await host.action(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
   const p2 = await asUser(t);
-  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await p2.action(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
   await host.mutation(api.multiplayer.startGame, { gameId });
 
   const stored = await t.run(async (ctx) => (await ctx.db.get(gameId))!.state as MpGameState);
@@ -683,11 +684,11 @@ test("kit-off startGame keeps the pre-kit 60/71-card packs — no extensionKit k
 test("gameState draft.remaining includes the kit starters, from the real shared pack, when extensionKit is on", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);
-  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, {
+  const { code, gameId } = await host.action(api.multiplayer.createMultiplayer, {
     partyName: "Alpha", color: "green", variants: { extensionKit: true },
   });
   const p2 = await asUser(t);
-  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await p2.action(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
   await host.mutation(api.multiplayer.startGame, { gameId });
 
   const proj = await host.query(api.multiplayer.gameState, { gameId });
@@ -704,9 +705,9 @@ test("gameState draft.remaining includes the kit starters, from the real shared 
 test("kit-off gameState draft.remaining stays base-only — no extensionKit key, byte-identical", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);
-  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
+  const { code, gameId } = await host.action(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
   const p2 = await asUser(t);
-  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await p2.action(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
   await host.mutation(api.multiplayer.startGame, { gameId });
 
   const proj = await host.query(api.multiplayer.gameState, { gameId });
@@ -719,9 +720,9 @@ test("kit-off gameState draft.remaining stays base-only — no extensionKit key,
 test("setVariants persists sibyl and startGame deals her into the shared pack", async () => {
   const t = convexTest(schema, modules);
   const host = await asUser(t);
-  const { code, gameId } = await host.mutation(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
+  const { code, gameId } = await host.action(api.multiplayer.createMultiplayer, { partyName: "Alpha", color: "green" });
   const p2 = await asUser(t);
-  await p2.mutation(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
+  await p2.action(api.multiplayer.joinByCode, { code, partyName: "Beta", color: "blue" });
   await host.mutation(api.multiplayer.setVariants, { gameId, variants: { sibyl: true } });
   expect((await p2.query(api.multiplayer.lobby, { code }))!.variants).toEqual({ sibyl: true });
   await host.mutation(api.multiplayer.startGame, { gameId });
@@ -745,7 +746,9 @@ test("act accepts examineArea (with and without an area), free of the turn", asy
   let actor = userBySeat[0]!;
   if ((await actor.query(api.multiplayer.gameState, { gameId }))!.youSeat !== seat) actor = userBySeat[1]!;
   const look = await actor.mutation(api.multiplayer.act, { gameId, action: { type: "examineArea" } });
-  expect((look as { events: unknown[] }).events).toEqual([{ type: "sibylExamined" }]);
+  // A look at the pack names the top card in its event (the client is not sent the pack); it goes to the looker only.
+  const top = await t.run(async (ctx) => { const c = (await ctx.db.get(gameId))!.state as MpGameState; return c.cave.largePack[c.cave.largeIdx]; });
+  expect((look as { events: unknown[] }).events).toEqual([{ type: "sibylExamined", card: top }]);
   // `area` must pass the validator; the Gateway is face-up so the engine blocks it (not a validation error).
   const forged = await actor.mutation(api.multiplayer.act, { gameId, action: { type: "examineArea", area: 0 } });
   expect((forged as { events: unknown[] }).events).toEqual([{ type: "blocked" }]);
@@ -757,4 +760,42 @@ test("act rejects a forged strangers action (the strangers' decisions are never 
   const { gameId, userBySeat } = await reachPlaying(t);
   const pv = (await userBySeat[0]!.query(api.multiplayer.playView, { gameId }))!;
   await expect(userBySeat[pv.currentSeat]!.mutation(api.multiplayer.act, { gameId, action: { type: "strangersAssignArtefacts" } })).rejects.toThrow(/stranger/i);
+});
+
+// A client that held the seed or the card order could play the game ahead offline (docs/security/review-2026-11.md, finding 1).
+describe("what a multiplayer client is sent hides the seed and the card order", () => {
+  const whole = (t: ReturnType<typeof convexTest>, gameId: Id<"games">) =>
+    t.run(async (ctx) => (await ctx.db.get(gameId))!.state as MpGameState);
+  const hidden = (view: { seed: number; largePack: number[]; smallPack: number[]; diceSeed?: number }, mp: MpGameState) => {
+    expect(view.seed).toBe(0);
+    expect(view.diceSeed).toBeUndefined();
+    expect(view.largePack).toHaveLength(mp.cave.largePack.length);
+    expect(view.smallPack).toHaveLength(mp.cave.smallPack.length);
+    expect(new Set(view.largePack)).toEqual(new Set([0]));
+    expect(new Set(view.smallPack)).toEqual(new Set([0]));
+  };
+
+  test("playView and spectateView send the state without the seed, a party's dice seed or the packs", async () => {
+    const t = convexTest(schema, modules);
+    const { gameId, userBySeat } = await reachPlaying(t);
+    const mp = await whole(t, gameId);
+    expect(mp.cave.seed).not.toBe(0); // the stored game keeps them
+    hidden((await userBySeat[0]!.query(api.multiplayer.playView, { gameId }))!.state as never, mp);
+    hidden((await userBySeat[0]!.query(api.multiplayer.spectateView, { gameId, seat: 1 }))!.state as never, mp);
+  });
+
+  test("act on a move answers with the acting seat's redacted view, so the client can animate what the server decided", async () => {
+    const t = convexTest(schema, modules);
+    const { gameId, userBySeat } = await reachPlaying(t);
+    const mp = await whole(t, gameId);
+    const pv = (await userBySeat[0]!.query(api.multiplayer.playView, { gameId }))!;
+    const actor = userBySeat[pv.currentSeat!]!;
+    const res = (await actor.mutation(api.multiplayer.act, { gameId, action: { type: "move", dir: 1 } })) as { events: unknown[]; view?: { areas: unknown[] } };
+    expect(res.view).toBeDefined();
+    hidden(res.view as never, mp);
+    expect(res.view!.areas.length).toBeGreaterThan(1); // the tile the server drew is in what it sends
+    // Other actions do not carry a view (the subscription brings the state).
+    const other = (await actor.mutation(api.multiplayer.act, { gameId, action: { type: "examineArea" } })) as { view?: unknown };
+    expect(other.view).toBeUndefined();
+  });
 });

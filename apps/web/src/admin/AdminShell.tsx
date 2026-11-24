@@ -5,10 +5,11 @@ import { TestingTab } from './TestingTab';
 import { AnalyticsTab } from './analytics/AnalyticsTab';
 import { UsersTab } from './UsersTab';
 import { SystemTab } from './SystemTab';
+import { NamesTab } from './NamesTab';
 import { StoriesTab } from './stories/StoriesTab';
 
 export type Role = 'SYSTEM' | 'USER' | 'ANALYTICS' | 'STORIES' | 'TEST';
-type TabId = Role | 'STORIES';
+type TabId = Role | 'NAMES';
 
 // Tabs in display order. A tab is shown to a user holding any of its roles (the server expands SYSTEM to all of them). Stories is
 // viewed with ANALYTICS or STORIES; its editing controls need STORIES (and the server checks that again).
@@ -17,6 +18,7 @@ const TABS: { id: TabId; roles: Role[]; label: string }[] = [
   { id: 'STORIES', roles: ['ANALYTICS', 'STORIES'], label: 'Stories' },
   { id: 'TEST', roles: ['TEST'], label: 'Testing' },
   { id: 'USER', roles: ['USER'], label: 'Users' },
+  { id: 'NAMES', roles: ['SYSTEM'], label: 'Names' },
   { id: 'SYSTEM', roles: ['SYSTEM'], label: 'System' },
 ];
 
@@ -26,6 +28,7 @@ function panel(role: TabId, roles: Role[], userId: string | null): ReactNode {
     case 'ANALYTICS': return <AnalyticsTab />;
     case 'USER': return <UsersTab roles={roles} selfId={userId} />;
     case 'SYSTEM': return <SystemTab />;
+    case 'NAMES': return <NamesTab />;
     case 'STORIES': return <StoriesTab canEdit={roles.includes('STORIES')} />;
   }
 }

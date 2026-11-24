@@ -4,3 +4,7 @@ packages:
 allowBuilds:
   core-js: false
   esbuild: true
+# Security advisories (docs/security/review-2026-11.md): patched releases of transitive dependencies of @convex-dev/auth and convex.
+overrides:
+  "@auth/core": ">=0.41.3"
+  ws: ">=8.21.0"

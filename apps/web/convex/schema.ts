@@ -18,6 +18,8 @@ export default defineSchema({
     .index("phone", ["phone"]),
   games: defineTable({
     ownerId: v.optional(v.id("users")),
+    // High-score names offered for this game so far (each costs a moderation call; highScores.noteAttempt caps it).
+    nameAttempts: v.optional(v.number()),
     // Short, human-typable resume handle: four uppercase letters, unique across games. Optional so
     // games created before this feature still validate; every new game is allocated one.
     code: v.optional(v.string()),
@@ -172,7 +174,24 @@ export default defineSchema({
   systemSettings: defineTable({
     // Is Multiplayer mode offered on the welcome page? Absent or false: no (the default).
     multiplayerEnabled: v.optional(v.boolean()),
+    // Rate-limit settings changed from the defaults in rateLimits.ts, by limit name (System tab). A limit not listed uses its default.
+    rateLimits: v.optional(v.record(v.string(), v.object({ max: v.number(), windowSec: v.number() }))),
   }),
+  // Names an admin changed (adminNames.ts): what it was, what it became, who and when. Kept so a change can be traced and put back.
+  nameAudit: defineTable({
+    at: v.number(),
+    byUserId: v.id("users"),
+    kind: v.union(v.literal("highScore"), v.literal("partyName")),
+    targetId: v.string(),
+    before: v.string(),
+    after: v.string(),
+  }).index("by_at", ["at"]),
+  // One counter per limit and subject (user, game or the whole site): the window it opened at and the uses since (rateLimits.ts).
+  rateLimitHits: defineTable({
+    key: v.string(),
+    windowStart: v.number(),
+    count: v.number(),
+  }).index("by_key", ["key"]).index("by_windowStart", ["windowStart"]),
   highScores: defineTable({
     gameId: v.id("games"),
     ownerId: v.optional(v.id("users")),

@@ -237,6 +237,55 @@ npx convex env set GITHUB_ISSUES_TOKEN <token> --prod   # production
 Local dev and production currently share one Convex backend, so a report filed while testing lands in the real repository too.
 File test reports from a Test Mode game (labelled `test-mode`) and close them afterwards.
 
+## Rate limits (admin System tab)
+
+Anonymous sign-in is free, so what a player can do is limited by counters (`convex/rateLimits.ts`), and the figures are set in the
+admin panel: **System tab → Rate limits** (SYSTEM role). A change takes effect on the next use and needs no deploy. A limit left at its
+default is not stored, so a later change to a default in the code reaches it.
+
+| Limit | Scope | Default |
+|-------|-------|---------|
+| Start a solo game (`newGame`) | player | 40 per hour |
+| Create a multiplayer game (`createMultiplayer`) | player | 10 per hour |
+| Join by code (`joinAttempt`; a wrong code counts) | player | 30 per 10 minutes |
+| Chat messages (`chatUser`) | player | 20 per minute |
+| Chat messages in one game (`chatGame`) | game | 300 per hour |
+| High-score names checked (`highScoreName`) | player | 30 per hour |
+| Party names checked (`partyNameCheck`) | player | 30 per hour |
+| Bug reports (`bugReportUser`) | player | 5 per hour |
+| Bug reports (`bugReportSite`) | whole site | 30 per hour |
+| Screenshot uploads (`uploadUser`, `uploadSite`) | player, site | 10 / 100 per hour |
+
+- Counting is in fixed windows (the count restarts when the window has passed), so a burst across a boundary can reach twice the figure.
+- A refused use is not counted. The player sees "Too many … Please try again in about N seconds/minutes" in the place they acted.
+- Bounds: 1 to 100000 uses, a period of 10 seconds to 7 days. Out-of-range values are refused when saving.
+- Counters are cleared hourly by a cron (`crons.ts`), once they are more than 8 days old.
+- Not limited here: anonymous sign-in itself (it is Convex Auth's own endpoint; limit it at the edge if it is abused) and password
+  sign-in (Convex Auth limits failed attempts itself).
+
+## Names are screened (`ANTHROPIC_API_KEY`, `NAME_CHECK_MODEL`)
+
+The name a player enters for the public high-score table is checked before the score is recorded (`convex/nameCheck.ts`,
+`highScores.submit`; `highScores.save` is internal, so nothing skips the check). Multiplayer **party names** get the same check
+(`convex/nameScreen.ts`) in `multiplayer.createMultiplayer`, `joinByCode` and `setPartyName`, which are actions that screen the name and
+then call internal mutations (`createGameRow`, `joinSeat`, `renamePartyRow`). A join is screened only once it would otherwise succeed
+(not for a wrong code, a full or started game, a taken name or colour, or a rejoin). Chat messages are free text and are **not** screened.
+
+- **Local check, always on:** a web address, email address or phone number is refused, with no model call.
+- **Claude check, when `ANTHROPIC_API_KEY` is set** (the same key the short stories use): a small model answers `{"ok":true}` or
+  `{"ok":false}`. Anything else, an error or an 8-second timeout is "try again" and records nothing. The default model is
+  `claude-haiku-5-5`; override it with `npx convex env set NAME_CHECK_MODEL <model>` (add `--prod`).
+- **With no key set, only the local check runs**, so a deployment without a key still saves scores but does not screen for offensive
+  words. Set the key on the production deployment for the full check.
+- A refused name returns the player to the entry form with the reason. At most 10 names are tried per game (`MAX_NAME_ATTEMPTS`); each
+  tried name is one short model call.
+- Chat is not screened.
+- **Fixing a name that got through:** admin panel, **Names** tab (SYSTEM role). It lists the latest 100 high-score entries and the
+  party names in the latest multiplayer games, with a filter. **Edit** sets a new name and **Clear** replaces it with `Anonymous` (a
+  party becomes `Party`, or `Party 2`… if that is taken). A party rename reaches its seat, the game's own copy, that party's chat lines
+  and its leaderboard entry; "joined" lines already written and the full game record kept with a high score are left as they were. An
+  admin's own text is not screened. Every change is kept in the `nameAudit` table (the tab's **Changes** list) with the old and new name.
+
 ## Short stories (auto-generated)
 
 High-scoring solo escapes get a short story written by Claude (plan: `docs/requirements/auto-short-story/plan.md`).

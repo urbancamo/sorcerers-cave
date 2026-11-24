@@ -2,7 +2,7 @@ import { describe, it, expect, beforeAll, afterAll, vi } from "vitest";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import type { AssetManifest } from "@sorcerers-cave/assets";
-import { newGame, packCoord as pc, type GameState, type PlacedArea } from "@sorcerers-cave/engine";
+import { newGame, packCoord as pc, reduce, redactState, type GameAction, type GameEvent, type GameState, type PlacedArea } from "@sorcerers-cave/engine";
 import { parseManifest } from "../data/manifest";
 import { createCaveAdapter } from "./engineAdapter";
 import { setStrictTileArt } from "./missingTile";
@@ -130,12 +130,12 @@ describe("current-tile floor merges the working set with dropped contents", () =
 });
 
 describe("tryMove + MoveEvent", () => {
-  it("moves into a known adjacent area (no tile drawn)", () => {
+  it("moves into a known adjacent area (no tile drawn)", async () => {
     // A: E-exit corridor at (50,50); B: W-exit corridor at (51,50). Moving E lands on B.
     const A = mkArea(2, 1, 50, 50);       // exits "E"
     const B = mkArea(8, 1, 51, 50, { visited: true }); // exits "W"
     const eng = createCaveAdapter(mkState([A, B], 0), art);
-    const ev = eng.tryMove("E");
+    const ev = await eng.tryMove("E");
     expect(ev.moved).toBe(true);
     if (ev.moved) {
       expect(ev.dir).toBe("E");
@@ -146,18 +146,18 @@ describe("tryMove + MoveEvent", () => {
     expect(eng.current.col).toBe(51);      // mirror advanced
   });
 
-  it("reports a dead end when the current card has no exit that way", () => {
+  it("reports a dead end when the current card has no exit that way", async () => {
     const A = mkArea(2, 1, 50, 50);        // only "E"
     const eng = createCaveAdapter(mkState([A], 0), art);
-    const ev = eng.tryMove("N");
+    const ev = await eng.tryMove("N");
     expect(ev.moved).toBe(false);
   });
 
-  it("still places the drawn tile (face-down) on a dead-end frontier, without moving", () => {
+  it("still places the drawn tile (face-down) on a dead-end frontier, without moving", async () => {
     const A = mkArea(2, 1, 50, 50);        // exits "E", frontier east is undrawn
     // pack a tile with NO west reverse-door (card 1 = "N" only) → it can't connect → dead end
     const eng = createCaveAdapter(mkState([A], 0, { largePack: [1], largeIdx: 0 }), art);
-    const ev = eng.tryMove("E");
+    const ev = await eng.tryMove("E");
     expect(ev.moved).toBe(false);
     if (!ev.moved) {
       expect(ev.deadEnd).toBe(true);
@@ -169,11 +169,11 @@ describe("tryMove + MoveEvent", () => {
     expect(eng.current.col).toBe(50);          // party did NOT move
   });
 
-  it("draws a chamber tile on an undrawn frontier and reveals its cards (firstVisit)", () => {
+  it("draws a chamber tile on an undrawn frontier and reveals its cards (firstVisit)", async () => {
     const A = mkArea(2, 1, 50, 50);        // exits "E", frontier to the east is undrawn
     // pack a chamber tile with a W reverse-door (8 | 16 = 24); small pack yields a Dragon (id 10)
     const eng = createCaveAdapter(mkState([A], 0, { largePack: [8 | 16], smallPack: [100 + 10] }), art);
-    const ev = eng.tryMove("E");
+    const ev = await eng.tryMove("E");
     expect(ev.moved).toBe(true);
     if (ev.moved) {
       expect(ev.placed).not.toBeNull();    // a new tile was drawn
@@ -183,12 +183,12 @@ describe("tryMove + MoveEvent", () => {
     }
   });
 
-  it("counts a drawn hazard in the chamber draws even though it fires and clears itself", () => {
+  it("counts a drawn hazard in the chamber draws even though it fires and clears itself", async () => {
     const A = mkArea(2, 1, 50, 50); // exit E
     // Tomb (543 = special Tomb + chamber + NESW) drawn to the east → draws 2 on level 1 (1 + tomb extra).
     // Small pack: a Dragon, then an Earthquake (hazard 2) which fires and removes itself during resolution.
     const eng = createCaveAdapter(mkState([A], 0, { largePack: [543], smallPack: [100 + 10, 300 + 2] }), art);
-    const ev = eng.tryMove("E");
+    const ev = await eng.tryMove("E");
     expect(ev.moved).toBe(true);
     if (ev.moved) {
       expect(ev.chamber?.draws.length).toBe(2); // both the surviving card AND the fired hazard are reported
@@ -197,11 +197,11 @@ describe("tryMove + MoveEvent", () => {
     }
   });
 
-  it("surfaces a sprung trap as ev.trap='sprung' and drops the party a level", () => {
+  it("surfaces a sprung trap as ev.trap='sprung' and drops the party a level", async () => {
     const A = mkArea(2, 1, 50, 50); // exit E; default party is a Hero (no dwarf)
     // chamber (W reverse-door) to enter, then an NS corridor to fall onto; the chamber draws a trap.
     const eng = createCaveAdapter(mkState([A], 0, { largePack: [8 | 16, 5], smallPack: [300 + 1] }), art);
-    const ev = eng.tryMove("E");
+    const ev = await eng.tryMove("E");
     expect(ev.moved).toBe(true);
     if (ev.moved) {
       expect(ev.trap).toBe("sprung");
@@ -210,13 +210,13 @@ describe("tryMove + MoveEvent", () => {
     }
   });
 
-  it("surfaces a dwarf-negated trap as ev.trap='avoided' without falling", () => {
+  it("surfaces a dwarf-negated trap as ev.trap='avoided' without falling", async () => {
     const A = mkArea(2, 1, 50, 50); // exit E
     const eng = createCaveAdapter(
       mkState([A], 0, { party: [{ creatureId: 7, status: 0, dragonKills: 0, treasure: [] }], largePack: [8 | 16], smallPack: [300 + 1] }),
       art,
     );
-    const ev = eng.tryMove("E");
+    const ev = await eng.tryMove("E");
     expect(ev.moved).toBe(true);
     if (ev.moved) {
       expect(ev.trap).toBe("avoided");
@@ -225,20 +225,20 @@ describe("tryMove + MoveEvent", () => {
     }
   });
 
-  it("forwards the accepted action via opts.onAction", () => {
+  it("forwards the accepted action via opts.onAction", async () => {
     const A = mkArea(2, 1, 50, 50);
     const B = mkArea(8, 1, 51, 50, { visited: true });
     const seen: number[] = [];
     const eng = createCaveAdapter(mkState([A, B], 0), art, { onAction: (a) => { if (a.type === "move") seen.push(a.dir); } });
-    eng.tryMove("E");
+    await eng.tryMove("E");
     expect(seen).toEqual([2]); // DIR_E
   });
 
-  it("tags stair descents and never offers moves outside explore", () => {
+  it("tags stair descents and never offers moves outside explore", async () => {
     // down-stair tile (card 64 = stairDown) at level 1; an undrawn frontier below.
     const A = mkArea(64, 1, 50, 50);
     const eng = createCaveAdapter(mkState([A], 0, { largePack: [0], smallPack: [] }), art);
-    const ev = eng.tryMove("D");
+    const ev = await eng.tryMove("D");
     expect(ev.moved).toBe(true);
     if (ev.moved) { expect(ev.descended).toBe("D"); expect(ev.area.level).toBe(2); }
   });
@@ -250,11 +250,11 @@ describe("leaving a pickup by walking away", () => {
   const rooms = () => [mkArea(2, 1, 50, 50, { visited: true }), mkArea(8, 1, 51, 50, { visited: true })];
   const pickup = () => mkState(rooms(), 0, { phase: "pickup", treasures: [1] });
 
-  it("offers the doorways during a pickup, and a move leaves the treasure first", () => {
+  it("offers the doorways during a pickup, and a move leaves the treasure first", async () => {
     const seen: string[] = [];
     const eng = createCaveAdapter(pickup(), art, { leavePickupOnMove: true, onAction: (a) => seen.push(a.type) });
     expect(eng.openMoves().map((m) => m.dir)).toEqual(["E"]);
-    const ev = eng.tryMove("E");
+    const ev = await eng.tryMove("E");
     expect(ev.moved).toBe(true);
     expect(seen).toEqual(["leaveTreasure", "move"]);
   });
@@ -264,10 +264,59 @@ describe("leaving a pickup by walking away", () => {
     expect(eng.openMoves()).toEqual([]);
   });
 
-  it("does not leave anything behind when the move itself is refused", () => {
+  it("does not leave anything behind when the move itself is refused", async () => {
     const seen: string[] = [];
     const eng = createCaveAdapter(pickup(), art, { leavePickupOnMove: true, onAction: (a) => seen.push(a.type) });
-    expect(eng.tryMove("W").moved).toBe(false); // no west exit
+    expect((await eng.tryMove("W")).moved).toBe(false); // no west exit
     expect(seen).toEqual([]);
+  });
+});
+
+// A game played against the server: the client holds neither the seed nor the card order, so the server decides a move and the adapter shows
+// what it sends back (docs/security/review-2026-11.md, finding 1).
+describe("tryMove against the server (act)", () => {
+  const rooms = () => [mkArea(2, 1, 50, 50, { visited: true }), mkArea(8, 1, 51, 50, { visited: true })];
+  const pickup = () => mkState(rooms(), 0, { phase: "pickup", treasures: [1] });
+  const A = mkArea(2, 1, 50, 50);                    // exits "E"
+  const B = mkArea(8, 1, 51, 50, { visited: true }); // exits "W"
+  const server = (state: GameState, reply?: (a: GameAction) => { state?: GameState; events: GameEvent[] } | null) => {
+    const seen: GameAction[] = [];
+    const act = async (a: GameAction) => { seen.push(a); return reply ? reply(a) : (({ state: next, events }) => ({ state: next, events }))(reduce(state, a)); };
+    return { seen, act };
+  };
+
+  it("animates the server's answer, from a state with no seed or card values, and never runs the engine itself", async () => {
+    const full = mkState([A, B], 0);
+    const served = redactState(full);
+    const { seen, act } = server(full); // the server plays it on the whole state
+    const eng = createCaveAdapter(served, art, { act, onAction: () => { throw new Error("a move is sent through act, not onAction"); } });
+    const ev = await eng.tryMove("E");
+    expect(ev.moved).toBe(true);
+    expect(seen).toEqual([{ type: "move", dir: 2 }]);
+  });
+
+  it("a move the server refuses is not a move", async () => {
+    const full = mkState([A], 0);
+    const { act } = server(full, () => ({ state: full, events: [{ type: "blocked" }] }));
+    const eng = createCaveAdapter(redactState(full), art, { act });
+    expect((await eng.tryMove("W")).moved).toBe(false);
+  });
+
+  it("no answer (a multiplayer move that was not played) is not a move either", async () => {
+    const full = mkState([A], 0);
+    const { act } = server(full, () => ({ events: [{ type: "blocked" }] }));
+    const eng = createCaveAdapter(redactState(full), art, { act });
+    expect((await eng.tryMove("E")).moved).toBe(false);
+  });
+
+  it("walking away from a pickup sends the leave first, then the move", async () => {
+    const full = pickup();
+    const seen: string[] = [];
+    const eng = createCaveAdapter(redactState(full), art, {
+      leavePickupOnMove: true,
+      act: async (a) => { seen.push(a.type); return a.type === "move" ? { state: reduce(reduce(full, { type: "leaveTreasure" }).state, a).state, events: [] } : { state: full, events: [] }; },
+    });
+    expect((await eng.tryMove("E")).moved).toBe(true);
+    expect(seen).toEqual(["leaveTreasure", "move"]);
   });
 });

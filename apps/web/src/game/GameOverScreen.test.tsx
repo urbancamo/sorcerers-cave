@@ -102,7 +102,7 @@ describe("GameOverScreen", () => {
   it("records the score under the trimmed name, then shows the leaderboard", async () => {
     const base = newGame(1, [0]);
     const escaped: GameState = { ...base, gs: GS_ESCAPED };
-    const onSaveScore = vi.fn().mockResolvedValue("hs1");
+    const onSaveScore = vi.fn().mockResolvedValue({ ok: true, id: "hs1" });
     const leaderboard: LeaderboardRow[] = [
       { _id: "hs1", name: "Gandalf", score: 10, outcome: GS_ESCAPED, party: escaped.party, createdAt: 0 },
     ];
@@ -115,6 +115,45 @@ describe("GameOverScreen", () => {
     await waitFor(() => expect(onSaveScore).toHaveBeenCalledWith("Gandalf"));
     expect(await screen.findByTestId("high-scores")).toBeInTheDocument();
     expect(screen.getByText("Gandalf")).toBeInTheDocument();
+  });
+
+  it("warns, above the name field, that the name is checked", () => {
+    const escaped: GameState = { ...newGame(1, [0]), gs: GS_ESCAPED };
+    render(<GameOverScreen state={escaped} onNewGame={() => {}} onSaveScore={vi.fn()} />);
+    expect(screen.getByText(/checked first/i)).toBeInTheDocument();
+    expect(screen.getByPlaceholderText(/your name/i)).toHaveAccessibleDescription(/checked first/i);
+  });
+
+  it("returns to the form with the reason when the name is refused, keeping the name to edit, and records the next one", async () => {
+    const escaped: GameState = { ...newGame(1, [0]), gs: GS_ESCAPED };
+    useQueryMock.mockReturnValue([{ _id: "hs2", name: "Gandalf", score: 10, outcome: GS_ESCAPED, party: escaped.party, createdAt: 0 }]);
+    const onSaveScore = vi.fn()
+      .mockResolvedValueOnce({ ok: false, reason: "That name can't be used on the high-score board. Please choose another." })
+      .mockResolvedValueOnce({ ok: true, id: "hs2" });
+    render(<GameOverScreen state={escaped} onNewGame={() => {}} onSaveScore={onSaveScore} />);
+    const input = screen.getByPlaceholderText(/your name/i);
+    fireEvent.change(input, { target: { value: "Rude Name" } });
+    fireEvent.click(screen.getByRole("button", { name: /save score/i }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/can't be used/i);
+    expect(screen.queryByTestId("high-scores")).toBeNull();            // not recorded: still on the form
+    expect(screen.getByPlaceholderText(/your name/i)).toHaveValue("Rude Name"); // the name is left to change
+    expect(input).toHaveAttribute("aria-invalid", "true");
+    expect(input).toHaveFocus();
+    fireEvent.change(input, { target: { value: "Gandalf" } });
+    expect(screen.queryByRole("alert")).toBeNull();                    // typing clears the message
+    fireEvent.click(screen.getByRole("button", { name: /save score/i }));
+    await waitFor(() => expect(onSaveScore).toHaveBeenLastCalledWith("Gandalf"));
+    expect(await screen.findByTestId("high-scores")).toBeInTheDocument();
+  });
+
+  it("says so when the score could not be saved at all, and lets the player try again", async () => {
+    const escaped: GameState = { ...newGame(1, [0]), gs: GS_ESCAPED };
+    const onSaveScore = vi.fn().mockRejectedValue(new Error("network"));
+    render(<GameOverScreen state={escaped} onNewGame={() => {}} onSaveScore={onSaveScore} />);
+    fireEvent.change(screen.getByPlaceholderText(/your name/i), { target: { value: "Gandalf" } });
+    fireEvent.click(screen.getByRole("button", { name: /save score/i }));
+    expect(await screen.findByRole("alert")).toHaveTextContent(/could not be saved/i);
+    expect(screen.getByRole("button", { name: /save score/i })).toBeEnabled();
   });
 
   it("shows the tally but no save form for an abandoned expedition (not a valid score)", () => {
@@ -186,7 +225,7 @@ describe("GameOverScreen help", () => {
     fireEvent.click(screen.getByRole("button", { name: "Help with scoring" }));
     expect(screen.getByTestId("help-popover")).toHaveTextContent(/walks out alive/);
     unmount();
-    render(<GameOverScreen state={{ ...newGame(1, [0]), gs: GS_QUIT }} onSaveScore={async () => "id"} onNewGame={() => {}} />);
+    render(<GameOverScreen state={{ ...newGame(1, [0]), gs: GS_QUIT }} onSaveScore={async () => ({ ok: true as const, id: "id" })} onNewGame={() => {}} />);
     fireEvent.click(screen.getByRole("button", { name: "Help with recording a score" }));
     expect(screen.getByTestId("help-popover")).toHaveTextContent(/abandons your party/);
   });

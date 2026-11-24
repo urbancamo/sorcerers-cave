@@ -172,6 +172,14 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
             if (v) setRoll(v);
           });
         },
+        // A move is decided by the server, which alone holds the seed and the card order; `view` is this seat's view after it.
+        act: async (a) => {
+          const res = (await actMut({ gameId, action: a })) as { events?: GameEvent[]; view?: GameState } | null;
+          const events = res?.events ?? [];
+          const v = rollFromEvents(events);
+          if (v) setRoll(v);
+          return { state: res?.view, events };
+        },
         canAct: () => yourTurnRef.current,
       });
     } else if (syncedRef.current !== state) {

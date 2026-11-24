@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { useMutation, useQuery } from 'convex/react';
 import { api } from '../../convex/_generated/api';
 import { errorText } from './errorText';
+import { RateLimitsForm } from './RateLimitsForm';
 
 /** A modal that must be answered before the page can be used again: Escape or Cancel leaves things as they were. */
 function GuardDialog({ title, children, confirmLabel, onConfirm, onCancel }: {
@@ -58,6 +59,7 @@ export function SystemTab() {
   };
 
   return (
+    <div className="scv-sys-stack">
     <form className="scv-sys" onSubmit={(e) => { e.preventDefault(); if (dirty && !busy) void save(); }} aria-label="System options">
       <fieldset className="scv-panel scv-admin-card scv-sys-option">
         <legend className="scv-sys-legend">Multiplayer mode</legend>
@@ -91,5 +93,7 @@ export function SystemTab() {
         </GuardDialog>
       )}
     </form>
+    <RateLimitsForm />
+    </div>
   );
 }

@@ -1119,7 +1119,8 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
         ? state.largeIdx < state.largePack.length
         : examinableAreas(state).includes(action.area);
       if (!lookable) return { state, events: [{ type: "blocked" }] };
-      return { state, events: [{ type: "sibylExamined" }] };
+      // A look at the pack reports the card in the event: the served state hides the packs (redactState), so the client cannot read it.
+      return { state, events: [action.area === undefined ? { type: "sibylExamined", card: state.largePack[state.largeIdx]! } : { type: "sibylExamined" }] };
     }
 
     case "move": {

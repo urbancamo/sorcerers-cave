@@ -42,11 +42,11 @@ describe("examineArea (SC-SIB-8)", () => {
     ]);
   });
 
-  it("changes nothing and emits one event with no card content", () => {
+  it("changes nothing; a look at the pack reports the top card in its event, a look at a tile carries none", () => {
     const s = withTiles();
     const pack = reduce(s, { type: "examineArea" });
     expect(pack.state).toEqual(s);
-    expect(pack.events).toEqual([{ type: "sibylExamined" }]);
+    expect(pack.events).toEqual([{ type: "sibylExamined", card: s.largePack[s.largeIdx] }]);
     const tileLook = reduce(s, { type: "examineArea", area: 1 });
     expect(tileLook.state).toEqual(s);
     expect(tileLook.events).toEqual([{ type: "sibylExamined" }]);
@@ -79,9 +79,9 @@ describe("examineArea in multiplayer (SC-SIB-8)", () => {
     parties: [partyAt(0, { hasSibyl: true }), partyAt(1)], order: [0, 1], pickOrder: [1, 0], active: 0, turnCount: 0,
   });
 
-  it("does not end the looking seat's turn, and the event carries no card content", () => {
+  it("does not end the looking seat's turn, and the event carries the top card for the looker only", () => {
     const r = mpReduce(game(), 0, { type: "examineArea" });
-    expect(r.events).toEqual([{ type: "sibylExamined" }]);
+    expect(r.events).toEqual([{ type: "sibylExamined", card: 31 }]);
     expect(r.state.active).toBe(0); // still seat 0's turn — a look is free
   });
 

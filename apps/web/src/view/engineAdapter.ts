@@ -13,6 +13,11 @@ const NUM_TO_DIR: Record<number, Dir> = { 1: "N", 2: "E", 3: "S", 4: "W", 5: "U"
 export interface AdapterOptions {
   /** Forward each accepted action (the seam D-3 uses to dispatch to Convex). */
   onAction?: (action: GameAction) => void;
+  /** A game played against the server: runs an action there and resolves with the new state and events (or null when it was not played).
+   *  The client is not given the seed or the card order (docs/security/review-2026-11.md, finding 1), so a move, which may draw a tile,
+   *  can only be decided by the server; the adapter then animates what it is sent. It does the sending, so `onAction` is not used for
+   *  a move. Without it (the tutorial, replays) the engine runs here, on the full state. */
+  act?: (action: GameAction) => Promise<{ state?: GameState; events: GameEvent[] } | null>;
   /** Multiplayer turn-gate: when present and false, no moves/exits are offered or accepted. */
   canAct?: () => boolean;
   /** Solo: treasure on the floor never has to be dealt with. During a pickup the doorways are offered, and walking through one
@@ -128,28 +133,38 @@ export function createCaveAdapter(initial: GameState, art: ArtTables, opts: Adap
       state = next;
       opts.onAction?.(action);
     },
-    tryMove(dir: Dir): MoveEvent {
+    async tryMove(dir: Dir): Promise<MoveEvent> {
       if (!acting()) return { moved: false }; // not your turn
       // Walking away from a pickup leaves the treasure first; only recorded once the move itself is accepted.
       const leave: GameAction | null = leavingPickup() ? { type: "leaveTreasure" } : null;
-      const before = leave ? reduce(state, leave).state : state;
       const num = DIR_TO_NUM[dir];
       const action: GameAction = { type: "move", dir: num };
-      const { state: next, events } = reduce(before, action);
-      const blocked = events.some((e) => e.type === "blocked");
+      let before = state;
+      let next: GameState;
+      let events: GameEvent[];
+      if (opts.act) {
+        // The server decides the move (it holds the packs and the seed). Leaving a pickup is a separate action, sent first.
+        if (leave) await opts.act(leave);
+        const res = await opts.act(action);
+        if (!res?.state || res.events.some((e) => e.type === "blocked")) return { moved: false }; // no exit that way — nothing drawn or placed
+        ({ state: next, events } = res);
+      } else {
+        before = leave ? reduce(state, leave).state : state;
+        ({ state: next, events } = reduce(before, action));
+        if (events.some((e) => e.type === "blocked")) return { moved: false }; // no exit that way — nothing drawn or placed
+        if (leave) opts.onAction?.(leave);
+      }
       const deadEnd = events.some((e) => e.type === "deadEnd");
-      if (blocked) return { moved: false }; // no exit that way — nothing drawn or placed
-      if (leave) opts.onAction?.(leave);
       if (deadEnd) {
         // a tile may have been drawn onto the frontier; keep the placement (pruned exit + face-down tile)
         state = next;
-        opts.onAction?.(action);
+        if (!opts.act) opts.onAction?.(action);
         const drew = next.areas.length > before.areas.length;
         const placed = drew ? projectArea(next.areas[next.areas.length - 1]!, next.areas.length - 1, next, art) : null;
         return { moved: false, deadEnd: true, placed, ...(events.some((e) => e.type === "deadEnd" && e.whirlpool) ? { whirlpool: true } : {}) };
       }
       state = next;
-      opts.onAction?.(action);
+      if (!opts.act) opts.onAction?.(action);
       const idx = next.partyArea;
       const arrived = next.areas[idx]!;
       const grew = next.areas.length > before.areas.length;

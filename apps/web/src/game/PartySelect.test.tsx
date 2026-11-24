@@ -1,4 +1,5 @@
-import { render, screen, fireEvent, within } from "@testing-library/react";
+import { render, screen, fireEvent, within, waitFor } from "@testing-library/react";
+import { ConvexError } from "convex/values";
 import { describe, it, expect, vi } from "vitest";
 import { PartySelect } from "./PartySelect";
 
@@ -51,6 +52,24 @@ describe("PartySelect", () => {
     fireEvent.click(screen.getByRole("button", { name: /add Woman/i }));
     fireEvent.click(screen.getByRole("button", { name: /^Enter the cave/i }));
     expect(onConfirm).toHaveBeenCalledWith([6], "yellow"); // default party colour
+  });
+
+  it("shows the reason when starting is refused (too many games started), and lets the player try again", async () => {
+    const onConfirm = vi.fn().mockRejectedValueOnce(new ConvexError("Too many games started. Please try again in about 10 minutes.")).mockResolvedValue(undefined);
+    render(<PartySelect onConfirm={onConfirm} />);
+    fireEvent.click(screen.getByRole("button", { name: /add Woman/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Enter the cave/i }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("Too many games started. Please try again in about 10 minutes.");
+    fireEvent.click(screen.getByRole("button", { name: /^Enter the cave/i }));
+    await waitFor(() => expect(screen.queryByRole("alert")).toBeNull()); // cleared on the next try
+    expect(onConfirm).toHaveBeenCalledTimes(2);
+  });
+
+  it("says something plain when starting fails for another reason", async () => {
+    render(<PartySelect onConfirm={() => Promise.reject(new Error("[CONVEX M(game:newGame)] Server Error"))} />);
+    fireEvent.click(screen.getByRole("button", { name: /add Woman/i }));
+    fireEvent.click(screen.getByRole("button", { name: /^Enter the cave/i }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("The game could not be started. Please try again.");
   });
 
   it("selects a party colour and reports it on confirm", () => {
