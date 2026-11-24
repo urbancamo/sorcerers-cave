@@ -65,6 +65,12 @@ export function eventNotices(events: GameEvent[]): Notice[] {
   return hazard === null ? out : out.map((n) => ({ ...n, hazard }));
 }
 
+/** The notices for a move made on the cave canvas. A move the engine refuses (`blocked`: no exit that way, or an exit already found to be a
+ *  dead end) is told by the canvas's own prompt line, so it opens no "Aftermath" dialog; every other event reads as usual (issue #134). */
+export function moveNotices(events: GameEvent[]): Notice[] {
+  return eventNotices(events.filter((e) => e.type !== "blocked"));
+}
+
 function eventNoticesUntagged(events: GameEvent[]): Notice[] {
   // The Viper Pit crossing has its own die-per-member overlay (see rollView), which shows the crossing
   // and any fatal falls — so suppress the duplicate text notices for it.

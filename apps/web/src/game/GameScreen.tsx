@@ -26,7 +26,7 @@ import { RevisedFightSurface } from "./RevisedFightSurface";
 import { useManifestCards, useManifestArt } from "../data/useManifestCards";
 import { DiceRoll } from "./DiceRoll";
 import { rollFromEvents, type RollView } from "./rollView";
-import { eventNotices, type Notice } from "./eventNotices";
+import { moveNotices, type Notice } from "./eventNotices";
 import { useDispatchWithRolls } from "./useDispatchWithRolls";
 import { showFightSurface } from "./fightGate";
 import { AutoHideRightPanels } from "./shell/AutoHideRightPanels";
@@ -138,7 +138,7 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
   const onMoveResolved = useCallback((events: GameEvent[], midState?: GameState) => {
     announceDeadEndSwaps(events); // Test Mode badge; its own state, so no GameScreen re-render
     const view = rollFromEvents(events);
-    const ns = eventNotices(events);
+    const ns = moveNotices(events);
     if (view || ns.length) onHoldMoveRef.current(midState ?? null, view, ns);
   }, []);
   // Bug fix (HQTZ-log.json): refuse a canvas-initiated move while a previous one's dice/notice is

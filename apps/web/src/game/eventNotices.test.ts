@@ -5,7 +5,7 @@ import {
   DIR_DOWN, DIR_UP,
   type GameEvent,
 } from "@sorcerers-cave/engine";
-import { eventNotices, noticeTone } from "./eventNotices";
+import { eventNotices, moveNotices, noticeTone } from "./eventNotices";
 
 describe("stranger loadout notices", () => {
   it("announces a stranger taking up an artefact, and an invulnerable bearer vanishing with the Ring", () => {
@@ -24,6 +24,13 @@ describe("Lotus Dust sleep notices", () => {
 });
 
 describe("eventNotices exhaustiveness (base hardening)", () => {
+  // Issue #134: bumping a known dead end on the canvas opened an "Aftermath: Nothing happens." dialog on top of the canvas's own message.
+  it("moveNotices keeps a refused canvas move silent, but still reports the other events of a move", () => {
+    expect(moveNotices([{ type: "blocked" }])).toEqual([]);
+    expect(moveNotices([{ type: "deadEnd", dir: 4 }])).toEqual([]);
+    expect(moveNotices([{ type: "blocked" }, { type: "dragonSlain" } as never]).length).toBe(eventNotices([{ type: "dragonSlain" } as never]).length);
+  });
+
   it("surfaces a generic notice for a blocked action (previously silent everywhere)", () => {
     const out = eventNotices([{ type: "blocked" }]);
     expect(out).toHaveLength(1);
