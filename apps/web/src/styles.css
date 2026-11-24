@@ -1701,6 +1701,21 @@
 }
 .scv-hs-input:focus { outline: none; border-color: var(--brass); }
 .scv-hs-entryrow .scv-primary { margin-top: 0; }
+/* the note under the label: names are checked. Quiet, but legible. */
+.scv-hs-hint { margin: 0; font-family: var(--ui); font-size: 12px; line-height: 1.5; color: var(--stone); }
+/* a name turned away: the reason, in the same red as the bug report's error, and the field marked */
+.scv-hs-error {
+  margin: 0;
+  padding: 9px 12px;
+  font-family: var(--ui);
+  font-size: 13px;
+  line-height: 1.4;
+  color: #e86b5c; /* DESIGN.md's legible-on-dark tint of Old Wound Red */
+  background: rgba(168, 68, 58, 0.12);
+  border: 1px solid var(--crimson);
+  border-radius: 9px;
+}
+.scv-hs-input[aria-invalid="true"] { border-color: var(--crimson); }
 
 /* ---- high-score table ---- */
 .scv-hs-wrap { margin-top: 14px; }

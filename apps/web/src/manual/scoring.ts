@@ -35,6 +35,7 @@ export const SCORING: Section = {
       p('You can end a run at any time with **Abandon** (in Settings) — but quitting *abandons* your party to the cave: they do not climb out. The score they had gathered is still tallied (a wiped party, of course, scores nothing), but an abandoned party cannot record a score.'),
     ] },
     { id: 'high-score-tables', title: 'The high-score tables', brief: 'Eight tables, because solo, multiplayer, kit and Sibyl games cannot fairly be compared.', cards: [], screens: ['high-scores', 'game-over'], blocks: [
+      p('The name you enter is shown to everyone and is **checked first**: an offensive name, or one that contains a web address, an email address or a phone number, is turned away, and you are asked for another. If the check cannot be made at that moment, try again.'),
       p('Enter a name to record an escaped party on the shared **high-score board**. It keeps separate tables for solitaire and multiplayer games, for base-game and Extension Kit games, and for games with or without the Sibyl — **eight tables** in all, because those games cannot fairly be compared. Switch between them with the buttons above the table. The **Depth** column shows the deepest level the party reached.'),
       p('A high-scoring solitaire escape is also given a **short story** — a tale written from the actual run, with the real events and invented names. Open the score and choose **Short story (PDF)** to download it; it can take a minute to appear after the score is recorded.'),
     ] },

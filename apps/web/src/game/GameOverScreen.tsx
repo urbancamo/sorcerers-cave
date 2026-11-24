@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { scoreBreakdown, GS_ESCAPED, GS_DEAD, GS_QUIT, type GameState } from "@sorcerers-cave/engine";
 import { LeaderboardPanel } from "./HighScores";
 import { downloadLog, type GameLog } from "./gameLog";
@@ -10,6 +10,9 @@ const OUTCOME: Record<number, string> = {
   [GS_DEAD]: "The party perished in the dark.",
   [GS_QUIT]: "You abandoned the expedition.",
 };
+
+/** The answer to saving a score: recorded, or refused with a reason to show beside the name. */
+export type ScoreResult = { ok: true; id: string } | { ok: false; reason: string };
 
 const STATUS_NOTE: Record<number, string> = { 2: "petrified", 3: "fallen" };
 
@@ -26,8 +29,9 @@ export function GameOverScreen({
   onNewGame: () => void;
   /** Label for the primary button (default "New game"; e.g. "Back to Standings" in multiplayer). */
   newGameLabel?: string;
-  /** Persist the score under `name`; returns the new record id (to highlight it). */
-  onSaveScore?: (name: string) => Promise<string | void>;
+  /** Persist the score under `name`. The name is screened: when it is refused (offensive, or it could not be checked) the answer carries the
+   *  reason and the form stays up for another; otherwise it carries the new record id (to highlight it). */
+  onSaveScore?: (name: string) => Promise<ScoreResult>;
   /** Leaderboard rows for the post-save table (undefined = loading). */
   /** This game's move log, if available — enables the .txt / .log downloads. */
   log?: GameLog | null;
@@ -43,6 +47,8 @@ export function GameOverScreen({
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
   const [savedId, setSavedId] = useState<string | null>(null);
+  const [nameError, setNameError] = useState<string | null>(null); // why the last name was turned away; the form stays up for another
+  const nameInput = useRef<HTMLInputElement>(null);
   const saved = savedId !== null;
   // Extension kit (SC-EXT-23, design US-25): the Idol's game-over reveal — a visible d6 animates onto
   // its final value before the rest of the roll call is shown. `breakdown.idolRoll` is undefined
@@ -53,9 +59,13 @@ export function GameOverScreen({
   const save = async () => {
     if (!onSaveScore || saving) return;
     setSaving(true);
+    setNameError(null);
     try {
-      const id = await onSaveScore(name.trim());
-      setSavedId(typeof id === "string" ? id : "");
+      const res = await onSaveScore(name.trim());
+      if (res.ok) setSavedId(res.id);
+      else { setNameError(res.reason); nameInput.current?.focus(); nameInput.current?.select(); }
+    } catch {
+      setNameError("The score could not be saved just now. Please try again.");
     } finally {
       setSaving(false);
     }
@@ -145,21 +155,28 @@ export function GameOverScreen({
             onSubmit={(e) => { e.preventDefault(); void save(); }}
           >
             <label className="scv-hs-label" htmlFor="scv-hs-name">Record this score as</label>
+            <p className="scv-hs-hint" id="scv-hs-hint">
+              The name goes on a public table and is checked first. Offensive names, and web addresses, email addresses and phone numbers, are turned away.
+            </p>
             <div className="scv-hs-entryrow">
               <input
                 id="scv-hs-name"
+                ref={nameInput}
                 className="scv-hs-input"
                 type="text"
                 maxLength={40}
                 placeholder="Your name"
                 value={name}
-                onChange={(e) => setName(e.target.value)}
+                onChange={(e) => { setName(e.target.value); setNameError(null); }}
+                aria-describedby={nameError ? "scv-hs-hint scv-hs-error" : "scv-hs-hint"}
+                aria-invalid={nameError ? true : undefined}
                 autoFocus
               />
               <button type="submit" className="scv-primary" disabled={saving}>
-                {saving ? "Saving…" : "Save score"}
+                {saving ? "Checking…" : "Save score"}
               </button>
             </div>
+            {nameError && <p className="scv-hs-error" id="scv-hs-error" role="alert" data-testid="name-error">{nameError}</p>}
           </form>
         )}
 

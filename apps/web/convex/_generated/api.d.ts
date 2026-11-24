@@ -23,6 +23,7 @@ import type * as http from "../http.js";
 import type * as inviteToken from "../inviteToken.js";
 import type * as invites from "../invites.js";
 import type * as multiplayer from "../multiplayer.js";
+import type * as nameCheck from "../nameCheck.js";
 import type * as passwords from "../passwords.js";
 import type * as roles from "../roles.js";
 import type * as settings from "../settings.js";
@@ -59,6 +60,7 @@ declare const fullApi: ApiFromModules<{
   inviteToken: typeof inviteToken;
   invites: typeof invites;
   multiplayer: typeof multiplayer;
+  nameCheck: typeof nameCheck;
   passwords: typeof passwords;
   roles: typeof roles;
   settings: typeof settings;

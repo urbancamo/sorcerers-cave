@@ -1,12 +1,18 @@
-import { internalMutation, mutation, query } from "./_generated/server";
+import { action, internalMutation, internalQuery, query, type QueryCtx } from "./_generated/server";
+import { internal } from "./_generated/api";
+import type { Id } from "./_generated/dataModel";
 import { paginationOptsValidator } from "convex/server";
 import { v } from "convex/values";
 import { getAuthUserId } from "@convex-dev/auth/server";
 import { queueStory } from "./stories";
+import { anthropicCall } from "./storyGen";
+import { moderateName } from "./nameCheck";
 import { scoreGame, unpackCoord, GS_PLAYING, GS_ESCAPED, type GameState, type GameEvent } from "@sorcerers-cave/engine";
 
 const MAX_NAME = 40;
 const LEADERBOARD_LIMIT = 100;
+// Names offered for one game (each one costs a moderation call): a few honest second thoughts, not a way to spend the API key.
+const MAX_NAME_ATTEMPTS = 10;
 
 /** The deepest level of any tile placed on the map — "lowest level reached" on the leaderboard. A level the party was dragged
  *  or dropped to counts, since the landing tile is placed there. */
@@ -16,37 +22,95 @@ export function deepestLevel(state: GameState): number {
 }
 
 /**
- * Record a finished game on the global leaderboard. The score is recomputed
- * server-side from the stored state (the client is never trusted for it), and
- * the full party + state snapshot is kept so the attributes can be inspected.
- * Idempotent per game: a second save returns the existing record.
+ * The checks a score must pass to be recorded, shared by `canSave` (before any money is spent on moderation) and `save`. Returns the entry
+ * already recorded for this game, if any (saving is idempotent), otherwise the game once every rule has held.
  */
-export const save = mutation({
-  args: { gameId: v.id("games"), name: v.string() },
-  handler: async (ctx, { gameId, name }) => {
-    const callerId = await getAuthUserId(ctx);
-    if (!callerId) throw new Error("Unauthenticated");
+async function saveable(ctx: QueryCtx, gameId: Id<"games">) {
+  const callerId = await getAuthUserId(ctx);
+  if (!callerId) throw new Error("Unauthenticated");
+  const game = await ctx.db.get(gameId);
+  if (!game) throw new Error("Game not found");
+  if (game.ownerId !== callerId) throw new Error("Forbidden"); // IDOR guard
+  if (game.status !== "finished") throw new Error("Game is not finished");
+
+  // Idempotent: don't double-record a game if save is retried.
+  const existing = await ctx.db
+    .query("highScores")
+    .withIndex("by_game", (q) => q.eq("gameId", gameId))
+    .first();
+  if (existing) return { callerId, game, existing: existing._id };
+
+  const state = game.state as GameState;
+  if (state.gs === GS_PLAYING) throw new Error("Game is still in progress");
+  // Only a party that climbed back to the surface earns a recordable score — an abandoned or
+  // wiped-out expedition is not valid for the leaderboard (§Scoring).
+  if (state.gs !== GS_ESCAPED) throw new Error("Only a party that escapes the cave can record a score");
+  if (state.testMode) throw new Error("Test-mode games cannot be recorded on the leaderboard"); // §Test Mode
+  // Only the standard stranger level is ranked (pluggable stranger combat spec D2): another level changes how hard the game is.
+  const level = state.variants?.strangerLevel;
+  if (level && level !== "standard") throw new Error("Games against a non-standard stranger level cannot be recorded on the leaderboard");
+  return { callerId, game, existing: null };
+}
+
+/** Whether this game's score can be recorded, and how many names have been offered for it. Throws as `save` would. */
+export const canSave = internalQuery({
+  args: { gameId: v.id("games") },
+  handler: async (ctx, { gameId }) => {
+    const { game, existing } = await saveable(ctx, gameId);
+    return { existing, attempts: game.nameAttempts ?? 0 };
+  },
+});
+
+/** Count one name offered for this game; false once it has had its share. */
+export const noteAttempt = internalMutation({
+  args: { gameId: v.id("games") },
+  handler: async (ctx, { gameId }) => {
     const game = await ctx.db.get(gameId);
     if (!game) throw new Error("Game not found");
-    if (game.ownerId !== callerId) throw new Error("Forbidden"); // IDOR guard
-    if (game.status !== "finished") throw new Error("Game is not finished");
+    const n = (game.nameAttempts ?? 0) + 1;
+    if (n > MAX_NAME_ATTEMPTS) return false;
+    await ctx.db.patch(gameId, { nameAttempts: n });
+    return true;
+  },
+});
 
-    // Idempotent: don't double-record a game if save is retried.
-    const existing = await ctx.db
-      .query("highScores")
-      .withIndex("by_game", (q) => q.eq("gameId", gameId))
-      .first();
-    if (existing) return existing._id;
+/**
+ * What a client calls to put a finished game on the board: the name is screened (nameCheck.ts) before anything is stored, and the form is
+ * sent back to the player, with a reason to show, when it is refused. A name that is flagged, or that could not be checked, saves nothing;
+ * the game stays finished and can be offered another name. `save` itself is internal, so there is no way to the board that skips this.
+ */
+export const submit = action({
+  args: { gameId: v.id("games"), name: v.string() },
+  handler: async (ctx, { gameId, name }): Promise<{ ok: true; id: Id<"highScores"> } | { ok: false; reason: string }> => {
+    if (!(await getAuthUserId(ctx))) throw new Error("Unauthenticated");
+    // The same rules as `save`, checked first so a request that could not be saved never costs a model call.
+    const { existing } = (await ctx.runQuery(internal.highScores.canSave, { gameId })) as { existing: Id<"highScores"> | null };
+    if (existing) return { ok: true, id: existing };
+    const cleanName = name.trim().slice(0, MAX_NAME); // empty becomes "Anonymous" in `save`: nothing to screen
+    if (cleanName) {
+      if (!(await ctx.runMutation(internal.highScores.noteAttempt, { gameId }))) {
+        return { ok: false, reason: "That is as many names as can be tried for this score. Record it as Anonymous, or leave it unrecorded." };
+      }
+      // No key configured: only the local check runs (see OPTIONS.md). A model failure is "try again", never a pass.
+      const verdict = await moderateName(process.env.ANTHROPIC_API_KEY ? anthropicCall : null, cleanName, process.env.NAME_CHECK_MODEL || undefined);
+      if (!verdict.ok) return { ok: false, reason: verdict.reason };
+    }
+    const id = (await ctx.runMutation(internal.highScores.save, { gameId, name: cleanName })) as Id<"highScores">;
+    return { ok: true, id };
+  },
+});
 
+/**
+ * Record a finished game on the global leaderboard. Internal: reached only through `submit`, which has screened the name. The score is
+ * recomputed server-side from the stored state (the client is never trusted for it), and the full party + state snapshot is kept so the
+ * attributes can be inspected. Idempotent per game: a second save returns the existing record.
+ */
+export const save = internalMutation({
+  args: { gameId: v.id("games"), name: v.string() },
+  handler: async (ctx, { gameId, name }) => {
+    const { callerId, game, existing } = await saveable(ctx, gameId);
+    if (existing) return existing;
     const state = game.state as GameState;
-    if (state.gs === GS_PLAYING) throw new Error("Game is still in progress");
-    // Only a party that climbed back to the surface earns a recordable score — an abandoned or
-    // wiped-out expedition is not valid for the leaderboard (§Scoring).
-    if (state.gs !== GS_ESCAPED) throw new Error("Only a party that escapes the cave can record a score");
-    if (state.testMode) throw new Error("Test-mode games cannot be recorded on the leaderboard"); // §Test Mode
-    // Only the standard stranger level is ranked (pluggable stranger combat spec D2): another level changes how hard the game is.
-    const level = state.variants?.strangerLevel;
-    if (level && level !== "standard") throw new Error("Games against a non-standard stranger level cannot be recorded on the leaderboard");
     const cleanName = name.trim().slice(0, MAX_NAME) || "Anonymous";
     const score = scoreGame(state); // authoritative — never trust a client score
 

@@ -237,6 +237,21 @@ npx convex env set GITHUB_ISSUES_TOKEN <token> --prod   # production
 Local dev and production currently share one Convex backend, so a report filed while testing lands in the real repository too.
 File test reports from a Test Mode game (labelled `test-mode`) and close them afterwards.
 
+## High-score names are screened (`ANTHROPIC_API_KEY`, `NAME_CHECK_MODEL`)
+
+The name a player enters for the public high-score table is checked before the score is recorded (`convex/nameCheck.ts`,
+`highScores.submit`; `highScores.save` is internal, so nothing skips the check).
+
+- **Local check, always on:** a web address, email address or phone number is refused, with no model call.
+- **Claude check, when `ANTHROPIC_API_KEY` is set** (the same key the short stories use): a small model answers `{"ok":true}` or
+  `{"ok":false}`. Anything else, an error or an 8-second timeout is "try again" and records nothing. The default model is
+  `claude-haiku-5-5`; override it with `npx convex env set NAME_CHECK_MODEL <model>` (add `--prod`).
+- **With no key set, only the local check runs**, so a deployment without a key still saves scores but does not screen for offensive
+  words. Set the key on the production deployment for the full check.
+- A refused name returns the player to the entry form with the reason. At most 10 names are tried per game (`MAX_NAME_ATTEMPTS`); each
+  tried name is one short model call.
+- Not covered: multiplayer party names (they reach the multiplayer table and chat unscreened).
+
 ## Short stories (auto-generated)
 
 High-scoring solo escapes get a short story written by Claude (plan: `docs/requirements/auto-short-story/plan.md`).

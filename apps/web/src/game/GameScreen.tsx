@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { useConvex, useConvexAuth, useMutation, useQuery } from "convex/react";
+import { useAction, useConvex, useConvexAuth, useMutation, useQuery } from "convex/react";
 import { useAuthActions } from "@convex-dev/auth/react";
 import type { Id } from "../../convex/_generated/dataModel";
 import { api } from "../../convex/_generated/api";
@@ -78,7 +78,7 @@ export default function GameScreen({ local = false, resume = false, onLocalExit,
   const newGame = useMutation(api.game.newGame);
   const saveGame = useMutation(api.game.save);
   const resumeByCode = useMutation(api.game.resumeByCode);
-  const saveScore = useMutation(api.highScores.save);
+  const saveScore = useAction(api.highScores.submit); // screens the name (an offensive one is sent back to the form) before recording the score
   // The admin Testing tab starts or forks a Test Mode game, then lands here with its id left in sessionStorage.
   const [handoff] = useState(() => (local ? null : (peekTestGameHandoff() as Id<"games"> | null)));
   useEffect(() => { clearTestGameHandoff(); }, []);

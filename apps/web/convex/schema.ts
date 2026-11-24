@@ -18,6 +18,8 @@ export default defineSchema({
     .index("phone", ["phone"]),
   games: defineTable({
     ownerId: v.optional(v.id("users")),
+    // High-score names offered for this game so far (each costs a moderation call; highScores.noteAttempt caps it).
+    nameAttempts: v.optional(v.number()),
     // Short, human-typable resume handle: four uppercase letters, unique across games. Optional so
     // games created before this feature still validate; every new game is allocated one.
     code: v.optional(v.string()),
