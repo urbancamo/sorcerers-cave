@@ -7,6 +7,7 @@ import {
   type GameEvent,
 } from "@sorcerers-cave/engine";
 import { firedSpent, ownerOf } from "./hazardCard";
+import { bellRopeExtraNotices } from "./rollView";
 
 // Exhaustiveness guard for the switch in eventNotices(): if a new GameEvent member is added
 // without a case below, TypeScript reports `x` as not assignable to `never` here — a compile
@@ -62,6 +63,11 @@ function hazardNotice(hz: number): Notice | null {
 export function eventNotices(events: GameEvent[]): Notice[] {
   return eventNoticesUntagged(events);
 }
+
+/** True when a dice popup does not tell the whole story, so the notices follow it once it is dismissed: a fall into the Trap after a fight
+ *  (it has no indicator of its own), and the extra cards the Bell Rope draws (a Demon, a Crypt, an Earthquake, ... each with its own
+ *  message, issue #133). Otherwise the dice already summarise the outcome and notices would repeat it. */
+export const noticesAfterRoll = (events: readonly GameEvent[]): boolean => events.some((e) => e.type === "trapSprung" || e.type === "bellRoll");
 
 /** The notices for a move made on the cave canvas. A move the engine refuses (`blocked`: no exit that way, or an exit already found to be a
  *  dead end) is told by the canvas's own prompt line, so it opens no "Aftermath" dialog; every other event reads as usual (issue #134). */
@@ -294,6 +300,7 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
       case "trapSprung": // the move-result trap indicator / confirm modal narrates an ordinary fall; these two add the WHY
         if (events.some((x) => x.type === "fightWon") && !e.guideLost && !e.deliberate) out.push({ text: "With the Ghouls gone, the floor gives way — the party plunges a level deeper!", tone: "bad" });   // the Trap is dealt with last, after a fight: no move indicator narrates this fall
         else if (e.guideLost) out.push({ text: "Without the Dwarf to guide it, the party is taken by the trap as it tries to leave.", tone: "bad" });
+        else if (events.some((x) => x.type === "bellRoll")) out.push({ text: "A Trap among the cards the rope drew — the floor gives way and the party plunges a level deeper!", tone: "bad" }); // no move indicator follows a Bell Rope pull
         else if (e.deliberate) out.push({ text: "The party drops through the trap on purpose — any strangers below are not expecting you, so you have the advantage of surprise.", tone: "good" });
         break;
       case "medusaLooms":
@@ -574,6 +581,8 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
   if (hadDesertionActivity && desertionRolls.length === 0) {
     out.push({ text: "The party holds together.", tone: "good", ...(firedSpent(events, HAZARD_DESERTION) ? { hazard: HAZARD_DESERTION } : {}) });
   }
+  // A Desertion or Quarrel among the Bell Rope's two extra cards: the Bell Rope's own dice are what show, so tell their results here.
+  out.push(...bellRopeExtraNotices(events));
   // Mutiny and Desertion only ever touch ALLIES. With none in the party they fire and change nothing, which used to read as a stuck card
   // (Peter, 2026-11-04 items 5 and 6): say so. (A Mutiny that did make someone desert has its own notice; a Wolf's skip has its own too.)
   const fired = (hz: number) => events.some((e) => e.type === "hazardFired" && e.hazard === hz);

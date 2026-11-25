@@ -31,6 +31,27 @@ describe("eventNotices exhaustiveness (base hardening)", () => {
     expect(moveNotices([{ type: "blocked" }, { type: "dragonSlain" } as never]).length).toBe(eventNotices([{ type: "dragonSlain" } as never]).length);
   });
 
+  // Issue #133: the cards a Bell Rope draws resolve normally, but its own dice popup hid a Desertion's or Quarrel's rolls and a Trap's fall.
+  describe("cards drawn by a Bell Rope pull", () => {
+    const stir: GameEvent = { type: "bellRoll", roll: 4, outcome: "stir", creatureId: 3 };
+    it("tells a Desertion's result, which the Bell Rope's dice would hide", () => {
+      const ns = eventNotices([stir, { type: "hazardFired", hazard: 5 }, { type: "desertionRoll", creatureId: 5, roll: 1, deserted: true, items: [] }]);
+      expect(ns.some((n) => /^Desertion:.*slips away/i.test(n.text))).toBe(true);
+    });
+    it("tells a Quarrel's result", () => {
+      const ns = eventNotices([stir, { type: "hazardFired", hazard: 7 }, { type: "quarrel", aId: 0, bId: 1, aRoll: 2, bRoll: 5, aTotal: 7, bTotal: 9, loserId: 0 } as GameEvent]);
+      expect(ns.some((n) => /^Quarrel:/.test(n.text))).toBe(true);
+    });
+    it("tells of a fall into the Trap", () => {
+      const ns = eventNotices([stir, { type: "hazardFired", hazard: 1 }, { type: "trapSprung", level: 2 } as GameEvent]);
+      expect(ns.some((n) => /plunges a level deeper/i.test(n.text))).toBe(true);
+    });
+    it("adds nothing for a Desertion that did not come from a Bell Rope (its own dice show it)", () => {
+      const ns = eventNotices([{ type: "hazardFired", hazard: 5 }, { type: "desertionRoll", creatureId: 5, roll: 1, deserted: true, items: [] }]);
+      expect(ns.some((n) => /^Desertion:/.test(n.text))).toBe(false);
+    });
+  });
+
   it("surfaces a generic notice for a blocked action (previously silent everywhere)", () => {
     const out = eventNotices([{ type: "blocked" }]);
     expect(out).toHaveLength(1);

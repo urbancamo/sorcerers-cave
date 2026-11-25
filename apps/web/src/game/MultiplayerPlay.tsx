@@ -22,7 +22,7 @@ import { readAutoWield, useAutoWield, writeAutoWield } from "./autoWield";
 import { rollFromEvents, type RollView } from "./rollView";
 import { NoticeModal } from "./NoticeModal";
 import { FeatCelebration } from "./FeatCelebration";
-import { eventNotices, type Notice } from "./eventNotices";
+import { eventNotices, noticesAfterRoll, type Notice } from "./eventNotices";
 import { ChatPanel } from "./ChatPanel";
 import { GameOverScreen } from "./GameOverScreen";
 import { ScoreboardPanel } from "./ScoreboardPanel";
@@ -193,7 +193,7 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
     const events = (res as { events?: GameEvent[] } | null)?.events ?? [];
     const v = rollFromEvents(events);
     if (v) setRoll(v);
-    else { const ns = eventNotices(events); if (ns.length) setNotices(ns); }
+    if (!v || noticesAfterRoll(events)) { const ns = eventNotices(events); if (ns.length) setNotices(ns); }
     return res;
   }, [actMut, gameId]);
   // Auto Wield/Wear on your own turn, when nothing is being shown or rolled.
@@ -387,7 +387,7 @@ export function MultiplayerPlay({ gameId, onExit }: { gameId: Id<"games">; onExi
       )}
       {showParty && <PartyPanel state={state} dispatch={dispatch} onClose={() => setShowParty(false)} />}
       {roll && <DiceRoll title={roll.title} lanes={roll.lanes} message={roll.message} tone={roll.tone} stakes={roll.stakes} hazard={roll.hazard} cards={cards ?? []} onContinue={() => setRoll(null)} />}
-      {notices && <NoticeModal notices={notices} cards={cards ?? []} onClose={() => setNotices(null)} />}
+      {notices && !roll && <NoticeModal notices={notices} cards={cards ?? []} onClose={() => setNotices(null)} />}
       {!roll && fightRoll && <DiceRoll title={fightRoll.title} lanes={fightRoll.lanes} message={fightRoll.message} tone={fightRoll.tone} onContinue={clearFightRoll} />}
       {!notices && fightNotices && <NoticeModal notices={fightNotices} onClose={clearFightNotices} />}
       {fightCelebration && <FeatCelebration view={fightCelebration} cards={cards ?? []} onContinue={clearFightCelebration} />}

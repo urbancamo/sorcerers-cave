@@ -302,6 +302,17 @@ export function rollFromEvents(events: GameEvent[]): RollView | null {
   return view && own !== undefined && firedSpent(events, own) ? { ...view, hazard: own } : view;
 }
 
+/** The Bell Rope's popup takes the dice, so the rolls of a Desertion or Quarrel among the two cards it draws would never be seen: the same
+ *  wording, as text for the notices that follow the dice (issue #133). Empty when no Bell Rope was pulled. */
+export function bellRopeExtraNotices(events: GameEvent[]): { text: string; tone: Tone; hazard?: number }[] {
+  if (!events.some((e) => e.type === "bellRoll")) return [];
+  return [desertionView(events), quarrelView(events)].flatMap((v) => {
+    if (!v) return [];
+    const hazard = OWN_HAZARD[v.title];
+    return [{ text: `${v.title}: ${v.message}`, tone: v.tone, ...(hazard !== undefined && firedSpent(events, hazard) ? { hazard } : {}) }];
+  });
+}
+
 function rollFromEventsUntagged(events: GameEvent[]): RollView | null {
   const reaction = events.find((e): e is Extract<GameEvent, { type: "reaction" }> => e.type === "reaction");
   if (reaction) {

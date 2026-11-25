@@ -70,6 +70,23 @@ describe("useDispatchWithRolls", () => {
     expect(result.current.notices?.some((n) => /floor gives way/i.test(n.text))).toBe(true);
   });
 
+  // Issue #133: a Bell Rope pull drew a Demon and a Crypt, but only the dice popup showed, so the Demon's message never appeared.
+  it("shows the messages for the cards a Bell Rope draws after its dice", async () => {
+    const d = deferred();
+    const { result } = renderHook(() => useDispatchWithRolls(() => d.promise));
+    act(() => { void result.current.dispatchWithRolls({ type: "pullBellRope", mi: 0 } as GameAction); });
+    await act(async () => {
+      d.resolve({ state: {}, events: [
+        { type: "bellRoll", roll: 4, outcome: "stir", creatureId: 3 } as GameEvent,
+        { type: "demonSpawned" } as GameEvent,
+        { type: "cryptParked" } as GameEvent,
+      ] });
+    });
+    expect(result.current.roll?.title).toBe("The Bell Rope");
+    expect(result.current.notices?.some((n) => /vast and wrong/i.test(n.text))).toBe(true);
+    expect(result.current.notices?.some((n) => /sealed crypt/i.test(n.text))).toBe(true);
+  });
+
   it("holds the pre-action snapshot until the roll is dismissed (background must not jump)", async () => {
     const d = deferred();
     const snapshot = { marker: "pre-action" };

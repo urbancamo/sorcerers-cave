@@ -11,7 +11,7 @@
 import { useCallback, useState } from "react";
 import type { GameAction, GameEvent } from "@sorcerers-cave/engine";
 import { rollFromEvents, type RollView } from "./rollView";
-import { eventNotices, type Notice } from "./eventNotices";
+import { eventNotices, noticesAfterRoll, type Notice } from "./eventNotices";
 import { featsFromEvents, type FeatView } from "./feats";
 
 type DispatchResult = { state?: unknown; events?: GameEvent[]; midState?: unknown } | null;
@@ -46,8 +46,8 @@ export function useDispatchWithRolls<S = unknown>(
         // surface any silent-event notices (artifact effects, lulled dragons, …). The hold
         // persists while either is up; with neither there is nothing to wait for — release.
         if (view) setRoll(view);
-        // A fall after a fight (the Trap is dealt with last) has no move indicator of its own: its notice waits behind the dice.
-        if ((!view || events.some((e) => e.type === "trapSprung")) && ns.length) setNotices(ns);
+        // A fall after a fight, or the cards a Bell Rope draws, are not told by the dice: their notices wait behind them (noticesAfterRoll).
+        if ((!view || noticesAfterRoll(events)) && ns.length) setNotices(ns);
         if (!view && !ns.length) setHeldState(null);
         return res;
       } catch (e) {
