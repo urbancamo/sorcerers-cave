@@ -97,6 +97,8 @@ export type GameAction =
   | { type: "stay" }   // the revised combat: remain in the area after the Sorcerer's death instead of leaving, and so meet the turncoat Apprentice
   | { type: "testPlaceArea"; dir: number; special: number }
   | { type: "testSetChamber"; strangers: number[]; treasures: number[]; hazards: number[] }
+  // The two cards the next Bell Rope pull that stirs draws (SC-Test-13): one or two ids in total, the same lists as testSetChamber.
+  | { type: "testSetBellCards"; strangers: number[]; treasures: number[]; hazards: number[] }
   | { type: "testForceReaction"; outcome: "friendly" | "indifferent" | "hostile" }
   // Next Roll Selector (2026-09-11, SC-Test-10): force the next raw d6 (`testForceDie`, one-shot)
   // or every raw d6 for the rest of the turn (`testForceAllDice`) — a lower-level alternative to
@@ -413,6 +415,7 @@ export type GameEvent =
   // informational — the TestControlsPanel (apps/web) already shows the armed override directly.
   | { type: "testAreaQueued"; dir: number; special: number }
   | { type: "testChamberQueued"; strangers: number[]; treasures: number[]; hazards: number[] }
+  | { type: "testBellCardsQueued"; strangers: number[]; treasures: number[]; hazards: number[] }
   | { type: "testReactionQueued"; outcome: "friendly" | "indifferent" | "hostile" }
   | { type: "testDieQueued"; value: number }
   | { type: "testAllDiceQueued"; value: number }

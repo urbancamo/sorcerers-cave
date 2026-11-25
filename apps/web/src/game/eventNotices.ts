@@ -164,6 +164,7 @@ function eventNoticesUntagged(events: GameEvent[]): Notice[] {
       // nothing to narrate here.
       case "testAreaQueued":
       case "testChamberQueued":
+      case "testBellCardsQueued":
       case "testReactionQueued":
       case "testDieQueued":
       case "testAllDiceQueued":

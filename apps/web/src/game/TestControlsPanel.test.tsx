@@ -219,6 +219,34 @@ describe("TestControlsPanel", () => {
     expect(screen.getByTestId("test-controls")).toHaveTextContent(/whirlpool/i);
   });
 
+  // Choose the two cards a Bell Rope pull draws, from the same lists as the chamber queue (SC-Test-13).
+  describe("Bell Rope cards", () => {
+    const button = () => screen.getByRole("button", { name: /queue bell rope cards/i }) as HTMLButtonElement;
+    it("is disabled until a card is chosen, then queues testSetBellCards with the chosen lists", () => {
+      const dispatch = vi.fn();
+      render(<TestControlsPanel state={kitOnState()} dispatch={dispatch} />);
+      expect(button().disabled).toBe(true);
+      fireEvent.change(screen.getByLabelText("Add a creature"), { target: { value: "5" } });
+      fireEvent.change(screen.getByLabelText("Add a hazard"), { target: { value: "2" } });
+      expect(button().disabled).toBe(false);
+      fireEvent.click(button());
+      expect(dispatch).toHaveBeenCalledWith({ type: "testSetBellCards", strangers: [5], treasures: [], hazards: [2] });
+    });
+
+    it("refuses more than two cards and says why", () => {
+      render(<TestControlsPanel state={kitOnState()} dispatch={() => {}} />);
+      for (const id of ["5", "6", "7"]) fireEvent.change(screen.getByLabelText("Add a creature"), { target: { value: id } });
+      expect(button().disabled).toBe(true);
+      expect(screen.getByText(/choose no more than two/i)).toBeInTheDocument();
+    });
+
+    it("shows what is armed for the next pull", () => {
+      const s = kitOnState({ testNextBellCards: { strangers: [5], treasures: [], hazards: [2] } });
+      render(<TestControlsPanel state={s} dispatch={() => {}} />);
+      expect(screen.getByText(/armed for the next bell rope pull: 1 strangers, 0 treasures, 1 hazards/i)).toBeInTheDocument();
+    });
+  });
+
   it("adds a creature to the chamber picker and queues testSetChamber with it", () => {
     const dispatch = vi.fn();
     render(<TestControlsPanel state={testState()} dispatch={dispatch} />);

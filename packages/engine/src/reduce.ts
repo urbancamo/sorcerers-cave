@@ -6,7 +6,7 @@ import { decodeArea, decodeOpen } from "./decode";
 import { SPECIAL_DEEP_POOL, SPECIAL_VIPER_PIT, SPECIAL_CHASM, SPECIAL_WHIRLPOOL, SPECIAL_WELL, SPECIAL_BELL_ROPE, SPECIAL_GREAT_HALL, TILE_MIN, TILE_MAX, TILE_TUNNEL_ES } from "./data/areaCards";
 import { setMidState, stageMidStateOnce, clearMidState, takeMidState } from "./midState";
 import { viperCrossing, deepPoolCrossing, whirlpoolCrossing, giantCanRecover, sunkKey, tryReclaimSunk } from "./special";
-import { enterChamber, drawSmallCards } from "./chamber";
+import { enterChamber, drawSmallCards, drawCodes } from "./chamber";
 import { applyHazards, hasStaffWizard, livingDwarfCount } from "./hazards";
 import { HAZARD_MEDUSA, HAZARD_TRAP, HAZARD_NAMES } from "./data/hazards";
 import { takeTreasure, canCarry, carriedWeight } from "./pickup";
@@ -930,6 +930,17 @@ function carpetMove(state: GameState, dir: number): void {
   state.fellThroughTrap = false; // carpet links both ways
   state.deliberateFall = true; // R-28 (MSW 2026-11-08, Peter's "Determining Surprise Attack"): a route that cannot be walked back always earns surprise
   delete state.subLocation; // Precise Locations (§10.5): a real position change invalidates any jump override
+}
+
+/** Variant gating (SC-Test-6) for the content a test action scripts: a kit-only creature/treasure/hazard id is invalid in a kit-off game — an id is
+ *  kit-only iff it falls beyond the base table's own length, which stays correct even if a future kit expansion changes the counts. The Sibyl
+ *  (id 21, SC-SIB-1) sits beyond the base table too but belongs to her OWN variant, not the kit's: she is valid exactly when `variants.sibyl` is on. */
+function testContentInvalid(state: GameState, c: { strangers: number[]; treasures: number[]; hazards: number[] }): boolean {
+  if (c.strangers.includes(C_SIBYL) && !state.variants?.sibyl) return true;
+  if (state.variants?.extensionKit) return false;
+  return c.strangers.some((id) => id >= BASE_CREATURES.length && id !== C_SIBYL)
+    || c.treasures.some((id) => id >= BASE_TREASURES.length)
+    || c.hazards.some((id) => id >= HAZARD_NAMES.length);
 }
 
 export function reduce(
@@ -2363,7 +2374,10 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       const next = structuredClone(state);
       next.areas[next.partyArea]!.flags |= AF_BELL_SPENT; // spent forever, whatever the roll (design US-03)
       const creatureId = next.party[action.mi]!.creatureId;
-      const roll = cursedRoll(next);
+      // Test Mode (SC-Test-13): with cards queued the pull always stirs, so a die of 1-3 is raised to 4. The die is still rolled, so the
+      // random sequence and any forced-dice override behave as in an ordinary pull.
+      const rolled = cursedRoll(next);
+      const roll = next.testMode && next.testNextBellCards && rolled < 4 ? 4 : rolled;
       const events: GameEvent[] = [];
       if (roll === 1) {
         // Desertion semantics (design Resolved-3): removed from the game with everything carried —
@@ -2384,7 +2398,14 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       }
       events.push({ type: "bellRoll", roll, outcome: "stir", creatureId });
       const hadCrypt = next.cryptCoord !== undefined; // SC-EXT-13: tell a freshly-parked Crypt apart
-      drawSmallCards(next, 2, events); // two codes, appended onto whatever's already in the working set
+      // Test Mode (SC-Test-13): an armed testNextBellCards stands in for the two draws; the pack is not advanced.
+      if (next.testMode && next.testNextBellCards) {
+        const { strangers, treasures, hazards } = next.testNextBellCards;
+        delete next.testNextBellCards;
+        drawCodes(next, [...strangers.map((id) => 100 + id), ...treasures.map((id) => 200 + id), ...hazards.map((id) => 300 + id)], events);
+      } else {
+        drawSmallCards(next, 2, events); // two codes, appended onto whatever's already in the working set
+      }
       if (!hadCrypt && next.cryptCoord === next.areas[next.partyArea]!.coord) events.push({ type: "cryptParked" });
       next.noWithdrawTurn = next.turn; // blocks withdraw this turn only (SC-EXT-9)
       resolveExtraDraw(next, events); // strangers/hazards resolve normally, same as any chamber draw
@@ -2443,22 +2464,20 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
 
     case "testSetChamber": {
       if (!state.testMode) return { state, events: [{ type: "blocked" }] };
-      // Variant gating (SC-Test-6): a kit-only creature/treasure/hazard id is invalid content for
-      // a kit-off game — an id is kit-only iff it falls beyond the base table's own length, which
-      // stays correct even if a future kit expansion changes the counts.
-      // The Sibyl (id 21, SC-SIB-1) sits beyond the base table too but belongs to her OWN variant, not the
-      // kit's: she is valid exactly when `variants.sibyl` is on, whether or not the kit is.
-      if (action.strangers.includes(C_SIBYL) && !state.variants?.sibyl) return { state, events: [{ type: "blocked" }] };
-      if (!state.variants?.extensionKit) {
-        const kitOnly =
-          action.strangers.some((id) => id >= BASE_CREATURES.length && id !== C_SIBYL) ||
-          action.treasures.some((id) => id >= BASE_TREASURES.length) ||
-          action.hazards.some((id) => id >= HAZARD_NAMES.length);
-        if (kitOnly) return { state, events: [{ type: "blocked" }] };
-      }
+      if (testContentInvalid(state, action)) return { state, events: [{ type: "blocked" }] };
       const next = structuredClone(state);
       next.testNextChamber = { strangers: [...action.strangers], treasures: [...action.treasures], hazards: [...action.hazards] };
       return { state: next, events: [{ type: "testChamberQueued", strangers: [...action.strangers], treasures: [...action.treasures], hazards: [...action.hazards] }] };
+    }
+
+    case "testSetBellCards": {
+      if (!state.testMode) return { state, events: [{ type: "blocked" }] };
+      // The pull draws two cards: one or two ids in total (a single card leaves the other draw out), valid for the active variants.
+      const total = action.strangers.length + action.treasures.length + action.hazards.length;
+      if (total < 1 || total > 2 || testContentInvalid(state, action)) return { state, events: [{ type: "blocked" }] };
+      const next = structuredClone(state);
+      next.testNextBellCards = { strangers: [...action.strangers], treasures: [...action.treasures], hazards: [...action.hazards] };
+      return { state: next, events: [{ type: "testBellCardsQueued", strangers: [...action.strangers], treasures: [...action.treasures], hazards: [...action.hazards] }] };
     }
 
     case "testForceReaction": {
@@ -2497,6 +2516,7 @@ function reduceCore(state: GameState, action: GameAction): { state: GameState; e
       const next = structuredClone(state);
       delete next.testNextArea;
       delete next.testNextChamber;
+      delete next.testNextBellCards;
       delete next.testNextReaction;
       delete next.testNextDie;
       delete next.testAllDiceRoll;

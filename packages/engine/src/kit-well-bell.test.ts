@@ -5,7 +5,7 @@ import { makeState } from "./testkit";
 import { rollDie } from "./rng";
 import { packCoord, DIR_E } from "./coords";
 import { SPECIAL_WELL, SPECIAL_BELL_ROPE } from "./data/areaCards";
-import { HAZARD_TRAP, HAZARD_MEDUSA } from "./data/hazards";
+import { HAZARD_TRAP, HAZARD_MEDUSA, HAZARD_EARTHQUAKE } from "./data/hazards";
 import { GS_PLAYING, GS_DEAD, AF_BELL_SPENT, AF_WELL_SPENT, type GameState, type PartyMember } from "./state";
 
 /**
@@ -478,5 +478,65 @@ describe("A Medusa pause opened by an extra draw resumes without re-breaking SC-
     const resumed = reduce(pulled.state, { type: "proceed" });
     expect(resumed.events.some((e) => e.type === "dragonsLulled")).toBe(false);
     expect(resumed.state.strangers).toEqual([DRAGON]);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------
+// Test Mode: choose the two cards a Bell Rope pull draws (SC-Test-13)
+// ---------------------------------------------------------------------------------------------
+
+describe("Test Mode — testSetBellCards (SC-Test-13)", () => {
+  const armed = (over: Partial<GameState> = {}) => bellState({ party: [member(HERO)], testMode: true, smallPack: [100 + MAN, 100 + MAN], ...over });
+  const arm = (s: GameState, c: { strangers?: number[]; treasures?: number[]; hazards?: number[] }) =>
+    reduce(s, { type: "testSetBellCards", strangers: c.strangers ?? [], treasures: c.treasures ?? [], hazards: c.hazards ?? [] });
+
+  it("arms testNextBellCards and announces it", () => {
+    const { state, events } = arm(armed(), { strangers: [MAN], hazards: [HAZARD_MEDUSA] });
+    expect(state.testNextBellCards).toEqual({ strangers: [MAN], treasures: [], hazards: [HAZARD_MEDUSA] });
+    expect(events).toEqual([{ type: "testBellCardsQueued", strangers: [MAN], treasures: [], hazards: [HAZARD_MEDUSA] }]);
+  });
+
+  it("is blocked outside Test Mode, and for no card or more than two", () => {
+    expect(arm(armed({ testMode: undefined }), { strangers: [MAN] }).events).toEqual([{ type: "blocked" }]);
+    expect(arm(armed(), {}).events).toEqual([{ type: "blocked" }]);
+    expect(arm(armed(), { strangers: [MAN, MAN, MAN] }).events).toEqual([{ type: "blocked" }]);
+  });
+
+  it("a stir draws the chosen cards instead of the pack's, and leaves the pack untouched", () => {
+    const s = arm(armed({ seed: seedForStir() }), { strangers: [HERO], hazards: [HAZARD_EARTHQUAKE] }).state;
+    const { state, events } = reduce(s, { type: "pullBellRope", mi: 0 });
+    expect(events).toContainEqual(expect.objectContaining({ type: "bellRoll", outcome: "stir" }));
+    expect(events).toContainEqual(expect.objectContaining({ type: "hazardFired", hazard: HAZARD_EARTHQUAKE })); // resolved exactly like a real draw
+    expect(state.smallIdx).toBe(0); // the shuffled pack is not advanced
+    expect(state.testNextBellCards).toBeUndefined(); // consumed
+  });
+
+  // The tester asked for the two cards, so the dice must never take them away: any roll becomes a stir (a 4 when the die said 1-3).
+  it("always stirs when cards are queued, whatever the die rolls (a vanish or a toll becomes a 4)", () => {
+    for (const seed of [seedForVanish(), seedForToll(), seedForStir()]) {
+      const s = arm(armed({ seed }), { strangers: [HERO] }).state;
+      const { state, events } = reduce(s, { type: "pullBellRope", mi: 0 });
+      const roll = events.find((e) => e.type === "bellRoll") as { roll: number; outcome: string };
+      expect(roll.outcome).toBe("stir");
+      expect(roll.roll).toBeGreaterThanOrEqual(4);
+      expect(state.party).toHaveLength(1); // nobody vanished
+      expect(state.strangers).toEqual([HERO]);
+      expect(state.testNextBellCards).toBeUndefined();
+    }
+  });
+
+  it("an unqueued pull still rolls normally, and testClearOverrides removes a queue before it is used", () => {
+    expect(reduce(armed({ seed: seedForToll() }), { type: "pullBellRope", mi: 0 }).events).toContainEqual(expect.objectContaining({ outcome: "toll" }));
+    const s = arm(armed({ seed: seedForToll() }), { strangers: [MAN] }).state;
+    const cleared = reduce(s, { type: "testClearOverrides" }).state;
+    expect(cleared.testNextBellCards).toBeUndefined();
+    expect(reduce(cleared, { type: "pullBellRope", mi: 0 }).events).toContainEqual(expect.objectContaining({ outcome: "toll" }));
+  });
+
+  it("without it a stir still draws from the pack (and a hand-crafted non-test state ignores a stray override)", () => {
+    const real = reduce(armed({ seed: seedForStir() }), { type: "pullBellRope", mi: 0 });
+    expect(real.state.smallIdx).toBe(2);
+    const stray = armed({ seed: seedForStir(), testMode: undefined, testNextBellCards: { strangers: [HERO], treasures: [], hazards: [] } });
+    expect(reduce(stray, { type: "pullBellRope", mi: 0 }).state.smallIdx).toBe(2);
   });
 });

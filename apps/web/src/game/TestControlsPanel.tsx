@@ -153,6 +153,7 @@ export function TestControlsPanel({ state, dispatch, onSave, onRestart, open = t
     lastArea.current = state.partyArea;
     setStrangers([]);
   }, [state.partyArea]);
+  const bellCards = strangers.length + treasures.length + hazards.length; // the Bell Rope pull draws two cards
   if (!state.testMode || !open) return null; // `open` is driven by the title bar's T icon in the thin shell
 
   const startDrag = (e: React.PointerEvent<HTMLDivElement>) => {
@@ -283,6 +284,19 @@ export function TestControlsPanel({ state, dispatch, onSave, onRestart, open = t
         {state.testNextChamber && (
           <p className="scv-tc-armed">
             Armed: {state.testNextChamber.strangers.length} strangers, {state.testNextChamber.treasures.length} treasures, {state.testNextChamber.hazards.length} hazards
+          </p>
+        )}
+        {/* The Bell Rope's pull (a roll of 4-6) draws two cards: the lists above can script them instead, one or two in total. */}
+        <button type="button"
+                disabled={bellCards < 1 || bellCards > 2}
+                title="Choose the cards the next Bell Rope pull draws: one or two in total from the lists above. The pull then always draws them, whatever the die rolls."
+                onClick={() => dispatch({ type: "testSetBellCards", strangers, treasures, hazards })}>
+          Queue Bell Rope cards
+        </button>
+        {bellCards > 2 && <p className="scv-tc-armed">The Bell Rope draws two cards: choose no more than two.</p>}
+        {state.testNextBellCards && (
+          <p className="scv-tc-armed">
+            Armed for the next Bell Rope pull: {state.testNextBellCards.strangers.length} strangers, {state.testNextBellCards.treasures.length} treasures, {state.testNextBellCards.hazards.length} hazards
           </p>
         )}
       </div>

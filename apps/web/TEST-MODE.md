@@ -3,7 +3,7 @@
 Test Mode is a QA-only harness that lets a tester script the next area drawn (including any plain
 chamber/tunnel shape, not just the special areas), a chamber's contents, or a forced reaction
 outcome, then play the scenario out through the normal solo UI. Full spec: `docs/specs/engine-spec.md`
-(§Test Mode, `SC-Test-1`..`SC-Test-10`).
+(§Test Mode, `SC-Test-1`..`SC-Test-13`).
 
 It is gated behind the `TEST` role so it can never be reached from a real game:
 
@@ -63,6 +63,17 @@ The panel's "Next reaction" buttons are now a **Next Roll Selector** toggle with
 
 This is the tool for scripting anything that isn't a reaction — "the party's next fight round rolls
 a 6," "the Whirlpool crossing always drags them down this turn," "the Chest always yields Gems."
+
+## Choosing the Bell Rope's cards (2026-11-25)
+
+A Bell Rope pull that stirs (a d6 of 4-6) draws two cards from the small-card pack. The Bell Rope area never
+draws a chamber, so "Queue next chamber" cannot script it. Instead, pick **one or two** cards in the same
+Strangers / Treasures / Hazards lists and press **Queue Bell Rope cards** (enabled only for one or two cards in
+total). The next pull then **always draws those cards**, whatever the die says (a 1-3 is raised to 4, so the
+puller never vanishes and the bell never merely tolls), resolved like a real draw (a Demon, the Crypt, an
+Earthquake, a Quarrel, a Trap, ...), and the shuffled pack is not advanced. "Armed for the next Bell Rope pull"
+shows what is queued; "Clear all overrides" removes it. Arm it once the party is standing on the Bell Rope: entering a
+different area clears the strangers list, as it does for a queued chamber.
 
 ## Saving and restoring a scenario for a bug report (2026-09-11)
 

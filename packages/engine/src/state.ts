@@ -429,6 +429,9 @@ export interface GameState {
   // ordinary move, the Magic Carpet, a trap fall, a Chasm descent — chamber.ts's `enterChamber`).
   // Replaces the normal smallPack draw; smallIdx is left untouched.
   testNextChamber?: { strangers: number[]; treasures: number[]; hazards: number[] };
+  // Armed by `testSetBellCards`; consumed by the next Bell Rope pull that stirs (roll 4-6) in place of its two small-pack draws (the pack is
+  // left untouched). The Bell Rope area never draws a chamber, so `testNextChamber` cannot reach it.
+  testNextBellCards?: { strangers: number[]; treasures: number[]; hazards: number[] };
   // Armed by `testForceReaction`; consumed by the next `test` (reaction) action in place of
   // reactionRoll's die.
   testNextReaction?: "friendly" | "indifferent" | "hostile";

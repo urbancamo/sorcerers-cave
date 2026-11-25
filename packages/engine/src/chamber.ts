@@ -299,6 +299,11 @@ export function stashOrDeliver(state: GameState, treasureIds: readonly number[],
  * draw) onto the caller-supplied `events` — the caller (reduce.ts) additionally reports the draw
  * itself with its own event (`wellDraw` / `bellRoll`).
  */
+/** Test Mode: put these small-card codes (100+creature, 200+treasure, 300+hazard) into the chamber exactly as a real draw would. */
+export function drawCodes(state: GameState, codes: number[], events: GameEvent[]): void {
+  for (const code of codes) classify(state, code, events);
+}
+
 export function drawSmallCards(state: GameState, count: number, events: GameEvent[]): void {
   for (let i = 0; i < count && state.smallIdx < state.smallPack.length; i++) {
     classify(state, state.smallPack[state.smallIdx++]!, events);

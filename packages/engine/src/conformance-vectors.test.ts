@@ -126,6 +126,7 @@ function encodeAction(a: GameAction): string {
     // exhaustive over the full GameAction union; no committed vector file will ever contain them.
     case "testPlaceArea": return `TESTPLACEAREA ${a.dir} ${a.special}`;
     case "testSetChamber": return `TESTSETCHAMBER ${list(a.strangers)}/${list(a.treasures)}/${list(a.hazards)}`;
+    case "testSetBellCards": return `TESTSETBELLCARDS ${list(a.strangers)}/${list(a.treasures)}/${list(a.hazards)}`;
     case "testForceReaction": return `TESTFORCEREACTION ${a.outcome.toUpperCase()}`;
     case "testForceDie": return `TESTFORCEDIE ${a.value}`;
     case "testForceAllDice": return `TESTFORCEALLDICE ${a.value}`;

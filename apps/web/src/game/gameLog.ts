@@ -271,6 +271,7 @@ export function describeEvent(e: GameEvent, state?: GameState | null): string {
     case "shieldWarded": return `the Magic Shield warded off ${creature(e.creatureId)} (${e.mode})`;
     case "testAreaQueued": return `test mode: next area queued (special ${e.special}, dir ${dir(e.dir)})`;
     case "testChamberQueued": return `test mode: next chamber queued (S:${e.strangers.length} T:${e.treasures.length} H:${e.hazards.length})`;
+    case "testBellCardsQueued": return `test mode: next Bell Rope pull will draw (S:${e.strangers.length} T:${e.treasures.length} H:${e.hazards.length})`;
     case "testReactionQueued": return `test mode: next reaction forced to ${e.outcome}`;
     case "testDieQueued": return `test mode: next die roll forced to ${e.value}`;
     case "testAllDiceQueued": return `test mode: all die rolls forced to ${e.value} until end of turn`;
@@ -620,6 +621,7 @@ export function eventCode(e: GameEvent): string | null {
     case "shieldWarded": return `SHW ${cr3(e.creatureId)} ${e.mode === "nullify" ? "NUL" : "WKN"}`;
     case "testAreaQueued": return "TST A";
     case "testChamberQueued": return "TST C";
+    case "testBellCardsQueued": return "TST B";
     case "testReactionQueued": return `TST R ${e.outcome.slice(0, 3).toUpperCase()}`;
     case "testDieQueued": return `TST D ${e.value}`;
     case "testAllDiceQueued": return `TST AD ${e.value}`;
