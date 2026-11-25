@@ -74,6 +74,12 @@ describe('buildBody', () => {
     expect(body).not.toContain('<details>');
     expect(body).toContain('too large');
   });
+  test('says the log is withheld, and does not point to a replay, for a game still in progress', () => {
+    const body = buildBody(input({ log: null }));
+    expect(body).toContain('still in progress');
+    expect(body).not.toContain('replay by code');
+    expect(body).not.toContain('<details>');
+  });
   test('works without a game', () => {
     const body = buildBody(input({ game: null, log: null }));
     expect(body).toContain('No game was attached');

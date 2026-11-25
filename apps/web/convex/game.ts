@@ -1,5 +1,5 @@
 import { checkRate } from "./rateLimits";
-import { mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
+import { internalQuery, mutation, query, type MutationCtx, type QueryCtx } from "./_generated/server";
 import type { Doc } from "./_generated/dataModel";
 import { v } from "convex/values";
 import { nextSeq, park } from "./strangerDecision";
@@ -367,28 +367,61 @@ export const replayByCode = query({
     if (game.mode === "multi") return null; // solo only in this milestone (RB-1-6)
     // A game still being played would hand over its seed (so its owner could play ahead): finished games, and Test Mode QA fixtures, only.
     if (game.status === "active" && !(game.state as GameState).testMode) return null;
-    const rows = await ctx.db
-      .query("gameEvents")
-      .withIndex("by_game", (q) => q.eq("gameId", game._id))
-      .collect(); // index order = seq ascending
-    return {
-      // reconstructable-from-scratch only when the initial conditions were persisted (RB-1-5)
-      replayable: game.seed != null && game.picks != null,
-      game: {
-        code: game.code ?? null,
-        seed: game.seed ?? null,
-        picks: game.picks ?? null,
-        color: game.color ?? null,
-        status: game.status,
-        createdAt: game.createdAt,
-        variants: game.variants ?? undefined, // extensionKit (SC-EXT-29) — undefined ⇒ kit-off
-        // Test Mode (SC-Test-1): read from the persisted state (server-authoritative, same pattern
-        // highScores.ts's `save` uses for its own testMode check), NOT a top-level row column like
-        // `variants` — so replay() can thread it through exactly as variants already is.
-        testMode: (game.state as GameState).testMode ?? undefined,
-      },
-      moves: rows.map((r) => ({ seq: r.seq, action: r.action, events: r.events })),
-    };
+    return replayBundle(ctx, game);
+  },
+});
+
+/** The replay bundle for a game, whatever its status (the caller has already decided who may see it): `replayable` plus the game's initial
+ *  conditions and every move up to `upToSeq` (all of them when omitted). */
+async function replayBundle(ctx: QueryCtx, game: Doc<"games">, upToSeq?: number) {
+  const rows = await ctx.db
+    .query("gameEvents")
+    .withIndex("by_game", (q) => q.eq("gameId", game._id))
+    .collect(); // index order = seq ascending
+  return {
+    // reconstructable-from-scratch only when the initial conditions were persisted (RB-1-5)
+    replayable: game.seed != null && game.picks != null,
+    game: {
+      code: game.code ?? null,
+      seed: game.seed ?? null,
+      picks: game.picks ?? null,
+      color: game.color ?? null,
+      status: game.status,
+      createdAt: game.createdAt,
+      variants: game.variants ?? undefined, // extensionKit (SC-EXT-29) — undefined ⇒ kit-off
+      // Test Mode (SC-Test-1): read from the persisted state (server-authoritative, same pattern
+      // highScores.ts's `save` uses for its own testMode check), NOT a top-level row column like
+      // `variants` — so replay() can thread it through exactly as variants already is.
+      testMode: (game.state as GameState).testMode ?? undefined,
+    },
+    moves: rows.filter((r) => upToSeq === undefined || r.seq <= upToSeq).map((r) => ({ seq: r.seq, action: r.action, events: r.events })),
+  };
+}
+
+/** The replay of a solo game by its code, for a maintainer, whatever its status (SYSTEM role): the admin panel's replay viewer uses it when the
+ *  public `replayByCode` refuses a game still being played. It carries the seed, which is why it is not public. */
+export const adminReplayByCode = query({
+  args: { code: v.string() },
+  handler: async (ctx, { code }) => {
+    await requireRole(ctx, "SYSTEM");
+    const game = await ctx.db.query("games").withIndex("by_code", (q) => q.eq("code", code.trim().toUpperCase())).first();
+    if (!game || game.mode === "multi") return null;
+    return replayBundle(ctx, game);
+  },
+});
+
+/** For a maintainer at the command line (`npx convex run game:maintainerReplay '{"ref":"<report ref>"}'`, or `{"code":"ABCD"}`): the replay of a
+ *  reported game whatever its status. By report ref it stops at the last move the player had made when they filed the report (`lastSeq`), so a
+ *  game played on afterwards still replays to the moment of the bug. Internal: it cannot be called from a client. */
+export const maintainerReplay = internalQuery({
+  args: { ref: v.optional(v.id("bugReports")), code: v.optional(v.string()) },
+  handler: async (ctx, { ref, code }) => {
+    const report = ref ? await ctx.db.get(ref) : null;
+    const game = report?.gameId
+      ? await ctx.db.get(report.gameId)
+      : code ? await ctx.db.query("games").withIndex("by_code", (q) => q.eq("code", code.trim().toUpperCase())).first() : null;
+    if (!game || game.mode === "multi") return null;
+    return replayBundle(ctx, game, report?.lastSeq);
   },
 });
 

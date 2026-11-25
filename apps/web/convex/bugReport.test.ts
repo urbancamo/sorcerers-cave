@@ -198,8 +198,47 @@ describe('bugReport.createIssue', () => {
     expect(sent.title).toBe('[bug-report] The Dragon did not wake up');
     expect(sent.labels).toEqual(['bug-report', 'category:rules']);
     expect(sent.body).not.toContain('me@example.com');
-    expect(sent.body).toContain('"moves"');
+    // The game is still being played, so its log (and the seed in it) stays out of the public issue.
+    expect(sent.body).not.toContain('"moves"');
+    expect(sent.body).not.toContain('"seed"');
+    expect(sent.body).toContain('still in progress');
     expect((await rows(t))[0]).toMatchObject({ status: 'created', issueNumber: 42, issueUrl: 'https://github.com/urbancamo/sorcerers-cave/issues/42', attempts: 0 });
+  });
+
+  test('attaches the log once the game has finished', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(ok());
+    vi.stubGlobal('fetch', fetchMock);
+    const { t, id } = await setup();
+    await t.run(async (ctx) => { for (const g of await ctx.db.query('games').collect()) await ctx.db.patch(g._id, { status: 'finished' }); });
+    await t.action(internal.bugReport.createIssue, { id });
+    const sent = JSON.parse(fetchMock.mock.calls[0]![1].body);
+    expect(sent.body).toContain('<details>');
+    expect(sent.body).toContain('"seed"');
+  });
+
+  test('a Test Mode game still in progress keeps its log (a QA fixture)', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(ok());
+    vi.stubGlobal('fetch', fetchMock);
+    const { t, id } = await setup(true);
+    await t.action(internal.bugReport.createIssue, { id });
+    expect(JSON.parse(fetchMock.mock.calls[0]![1].body).body).toContain('<details>');
+  });
+
+  test('a maintainer replays a reported game up to the move it was reported at, even if it was played on', async () => {
+    const t = convexTest(schema, modules);
+    const { as } = await asUser(t);
+    const gameId = await withGame(t, as);
+    await as.mutation(api.game.applyAction, { id: gameId, action: { type: 'move', dir: 1 } });
+    const { ref } = await as.mutation(api.bugReport.submit, report({ gameId }));
+    const [row] = await rows(t);
+    expect(row!.lastSeq).toBe(0);
+    // The player carries on after filing: a later move is logged.
+    await t.run((ctx) => ctx.db.insert('gameEvents', { gameId, seq: 1, action: { type: 'move', dir: 2 }, events: [] }));
+    expect(await t.run((ctx) => ctx.db.query('gameEvents').collect())).toHaveLength(2); // the second move was logged too
+    const whole = await t.query(internal.game.maintainerReplay, { ref: ref as never });
+    expect(whole!.game.status).toBe('active'); // no matter that it is unfinished
+    expect(whole!.moves.map((m) => m.seq)).toEqual([0]); // and not past the reported move
+    expect(await t.query(internal.game.maintainerReplay, {})).toBeNull();
   });
 
   test('uses GITHUB_ISSUES_REPO when set', async () => {

@@ -82,11 +82,13 @@ export const submit = mutation({
 
     let code: string | undefined;
     let testMode = false;
+    let lastSeq: number | undefined;
     if (args.gameId) {
       const game = await ctx.db.get(args.gameId);
       if (!game || game.ownerId !== ownerId) return reject('That game is not yours to report on.'); // IDOR guard
       code = game.code ?? undefined;
       testMode = !!(game.state as GameState).testMode;
+      lastSeq = (await ctx.db.query('gameEvents').withIndex('by_game', (q) => q.eq('gameId', game._id)).order('desc').first())?.seq;
     }
 
     const now = Date.now();
@@ -94,7 +96,7 @@ export const submit = mutation({
     await checkRate(ctx, 'bugReportSite'); // each report is a public GitHub issue, and accounts are free: a cap for the whole site too
 
     const id = await ctx.db.insert('bugReports', {
-      ownerId, gameId: args.gameId, code, testMode, description, expected, category: args.category, contact, client, screenshotId,
+      ownerId, gameId: args.gameId, code, testMode, lastSeq, description, expected, category: args.category, contact, client, screenshotId,
       status: 'pending', attempts: 0, createdAt: now, updatedAt: now,
     });
     await ctx.scheduler.runAfter(0, internal.bugReport.createIssue, { id });
@@ -113,7 +115,9 @@ async function loadForIssue(ctx: QueryCtx, id: Id<'bugReports'>) {
   return {
     report,
     game: { code: row.code, status: row.status, level: s.level, turn: s.turn, x, y, color: row.color, variants: row.variants as Record<string, unknown> | undefined },
-    log: await gameLog(ctx, row),
+    // The log carries the seed, which would let anyone read ahead in a game still being played, and the issue is public: withhold it until the
+    // game is over (the same rule as `game.log` and `replayByCode`). A Test Mode game is a QA fixture, so its log is attached.
+    log: row.status === 'active' && !s.testMode ? null : await gameLog(ctx, row),
   };
 }
 

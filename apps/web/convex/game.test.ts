@@ -1,6 +1,6 @@
 import { convexTest } from "convex-test";
 import { expect, test, describe, beforeEach, afterEach, vi } from "vitest";
-import { api } from "./_generated/api";
+import { api, internal } from "./_generated/api";
 import schema from "./schema";
 import type { Id } from "./_generated/dataModel";
 import { newGame as createGameState, redactState } from "@sorcerers-cave/engine";
@@ -398,6 +398,22 @@ test("log is owner-scoped (IDOR guard)", async () => {
 // Replay-by-code (spec docs/requirements/2026-07-10-replay-by-code-feature-spec.md, §RB-1/§RB-2)
 // Deliberately shareable: NOT owner-scoped (decision §RB-6-3), carries no owner PII.
 // ---------------------------------------------------------------------------
+
+test("a maintainer can replay a game still in progress; a player or an ordinary admin cannot", async () => {
+  const t = convexTest(schema, modules);
+  const { as } = await asUser(t);
+  const { as: admin } = await asUser(t, ["SYSTEM"]);
+  const { as: analyst } = await asUser(t, ["ANALYTICS"]);
+  const id = await as.mutation(api.game.newGame, { seed: 11, picks: [0] });
+  const code = await as.mutation(api.game.save, { id });
+  expect(await as.query(api.game.replayByCode, { code })).toBeNull(); // the public one still refuses it
+  await expect(as.query(api.game.adminReplayByCode, { code })).rejects.toThrow(); // a player may not
+  await expect(analyst.query(api.game.adminReplayByCode, { code })).rejects.toThrow(); // nor may a role other than SYSTEM
+  const bundle = await admin.query(api.game.adminReplayByCode, { code: code.toLowerCase() });
+  expect(bundle).toMatchObject({ replayable: true, game: { code, seed: 11, status: "active" } });
+  expect(await admin.query(api.game.adminReplayByCode, { code: "ZZZZ" })).toBeNull();
+  expect(await t.query(internal.game.maintainerReplay, { code })).toMatchObject({ game: { seed: 11 } });
+});
 
 test("replayByCode returns null for an unknown code", async () => {
   // RB-1-1: read-only query, null when no eligible game matches.

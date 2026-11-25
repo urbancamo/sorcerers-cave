@@ -11,7 +11,9 @@ export function useReplayBundle() {
   const open = async (code: string): Promise<string | null> => {
     const golden = await goldenBundle(code);
     if (golden) { setBundle(golden); return null; }
-    const found = (await convex.query(api.game.replayByCode, { code })) as ReplayBundle | null;
+    let found = (await convex.query(api.game.replayByCode, { code })) as ReplayBundle | null;
+    // The public replay refuses a game still being played; a SYSTEM admin may open it (anyone else is refused, which reads as not found).
+    if (!found) found = (await convex.query(api.game.adminReplayByCode, { code }).catch(() => null)) as ReplayBundle | null;
     if (!found) return 'No replayable game found with that code.';
     if (!found.replayable) return 'This game predates full logging and cannot be replayed.';
     setBundle(found);

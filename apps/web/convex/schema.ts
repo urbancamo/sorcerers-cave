@@ -151,6 +151,8 @@ export default defineSchema({
     // Denormalised at submit time so the row stays readable if the game is later removed.
     code: v.optional(v.string()),
     testMode: v.boolean(),
+    // The last logged move of the game when the report was filed, so a maintainer can replay to that moment even if the player went on.
+    lastSeq: v.optional(v.number()),
     description: v.string(),
     expected: v.optional(v.string()),
     category: v.union(v.literal("rules"), v.literal("display"), v.literal("crash"), v.literal("other")),

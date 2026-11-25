@@ -67,7 +67,9 @@ export function buildBody(input: IssueInput): string {
     '### Context',
     '| | |\n|---|---|\n' + rows.map(([k, v]) => `| ${k} | ${cell(v)} |`).join('\n'),
     '### How to reproduce',
-    game?.code
+    game?.code && input.log == null && game.status === 'active'
+      ? `Game \`${game.code}\` was still in progress, so its log is withheld: a game cannot be replayed until it is finished. A maintainer can replay it from the game code or report reference.`
+      : game?.code
       ? `Replay game \`${game.code}\` from the title screen (replay by code) and step to turn ${game.turn}.`
       : 'No game was attached to this report.',
   ];
