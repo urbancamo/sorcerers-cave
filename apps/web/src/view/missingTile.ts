@@ -18,6 +18,14 @@ export class MissingTileArtError extends Error {
  *  it must be seen, and a bug report is worth nothing if the evidence fades away. */
 export const showsFog = (area: { faceDown: boolean; missingArt?: string }): boolean => area.faceDown && !area.missingArt;
 
+/** Did the Spell replace the tile the mesh `old` was built for with `now`? It shows as a face-down card either way, and a new tile identity is the
+ *  old signal; but the replacement can be a tile of the very same shape (the deck holds several identical tunnels), so the tile also counts as
+ *  replaced when it has become unresolved since the mesh was built. Without that the old face-up tile stayed on screen and the Spell seemed to do nothing. */
+export const tileReplaced = (
+  old: { tileId: string; rot: number; unresolved?: boolean },
+  now: { tileId: string; rot: number; unresolved?: boolean; faceDown: boolean; missingArt?: string },
+): boolean => showsFog(now) && (now.tileId !== old.tileId || now.rot !== old.rot || (!!now.unresolved && !old.unresolved));
+
 let strict = false;
 /** Make a missing tile throw instead of drawing the placeholder. On in tests; off in the app. */
 export function setStrictTileArt(on: boolean): void { strict = on; }

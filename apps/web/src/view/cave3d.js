@@ -6,7 +6,7 @@ import { fitDistance } from './camera-fit.js';
 import { carryRowHtml, escAttr } from './rosterCarry';
 import { stairAt } from '../data/stairPositions';
 import { keyOutsideAlpha } from './tileAlpha';
-import { showsFog } from './missingTile';
+import { showsFog, tileReplaced } from './missingTile';
 import { MOUSE_MODE_EVENT, ZOOM_SPEED_EVENT, ZOOM_SPEED_VALUE, mouseButtonsFor, readMouseMode, readZoomSpeed } from './mouseMode';
 
 /* ============================================================
@@ -490,7 +490,7 @@ function reconcileTiles(canAct){
   for(const m of tileMeshes){
     const ua=m.userData.area; if(!ua) continue;
     const a=want.get(akey(ua)); if(!a) continue;
-    if(showsFog(a) && (a.tileId!==ua.tileId||a.rot!==ua.rot) && !pendingRemaps.has(akey(a))) pendingRemaps.set(akey(a),a);
+    if(tileReplaced(ua,a) && !pendingRemaps.has(akey(a))) pendingRemaps.set(akey(a),a);
   }
   // A face-down tile the party has now entered (or a Spell tile resolved) fades to its real face.
   for(const m of tileMeshes){

@@ -63,6 +63,7 @@ export interface Area {
   subLocation?: { at: 'doorway' | 'centre' | 'island'; dir?: 'N' | 'E' | 'S' | 'W' };
   visited: boolean;
   faceDown: boolean;     // placed but unrevealed (excluded from edge-matching)
+  unresolved?: boolean;  // a Spell's replacement tile, not yet entered (the engine's AF_UNRESOLVED): lets the view tell it from the tile it replaced
   // Sides of this area facing a tile whose doorway into it was tried and found a dead end (N,E,S,W order): where the fog card
   // shown over it while face down puts its stubs. Empty for a face-down tile nobody tried a doorway into (e.g. a Spell remap).
   fogStubs?: Exits;

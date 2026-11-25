@@ -237,6 +237,7 @@ export function projectArea(
     // (disclosed engine gap, reduce.ts:353) — the tile stays face-down under the party until a later
     // forward entry resolves it; documented, not fixed here (no engine change in this pass).
     faceDown,
+    unresolved: (pa.flags & AF_UNRESOLVED) !== 0,
     fogStubs: faceDown ? fogStubsAt(pa.coord, state) : "",
     destroyed: (pa.flags & AF_DESTROYED) !== 0,
     secretDoor: pa.secretDoor ?? null,

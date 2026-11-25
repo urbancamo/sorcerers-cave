@@ -200,9 +200,11 @@ describe("extension kit specials (Part 2 US-02..07)", () => {
     const state = newGame(1, [0]);
     const remapped = area({ faceUp: true, visited: false, flags: 16 }); // AF_UNRESOLVED = 16
     expect(projectArea(remapped, 1, state, art).faceDown).toBe(true);
+    expect(projectArea(remapped, 1, state, art).unresolved).toBe(true); // lets the view tell it from a same-shaped tile it replaced
     // Once resolved (the flag cleared on a genuine forward entry), it renders normally again.
     const resolved = area({ faceUp: true, visited: true, flags: 0 });
     expect(projectArea(resolved, 1, state, art).faceDown).toBe(false);
+    expect(projectArea(resolved, 1, state, art).unresolved).toBe(false);
   });
 });
 
