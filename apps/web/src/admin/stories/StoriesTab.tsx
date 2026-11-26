@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useMutation, useQuery } from 'convex/react';
+import { useConvex, useMutation, useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { Tabs } from '../Tabs';
 import { errorText } from '../errorText';
@@ -7,7 +7,7 @@ import { Bars, Columns, type Item } from '../analytics/charts';
 import { ago, num } from '../analytics/format';
 import { PromptEditor } from './PromptEditor';
 import { RewritePanel } from './RewritePanel';
-import { seconds, usd } from './format';
+import { saveRejected, seconds, usd } from './format';
 
 type Sub = 'overview' | 'prompt' | 'rewrite' | 'runs';
 const SUBS: { id: Sub; label: string }[] = [
@@ -90,6 +90,17 @@ function Runs() {
   const r = useQuery(api.storyAdmin.recent);
   const [open, setOpen] = useState<string | null>(null);
   const text = useQuery(api.storyAdmin.storyText, open ? { storyId: open as never } : 'skip');
+  const convex = useConvex();
+  const [dlErr, setDlErr] = useState<string | null>(null);
+  /** Fetch a story's last rejected text and save it as a Markdown file. */
+  const downloadRejected = async (storyId: string, title: string | null) => {
+    setDlErr(null);
+    try {
+      const s = await convex.query(api.storyAdmin.storyText, { storyId: storyId as never });
+      if (!s?.rejectedText) { setDlErr('That story has no rejected text kept.'); return; }
+      saveRejected({ reason: s.rejectedReason, at: s.rejectedAt, text: s.rejectedText, label: title ?? storyId });
+    } catch (e) { setDlErr(errorText(e)); }
+  };
   if (r === undefined) return <p className="scv-admin-note">Loading…</p>;
   const now = Date.now();
   return (
@@ -101,13 +112,24 @@ function Runs() {
           <tbody>{r.stories.map((s) => (
             <tr key={s._id}>
               <td>{ago(s.updatedAt, now)}</td><td>{s.title ?? '–'}</td>
-              <td>{s.status}{s.error ? ` (${s.error.slice(0, 60)})` : ''}</td>
+              <td className="scv-st-why">{s.status}{s.error ? ` (${s.error})` : ''}</td>
               <td className="scv-hs-num">{num(s.words)}</td><td className="scv-hs-num">{s.promptVersion === null ? '–' : `v${s.promptVersion}`}</td><td className="scv-hs-num">{s.attempts}</td>
-              <td>{s.status === 'ready' && <button type="button" className="scv-ghost" onClick={() => setOpen(open === s._id ? null : s._id)}>{open === s._id ? 'Hide' : 'Read'}</button>}</td>
+              <td className="scv-st-acts">
+                {s.status === 'ready' && <button type="button" className="scv-ghost" onClick={() => setOpen(open === s._id ? null : s._id)}>{open === s._id ? 'Hide' : 'Read'}</button>}
+                {s.rejectedAt !== null && (
+                  <button type="button"
+                          className="scv-ghost"
+                          title={`Download the last story the checks turned down (${ago(s.rejectedAt, now)})`}
+                          onClick={() => void downloadRejected(s._id, s.title)}>
+                    Rejected text
+                  </button>
+                )}
+              </td>
             </tr>
           ))}</tbody>
         </table>
       )}
+      {dlErr && <p className="scv-resume-err" role="alert">{dlErr}</p>}
       {open && text && (
         <article className="scv-panel scv-admin-card scv-st-read" aria-label="Story text">
           <h4>{text.title}</h4>
@@ -122,7 +144,7 @@ function Runs() {
           <tbody>{r.runs.map((x) => (
             <tr key={x._id}>
               <td>{ago(x.createdAt, now)}</td><td>{x.pass}</td><td>{x.trigger}</td><td className="scv-hs-num">{x.promptVersion < 0 ? 'trial' : `v${x.promptVersion}`}</td>
-              <td>{x.status}{x.reason ? `: ${x.reason.slice(0, 70)}` : ''}</td>
+              <td className="scv-st-why">{x.status}{x.reason ? `: ${x.reason}` : ''}</td>
               <td className="scv-hs-num">{num(x.inputTokens)} / {num(x.outputTokens)}</td><td className="scv-hs-num">{usd(x.costUsd)}</td><td className="scv-hs-num">{seconds(x.durationMs)}</td>
             </tr>
           ))}</tbody>

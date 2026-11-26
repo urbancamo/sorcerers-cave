@@ -117,6 +117,31 @@ test("a rewrite keeps the old text as previousText on success, and leaves it in 
   expect(s).toMatchObject({ status: "ready", title: "Second", text: "# Second\n\nA brand new tale." }); // untouched
   expect(s!.error).toMatch(/write failed: API 529/);
   expect((await t.query(api.stories.forScore, { highScoreId: id }))!.text).toContain("brand new tale");
+  expect(s!.rejectedText).toBeUndefined(); // no story was written, so there is nothing rejected to keep
+});
+
+test("a story the checks turn down is kept, with why and when, and survives a later success", async () => {
+  const t = convexTest(schema, modules);
+  const id = await seedScore(t);
+  // Every fact check finds a problem, so the story is rejected after its two edits.
+  const order = ["a plan", "a draft", "the party never met a dragon", "# Rejected\n\nA dragon was slain.", "the party never met a dragon",
+    "# Rejected\n\nA dragon was slain.", "the party never met a dragon"]; // plan, write, check, edit, check, edit, check
+  let n = 0;
+  vi.stubGlobal("fetch", vi.fn(async () => {
+    const text = order[n++]!;
+    return new Response(JSON.stringify({ content: [{ type: "text", text }], usage: { input_tokens: 10, output_tokens: 10 } }), { status: 200 });
+  }));
+  await t.action(internal.storyGen.generate, { highScoreId: id, trigger: "save" });
+  let s = await t.run((ctx) => ctx.db.query("stories").first());
+  expect(s).toMatchObject({ status: "failed", rejectedText: "# Rejected\n\nA dragon was slain." });
+  expect(s!.rejectedReason).toMatch(/unsupported facts remain: the party never met a dragon/);
+  expect(s!.rejectedAt).toBeGreaterThan(0);
+
+  fakeApi("# Second\n\nA brand new tale.");
+  await t.run((ctx) => ctx.db.insert("storyPrompts", { version: 1, writer: "w", editor: "e", model: "claude-sonnet-5-5", minWords: 1, maxWords: 99, createdAt: 1 })); // a short story passes
+  await t.action(internal.storyGen.generate, { highScoreId: id, trigger: "retry" });
+  s = await t.run((ctx) => ctx.db.query("stories").first());
+  expect(s).toMatchObject({ status: "ready", rejectedText: "# Rejected\n\nA dragon was slain." });
 });
 
 test("with no API key a story fails with the reason, and the failed call is recorded", async () => {

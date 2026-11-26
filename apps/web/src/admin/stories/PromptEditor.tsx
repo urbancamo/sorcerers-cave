@@ -3,13 +3,13 @@ import { useAction, useMutation, useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { errorText } from '../errorText';
 import { num } from '../analytics/format';
-import { usd } from './format';
+import { saveRejected, usd } from './format';
 
 interface Fields {
   writer: string; editor: string; model: string; minWords: number; maxWords: number;
   planner: string; factCheck: string; voices: string; bible: string; characters: string;
 }
-type Tried = { ok: true; title: string; text: string; words: number; costUsd: number } | { ok: false; reason: string; costUsd: number };
+type Tried = { ok: true; title: string; text: string; words: number; costUsd: number } | { ok: false; reason: string; costUsd: number; text?: string };
 
 /** Only the editable fields: a saved version row carries more (version, note, timestamps) that the save call must not receive. */
 const pick = (p: Fields): Fields => ({
@@ -154,7 +154,18 @@ export function PromptEditor({ canEdit }: { canEdit: boolean }) {
                 <p className="scv-admin-note">{num(tried.words)} words, cost about {usd(tried.costUsd)}. Not saved.</p>
                 {tried.text.split('\n\n').filter((p) => !p.startsWith('# ')).map((p, i) => <p key={i}>{p}</p>)}
               </article>
-            ) : <p className="scv-resume-err" role="alert">The trial did not produce a story: {tried.reason} (cost about {usd(tried.costUsd)}).</p>)}
+            ) : (
+              <div>
+                <p className="scv-resume-err scv-st-why" role="alert">The trial did not produce a story: {tried.reason} (cost about {usd(tried.costUsd)}).</p>
+                {tried.text && (
+                  <button type="button"
+                          className="scv-ghost"
+                          onClick={() => saveRejected({ reason: tried.reason, at: Date.now(), text: tried.text!, label: 'prompt trial' })}>
+                    Download rejected text
+                  </button>
+                )}
+              </div>
+            ))}
           </fieldset>
         </>
       ) : <p className="scv-admin-note">Editing the prompt needs the System role.</p>}

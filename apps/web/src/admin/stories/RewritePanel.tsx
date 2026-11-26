@@ -3,19 +3,11 @@ import { useConvex, useMutation, useQuery } from 'convex/react';
 import { api } from '../../../convex/_generated/api';
 import { errorText } from '../errorText';
 import { ago, num } from '../analytics/format';
-import { usd } from './format';
+import { download, usd } from './format';
 import { buildStoryPdf } from '../../story/storyPdf';
 
 const STORY_SEPARATOR = '\n\n---\n\n';
 
-/** Save text as a file in the browser. */
-function download(name: string, blob: Blob) {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url; a.download = name;
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
 
 type Kind = 'older' | 'failed' | 'all' | 'one';
 const KINDS: { id: Kind; label: string; help: string }[] = [

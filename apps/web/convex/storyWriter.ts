@@ -44,10 +44,13 @@ export interface RunRecord {
 
 export type WriteResult =
   | { ok: true; title: string; text: string; words: number; runs: RunRecord[] }
-  | { ok: false; reason: string; runs: RunRecord[] };
+  // `text`: the story that was turned down (or the editor's unreadable reply), when there was one, so an operator can see what failed.
+  | { ok: false; reason: string; runs: RunRecord[]; text?: string };
 
 const MAX_TOKENS = 16000; // this model counts nearly 3 tokens a word: a 1,800-word story is about 5,000, and the editor returns it whole
 const short = (s: string): string => s.replace(/\s+/g, " ").slice(0, 200);
+// The fact-checker's problems are what an operator needs to judge a failure, so they are kept nearly whole (still bounded for the database).
+const long = (s: string): string => s.replace(/\s+/g, " ").slice(0, 4000);
 
 /** The title and body of a "# Title" markdown story. */
 export function splitStory(text: string): { title: string; words: number } {
@@ -97,10 +100,10 @@ export async function writeStory(call: ModelCall, prompt: ResolvedPrompt, digest
     }
   };
   /** Mark the most recent run as rejected with a reason (the call worked, its output did not). */
-  const reject = (reason: string): WriteResult => {
+  const reject = (reason: string, text?: string): WriteResult => {
     const last = runs[runs.length - 1];
     if (last && last.status === "ok") { last.status = "rejected"; last.reason = reason; }
-    return { ok: false, reason, runs };
+    return { ok: false, reason, runs, ...(text ? { text } : {}) };
   };
 
   const planText = await attempt("plan", prompt.planner, plannerUserMessage(digestText, voice, bible));
@@ -111,9 +114,9 @@ export async function writeStory(call: ModelCall, prompt: ResolvedPrompt, digest
   /** Fact-check a story: the problems found, [] when it is clean, or null after recording a failure. */
   const check = async (story: string): Promise<string[] | WriteResult> => {
     const raw = await attempt("check", prompt.factCheck, factCheckUserMessage(digestText, story));
-    if (raw === null) return { ok: false, reason: `check failed: ${runs[runs.length - 1]!.reason}`, runs };
+    if (raw === null) return { ok: false, reason: `check failed: ${runs[runs.length - 1]!.reason}`, runs, text: story };
     const found = parseFactCheck(raw);
-    return found ?? reject("fact-check reply was empty");
+    return found ?? reject("fact-check reply was empty", story);
   };
 
   let story = draft;
@@ -124,17 +127,17 @@ export async function writeStory(call: ModelCall, prompt: ResolvedPrompt, digest
   for (let round = 0; round < 2; round++) {
     if (!Array.isArray(facts)) return facts;
     const edited = await attempt("edit", prompt.editor, editorUserMessage(digestText, story, voice, [...facts, ...guard], plan, people));
-    if (edited === null) return { ok: false, reason: `edit failed: ${runs[runs.length - 1]!.reason}`, runs };
+    if (edited === null) return { ok: false, reason: `edit failed: ${runs[runs.length - 1]!.reason}`, runs, text: story };
     const parsed = parseEditedStory(edited);
-    if (!parsed) return reject("editor reply was not in the expected format");
+    if (!parsed) return reject("editor reply was not in the expected format", edited);
     story = parsed;
     facts = await check(story); // an edit can add a fact: the final text is always checked
     guard = storyProblems(story, { min: prompt.minWords, max: prompt.maxWords });
     if (Array.isArray(facts) && !facts.length && !guard.length) break;
   }
   if (!Array.isArray(facts)) return facts;
-  if (facts.length) return reject(`unsupported facts remain: ${short(facts.join("; "))}`);
-  if (guard.length) return reject(`guard: ${guard.join(", ")}`);
+  if (facts.length) return reject(`unsupported facts remain: ${long(facts.join("; "))}`, story);
+  if (guard.length) return reject(`guard: ${guard.join(", ")}`, story);
   const { title, words } = splitStory(story);
   return { ok: true, title, text: story, words, runs };
 }

@@ -242,6 +242,11 @@ export default defineSchema({
     model: v.optional(v.string()),
     promptVersion: v.optional(v.number()), // 0 = the default prompt in storyPrompt.ts; otherwise a storyPrompts.version
     previousText: v.optional(v.string()), // the text before a rewrite, kept until the rewrite succeeds (one-step undo)
+    // The last story the pipeline turned down (fact check, form check, unreadable edit), with why and when: operator-facing, downloadable
+    // from the admin Runs view. Kept after a later success, until the next rejection replaces it.
+    rejectedText: v.optional(v.string()),
+    rejectedReason: v.optional(v.string()),
+    rejectedAt: v.optional(v.number()),
     attempts: v.number(),
     error: v.optional(v.string()), // operator-facing; never shown to players
     createdAt: v.number(),

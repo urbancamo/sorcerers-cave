@@ -120,7 +120,7 @@ export const replayInput = internalQuery({
 export const finish = internalMutation({
   args: {
     storyId: v.id("stories"), trigger: triggerV, promptVersion: v.number(), runs: v.array(runV),
-    result: v.union(v.object({ ok: v.literal(true), title: v.string(), text: v.string(), words: v.number(), model: v.string() }), v.object({ ok: v.literal(false), reason: v.string() })),
+    result: v.union(v.object({ ok: v.literal(true), title: v.string(), text: v.string(), words: v.number(), model: v.string() }), v.object({ ok: v.literal(false), reason: v.string(), text: v.optional(v.string()) })),
   },
   handler: async (ctx, { storyId, trigger, promptVersion, runs, result }) => {
     const story = await ctx.db.get(storyId);
@@ -132,10 +132,10 @@ export const finish = internalMutation({
         status: "ready", title: result.title, text: result.text, words: result.words, model: result.model, promptVersion, error: undefined,
         previousText: story.text, updatedAt: now,
       });
-    } else if (story.text) {
-      await ctx.db.patch(storyId, { error: result.reason, updatedAt: now }); // a failed rewrite leaves the old story in place
     } else {
-      await ctx.db.patch(storyId, { status: "failed", error: result.reason, updatedAt: now });
+      const rejected = result.text ? { rejectedText: result.text, rejectedReason: result.reason, rejectedAt: now } : {};
+      if (story.text) await ctx.db.patch(storyId, { error: result.reason, updatedAt: now, ...rejected }); // a failed rewrite leaves the old story in place
+      else await ctx.db.patch(storyId, { status: "failed", error: result.reason, updatedAt: now, ...rejected });
     }
   },
 });

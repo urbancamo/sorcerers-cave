@@ -57,6 +57,20 @@ describe("writeStory", () => {
     expect(r.runs.map((x) => x.pass)).toEqual(["plan", "write", "check", "edit", "check", "edit", "check"]);
     expect(r.runs.at(-1)).toMatchObject({ status: "rejected" });
     expect(seen[5]!.user).toContain("a third dragon"); // told what the first edit left
+    expect(r.text).toBe(STORY); // the story that was turned down is handed back, for an operator to read
+  });
+
+  it("keeps the fact-checker's whole list in the reason, not a 200-character cut", async () => {
+    const many = Array.from({ length: 12 }, (_, i) => `problem number ${i}: the party never met the creature named here`).join("\n");
+    const r = await writeStory(script(["a plan", "d", "x", STORY, many, STORY, many]).call, prompt, "D");
+    if (r.ok) throw new Error("expected a failure");
+    expect(r.reason).toContain("problem number 11");
+    expect(r.runs.at(-1)!.reason).toContain("problem number 11");
+  });
+
+  it("hands back the editor's unreadable reply, and the draft when a later call fails", async () => {
+    expect(await writeStory(script(["a plan", "draft", "none", "Here is your story: ..."]).call, prompt, "D")).toMatchObject({ ok: false, text: "Here is your story: ..." });
+    expect(await writeStory(script(["a plan", "draft", "none", new Error("API 529")]).call, prompt, "D")).toMatchObject({ ok: false, text: "draft" });
   });
 
   it("succeeds on the second edit when the first left a problem", async () => {

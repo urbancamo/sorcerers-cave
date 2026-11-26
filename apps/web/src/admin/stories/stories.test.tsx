@@ -17,6 +17,8 @@ const defaults = {
 const v1 = { ...defaults, writer: "V1 WRITER", version: 1, note: "first", createdAt: 1 };
 const preview = { label: "Stories written with an older prompt than version 1", count: 2, truncated: false, perStoryUsd: 0.18, estimatedUsd: 0.36, remainingTodayUsd: 1.55, exceedsDailyCap: false, paused: false };
 let jobs: unknown[];
+const READY = { _id: "st1", highScoreId: "hs1", status: "ready", title: "The Last One", words: 1491, promptVersion: 0, attempts: 1, error: null, rejectedAt: null, updatedAt: 1 };
+let recent: { runs: unknown[]; stories: unknown[] } = { runs: [], stories: [READY] };
 
 const update = vi.fn(), save = vi.fn(), start = vi.fn(), stop = vi.fn(), tryIt = vi.fn(), jobStoriesQuery = vi.fn();
 vi.mock("convex/react", () => ({
@@ -25,7 +27,7 @@ vi.mock("convex/react", () => ({
     return ({
       "s.overview": overview,
       "s.prompts": { activeVersion: 1, defaults, models: ["claude-sonnet-5-5", "claude-opus-5-5"], versions: [v1] },
-      "s.recent": { runs: [], stories: [{ _id: "st1", highScoreId: "hs1", status: "ready", title: "The Last One", words: 1491, promptVersion: 0, attempts: 1, error: null, updatedAt: 1 }] },
+      "s.recent": recent,
       "s.preview": preview, "s.jobs": jobs, "s.text": null,
     } as Record<string, unknown>)[ref];
   },
@@ -39,7 +41,7 @@ vi.mock("../../../convex/_generated/api", () => ({
 
 import { StoriesTab } from "./StoriesTab";
 
-beforeEach(() => { [update, save, start, stop, tryIt].forEach((f) => f.mockReset()); jobs = []; });
+beforeEach(() => { [update, save, start, stop, tryIt, jobStoriesQuery].forEach((f) => f.mockReset()); jobs = []; recent = { runs: [], stories: [READY] }; });
 const open = (name: string) => fireEvent.click(screen.getByRole("tab", { name }));
 
 describe("Stories overview", () => {
@@ -115,6 +117,19 @@ describe("Prompt editor", () => {
     open("Prompt");
     fireEvent.change(screen.getByLabelText("Load a version"), { target: { value: "defaults" } });
     expect(screen.getByLabelText(/Writer prompt/)).toHaveValue("DEFAULT WRITER");
+  });
+
+  it("a failed trial offers its rejected text as a download", async () => {
+    tryIt.mockResolvedValue({ ok: false, reason: "unsupported facts remain: no dragon", costUsd: 0.1, text: "# Trial\n\nA dragon." });
+    const created: Blob[] = [];
+    URL.createObjectURL = vi.fn((b: Blob) => { created.push(b); return "blob:x"; });
+    URL.revokeObjectURL = vi.fn();
+    render(<StoriesTab canEdit />);
+    open("Prompt");
+    fireEvent.change(screen.getByLabelText("Game to write from"), { target: { value: "hs1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Write a trial story" }));
+    fireEvent.click(await screen.findByRole("button", { name: "Download rejected text" }));
+    expect(await created[0]!.text()).toContain("# Trial\n\nA dragon.");
   });
 
   it("tries the unsaved prompt on a chosen story and shows the result without saving", async () => {
@@ -202,5 +217,46 @@ describe("Rewrites", () => {
     render(<StoriesTab canEdit={false} />);
     open("Rewrites");
     expect(screen.queryByRole("button", { name: "Start rewrite" })).toBeNull();
+  });
+});
+
+describe("Runs", () => {
+  const WHY = "unsupported facts remain: " + Array.from({ length: 8 }, (_, i) => `problem ${i}: the party never met that creature`).join("; ");
+
+  it("shows a failure's whole reason, for a story and for a model call", () => {
+    recent = {
+      stories: [{ ...READY, _id: "st2", status: "failed", title: null, words: null, error: WHY, rejectedAt: 5 }],
+      runs: [{ _id: "r1", createdAt: 1, pass: "check", trigger: "save", promptVersion: 1, model: "m", inputTokens: 1, outputTokens: 1, costUsd: 0.01, durationMs: 100, status: "rejected", reason: WHY }],
+    };
+    render(<StoriesTab canEdit />);
+    open("Runs");
+    expect(screen.getAllByText((t) => t.includes("problem 7: the party never met that creature"))).toHaveLength(2);
+  });
+
+  it("downloads the last rejected text as a Markdown file with its reason, and offers it only where one is kept", async () => {
+    recent = { runs: [], stories: [READY, { ...READY, _id: "st2", status: "failed", title: null, error: WHY, rejectedAt: Date.UTC(2026, 10, 26, 9, 30) }] };
+    jobStoriesQuery.mockResolvedValue({ rejectedText: "# Rejected\n\nA dragon was slain.", rejectedReason: WHY, rejectedAt: Date.UTC(2026, 10, 26, 9, 30) });
+    const created: Blob[] = [];
+    URL.createObjectURL = vi.fn((b: Blob) => { created.push(b); return "blob:x"; });
+    URL.revokeObjectURL = vi.fn();
+    render(<StoriesTab canEdit={false} />); // viewing is enough: it is the operator's own record
+    open("Runs");
+    const buttons = screen.getAllByRole("button", { name: "Rejected text" });
+    expect(buttons).toHaveLength(1);
+    fireEvent.click(buttons[0]!);
+    await waitFor(() => expect(created).toHaveLength(1));
+    expect(jobStoriesQuery).toHaveBeenCalledWith("s.text", { storyId: "st2" });
+    const md = await created[0]!.text();
+    expect(md).toContain("problem 7: the party never met that creature");
+    expect(md).toContain("# Rejected\n\nA dragon was slain.");
+  });
+
+  it("says so when the story no longer has rejected text", async () => {
+    recent = { runs: [], stories: [{ ...READY, rejectedAt: 5 }] };
+    jobStoriesQuery.mockResolvedValue({ rejectedText: null, rejectedReason: null, rejectedAt: null });
+    render(<StoriesTab canEdit />);
+    open("Runs");
+    fireEvent.click(screen.getByRole("button", { name: "Rejected text" }));
+    expect(await screen.findByRole("alert")).toHaveTextContent("no rejected text");
   });
 });

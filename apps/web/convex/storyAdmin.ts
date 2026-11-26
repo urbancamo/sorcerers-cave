@@ -67,7 +67,7 @@ export const recent = query({
     const stories = await ctx.db.query("stories").order("desc").take(40);
     return {
       runs: runs.map((r) => ({ _id: r._id, createdAt: r.createdAt, pass: r.pass, trigger: r.trigger, promptVersion: r.promptVersion, model: r.model, inputTokens: r.inputTokens, outputTokens: r.outputTokens, costUsd: r.costUsd, durationMs: r.durationMs, status: r.status, reason: r.reason ?? null, title: (r.storyId && titles.get(r.storyId)) || null })),
-      stories: stories.map((s) => ({ _id: s._id, highScoreId: s.highScoreId, status: s.status, title: s.title ?? null, words: s.words ?? null, promptVersion: s.promptVersion ?? null, attempts: s.attempts, error: s.error ?? null, updatedAt: s.updatedAt })),
+      stories: stories.map((s) => ({ _id: s._id, rejectedAt: s.rejectedAt ?? null, highScoreId: s.highScoreId, status: s.status, title: s.title ?? null, words: s.words ?? null, promptVersion: s.promptVersion ?? null, attempts: s.attempts, error: s.error ?? null, updatedAt: s.updatedAt })),
     };
   },
 });
@@ -78,7 +78,10 @@ export const storyText = query({
   handler: async (ctx, { storyId }) => {
     await requireAnyRole(ctx, VIEW);
     const s = await ctx.db.get(storyId);
-    return s ? { title: s.title ?? null, text: s.text ?? null, previousText: s.previousText ?? null, status: s.status, error: s.error ?? null } : null;
+    return s ? {
+      title: s.title ?? null, text: s.text ?? null, previousText: s.previousText ?? null, status: s.status, error: s.error ?? null,
+      rejectedText: s.rejectedText ?? null, rejectedReason: s.rejectedReason ?? null, rejectedAt: s.rejectedAt ?? null,
+    } : null;
   },
 });
 
@@ -282,7 +285,7 @@ export const recordTrial = internalMutation({
  */
 export const tryPrompt = action({
   args: { highScoreId: v.id("highScores"), ...promptFields },
-  handler: async (ctx, { highScoreId, ...p }): Promise<{ ok: true; title: string; text: string; words: number; costUsd: number } | { ok: false; reason: string; costUsd: number }> => {
+  handler: async (ctx, { highScoreId, ...p }): Promise<{ ok: true; title: string; text: string; words: number; costUsd: number } | { ok: false; reason: string; costUsd: number; text?: string }> => {
     await ctx.runQuery(internal.storyAdmin.assertEditor, {});
     const problems = promptProblems(p);
     if (problems.length) throw new Error(problems.join(" "));
@@ -294,6 +297,6 @@ export const tryPrompt = action({
     const r = await writeStory(anthropicCall, { version: -1, ...resolveFields(p) }, digest, Date.now, String(highScoreId));
     await ctx.runMutation(internal.storyAdmin.recordTrial, { highScoreId, runs: r.runs });
     const costUsd = Math.round(r.runs.reduce((n, x) => n + x.costUsd, 0) * 10_000) / 10_000;
-    return r.ok ? { ok: true, title: r.title, text: r.text, words: r.words, costUsd } : { ok: false, reason: r.reason, costUsd };
+    return r.ok ? { ok: true, title: r.title, text: r.text, words: r.words, costUsd } : { ok: false, reason: r.reason, costUsd, ...(r.text ? { text: r.text } : {}) };
   },
 });
