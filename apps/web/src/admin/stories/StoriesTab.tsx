@@ -108,10 +108,10 @@ function Runs() {
       <h3 className="scv-st-h">Stories</h3>
       {r.stories.length === 0 ? <p className="scv-admin-note">No stories yet.</p> : (
         <table className="scv-hs-table">
-          <thead><tr><th>Updated</th><th>Title</th><th>Status</th><th className="scv-hs-num">Words</th><th className="scv-hs-num">Prompt</th><th className="scv-hs-num">Tries</th><th /></tr></thead>
+          <thead><tr><th>Updated</th><th>Game</th><th>Title</th><th>Status</th><th className="scv-hs-num">Words</th><th className="scv-hs-num">Prompt</th><th className="scv-hs-num">Tries</th><th /></tr></thead>
           <tbody>{r.stories.map((s) => (
             <tr key={s._id}>
-              <td>{ago(s.updatedAt, now)}</td><td>{s.title ?? '–'}</td>
+              <td>{ago(s.updatedAt, now)}</td><td className="scv-st-code">{s.gameCode ?? '–'}</td><td>{s.title ?? '–'}</td>
               <td className="scv-st-why">{s.status}{s.error ? ` (${s.error})` : ''}</td>
               <td className="scv-hs-num">{num(s.words)}</td><td className="scv-hs-num">{s.promptVersion === null ? '–' : `v${s.promptVersion}`}</td><td className="scv-hs-num">{s.attempts}</td>
               <td className="scv-st-acts">
@@ -140,10 +140,10 @@ function Runs() {
       <h3 className="scv-st-h">Model calls</h3>
       {r.runs.length === 0 ? <p className="scv-admin-note">No calls yet.</p> : (
         <table className="scv-hs-table">
-          <thead><tr><th>When</th><th>Pass</th><th>Trigger</th><th className="scv-hs-num">Prompt</th><th>Result</th><th className="scv-hs-num">In / out tokens</th><th className="scv-hs-num">Cost</th><th className="scv-hs-num">Time</th></tr></thead>
+          <thead><tr><th>When</th><th>Game</th><th>Pass</th><th>Trigger</th><th className="scv-hs-num">Prompt</th><th>Result</th><th className="scv-hs-num">In / out tokens</th><th className="scv-hs-num">Cost</th><th className="scv-hs-num">Time</th></tr></thead>
           <tbody>{r.runs.map((x) => (
             <tr key={x._id}>
-              <td>{ago(x.createdAt, now)}</td><td>{x.pass}</td><td>{x.trigger}</td><td className="scv-hs-num">{x.promptVersion < 0 ? 'trial' : `v${x.promptVersion}`}</td>
+              <td>{ago(x.createdAt, now)}</td><td className="scv-st-code">{x.gameCode ?? '–'}</td><td>{x.pass}</td><td>{x.trigger}</td><td className="scv-hs-num">{x.promptVersion < 0 ? 'trial' : `v${x.promptVersion}`}</td>
               <td className="scv-st-why">{x.status}{x.reason ? `: ${x.reason}` : ''}</td>
               <td className="scv-hs-num">{num(x.inputTokens)} / {num(x.outputTokens)}</td><td className="scv-hs-num">{usd(x.costUsd)}</td><td className="scv-hs-num">{seconds(x.durationMs)}</td>
             </tr>

@@ -66,9 +66,16 @@ export const recent = query({
     const titles = new Map<Id<"stories">, string | undefined>();
     for (const r of runs) if (r.storyId && !titles.has(r.storyId)) titles.set(r.storyId, (await ctx.db.get(r.storyId))?.title);
     const stories = await ctx.db.query("stories").order("desc").take(40);
+    // The game each story and call was written from, by its four-letter code (read once per high-score entry).
+    const codes = new Map<Id<"highScores">, string | null>();
+    for (const id of [...runs.map((r) => r.highScoreId), ...stories.map((s) => s.highScoreId)]) {
+      if (codes.has(id)) continue;
+      const hs = await ctx.db.get(id); // a solo entry does not record the code: it is on the game row
+      codes.set(id, hs?.gameCode ?? (hs ? (await ctx.db.get(hs.gameId))?.code ?? null : null));
+    }
     return {
-      runs: runs.map((r) => ({ _id: r._id, createdAt: r.createdAt, pass: r.pass, trigger: r.trigger, promptVersion: r.promptVersion, model: r.model, inputTokens: r.inputTokens, outputTokens: r.outputTokens, costUsd: r.costUsd, durationMs: r.durationMs, status: r.status, reason: r.reason ?? null, title: (r.storyId && titles.get(r.storyId)) || null })),
-      stories: stories.map((s) => ({ _id: s._id, rejectedAt: s.rejectedAt ?? null, highScoreId: s.highScoreId, status: s.status, title: s.title ?? null, words: s.words ?? null, promptVersion: s.promptVersion ?? null, attempts: s.attempts, error: s.error ?? null, updatedAt: s.updatedAt })),
+      runs: runs.map((r) => ({ _id: r._id, createdAt: r.createdAt, pass: r.pass, trigger: r.trigger, promptVersion: r.promptVersion, model: r.model, inputTokens: r.inputTokens, outputTokens: r.outputTokens, costUsd: r.costUsd, durationMs: r.durationMs, status: r.status, reason: r.reason ?? null, title: (r.storyId && titles.get(r.storyId)) || null, gameCode: codes.get(r.highScoreId) ?? null })),
+      stories: stories.map((s) => ({ _id: s._id, gameCode: codes.get(s.highScoreId) ?? null, rejectedAt: s.rejectedAt ?? null, highScoreId: s.highScoreId, status: s.status, title: s.title ?? null, words: s.words ?? null, promptVersion: s.promptVersion ?? null, attempts: s.attempts, error: s.error ?? null, updatedAt: s.updatedAt })),
     };
   },
 });

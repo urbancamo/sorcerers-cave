@@ -1759,6 +1759,7 @@
 /* Admin Stories: a failure reason is shown whole (the fact-checker's list is what an operator reads), wrapping inside its cell. */
 .scv-st-why { white-space: pre-wrap; overflow-wrap: anywhere; min-width: 18em; line-height: 1.45; }
 .scv-st-acts { white-space: nowrap; }
+.scv-st-code { font-family: var(--mono, ui-monospace, monospace); letter-spacing: 0.08em; white-space: nowrap; }
 .scv-st-acts > * + * { margin-left: 6px; }
 .scv-hs-table td.scv-hs-num { color: var(--cream); font-weight: 600; }
 .scv-hs-me td {

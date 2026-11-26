@@ -251,3 +251,15 @@ test("failure reasons are grouped and prompt problems listed", () => {
   expect(promptProblems({ ...newPrompt, characters: renderCharacters() })).toEqual([]);
   expect(promptProblems({ ...newPrompt, characters: "## header\nH\n## Gnome\ngeneral: x\nnames: a" }).join(" ")).toMatch(/Gnome/);
 });
+
+test("the Runs view names the game each story and call came from, by its code", async () => {
+  const t = convexTest(schema, modules);
+  const { as: viewer } = await asUser(t, ["ANALYTICS"]);
+  const { highScoreId: id, storyId } = await seedScore(t, "QRST");
+  await t.run(async (ctx) => {
+    await ctx.db.insert("storyRuns", { storyId, highScoreId: id, pass: "check", trigger: "save", promptVersion: 0, model: "m", inputTokens: 1, outputTokens: 1, costUsd: 0, durationMs: 1, status: "rejected", reason: "x", createdAt: 1 });
+  });
+  const r = await viewer.query(api.storyAdmin.recent, {});
+  expect(r.stories[0]!.gameCode).toBe("QRST"); // a solo entry: read from the game
+  expect(r.runs[0]!.gameCode).toBe("QRST");
+});

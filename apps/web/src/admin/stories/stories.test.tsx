@@ -17,7 +17,7 @@ const defaults = {
 const v1 = { ...defaults, writer: "V1 WRITER", version: 1, note: "first", createdAt: 1 };
 const preview = { label: "Stories written with an older prompt than version 1", count: 2, truncated: false, perStoryUsd: 0.18, estimatedUsd: 0.36, remainingTodayUsd: 1.55, exceedsDailyCap: false, paused: false };
 let jobs: unknown[];
-const READY = { _id: "st1", highScoreId: "hs1", status: "ready", title: "The Last One", words: 1491, promptVersion: 0, attempts: 1, error: null, rejectedAt: null, updatedAt: 1 };
+const READY = { _id: "st1", gameCode: "QRST", highScoreId: "hs1", status: "ready", title: "The Last One", words: 1491, promptVersion: 0, attempts: 1, error: null, rejectedAt: null, updatedAt: 1 };
 let recent: { runs: unknown[]; stories: unknown[] } = { runs: [], stories: [READY] };
 
 const update = vi.fn(), save = vi.fn(), start = vi.fn(), stop = vi.fn(), tryIt = vi.fn(), jobStoriesQuery = vi.fn();
@@ -255,11 +255,14 @@ describe("Runs", () => {
   it("shows a failure's whole reason, for a story and for a model call", () => {
     recent = {
       stories: [{ ...READY, _id: "st2", status: "failed", title: null, words: null, error: WHY, rejectedAt: 5 }],
-      runs: [{ _id: "r1", createdAt: 1, pass: "check", trigger: "save", promptVersion: 1, model: "m", inputTokens: 1, outputTokens: 1, costUsd: 0.01, durationMs: 100, status: "rejected", reason: WHY }],
+      runs: [{ _id: "r1", gameCode: "WXYZ", createdAt: 1, pass: "check", trigger: "save", promptVersion: 1, model: "m", inputTokens: 1, outputTokens: 1, costUsd: 0.01, durationMs: 100, status: "rejected", reason: WHY }],
     };
     render(<StoriesTab canEdit />);
     open("Runs");
     expect(screen.getAllByText((t) => t.includes("problem 7: the party never met that creature"))).toHaveLength(2);
+    expect(screen.getByText("QRST")).toBeInTheDocument(); // the story's game code
+    expect(screen.getByText("WXYZ")).toBeInTheDocument(); // and the call's
+    expect(screen.getAllByRole("columnheader", { name: "Game" })).toHaveLength(2);
   });
 
   it("downloads the last rejected text as a Markdown file with its reason, and offers it only where one is kept", async () => {
