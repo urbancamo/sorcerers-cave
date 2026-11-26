@@ -24,6 +24,7 @@ const BATCH = 3;
 const promptFields = {
   writer: v.string(), editor: v.string(), model: v.string(), minWords: v.number(), maxWords: v.number(),
   planner: v.optional(v.string()), factCheck: v.optional(v.string()), voices: v.optional(v.string()), bible: v.optional(v.string()), characters: v.optional(v.string()),
+  disabled: v.optional(v.array(v.union(v.literal("planner"), v.literal("factCheck"), v.literal("editor"), v.literal("voices"), v.literal("bible"), v.literal("characters")))),
 };
 const FALLBACK_COST_PER_STORY = 0.3; // used for an estimate before any story has been written (five calls: plan, write, check, edit, check)
 
@@ -94,10 +95,10 @@ export const prompts = query({
     const d = defaultPrompt();
     return {
       activeVersion: versions[0]?.version ?? 0,
-      defaults: { writer: d.writer, editor: d.editor, model: d.model, minWords: d.minWords, maxWords: d.maxWords, planner: d.planner, factCheck: d.factCheck, voices: d.voices, bible: d.bible, characters: d.characters },
+      defaults: { writer: d.writer, editor: d.editor, model: d.model, minWords: d.minWords, maxWords: d.maxWords, planner: d.planner, factCheck: d.factCheck, voices: d.voices, bible: d.bible, characters: d.characters, disabled: [] },
       models: Object.keys(MODEL_PRICES),
       // Older versions lack the five newer fields: show today's defaults for them, which is what they actually use.
-      versions: versions.map((p) => ({ version: p.version, writer: p.writer, editor: p.editor, model: p.model, minWords: p.minWords, maxWords: p.maxWords, planner: p.planner ?? d.planner, factCheck: p.factCheck ?? d.factCheck, voices: p.voices ?? d.voices, bible: p.bible ?? d.bible, characters: p.characters ?? d.characters, note: p.note ?? null, createdAt: p.createdAt })),
+      versions: versions.map((p) => ({ version: p.version, writer: p.writer, editor: p.editor, model: p.model, minWords: p.minWords, maxWords: p.maxWords, planner: p.planner ?? d.planner, factCheck: p.factCheck ?? d.factCheck, voices: p.voices ?? d.voices, bible: p.bible ?? d.bible, characters: p.characters ?? d.characters, disabled: p.disabled ?? [], note: p.note ?? null, createdAt: p.createdAt })),
     };
   },
 });

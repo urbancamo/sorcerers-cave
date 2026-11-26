@@ -270,6 +270,8 @@ export default defineSchema({
     voices: v.optional(v.string()),
     bible: v.optional(v.string()),
     characters: v.optional(v.string()),
+    // Parts switched off in this version (see SWITCHABLE in storyWriter.ts); absent: every part is on.
+    disabled: v.optional(v.array(v.union(v.literal("planner"), v.literal("factCheck"), v.literal("editor"), v.literal("voices"), v.literal("bible"), v.literal("characters")))),
     note: v.optional(v.string()),
     createdBy: v.optional(v.id("users")),
     createdAt: v.number(),

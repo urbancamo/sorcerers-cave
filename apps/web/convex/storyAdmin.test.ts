@@ -105,6 +105,13 @@ test("the planner, fact-check, voices and bible are saved with a version, valida
   expect((await admin.query(api.storyAdmin.prompts, {})).versions[0]).toMatchObject({ planner: "MY PLANNER", factCheck: "MY CHECK", voices: "solo: Just one.", bible: mine.bible });
   const used = await t.run(async (ctx) => activePrompt(ctx));
   expect(used).toMatchObject({ planner: "MY PLANNER", factCheck: "MY CHECK", voices: "solo: Just one.", bible: mine.bible });
+  expect(used.disabled).toEqual([]); // every part on unless switched off
+
+  // Parts switched off are saved with the version, shown, and used.
+  await admin.mutation(api.storyAdmin.savePrompt, { ...mine, disabled: ["factCheck", "bible"] });
+  expect((await admin.query(api.storyAdmin.prompts, {})).versions[0]).toMatchObject({ disabled: ["factCheck", "bible"], factCheck: "MY CHECK" });
+  expect((await t.run(async (ctx) => activePrompt(ctx))).disabled).toEqual(["factCheck", "bible"]);
+  await expect(admin.mutation(api.storyAdmin.savePrompt, { ...mine, disabled: ["writer"] as never })).rejects.toThrow(); // the writer cannot be switched off
 
   // Bad edits are refused with the reason.
   await expect(admin.mutation(api.storyAdmin.savePrompt, { ...newPrompt, planner: " " })).rejects.toThrow(/planner prompt is empty/);

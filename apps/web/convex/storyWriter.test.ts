@@ -210,3 +210,55 @@ describe("the shape of a story: a beginning, a middle and an end", () => {
     expect(FACT_CHECK_SYSTEM).toMatch(/beginning[\s\S]*ending[\s\S]*NOT problems unless they contradict/);
   });
 });
+
+describe("parts switched off", () => {
+  const off = (...disabled: ("planner" | "factCheck" | "editor" | "voices" | "bible" | "characters")[]) => ({ ...prompt, disabled });
+
+  it("with the planner off, makes no plan and the writer is given none", async () => {
+    const { call, seen } = script(["a draft", "none", STORY, "none"]);
+    const r = await writeStory(call, off("planner"), "D");
+    expect(r.ok).toBe(true);
+    expect(r.runs.map((x) => x.pass)).toEqual(["write", "check", "edit", "check"]);
+    expect(seen[0]!.user).not.toContain("THE PLAN");
+  });
+
+  it("with the fact-checker off, checks nothing and edits once", async () => {
+    const { call } = script(["a plan", "a draft", STORY]);
+    const r = await writeStory(call, off("factCheck"), "D");
+    expect(r.ok).toBe(true);
+    expect(r.runs.map((x) => x.pass)).toEqual(["plan", "write", "edit"]);
+  });
+
+  it("with the editor off, the draft is the story: checked once, and rejected if anything is wrong with it", async () => {
+    const ok = await writeStory(script(["a plan", STORY, "none"]).call, off("editor"), "D");
+    expect(ok).toMatchObject({ ok: true, title: "The Count" });
+    if (ok.ok) expect(ok.runs.map((x) => x.pass)).toEqual(["plan", "write", "check"]);
+    expect(await writeStory(script(["a plan", STORY, "a third dragon"]).call, off("editor"), "D"))
+      .toMatchObject({ ok: false, reason: expect.stringMatching(/unsupported facts remain: a third dragon/), text: STORY });
+    expect(await writeStory(script(["a plan", "# Short\n\nToo short.", "none"]).call, off("editor"), "D")).toMatchObject({ ok: false, reason: expect.stringMatching(/^guard:/) });
+  });
+
+  it("with the editor and the fact-checker off, makes only the plan and the draft", async () => {
+    const r = await writeStory(script(["a plan", STORY]).call, off("editor", "factCheck"), "D");
+    expect(r.ok).toBe(true);
+    if (r.ok) expect(r.runs.map((x) => x.pass)).toEqual(["plan", "write"]);
+  });
+
+  it("with voices, bible or characters off, leaves them out of every message", async () => {
+    const digest = "Starting party: Hero and Dwarf.\nThe party met a Dragon.\nOutcome: escaped.";
+    const voice = pickVoice("k97abc");
+    const name = castFor(digest, "k97abc").match(/- ([^,]+), the hero:/)![1]!;
+    const { call, seen } = script(clean());
+    expect((await writeStory(call, off("voices", "characters", "bible"), digest, Date.now, "k97abc")).ok).toBe(true);
+    for (const m of seen) {
+      expect(m.user).not.toContain(voice.instruction);
+      expect(m.user).not.toContain(name);
+      expect(m.user).not.toContain("WHO IS IN IT");
+    }
+    // and switched on, the same run carries them
+    const on = script(clean());
+    await writeStory(on.call, prompt, digest, Date.now, "k97abc");
+    expect(on.seen[1]!.user).toContain(voice.instruction);
+    expect(on.seen[1]!.user).toContain(name);
+  });
+});

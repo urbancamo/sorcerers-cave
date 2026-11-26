@@ -57,6 +57,7 @@ export async function activePrompt(ctx: { db: QueryCtx["db"] }): Promise<Resolve
   return {
     version: row.version, writer: row.writer, editor: row.editor, model: row.model, minWords: row.minWords, maxWords: row.maxWords,
     planner: row.planner ?? d.planner, factCheck: row.factCheck ?? d.factCheck, voices: row.voices ?? d.voices, bible: row.bible ?? d.bible, characters: row.characters ?? d.characters,
+    disabled: row.disabled ?? [],
   };
 }
 

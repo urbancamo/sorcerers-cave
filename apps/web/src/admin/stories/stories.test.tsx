@@ -76,14 +76,14 @@ describe("Prompt editor", () => {
     save.mockResolvedValue(2);
     render(<StoriesTab canEdit />);
     open("Prompt");
-    const writer = screen.getByLabelText(/Writer prompt/);
+    const writer = screen.getByRole("textbox", { name: /Writer prompt/ });
     expect(writer).toHaveValue("V1 WRITER");
     expect(screen.getByRole("button", { name: "Save as a new version" })).toBeDisabled();
     fireEvent.change(writer, { target: { value: "V2 WRITER" } });
     expect(screen.getByText(/Changed from version 1: writer prompt/)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText(/Note for this version/), { target: { value: "shorter" } });
     fireEvent.click(screen.getByRole("button", { name: "Save as a new version" }));
-    await waitFor(() => expect(save).toHaveBeenCalledWith({ ...defaults, writer: "V2 WRITER", note: "shorter" }));
+    await waitFor(() => expect(save).toHaveBeenCalledWith({ ...defaults, disabled: [], writer: "V2 WRITER", note: "shorter" }));
     expect(await screen.findByText(/Saved as version 2/)).toBeInTheDocument();
   });
 
@@ -91,32 +91,61 @@ describe("Prompt editor", () => {
     save.mockResolvedValue(2);
     render(<StoriesTab canEdit />);
     open("Prompt");
-    expect(screen.getByLabelText(/Planner prompt/)).toHaveValue("DEFAULT PLANNER");
-    expect(screen.getByLabelText(/Fact-check prompt/)).toHaveValue("DEFAULT FACT CHECK");
-    expect(screen.getByLabelText(/Voices \(one per paragraph/)).toHaveValue("solo: A voice.");
-    expect(screen.getByLabelText(/Story bible/)).toHaveValue("## header\nDEFAULT BIBLE");
-    fireEvent.change(screen.getByLabelText(/Planner prompt/), { target: { value: "NEW PLANNER" } });
-    fireEvent.change(screen.getByLabelText(/Story bible/), { target: { value: "## header\nNEW BIBLE" } });
-    expect(screen.getByLabelText(/Story characters/)).toHaveValue("## header\nDEFAULT CHARACTERS");
-    fireEvent.change(screen.getByLabelText(/Story characters/), { target: { value: "## header\nNEW CHARACTERS" } });
+    expect(screen.getByRole("textbox", { name: /Planner prompt/ })).toHaveValue("DEFAULT PLANNER");
+    expect(screen.getByRole("textbox", { name: /Fact-check prompt/ })).toHaveValue("DEFAULT FACT CHECK");
+    expect(screen.getByRole("textbox", { name: "Voices" })).toHaveValue("solo: A voice.");
+    expect(screen.getByRole("textbox", { name: /Story bible/ })).toHaveValue("## header\nDEFAULT BIBLE");
+    fireEvent.change(screen.getByRole("textbox", { name: /Planner prompt/ }), { target: { value: "NEW PLANNER" } });
+    fireEvent.change(screen.getByRole("textbox", { name: /Story bible/ }), { target: { value: "## header\nNEW BIBLE" } });
+    expect(screen.getByRole("textbox", { name: /Story characters/ })).toHaveValue("## header\nDEFAULT CHARACTERS");
+    fireEvent.change(screen.getByRole("textbox", { name: /Story characters/ }), { target: { value: "## header\nNEW CHARACTERS" } });
     expect(screen.getByText(/Changed from version 1: planner prompt, story bible, story characters/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Save as a new version" }));
-    await waitFor(() => expect(save).toHaveBeenCalledWith({ ...defaults, writer: "V1 WRITER", planner: "NEW PLANNER", bible: "## header\nNEW BIBLE", characters: "## header\nNEW CHARACTERS", note: undefined }));
+    await waitFor(() => expect(save).toHaveBeenCalledWith({ ...defaults, disabled: [], writer: "V1 WRITER", planner: "NEW PLANNER", bible: "## header\nNEW BIBLE", characters: "## header\nNEW CHARACTERS", note: undefined }));
   });
 
   it("shows the new fields read-only without the Stories role", () => {
     render(<StoriesTab canEdit={false} />);
     open("Prompt");
-    expect(screen.getByLabelText(/Story bible/)).toHaveAttribute("readonly");
-    expect(screen.getByLabelText(/Story characters/)).toHaveAttribute("readonly");
-    expect(screen.getByLabelText(/Planner prompt/)).toHaveAttribute("readonly");
+    expect(screen.getByRole("textbox", { name: /Story bible/ })).toHaveAttribute("readonly");
+    expect(screen.getByRole("textbox", { name: /Story characters/ })).toHaveAttribute("readonly");
+    expect(screen.getByRole("textbox", { name: /Planner prompt/ })).toHaveAttribute("readonly");
+  });
+
+  it("switches a prompt part off and on, explains what that does, and saves which parts are off", async () => {
+    save.mockResolvedValue(2);
+    render(<StoriesTab canEdit />);
+    open("Prompt");
+    expect(screen.queryByRole("switch", { name: /Writer prompt/ })).toBeNull(); // the writer is always on
+    const factCheck = screen.getByRole("switch", { name: "3. Fact-check prompt: on" });
+    expect(factCheck).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(factCheck);
+    fireEvent.click(screen.getByRole("switch", { name: "Voices: on" }));
+    expect(screen.getByRole("switch", { name: "3. Fact-check prompt: off" })).toHaveAttribute("aria-checked", "false");
+    expect(screen.getByText(/no story is ever rejected for its facts/)).toBeInTheDocument();
+    expect(screen.getByRole("textbox", { name: /Fact-check prompt/ })).toHaveValue("DEFAULT FACT CHECK"); // the text is kept
+    expect(screen.getByText(/Changed from version 1: which parts are on/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Save as a new version" }));
+    await waitFor(() => expect(save).toHaveBeenCalledWith(expect.objectContaining({ disabled: ["factCheck", "voices"] })));
+  });
+
+  it("a part switched back on is no longer a change, and the switches cannot be used without the Stories role", () => {
+    const { unmount } = render(<StoriesTab canEdit />);
+    open("Prompt");
+    fireEvent.click(screen.getByRole("switch", { name: "1. Planner prompt: on" }));
+    fireEvent.click(screen.getByRole("switch", { name: "1. Planner prompt: off" }));
+    expect(screen.getByText(/No changes from version 1/)).toBeInTheDocument();
+    unmount();
+    render(<StoriesTab canEdit={false} />);
+    open("Prompt");
+    expect(screen.getByRole("switch", { name: "1. Planner prompt: on" })).toBeDisabled();
   });
 
   it("can load the source defaults into the editor", () => {
     render(<StoriesTab canEdit />);
     open("Prompt");
     fireEvent.change(screen.getByLabelText("Load a version"), { target: { value: "defaults" } });
-    expect(screen.getByLabelText(/Writer prompt/)).toHaveValue("DEFAULT WRITER");
+    expect(screen.getByRole("textbox", { name: /Writer prompt/ })).toHaveValue("DEFAULT WRITER");
   });
 
   it("a failed trial offers its rejected text as a download", async () => {
@@ -136,7 +165,7 @@ describe("Prompt editor", () => {
     tryIt.mockResolvedValue({ ok: true, title: "Trial Tale", text: "# Trial Tale\n\nOnce there was a cave.", words: 1500, costUsd: 0.1 });
     render(<StoriesTab canEdit />);
     open("Prompt");
-    fireEvent.change(screen.getByLabelText(/Writer prompt/), { target: { value: "TRY THIS" } });
+    fireEvent.change(screen.getByRole("textbox", { name: /Writer prompt/ }), { target: { value: "TRY THIS" } });
     fireEvent.change(screen.getByLabelText("Game to write from"), { target: { value: "hs1" } });
     fireEvent.click(screen.getByRole("button", { name: "Write a trial story" }));
     expect(await screen.findByText("Once there was a cave.")).toBeInTheDocument();
@@ -147,7 +176,7 @@ describe("Prompt editor", () => {
   it("is read-only without SYSTEM", () => {
     render(<StoriesTab canEdit={false} />);
     open("Prompt");
-    expect(screen.getByLabelText(/Writer prompt/)).toHaveAttribute("readonly");
+    expect(screen.getByRole("textbox", { name: /Writer prompt/ })).toHaveAttribute("readonly");
     expect(screen.queryByRole("button", { name: "Save as a new version" })).toBeNull();
   });
 });

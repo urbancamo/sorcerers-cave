@@ -12,11 +12,17 @@ import { castFor, renderCharacters } from "./storyCharacters";
 export type ModelCall = (a: { model: string; system: string; user: string; maxTokens: number }) => Promise<{ text: string; inputTokens: number; outputTokens: number }>;
 
 /** Everything the generator reads. `planner`, `factCheck`, `voices` and `bible` are text (voices and bible in the formats of `parseVoices` and `parseBible`). */
+/** The parts of the prompt an admin can switch off (the writer cannot: without it there is no story). */
+export const SWITCHABLE = ["planner", "factCheck", "editor", "voices", "bible", "characters"] as const;
+export type SwitchablePart = (typeof SWITCHABLE)[number];
+
 export interface ResolvedPrompt {
   version: number; writer: string; editor: string; model: string; minWords: number; maxWords: number;
   planner: string; factCheck: string; voices: string; bible: string;
   /** The story characters (class entries, names, pools and pairings), in the format of `parseCharacters`. */
   characters: string;
+  /** Parts switched off for this version: their calls are skipped, or their text is left out of the messages. Empty or absent: all on. */
+  disabled?: readonly SwitchablePart[];
 }
 
 /** The prompt used when none has been saved in the admin panel: the defaults in storyPrompt.ts (version 0). */
@@ -81,11 +87,13 @@ export function parseFactCheck(raw: string): string[] | null {
  */
 export async function writeStory(call: ModelCall, prompt: ResolvedPrompt, digestText: string, now: () => number = Date.now, voiceKey = ""): Promise<WriteResult> {
   const runs: RunRecord[] = [];
+  const off = new Set(prompt.disabled ?? []);
   const voices = parseVoices(prompt.voices).voices;
-  const voice = pickVoice(voiceKey, voices.length ? voices : undefined);
+  const voice = off.has("voices") ? undefined : pickVoice(voiceKey, voices.length ? voices : undefined);
   // lore for just the creatures, objects and places in this run, then the named company of the party (fixed names, pools to pick from)
-  const people = castFor(digestText, voiceKey, prompt.characters);
-  const bible = [bibleFor(digestText, prompt.bible), people].filter(Boolean).join("\n\n");
+  const people = off.has("characters") ? "" : castFor(digestText, voiceKey, prompt.characters);
+  const lore = off.has("bible") ? "" : bibleFor(digestText, prompt.bible);
+  const bible = [lore, people].filter(Boolean).join("\n\n");
 
   /** One model call, recorded as a run whatever happens. Returns the text, or null after recording the failure. */
   const attempt = async (pass: RunRecord["pass"], system: string, user: string): Promise<string | null> => {
@@ -106,13 +114,15 @@ export async function writeStory(call: ModelCall, prompt: ResolvedPrompt, digest
     return { ok: false, reason, runs, ...(text ? { text } : {}) };
   };
 
-  const planText = await attempt("plan", prompt.planner, plannerUserMessage(digestText, voice, bible));
+  const planText = off.has("planner") ? null : await attempt("plan", prompt.planner, plannerUserMessage(digestText, voice, bible));
   const plan = planText?.trim() || undefined; // a failed plan is recorded as an error run; the story goes on without it
   const draft = await attempt("write", prompt.writer, writerUserMessage(digestText, voice, plan, bible));
   if (draft === null) return { ok: false, reason: `write failed: ${runs[runs.length - 1]!.reason}`, runs };
 
   /** Fact-check a story: the problems found, [] when it is clean, or null after recording a failure. */
+  // With the fact-checker off every story counts as clean: nothing is checked and nothing is rejected for its facts.
   const check = async (story: string): Promise<string[] | WriteResult> => {
+    if (off.has("factCheck")) return [];
     const raw = await attempt("check", prompt.factCheck, factCheckUserMessage(digestText, story));
     if (raw === null) return { ok: false, reason: `check failed: ${runs[runs.length - 1]!.reason}`, runs, text: story };
     const found = parseFactCheck(raw);
@@ -124,7 +134,10 @@ export async function writeStory(call: ModelCall, prompt: ResolvedPrompt, digest
   let guard: string[] = [];
   // Two edits at most. The first fixes the draft's fact problems and improves the telling. A second only if the edit left (or added) a fact
   // problem, or the finished text breaks a length or form rule: that is handed back to the editor too, not thrown away.
-  for (let round = 0; round < 2; round++) {
+  // With the editor off the draft is the story: it is still fact-checked (if that is on) and held to the length and form rules, but nothing
+  // can repair it, so any problem rejects it.
+  if (off.has("editor")) guard = storyProblems(story, { min: prompt.minWords, max: prompt.maxWords });
+  for (let round = 0; round < (off.has("editor") ? 0 : 2); round++) {
     if (!Array.isArray(facts)) return facts;
     const edited = await attempt("edit", prompt.editor, editorUserMessage(digestText, story, voice, [...facts, ...guard], plan, people));
     if (edited === null) return { ok: false, reason: `edit failed: ${runs[runs.length - 1]!.reason}`, runs, text: story };

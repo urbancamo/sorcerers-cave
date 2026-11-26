@@ -242,8 +242,8 @@ TITLE IDEA: a short title that is not "The Count".
 
 Use only what the record contains: you choose and arrange, you do not add events. Output the plan and nothing else.`;
 
-export const plannerUserMessage = (digestText: string, voice: StoryVoice, bible = ""): string =>
-  `THE VOICE the story will be told in: ${voice.instruction}\n\nTHE RECORD\n\n${digestText}\n\n` + (bible ? `${bible}\n\n` : "") + `Write the plan now.`;
+export const plannerUserMessage = (digestText: string, voice?: StoryVoice, bible = ""): string =>
+  (voice ? `THE VOICE the story will be told in: ${voice.instruction}\n\n` : "") + `THE RECORD\n\n${digestText}\n\n` + (bible ? `${bible}\n\n` : "") + `Write the plan now.`;
 
 /** The user message given to the writer: the digest, framed so it is read as raw material, with the voice and (when there is one) the plan. */
 export const writerUserMessage = (digestText: string, voice?: StoryVoice, plan?: string, bible = ""): string =>

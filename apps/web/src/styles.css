@@ -2813,6 +2813,14 @@ body:has(.scv-titlebar) .scv-fs-corner,body:has(.scv-replay-transport) .scv-fs-c
 .scv-bug-field textarea.scv-st-area:focus { background: #1d1d7a; box-shadow: inset 0 1px 4px rgba(0, 0, 0, 0.6), 0 0 0 2px rgba(230, 197, 120, 0.3); }
 /* Declared after the block above so it wins: iOS zooms a focused field under 16px. */
 @media (max-width: 720px) { .scv-bug-field textarea.scv-st-area { font-size: 16px; } }
+.scv-st-part { display: flex; flex-direction: column; gap: 6px; margin: 0 0 14px; }
+.scv-st-part-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.scv-st-part-title { font: 600 13px var(--ui); color: var(--parchment); }
+.scv-st-part-help { margin: 0; font: 13px/1.45 var(--ui); color: var(--stone); }
+.scv-st-part .scv-switch { font-size: 13px; }
+.scv-st-part .scv-switch:disabled { cursor: default; opacity: 0.6; }
+.scv-st-part-off .scv-st-part-title { color: var(--stone-dim); text-decoration: line-through; text-decoration-color: var(--stone-dim); }
+.scv-st-part-off .scv-st-area { opacity: 0.55; }
 .scv-st-export { display: inline-flex; gap: 6px; }
 .scv-st-prompt, .scv-st-rewrite { display: flex; flex-direction: column; gap: 14px; }
 .scv-st-scope { display: flex; flex-direction: column; gap: 10px; margin: 8px 0; }
